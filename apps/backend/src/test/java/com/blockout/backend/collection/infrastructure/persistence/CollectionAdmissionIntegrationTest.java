@@ -11,6 +11,7 @@ import com.blockout.backend.collection.application.model.CollectionState.StartCy
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.collection.application.service.CollectionCycleService;
 import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
@@ -38,11 +39,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -51,7 +56,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -78,7 +85,7 @@ class CollectionAdmissionIntegrationTest {
   @Autowired private JdbcTemplate sql;
   @Autowired private PlatformTransactionManager transactions;
   @Autowired private EntityManagerFactory entityManagerFactory;
-  @Autowired private CollectionStore store;
+  @MockitoSpyBean private CollectionStore store;
   private UUID season;
 
   /**
@@ -422,6 +429,121 @@ class CollectionAdmissionIntegrationTest {
     } finally {
       statistics.setStatisticsEnabled(enabled);
     }
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = CollectionFamilyEnum.class,
+      names = {"CLUB_SHEETS", "GEOCODING"})
+  @DisplayName("Concurrent club creation before the page boundary preserves the admitted selection")
+  void preservesClubsAcrossConcurrentCreation(CollectionFamilyEnum family) {
+    // Given
+    sql.update(
+        "UPDATE collection_control SET season_id = NULL, family = ? WHERE id = ?",
+        family.name(),
+        CONTROL);
+    sql.update(
+        "INSERT INTO sporting_club(id, provider, reference, municipality) SELECT ('00000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid, 'FFVB', n::text, 'Paris' FROM generate_series(1000, 1200) n");
+    List<UUID> initialClubs =
+        sql.queryForList("SELECT id FROM sporting_club ORDER BY id", UUID.class);
+    AtomicBoolean changed = new AtomicBoolean();
+    TransactionTemplate independent = new TransactionTemplate(transactions);
+    independent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    Mockito.doAnswer(
+            invocation -> {
+              Object result = invocation.callRealMethod();
+              if (changed.compareAndSet(false, true))
+                independent.executeWithoutResult(
+                    status ->
+                        sql.update(
+                            "INSERT INTO sporting_club(id, provider, reference, municipality) VALUES ('00000000-0000-4000-8000-000000000999', 'FFVB', '999', 'Paris')"));
+              return result;
+            })
+        .when(store)
+        .addTargets(Mockito.eq(CYCLE), Mockito.anyList());
+
+    // When
+    Admission admission = cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
+
+    // Then
+    assertThat(admission.created()).isTrue();
+    assertThat(
+            sql.queryForList(
+                "SELECT scope_id FROM collection_target WHERE cycle_id = ? ORDER BY scope_id",
+                UUID.class,
+                CYCLE))
+        .containsExactlyElementsOf(initialClubs);
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_club", Long.class)).isEqualTo(202);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  @DisplayName("Concurrent division activity changes preserve every already eligible pool")
+  void preservesPoolsAcrossDivisionActivity(boolean activate) {
+    // Given
+    UUID pack = UUID.fromString("00000000-0000-4000-8000-000000000177");
+    UUID changingDivision = UUID.fromString("00000000-0000-4000-8000-000000000176");
+    sql.update(
+        "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'Synthetic division', TRUE, '#112233')",
+        DIVISION);
+    sql.update(
+        "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'Changing division', ?, '#112233')",
+        changingDivision,
+        !activate);
+    sql.update(
+        "INSERT INTO sporting_pack(id, season_id, provider, organizer_reference, reference) VALUES (?, ?, 'FFVB', 'ABCCS', 'PACK')",
+        pack,
+        season);
+    sql.update(
+        "INSERT INTO sporting_pool(id, season_id, pack_id, provider, organizer_reference, competition_reference, reference, source_name, setting_division_id, setting_format, setting_gender, calendar_url) SELECT ('00000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid, ?, ?, 'FFVB', 'ABCCS', 'N2', n::text, 'Synthetic pool', ?, '_6X6', 'MALE', 'https://www.ffvb.org/calendar' FROM generate_series(1000, 1200) n",
+        season,
+        pack,
+        DIVISION);
+    sql.update(
+        "INSERT INTO sporting_pool(id, season_id, pack_id, provider, organizer_reference, competition_reference, reference, source_name, setting_division_id, setting_format, setting_gender, calendar_url) SELECT '00000000-0000-4000-8000-000000000999', season_id, pack_id, provider, organizer_reference, competition_reference, '999', 'Changing pool', ?, setting_format, setting_gender, calendar_url FROM sporting_pool WHERE id = '00000000-0000-4000-8000-000000001000'",
+        changingDivision);
+    List<UUID> initialPools =
+        sql.queryForList(
+            "SELECT p.id FROM sporting_pool p JOIN sporting_division d ON d.id = p.setting_division_id WHERE d.active ORDER BY p.id",
+            UUID.class);
+    AtomicBoolean changed = new AtomicBoolean();
+    TransactionTemplate independent = new TransactionTemplate(transactions);
+    independent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    Mockito.doAnswer(
+            invocation -> {
+              Object result = invocation.callRealMethod();
+              List<CollectionState.Target> targets = invocation.getArgument(1);
+              if (!targets.isEmpty()
+                  && targets.getFirst().kind() == CollectionTargetKindEnum.CALENDAR
+                  && changed.compareAndSet(false, true))
+                independent.executeWithoutResult(
+                    status ->
+                        sql.update(
+                            "UPDATE sporting_division SET active = ? WHERE id = ?",
+                            activate,
+                            changingDivision));
+              return result;
+            })
+        .when(store)
+        .addTargets(Mockito.eq(CYCLE), Mockito.anyList());
+
+    // When
+    Admission admission = cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
+
+    // Then
+    assertThat(admission.created()).isTrue();
+    assertThat(
+            sql.queryForList(
+                "SELECT scope_id FROM collection_target WHERE cycle_id = ? AND kind = 'CALENDAR' ORDER BY scope_id",
+                UUID.class,
+                CYCLE))
+        .containsExactlyElementsOf(initialPools);
+    assertThat(
+            sql.queryForObject(
+                "SELECT active FROM sporting_division WHERE id = ?",
+                Boolean.class,
+                changingDivision))
+        .isEqualTo(activate);
   }
 
   @Test

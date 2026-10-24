@@ -165,7 +165,7 @@ public class SportingReadService {
    * @param initialImport permits qualified historical references absent from the current catalog
    * @param organizerReference qualified source binding
    * @param now admission instant
-   * @param page bounded pool page
+   * @param afterId exclusive last visited pool identity, or null for the first batch
    * @return eligible current acquisition references, not published classification fallbacks
    */
   public List<AcquisitionReference> acquisitionPools(
@@ -174,8 +174,9 @@ public class SportingReadService {
       String organizerReference,
       boolean initialImport,
       Instant now,
-      int page) {
-    return store.acquisitionPools(seasonId, provider, organizerReference, initialImport, now, page);
+      UUID afterId) {
+    return store.acquisitionPools(
+        seasonId, provider, organizerReference, initialImport, now, afterId);
   }
 
   /**
@@ -195,11 +196,12 @@ public class SportingReadService {
    *
    * @param geocoding selects municipal needs rather than club sheets
    * @param manual explicit family rerun may revisit ordinary no-result localities
-   * @param page bounded owner page
+   * @param afterId exclusive last visited club identity, or null for the first batch
    * @return identities only; permitted locality is resolved when serving targets
    */
-  public List<AcquisitionReference> acquisitionClubs(boolean geocoding, boolean manual, int page) {
-    return store.acquisitionClubs(geocoding, manual, page);
+  public List<AcquisitionReference> acquisitionClubs(
+      boolean geocoding, boolean manual, UUID afterId) {
+    return store.acquisitionClubs(geocoding, manual, afterId);
   }
 
   /**

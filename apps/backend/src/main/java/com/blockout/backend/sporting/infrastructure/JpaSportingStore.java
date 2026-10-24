@@ -107,10 +107,10 @@ public class JpaSportingStore implements SportingStore {
       String organizerReference,
       boolean initialImport,
       Instant now,
-      int page) {
+      UUID afterId) {
     List<PoolEntity> selected =
         pools.acquisitionPools(
-            seasonId, provider, organizerReference, initialImport, PageRequest.of(page, 200));
+            seasonId, provider, organizerReference, initialImport, afterId, PageRequest.of(0, 200));
     if (selected.isEmpty()) return List.of();
     Map<UUID, Instant> windows =
         matches
@@ -176,8 +176,9 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
-  public List<AcquisitionReference> acquisitionClubs(boolean geocoding, boolean manual, int page) {
-    return clubs.acquisitionClubs(geocoding, manual, PageRequest.of(page, 200)).stream()
+  public List<AcquisitionReference> acquisitionClubs(
+      boolean geocoding, boolean manual, UUID afterId) {
+    return clubs.acquisitionClubs(geocoding, manual, afterId, PageRequest.of(0, 200)).stream()
         .map(
             club ->
                 new AcquisitionReference(

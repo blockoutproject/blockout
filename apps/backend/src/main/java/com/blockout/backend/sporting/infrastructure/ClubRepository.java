@@ -11,21 +11,23 @@ import org.springframework.data.jpa.repository.Query;
 /** Native Spring Data access to the sporting club owner. */
 interface ClubRepository extends JpaRepository<ClubEntity, UUID> {
   /**
-   * Selects current seasonless acquisition needs in a bounded page.
+   * Selects current seasonless acquisition needs strictly after the visited identity boundary.
    *
    * @param geocoding whether to select current municipal needs
    * @param manual explicit request may repeat an unchanged ordinary no-result
-   * @param page bounded native page
+   * @param afterId exclusive last visited identity, or null to start
+   * @param page first page limiting the next batch
    * @return stable FFVB club references with current eligible needs
    */
   @Query(
       """
       SELECT c FROM ClubEntity c WHERE c.provider = CollectionProviderEnum.FFVB
+      AND (:afterId IS NULL OR c.id > :afterId)
       AND (:geocoding = FALSE OR (c.hasCoordinates = FALSE AND c.municipalityRestricted = FALSE
         AND c.municipality IS NOT NULL AND (:manual = TRUE OR c.geocodedRevision IS NULL OR c.geocodedRevision <> c.localityRevision)))
       ORDER BY c.id
       """)
-  List<ClubEntity> acquisitionClubs(boolean geocoding, boolean manual, Pageable page);
+  List<ClubEntity> acquisitionClubs(boolean geocoding, boolean manual, UUID afterId, Pageable page);
 
   /**
    * Finds the exact provider-qualified persistent organization.

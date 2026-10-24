@@ -62,7 +62,7 @@ public interface SportingStore {
    * @param initialImport permits qualified historical references absent from the current catalog
    * @param organizerReference exact binding context
    * @param now admission instant for reliable fast windows
-   * @param page bounded pool page
+   * @param afterId exclusive last visited pool identity, or null for the first batch
    * @return qualified calendar/standings references for at most 200 selected pools
    */
   List<AcquisitionReference> acquisitionPools(
@@ -71,7 +71,7 @@ public interface SportingStore {
       String organizerReference,
       boolean initialImport,
       Instant now,
-      int page);
+      UUID afterId);
 
   /**
    * Reads qualified detail references in bounded owner pages.
@@ -88,10 +88,10 @@ public interface SportingStore {
    *
    * @param geocoding select current geocoding needs rather than club-sheet references
    * @param manual whether to revisit ordinary no-result localities
-   * @param page bounded club page
+   * @param afterId exclusive last visited club identity, or null for the first batch
    * @return stable current club references without personal values
    */
-  List<AcquisitionReference> acquisitionClubs(boolean geocoding, boolean manual, int page);
+  List<AcquisitionReference> acquisitionClubs(boolean geocoding, boolean manual, UUID afterId);
 
   /**
    * Resolves currently permitted localities in one batch.

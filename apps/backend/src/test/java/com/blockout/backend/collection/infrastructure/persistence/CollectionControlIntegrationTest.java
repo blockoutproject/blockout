@@ -547,7 +547,7 @@ class CollectionControlIntegrationTest {
     assertThat(details.getFirst().fastWindowEndsAt())
         .isEqualTo(fast ? start.plusSeconds(14400) : null);
     List<AcquisitionReference> pools =
-        sporting.acquisitionPools(season, CollectionProviderEnum.LNV, "LNV", false, now, 0);
+        sporting.acquisitionPools(season, CollectionProviderEnum.LNV, "LNV", false, now, null);
     assertThat(pools).hasSize(1);
     assertThat(pools.getFirst().fastWindowEndsAt())
         .isEqualTo(fast ? start.plusSeconds(14400) : null);
@@ -571,7 +571,7 @@ class CollectionControlIntegrationTest {
     assertThat(sporting.acquisitionDetails(pool, now, 0).getFirst().fastWindowEndsAt()).isNull();
     assertThat(
             sporting
-                .acquisitionPools(season, CollectionProviderEnum.LNV, "LNV", false, now, 0)
+                .acquisitionPools(season, CollectionProviderEnum.LNV, "LNV", false, now, null)
                 .getFirst()
                 .fastWindowEndsAt())
         .isNull();

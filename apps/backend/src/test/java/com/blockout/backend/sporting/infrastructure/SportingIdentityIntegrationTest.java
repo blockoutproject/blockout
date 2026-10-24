@@ -160,7 +160,7 @@ class SportingIdentityIntegrationTest {
 
     // When
     List<AcquisitionReference> references =
-        reads.acquisitionPools(season.id(), CollectionProviderEnum.FFVB, "LIG", false, now, 0);
+        reads.acquisitionPools(season.id(), CollectionProviderEnum.FFVB, "LIG", false, now, null);
 
     // Then
     assertThat(references)

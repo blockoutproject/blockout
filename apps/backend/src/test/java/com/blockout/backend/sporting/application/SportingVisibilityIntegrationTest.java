@@ -249,7 +249,7 @@ class SportingVisibilityIntegrationTest {
     assertThat(reads.publicMatch(match)).isEmpty();
     assertThat(
             reads.acquisitionPools(
-                season, CollectionProviderEnum.FFVB, "SYNTHETIC", false, NOW.toInstant(), 0))
+                season, CollectionProviderEnum.FFVB, "SYNTHETIC", false, NOW.toInstant(), null))
         .extracting(reference -> reference.scopeId())
         .contains(pool);
   }
