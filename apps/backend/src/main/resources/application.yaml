@@ -35,6 +35,15 @@ server:
     max-swallow-size: 27MB
 
 blockout:
+  consultation:
+    documents:
+      # Consumed by the document story adapter after origin/transport qualification.
+      connect-timeout: 3s
+      read-timeout: 5s
+      max-bytes: 20971520
+      max-redirects: 3
+      # Empty by default: no provider origin is activated by the foundation.
+      allowed-origins: []
   accounts:
     auth0:
       audience: ${BLOCKOUT_ACCOUNTS_AUTH0_AUDIENCE:}
