@@ -16,23 +16,8 @@ export interface ApiFetchOptions extends RequestInit {
   /** Positive integer milliseconds before the transport stops waiting; defaults to 15 seconds. */
   timeoutMs?: number;
   responseType?: "blob";
-}
-
-/** Root-owned admission adapter; called only for validated Blockout destinations and current results. */
-export interface ApiAdmission {
-  prepare(path: string, options: ApiFetchOptions): Promise<ApiFetchOptions>;
-  accept(path: string, data: unknown, schema: ZodType | undefined): void;
-  refuse(path: string, error: ApiError, options: ApiFetchOptions): void;
-}
-
-let admission: ApiAdmission | undefined;
-
-/** Binds the active process policy without making shared transport depend on a feature. */
-export function bindApiAdmission(value: ApiAdmission): () => void {
-  admission = value;
-  return () => {
-    if (admission === value) admission = undefined;
-  };
+  /** Observes a current, validated HTTP refusal for this caller; transport owns no business policy. */
+  onHttpError?(error: ApiError): void;
 }
 
 /** A safe transport failure; the server problem type retains its canonical meaning. */
@@ -97,28 +82,22 @@ export async function apiFetch(
   } catch {
     throw new ApiError("configuration");
   }
-  const policy = admission;
-  assertCurrentSession(options.session);
-  if (policy) options = await policy.prepare(destination.pathname, options);
   const {
     schema,
     timeoutMs = 15_000,
     responseType,
     signal,
     session,
+    onHttpError,
     ...request
   } = options;
   assertCurrentSession(session);
-  try {
-    if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) {
-      throw new Error("Invalid backend destination");
-    }
-  } catch {
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0)
     throw new ApiError("configuration");
-  }
   const deadline = AbortSignal.timeout(timeoutMs);
   const requestSignal = signal ? AbortSignal.any([signal, deadline]) : deadline;
   try {
+    requestSignal.throwIfAborted();
     const response = await fetch(destination.href, {
       ...request,
       signal: requestSignal,
@@ -161,14 +140,13 @@ export async function apiFetch(
     }
     requestSignal.throwIfAborted();
     assertCurrentSession(session);
-    policy?.accept(destination.pathname, data, schema);
     return data;
   } catch (error) {
     assertCurrentSession(session);
     if (signal?.aborted) throw new ApiError("cancelled");
     if (deadline.aborted) throw new ApiError("timeout");
     if (error instanceof ApiError) {
-      policy?.refuse(destination.pathname, error, options);
+      if (error.kind === "http") onHttpError?.(error);
       throw error;
     }
     throw new ApiError("network");

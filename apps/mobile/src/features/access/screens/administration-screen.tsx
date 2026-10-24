@@ -39,6 +39,56 @@ export function AdministrationScreen({
       backgroundColor: colors.surface,
     },
   ];
+  let content = null;
+  if (!admitted) {
+    content = (
+      <RequestError message="L’accès à l’application doit être vérifié avant de continuer." />
+    );
+  } else if (
+    sessionStatus === "restoring" ||
+    (sessionStatus === "authenticated" && account.isPending)
+  ) {
+    content = <RequestLoading />;
+  } else if (sessionStatus === "authenticated" && account.isError) {
+    content = (
+      <RequestError
+        message="Les permissions du compte sont indisponibles."
+        onRetry={() => void account.refetch()}
+        retrying={account.isFetching}
+      />
+    );
+  } else if (!hasCommands && !onBypass) {
+    content = (
+      <RequestError message="Cette action nécessite une permission dédiée." />
+    );
+  } else {
+    content = (
+      <>
+        {onBypass && (
+          <Button
+            label="Accéder à l’application pendant la maintenance"
+            onPress={onBypass}
+            fullWidth
+          />
+        )}
+        {permissions?.manageMaintenance === true && (
+          <Link href="/administration/maintenance" style={linkStyle}>
+            Maintenance
+          </Link>
+        )}
+        {permissions?.manageApplicationVersions === true && (
+          <Link href="/administration/application-versions" style={linkStyle}>
+            Versions minimales
+          </Link>
+        )}
+        {permissions?.manageCollection === true && (
+          <Link href="/administration/collections" style={linkStyle}>
+            Collectes
+          </Link>
+        )}
+      </>
+    );
+  }
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <View style={styles.header}>
@@ -56,50 +106,7 @@ export function AdministrationScreen({
           Administration technique
         </Text>
       </View>
-      <ScrollView contentContainerStyle={styles.content}>
-        {!admitted ? (
-          <RequestError message="L’accès à l’application doit être vérifié avant de continuer." />
-        ) : sessionStatus === "restoring" ||
-          (sessionStatus === "authenticated" && account.isPending) ? (
-          <RequestLoading />
-        ) : sessionStatus === "authenticated" && account.isError ? (
-          <RequestError
-            message="Les permissions du compte sont indisponibles."
-            onRetry={() => void account.refetch()}
-            retrying={account.isFetching}
-          />
-        ) : !hasCommands && !onBypass ? (
-          <RequestError message="Cette action nécessite une permission dédiée." />
-        ) : (
-          <>
-            {onBypass && (
-              <Button
-                label="Accéder à l’application pendant la maintenance"
-                onPress={onBypass}
-                fullWidth
-              />
-            )}
-            {permissions?.manageMaintenance === true && (
-              <Link href="/administration/maintenance" style={linkStyle}>
-                Maintenance
-              </Link>
-            )}
-            {permissions?.manageApplicationVersions === true && (
-              <Link
-                href="/administration/application-versions"
-                style={linkStyle}
-              >
-                Versions minimales
-              </Link>
-            )}
-            {permissions?.manageCollection === true && (
-              <Link href="/administration/collections" style={linkStyle}>
-                Collectes
-              </Link>
-            )}
-          </>
-        )}
-      </ScrollView>
+      <ScrollView contentContainerStyle={styles.content}>{content}</ScrollView>
     </SafeAreaView>
   );
 }

@@ -82,22 +82,20 @@ public class LnvObservationReader implements LnvAcquisition {
                 target.competitionReference(),
                 target.poolReference(),
                 target.groupReference());
-        String title =
-            LnvPage.parse(response.body(), response.url())
-                .getElementById("Content_Main_" + target.groupReference())
-                .select("[id$=lbl_title]")
-                .text();
         return new Calendar(
-            read.calendar(), read.logos(), observedAt, documents.competitionCode(title));
+            read.calendar(),
+            read.logos(),
+            observedAt,
+            documents.competitionCode(read.groupTitle()));
       }
 
       /** {@inheritDoc} */
       @Override
       public Read<SportingObservation.Standings> standings(CollectionBackend.Target target) {
         requireSeason(response, target);
-        if (!target.competitionReference().equals(LnvPage.query(response.url()).get("ID"))
-            || LnvPage.query(response.url()).containsKey("PID")
-                && !target.poolReference().equals(LnvPage.query(response.url()).get("PID")))
+        Map<String, String> fields = LnvPage.query(response.url());
+        if (!target.competitionReference().equals(fields.get("ID"))
+            || fields.containsKey("PID") && !target.poolReference().equals(fields.get("PID")))
           throw LnvPage.invalid();
         return new Read<>(
             standings.parse(response.body(), response.url(), target.groupReference()), observedAt);

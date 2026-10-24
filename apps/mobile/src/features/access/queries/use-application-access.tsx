@@ -38,6 +38,7 @@ function useProcessAccess() {
         try {
           const value = await getApplicationAccess({ signal });
           if (!observations.complete(value)) throw new ApiError("schema");
+          if (!value.maintenance.active) bypass.clear();
           return value;
         } catch (error) {
           observations.fail();

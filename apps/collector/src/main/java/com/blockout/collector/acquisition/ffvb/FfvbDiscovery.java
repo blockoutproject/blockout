@@ -223,7 +223,9 @@ public class FfvbDiscovery {
     Document page = Jsoup.parse(new String(bytes, ENCODING), url.toString());
     List<URI> result = new ArrayList<>();
     for (Element link : page.select("frame[src], iframe[src], a[href], option[value]")) {
-      String attribute = link.hasAttr("src") ? "src" : link.hasAttr("href") ? "href" : "value";
+      String attribute = "value";
+      if (link.hasAttr("src")) attribute = "src";
+      else if (link.hasAttr("href")) attribute = "href";
       try {
         URI target = URI.create(link.absUrl(attribute));
         String path = target.getPath();
@@ -256,17 +258,18 @@ public class FfvbDiscovery {
     }
     Element parent = link.parent();
     while (parent != null) {
+      Element grandparent = parent.parent();
       if (parent.tagName().equals("ul")
-          && parent.parent() != null
-          && parent.parent().tagName().equals("li")) {
+          && grandparent != null
+          && grandparent.tagName().equals("li")) {
         Element heading =
-            parent.parent().children().stream()
+            grandparent.children().stream()
                 .filter(child -> child.tagName().equals("a"))
                 .findFirst()
                 .orElse(null);
         if (heading != null && !heading.text().equals("Compétitions")) return heading.text();
       }
-      parent = parent.parent();
+      parent = grandparent;
     }
     return null;
   }

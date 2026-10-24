@@ -1,3 +1,5 @@
+import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -38,7 +40,9 @@ jest.mock("expo-router", () => ({
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, request?: RequestInit) =>
-    mockFetch(url, request),
+    String(url).endsWith("/application-access")
+      ? Promise.resolve(Response.json(mockApplicationAccessResponse()))
+      : mockFetch(url, request),
 }));
 jest.mock("expo-image-picker", () => ({ launchImageLibraryAsync: jest.fn() }));
 jest.mock("expo-image-manipulator", () => ({
@@ -120,10 +124,12 @@ async function renderProfile(admitted = true) {
   await render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
-        <AccountSessionProvider>
-          <ProfileScreen admitted={admitted} proEntry={null} />
-          <SessionActions />
-        </AccountSessionProvider>
+        <ApplicationAccessProvider>
+          <AccountSessionProvider>
+            <ProfileScreen admitted={admitted} proEntry={null} />
+            <SessionActions />
+          </AccountSessionProvider>
+        </ApplicationAccessProvider>
       </ThemeProvider>
     </QueryClientProvider>,
   );
@@ -239,15 +245,15 @@ it("retries the existing POST with valid credentials while preserving the userna
       "https://api.example.invalid/accounts",
       expect.objectContaining({
         method: "POST",
-        headers: expect.objectContaining({
-          Authorization: "Bearer test-access-token",
-        }),
       }),
     ],
   ]);
   const write = mockFetch.mock.calls.find(
     ([, request]) => request?.method === "POST",
   )?.[1];
+  expect(new Headers(write?.headers).get("Authorization")).toBe(
+    "Bearer test-access-token",
+  );
   expect(write?.body).toBeUndefined();
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
 });

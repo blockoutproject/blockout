@@ -88,15 +88,14 @@ function SignInJourney() {
       await session.signIn(audience);
       setLoginSucceeded(true);
     } catch (error) {
-      setLoginError(
-        error instanceof WebAuthError &&
-          error.type === WebAuthErrorCodes.USER_CANCELLED
-          ? "Connexion annulée."
-          : error instanceof WebAuthError &&
-              error.type === WebAuthErrorCodes.ACCESS_DENIED
-            ? "Connexion refusée."
-            : "La connexion est indisponible. Réessayez.",
-      );
+      let message = "La connexion est indisponible. Réessayez.";
+      if (error instanceof WebAuthError) {
+        if (error.type === WebAuthErrorCodes.USER_CANCELLED)
+          message = "Connexion annulée.";
+        else if (error.type === WebAuthErrorCodes.ACCESS_DENIED)
+          message = "Connexion refusée.";
+      }
+      setLoginError(message);
     }
   }
 

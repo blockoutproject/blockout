@@ -1,3 +1,5 @@
+import { ApplicationAccessProvider } from "../queries/use-application-access";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -44,7 +46,9 @@ jest.mock("expo-router", () => ({
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, options?: RequestInit) =>
-    mockFetch(url, options),
+    String(url).endsWith("/application-access")
+      ? Promise.resolve(Response.json(mockApplicationAccessResponse()))
+      : mockFetch(url, options),
 }));
 
 const mockFetch = jest.fn<
@@ -100,7 +104,9 @@ async function renderAdministration(
     wrapper: ({ children }) => (
       <QueryClientProvider client={client}>
         <ThemeProvider>
-          <AccountSessionProvider>{children}</AccountSessionProvider>
+          <ApplicationAccessProvider>
+            <AccountSessionProvider>{children}</AccountSessionProvider>
+          </ApplicationAccessProvider>
         </ThemeProvider>
       </QueryClientProvider>
     ),

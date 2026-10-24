@@ -51,11 +51,11 @@ public class AccessSettingsExceptionHandler extends ApiExceptionHandler {
   })
   ResponseEntity<Object> unavailable(Exception exception) {
     String reason =
-        exception instanceof AccessSettingsUnavailableException
-            ? "configuration_unavailable"
-            : exception instanceof DataAccessException
-                ? "database_unavailable"
-                : "transaction_failed";
+        switch (exception) {
+          case AccessSettingsUnavailableException _ -> "configuration_unavailable";
+          case DataAccessException _ -> "database_unavailable";
+          default -> "transaction_failed";
+        };
     LOG.atError()
         .addKeyValue("operation", "access_settings")
         .addKeyValue("outcome", "failed")

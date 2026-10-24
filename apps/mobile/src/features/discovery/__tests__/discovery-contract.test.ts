@@ -168,3 +168,38 @@ it("keeps normalized search context separate from pagination", () => {
     createDiscoveryContext("team", { q: "étoile volley" }).queryKey,
   );
 });
+
+it.each(["\u0000", "\u001c", "\ufeff"])(
+  "preserves non-whitespace control or format character %j in the key",
+  (control) => {
+    // Given
+    const input = `\u2003${control}Volley${control}\u00a0`;
+
+    // When
+    const context = createDiscoveryContext("team", { q: input });
+
+    // Then
+    expect(context.params.q).toBe(input);
+    expect(context.queryKey).toEqual(
+      createDiscoveryContext("team", { q: `${control}volley${control}` })
+        .queryKey,
+    );
+    expect(context.queryKey).not.toEqual(
+      createDiscoveryContext("team", { q: "volley" }).queryKey,
+    );
+  },
+);
+
+it("folds Unicode whitespace without changing the submitted text", () => {
+  // Given
+  const input = "\u2003Volley\u0085\u00a0Club\t";
+
+  // When
+  const context = createDiscoveryContext("team", { q: input });
+
+  // Then
+  expect(context.params.q).toBe(input);
+  expect(context.queryKey).toEqual(
+    createDiscoveryContext("team", { q: "volley club" }).queryKey,
+  );
+});

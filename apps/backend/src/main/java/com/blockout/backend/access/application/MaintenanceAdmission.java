@@ -102,11 +102,11 @@ public class MaintenanceAdmission implements AccountAdmission {
         .addKeyValue("outcome", "unavailable")
         .addKeyValue(
             "reason",
-            failure instanceof AccessSettingsUnavailableException
-                ? "configuration_unavailable"
-                : failure instanceof DataAccessException
-                    ? "database_unavailable"
-                    : "transaction_failed")
+            switch (failure) {
+              case AccessSettingsUnavailableException _ -> "configuration_unavailable";
+              case DataAccessException _ -> "database_unavailable";
+              default -> "transaction_failed";
+            })
         .log("Maintenance admission unavailable");
     return new AccessSettingsUnavailableException(failure);
   }

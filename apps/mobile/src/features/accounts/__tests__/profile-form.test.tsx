@@ -1,3 +1,5 @@
+import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -38,7 +40,9 @@ jest.mock("expo-router", () => ({
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, request?: RequestInit) =>
-    mockFetch(url, request),
+    String(url).endsWith("/application-access")
+      ? Promise.resolve(Response.json(mockApplicationAccessResponse()))
+      : mockFetch(url, request),
 }));
 jest.mock("expo-image-picker", () => ({ launchImageLibraryAsync: jest.fn() }));
 
@@ -117,10 +121,12 @@ async function renderProfile() {
   await render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
-        <AccountSessionProvider>
-          <ProfileScreen admitted proEntry={null} />
-          <SessionActions />
-        </AccountSessionProvider>
+        <ApplicationAccessProvider>
+          <AccountSessionProvider>
+            <ProfileScreen admitted proEntry={null} />
+            <SessionActions />
+          </AccountSessionProvider>
+        </ApplicationAccessProvider>
       </ThemeProvider>
     </QueryClientProvider>,
   );

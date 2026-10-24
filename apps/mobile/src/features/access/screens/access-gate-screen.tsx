@@ -39,17 +39,21 @@ function GateView({
   const update = gate === "update";
   const maintenance = gate === "maintenance";
   const image = maintenance ? snapshot.maintenance?.imageUrl : null;
-  const title = maintenance
-    ? "Blockout est en maintenance"
-    : update
-      ? "Mets Blockout\nà jour."
-      : "Accès indisponible.";
-  const message = maintenance
-    ? snapshot.maintenance?.message
-    : update
-      ? (snapshot.versions?.message ??
-        "Une nouvelle version de Blockout est obligatoire pour continuer à utiliser l’application.")
-      : "Petit temps mort pour Blockout. Réessaie dans quelques instants.";
+  let title = "Accès indisponible.";
+  let badge = "INDISPONIBLE";
+  let message: string | null | undefined =
+    "Petit temps mort pour Blockout. Réessaie dans quelques instants.";
+  if (maintenance) {
+    title = "Blockout est en maintenance";
+    badge = "MAINTENANCE";
+    message = snapshot.maintenance?.message;
+  } else if (update) {
+    title = "Mets Blockout\nà jour.";
+    badge = "MISE À JOUR";
+    message =
+      snapshot.versions?.message ??
+      "Une nouvelle version de Blockout est obligatoire pour continuer à utiliser l’application.";
+  }
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <View style={[styles.header, { borderColor: colors.border }]}>
@@ -79,11 +83,7 @@ function GateView({
             { color: colors.text, borderColor: colors.border },
           ]}
         >
-          {maintenance
-            ? "MAINTENANCE"
-            : update
-              ? "MISE À JOUR"
-              : "INDISPONIBLE"}
+          {badge}
         </Text>
       </View>
       <ScrollView contentContainerStyle={styles.scroll}>

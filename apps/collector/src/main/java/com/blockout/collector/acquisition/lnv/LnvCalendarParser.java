@@ -14,6 +14,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.stereotype.Component;
 
@@ -23,13 +24,15 @@ public class LnvCalendarParser {
   private static final Pattern MATCH = Pattern.compile("MatchStatistics\\.aspx\\?[^'\";\\s]+");
   private static final Pattern IMAGE = Pattern.compile("url\\([\"']?([^\"')]+)");
 
-  /** Interpreted calendar and qualified logos keyed by native team identity, not club identity. */
-  public record Read(SportingObservation.Calendar calendar, Map<String, URI> logos) {
+  /** Interpreted calendar, published group title and logos keyed by native team identity. */
+  public record Read(
+      SportingObservation.Calendar calendar, Map<String, URI> logos, String groupTitle) {
     /**
      * Detaches the passage's selected media references.
      *
      * @param calendar usable matches and any attributable failures
      * @param logos published images keyed by participating native team identity
+     * @param groupTitle validated native heading used for auxiliary document qualification
      */
     public Read {
       logos = Map.copyOf(logos);
@@ -47,7 +50,8 @@ public class LnvCalendarParser {
    * @param competition expected native championship
    * @param phase expected published phase
    * @param group expected native group container
-   * @return usable matches, local failures and distinct participating team logos
+   * @return usable matches, local failures, participating team logos and the admitted group title
+   * @throws LnvAcquisitionException when the response cannot establish the admitted group context
    */
   public Read parse(byte[] bytes, URI url, String competition, String phase, String group) {
     Map<String, String> query = LnvPage.query(url);
@@ -55,8 +59,9 @@ public class LnvCalendarParser {
       throw LnvPage.invalid();
     Document page = LnvPage.parse(bytes, url);
     Element container = page.getElementById("Content_Main_" + group);
-    if (container == null || container.selectFirst("[id$=lbl_title]") == null)
-      throw LnvPage.invalid();
+    if (container == null) throw LnvPage.invalid();
+    Elements titles = container.select("[id$=lbl_title]");
+    if (titles.isEmpty()) throw LnvPage.invalid();
     if (container.select("[id$=_MatchRow]").isEmpty()
         && !container.text().toLowerCase(Locale.FRENCH).contains("aucun match"))
       throw LnvPage.invalid();
@@ -147,7 +152,8 @@ public class LnvCalendarParser {
     return new Read(
         new SportingObservation.Calendar(
             failures.isEmpty(), List.copyOf(matches.values()), List.of(), failures),
-        logos);
+        logos,
+        titles.text());
   }
 
   /**

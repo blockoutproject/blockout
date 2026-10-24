@@ -180,10 +180,12 @@ public class LnvDocumentReferences {
     List<URI> links =
         LnvPage.parse(html, page).select("iframe[src], embed[src], object[data], a[href]").stream()
             .map(
-                element ->
-                    element.hasAttr("src")
-                        ? element.absUrl("src")
-                        : element.hasAttr("data") ? element.absUrl("data") : element.absUrl("href"))
+                element -> {
+                  String attribute = "href";
+                  if (element.hasAttr("src")) attribute = "src";
+                  else if (element.hasAttr("data")) attribute = "data";
+                  return element.absUrl(attribute);
+                })
             .filter(value -> value.toLowerCase(Locale.ROOT).contains(".pdf"))
             .map(URI::create)
             .distinct()

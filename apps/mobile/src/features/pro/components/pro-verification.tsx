@@ -27,26 +27,25 @@ export function ProVerification({ onSupport }: ProVerificationProps) {
     state.status === "unavailable" &&
     (state.reason === "association-pending" ||
       (refreshing && !verificationFailed));
+  let message =
+    "La vérification de vos droits Pro est indisponible. Réessayez ou contactez l’assistance.";
+  if (state.operation === "purchased" && state.status !== "active")
+    message =
+      "Paiement confirmé. L’activation Pro reste à vérifier. Vérifiez vos droits sans acheter à nouveau.";
+  else if (state.operation === "already-owned")
+    message =
+      "Cet achat est déjà détenu. Vérifiez vos droits ou retrouvez la restauration dans la gestion des achats.";
+  else if (uncertain)
+    message =
+      state.operation === "pending"
+        ? "Le paiement est en attente de validation du store. Vérifiez vos droits sans renouveler l’achat."
+        : "Le résultat de l’achat est incertain. Vérifiez vos droits sans acheter à nouveau.";
   return (
     <View style={styles.feedback}>
       {waiting ? (
         <RequestLoading />
       ) : (
-        <RequestError
-          message={
-            state.operation === "purchased" && state.status !== "active"
-              ? "Paiement confirmé. L’activation Pro reste à vérifier. Vérifiez vos droits sans acheter à nouveau."
-              : state.operation === "already-owned"
-                ? "Cet achat est déjà détenu. Vérifiez vos droits ou retrouvez la restauration dans la gestion des achats."
-                : uncertain
-                  ? state.operation === "pending"
-                    ? "Le paiement est en attente de validation du store. Vérifiez vos droits sans renouveler l’achat."
-                    : "Le résultat de l’achat est incertain. Vérifiez vos droits sans acheter à nouveau."
-                  : "La vérification de vos droits Pro est indisponible. Réessayez ou contactez l’assistance."
-          }
-          onRetry={retry}
-          retrying={refreshing}
-        />
+        <RequestError message={message} onRetry={retry} retrying={refreshing} />
       )}
       {onSupport && (
         <Button label="Contacter l’assistance" onPress={() => onSupport()} />

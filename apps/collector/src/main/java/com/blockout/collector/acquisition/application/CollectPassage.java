@@ -294,16 +294,12 @@ public class CollectPassage {
               observation);
       long accepted = outcome.acceptedCount() + outcome.unchangedCount();
       long rejected = outcome.rejectedCount() + outcome.staleCount();
-      CollectionOutcomeEnum result =
-          rejected == 0
-              ? CollectionOutcomeEnum.SUCCESS
-              : accepted == 0 ? CollectionOutcomeEnum.FAILED : CollectionOutcomeEnum.PARTIAL;
       record(
           context,
           target,
           ordinal,
           CollectionPhaseEnum.INTEGRATION,
-          result,
+          measuredOutcome(accepted, rejected),
           accepted,
           rejected,
           clock.instant(),
@@ -457,9 +453,7 @@ public class CollectPassage {
           target,
           ordinal,
           CollectionPhaseEnum.INTEGRATION,
-          rejected == 0
-              ? CollectionOutcomeEnum.SUCCESS
-              : accepted == 0 ? CollectionOutcomeEnum.FAILED : CollectionOutcomeEnum.PARTIAL,
+          measuredOutcome(accepted, rejected),
           accepted,
           rejected,
           clock.instant(),
@@ -610,18 +604,19 @@ public class CollectPassage {
                 SportingObservation.Facts.builder()
                     .informationSheet(JsonNullable.of(sheet))
                     .build());
+        String reason = null;
+        if (!accepted(association)) {
+          String refusal = association.outcome().toString();
+          if (association.reasonType() != null) refusal = association.reasonType().toString();
+          reason = "Information-sheet association: " + refusal;
+        }
         details.add(
             item.resourceId(),
             ordinal,
             CollectionPhaseEnum.INTEGRATION,
             accepted(association) ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.FAILED,
             clock.instant(),
-            accepted(association)
-                ? null
-                : "Information-sheet association: "
-                    + (association.reasonType() == null
-                        ? association.outcome()
-                        : association.reasonType()));
+            reason);
       } catch (CollectionBackendFailure failure) {
         if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
         details.add(
@@ -665,9 +660,11 @@ public class CollectPassage {
       LnvAcquisition.Read<SportingObservation.Facts> read;
       try {
         read =
-            part == 0
-                ? resource.detail(target)
-                : resource.document(target, part == 1 ? "Scoresheet" : "DataVolley");
+            switch (part) {
+              case 0 -> resource.detail(target);
+              case 1 -> resource.document(target, "Scoresheet");
+              default -> resource.document(target, "DataVolley");
+            };
       } catch (RuntimeException failure) {
         evidence.add(
             target.matchId(),
@@ -761,19 +758,15 @@ public class CollectPassage {
       for (Map.Entry<UUID, Map<CollectionPhaseEnum, DetailTotal>> match : totals.entrySet()) {
         for (Map.Entry<CollectionPhaseEnum, DetailTotal> phase : match.getValue().entrySet()) {
           DetailTotal total = phase.getValue();
+          CollectionOutcomeEnum outcome = measuredOutcome(total.obtained, total.rejected);
+          if (total.unconfirmed) outcome = CollectionOutcomeEnum.UNCONFIRMED;
           record(
               context,
               match.getKey(),
               CollectionStageEnum.DETAILS,
               total.readOrdinal,
               phase.getKey(),
-              total.unconfirmed
-                  ? CollectionOutcomeEnum.UNCONFIRMED
-                  : total.rejected == 0
-                      ? CollectionOutcomeEnum.SUCCESS
-                      : total.obtained == 0
-                          ? CollectionOutcomeEnum.FAILED
-                          : CollectionOutcomeEnum.PARTIAL,
+              outcome,
               total.obtained,
               total.rejected,
               total.observedAt,
@@ -877,6 +870,20 @@ public class CollectPassage {
   private boolean accepted(SportingObservation.Outcome outcome) {
     return outcome.outcome() == ObservationOutcomeEnum.ACCEPTED
         || outcome.outcome() == ObservationOutcomeEnum.UNCHANGED;
+  }
+
+  /**
+   * Classifies measured parts consistently for catalogs, calendars and cumulative detail evidence.
+   *
+   * @param obtained usable or unchanged parts
+   * @param rejected unusable or refused parts
+   * @return success with no rejection, otherwise failure or partial success according to usable
+   *     parts
+   */
+  private CollectionOutcomeEnum measuredOutcome(long obtained, long rejected) {
+    if (rejected == 0) return CollectionOutcomeEnum.SUCCESS;
+    if (obtained == 0) return CollectionOutcomeEnum.FAILED;
+    return CollectionOutcomeEnum.PARTIAL;
   }
 
   /**

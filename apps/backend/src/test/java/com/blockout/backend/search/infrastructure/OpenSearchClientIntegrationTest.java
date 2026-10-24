@@ -3,6 +3,7 @@ package com.blockout.backend.search.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import com.github.dockerjava.api.command.InspectContainerResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -29,8 +30,10 @@ import org.springframework.boot.ssl.DefaultSslBundleRegistry;
 import org.springframework.boot.ssl.SslBundle;
 import org.springframework.boot.ssl.SslStoreBundle;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.testcontainers.containers.Container;
+import org.testcontainers.containers.ContainerLaunchException;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.containers.wait.strategy.ShellStrategy;
 import org.testcontainers.utility.MountableFile;
 
 /**
@@ -93,7 +96,17 @@ class OpenSearchClientIntegrationTest {
                 MountableFile.forHostPath(security, 0755),
                 "/usr/share/opensearch/config/opensearch-security")
             .waitingFor(
-                Wait.forSuccessfulCommand(
+                new ShellStrategy() {
+                  /** Captures safe failure evidence before Testcontainers removes the container. */
+                  @Override
+                  protected void waitUntilReady() {
+                    try {
+                      super.waitUntilReady();
+                    } catch (ContainerLaunchException failure) {
+                      throw readinessFailure(failure);
+                    }
+                  }
+                }.withCommand(
                     "curl --silent --cacert config/tls/ca.pem -o /dev/null -w '%{http_code}' https://localhost:9200 | grep -q 401"))
             .withStartupTimeout(Duration.ofMinutes(5));
     for (String file : List.of("ca.pem", "node.pem", "node-key.pem")) {
@@ -114,6 +127,55 @@ class OpenSearchClientIntegrationTest {
     transport =
         new OpenSearchConfiguration().openSearchTransport(properties("trusted", password), bundles);
     client = new OpenSearchClient(transport);
+  }
+
+  /**
+   * Adds only container state and a bounded unauthenticated TLS probe to the original startup
+   * error. Missing diagnostics remain null or unavailable; diagnostic failures never replace the
+   * wait error.
+   *
+   * @param failure the original readiness failure
+   * @return failure carrying scalars that remain visible in the test report
+   */
+  private static ContainerLaunchException readinessFailure(ContainerLaunchException failure) {
+    Boolean running = null;
+    Boolean oomKilled = null;
+    Long exitCode = null;
+    Integer curlExitCode = null;
+    String httpStatus = "unavailable";
+    try {
+      InspectContainerResponse.ContainerState state = engine.getCurrentContainerInfo().getState();
+      running = state.getRunning();
+      oomKilled = state.getOOMKilled();
+      exitCode = state.getExitCodeLong();
+    } catch (RuntimeException ignored) {
+      // A removed container must not mask the original readiness failure.
+    }
+    try {
+      Container.ExecResult probe =
+          engine.execInContainer(
+              "curl",
+              "--silent",
+              "--max-time",
+              "5",
+              "--cacert",
+              "config/tls/ca.pem",
+              "-o",
+              "/dev/null",
+              "-w",
+              "%{http_code}",
+              "https://localhost:9200");
+      curlExitCode = probe.getExitCode();
+      if (probe.getStdout().matches("[0-9]{3}")) httpStatus = probe.getStdout();
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+    } catch (IOException | RuntimeException ignored) {
+      // Do not expose command output or replace the original failure if the probe cannot run.
+    }
+    return new ContainerLaunchException(
+        "OpenSearch readiness failed: running=%s, oomKilled=%s, exitCode=%s, curlExitCode=%s, httpStatus=%s"
+            .formatted(running, oomKilled, exitCode, curlExitCode, httpStatus),
+        failure);
   }
 
   /** Closes native HTTP threads and removes only this suite's container. */

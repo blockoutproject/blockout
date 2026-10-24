@@ -96,12 +96,10 @@ public class FfvbCalendarParser {
     for (String reference : orderedReferences) {
       CSVRecord row = selected.get(reference);
       if (row == null || malformed.contains(reference) || contradictions.contains(reference)) {
-        failures.add(
-            failure(
-                reference,
-                malformed.contains(reference)
-                    ? "invalid-row"
-                    : row == null ? "missing-match" : "contradictory-match"));
+        String reason = "contradictory-match";
+        if (malformed.contains(reference)) reason = "invalid-row";
+        else if (row == null) reason = "missing-match";
+        failures.add(failure(reference, reason));
         continue;
       }
       String home = row.get("EQA_nom").strip();

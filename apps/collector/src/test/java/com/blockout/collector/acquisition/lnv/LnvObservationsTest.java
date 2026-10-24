@@ -194,6 +194,8 @@ class LnvObservationsTest {
         <span id="Content_Main_LB_DateTime">samedi 17 octobre 2026 - 23:30</span>
         <span id="Content_Main_LB_SetsPartials">25/19 25/20 25/21</span>
         """;
+
+    // When
     SportingObservation.Facts facts =
         new LnvDetailParser()
             .parse(
@@ -202,6 +204,7 @@ class LnvObservationsTest {
                     "https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901&CID=903&PID=902"),
                 "990",
                 "901");
+
     // Then
     assertThat(facts.localDate().get()).isEqualTo(LocalDate.of(2026, 10, 18));
     assertThat(facts.localTime().get()).isEqualTo("01:30");
@@ -327,6 +330,8 @@ class LnvObservationsTest {
                     "https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901&CID=903&PID=902"),
                 "990",
                 "901");
+
+    // Then
     assertThat(facts.localDate().get()).isEqualTo(LocalDate.of(2026, 10, 17));
     assertThat(facts.localTime().get()).isNull();
     assertThat(facts.timeZone()).isNull();
@@ -353,20 +358,28 @@ class LnvObservationsTest {
   }
 
   @Test
-  @DisplayName("Foreign match context and arbitrary successful HTML are refused")
-  void rejectsWrongDetail() {
+  @DisplayName("Arbitrary successful HTML is refused even with the admitted match context")
+  void rejectsUnavailableDetail() {
     // Given
     LnvDetailParser parser = new LnvDetailParser();
-    assertThatThrownBy(() -> parser.parse(bytes("<h1>Error</h1>"), CALENDAR, "990", "901"))
+    URI detail = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901");
+    byte[] html = bytes("<h1>Error</h1>");
+
+    // When / Then
+    assertThatThrownBy(() -> parser.parse(html, detail, "990", "901"))
         .isInstanceOf(LnvAcquisitionException.class);
-    assertThatThrownBy(
-            () ->
-                parser.parse(
-                    bytes("<span id=Content_Main_LB_DateTime>samedi 17 octobre 2026</span>"),
-                    URI.create(
-                        "https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=991&ID=901"),
-                    "990",
-                    "901"))
+  }
+
+  @Test
+  @DisplayName("Published detail facts cannot qualify a different native match")
+  void rejectsForeignDetail() {
+    // Given
+    LnvDetailParser parser = new LnvDetailParser();
+    URI detail = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=991&ID=901");
+    byte[] html = bytes("<span id=Content_Main_LB_DateTime>samedi 17 octobre 2026</span>");
+
+    // When / Then
+    assertThatThrownBy(() -> parser.parse(html, detail, "990", "901"))
         .isInstanceOf(LnvAcquisitionException.class);
   }
 
