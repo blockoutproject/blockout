@@ -67,7 +67,11 @@ public class CollectorLifecycle {
       cycle = backend.admit(command);
     } catch (CollectionBackendFailure failure) {
       if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) {
-        if (!incarnationId.equals(backend.current().incarnationId())) stop();
+        try {
+          if (!incarnationId.equals(backend.current().incarnationId())) stop();
+        } catch (CollectionBackendFailure unavailable) {
+          // This secondary read cannot make an already refused admission uncertain.
+        }
         throw failure;
       }
       if (failure.getKind() != CollectionBackendFailure.Kind.UNCONFIRMED) throw failure;

@@ -29,6 +29,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.core.task.SyncTaskExecutor;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.Trigger;
@@ -78,6 +79,52 @@ class AcquisitionSchedulerTest {
                   command.sourceBindingId() != null,
                   null);
             });
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  @DisplayName(
+      "A definite admission refusal releases the scope even when the secondary runtime read is unavailable")
+  void preservesDefiniteAdmissionRefusal(boolean validation) {
+    // Given
+    AcquisitionScheduler scheduler =
+        new AcquisitionScheduler(
+            timer, new SyncTaskExecutor(), backend, lifecycle, discovery, passages, qualification);
+    scheduler.start();
+    CollectionBackend.Work work =
+        new CollectionBackend.Work(
+            validation
+                ? List.of()
+                : List.of(
+                    new CollectionBackend.ControlWork(
+                        CONTROL,
+                        CollectionFamilyEnum.FFVB,
+                        SEASON,
+                        0,
+                        true,
+                        CollectionSeasonStateEnum.ACTIVE,
+                        REQUEST,
+                        CollectionModeEnum.MANUAL,
+                        null)),
+            validation ? List.of(new CollectionBackend.ValidationWork(CONTROL, 0)) : List.of());
+    when(backend.work(lifecycle.getIncarnationId())).thenReturn(work);
+    doThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.CONFLICT, null))
+        .when(backend)
+        .admit(any());
+    when(backend.current())
+        .thenThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.UNCONFIRMED, null));
+
+    // When an operator revision change causes a definite refusal and its secondary read fails.
+    tasks.get(2).run();
+    doReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()))
+        .when(backend)
+        .current();
+    tasks.get(2).run();
+
+    // Then: fresh ordinary opportunities remain possible after definite refusal, without supplier
+    // work.
+    verify(backend, times(2)).admit(any());
+    verifyNoInteractions(passages, qualification);
   }
 
   @ParameterizedTest
