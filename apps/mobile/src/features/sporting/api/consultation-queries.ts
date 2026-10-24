@@ -87,7 +87,7 @@ export function createConsultationQueries(
         try {
           return await read(await request(signal));
         } catch (error) {
-          if (resourceUnavailable(error)) {
+          if (!signal.aborted && resourceUnavailable(error)) {
             // Query's documented setState clears only forbidden data, preserving the HTTP failure.
             // setQueryData(undefined) is a no-op; removing/resetting an active query changes its lifecycle.
             client
