@@ -53,6 +53,8 @@ blockout:
       connect-timeout: 3s
       read-timeout: 5s
   search:
+    projection:
+      full-rebuild-delay: ${BLOCKOUT_SEARCH_PROJECTION_FULL_REBUILD_DELAY:1h}
     indexes:
       prefix: ${BLOCKOUT_SEARCH_INDEX_PREFIX:blockout-local-search}
     enabled: false
