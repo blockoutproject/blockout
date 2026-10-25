@@ -4,15 +4,9 @@ import { StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
-const strips = [
-  ["RVC", "25–19", "NVB", "REC", "LIEN", "ASV"],
-  ["VBC", "3–1", "TLM", "SCO", "25–23", "RVC"],
-  ["NVB", "CLUB", "REC", "1–0", "ASV", "SET 4"],
-];
-
-/** Static approved community illustration; hidden from reading order, with no permission or data effects. */
+/** Original Figma illustration, including outlined Outfit Black; cropped at source geometry, never redrawn. */
 export function DiscoveryBackdrop() {
-  const { colors } = useTheme();
+  const { scheme } = useTheme();
   return (
     <View
       pointerEvents="none"
@@ -20,28 +14,15 @@ export function DiscoveryBackdrop() {
       importantForAccessibility="no-hide-descendants"
       style={styles.backdrop}
     >
-      <View style={styles.rails}>
-        {strips.map((strip, row) => (
-          <View key={row} style={styles.rail}>
-            {[...strip, ...strip].map((label, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.tile,
-                  {
-                    backgroundColor: colors.raised,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Text style={[styles.tileLabel, { color: colors.text }]}>
-                  {label}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ))}
-      </View>
+      <Image
+        accessible={false}
+        source={
+          scheme === "dark"
+            ? require("../../../../assets/onboarding/community-backdrop-dark.svg")
+            : require("../../../../assets/onboarding/community-backdrop-light.svg")
+        }
+        style={styles.backdropAsset}
+      />
     </View>
   );
 }
@@ -189,27 +170,15 @@ export function DiscoveryExample({ step }: { step: number }) {
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFill,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-    opacity: 0.12,
-  },
-  rails: { gap: tokens.spacing.lg, transform: [{ rotate: "-4deg" }] },
-  rail: { flexDirection: "row", gap: tokens.spacing.sm },
-  tile: {
-    minWidth: 74,
-    height: 72,
-    paddingHorizontal: tokens.spacing.xl,
-    borderWidth: 3,
-    borderRadius: tokens.radius.control,
-    justifyContent: "center",
-  },
-  tileLabel: {
-    ...tokens.typography.heading,
-    fontSize: 17,
-    letterSpacing: -0.68,
+  backdrop: { ...StyleSheet.absoluteFill, overflow: "hidden" },
+  // Product Design 6650:4927 / 6650:5123, absolute-bounds SVGs. Artwork opacity and rotation remain in the exports.
+  backdropAsset: {
+    position: "absolute",
+    width: 1077,
+    height: 322,
+    left: -331.3563,
+    top: "50%",
+    marginTop: -183.7386,
   },
   example: {
     padding: tokens.spacing.md,

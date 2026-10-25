@@ -76,25 +76,30 @@ export function AgeDeclarationScreen() {
   const age = useAgeDeclaration();
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
-      <View style={[styles.header, { borderColor: colors.border }]}>
+      <View style={styles.header}>
         <View style={styles.brand} accessible accessibilityLabel="Blockout">
           <BrandMark />
           <Text style={[tokens.typography.navigation, { color: colors.text }]}>
             BLOCKOUT
           </Text>
         </View>
+        <View
+          accessible={false}
+          pointerEvents="none"
+          style={[styles.divider, { backgroundColor: colors.border }]}
+        />
       </View>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.stage}>
         <AgeBackdrop />
         <View
           style={[
             styles.card,
-            { backgroundColor: colors.surface, borderColor: colors.border },
+            { backgroundColor: colors.surface, outlineColor: colors.border },
           ]}
         >
           <Text
             accessibilityRole="header"
-            style={[styles.title, { color: colors.text }]}
+            style={[tokens.typography.headingXl, { color: colors.text }]}
           >
             {age.renewal
               ? "Quel âge avez-vous aujourd’hui ?"
@@ -120,8 +125,14 @@ const styles = StyleSheet.create({
   header: {
     minHeight: 69,
     paddingBottom: tokens.spacing.lg,
-    borderBottomWidth: tokens.borderWidth,
     justifyContent: "center",
+  },
+  divider: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: tokens.borderWidth,
   },
   brand: { flexDirection: "row", gap: 9, alignItems: "center" },
   scroll: { flex: 1, marginHorizontal: -tokens.spacing.section },
@@ -132,14 +143,10 @@ const styles = StyleSheet.create({
   },
   card: {
     padding: tokens.spacing.lg,
-    borderWidth: tokens.borderWidth,
+    // Figma Surface excludes its inside stroke from content layout; native outlines do the same.
+    outlineWidth: tokens.borderWidth,
+    outlineOffset: -tokens.borderWidth,
     borderRadius: tokens.radius.sheet,
     gap: tokens.spacing.sm,
-  },
-  title: {
-    ...tokens.typography.heading,
-    fontSize: 32,
-    lineHeight: 38,
-    letterSpacing: -0.32,
   },
 });

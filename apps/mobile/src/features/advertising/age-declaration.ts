@@ -11,19 +11,10 @@ function localDay(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-/** Rejects malformed calendar dates rather than letting Date normalize corrupt stored data. */
-function isCalendarDay(value: string): boolean {
-  const date = new Date(`${value}T12:00:00`);
-  return !Number.isNaN(date.getTime()) && localDay(date) === value;
-}
-
 const declarationSchema = z
   .object({
     category: z.enum(["under16", "16–17", "adult"]),
-    declaredAt: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .refine(isCalendarDay),
+    declaredAt: z.string().date(),
   })
   .strict();
 

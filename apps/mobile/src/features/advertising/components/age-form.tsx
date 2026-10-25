@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Slider from "@react-native-community/slider";
 import { Minus, Plus } from "lucide-react-native";
 import { Controller, useForm } from "react-hook-form";
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import { z } from "zod";
 import { Button } from "../../../shared/components/button";
 import { IconButton } from "../../../shared/components/icon-button";
@@ -59,7 +59,9 @@ export function AgeForm({ onSubmit }: AgeFormProps) {
           <View style={styles.fields}>
             <View style={styles.selector}>
               <View style={styles.value}>
-                <Text style={[styles.number, { color: colors.text }]}>
+                <Text
+                  style={[tokens.typography.displayAge, { color: colors.text }]}
+                >
                   {value === null ? "—" : value === 100 ? "100+" : value}
                 </Text>
                 {value !== null && (
@@ -104,10 +106,10 @@ export function AgeForm({ onSubmit }: AgeFormProps) {
                   onValueChange={onChange}
                   onSlidingComplete={onChange}
                   disabled={isSubmitting}
-                  minimumTrackTintColor={colors.text}
+                  minimumTrackTintColor={colors.border}
                   maximumTrackTintColor={colors.border}
-                  thumbTintColor={colors.text}
-                  thumbSize={20}
+                  thumbTintColor={colors.accentPrimary}
+                  thumbSize={tokens.size.controlIcon}
                   style={styles.slider}
                 />
                 <IconButton
@@ -146,11 +148,16 @@ const styles = StyleSheet.create({
     alignItems: "baseline",
     gap: tokens.spacing.label,
   },
-  number: { fontFamily: "Outfit-SemiBold", fontSize: 36, lineHeight: 51 },
   adjust: {
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.xs,
   },
-  slider: { flex: 1, minHeight: tokens.touchTarget.android },
+  slider: {
+    flex: 1,
+    minHeight:
+      Platform.OS === "android"
+        ? tokens.touchTarget.android
+        : tokens.touchTarget.ios,
+  },
 });
