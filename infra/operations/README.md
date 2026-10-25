@@ -95,6 +95,72 @@ Use the [existing rollback qualification cases](../../specs/003-shared-quality/q
 
 If the earlier image cannot use retained data, keep writers/access closed and choose an authorized forward repair or the isolated restoration above with a compatible image. Reconcile the restore point's gaps and all current obligations before reopening. After V2 opens, [F14](../../specs/014-v1-v2-transition/spec.md) requires V2 repair/restoration, not a functional return to V1. Its separately authorized logo-retention/reset checks are not performed by this procedure.
 
+## Protected club-logo preservation and reassociation
+
+This is F14 T028's preparation and T030's isolated rehearsal procedure. Actual V1 access, the administrator freeze and export are **T029**, requiring separate source-access/export authorization; target reconstruction and live reassociation remain T034. This procedure authorizes none of those operations. Use only a verified isolated target and synthetic files for a rehearsal. The [F14 model](../../specs/014-v1-v2-transition/data-model.md#protected-club-logo-association) owns preservation outcomes; [F02](../../specs/002-sporting-data/plan.md#presentation-administration-and-locality) owns image validation, storage and inheritance.
+
+### Prepare the private preservation copy
+
+The private preservation copy contains the exact FFVB club identifier string, original logo reference and its usable bytes. Do not convert identifiers to numbers, trim meaningful leading zeros or infer identity from club names. For example, synthetic `000339`, `339` and `0000339` are different references. Do not use a spreadsheet import that changes those strings. Other V1 names, contacts, team/division artwork and presentation customizations are outside this copy.
+
+1. Before an authorized T029 copy, identify the exact source/environment and all affected manual club-logo associations. The sole administrator freezes manual logo edits, settles relevant in-flight writes and verifies that the **deployed** collector preserves the protected associations before collection continues. A repository test cannot establish that deployed behavior. Keep the source intact while any prerequisite is unresolved.
+2. Through the authorized source's ordinary read/export and file-download tools, copy every affected original association and actual file to the existing private operational location, independently of the source to be destroyed. Retain its exact string club reference, original logo reference, corresponding file path and source/observation time together. Use private access and restrictive file permissions (`umask 077`); keep identifiers, files and diagnostics out of Git, issues and PR attachments. No generic exporter, migration ledger or second application image store is needed.
+3. Reconcile **every** source association with its preserved record and readable file, and every copied file with its association. Compare byte lengths and SHA-256 digests against the original read, then actually decode each copied image; a matching checksum, URL, HTTP success or file extension alone does not prove usability. F02 accepts actual PNG/JPEG content up to 5,242,880 bytes and 4,194,304 decoded pixels, preserving accepted original bytes. Missing, empty, corrupt, unsupported or oversized content is not ready for F02 reassociation; retain the original and resolve the affected case privately instead of silently transcoding, replacing or dropping it.
+4. Lost/missing associations or unusable bytes mean **preservation is incomplete; block the destructive action affecting that source**. A complete usable association with no certain rebuilt target stays private and identifiable for manual resolution. If two preserved associations conflict for one exact reference, retain both and resolve their provenance before applying either; do not choose by name, list order, latest file timestamp or numeric conversion. Record the affected blocked operation privately, with only safe scope/outcomes in F14 quickstart.
+5. Confirm the freeze still holds before using the copy. An exceptional edit refreshes and reverifies only its affected association/file. Elapsed time alone requires no full recopy. This freeze does not freeze purchases, erasures or privacy obligations: apply the [final current-state reconciliation](#final-current-state-reconciliation) before the separately authorized destructive/opening action. Retaining artwork does not permit republication against a current restriction.
+
+### Reassociate through the current F02 owner
+
+Use the authorized target's existing private database connection and current operator token. Verify host, port, database and user before reads or writes. The `blockout-logo-target` libpq service below is an explicitly prepared **isolated** connection for rehearsal, not an instruction to reuse a live service. Keep output private and shell tracing disabled. Select one preserved reference without normalizing it; use its corresponding verified file, never an arbitrary URL fetch by the backend.
+
+1. Resolve **only** the exact FFVB reference using the existing database read tools. For example, with `FFVB_CLUB_REFERENCE` supplied as a string:
+
+   ```sh
+   PGSERVICE=blockout-logo-target psql -X --set=ON_ERROR_STOP=1 \
+     --set=ffvb_reference="$FFVB_CLUB_REFERENCE" <<'SQL'
+   SELECT id, provider, reference
+   FROM sporting_club
+   WHERE provider = 'FFVB' AND reference = :'ffvb_reference';
+   SQL
+   ```
+
+   Proceed only with exactly one certain target and one resolved preserved association. Zero matches: retain the association/file privately; do not create a club. Multiple or contradictory candidates: stop the affected reassociation and resolve privately. The normal V2 schema prevents duplicate `(provider, reference)` clubs through `uk_club_identity`; do not drop that constraint to import ambiguous data. A similar name, another provider's native ID or a matching seasonal team label supplies no club identity.
+
+2. With that UUID in `CLUB_ID`, read `GET /administration/clubs/{clubId}/presentation` using the current operator's `sporting-presentation.manage` grant. Prepare metadata from the **target's current** revision and manual name, including explicit null. This preserves current V2 naming and transfers only the protected club logo. Use fresh absolute private paths for `CURRENT_PRESENTATION`, `LOGO_METADATA`, `SAVED_PRESENTATION` and `VERIFIED_LOGO`; `PRESERVED_LOGO` is the corresponding verified original file. `BACKEND_URL` and `OPERATOR_ACCESS_TOKEN` must belong to that same authorized target.
+
+   ```sh
+   curl --fail-with-body --silent --show-error \
+     --header "Authorization: Bearer ${OPERATOR_ACCESS_TOKEN}" \
+     --output "$CURRENT_PRESENTATION" \
+     "${BACKEND_URL}/administration/clubs/${CLUB_ID}/presentation" &&
+   jq --exit-status '{revision, manualName: .names.manualName, logoAction: "replace"}' \
+     "$CURRENT_PRESENTATION" > "$LOGO_METADATA"
+   ```
+
+   Inspect each native command's exit status and the read identity before continuing; never submit an error body or stale metadata. The [canonical F02 editor](../../contracts/http/mobile/sporting/paths.yaml) requires all metadata fields and an image part for `replace`. Current account permissions still govern the operation, including under maintenance; a former V1 role or M2M token grants no permission.
+
+3. Submit the existing atomic multipart editor operation, then reread the effective club image. The public image read is subject to F12 maintenance admission: the explicit bypass header below requires the current `maintenance.bypass` grant while maintenance is active. Presentation-management permission alone supplies no bypass; keep access closed if that read cannot be authorized:
+
+   ```sh
+   curl --fail-with-body --silent --show-error --request PATCH \
+     --header "Authorization: Bearer ${OPERATOR_ACCESS_TOKEN}" \
+     --form "metadata=@${LOGO_METADATA};type=application/json" \
+     --form "image=@${PRESERVED_LOGO}" \
+     --output "$SAVED_PRESENTATION" \
+     "${BACKEND_URL}/administration/clubs/${CLUB_ID}/presentation" &&
+   curl --fail-with-body --silent --show-error \
+     --header "Authorization: Bearer ${OPERATOR_ACCESS_TOKEN}" \
+     --header "Blockout-Maintenance-Bypass: true" \
+     --output "$VERIFIED_LOGO" \
+     "${BACKEND_URL}/clubs/${CLUB_ID}/logo" &&
+   cmp "$PRESERVED_LOGO" "$VERIFIED_LOGO"
+   ```
+
+   F02 checks current grants before decoding and again in the write transaction, validates actual bytes and commits the association/content together in PostgreSQL. A refusal leaves the previous presentation intact. Stop after any failed or uncertain write: reread current presentation and image before an explicit retry. A `409` requires current-state inspection, never automatic resubmission of the old revision; matching current state proves the current outcome, not which historical request ran.
+
+4. Verify the returned target/manual-logo association, unchanged names and byte-for-byte content; decode the downloaded image too. Check dependent FFVB teams through the ordinary read operations: they inherit current club artwork across seasons without copied team bytes, while an independent manual team image retains precedence. Professional teams use their existing contextual LNV identity and optional controlled club relationship; **never create or propagate a club relationship** during logo reassociation. A clubless professional team with a similar name/native reference stays clubless and receives no recovered club logo.
+5. Keep unmatched/conflicting associations and files privately attributable until their owning resolution. Report exact-match success, pending association and incomplete preservation separately. This rehearsal does not authorize source destruction or prove a live inventory/freeze, actual deployed collector safety, full reconstruction, native rendering or release acceptance. T029/T034/T036 retain those operational/qualification gates.
+
 ## Private continuity inventory
 
 This section implements preparation for [F14 T018](../../specs/014-v1-v2-transition/tasks.md) under [#158](https://github.com/blockoutproject/blockout/issues/158). Actual population reconciliation belongs to [#163 / T020](https://github.com/blockoutproject/blockout/issues/163); final execution of T024 belongs to T049. Neither this guide nor completion of its preparation authorizes source/provider access, a population export, reset or retirement. The [recorded V1 observations](../../specs/014-v1-v2-transition/research.md#current-v1-evidence) are dated inputs, not a current inventory or new qualification.
