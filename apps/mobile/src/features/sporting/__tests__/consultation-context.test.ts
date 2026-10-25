@@ -280,6 +280,58 @@ it("rejects revoked bypass while credentials are pending", async () => {
   client.clear();
 });
 
+it("keeps a newer successful representation when cancelled credential work later refuses", async () => {
+  // Given: the documented query-function context supplies the cancelled attempt's signal.
+  const session = createSessionGeneration();
+  session.setAccount(session.getSnapshot().generation, sportingId);
+  const bypass = createMaintenanceBypass();
+  bypass.request(session.getSnapshot(), true);
+  const late = Promise.withResolvers<{ accessToken: string } | undefined>();
+  const credentials = jest
+    .fn()
+    .mockImplementationOnce(() => late.promise)
+    .mockResolvedValue({ accessToken: "synthetic-token" });
+  const queries = createConsultationQueries(
+    { ...session.getSnapshot(), isCurrent: session.isCurrent },
+    { bypass: bypass.getSnapshot(), request: (options) => options },
+    credentials,
+  );
+  const client = createQueryClient();
+  const options = queries.club(sportingId);
+  const read = options.queryFn;
+  if (typeof read !== "function")
+    throw new Error("Expected generated query function");
+  const cancelled = new AbortController();
+  const oldRead = read({
+    client,
+    queryKey: options.queryKey,
+    signal: cancelled.signal,
+    meta: undefined,
+  });
+  const rejected = expect(oldRead).rejects.toMatchObject({
+    kind: "http",
+    status: 401,
+  });
+  mockFetch.mockResolvedValue(
+    Response.json(clubDetail("Current representation")),
+  );
+  try {
+    // When
+    cancelled.abort();
+    await client.fetchQuery(options);
+    late.resolve(undefined);
+    await rejected;
+
+    // Then
+    expect(client.getQueryData(options.queryKey)?.club.name).toBe(
+      "Current representation",
+    );
+    expect(client.getQueryState(options.queryKey)?.status).toBe("success");
+  } finally {
+    client.clear();
+  }
+});
+
 it("rejects a late bypass body after intent ends and keeps ordinary context separate", async () => {
   // Given
   const session = createSessionGeneration();

@@ -29,6 +29,7 @@ import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import type { SessionSnapshot } from "../../accounts/session/session-generation";
 import type { useOrdinaryRequest } from "../../access/ordinary-request";
+import { resourceUnavailable } from "../model/consultation-availability";
 
 /** Captured F05 generation guards public completions without requiring an established account. */
 type ConsultationSession = SessionSnapshot &
@@ -82,7 +83,21 @@ export function createConsultationQueries(
             ...key,
           ])
         : ["consultation", session.generation, ...key],
-      queryFn: async ({ signal }) => read(await request(signal)),
+      queryFn: async ({ signal, queryKey, client }) => {
+        try {
+          return await read(await request(signal));
+        } catch (error) {
+          if (!signal.aborted && resourceUnavailable(error)) {
+            // Query's documented setState clears only forbidden data, preserving the HTTP failure.
+            // setQueryData(undefined) is a no-op; removing/resetting an active query changes its lifecycle.
+            client
+              .getQueryCache()
+              .find({ queryKey, exact: true })
+              ?.setState({ data: undefined, dataUpdatedAt: 0 });
+          }
+          throw error;
+        }
+      },
     });
   }
 
