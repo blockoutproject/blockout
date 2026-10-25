@@ -24,6 +24,12 @@ export default defineConfig({
               name: "presentationFormData",
             },
           },
+          createDivision: {
+            formData: {
+              path: "src/features/sporting-administration/api/presentation-form-data.ts",
+              name: "presentationFormData",
+            },
+          },
           setDivisionPresentation: {
             formData: {
               path: "src/features/sporting-administration/api/presentation-form-data.ts",

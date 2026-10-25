@@ -1,0 +1,327 @@
+import { useState } from "react";
+import { useRouter } from "expo-router";
+import { Image } from "expo-image";
+import { ChevronRight, ImageOff, Plus, Search } from "lucide-react-native";
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
+import { IconButton } from "../../../shared/components/icon-button";
+import {
+  RequestError,
+  RequestLoading,
+} from "../../../shared/components/request-feedback";
+import { useTheme } from "../../../shared/theme/theme-provider";
+import { tokens } from "../../../shared/theme/tokens";
+import { useDivisions } from "../api/classification";
+import { usePresentationLogo } from "../api/presentation";
+import {
+  automaticDivisionGradient,
+  divisionTextColor,
+} from "../components/division-colors";
+import { EditorPage, SportingAccessFeedback } from "../components/editor-page";
+
+/** Product Design 1340:9338: searchable active/inactive catalogue; commands belong to its editor. */
+export function DivisionsScreen() {
+  const { authority, query } = useDivisions();
+  const { colors, membership } = useTheme();
+  const router = useRouter();
+  const [search, setSearch] = useState("");
+  const [active, setActive] = useState(true);
+  const canEdit =
+    authority.permissions?.manageSportingPresentation === true ||
+    authority.permissions?.manageDivisionLifecycle === true;
+  const items = authority.enabled
+    ? (query.data?.items.filter(
+        (division) =>
+          division.active === active &&
+          division.name
+            .toLocaleLowerCase()
+            .includes(search.trim().toLocaleLowerCase()),
+      ) ?? [])
+    : [];
+  return (
+    <EditorPage title="Divisions" scrollable={false}>
+      <FlatList
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        data={items}
+        keyExtractor={(division) => division.id}
+        contentContainerStyle={styles.content}
+        ItemSeparatorComponent={Separator}
+        ListHeaderComponent={
+          <View style={styles.controls}>
+            <SportingAccessFeedback authority={authority} />
+            <View style={styles.toolbar}>
+              <View
+                style={[
+                  styles.search,
+                  {
+                    backgroundColor: colors.raised,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <Search
+                  accessible={false}
+                  size={tokens.size.controlIcon}
+                  color={colors.icon}
+                />
+                <TextInput
+                  accessibilityLabel="Rechercher une division"
+                  placeholder="Rechercher une division…"
+                  placeholderTextColor={colors.secondaryText}
+                  value={search}
+                  onChangeText={setSearch}
+                  style={[styles.searchInput, { color: colors.text }]}
+                />
+              </View>
+              {authority.permissions?.manageDivisionLifecycle === true && (
+                <View
+                  style={[
+                    styles.add,
+                    {
+                      backgroundColor: colors.raised,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <IconButton
+                    label="Créer une division"
+                    onPress={() => router.push("/administration/divisions/new")}
+                  >
+                    <Plus
+                      accessible={false}
+                      size={tokens.size.actionIcon}
+                      color={colors.icon}
+                    />
+                  </IconButton>
+                </View>
+              )}
+            </View>
+            <View style={styles.filters}>
+              {[true, false].map((value) => (
+                <Pressable
+                  key={String(value)}
+                  accessibilityRole="tab"
+                  accessibilityLabel={value ? "Actives" : "Inactives"}
+                  accessibilityState={{ selected: active === value }}
+                  onPress={() => setActive(value)}
+                  style={[
+                    styles.filter,
+                    {
+                      backgroundColor:
+                        active === value ? membership.fill : colors.subtle,
+                      borderColor:
+                        active === value ? membership.border : colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      tokens.typography.metadata,
+                      {
+                        color:
+                          active === value
+                            ? membership.content
+                            : colors.secondaryText,
+                      },
+                    ]}
+                  >
+                    {value ? "Actives" : "Inactives"}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            {query.isError && (
+              <RequestError
+                message="Les divisions sont indisponibles."
+                onRetry={() => void query.refetch()}
+                retrying={query.isFetching}
+              />
+            )}
+            {authority.enabled && query.isPending && <RequestLoading />}
+          </View>
+        }
+        ListEmptyComponent={
+          query.isSuccess && authority.enabled ? (
+            <Text
+              style={[tokens.typography.body, { color: colors.secondaryText }]}
+            >
+              {search.trim()
+                ? "Aucune division ne correspond à votre recherche."
+                : active
+                  ? "Aucune division active"
+                  : "Aucune division inactive"}
+            </Text>
+          ) : undefined
+        }
+        renderItem={({ item }) => (
+          <DivisionCard
+            division={item}
+            canEdit={canEdit}
+            onPress={() =>
+              router.push({
+                pathname: "/administration/divisions/[id]",
+                params: { id: item.id },
+              })
+            }
+          />
+        )}
+      />
+    </EditorPage>
+  );
+}
+/** FlatList owns spacing without subscribing each row to command state. */
+function Separator() {
+  return <View style={styles.separator} />;
+}
+/** A row opens the single editor; presentation artwork remains a protected, generated binary read. */
+function DivisionCard({
+  division,
+  canEdit,
+  onPress,
+}: {
+  division: DivisionResponse;
+  canEdit: boolean;
+  onPress: () => void;
+}) {
+  const { colors } = useTheme();
+  const artwork = usePresentationLogo(
+    { kind: "division", id: division.id },
+    "effective",
+    division.logo.effectiveUrl != null,
+    division.revision,
+  );
+  return (
+    <Pressable
+      accessibilityRole={canEdit ? "button" : undefined}
+      accessibilityLabel={division.name}
+      disabled={!canEdit}
+      onPress={onPress}
+      style={[
+        styles.card,
+        { backgroundColor: colors.surface, borderColor: `${division.color}4D` },
+      ]}
+    >
+      <View
+        style={[
+          styles.artwork,
+          {
+            backgroundColor: division.color,
+            backgroundImage: division.gradient
+              ? `linear-gradient(135deg, ${division.gradient.join(", ")})`
+              : automaticDivisionGradient,
+          },
+        ]}
+      >
+        {artwork.data ? (
+          <Image
+            source={{ uri: artwork.data }}
+            contentFit="contain"
+            style={styles.logo}
+            accessible={false}
+          />
+        ) : (
+          <ImageOff
+            accessible={false}
+            size={tokens.size.actionIcon}
+            color={divisionTextColor(division.color)}
+          />
+        )}
+      </View>
+      <View style={styles.identity}>
+        <Text style={[tokens.typography.strong, { color: colors.text }]}>
+          {division.name}
+        </Text>
+        <View style={styles.swatches}>
+          {(
+            division.gradient ?? [
+              division.color,
+              division.color,
+              division.color,
+            ]
+          ).map((color, index) => (
+            <View
+              key={index}
+              style={[styles.swatch, { backgroundColor: color }]}
+            />
+          ))}
+        </View>
+      </View>
+      {canEdit && (
+        <ChevronRight accessible={false} size={18} color={colors.icon} />
+      )}
+    </Pressable>
+  );
+}
+const styles = StyleSheet.create({
+  content: {
+    padding: tokens.spacing.lg,
+    paddingTop: tokens.spacing.sm,
+    paddingBottom: tokens.spacing.section,
+  },
+  controls: { gap: tokens.spacing.lg, marginBottom: tokens.spacing.section },
+  toolbar: { flexDirection: "row", gap: tokens.spacing.sm },
+  search: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+    paddingHorizontal: tokens.spacing.md,
+    borderWidth: tokens.borderWidth,
+    borderRadius: tokens.radius.control,
+    minHeight: tokens.size.control,
+  },
+  searchInput: {
+    ...tokens.typography.body,
+    flex: 1,
+    minHeight: tokens.size.control,
+  },
+  add: {
+    width: tokens.size.control,
+    minHeight: tokens.size.control,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: tokens.borderWidth,
+    borderRadius: tokens.radius.control,
+  },
+  filters: { flexDirection: "row", gap: tokens.spacing.sm },
+  filter: {
+    minHeight: 32,
+    justifyContent: "center",
+    paddingHorizontal: tokens.spacing.md,
+    borderWidth: tokens.borderWidth,
+    borderRadius: tokens.radius.full,
+  },
+  card: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.lg,
+    minHeight: 116,
+    paddingRight: tokens.spacing.lg,
+    overflow: "hidden",
+    borderWidth: tokens.borderWidth,
+    borderRadius: tokens.radius.sheet,
+  },
+  artwork: {
+    width: 76,
+    alignSelf: "stretch",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logo: { width: 52, height: 52 },
+  identity: {
+    flex: 1,
+    gap: tokens.spacing.xl,
+    paddingVertical: tokens.spacing.lg,
+  },
+  swatches: { flexDirection: "row", gap: tokens.spacing.xs },
+  swatch: { width: 14, height: 14, borderRadius: tokens.spacing.xs },
+  separator: { height: tokens.spacing.md },
+});

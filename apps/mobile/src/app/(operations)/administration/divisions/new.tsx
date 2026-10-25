@@ -1,0 +1,12 @@
+import { useOperationalAdmission } from "../../../../features/access/queries/use-access-admission";
+import { PresentationEditorScreen } from "../../../../features/sporting-administration/screens/presentation-editor-screen";
+import { RequestError } from "../../../../shared/components/request-feedback";
+/** Creation uses the existing presentation form, draft and native removal guard. */
+export default function CreateDivisionRoute() {
+  const admitted = useOperationalAdmission();
+  return admitted ? (
+    <PresentationEditorScreen target={{ kind: "division-creation" }} />
+  ) : (
+    <RequestError message="L’accès à l’application doit être vérifié avant de continuer." />
+  );
+}

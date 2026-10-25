@@ -33,7 +33,6 @@ import {
   mockAuth0,
 } from "../../accounts/test-support/native-auth0";
 import { PresentationScreen } from "../screens/presentation-screen";
-import type { PresentationTarget } from "../api/presentation";
 
 jest.mock(
   "react-native-safe-area-context",
@@ -131,6 +130,15 @@ let mockMaintenance = false;
 const environment = { ...process.env };
 
 // Presentation routes start after common discovery has been explicitly completed.
+/** Synthetic baseline HTTP peer; each scenario owns its changed network outcome. */
+async function respond(
+  url: RequestInfo | URL,
+  _options?: RequestInit,
+): Promise<Response> {
+  return json(
+    String(url).endsWith("/accounts/me") ? { ...account, permissions } : stored,
+  );
+}
 beforeEach(async () => {
   await completeDiscovery();
   client = createQueryClient();
@@ -156,15 +164,7 @@ beforeEach(async () => {
     .mocked(ImagePicker.launchImageLibraryAsync)
     .mockReset()
     .mockResolvedValue({ canceled: true, assets: null });
-  mockFetch
-    .mockReset()
-    .mockImplementation(async (url) =>
-      json(
-        String(url).endsWith("/accounts/me")
-          ? { ...account, permissions }
-          : stored,
-      ),
-    );
+  mockFetch.mockReset().mockImplementation(respond);
 });
 afterEach(() => {
   client.clear();
@@ -173,13 +173,21 @@ afterEach(() => {
 });
 
 /** Real form, Query, identity and access owners; only native credentials/images and HTTP are controlled. */
-async function renderEditor(kind: PresentationTarget["kind"] = "team") {
+async function renderEditor(
+  kind: "club" | "team" | "pool" | "division" | "division-creation" = "team",
+) {
   await render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
         <ApplicationAccessProvider>
           <AccountSessionProvider>
-            <PresentationScreen target={{ kind, id: resourceId }} />
+            <PresentationScreen
+              target={
+                kind === "division-creation"
+                  ? { kind }
+                  : { kind, id: resourceId }
+              }
+            />
             <SessionAction />
           </AccountSessionProvider>
         </ApplicationAccessProvider>
@@ -359,7 +367,7 @@ it("validates and saves division colors, gradient and name without touching acti
   };
   const user = await renderEditor("division");
   await screen.findByDisplayValue("Division");
-  await edit("Couleur", "invalid");
+  await edit("Couleur HEX", "invalid");
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
@@ -371,10 +379,10 @@ it("validates and saves division colors, gradient and name without touching acti
   );
 
   // When
-  await edit("Couleur", "#abcdef");
-  await edit("Dégradé 1", "#111111");
-  await edit("Dégradé 2", "#222222");
-  await edit("Dégradé 3", "#333333");
+  await edit("Couleur HEX", "#abcdef");
+  await edit("Départ", "#111111");
+  await edit("Milieu", "#222222");
+  await edit("Fin", "#333333");
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
@@ -631,6 +639,21 @@ async function openRoutes(initialUrl = "/") {
         </>
       ),
       "(operations)/_layout": OperationsLayout,
+      "(operations)/administration/classification/[kind]/[id]": () => (
+        <Text>Classification route</Text>
+      ),
+      "(operations)/administration/classification-selection": () => (
+        <Text>Selection route</Text>
+      ),
+      "(operations)/administration/divisions/[id]": () => (
+        <Text>Division route</Text>
+      ),
+      "(operations)/administration/divisions/index": () => (
+        <Text>Divisions route</Text>
+      ),
+      "(operations)/administration/divisions/new": () => (
+        <Text>Creation route</Text>
+      ),
       "(operations)/administration/index": () => (
         <Text>Administration route</Text>
       ),
@@ -936,4 +959,299 @@ it("rejects a delayed save result after the session has ended", async () => {
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
   ).toHaveLength(1);
+});
+
+it("creates an active division through the existing atomic presentation form with the lifecycle grant alone", async () => {
+  // Given
+  permissions = { manageDivisionLifecycle: true };
+  stored = { items: [] };
+  jest.spyOn(Alert, "alert");
+  const initialFetch = respond;
+  const created = {
+    id: resourceId,
+    revision: "d1",
+    name: "National 2",
+    color: "#123456",
+    gradient: null,
+    logo,
+    active: true,
+  };
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "POST"
+      ? Promise.resolve(json(created, 201))
+      : initialFetch(url, options),
+  );
+  const user = await renderEditor("division-creation");
+  await screen.findByLabelText("Nom de la division");
+  await edit("Nom de la division", "National 2");
+  await edit("Couleur HEX", "#123456");
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
+  ).toBe(false);
+  const confirm = jest
+    .mocked(Alert.alert)
+    .mock.calls.at(-1)?.[2]
+    ?.find((button) => button.text === "Confirmer");
+  await act(async () => {
+    confirm?.onPress?.();
+  });
+
+  // Then
+  await screen.findByRole("button", { name: "Voir les divisions" });
+  const request = mockFetch.mock.calls.find(
+    ([, options]) => options?.method === "POST",
+  )?.[1];
+  expect(request?.body).toBeInstanceOf(FormData);
+  const metadata = (request?.body as FormData).get("metadata") as Blob;
+  expect(metadata.type).toBe("application/json");
+  expect(JSON.parse(await metadata.text())).toEqual({
+    name: "National 2",
+    color: "#123456",
+    gradient: null,
+    logoAction: "keep",
+  });
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.some(([url]) => String(url).includes("/activity")),
+  ).toBe(false);
+});
+
+it("rereads divisions after an uncertain creation and keeps the draft while identifying an existing name", async () => {
+  // Given
+  permissions = { manageDivisionLifecycle: true };
+  stored = { items: [] };
+  jest.spyOn(Alert, "alert");
+  const initialFetch = respond;
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "POST"
+      ? Promise.reject(new TypeError("Lost response"))
+      : initialFetch(url, options),
+  );
+  const user = await renderEditor("division-creation");
+  await screen.findByLabelText("Nom de la division");
+  await edit("Nom de la division", "National 2");
+  await edit("Couleur HEX", "#123456");
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  const confirm = jest
+    .mocked(Alert.alert)
+    .mock.calls.at(-1)?.[2]
+    ?.find((button) => button.text === "Confirmer");
+  await act(async () => {
+    confirm?.onPress?.();
+  });
+  await screen.findByRole("button", { name: "Relire la présentation" });
+  stored = {
+    items: [
+      {
+        id: resourceId,
+        revision: "d1",
+        name: "National 2",
+        color: "#123456",
+        gradient: null,
+        logo,
+        active: true,
+      },
+    ],
+  };
+  await user.press(
+    screen.getByRole("button", { name: "Relire la présentation" }),
+  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  const retry = jest
+    .mocked(Alert.alert)
+    .mock.calls.at(-1)?.[2]
+    ?.find((button) => button.text === "Confirmer");
+  await act(async () => {
+    retry?.onPress?.();
+  });
+
+  // Then
+  expect(
+    await screen.findByText(
+      "Ce nom de division est déjà utilisé. Vérifiez la liste des divisions.",
+    ),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Nom de la division")).toHaveDisplayValue(
+    "National 2",
+  );
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+  ).toHaveLength(1);
+});
+
+it("keeps lifecycle independent at the end of the division editor for a lifecycle-only operator", async () => {
+  // Given
+  permissions = { manageDivisionLifecycle: true };
+  const division = {
+    id: resourceId,
+    revision: "d1",
+    name: "National 2",
+    color: "#123456",
+    gradient: null,
+    logo,
+    active: true,
+  };
+  stored = division;
+  const user = await renderEditor("division");
+  jest.spyOn(Alert, "alert");
+
+  // When
+  await user.press(
+    await screen.findByRole("button", { name: "Désactiver la division" }),
+  );
+  const confirmation = jest
+    .mocked(Alert.alert)
+    .mock.calls.at(-1)?.[2]
+    ?.find((button) => button.text === "Confirmer");
+  mockFetch.mockResolvedValue(
+    json({ ...division, revision: "d2", active: false }),
+  );
+  await act(async () => {
+    confirmation?.onPress?.();
+  });
+
+  // Then
+  await screen.findByRole("button", { name: "Réactiver la division" });
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+  ).toBe(false);
+  expect(mockFetch).toHaveBeenCalledWith(
+    expect.stringContaining(`/divisions/${resourceId}/activity`),
+    expect.objectContaining({
+      method: "PUT",
+      body: JSON.stringify({ revision: "d1", active: false }),
+    }),
+  );
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+});
+
+it("preserves unsaved presentation values while an independent activity response advances the division revision", async () => {
+  // Given
+  permissions = {
+    manageSportingPresentation: true,
+    manageDivisionLifecycle: true,
+  };
+  const division = {
+    id: resourceId,
+    revision: "d1",
+    name: "Division",
+    color: "#123456",
+    gradient: null,
+    logo,
+    active: true,
+  };
+  stored = division;
+  const originalFetch = respond;
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "PUT") {
+      stored = { ...division, revision: "d2", active: false };
+      return Promise.resolve(json(stored));
+    }
+    return originalFetch(url, options);
+  });
+  jest.spyOn(Alert, "alert");
+  const user = await renderEditor("division");
+  await screen.findByDisplayValue("Division");
+  await edit("Nom de la division", "Unsaved presentation");
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Désactiver la division" }),
+  );
+  const confirmation = jest
+    .mocked(Alert.alert)
+    .mock.calls.at(-1)?.[2]
+    ?.find((button) => button.text === "Confirmer");
+  await act(async () => {
+    confirmation?.onPress?.();
+  });
+  await screen.findByRole("button", { name: "Réactiver la division" });
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await screen.findByText("Présentation enregistrée.");
+  const body = mockFetch.mock.calls.find(
+    ([, options]) => options?.method === "PATCH",
+  )?.[1]?.body as FormData;
+  expect(JSON.parse(await (body.get("metadata") as Blob).text())).toMatchObject(
+    { revision: "d2", name: "Unsaved presentation" },
+  );
+  expect(
+    screen.queryByRole("button", { name: "Désactiver la division" }),
+  ).not.toBeOnTheScreen();
+});
+
+it("restores automatic division paint without sending a separate color or lifecycle command", async () => {
+  // Given
+  stored = {
+    id: resourceId,
+    revision: "d1",
+    name: "Division",
+    color: "#123456",
+    gradient: ["#111111", "#222222", "#333333"],
+    logo,
+    active: false,
+  };
+  const user = await renderEditor("division");
+
+  // When
+  await user.press(
+    await screen.findByRole("button", {
+      name: "Revenir au dégradé automatique",
+    }),
+  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await screen.findByText("Présentation enregistrée.");
+  const body = mockFetch.mock.calls.find(
+    ([, options]) => options?.method === "PATCH",
+  )?.[1]?.body as FormData;
+  expect(JSON.parse(await (body.get("metadata") as Blob).text())).toMatchObject(
+    { revision: "d1", color: "#123456", gradient: null },
+  );
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+  ).toBe(false);
+});
+
+it("preserves an empty invalid gradient stop when another stop changes", async () => {
+  // Given
+  stored = {
+    id: resourceId,
+    revision: "d1",
+    name: "Division",
+    color: "#123456",
+    gradient: ["#111111", "#222222", "#333333"],
+    logo,
+    active: true,
+  };
+  const user = await renderEditor("division");
+  await screen.findByDisplayValue("Division");
+
+  // When
+  await edit("Départ", "");
+  await edit("Milieu", "#ABCDEF");
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  expect(screen.getByLabelText("Départ")).toHaveDisplayValue("");
+  expect(
+    await screen.findByText(
+      "Renseignez les trois couleurs au format #RRGGBB ou laissez-les toutes vides.",
+    ),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+  ).toBe(false);
 });

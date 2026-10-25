@@ -1,10 +1,20 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  hashKey,
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { invalidateSportingReads } from "./invalidate-sporting-reads";
 import { useAuth0 } from "react-native-auth0";
 import {
   getClubPresentation,
   getTeamPresentation,
   getPoolPresentation,
   getDivision,
+  listDivisions,
+  createDivision,
+  getListDivisionsQueryKey,
   setClubPresentation,
   setTeamPresentation,
   setPoolPresentation,
@@ -29,6 +39,7 @@ import type {
   SportingPresentationResponse,
   PoolPresentationResponse,
   DivisionResponse,
+  DivisionListResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { binaryImagePreview } from "../../../shared/api/binary-image-preview";
@@ -38,16 +49,16 @@ import { useOperationalVersionAdmission } from "../../access/operational-version
 import type { PresentationValues } from "../forms/presentation-values";
 
 /** Stable original target; no identity, classification or activity can be changed by this editor. */
-export interface PresentationTarget {
-  kind: "club" | "team" | "pool" | "division";
-  id: string;
-}
+export type PresentationTarget =
+  | { kind: "club" | "team" | "pool" | "division"; id: string }
+  | { kind: "division-creation"; id?: never };
 
 /** Validated generated projections retain their resource-specific meaning at the form boundary. */
 export type Presentation =
   | { kind: "club" | "team"; data: SportingPresentationResponse }
   | { kind: "pool"; data: PoolPresentationResponse }
-  | { kind: "division"; data: DivisionResponse };
+  | { kind: "division"; data: DivisionResponse }
+  | { kind: "division-creation"; data: DivisionListResponse };
 
 /** Original-target reads, single atomic writes and current-session cache admission; never replays a mutation. */
 export function usePresentation(target: PresentationTarget, enabled: boolean) {
@@ -62,24 +73,37 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
         ? getGetTeamPresentationQueryKey(target.id)
         : target.kind === "pool"
           ? getGetPoolPresentationQueryKey(target.id)
-          : getGetDivisionQueryKey(target.id);
+          : target.kind === "division"
+            ? getGetDivisionQueryKey(target.id)
+            : [
+                ...getListDivisionsQueryKey({ includeInactive: true }),
+                "creation",
+              ];
   const queryKey = getSessionQueryKey(session.generation, generatedKey);
+  const saving = useIsMutating({ mutationKey: queryKey }) > 0;
 
   /** Rechecks current F05/F12 authority after credentials; the server still owns resource authorization. */
-  async function request(signal?: AbortSignal) {
+  async function request(signal?: AbortSignal, writing = false) {
     const credentials = await auth.getCredentials();
     if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
     version.assertCurrent();
     const account = client.getQueryState<AccountResponse>(
       getSessionQueryKey(session.generation, getGetMyAccountQueryKey()),
     );
-    if (
-      !enabled ||
-      account?.status !== "success" ||
-      account.data?.accountId !== session.accountId ||
-      account.data.permissions.manageSportingPresentation !== true
-    )
-      throw new ApiError("http", 403);
+    const grants =
+      account?.status === "success" &&
+      account.data?.accountId === session.accountId
+        ? account.data.permissions
+        : undefined;
+    const allowed =
+      target.kind === "division-creation"
+        ? grants?.manageDivisionLifecycle === true
+        : target.kind === "division" && !writing
+          ? grants?.manageSportingPresentation === true ||
+            grants?.manageDivisionLifecycle === true ||
+            grants?.manageSportingClassification === true
+          : grants?.manageSportingPresentation === true;
+    if (!enabled || !allowed) throw new ApiError("http", 403);
     if (!credentials) throw new ApiError("http", 401);
     return {
       session,
@@ -109,6 +133,11 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
             kind: "pool",
             data: await getPoolPresentation(target.id, options),
           };
+        case "division-creation":
+          return {
+            kind: "division-creation",
+            data: await listDivisions({ includeInactive: true }, options),
+          };
         case "division":
           return {
             kind: "division",
@@ -118,6 +147,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
     },
   });
   const save = useMutation({
+    mutationKey: queryKey,
     gcTime: 0,
     mutationFn: async ({
       revision,
@@ -126,7 +156,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
       revision: string;
       values: PresentationValues;
     }): Promise<Presentation> => {
-      const options = await request();
+      const options = await request(undefined, true);
       const image =
         values.logo.action === "replace" ? { image: values.logo.prepared } : {};
       const common = { revision, logoAction: values.logo.action };
@@ -135,6 +165,25 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
         values.shortName === "" ? null : values.shortName.trim();
       let accepted: Presentation;
       switch (target.kind) {
+        case "division-creation":
+          accepted = {
+            kind: "division",
+            data: await createDivision(
+              {
+                metadata: {
+                  name: values.name.trim(),
+                  color: values.color,
+                  gradient: values.gradient.every((v) => v === "")
+                    ? null
+                    : values.gradient,
+                  logoAction: values.logo.action,
+                },
+                ...image,
+              },
+              options,
+            ),
+          };
+          break;
         case "club":
           accepted = {
             kind: "club",
@@ -192,7 +241,20 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
       await client.cancelQueries({ queryKey, exact: true });
       if (!session.isCurrent(session.generation))
         throw new ApiError("cancelled");
-      client.setQueryData(queryKey, accepted);
+      if (target.kind !== "division-creation")
+        client.setQueryData(queryKey, accepted);
+      if (target.kind === "division" || target.kind === "division-creation") {
+        invalidateSportingReads(client);
+        void client.invalidateQueries({
+          predicate: ({ queryKey: key }) =>
+            hashKey(key) !== hashKey(queryKey) &&
+            key.some(
+              (part) =>
+                typeof part === "string" &&
+                part.startsWith("/administration/divisions"),
+            ),
+        });
+      }
       // Existing public readers share their generated resource URLs; invalidate every current admission context.
       const affected: readonly unknown[] =
         target.kind === "club"
@@ -207,17 +269,19 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
               ]
             : target.kind === "pool"
               ? getGetPoolQueryKey(target.id)
-              : getGetDivisionLogoQueryKey(target.id);
+              : target.kind === "division"
+                ? getGetDivisionLogoQueryKey(target.id)
+                : [];
       void client.invalidateQueries({
         predicate: ({ queryKey: key }) =>
           key.some(
             (part) => typeof part === "string" && affected.includes(part),
-          ) && key !== queryKey,
+          ) && hashKey(key) !== hashKey(queryKey),
       });
       return accepted;
     },
   });
-  return { query, save };
+  return { query, save, saving };
 }
 
 /** Loads backend-controlled binary artwork using #203's generated operations, without direct URL image requests. */
@@ -235,7 +299,9 @@ export function usePresentationLogo(
       ? getGetTeamLogoQueryKey(target.id, { selection })
       : target.kind === "club"
         ? getGetClubLogoQueryKey(target.id)
-        : getGetDivisionLogoQueryKey(target.id);
+        : target.kind === "division"
+          ? getGetDivisionLogoQueryKey(target.id)
+          : [];
   return useQuery({
     queryKey: getSessionQueryKey(session.generation, [
       ...generatedKey,
@@ -244,6 +310,7 @@ export function usePresentationLogo(
     enabled:
       enabled &&
       target.kind !== "pool" &&
+      target.kind !== "division-creation" &&
       version.satisfied &&
       session.status === "authenticated",
     gcTime: 0,
@@ -263,7 +330,10 @@ export function usePresentationLogo(
           ? await getTeamLogo(target.id, { selection }, options)
           : target.kind === "club"
             ? await getClubLogo(target.id, options)
-            : await getDivisionLogo(target.id, options);
+            : target.kind === "division"
+              ? await getDivisionLogo(target.id, options)
+              : undefined;
+      if (!blob) throw new ApiError("configuration");
       const uri = await binaryImagePreview(blob);
       if (!session.isCurrent(session.generation) || signal.aborted)
         throw new ApiError("cancelled");
