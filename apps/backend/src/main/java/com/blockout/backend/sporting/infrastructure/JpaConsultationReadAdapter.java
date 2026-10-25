@@ -9,6 +9,7 @@ import com.blockout.backend.sporting.application.ConsultationViews;
 import com.blockout.backend.sporting.application.MatchPresentation;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.model.MatchDetails;
+import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
@@ -144,30 +145,7 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
             match -> {
               MatchEntity schedule = entities.find(MatchEntity.class, matchId);
               MatchDetails details = facts.matchDetails(matchId);
-              ConsultationViews.Schedule publicSchedule =
-                  new ConsultationViews.Schedule(
-                      schedule.getLocalDate(),
-                      offset(schedule.getReliableStart()),
-                      schedule.getTimeZone(),
-                      offset(schedule.getScheduleObservedAt()));
-              ConsultationViews.Result result =
-                  details.result() == null
-                      ? null
-                      : new ConsultationViews.Result(
-                          ResultStateEnum.fromValue(details.result().state().getValue()),
-                          details.result().homeSets(),
-                          details.result().awaySets(),
-                          details.result().specialLabel(),
-                          offset(details.resultObservedAt()));
-              ConsultationViews.MatchSummary summary =
-                  new ConsultationViews.MatchSummary(
-                      matchId,
-                      poolSummary(match.poolId()).orElseThrow(),
-                      publicIdentity(Kind.TEAM, match.homeTeamId()),
-                      publicIdentity(Kind.TEAM, match.awayTeamId()),
-                      publicSchedule,
-                      MatchPresentation.category(publicSchedule, result, evaluatedAt),
-                      result);
+              ConsultationViews.MatchSummary summary = matchSummary(schedule, evaluatedAt);
               return new ConsultationViews.MatchDetail(
                   summary,
                   details.sets() == null
@@ -181,6 +159,62 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
                   null,
                   List.of());
             });
+  }
+
+  /**
+   * Composes an already admitted match using owner presentation in the current transaction. Batched
+   * callers fetch its to-one graph first; no collections or additional eligibility reads are needed
+   * for this public summary.
+   *
+   * @param match currently admitted dated match
+   * @param now common presentation evaluation instant
+   * @return the same current summary used by ordinary match consultation
+   */
+  ConsultationViews.MatchSummary matchSummary(MatchEntity match, Instant now) {
+    PoolEntity pool = match.getPool();
+    ConsultationViews.Schedule schedule =
+        new ConsultationViews.Schedule(
+            match.getLocalDate(),
+            offset(match.getReliableStart()),
+            match.getTimeZone(),
+            offset(match.getScheduleObservedAt()));
+    MatchObservation.Result accepted = persistenceMapper.toResult(match);
+    ConsultationViews.Result result =
+        accepted == null
+            ? null
+            : new ConsultationViews.Result(
+                ResultStateEnum.fromValue(accepted.state().getValue()),
+                accepted.homeSets(),
+                accepted.awaySets(),
+                accepted.specialLabel(),
+                offset(match.getResultObservedAt()));
+    ConsultationViews.PoolSummary context =
+        new ConsultationViews.PoolSummary(
+            identity(
+                facts
+                    .presentation(SportingProjectionChanges.Kind.POOL, pool.getId())
+                    .orElseThrow()),
+            persistenceMapper.toView(pool.getSeason()),
+            classification(
+                new SportingClassification(
+                    pool.getDivision().getId(), pool.getFormat(), pool.getGender()),
+                persistenceMapper.toDetail(pool.getDivision())),
+            null,
+            null);
+    return new ConsultationViews.MatchSummary(
+        match.getId(),
+        context,
+        identity(
+            facts
+                .presentation(SportingProjectionChanges.Kind.TEAM, match.getHomeTeam().getId())
+                .orElseThrow()),
+        identity(
+            facts
+                .presentation(SportingProjectionChanges.Kind.TEAM, match.getAwayTeam().getId())
+                .orElseThrow()),
+        schedule,
+        MatchPresentation.category(schedule, result, now),
+        result);
   }
 
   /**
@@ -227,17 +261,6 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
                   null,
                   null);
             });
-  }
-
-  /**
-   * Resolves names and effective logo links exclusively through the F02 presentation owner.
-   *
-   * @param kind visible club, team or pool
-   * @param id exact current identity
-   * @return detached identity without editing metadata
-   */
-  private ConsultationViews.Identity publicIdentity(Kind kind, UUID id) {
-    return identity(owners.publicPresentation(kind, id).orElseThrow());
   }
 
   /**
