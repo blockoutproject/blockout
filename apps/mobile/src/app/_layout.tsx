@@ -25,6 +25,10 @@ import {
   DiscoveryProvider,
   useDiscovery,
 } from "../features/onboarding/discovery-provider";
+import {
+  AgeDeclarationProvider,
+  useAgeDeclaration,
+} from "../features/advertising/age-declaration-provider";
 
 initializeSentry();
 
@@ -35,6 +39,7 @@ function Navigation() {
   const { subscribe, isCurrent } = useAccountSession();
   const access = useAccessAdmission();
   const discovery = useDiscovery();
+  const age = useAgeDeclaration();
   useLayoutEffect(
     () => bindSessionQueries(client, subscribe, isCurrent),
     [client, subscribe, isCurrent],
@@ -58,6 +63,15 @@ function Navigation() {
           <Stack.Protected guard={access.ordinary && discovery.complete}>
             <Stack.Screen name="(ordinary)" />
           </Stack.Protected>
+          <Stack.Protected
+            guard={access.ordinary && discovery.complete && age.required}
+            redirectTo={access.ordinary ? "/" : "/access"}
+          >
+            <Stack.Screen
+              name="age-declaration"
+              options={{ gestureEnabled: false }}
+            />
+          </Stack.Protected>
           <Stack.Protected guard={access.operations}>
             <Stack.Screen name="(operations)" />
           </Stack.Protected>
@@ -67,13 +81,23 @@ function Navigation() {
   );
 }
 
+/** Defers age I/O until discovery releases ordinary entry, preserving independent discovery read/retry. */
+function InstallationNavigation() {
+  const discovery = useDiscovery();
+  return (
+    <AgeDeclarationProvider enabled={discovery.complete}>
+      <Navigation />
+    </AgeDeclarationProvider>
+  );
+}
+
 /** Projects SDK-active membership into the sole system theme owner without remounting routes. */
 function ThemedNavigation() {
   const { state } = usePro();
   return (
     <ThemeProvider proAccent={state.status === "active"}>
       <DiscoveryProvider>
-        <Navigation />
+        <InstallationNavigation />
       </DiscoveryProvider>
     </ThemeProvider>
   );
