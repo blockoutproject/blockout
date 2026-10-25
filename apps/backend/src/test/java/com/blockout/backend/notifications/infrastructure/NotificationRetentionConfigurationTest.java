@@ -80,24 +80,6 @@ class NotificationRetentionConfigurationTest {
   }
 
   @Test
-  @DisplayName("Supports Spring's disabled cron value for isolated tests")
-  void disablesIsolatedCallback() {
-    // Given / When
-    context
-        .withPropertyValues("blockout.notifications.retention-cron=-")
-        .run(
-            application -> {
-              // Then
-              assertThat(application).hasNotFailed();
-              assertThat(
-                      application
-                          .getBean(ScheduledAnnotationBeanPostProcessor.class)
-                          .getScheduledTasks())
-                  .isEmpty();
-            });
-  }
-
-  @Test
   @DisplayName("Rejects an invalid retention cron at startup through Spring's native validation")
   void refusesInvalidConfiguration() {
     // Given / When

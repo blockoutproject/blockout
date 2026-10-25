@@ -47,7 +47,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /** Actual migrated purge/read/create boundaries; clock and SQL interruption are test controlled. */
-@SpringBootTest(properties = "blockout.notifications.retention-cron=-")
+@SpringBootTest
 @ExtendWith(OutputCaptureExtension.class)
 @DisplayName("Daily notification retention on PostgreSQL")
 class PurgeNotificationsIntegrationTest {
