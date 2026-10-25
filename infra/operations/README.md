@@ -68,6 +68,37 @@ Run each step only after the preceding step succeeds. Keep archives, extracted S
 
    Run through `psql -X --set=ON_ERROR_STOP=1` on the verified isolated connection. [Default privileges](https://www.postgresql.org/docs/18/sql-alterdefaultprivileges.html) affect future objects only; they do not repair restored table/sequence grants. Inspect `\du`, `\dn+`, `\dp` and `\ddp`, then verify application data access and denied schema creation using disposable qualification data. Collector still has no SQL credentials. These database privileges are separate from restored F12 application grants.
 
+## Manual rights and club-contact restrictions
+
+This is the bounded F11 [rights procedure](../../specs/004-advertising-privacy-legal/spec.md#user-story-6--exercise-my-rights-without-depending-on-an-account-priority-p1), prepared for separately authorized operations. The controller must designate an authorized operator and supply a real monitored email contact before legal publication. This repository establishes neither that contact nor access to a qualified private support destination or provider tools. If any required contact, evidence, permission or invocation tool is unavailable, keep that action pending and identify its owner; never substitute a public issue or claim execution. [T038–T040](../../specs/004-advertising-privacy-legal/tasks.md#phase-8-user-story-6--exercise-rights-without-depending-on-an-account-priority-p1) own actual qualification and publication.
+
+1. **Receive and bound the request privately.** Accept requests without a session, including inaccessible or erased accounts. Use the operational email and the existing authorized private support process, recording receipt date, requested right, affected scope and operator. Clarify only what is needed; the [category matrix](../../specs/004-advertising-privacy-legal/spec.md#categories-purposes-and-responsibilities) owns purposes and recipients. Do not copy contact values, attachments, provider documents or personal references into this public repository, diagnostic logs or Discord.
+2. **Verify proportionately before disclosure or mutation.** Establish that the requester concerns the specified data or has authority to act. Use the existing owner's verified account/provider context or necessary private supporting evidence appropriate to the request. A supplied reply address, name, club reference, account UUID or purchase claim alone proves no ownership. Do not match accounts by email, transfer identity or systematically collect identity documents. For reasonable doubt, request the minimum additional evidence and protect third parties; unavailable proof keeps disclosure/destructive action pending, without requiring a new account.
+3. **Identify the actual copies and owners.** Record necessary data, purpose, authorized recipients, active/local/provider copies, applicable retention criterion and the requested operation in the existing private case. Route account/profile erasure and original Auth0/RevenueCat targets to [F05](../../specs/005-accounts-identity/plan.md#erasure-and-manual-resolution), paid/gifted entitlement evidence and decisions to [F09](../../specs/006-pro-subscriptions/plan.md), club fields to F02 below, and tickets plus every linked file to [F10](../../specs/012-reports-feature-suggestions/plan.md). Include F06 follows, F07 destinations/inbox, F08 contributions/moderation, F03 location, F11 local choices and F13 diagnostics/protected backups when affected. Other individuals, including match referees, receive manual review through their owner; there is no generic person suppression or directory.
+4. **Execute only the authorized owner action.** Keep per-copy confirmed, pending and limited outcomes distinct. Follow [F05's erasure sequence and provider acknowledgments](../../specs/005-accounts-identity/plan.md#erasure-and-manual-resolution) for business-account deletion and original-target cleanup; a failed recipient action remains pending. Verify original targets and current use before any separately authorized provider deletion; a replacement business UUID is never the old cleanup target. Use [F13 investigation](../observability/README.md#investigate-and-intervene) for uncertainty. A data request neither cancels store billing nor grants a refund, subscription transfer or gift; F09 retains those decisions. F10 closure/account unlinking is not erasure: review the ticket and files at their actual storage locations and verify authorized access and any applicable erasure separately. Add no periodic ticket purge, post-closure deadline or independent Blockout support backup.
+5. **Respond and retain only justified evidence.** Communicate confirmed actions, pending recipients, reasons for any limitation and next owner action through the authorized private reply channel. For GDPR requests, respond without undue delay and within one month of receipt; if complexity/number of requests justifies up to two further months, explain the extension and reasons within that first month. A refusal also explains reasons and available complaint/judicial remedies. Use the [CNIL rights guidance](https://www.cnil.fr/fr/repondre-une-demande-de-droit-dacces) and [GDPR Article 12](https://eur-lex.europa.eu/eli/reg/2016/679/oj/eng) for the applicable case; these legal deadlines create no technical on-call or general ticket-response guarantee. Review necessary request/verification evidence against its purpose and remove it when no longer justified. F05 original-target references alone may remain in private cleanup logs for F13's **14 days**; longer unresolved evidence belongs only in still-justified private support handling. Backup retention and notification expiry set no other category's lifetime.
+
+### Apply an authorized club-field restriction
+
+The existing [F02 application operation](../../apps/backend/src/main/java/com/blockout/backend/sporting/application/service/ClubDetailsService.java) is `ClubDetailsService.restrict(UUID, Set<ContactField>)`. It is a trusted Spring transactional bean method, **not an HTTP endpoint or an installed operator CLI**. Prepare a separately reviewed, environment-specific invocation of this existing bean with the authorized backend operator; this guide supplies no production launcher. Without a safe approved invocation, leave execution pending. Do not instantiate the service directly, bypass its Spring transaction with SQL, or use ordinary contact editing as erasure.
+
+1. Confirm the private request's exact established club UUID and affected fields: `ADDRESS`, `CITY`, `POSTAL_CODE`, `EMAIL`, `PHONE`, `WEBSITE`. Resolve ambiguity privately; preserve the club, teams, matches, other fields and their history. Read current contact state/revision with `GET /administration/clubs/{clubId}/contacts` under the existing `sporting-presentation.manage` grant. Keep the response private and retain scope/revision evidence rather than an archive of forbidden values.
+2. Invoke the existing bean once for the approved set, for example `contacts.restrict(verifiedClubId, Set.of(ContactField.EMAIL))`, where `contacts` is the Spring-managed bean and `verifiedClubId` comes from the verified case. F02 locks the club before reading current values, clears both source and manual columns, retains the durable field restriction and current mode, and advances the contact editing revision when state changes. Repeating an already applied restriction is a no-op. Effective municipality/postcode changes also invalidate coordinates and advance locality revision through F02; do not reimplement those rules. Its existing after-commit change event covers affected projections.
+3. Confirm commit and reread **current** state. Verify restricted source/manual/effective values are absent in the administrative response and `GET /clubs/{clubId}` public projection; unrelated fields and sporting identities remain intact. With authorized database read access, verify physical clearing as well, selecting only the necessary booleans and revision. For the email example, on the verified environment's private connection, `psql -X --set=ON_ERROR_STOP=1` can execute:
+
+   ```sql
+   SELECT contacts_revision,
+          email IS NULL AS source_cleared,
+          email_manual IS NULL AS manual_cleared,
+          email_restricted AS restriction_retained
+   FROM sporting_club WHERE id = :'club_id'::uuid;
+   ```
+
+   Set `club_id` privately to the verified UUID. Require exactly the expected club and all three booleans true. Check the equivalent mapped columns for the actual affected fields. A failed/uncertain write requires current inspection, never an assumed rollback or blind replay. If projections or derivatives cannot be verified, keep affected exposure unavailable for owner resolution.
+
+4. Recollect and exercise ordinary editors only with synthetic cases in an authorized test environment. An old revision returns the existing 409 `stale-revision`; a current manual value for a restricted field returns 409 atomically, including any accompanying unrelated edit. `source`/`hidden` mode changes cannot lift the restriction. Source unavailability, renewed collection, reidentification or priority-source publication never restores permission. [F11's prepared cases](../../specs/004-advertising-privacy-legal/quickstart.md#scenarios-and-expected-outcomes) identify the automated boundary and remaining real-consumer qualification.
+5. Record only the necessary decision, field set, current revision and verified outcomes privately. Do not lift flags through ordinary editing. A later lifting decision needs separate manual authorization and owner review; this operation implements no lifting path. After a restore/reconstruction, use the [current-state reconciliation](#reconcile-before-access-or-sends) before access, derivatives or sends; a copy predating the flag requires reapplication, and uncertainty keeps affected resources closed.
+
 ## Reconcile before access or sends
 
 Keep the target isolated while checking the [prepared owner cases](../../specs/003-shared-quality/quickstart.md#initial-restore-and-activation-condition). Compare representative records, original timestamps, relationships and PNG/JPEG bytes against privately retained expected values. Apply current corrections and restrictions using the owning implementations or an authorized manual correction; never infer recoverability from row counts, URLs or successful `/health` alone.
@@ -94,6 +125,72 @@ Only after those checks and explicit reopening authorization may the operator re
 Use the [existing rollback qualification cases](../../specs/003-shared-quality/quickstart.md#delivery-and-operations) and exact previously qualified image digests. Verify compatibility with **current** schema/data and admitted mobile clients before selecting the older candidate. Keep maintenance enabled and use the same serialized delivery procedure; no SQL downgrade, volume deletion or automatic reversal of data is implied by replacing an image. A failed migration leaves restart blocked.
 
 If the earlier image cannot use retained data, keep writers/access closed and choose an authorized forward repair or the isolated restoration above with a compatible image. Reconcile the restore point's gaps and all current obligations before reopening. After V2 opens, [F14](../../specs/014-v1-v2-transition/spec.md) requires V2 repair/restoration, not a functional return to V1. Its separately authorized logo-retention/reset checks are not performed by this procedure.
+
+## Protected club-logo preservation and reassociation
+
+This is F14 T028's preparation and T030's isolated rehearsal procedure. Actual V1 access, the administrator freeze and export are **T029**, requiring separate source-access/export authorization; target reconstruction and live reassociation remain T034. This procedure authorizes none of those operations. Use only a verified isolated target and synthetic files for a rehearsal. The [F14 model](../../specs/014-v1-v2-transition/data-model.md#protected-club-logo-association) owns preservation outcomes; [F02](../../specs/002-sporting-data/plan.md#presentation-administration-and-locality) owns image validation, storage and inheritance.
+
+### Prepare the private preservation copy
+
+The private preservation copy contains the exact FFVB club identifier string, original logo reference and its usable bytes. Do not convert identifiers to numbers, trim meaningful leading zeros or infer identity from club names. For example, synthetic `000339`, `339` and `0000339` are different references. Do not use a spreadsheet import that changes those strings. Other V1 names, contacts, team/division artwork and presentation customizations are outside this copy.
+
+1. Before an authorized T029 copy, identify the exact source/environment and all affected manual club-logo associations. The sole administrator freezes manual logo edits, settles relevant in-flight writes and verifies that the **deployed** collector preserves the protected associations before collection continues. A repository test cannot establish that deployed behavior. Keep the source intact while any prerequisite is unresolved.
+2. Through the authorized source's ordinary read/export and file-download tools, copy every affected original association and actual file to the existing private operational location, independently of the source to be destroyed. Retain its exact string club reference, original logo reference, corresponding file path and source/observation time together. Use private access and restrictive file permissions (`umask 077`); keep identifiers, files and diagnostics out of Git, issues and PR attachments. No generic exporter, migration ledger or second application image store is needed.
+3. Reconcile **every** source association with its preserved record and readable file, and every copied file with its association. Compare byte lengths and SHA-256 digests against the original read, then actually decode each copied image; a matching checksum, URL, HTTP success or file extension alone does not prove usability. F02 accepts actual PNG/JPEG content up to 5,242,880 bytes and 4,194,304 decoded pixels, preserving accepted original bytes. Missing, empty, corrupt, unsupported or oversized content is not ready for F02 reassociation; retain the original and resolve the affected case privately instead of silently transcoding, replacing or dropping it.
+4. Lost/missing associations or unusable bytes mean **preservation is incomplete; block the destructive action affecting that source**. A complete usable association with no certain rebuilt target stays private and identifiable for manual resolution. If two preserved associations conflict for one exact reference, retain both and resolve their provenance before applying either; do not choose by name, list order, latest file timestamp or numeric conversion. Record the affected blocked operation privately, with only safe scope/outcomes in F14 quickstart.
+5. Confirm the freeze still holds before using the copy. An exceptional edit refreshes and reverifies only its affected association/file. Elapsed time alone requires no full recopy. This freeze does not freeze purchases, erasures or privacy obligations: apply the [final current-state reconciliation](#final-current-state-reconciliation) before the separately authorized destructive/opening action. Retaining artwork does not permit republication against a current restriction.
+
+### Reassociate through the current F02 owner
+
+Use the authorized target's existing private database connection and current operator token. Verify host, port, database and user before reads or writes. The `blockout-logo-target` libpq service below is an explicitly prepared **isolated** connection for rehearsal, not an instruction to reuse a live service. Keep output private and shell tracing disabled. Select one preserved reference without normalizing it; use its corresponding verified file, never an arbitrary URL fetch by the backend.
+
+1. Resolve **only** the exact FFVB reference using the existing database read tools. For example, with `FFVB_CLUB_REFERENCE` supplied as a string:
+
+   ```sh
+   PGSERVICE=blockout-logo-target psql -X --set=ON_ERROR_STOP=1 \
+     --set=ffvb_reference="$FFVB_CLUB_REFERENCE" <<'SQL'
+   SELECT id, provider, reference
+   FROM sporting_club
+   WHERE provider = 'FFVB' AND reference = :'ffvb_reference';
+   SQL
+   ```
+
+   Proceed only with exactly one certain target and one resolved preserved association. Zero matches: retain the association/file privately; do not create a club. Multiple or contradictory candidates: stop the affected reassociation and resolve privately. The normal V2 schema prevents duplicate `(provider, reference)` clubs through `uk_club_identity`; do not drop that constraint to import ambiguous data. A similar name, another provider's native ID or a matching seasonal team label supplies no club identity.
+
+2. With that UUID in `CLUB_ID`, read `GET /administration/clubs/{clubId}/presentation` using the current operator's `sporting-presentation.manage` grant. Prepare metadata from the **target's current** revision and manual name, including explicit null. This preserves current V2 naming and transfers only the protected club logo. Use fresh absolute private paths for `CURRENT_PRESENTATION`, `LOGO_METADATA`, `SAVED_PRESENTATION` and `VERIFIED_LOGO`; `PRESERVED_LOGO` is the corresponding verified original file. `BACKEND_URL` and `OPERATOR_ACCESS_TOKEN` must belong to that same authorized target.
+
+   ```sh
+   curl --fail-with-body --silent --show-error \
+     --header "Authorization: Bearer ${OPERATOR_ACCESS_TOKEN}" \
+     --output "$CURRENT_PRESENTATION" \
+     "${BACKEND_URL}/administration/clubs/${CLUB_ID}/presentation" &&
+   jq --exit-status '{revision, manualName: .names.manualName, logoAction: "replace"}' \
+     "$CURRENT_PRESENTATION" > "$LOGO_METADATA"
+   ```
+
+   Inspect each native command's exit status and the read identity before continuing; never submit an error body or stale metadata. The [canonical F02 editor](../../contracts/http/mobile/sporting/paths.yaml) requires all metadata fields and an image part for `replace`. Current account permissions still govern the operation, including under maintenance; a former V1 role or M2M token grants no permission.
+
+3. Submit the existing atomic multipart editor operation, then reread the effective club image. The public image read is subject to F12 maintenance admission: the explicit bypass header below requires the current `maintenance.bypass` grant while maintenance is active. Presentation-management permission alone supplies no bypass; keep access closed if that read cannot be authorized:
+
+   ```sh
+   curl --fail-with-body --silent --show-error --request PATCH \
+     --header "Authorization: Bearer ${OPERATOR_ACCESS_TOKEN}" \
+     --form "metadata=@${LOGO_METADATA};type=application/json" \
+     --form "image=@${PRESERVED_LOGO}" \
+     --output "$SAVED_PRESENTATION" \
+     "${BACKEND_URL}/administration/clubs/${CLUB_ID}/presentation" &&
+   curl --fail-with-body --silent --show-error \
+     --header "Authorization: Bearer ${OPERATOR_ACCESS_TOKEN}" \
+     --header "Blockout-Maintenance-Bypass: true" \
+     --output "$VERIFIED_LOGO" \
+     "${BACKEND_URL}/clubs/${CLUB_ID}/logo" &&
+   cmp "$PRESERVED_LOGO" "$VERIFIED_LOGO"
+   ```
+
+   F02 checks current grants before decoding and again in the write transaction, validates actual bytes and commits the association/content together in PostgreSQL. A refusal leaves the previous presentation intact. Stop after any failed or uncertain write: reread current presentation and image before an explicit retry. A `409` requires current-state inspection, never automatic resubmission of the old revision; matching current state proves the current outcome, not which historical request ran.
+
+4. Verify the returned target/manual-logo association, unchanged names and byte-for-byte content; decode the downloaded image too. Check dependent FFVB teams through the ordinary read operations: they inherit current club artwork across seasons without copied team bytes, while an independent manual team image retains precedence. Professional teams use their existing contextual LNV identity and optional controlled club relationship; **never create or propagate a club relationship** during logo reassociation. A clubless professional team with a similar name/native reference stays clubless and receives no recovered club logo.
+5. Keep unmatched/conflicting associations and files privately attributable until their owning resolution. Report exact-match success, pending association and incomplete preservation separately. This rehearsal does not authorize source destruction or prove a live inventory/freeze, actual deployed collector safety, full reconstruction, native rendering or release acceptance. T029/T034/T036 retain those operational/qualification gates.
 
 ## Private continuity inventory
 

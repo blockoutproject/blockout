@@ -20,6 +20,7 @@ import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
 import org.apache.hc.client5.http.impl.DefaultSchemePortResolver;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.routing.RoutingSupport;
+import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.NameValuePair;
 import org.springframework.core.task.TaskRejectedException;
@@ -79,6 +80,35 @@ public final class ProviderHttpClient implements AutoCloseable {
     HttpGet request = new HttpGet(uri);
     request.setHeader("Cache-Control", "no-store");
     return executor.submitCompletable(() -> read(request));
+  }
+
+  /** Status and bounded body for the one provider error whose meaning needs interpretation. */
+  public record StatusResponse(int status, byte[] body) {}
+
+  /**
+   * Reads JSON while retaining HTTP 400 for provider-specific semantic qualification. Other failed
+   * statuses retain the ordinary transport failure and native retry/redirect behavior.
+   *
+   * @param uri official provider URL, subject to the same origin checks and shared budget
+   * @return complete bounded body with 200 or 400 status; never an archived error payload
+   */
+  public CompletableFuture<StatusResponse> getWithBadRequest(URI uri) {
+    requireOrigin(uri, origins);
+    HttpGet request = new HttpGet(uri);
+    request.setHeader("Cache-Control", "no-store");
+    request.setHeader("Accept", "application/json");
+    return executor.submitCompletable(
+        () ->
+            http.execute(
+                request,
+                response -> {
+                  int status = response.getCode();
+                  if (status != 200 && status != 400) {
+                    request.cancel();
+                    throw new HttpResponseException(status, "Provider read failed");
+                  }
+                  return new StatusResponse(status, boundedBody(request, response.getEntity()));
+                }));
   }
 
   /**
@@ -185,14 +215,7 @@ public final class ProviderHttpClient implements AutoCloseable {
                 request.cancel();
                 throw new IOException("Binary document bodies are not collection pages");
               }
-              try (InputStream content = response.getEntity().getContent()) {
-                byte[] bytes = content.readNBytes(maxResponseBytes);
-                if (content.read() != -1) {
-                  request.cancel();
-                  throw new IOException("Provider response exceeds the configured byte limit");
-                }
-                return bytes;
-              }
+              return boundedBody(request, response.getEntity());
             });
     URI actual;
     try {
@@ -209,6 +232,26 @@ public final class ProviderHttpClient implements AutoCloseable {
         status == null
             || status == CacheResponseStatus.CACHE_MISS
             || Boolean.TRUE.equals(context.getAttribute(SUPPLIER_BODY)));
+  }
+
+  /**
+   * Bounds decompressed success/error bytes before a provider interpreter can inspect them.
+   *
+   * @param request active native request, cancelled on overflow
+   * @param entity received entity, possibly absent
+   * @return complete bytes, including an explicitly empty entity
+   * @throws IOException for stream failure or decoded overflow
+   */
+  private byte[] boundedBody(HttpUriRequestBase request, HttpEntity entity) throws IOException {
+    if (entity == null) return new byte[0];
+    try (InputStream content = entity.getContent()) {
+      byte[] bytes = content.readNBytes(maxResponseBytes);
+      if (content.read() != -1) {
+        request.cancel();
+        throw new IOException("Provider response exceeds the configured byte limit");
+      }
+      return bytes;
+    }
   }
 
   /** Stops bounded pending work and releases native HTTP resources when the application closes. */

@@ -13,6 +13,7 @@ import type {
   ChangeAccountProfileBody,
 } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
+import { binaryImagePreview } from "../../../shared/api/binary-image-preview";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useOrdinaryRequest } from "../../access/ordinary-request";
 import { useAccountSession } from "../session/account-session-provider";
@@ -128,23 +129,10 @@ export function useProfilePhoto(accountId: string, hasPhoto: boolean) {
           headers: { Authorization: `Bearer ${credentials.accessToken}` },
         }),
       );
-      const uri = await photoPreview(blob);
+      const uri = await binaryImagePreview(blob);
       if (!session.isCurrent(session.generation))
         throw new ApiError("cancelled");
       return uri;
     },
-  });
-}
-
-/** Converts a successful owner-only binary response into an in-memory URI supported by native Image. */
-function photoPreview(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new ApiError("network"));
-    reader.onload = () =>
-      typeof reader.result === "string"
-        ? resolve(reader.result)
-        : reject(new ApiError("schema"));
-    reader.readAsDataURL(blob);
   });
 }

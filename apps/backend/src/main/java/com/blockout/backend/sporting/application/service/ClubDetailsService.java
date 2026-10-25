@@ -108,7 +108,8 @@ public class ClubDetailsService {
    *
    * @param clubId exact admitted club-sheet target
    * @param observation qualified source facts and native presence semantics
-   * @return source-scope accepted, unchanged or stale outcome
+   * @return source-scope accepted, unchanged or stale outcome; a safe unprocessable-content reason
+   *     marks invalid secondary proposals retained as prior values, without disclosing those values
    */
   @Transactional
   public ObservationOutcome accept(UUID clubId, ClubObservation observation) {
@@ -129,6 +130,7 @@ public class ClubDetailsService {
               ? ObservationOutcomeEnum.STALE
               : ObservationOutcomeEnum.UNCHANGED);
     Map<ContactField, ContactValue> fields = new EnumMap<>(current.fields());
+    boolean rejectedFields = false;
     for (Map.Entry<ContactField, JsonNullable<String>> entry : observation.fields().entrySet()) {
       ContactValue previous = fields.get(entry.getKey());
       if (previous.restricted() || !entry.getValue().isPresent()) continue;
@@ -137,6 +139,7 @@ public class ClubDetailsService {
         fields.put(
             entry.getKey(),
             new ContactValue(proposed, previous.manualValue(), previous.mode(), false));
+      else rejectedFields = true;
     }
     String name =
         observation.sourceName() == null || observation.sourceName().isBlank()
@@ -156,10 +159,13 @@ public class ClubDetailsService {
         name);
     boolean changed =
         !fields.equals(current.fields()) || name != null && !name.equals(previousName);
-    return outcome(
+    return new ObservationOutcome(
         reference,
+        changed ? ObservationOutcomeEnum.ACCEPTED : ObservationOutcomeEnum.UNCHANGED,
         clubId,
-        changed ? ObservationOutcomeEnum.ACCEPTED : ObservationOutcomeEnum.UNCHANGED);
+        rejectedFields ? URI.create("urn:blockout:problem:unprocessable-content") : null,
+        null,
+        null);
   }
 
   /**

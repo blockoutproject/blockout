@@ -236,7 +236,7 @@ export function StartupAccessGate() {
   );
 }
 
-/** Renders the current blocking state; its only in-app destination is current authorized operations. */
+/** Renders the current block and offers technical administration only when its landing page has a usable command. */
 export function AccessGateScreen() {
   const access = useAccessAdmission();
   const router = useRouter();
@@ -249,7 +249,7 @@ export function AccessGateScreen() {
       checking={access.checking}
       onRetry={access.retry}
       onAdministration={
-        access.operations ? () => router.push("/administration") : undefined
+        access.administration ? () => router.push("/administration") : undefined
       }
     />
   );
