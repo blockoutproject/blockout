@@ -48,6 +48,7 @@
           </includes>
           <excludes>
             <exclude>**/*IntegrationTest.java</exclude>
+            <exclude>**/*JpaTest.java</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -58,6 +59,7 @@
           <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar}</argLine>
           <includes>
             <include>**/*IntegrationTest.java</include>
+            <include>**/*JpaTest.java</include>
           </includes>
         </configuration>
         <executions>

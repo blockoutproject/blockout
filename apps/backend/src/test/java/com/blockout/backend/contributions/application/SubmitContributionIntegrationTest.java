@@ -1,9 +1,7 @@
-package com.blockout.backend.contributions.infrastructure;
+package com.blockout.backend.contributions.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.blockout.backend.contributions.application.ContributionRejectedException;
-import com.blockout.backend.contributions.application.SubmitContribution;
 import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.domain.StreamAddress;
 import com.blockout.backend.contributions.support.ContributionScenario;
@@ -17,7 +15,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Real submission and current-state persistence; time alone is controlled by the shared fixture.
  */
 @DisplayName("Atomic contribution submission")
-class ContributionSubmissionIntegrationTest extends ContributionScenario {
+class SubmitContributionIntegrationTest extends ContributionScenario {
+
   @Test
   @DisplayName("An eligible ordinary submission publishes one quota-participating version")
   void publishesOrdinaryVersion() {

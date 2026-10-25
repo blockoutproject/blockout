@@ -9,13 +9,13 @@ import com.blockout.backend.search.infrastructure.SearchIndexProperties;
 import com.blockout.backend.search.infrastructure.SearchTestEngine;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -28,11 +28,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -42,32 +39,42 @@ import tools.jackson.databind.json.JsonMapper;
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Testcontainers
-@Import(SearchTraversalIntegrationTest.NativeEngine.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@Import({PostgresTestConfiguration.class, SearchTraversalIntegrationTest.NativeEngine.class})
 @DisplayName("Complete current search traversal")
 class SearchTraversalIntegrationTest {
-  @Container static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   private static final String PREFIX = "blockout-local-search-" + UUID.randomUUID();
+  @Autowired SearchTestEngine nativeEngine;
   @Autowired MockMvc mvc;
   @Autowired JsonMapper json;
   @Autowired JdbcTemplate sql;
   @Autowired ReadSportingData owners;
 
-  /**
-   * Migrates the real owner schema before restricted-role startup.
-   *
-   * @param properties native registry for this suite's disposable database settings
-   */
-  @DynamicPropertySource
-  static void database(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
-  /** Releases this suite's engine and client after HTTP traversal. */
-  @AfterAll
-  static void stop() throws Exception {
-    SearchTestEngine.stopEngine();
+  /** Resets SQL owners and the native generation so parameterized runs never share documents. */
+  @BeforeEach
+  void resetOwnersAndIndex() throws Exception {
+    try (java.sql.Connection connection =
+            java.sql.DriverManager.getConnection(
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
+                "blockout_migration",
+                "harmless-migration");
+        java.sql.Statement statement = connection.createStatement()) {
+      statement.execute("TRUNCATE sporting_season, sporting_club, sporting_division CASCADE");
+    }
+    if (nativeEngine.client.indices().exists(request -> request.index(PREFIX + "-*")).value()) {
+      nativeEngine.client.indices().delete(request -> request.index(PREFIX + "-*"));
+    }
+    nativeEngine.createIndex(PREFIX + "-clubs-v1");
+    nativeEngine
+        .client
+        .indices()
+        .updateAliases(
+            request ->
+                request.actions(
+                    action ->
+                        action.add(
+                            alias -> alias.index(PREFIX + "-clubs-v1").alias(PREFIX + "-clubs"))));
   }
 
   @ParameterizedTest
@@ -101,13 +108,13 @@ class SearchTraversalIntegrationTest {
                                   i.index(PREFIX + "-clubs")
                                       .id(input.id().toString())
                                       .document(SearchDocuments.from(input)))));
-      assertThat(SearchTestEngine.client.bulk(bulk.build()).errors()).isFalse();
+      assertThat(nativeEngine.client.bulk(bulk.build()).errors()).isFalse();
     }
     List<UUID> stale = List.copyOf(expected.subList(2, 9));
     for (UUID id : stale)
       sql.update("UPDATE sporting_club SET municipality_restricted = TRUE WHERE id = ?", id);
     expected = expected.stream().filter(id -> !stale.contains(id)).toList();
-    SearchTestEngine.client.indices().refresh(r -> r.index(PREFIX + "-clubs"));
+    nativeEngine.client.indices().refresh(r -> r.index(PREFIX + "-clubs"));
     List<UUID> seen = new ArrayList<>();
     String cursor = null;
 
@@ -151,12 +158,12 @@ class SearchTraversalIntegrationTest {
           term);
     for (com.blockout.backend.sporting.application.model.SportingPublicInput input :
         owners.publicInputs(Kind.CLUB, Set.of(first, second)))
-      SearchTestEngine.client.index(
+      nativeEngine.client.index(
           r ->
               r.index(PREFIX + "-clubs")
                   .id(input.id().toString())
                   .document(SearchDocuments.from(input)));
-    SearchTestEngine.client.indices().refresh(r -> r.index(PREFIX + "-clubs"));
+    nativeEngine.client.indices().refresh(r -> r.index(PREFIX + "-clubs"));
     mvc.perform(get("/clubs").param("q", term))
         .andExpect(status().isOk())
         .andExpect(
@@ -164,18 +171,19 @@ class SearchTraversalIntegrationTest {
                     "$.clubs.length()")
                 .value(2));
     sql.update("DELETE FROM sporting_club WHERE id = ?", first);
-    SearchTestEngine.createIndex(PREFIX + "-clubs-v2");
+    nativeEngine.createIndex(PREFIX + "-clubs-v2");
     com.blockout.backend.sporting.application.model.SportingPublicInput remaining =
         owners.publicInputs(Kind.CLUB, Set.of(second)).getFirst();
-    SearchTestEngine.client.index(
+    nativeEngine.client.index(
         r ->
             r.index(PREFIX + "-clubs-v2")
                 .id(second.toString())
                 .document(SearchDocuments.from(remaining)));
-    SearchTestEngine.client.indices().refresh(r -> r.index(PREFIX + "-clubs-v2"));
+    nativeEngine.client.indices().refresh(r -> r.index(PREFIX + "-clubs-v2"));
 
     // When
-    SearchTestEngine.client
+    nativeEngine
+        .client
         .indices()
         .updateAliases(
             r ->
@@ -233,11 +241,11 @@ class SearchTraversalIntegrationTest {
                                       .index(PREFIX + "-clubs")
                                       .id(input.id().toString())
                                       .document(SearchDocuments.from(input)))));
-      assertThat(SearchTestEngine.client.bulk(bulk.build()).errors()).isFalse();
+      assertThat(nativeEngine.client.bulk(bulk.build()).errors()).isFalse();
     }
     sql.update(
         "UPDATE sporting_club SET municipality_restricted = TRUE WHERE source_name = ?", term);
-    SearchTestEngine.client.indices().refresh(r -> r.index(PREFIX + "-clubs"));
+    nativeEngine.client.indices().refresh(r -> r.index(PREFIX + "-clubs"));
 
     // When
     org.springframework.test.web.servlet.ResultActions response =
@@ -258,7 +266,7 @@ class SearchTraversalIntegrationTest {
   @DisplayName("An actual unavailable engine index is a retryable HTTP error")
   void refusesEngineFailure() throws Exception {
     // Given
-    SearchTestEngine.client.indices().close(r -> r.index(PREFIX + "-clubs"));
+    nativeEngine.client.indices().close(r -> r.index(PREFIX + "-clubs"));
     try {
       // When
       org.springframework.test.web.servlet.ResultActions response =
@@ -271,26 +279,29 @@ class SearchTraversalIntegrationTest {
               org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.type")
                   .value("urn:blockout:problem:unavailable"));
     } finally {
-      SearchTestEngine.client.indices().open(r -> r.index(PREFIX + "-clubs"));
+      nativeEngine.client.indices().open(r -> r.index(PREFIX + "-clubs"));
     }
   }
 
   /** Installs only a real engine port; current owner, controller and mapping beans stay real. */
   @TestConfiguration(proxyBeanMethods = false)
   static class NativeEngine {
-    /** Creates this class's disposable engine with the committed native mapping. */
+    /** Starts one engine owned and closed by this Spring context. */
+    @Bean(initMethod = "startEngine", destroyMethod = "close")
+    SearchTestEngine nativeEngine() {
+      return new SearchTestEngine();
+    }
+
+    /**
+     * Connects the production search adapter to the context-owned engine.
+     *
+     * @param nativeEngine real TLS transport; each scenario installs its empty mapped generation
+     * @return native search adapter used by the actual MVC/application path
+     */
     @Bean
     @Primary
-    SearchEngine searchEngine() throws Exception {
-      SearchTestEngine.startEngine();
-      SearchTestEngine.createIndex(PREFIX + "-clubs-v1");
-      SearchTestEngine.client
-          .indices()
-          .updateAliases(
-              r ->
-                  r.actions(
-                      a -> a.add(add -> add.index(PREFIX + "-clubs-v1").alias(PREFIX + "-clubs"))));
-      return new OpenSearchEngine(SearchTestEngine.client, new SearchIndexProperties(PREFIX));
+    SearchEngine searchEngine(SearchTestEngine nativeEngine) {
+      return new OpenSearchEngine(nativeEngine.client, new SearchIndexProperties(PREFIX));
     }
   }
 }

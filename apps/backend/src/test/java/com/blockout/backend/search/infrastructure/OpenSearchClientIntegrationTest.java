@@ -24,19 +24,20 @@ import org.opensearch.client.transport.OpenSearchTransport;
  */
 @DisplayName("Native OpenSearch client qualification")
 class OpenSearchClientIntegrationTest {
+  private static final SearchTestEngine ENGINE = new SearchTestEngine();
   private static OpenSearchClient client;
 
   /** Starts the shared disposable TLS fixture; this suite owns its lifecycle. */
   @BeforeAll
   static void startEngine() throws Exception {
-    SearchTestEngine.startEngine();
-    client = SearchTestEngine.client;
+    ENGINE.startEngine();
+    client = ENGINE.client;
   }
 
   /** Releases only this suite's native client and engine. */
   @AfterAll
   static void stopEngine() throws Exception {
-    SearchTestEngine.stopEngine();
+    ENGINE.close();
   }
 
   @Test
@@ -58,9 +59,7 @@ class OpenSearchClientIntegrationTest {
     // Given
     try (OpenSearchTransport untrusted =
         new OpenSearchConfiguration()
-            .openSearchTransport(
-                SearchTestEngine.properties("untrusted", SearchTestEngine.password),
-                SearchTestEngine.bundles)) {
+            .openSearchTransport(ENGINE.properties("untrusted", ENGINE.password), ENGINE.bundles)) {
       OpenSearchClient untrustedClient = new OpenSearchClient(untrusted);
 
       // When
@@ -78,8 +77,7 @@ class OpenSearchClientIntegrationTest {
     try (OpenSearchTransport denied =
         new OpenSearchConfiguration()
             .openSearchTransport(
-                SearchTestEngine.properties("trusted", "incorrect-synthetic-password"),
-                SearchTestEngine.bundles)) {
+                ENGINE.properties("trusted", "incorrect-synthetic-password"), ENGINE.bundles)) {
       OpenSearchClient deniedClient = new OpenSearchClient(denied);
 
       // When

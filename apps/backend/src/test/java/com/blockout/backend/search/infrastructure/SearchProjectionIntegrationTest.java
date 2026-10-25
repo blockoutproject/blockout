@@ -14,7 +14,7 @@ import com.blockout.backend.search.application.SearchUnavailableException;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.IOException;
 import java.time.Duration;
@@ -24,7 +24,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,27 +39,28 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Migrated PostgreSQL, F02 event/read owners and real TLS engine; all indexes are synthetic. */
 @SpringBootTest
-@Testcontainers
-@Import(SearchProjectionIntegrationTest.ProjectionConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@Import({
+  PostgresTestConfiguration.class,
+  SearchProjectionIntegrationTest.ProjectionConfiguration.class
+})
 @DisplayName("Native search projection lifecycle")
 class SearchProjectionIntegrationTest {
+  @Autowired private PostgreSQLContainer database;
   private static final String PREFIX = "blockout-local-search-issue220";
   private static final UUID CLUB = UUID.fromString("00000000-0000-4000-8000-000000000001");
   private static final UUID TEAM = UUID.fromString("00000000-0000-4000-8000-000000000050");
   private static final UUID POOL = UUID.fromString("00000000-0000-4000-8000-000000000040");
   private static final UUID DIVISION = UUID.fromString("00000000-0000-4000-8000-000000000020");
-  @Container static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired SearchTestEngine nativeEngine;
   @Autowired JdbcTemplate sql;
   @Autowired PlatformTransactionManager transactions;
   @Autowired SportingProjectionChanges changes;
@@ -70,30 +70,13 @@ class SearchProjectionIntegrationTest {
   @Autowired ThreadPoolTaskScheduler tasks;
 
   /**
-   * Starts only disposable migrated PostgreSQL and the maintained TLS engine fixture.
+   * Stops background work before the owned Spring context closes its infrastructure.
    *
-   * @param properties current restricted database connection
-   * @throws Exception on native setup failure
+   * @param scheduler this class's single projection worker, also closed by its Spring context
    */
-  @DynamicPropertySource
-  static void infrastructure(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-    SearchTestEngine.startEngine();
-  }
-
-  /**
-   * Stops the owned scheduler before its TLS engine; Testcontainers owns PostgreSQL.
-   *
-   * @param tasks this fixture's single writer, also managed by the cached Spring context
-   */
-  @AfterAll
-  static void stopEngine(@Autowired ThreadPoolTaskScheduler tasks) throws Exception {
-    try {
-      tasks.shutdown();
-    } finally {
-      SearchTestEngine.stopEngine();
-    }
+  @org.junit.jupiter.api.AfterAll
+  static void stopProjectionTasks(@Autowired ThreadPoolTaskScheduler scheduler) {
+    scheduler.shutdown();
   }
 
   /** Resets only this suite's disposable SQL state and publishes a clean empty generation. */
@@ -103,7 +86,7 @@ class SearchProjectionIntegrationTest {
     assertThat(aliases()).hasSize(3);
     try (java.sql.Connection connection =
             java.sql.DriverManager.getConnection(
-                DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
         java.sql.Statement statement = connection.createStatement()) {
@@ -242,7 +225,8 @@ class SearchProjectionIntegrationTest {
 
     // Then
     assertThat(
-            SearchTestEngine.client
+            nativeEngine
+                .client
                 .exists(request -> request.index(PREFIX + "-teams").id(TEAM.toString()))
                 .value())
         .isFalse();
@@ -263,7 +247,8 @@ class SearchProjectionIntegrationTest {
     assertThat(aliases().keySet()).doesNotContainAnyElementsOf(before.keySet());
     assertThat(document("clubs", CLUB).names()).containsExactly("Recovered name");
     assertThat(
-            SearchTestEngine.client
+            nativeEngine
+                .client
                 .search(request -> request.index(PREFIX + "-clubs"), SearchDocuments.class)
                 .hits()
                 .hits())
@@ -278,8 +263,9 @@ class SearchProjectionIntegrationTest {
     full();
     Map<String, ?> before = aliases();
     Map<Kind, String> candidate = writer.createGeneration();
-    SearchTestEngine.client.indices().delete(request -> request.index(candidate.get(Kind.CLUB)));
-    SearchTestEngine.client
+    nativeEngine.client.indices().delete(request -> request.index(candidate.get(Kind.CLUB)));
+    nativeEngine
+        .client
         .indices()
         .create(
             request ->
@@ -303,14 +289,16 @@ class SearchProjectionIntegrationTest {
     assertThat(aliases().keySet()).containsExactlyInAnyOrderElementsOf(before.keySet());
     assertThat(document("clubs", CLUB).city()).isEqualTo("Lyon");
     assertThat(
-            SearchTestEngine.client
+            nativeEngine
+                .client
                 .indices()
                 .exists(request -> request.index(candidate.get(Kind.CLUB)))
                 .value())
         .isTrue();
     full();
     assertThat(
-            SearchTestEngine.client
+            nativeEngine
+                .client
                 .indices()
                 .exists(request -> request.index(candidate.get(Kind.CLUB)))
                 .value())
@@ -324,7 +312,7 @@ class SearchProjectionIntegrationTest {
     full();
     Map<String, ?> before = aliases();
     Map<Kind, String> candidate = writer.createGeneration();
-    OpenSearchIndicesClient indices = spy(SearchTestEngine.client.indices());
+    OpenSearchIndicesClient indices = spy(nativeEngine.client.indices());
     doThrow(new IOException("synthetic lost refresh"))
         .when(indices)
         .refresh(any(RefreshRequest.class));
@@ -366,7 +354,7 @@ class SearchProjectionIntegrationTest {
                             null,
                             null))))
         .get(10, TimeUnit.SECONDS);
-    OpenSearchIndicesClient indices = spy(SearchTestEngine.client.indices());
+    OpenSearchIndicesClient indices = spy(nativeEngine.client.indices());
     doAnswer(
             invocation -> {
               invocation.callRealMethod();
@@ -397,7 +385,7 @@ class SearchProjectionIntegrationTest {
     Map<Kind, String> candidate = writer.createGeneration();
     java.util.concurrent.atomic.AtomicReference<UpdateAliasesRequest> pending =
         new java.util.concurrent.atomic.AtomicReference<>();
-    OpenSearchIndicesClient indices = spy(SearchTestEngine.client.indices());
+    OpenSearchIndicesClient indices = spy(nativeEngine.client.indices());
     doAnswer(
             invocation -> {
               pending.set(invocation.getArgument(0));
@@ -425,7 +413,7 @@ class SearchProjectionIntegrationTest {
         org.assertj.core.api.Assertions.catchThrowable(
             () -> tasks.submit(delayedProjection::rebuild).get(20, TimeUnit.SECONDS));
     // The native operation completes after the application has reread the still-old state.
-    SearchTestEngine.client.indices().updateAliases(pending.get());
+    nativeEngine.client.indices().updateAliases(pending.get());
 
     // Then
     assertThat(failure).hasCauseInstanceOf(SearchUnavailableException.class);
@@ -434,7 +422,8 @@ class SearchProjectionIntegrationTest {
     full();
     assertThat(document("clubs", CLUB).names()).containsExactly("Pending replacement");
     assertThat(
-            SearchTestEngine.client
+            nativeEngine
+                .client
                 .indices()
                 .exists(request -> request.index(candidate.get(Kind.CLUB)))
                 .value())
@@ -448,7 +437,7 @@ class SearchProjectionIntegrationTest {
     full();
     Map<String, ?> before = aliases();
     Map<Kind, String> candidate = writer.createGeneration();
-    OpenSearchIndicesClient indices = spy(SearchTestEngine.client.indices());
+    OpenSearchIndicesClient indices = spy(nativeEngine.client.indices());
     doThrow(new IOException("synthetic interrupted alias request"))
         .when(indices)
         .updateAliases(any(UpdateAliasesRequest.class));
@@ -475,8 +464,8 @@ class SearchProjectionIntegrationTest {
     // Given
     String unrelated = PREFIX + "-unrelated";
     String other = "blockout-local-search-other-220-clubs-g-" + UUID.randomUUID();
-    SearchTestEngine.createIndex(unrelated);
-    SearchTestEngine.createIndex(other);
+    nativeEngine.createIndex(unrelated);
+    nativeEngine.createIndex(other);
     for (int generation = 0; generation < 5; generation++) writer.createGeneration();
 
     // When
@@ -484,20 +473,22 @@ class SearchProjectionIntegrationTest {
 
     // Then
     assertThat(
-            SearchTestEngine.client
+            nativeEngine
+                .client
                 .indices()
                 .getAlias(request -> request.index(PREFIX + "-*-g-*"))
                 .result())
         .hasSize(6);
     assertThat(
-            SearchTestEngine.client
+            nativeEngine
+                .client
                 .indices()
                 .exists(request -> request.index(unrelated, other))
                 .value())
         .isTrue();
     assertThat(aliases()).hasSize(3);
     writer.cleanup();
-    SearchTestEngine.client.indices().delete(request -> request.index(unrelated, other));
+    nativeEngine.client.indices().delete(request -> request.index(unrelated, other));
   }
 
   /** Waits for prior work on the actual single scheduler without adding a second executor. */
@@ -518,7 +509,8 @@ class SearchProjectionIntegrationTest {
    * @return native serialized document
    */
   private SearchDocuments document(String resource, UUID id) throws Exception {
-    return SearchTestEngine.client
+    return nativeEngine
+        .client
         .get(
             request -> request.index(PREFIX + "-" + resource).id(id.toString()),
             SearchDocuments.class)
@@ -526,10 +518,13 @@ class SearchProjectionIntegrationTest {
   }
 
   /**
+   * Reads all current native resource aliases without fabricating publication state.
+   *
    * @return exact current alias targets in this suite's owned namespace
    */
   private Map<String, ?> aliases() throws Exception {
-    return SearchTestEngine.client
+    return nativeEngine
+        .client
         .indices()
         .getAlias(
             request ->
@@ -574,12 +569,21 @@ class SearchProjectionIntegrationTest {
   /** Wires actual owner reads, the native writer and one scheduler; no remote search is enabled. */
   @TestConfiguration(proxyBeanMethods = false)
   static class ProjectionConfiguration {
+    /** Starts one engine owned and closed by this Spring context, including startup failure. */
+    @Bean(initMethod = "startEngine", destroyMethod = "close")
+    SearchTestEngine nativeEngine() {
+      return new SearchTestEngine();
+    }
+
     /**
+     * Wraps the native writer solely to observe its transaction and thread boundary.
+     *
+     * @param nativeEngine context-owned real TLS engine
      * @return real writer with a spy asserting that every bulk call is outside SQL
      */
     @Bean
-    OpenSearchProjectionWriter writer() throws IOException {
-      OpenSearchClient client = spy(SearchTestEngine.client);
+    OpenSearchProjectionWriter writer(SearchTestEngine nativeEngine) throws IOException {
+      OpenSearchClient client = spy(nativeEngine.client);
       doAnswer(
               invocation -> {
                 assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
@@ -592,6 +596,8 @@ class SearchProjectionIntegrationTest {
     }
 
     /**
+     * Builds the production projection owner with real current SQL reads.
+     *
      * @param sporting real current SQL owner
      * @param writer real native generation writer
      * @return actual projection use cases
@@ -602,6 +608,8 @@ class SearchProjectionIntegrationTest {
     }
 
     /**
+     * Provides one native scheduler shared by startup and after-commit projection work.
+     *
      * @return one context-owned native scheduler, automatically shut down by Spring
      */
     @Bean
@@ -613,6 +621,8 @@ class SearchProjectionIntegrationTest {
     }
 
     /**
+     * Registers production startup and after-commit handling against the real scheduler.
+     *
      * @param projection real owner use cases
      * @param tasks sole execution thread
      * @return startup and after-commit listener using the production cadence

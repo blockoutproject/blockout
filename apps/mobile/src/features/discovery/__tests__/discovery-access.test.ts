@@ -15,8 +15,10 @@ beforeEach(() => {
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   mockFetch.mockReset();
 });
-afterAll(() => {
-  process.env.EXPO_PUBLIC_API_URL = originalUrl;
+afterEach(() => {
+  jest.restoreAllMocks();
+  if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
+  else process.env.EXPO_PUBLIC_API_URL = originalUrl;
 });
 
 it("starts public discovery without reading credentials or entitlement state", async () => {
@@ -104,17 +106,22 @@ it("rejects an old-session bypass completion before cache admission", async () =
   mockFetch.mockReturnValue(response.promise);
   cache.setQueryData(context.queryKey, { clubs: [] });
 
-  // When
-  const result = listClubs(context.params, context.request);
-  const rejected = expect(result).rejects.toMatchObject({ kind: "cancelled" });
-  session.invalidate();
-  response.resolve(Response.json({ clubs: [] }));
+  try {
+    // When
+    const result = listClubs(context.params, context.request);
+    const rejected = expect(result).rejects.toMatchObject({
+      kind: "cancelled",
+    });
+    session.invalidate();
+    response.resolve(Response.json({ clubs: [] }));
 
-  // Then
-  await rejected;
-  expect(cache.getQueryData(context.queryKey)).toBeUndefined();
-  unbind();
-  cache.clear();
+    // Then
+    await rejected;
+    expect(cache.getQueryData(context.queryKey)).toBeUndefined();
+  } finally {
+    unbind();
+    cache.clear();
+  }
 });
 
 it("rejects a late completion after the owner cancels bypass intent", async () => {

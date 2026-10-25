@@ -6,43 +6,28 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Proves missing retirement configuration remains a safe 503 during real SQL maintenance. */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Testcontainers
 @DisplayName("Unconfigured legacy retirement during F12 maintenance")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class LegacyApplicationStatusUnavailableIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate sql;
-
-  /**
-   * Runs the real migrations before opening the restricted application connection.
-   *
-   * @param properties native registry for this suite's disposable database coordinates
-   * @throws Exception if database initialization fails
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
 
   @Test
   @DisplayName("Returns unavailable without exposing maintenance as a legacy retirement response")

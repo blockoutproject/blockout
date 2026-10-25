@@ -50,7 +50,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Import(HttpConfiguration.class)
 @ImportAutoConfiguration(ValidationAutoConfiguration.class)
 @DisplayName("Consultation generated mapping boundary")
-class ConsultationContractIntegrationTest {
+class ConsultationContractJsonTest {
   private static final UUID ID = UUID.fromString("00000000-0000-4000-8000-000000000001");
   private static final OffsetDateTime OBSERVED = OffsetDateTime.parse("2026-10-24T16:00:00+02:00");
   private final ConsultationApiMapper mapper = Mappers.getMapper(ConsultationApiMapper.class);

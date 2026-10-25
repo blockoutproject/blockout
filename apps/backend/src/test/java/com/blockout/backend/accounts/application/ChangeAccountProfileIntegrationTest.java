@@ -16,6 +16,7 @@ import com.blockout.backend.accounts.application.exception.UsernameUnavailableEx
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.accounts.infrastructure.ProfilePhotoProcessor;
 import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -39,32 +40,29 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockPart;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Real PostgreSQL locks/constraints and transaction commits, with synthetic identity/provider data.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Testcontainers
 @DisplayName("Atomic original-account profile transactions")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class ChangeAccountProfileIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   private static final String ISSUER = "https://identity.example.invalid/";
   // Storage fixtures exercise transaction semantics; ImageIO content has its own processor suite.
   private static final ProfilePhoto PHOTO = new ProfilePhoto(new byte[] {1, 2, 3}, "image/png", 1);
@@ -80,18 +78,6 @@ class ChangeAccountProfileIntegrationTest {
   @MockitoSpyBean private ProfilePhotoProcessor photos;
   private TransactionTemplate transaction;
   private UUID id;
-
-  /**
-   * Applies the actual disposable baseline before validation-only startup.
-   *
-   * @param properties application settings bound to this suite's private container
-   * @throws Exception if the real migration cannot initialize the disposable database
-   */
-  @DynamicPropertySource
-  static void properties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
 
   /** Creates the scenario's original lifecycle through its real persistence port. */
   @BeforeEach

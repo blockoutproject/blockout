@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.backend.contributions.support.ContributionScenario;
-import java.time.Duration;
+import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -21,6 +21,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @DisplayName("Contribution attribution account locking")
 class ContributionAttributionIntegrationTest extends ContributionScenario {
+
   @Test
   @DisplayName("Replacing an erased nonfollowing owner waits before loading mutable attribution")
   void waitsForPreviousOwnerErasure() throws Exception {
@@ -44,17 +45,7 @@ class ContributionAttributionIntegrationTest extends ContributionScenario {
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
                                   submit(AUTHOR, "1", "https://youtube.com/selected", true);
                                 }));
-                int backend = pid.orTimeout(10, TimeUnit.SECONDS).join();
-                org.awaitility.Awaitility.await()
-                    .atMost(Duration.ofSeconds(10))
-                    .until(
-                        () ->
-                            future.isDone()
-                                || Boolean.TRUE.equals(
-                                    sql.queryForObject(
-                                        "SELECT cardinality(pg_blocking_pids(?)) > 0",
-                                        Boolean.class,
-                                        backend)));
+                PostgresTestDatabase.awaitBlocked(sql, pid);
                 assertThat(future.isDone())
                     .as("Publication must wait for the previous original account")
                     .isFalse();
@@ -101,17 +92,7 @@ class ContributionAttributionIntegrationTest extends ContributionScenario {
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
                                   submit(AUTHOR, "1", "https://youtube.com/selected", true);
                                 }));
-                int backend = pid.orTimeout(10, TimeUnit.SECONDS).join();
-                org.awaitility.Awaitility.await()
-                    .atMost(Duration.ofSeconds(10))
-                    .until(
-                        () ->
-                            future.isDone()
-                                || Boolean.TRUE.equals(
-                                    sql.queryForObject(
-                                        "SELECT cardinality(pg_blocking_pids(?)) > 0",
-                                        Boolean.class,
-                                        backend)));
+                PostgresTestDatabase.awaitBlocked(sql, pid);
                 assertThat(future.isDone())
                     .as("Publication must wait for the retained decision actor")
                     .isFalse();

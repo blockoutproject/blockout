@@ -18,7 +18,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.net.URI;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -35,14 +35,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -50,11 +47,11 @@ import tools.jackson.databind.json.JsonMapper;
  * Real committed F01 projections, native ECS events and F02 aggregate queries on disposable SQL.
  */
 @SpringBootTest
-@Testcontainers
 @ExtendWith(OutputCaptureExtension.class)
 @DisplayName("Committed collection operational evidence")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class CollectionOperationalEvidenceIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   private static final Instant FIRST = Instant.parse("2026-10-25T00:00:00Z");
   private static final UUID CLUBS = UUID.fromString("00000000-0000-4000-8000-000000000001");
   private static final UUID GEO = UUID.fromString("00000000-0000-4000-8000-000000000002");
@@ -75,18 +72,6 @@ class CollectionOperationalEvidenceIntegrationTest {
   @Autowired private JdbcTemplate sql;
   private UUID season;
   private UUID incarnation;
-
-  /**
-   * Migrates the same baseline as production and uses the restricted application role.
-   *
-   * @param properties native application property registry
-   * @throws Exception if disposable migration fails
-   */
-  @DynamicPropertySource
-  static void database(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
 
   /**
    * Installs only this suite's synthetic state; no provider, admission or F02 ingestion is faked.

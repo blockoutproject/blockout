@@ -7,6 +7,7 @@ import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.accounts.application.exception.AccountCreationConflictException;
 import com.blockout.backend.accounts.domain.Account;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Instant;
@@ -29,24 +30,35 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/** Verifies the account persistence boundary against the actual migrated PostgreSQL schema. */
-@SpringBootTest
-@Testcontainers
+/**
+ * Real account adapters, Hibernate and migrated PostgreSQL in a JPA slice. Test-managed
+ * transactions are disabled so explicit caller transactions expose commit, rollback and lock
+ * ownership; provider, web and scheduler components are absent.
+ */
+@DataJpaTest(showSql = false)
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
+@Import({
+  PostgresTestConfiguration.class,
+  JpaAccountStore.class,
+  AccountPersistenceMapperImpl.class,
+  AccountAccess.class
+})
 @DisplayName("Account establishment persistence")
-class AccountEstablishmentIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+class AccountEstablishmentJpaTest {
   private static final String ISSUER = "https://identity.example.invalid/";
   private static final Instant PRINCIPAL_CREATED = Instant.parse("2020-01-02T03:04:05Z");
   @Autowired private JdbcTemplate sql;
@@ -54,18 +66,6 @@ class AccountEstablishmentIntegrationTest {
   @Autowired private AccountAccess access;
   @Autowired private PlatformTransactionManager transactions;
   private TransactionTemplate transaction;
-
-  /**
-   * Applies the disposable baseline before Hibernate validates the restricted application role.
-   *
-   * @param properties native test configuration
-   * @throws Exception if migration fails
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
 
   /** Clears only this suite's disposable accounts and uses ordinary caller-owned transactions. */
   @BeforeEach

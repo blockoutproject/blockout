@@ -5,16 +5,20 @@ import static org.mockito.Mockito.when;
 
 import com.blockout.backend.contributions.support.ContributionScenario;
 import com.blockout.backend.following.application.FollowContext;
+import jakarta.persistence.EntityManagerFactory;
 import java.sql.Timestamp;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import org.hibernate.SessionFactory;
 import org.hibernate.resource.jdbc.spi.StatementInspector;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -25,10 +29,24 @@ import org.springframework.transaction.support.TransactionTemplate;
         "spring.jpa.properties.hibernate.session_factory.statement_inspector=com.blockout.backend.notifications.application.RecipientSnapshotIntegrationTest$TurnoverInspector")
 @DisplayName("Atomic F06 recipient union during origin turnover")
 class RecipientSnapshotIntegrationTest extends ContributionScenario {
+  private TurnoverInspector inspector;
+  @Autowired private EntityManagerFactory entityManagerFactory;
+
+  /** Selects the SQL interleaving hook owned by this suite's actual Hibernate factory. */
+  @BeforeEach
+  void selectInspector() {
+    inspector =
+        (TurnoverInspector)
+            entityManagerFactory
+                .unwrap(SessionFactory.class)
+                .getSessionFactoryOptions()
+                .getStatementInspector();
+  }
+
   /** Clears only this test's SQL interleaving callback after the owned scenario. */
   @AfterEach
   void clearHook() {
-    TurnoverInspector.hook = null;
+    inspector.hook = null;
   }
 
   @Test
@@ -54,7 +72,7 @@ class RecipientSnapshotIntegrationTest extends ContributionScenario {
     TransactionTemplate independent = new TransactionTemplate(transactions);
     independent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     AtomicInteger stage = new AtomicInteger();
-    TurnoverInspector.hook =
+    inspector.hook =
         statement -> {
           String query = statement.toLowerCase(Locale.ROOT).stripLeading();
           if (!query.startsWith("select")) return;
@@ -92,7 +110,7 @@ class RecipientSnapshotIntegrationTest extends ContributionScenario {
    */
   public static class TurnoverInspector implements StatementInspector {
     private static final long serialVersionUID = 1L;
-    private static volatile Consumer<String> hook;
+    private volatile Consumer<String> hook;
     private final AtomicBoolean inspecting = new AtomicBoolean();
 
     /**

@@ -3,7 +3,7 @@ package com.blockout.backend.access.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.backend.accounts.application.AccountStore;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
@@ -23,19 +23,18 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Opt-in cross-owner qualification using the actual server, PostgreSQL and existing Jest Expo
@@ -43,11 +42,11 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * is mocked. Run after npm ci and npm run generate; it needs no Auth0 secret or production grant.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
 @EnabledIfEnvironmentVariable(named = "BLOCKOUT_ACCESS_CONSUMERS_TEST", matches = "true")
 @DisplayName("Generated mobile consumers against the real settings provider")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class AccessSettingsConsumersIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   private static HttpServer keys;
   private static RSAKey signingKey;
   private static String issuer;
@@ -57,14 +56,13 @@ class AccessSettingsConsumersIntegrationTest {
   @Autowired private PlatformTransactionManager transactions;
 
   /**
-   * Applies the actual schema and serves only an ephemeral public signing key on loopback.
+   * Starts the isolated signing-key server; Spring separately owns the migrated database.
    *
-   * @param properties isolated server and database inputs for the application context
+   * @param properties native registry for the suite-specific non-database settings
+   * @throws Exception if the isolated signing key or loopback server cannot be initialized
    */
   @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
+  static void identityIssuer(DynamicPropertyRegistry properties) throws Exception {
     signingKey = new RSAKeyGenerator(2048).keyID("settings-qualification").generate();
     keys = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
     keys.createContext(
@@ -82,7 +80,7 @@ class AccessSettingsConsumersIntegrationTest {
     properties.add("blockout.security.issuer", () -> issuer);
   }
 
-  /** Stops this suite's key server; Testcontainers owns its separate disposable database. */
+  /** Stops this suite's key server; Spring owns its separate disposable database. */
   @AfterAll
   static void closeKeys() {
     if (keys != null) keys.stop(0);

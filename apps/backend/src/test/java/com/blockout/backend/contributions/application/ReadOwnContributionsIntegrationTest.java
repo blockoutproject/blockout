@@ -18,6 +18,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @DisplayName("Private contribution owner reads")
 class ReadOwnContributionsIntegrationTest extends ContributionScenario {
+
   @Test
   @DisplayName("Foreign members remain unavailable while collection reads include only the caller")
   void hidesForeignHistory() {

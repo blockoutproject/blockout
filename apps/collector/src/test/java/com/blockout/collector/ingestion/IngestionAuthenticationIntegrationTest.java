@@ -6,11 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertTimeout;
 
 import com.blockout.collector.acquisition.application.CollectionBackend;
 import com.blockout.collector.acquisition.application.CollectionBackendFailure;
-import com.blockout.collector.acquisition.infrastructure.CollectorStartup;
+import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendClient;
+import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendMapperImpl;
 import com.blockout.collector.generated.ingestion.ApiClient;
+import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.collector.generated.ingestion.model.RegisterCollectorRuntimeInternalRequest;
 import com.sun.net.httpserver.HttpServer;
+import io.micrometer.observation.ObservationRegistry;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -20,58 +23,55 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.security.oauth2.client.autoconfigure.OAuth2ClientAutoConfiguration;
+import org.springframework.boot.test.util.TestPropertyValues;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.security.oauth2.client.ClientCredentialsOAuth2AuthorizedClientProvider;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 
 /** Exercises the actual generated client and native OAuth cache against controlled HTTP peers. */
-@SpringBootTest(properties = "spring.main.keep-alive=false")
 @DisplayName("Collector client credentials and bounded recovery")
 class IngestionAuthenticationIntegrationTest {
-  @MockitoBean private CollectorStartup startup;
-
-  private static HttpServer server;
-  private static final AtomicInteger tokens = new AtomicInteger();
-  private static final AtomicInteger writes = new AtomicInteger();
-  private static final AtomicReference<String> tokenBody = new AtomicReference<>();
-  private static final AtomicReference<String> bearer = new AtomicReference<>();
-  private static volatile int lifetime;
-  private static volatile boolean refuseToken;
-  private static volatile boolean refuseWrite;
-  private static volatile boolean stallToken;
-  private static volatile boolean disconnectWrite;
-  private static volatile CountDownLatch release;
-  @Autowired private ApiClient client;
-  @Autowired private CollectionBackend backend;
-  @Autowired private OAuth2AuthorizedClientService clients;
-  @Autowired private ClientCredentialsOAuth2AuthorizedClientProvider provider;
+  private HttpServer server;
+  private final AtomicInteger tokens = new AtomicInteger();
+  private final AtomicInteger writes = new AtomicInteger();
+  private final AtomicReference<String> tokenBody = new AtomicReference<>();
+  private final AtomicReference<String> bearer = new AtomicReference<>();
+  private volatile int lifetime = 86400;
+  private volatile boolean refuseToken;
+  private volatile boolean refuseWrite;
+  private volatile boolean stallToken;
+  private volatile boolean disconnectWrite;
+  private final CountDownLatch release = new CountDownLatch(1);
+  private ApiClient client;
+  private CollectionBackend backend;
+  private ClientCredentialsOAuth2AuthorizedClientProvider provider;
+  private AnnotationConfigApplicationContext context;
+  private ExecutorService peers;
 
   /**
    * Starts isolated token and business endpoints; neither provider nor production is contacted.
    *
    * @throws Exception if the loopback listener cannot be opened
    */
-  @BeforeAll
-  static void startServer() throws Exception {
+  @BeforeEach
+  void startServer() throws Exception {
+    peers = Executors.newVirtualThreadPerTaskExecutor();
     server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+    server.setExecutor(peers);
     server.createContext(
         "/oauth/token",
         exchange -> {
@@ -127,66 +127,53 @@ class IngestionAuthenticationIntegrationTest {
           exchange.close();
         });
     server.start();
-  }
-
-  /** Releases the test-owned listener after the suite. */
-  @AfterAll
-  static void stopServer() {
-    server.stop(0);
+    startClient();
   }
 
   /**
-   * Supplies harmless environment-specific OAuth inputs through native Boot properties.
-   *
-   * @param properties native test property overrides
+   * Starts only the production ingestion configuration and native OAuth registration/cache. Each
+   * scenario owns its context, clock, peer and connection pool; no collector runner starts.
    */
-  @DynamicPropertySource
-  static void properties(DynamicPropertyRegistry properties) {
-    properties.add(
-        "blockout.ingestion.base-url", () -> "http://127.0.0.1:" + server.getAddress().getPort());
-    properties.add("blockout.ingestion.timeout", () -> "250ms");
-    properties.add("blockout.ingestion.audience", () -> "ingestion-preproduction");
-    properties.add("spring.security.oauth2.client.registration.ingestion.provider", () -> "auth0");
-    properties.add(
-        "spring.security.oauth2.client.registration.ingestion.client-id",
-        () -> "collector-preproduction");
-    properties.add(
-        "spring.security.oauth2.client.registration.ingestion.client-secret",
-        () -> "harmless-secret");
-    properties.add(
-        "spring.security.oauth2.client.registration.ingestion.authorization-grant-type",
-        () -> "client_credentials");
-    properties.add(
-        "spring.security.oauth2.client.registration.ingestion.client-authentication-method",
-        () -> "client_secret_post");
-    properties.add(
-        "spring.security.oauth2.client.registration.ingestion.scope", () -> "sporting:ingest");
-    properties.add(
-        "spring.security.oauth2.client.provider.auth0.token-uri",
-        () -> "http://127.0.0.1:" + server.getAddress().getPort() + "/oauth/token");
+  private void startClient() {
+    String origin = "http://127.0.0.1:" + server.getAddress().getPort();
+    context = new AnnotationConfigApplicationContext();
+    TestPropertyValues.of(
+            "blockout.ingestion.base-url=" + origin,
+            "blockout.ingestion.timeout=250ms",
+            "blockout.ingestion.audience=ingestion-preproduction",
+            "spring.security.oauth2.client.registration.ingestion.provider=auth0",
+            "spring.security.oauth2.client.registration.ingestion.client-id=collector-preproduction",
+            "spring.security.oauth2.client.registration.ingestion.client-secret=harmless-secret",
+            "spring.security.oauth2.client.registration.ingestion.authorization-grant-type=client_credentials",
+            "spring.security.oauth2.client.registration.ingestion.client-authentication-method=client_secret_post",
+            "spring.security.oauth2.client.registration.ingestion.scope=sporting:ingest",
+            "spring.security.oauth2.client.provider.auth0.token-uri=" + origin + "/oauth/token")
+        .applyTo(context);
+    context.registerBean(ObservationRegistry.class, ObservationRegistry::create);
+    context.register(
+        IngestionClientConfiguration.class,
+        IngestionAuthenticationConfiguration.class,
+        OAuth2ClientAutoConfiguration.class);
+    context.refresh();
+    client = context.getBean(ApiClient.class);
+    provider = context.getBean(ClientCredentialsOAuth2AuthorizedClientProvider.class);
+    backend =
+        new CollectionBackendClient(
+            new CollectorOperationsApi(client),
+            new CollectionApi(client),
+            new CollectionBackendMapperImpl());
   }
 
-  /** Isolates native cached credentials, time and HTTP observations between scenarios. */
-  @BeforeEach
-  void resetPeers() {
-    clients.removeAuthorizedClient("ingestion", "collector");
-    provider.setClock(Clock.systemUTC());
-    tokens.set(0);
-    writes.set(0);
-    tokenBody.set(null);
-    bearer.set(null);
-    lifetime = 86400;
-    refuseToken = false;
-    refuseWrite = false;
-    stallToken = false;
-    disconnectWrite = false;
-    release = new CountDownLatch(1);
-  }
-
-  /** Releases any intentionally stalled token response after assertions. */
+  /** Releases blocked handlers before closing this scenario's transport, listener and executor. */
   @AfterEach
-  void releaseResponse() {
+  void closePeers() {
     release.countDown();
+    try {
+      if (context != null) context.close();
+    } finally {
+      if (server != null) server.stop(0);
+      if (peers != null) peers.close();
+    }
   }
 
   @Test

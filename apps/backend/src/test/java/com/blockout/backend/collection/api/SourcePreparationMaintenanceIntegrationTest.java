@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -23,15 +23,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
@@ -41,10 +39,11 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Testcontainers
 @DisplayName("Source preparation under current maintenance")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class SourcePreparationMaintenanceIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000166");
   private static final UUID SEASON = UUID.fromString("00000000-0000-4000-8000-000000000167");
   private static final UUID SOURCE = UUID.fromString("00000000-0000-4000-8000-000000000168");
@@ -53,18 +52,6 @@ class SourcePreparationMaintenanceIntegrationTest {
       "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=ABCCS";
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate sql;
-
-  /**
-   * Migrates the suite-owned database before opening the restricted application connection.
-   *
-   * @param properties native application datasource registry
-   * @throws Exception if the real baseline cannot be applied
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
 
   /**
    * Resets this disposable database to active maintenance and independently preparable sources.
@@ -76,7 +63,7 @@ class SourcePreparationMaintenanceIntegrationTest {
   void prepare() throws Exception {
     try (Connection connection =
             DriverManager.getConnection(
-                DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
         Statement cleanup = connection.createStatement()) {

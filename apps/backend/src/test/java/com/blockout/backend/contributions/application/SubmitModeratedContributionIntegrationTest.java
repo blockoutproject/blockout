@@ -26,6 +26,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Import(SubmitModeratedContributionIntegrationTest.AttributionConfiguration.class)
 @DisplayName("Moderator publication result ownership")
 class SubmitModeratedContributionIntegrationTest extends ContributionScenario {
+
   @Autowired private SubmitModeratedContribution moderated;
   @Autowired private ChangeAttributionAfterCommit attribution;
 

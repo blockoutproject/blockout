@@ -43,6 +43,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Import(ContributionAnnouncementsIntegrationTest.ProbeConfiguration.class)
 @DisplayName("Atomic contribution, result and announcement composition")
 class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
+
   @Autowired private Probe probe;
   @Autowired private SportingProjectionChanges projectionChanges;
   @Autowired private ProcessDueMatch dueMatch;

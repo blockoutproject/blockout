@@ -30,7 +30,7 @@ import com.blockout.backend.sporting.application.service.ReadSportingData;
 import com.blockout.backend.sporting.application.service.RestrictClubContacts;
 import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -48,22 +48,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Controlled-clock F01 admission/results use actual migrated F02 corrections and restrictions. */
-@Import(SportingIdentityFixture.class)
+@Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
 @SpringBootTest
-@Testcontainers
 @DisplayName("Current seasonless club acquisition")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class ClubAcquisitionIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   private static final UUID CLUB = UUID.fromString("00000000-0000-4000-8000-000000000197");
   private static final UUID SHEETS = UUID.fromString("00000000-0000-4000-8000-000000001197");
   private static final UUID GEOCODING = UUID.fromString("00000000-0000-4000-8000-000000002197");
@@ -89,18 +86,6 @@ class ClubAcquisitionIntegrationTest {
   private Instant now;
 
   /**
-   * Migrates the disposable PostgreSQL owner, never a shared environment.
-   *
-   * @param properties native isolated datasource settings
-   * @throws Exception when the real migration cannot initialize this suite
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
-  /**
    * Establishes two independent seasonless controls and a real correction-authorized account.
    *
    * @throws Exception when the isolated fixture reset fails
@@ -109,7 +94,7 @@ class ClubAcquisitionIntegrationTest {
   void prepareOwners() throws Exception {
     now = START;
     when(clock.instant()).thenAnswer(invocation -> now);
-    SportingIngestionFixture.reset(DATABASE);
+    SportingIngestionFixture.reset(database);
     sql.update("DELETE FROM collection_control");
     sql.update("DELETE FROM account");
     SportingIngestionFixture.admit(sql, seasons, identities, cycles, runtimes);

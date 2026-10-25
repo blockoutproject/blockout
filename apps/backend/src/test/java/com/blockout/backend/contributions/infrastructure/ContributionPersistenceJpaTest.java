@@ -8,7 +8,7 @@ import com.blockout.backend.contributions.domain.ContributionQuota;
 import com.blockout.backend.contributions.domain.ContributionState;
 import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.domain.StreamAddress;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import jakarta.persistence.EntityManager;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -25,25 +25,35 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
- * Real migrated PostgreSQL invariants; SQL fixtures deliberately bypass application authorization.
+ * Real JPA adapter and migrated PostgreSQL invariants; SQL fixtures deliberately bypass application
+ * authorization. Test-managed transactions are disabled to retain explicit commits and flush order
+ * without starting unrelated web, provider or scheduler components.
  */
-@SpringBootTest
-@Testcontainers
+@DataJpaTest(showSql = false)
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
+@Import({
+  PostgresTestConfiguration.class,
+  JpaContributionStore.class,
+  ContributionPersistenceMapperImpl.class
+})
 @DisplayName("Contribution persistence baseline")
-class ContributionPersistenceIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+class ContributionPersistenceJpaTest {
+  @Autowired private PostgreSQLContainer database;
   private static final UUID OWNER = UUID.fromString("00000000-0000-4000-8000-000000000001");
   private static final UUID OTHER = UUID.fromString("00000000-0000-4000-8000-000000000002");
   private static final UUID MATCH = UUID.fromString("00000000-0000-4000-8000-000000000010");
@@ -58,18 +68,6 @@ class ContributionPersistenceIntegrationTest {
   @Autowired private PlatformTransactionManager transactions;
 
   /**
-   * Applies the complete real baseline before Hibernate validation with restricted app credentials.
-   *
-   * @param properties native dynamic property registry
-   * @throws Exception if migration fails
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
-  /**
    * Resets only this suite's disposable container and establishes real F02/F05 FK targets.
    *
    * @throws Exception if isolated fixture setup fails
@@ -78,7 +76,7 @@ class ContributionPersistenceIntegrationTest {
   void prepareOwners() throws Exception {
     try (Connection connection =
             DriverManager.getConnection(
-                DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
         Statement fixture = connection.createStatement()) {

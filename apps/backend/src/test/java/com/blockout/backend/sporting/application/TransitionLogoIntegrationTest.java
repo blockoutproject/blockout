@@ -28,7 +28,7 @@ import com.blockout.backend.sporting.application.service.ReadSportingData;
 import com.blockout.backend.sporting.application.service.ValidateSportingImage;
 import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingImageFixture;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -48,26 +48,21 @@ import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Rehearses manual F14 logo reassociation through real F02 owners and migrated PostgreSQL. All
  * identities, files and accounts are synthetic; no V1 source or external image host is accessed.
  */
-@Import(SportingIdentityFixture.class)
+@Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
 @SpringBootTest
-@Testcontainers
 @DisplayName("Protected transition club logos")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class TransitionLogoIntegrationTest {
   @Autowired private com.blockout.backend.access.application.CurrentPermissions permissions;
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   @Autowired private SportingStore store;
   @Autowired private SportingIdentityFixture identities;
   @Autowired private ChangeSportingPresentation presentation;
@@ -83,18 +78,6 @@ class TransitionLogoIntegrationTest {
   private UUID pool;
   private UUID club;
   private UUID team;
-
-  /**
-   * Applies the actual baseline before validation-only startup with the application database role.
-   *
-   * @param properties suite-owned datasource configuration
-   * @throws Exception if the real migrations fail
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
 
   /** Establishes synthetic rebuilt clubs through F02 and a current explicitly granted operator. */
   @BeforeEach

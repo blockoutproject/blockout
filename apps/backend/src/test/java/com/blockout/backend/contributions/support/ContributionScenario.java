@@ -22,7 +22,7 @@ import com.blockout.backend.sporting.application.service.AcceptMatchObservation;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
@@ -34,25 +34,25 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
- * Shared real F01/F02/F05/F06/F07/F08 scenario. Only time is controlled. The singleton follows
- * Testcontainers' native manual-lifecycle pattern; Ryuk removes it at JVM exit. No other suite's
- * services or database are used. Each test explicitly resets this disposable migrated database.
+ * Shared real F01/F02/F05/F06/F07/F08 scenario with controlled time. Each concrete suite owns its
+ * Spring context, which closes its datasource before PostgreSQL after the class. This fixture
+ * resets the calling suite's migrated database before each scenario.
  */
-@Import(SportingIdentityFixture.class)
+@Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
 @SpringBootTest
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public abstract class ContributionScenario {
-  protected static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   protected static final Instant NOW = Instant.parse("2026-10-24T12:00:00Z");
   protected static final UUID AUTHOR = UUID.fromString("00000000-0000-4000-8000-000000000003");
   protected static final UUID FOLLOWER = UUID.fromString("00000000-0000-4000-8000-000000000001");
   protected static final UUID OTHER = UUID.fromString("00000000-0000-4000-8000-000000000002");
+  @Autowired protected PostgreSQLContainer database;
   @Autowired protected JdbcTemplate sql;
   @Autowired protected ChangeCollectionSeasons seasons;
   @Autowired protected SportingIdentityFixture identities;
@@ -71,26 +71,11 @@ public abstract class ContributionScenario {
   protected SportingIngestionFixture.Scope scope;
   protected UUID matchId;
 
-  /**
-   * Starts and migrates only this test family's container once before Spring validation.
-   *
-   * @param properties isolated application datasource properties
-   * @throws Exception if explicit migration fails
-   */
-  @DynamicPropertySource
-  static void database(DynamicPropertyRegistry properties) throws Exception {
-    if (!DATABASE.isRunning()) {
-      DATABASE.start();
-      PostgresTestDatabase.migrate(DATABASE);
-    }
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
   /** Establishes actual admitted matches and original accounts without a provider request. */
   @BeforeEach
   void establishScenario() throws Exception {
     when(clock.instant()).thenReturn(NOW);
-    SportingIngestionFixture.reset(DATABASE);
+    SportingIngestionFixture.reset(database);
     sql.update("DELETE FROM account");
     scope = SportingIngestionFixture.admit(sql, seasons, identities, cycles, runtimes);
     calendars.accept(

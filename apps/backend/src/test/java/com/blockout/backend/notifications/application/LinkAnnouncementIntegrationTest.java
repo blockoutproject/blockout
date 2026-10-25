@@ -20,6 +20,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** Real minute-pass entry point, sporting reads, publication and current confirmed F06 audience. */
 @DisplayName("Actual link publication and minute eligibility pass")
 class LinkAnnouncementIntegrationTest extends ContributionScenario {
+
   @Test
   @DisplayName("Rejects an enclosing transaction before a due candidate can be processed")
   void rejectsEnclosingTransaction() {

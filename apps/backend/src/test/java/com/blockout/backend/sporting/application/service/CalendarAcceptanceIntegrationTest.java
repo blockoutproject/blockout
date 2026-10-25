@@ -22,6 +22,7 @@ import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
 import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.net.URI;
 import java.time.LocalDate;
@@ -43,23 +44,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Real admitted F01 cycles and committed F02 transactions against the migrated PostgreSQL schema.
  */
-@Import(SportingIdentityFixture.class)
+@Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
 @SpringBootTest
-@Testcontainers
 @DisplayName("Contextual catalog and independently committed calendars")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class CalendarAcceptanceIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   private static final OffsetDateTime NOW = OffsetDateTime.parse("2026-10-19T12:00:00Z");
   @Autowired private JdbcTemplate sql;
   @Autowired private PlatformTransactionManager transactions;
@@ -77,23 +75,11 @@ class CalendarAcceptanceIntegrationTest {
   private UUID season;
 
   /**
-   * Uses the same maintained database roles and Liquibase initialization as other backend suites.
-   *
-   * @param properties native application test properties
-   * @throws Exception if migration or initialization fails
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
-  /**
    * Creates real qualified source/classification state, then admits through the production owner.
    */
   @BeforeEach
   void admit() throws Exception {
-    SportingIngestionFixture.reset(DATABASE);
+    SportingIngestionFixture.reset(database);
     SportingIngestionFixture.Scope scope =
         SportingIngestionFixture.admit(sql, seasons, identities, cycles, runtimes);
     season = scope.season();

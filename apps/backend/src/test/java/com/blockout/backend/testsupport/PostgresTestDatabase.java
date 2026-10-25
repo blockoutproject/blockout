@@ -23,8 +23,8 @@ import org.testcontainers.utility.MountableFile;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class PostgresTestDatabase {
   /**
-   * Creates a container whose lifecycle is owned by the calling test's native Testcontainers
-   * support.
+   * Creates a container for Spring-managed tests or an explicitly owned native JUnit fixture. This
+   * factory does not start, stop or share the returned container.
    *
    * @return unstarted PostgreSQL 18.6 container with harmless, isolated role credentials
    */

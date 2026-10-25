@@ -27,21 +27,37 @@ import org.testcontainers.containers.wait.strategy.ShellStrategy;
 import org.testcontainers.utility.MountableFile;
 
 /** Shared disposable native TLS engine for matching and PostgreSQL traversal suites. */
-@lombok.NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
-public final class SearchTestEngine {
-  private static Path temporary;
-  private static GenericContainer<?> engine;
-  private static OpenSearchTransport transport;
-  public static OpenSearchClient client;
-  static DefaultSslBundleRegistry bundles;
-  static String password;
+public final class SearchTestEngine implements AutoCloseable {
+  private Path temporary;
+  private GenericContainer<?> engine;
+  private OpenSearchTransport transport;
+  public OpenSearchClient client;
+  DefaultSslBundleRegistry bundles;
+  String password;
+
+  /** Creates an unstarted fixture whose resources belong to one test class or Spring context. */
+  public SearchTestEngine() {}
 
   /**
    * Creates private native security configuration and starts only this suite's ephemeral engine.
    * Uses OpenSearch's five-minute Testcontainers startup bound for cold or busy CI hosts; readiness
    * still requires a CA-verified HTTPS 401 response.
    */
-  public static void startEngine() throws Exception {
+  public void startEngine() throws Exception {
+    try {
+      start();
+    } catch (Exception | AssertionError failure) {
+      try {
+        close();
+      } catch (Exception cleanup) {
+        failure.addSuppressed(cleanup);
+      }
+      throw failure;
+    }
+  }
+
+  /** Starts native resources; the public entry point also owns cleanup after partial failure. */
+  private void start() throws Exception {
     temporary = Files.createTempDirectory("issue210-search-");
     Path infrastructure = Path.of("../../infra/opensearch").toAbsolutePath().normalize();
     Path tls = temporary.resolve("tls");
@@ -124,7 +140,7 @@ public final class SearchTestEngine {
    * @param failure the original readiness failure
    * @return failure carrying scalars that remain visible in the test report
    */
-  private static ContainerLaunchException readinessFailure(ContainerLaunchException failure) {
+  private ContainerLaunchException readinessFailure(ContainerLaunchException failure) {
     Boolean running = null;
     Boolean oomKilled = null;
     Long exitCode = null;
@@ -165,17 +181,29 @@ public final class SearchTestEngine {
         failure);
   }
 
-  /** Closes native HTTP threads and removes only this suite's container. */
-  public static void stopEngine() throws Exception {
+  /**
+   * Closes this fixture's transport, container and private TLS files, including partial startup.
+   * Repeated close is harmless when both initialization and the owning lifecycle report failure.
+   */
+  @Override
+  public void close() throws Exception {
     try {
       if (transport != null) transport.close();
     } finally {
-      if (engine != null) engine.stop();
-      if (temporary != null) {
-        try (java.util.stream.Stream<Path> paths = Files.walk(temporary)) {
-          for (Path path : paths.sorted(java.util.Comparator.reverseOrder()).toList())
-            Files.deleteIfExists(path);
+      transport = null;
+      client = null;
+      try {
+        if (engine != null) engine.stop();
+      } finally {
+        engine = null;
+        if (temporary != null && Files.exists(temporary)) {
+          try (java.util.stream.Stream<Path> paths = Files.walk(temporary)) {
+            for (Path path : paths.sorted(java.util.Comparator.reverseOrder()).toList()) {
+              Files.deleteIfExists(path);
+            }
+          }
         }
+        temporary = null;
       }
     }
   }
@@ -187,7 +215,7 @@ public final class SearchTestEngine {
    * @param secret disposable scenario credential
    * @return bounded connection to this suite's engine
    */
-  static OpenSearchProperties properties(String bundle, String secret) {
+  OpenSearchProperties properties(String bundle, String secret) {
     return new OpenSearchProperties(
         URI.create("https://localhost:" + engine.getMappedPort(9200)),
         "blockout_search",
@@ -202,7 +230,7 @@ public final class SearchTestEngine {
    *
    * @param index synthetic index name in the isolated security namespace
    */
-  public static void createIndex(String index) throws Exception {
+  public void createIndex(String index) throws Exception {
     org.opensearch.client.json.JsonpMapper mapper = client._transport().jsonpMapper();
     try (InputStream input = SearchTestEngine.class.getResourceAsStream("/search/indices.json");
         jakarta.json.stream.JsonParser parser = mapper.jsonProvider().createParser(input)) {

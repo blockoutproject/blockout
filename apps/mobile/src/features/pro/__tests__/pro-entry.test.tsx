@@ -91,7 +91,7 @@ afterEach(async () => {
   await cleanup();
   client.clear();
   jest.restoreAllMocks();
-  process.env = previousEnvironment;
+  process.env = { ...previousEnvironment };
 });
 
 /** Captures the real session API without granting a usable business account. */

@@ -28,7 +28,7 @@ import com.blockout.backend.sporting.application.exception.SportingResourceNotFo
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionResourcePage;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import com.blockout.backend.sporting.application.service.ReadCollectionSeasons;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import jakarta.persistence.EntityManagerFactory;
 import java.net.URI;
 import java.sql.Connection;
@@ -49,18 +49,16 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.util.AopTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
@@ -68,10 +66,11 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * fixtures.
  */
 @SpringBootTest
-@Testcontainers
 @DisplayName("Source preparation and qualified launch")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class SourcePreparationIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000166");
   private static final UUID SOURCE = UUID.fromString("00000000-0000-4000-8000-000000000167");
   private static final UUID OTHER = UUID.fromString("00000000-0000-4000-8000-000000000168");
@@ -252,18 +251,6 @@ class SourcePreparationIntegrationTest {
   }
 
   /**
-   * Migrates the disposable PostgreSQL database using the real baseline.
-   *
-   * @param properties application connection settings
-   * @throws Exception if migrations cannot be applied
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
-  /**
    * Establishes one unvalidated candidate and one currently authorized operator.
    *
    * @throws Exception if isolated fixture cleanup fails
@@ -273,7 +260,7 @@ class SourcePreparationIntegrationTest {
     when(clock.instant()).thenReturn(NOW);
     try (Connection connection =
             DriverManager.getConnection(
-                DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
         Statement cleanup = connection.createStatement()) {

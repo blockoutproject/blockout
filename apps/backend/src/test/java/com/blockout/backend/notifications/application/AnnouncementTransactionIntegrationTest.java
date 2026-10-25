@@ -12,6 +12,7 @@ import com.blockout.backend.notifications.domain.NotificationVariant;
 import com.blockout.backend.notifications.infrastructure.NotificationEntity;
 import com.blockout.backend.sporting.application.model.MatchObservation.Result;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.persistence.EntityManager;
 import java.sql.Connection;
@@ -35,18 +36,16 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.UncategorizedSQLException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
@@ -54,10 +53,11 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * sender.
  */
 @SpringBootTest
-@Testcontainers
 @DisplayName("Atomic announcement and recipient transactions on PostgreSQL")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class AnnouncementTransactionIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000001");
   private static final UUID OTHER = UUID.fromString("00000000-0000-4000-8000-000000000002");
   private static final UUID SEASON = UUID.fromString("00000000-0000-4000-8000-000000000010");
@@ -77,23 +77,6 @@ class AnnouncementTransactionIntegrationTest {
   @Autowired private PlatformTransactionManager transactions;
 
   /**
-   * Migrates only this task's container before validation-only Spring startup.
-   *
-   * @param properties native Spring test properties
-   * @throws Exception when explicit migration fails
-   */
-  @DynamicPropertySource
-  static void database(DynamicPropertyRegistry properties) throws Exception {
-    System.out.println(
-        "Announcement PostgreSQL container "
-            + DATABASE.getContainerId()
-            + " PostgreSQL port "
-            + DATABASE.getMappedPort(5432));
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
-  /**
    * Creates synthetic accepted identities and confirmed follows, with no provider input.
    *
    * @throws Exception when fixture preparation fails
@@ -102,7 +85,7 @@ class AnnouncementTransactionIntegrationTest {
   void owners() throws Exception {
     try (Connection connection =
             DriverManager.getConnection(
-                DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
         Statement fixture = connection.createStatement()) {

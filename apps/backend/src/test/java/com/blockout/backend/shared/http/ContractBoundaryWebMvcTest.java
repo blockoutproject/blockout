@@ -109,7 +109,7 @@ class ContractBoundaryWebMvcTest {
   }
 
   @Test
-  @DisplayName("Accepts multipart metadata with the advertised patch and cache headers")
+  @DisplayName("Binds JSON metadata and image parts through the generated multipart interface")
   void acceptsMultipart() throws Exception {
     // Given
     MockMultipartFile metadata =
@@ -128,8 +128,8 @@ class ContractBoundaryWebMvcTest {
     // Then
     response
         .andExpect(status().isOk())
-        .andExpect(header().string("Accept-Patch", "multipart/form-data"))
-        .andExpect(header().string("Cache-Control", "no-store"));
+        .andExpect(jsonPath("$.username").value("Ada"))
+        .andExpect(jsonPath("$.hasPhoto").value(true));
   }
 
   @Test
@@ -150,7 +150,7 @@ class ContractBoundaryWebMvcTest {
   }
 
   @Test
-  @DisplayName("Keeps intentional 204 responses empty")
+  @DisplayName("Keeps an adapter no-content response empty through the generated mapping")
   void preservesNoContent() throws Exception {
     // Given
     MockHttpServletRequestBuilder request = delete(ACCOUNT);
@@ -163,7 +163,7 @@ class ContractBoundaryWebMvcTest {
   }
 
   @Test
-  @DisplayName("Preserves a created resource location")
+  @DisplayName("Preserves an adapter resource location through the generated mapping")
   void preservesLocation() throws Exception {
     // Given
     MockHttpServletRequestBuilder request = post("/accounts");
@@ -245,7 +245,7 @@ class ContractBoundaryWebMvcTest {
       return ResponseEntity.ok()
           .header("Accept-Patch", "multipart/form-data")
           .header("Cache-Control", "no-store")
-          .body(account());
+          .body(account().username(metadata.getUsername()).hasPhoto(image != null));
     }
 
     /** {@inheritDoc} */

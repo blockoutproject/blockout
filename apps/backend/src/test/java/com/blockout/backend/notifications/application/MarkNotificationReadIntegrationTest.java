@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.when;
 
 import com.blockout.backend.accounts.application.AccountAccess;
-import com.blockout.backend.notifications.testsupport.InboxDatabaseFixture;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.time.Clock;
 import java.time.Duration;
@@ -29,17 +29,21 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Real committed read writes and controlled removals; actual erasure/purge belong to T052. */
 @SpringBootTest
 @DisplayName("Monotone notification reading on PostgreSQL")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class MarkNotificationReadIntegrationTest {
+  @Autowired private PostgreSQLContainer database;
   @Autowired private MarkNotificationRead marks;
   @Autowired private ReadInbox reads;
   @Autowired private JdbcTemplate sql;
@@ -48,24 +52,13 @@ class MarkNotificationReadIntegrationTest {
   @MockitoBean private Clock clock;
 
   /**
-   * Binds the suite to its isolated, explicitly migrated PostgreSQL database.
-   *
-   * @param properties isolated database properties
-   * @throws Exception on migration failure
-   */
-  @DynamicPropertySource
-  static void database(DynamicPropertyRegistry properties) throws Exception {
-    InboxDatabaseFixture.register(properties);
-  }
-
-  /**
    * Prepares synthetic owning data and the controlled evaluation instant.
    *
    * @throws Exception on fixture failure
    */
   @BeforeEach
   void owners() throws Exception {
-    reset(sql);
+    reset(database, sql);
     when(clock.instant()).thenReturn(NOW);
   }
 

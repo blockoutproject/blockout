@@ -60,6 +60,7 @@ import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingImageFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture.Scope;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.time.Instant;
 import java.util.Locale;
@@ -87,28 +88,25 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Proves presentation transactions and current reads against explicitly migrated PostgreSQL. */
-@Import(SportingIdentityFixture.class)
+@Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
 @SpringBootTest
 @AutoConfigureMockMvc
 @RecordApplicationEvents
-@Testcontainers
 @DisplayName("Atomic sporting presentation")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class SportingPresentationIntegrationTest {
+  @Autowired private PostgreSQLContainer database;
   @Autowired private com.blockout.backend.access.application.CurrentPermissions permissions;
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   @Autowired private MockMvc mvc;
   @Autowired private JsonMapper json;
   @Autowired private ReadSportingData reads;
@@ -138,25 +136,13 @@ class SportingPresentationIntegrationTest {
   private UUID team;
 
   /**
-   * Migrates only the suite-owned disposable database before validation-only application startup.
-   *
-   * @param properties test datasource settings
-   * @throws Exception if the real baseline fails
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
-  /**
    * Establishes a real F01 cycle and an explicitly granted synthetic operator.
    *
    * @throws Exception if isolated fixture reset fails
    */
   @BeforeEach
   void prepareOwners() throws Exception {
-    SportingIngestionFixture.reset(DATABASE);
+    SportingIngestionFixture.reset(database);
     sql.update("DELETE FROM collection_control");
     sql.update("DELETE FROM account");
     scope = SportingIngestionFixture.admit(sql, seasons, identities, cycles, runtimes);
