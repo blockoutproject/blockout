@@ -65,6 +65,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
   SportingObservationMapperImpl.class,
   SportingPresentationMapperImpl.class,
   SportingObservationValidator.class,
+  SportingPresentationValidator.class,
   IngestionBodyLimitAdvice.class
 })
 @DisplayName("Sporting ingestion request limits")
@@ -420,6 +421,33 @@ class SportingIngestionWebMvcTest {
     Assertions.assertThat(image.getValue().mediaType()).isEqualTo("image/png");
     Assertions.assertThat(context.getValue().providerPublishedAt())
         .isEqualTo(java.time.Instant.parse("2026-10-23T12:00:00Z"));
+  }
+
+  @Test
+  @DisplayName("Refuses source-image authorization before decoding invalid bytes")
+  void refusesUnauthorizedSourceImage() throws Exception {
+    // Given
+    UUID team = UUID.fromString("00000000-0000-4000-8000-000000000193");
+    Mockito.doThrow(new org.springframework.security.access.AccessDeniedException("not permitted"))
+        .when(images)
+        .requireSource(eq(team), any());
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            post("/ingestion/teams/{id}/source-logo-observations", team)
+                .with(collector())
+                .queryParam("cycleId", "00000000-0000-4000-8000-000000000001")
+                .queryParam("readOrdinal", "1")
+                .queryParam("observedAt", "2026-10-24T12:00:00Z")
+                .contentType("image/png")
+                .content(new byte[] {1, 2, 3}));
+
+    // Then
+    response
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:forbidden"));
+    Mockito.verify(images, Mockito.never()).acceptSource(any(), any(), any());
   }
 
   @ParameterizedTest

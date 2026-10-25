@@ -11,6 +11,8 @@ import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingPresentation.DivisionDefinition;
+import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import com.blockout.backend.sporting.application.model.SportingViews.ClassificationView;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
@@ -128,11 +130,9 @@ class DivisionIntegrationTest {
     DivisionDetail original =
         divisions.create(
             account,
-            "National 2",
-            "#112233",
-            List.of("#112233", "#445566", "#778899"),
-            hasLogo ? new byte[] {1, 2, 3} : null,
-            hasLogo ? "image/png" : null);
+            new DivisionDefinition(
+                "National 2", "#112233", List.of("#112233", "#445566", "#778899")),
+            hasLogo ? new Image(new byte[] {1, 2, 3}, "image/png") : null);
     Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
     boolean enabled = statistics.isStatisticsEnabled();
     statistics.setStatisticsEnabled(true);
@@ -162,10 +162,16 @@ class DivisionIntegrationTest {
     ImageIO.write(new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB), "PNG", output);
     byte[] image = output.toByteArray();
     DivisionDetail original =
-        divisions.create(account, "National 2", "#112233", null, image, "image/png");
+        divisions.create(
+            account,
+            new DivisionDefinition("National 2", "#112233", null),
+            new Image(image, "image/png"));
+
     // When
     ThrowingCallable duplicate =
-        () -> divisions.create(account, "national 2", "#445566", null, null, null);
+        () ->
+            divisions.create(account, new DivisionDefinition("national 2", "#445566", null), null);
+
     // Then
     assertThatThrownBy(duplicate).isInstanceOf(SportingConflictException.class);
     assertThat(configurationReads.divisions(account, true)).containsExactly(original);
@@ -182,11 +188,13 @@ class DivisionIntegrationTest {
     // Given
     List<String> gradient = List.of("#112233", "#445566", "#778899");
     DivisionDetail original =
-        divisions.create(account, "National 2", "#112233", gradient, null, null);
+        divisions.create(account, new DivisionDefinition("National 2", "#112233", gradient), null);
+
     // When
     DivisionDetail inactive = divisions.setActive(account, original.id(), "0", false);
     DivisionDetail unchanged =
         divisions.setActive(account, original.id(), Long.toString(inactive.revision()), false);
+
     // Then
     assertThat(inactive.active()).isFalse();
     assertThat(inactive.gradient()).isEqualTo(gradient);
@@ -208,12 +216,15 @@ class DivisionIntegrationTest {
   @DisplayName("Allows each alternative read grant without granting division lifecycle writes")
   void separatesReadAndWriteGrants(String grant) {
     // Given
-    DivisionDetail division = divisions.create(account, "National 2", "#112233", null, null, null);
+    DivisionDetail division =
+        divisions.create(account, new DivisionDefinition("National 2", "#112233", null), null);
     sql.update("DELETE FROM account_permission WHERE account_id = ?", account);
     sql.update(
         "INSERT INTO account_permission(account_id, permission) VALUES (?, ?)", account, grant);
+
     // When
     DivisionDetail read = configurationReads.division(account, division.id());
+
     // Then
     assertThat(read).isEqualTo(division);
     assertThat(configurationReads.divisions(account, true)).containsExactly(division);
@@ -222,7 +233,9 @@ class DivisionIntegrationTest {
         .isInstanceOf(AccessDeniedException.class);
     assertThatThrownBy(() -> divisions.setActive(account, division.id(), "0", false))
         .isInstanceOf(AccessDeniedException.class);
-    assertThatThrownBy(() -> divisions.create(account, "Another", "#112233", null, null, null))
+    assertThatThrownBy(
+            () ->
+                divisions.create(account, new DivisionDefinition("Another", "#112233", null), null))
         .isInstanceOf(AccessDeniedException.class);
   }
 
@@ -237,7 +250,8 @@ class DivisionIntegrationTest {
 
     // When
     ThrowingCallable create =
-        () -> divisions.create(account, "National 2", "#112233", null, null, null);
+        () ->
+            divisions.create(account, new DivisionDefinition("National 2", "#112233", null), null);
 
     // Then
     assertThatThrownBy(create).isInstanceOf(AccessDeniedException.class);
@@ -248,17 +262,16 @@ class DivisionIntegrationTest {
   @DisplayName("Lists ordered division metadata with image presence and optional inactive entries")
   void listsDivisionMetadata() {
     // Given
-    DivisionDetail beta = divisions.create(account, "Beta", "#445566", null, null, null);
+    DivisionDetail beta =
+        divisions.create(account, new DivisionDefinition("Beta", "#445566", null), null);
     // Synthetic stored bytes qualify presence only; the shared validator owns image decoding.
     DivisionDetail alpha =
         divisions.create(
             account,
-            "alpha",
-            "#112233",
-            List.of("#112233", "#445566", "#778899"),
-            new byte[] {1, 2, 3},
-            "image/png");
-    DivisionDetail gamma = divisions.create(account, "gamma", "#778899", null, null, null);
+            new DivisionDefinition("alpha", "#112233", List.of("#112233", "#445566", "#778899")),
+            new Image(new byte[] {1, 2, 3}, "image/png"));
+    DivisionDetail gamma =
+        divisions.create(account, new DivisionDefinition("gamma", "#778899", null), null);
     DivisionDetail inactive = divisions.setActive(account, gamma.id(), "0", false);
 
     // When
@@ -277,8 +290,10 @@ class DivisionIntegrationTest {
       "A correction waiting on a deactivation refuses the now-inactive target without effects")
   void serializesDeactivationAndAssignment() throws Exception {
     // Given
-    DivisionDetail original = divisions.create(account, "Original", "#112233", null, null, null);
-    DivisionDetail target = divisions.create(account, "Target", "#445566", null, null, null);
+    DivisionDetail original =
+        divisions.create(account, new DivisionDefinition("Original", "#112233", null), null);
+    DivisionDetail target =
+        divisions.create(account, new DivisionDefinition("Target", "#445566", null), null);
     UUID season = seasons.getOrCreate(2026L).id();
     SportingClassification classification =
         new SportingClassification(original.id(), SportFormatEnum._6X6, SportGenderEnum.FEMALE);
@@ -293,6 +308,7 @@ class DivisionIntegrationTest {
     CompletableFuture<Integer> pid = new CompletableFuture<>();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+
       // When
       Future<?> correction =
           transaction.execute(
@@ -317,6 +333,7 @@ class DivisionIntegrationTest {
                 PostgresTestDatabase.awaitBlocked(sql, pid);
                 return pending;
               });
+
       // Then
       assertThatThrownBy(() -> correction.get(15, TimeUnit.SECONDS))
           .hasCauseInstanceOf(SportingConflictException.class);

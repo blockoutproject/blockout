@@ -7,7 +7,6 @@ import com.blockout.backend.accounts.application.exception.ProviderEmailUnavaila
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.accounts.domain.AccountUsername;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -42,18 +41,18 @@ public class EstablishAccount {
   }
 
   /**
-   * Establishes only the existing lifecycle admitted by personal maintenance bypass. Its erasure or
-   * replacement before capture refuses the request before provider I/O; it never becomes creation.
+   * Establishes the admitted principal while retaining any personal bypass lifecycle. Erasure or
+   * replacement of that lifecycle before capture refuses the request before provider I/O; it never
+   * becomes creation.
    *
-   * @param issuer exact validated issuer
-   * @param subject exact validated subject
-   * @param admittedAccount original non-null business UUID authorized at admission
-   * @return current original-account projection after its evidence commit
-   * @throws AccountUnavailableException if that original disappears or is replaced
+   * @param context validated principal and optional original lifecycle admitted by F12
+   * @return current original-account projection after its evidence commit and creation outcome
+   * @throws AccountUnavailableException if an admitted original disappears or is replaced
+   * @throws ProviderEmailUnavailableException when ordinary creation lacks a usable address
    */
   @Transactional(propagation = Propagation.NOT_SUPPORTED)
-  public Outcome establishExisting(String issuer, String subject, UUID admittedAccount) {
-    return establish(issuer, subject, Objects.requireNonNull(admittedAccount));
+  public Outcome establish(AccountContext context) {
+    return establish(context.issuer(), context.subject(), context.admittedAccount().orElse(null));
   }
 
   /**

@@ -34,6 +34,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class CollectorOperationsController implements CollectorOperationsApi, CollectionApi {
   private final ObserveCollectionSource sources;
+  private final RegisterCollectorRuntime runtimes;
+  private final ReadCollectionWork collectionWork;
+  private final AdmitCollectionCycle cycles;
+  private final RecordCollectionResults results;
+  private final AcceptSourceValidation sourceValidation;
+  private final CollectionApiMapper mapper;
 
   /** {@inheritDoc} */
   @Override
@@ -43,14 +49,6 @@ public class CollectorOperationsController implements CollectorOperationsApi, Co
         .cacheControl(CacheControl.noStore())
         .body(mapper.toDto(sources.observe(mapper.toCommand(request))));
   }
-
-  private final RegisterCollectorRuntime runtimes;
-  private final ReadCollectionWork collectionWork;
-  private final AdmitCollectionCycle cycles;
-
-  private final CollectionApiMapper mapper;
-  private final RecordCollectionResults results;
-  private final AcceptSourceValidation sourceValidation;
 
   /** {@inheritDoc} */
   @Override

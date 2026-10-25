@@ -6,10 +6,8 @@ import com.blockout.backend.notifications.application.NotificationContext;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.web.server.ResponseStatusException;
 
 /** F07 binding beyond the generated Java request shapes. */
@@ -25,16 +23,13 @@ public class NotificationRequest {
    * @param original account UUID addressed by the request, never a device or destination identity
    * @return immutable original owner, with no credentials, grants or entitlement snapshot
    * @throws org.springframework.security.access.AccessDeniedException if no usable account exists
-   * @throws ResponseStatusException for a foreign UUID (404) or unavailable owner storage (503)
+   * @throws ResponseStatusException for a foreign UUID (404); storage outages retain their shared
+   *     HTTP owner
    */
   public NotificationContext owner(UUID original) {
-    try {
-      UUID current = account.id();
-      if (!current.equals(original)) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-      return new NotificationContext(current);
-    } catch (DataAccessResourceFailureException | CannotCreateTransactionException failure) {
-      throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE);
-    }
+    UUID current = account.id();
+    if (!current.equals(original)) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+    return new NotificationContext(current);
   }
 
   /**

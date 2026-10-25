@@ -92,10 +92,8 @@ public class ContributionsController implements StreamSubmissionApi {
    * @return 201 with Location or 200 for a current repetition
    */
   private <T> ResponseEntity<T> response(boolean created, String member, T body) {
-    if (created)
-      return ResponseEntity.created(URI.create(member))
-          .cacheControl(CacheControl.noStore())
-          .body(body);
-    return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body);
+    ResponseEntity.BodyBuilder response =
+        created ? ResponseEntity.created(URI.create(member)) : ResponseEntity.ok();
+    return response.cacheControl(CacheControl.noStore()).body(body);
   }
 }

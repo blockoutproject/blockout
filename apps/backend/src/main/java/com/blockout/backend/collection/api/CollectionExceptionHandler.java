@@ -4,20 +4,15 @@ import com.blockout.backend.collection.application.exception.CollectionConflictE
 import com.blockout.backend.collection.application.exception.CollectionNotFoundException;
 import com.blockout.backend.collection.application.exception.InvalidSeasonConfirmationException;
 import com.blockout.backend.collection.application.exception.InvalidSourceException;
-import com.blockout.backend.generated.ingestion.model.ProblemResponse;
-import com.blockout.backend.sporting.api.SportingIngestionController;
-import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
-import java.net.URI;
+import com.blockout.backend.shared.http.HttpProblems;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.CacheControl;
-import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /** Safe current-state refusals; unexpected infrastructure failures keep the shared HTTP owner. */
-@RestControllerAdvice(
-    basePackageClasses = {CollectorOperationsController.class, SportingIngestionController.class})
+@RestControllerAdvice
 @Order(0)
 public class CollectionExceptionHandler {
   /**
@@ -27,13 +22,9 @@ public class CollectionExceptionHandler {
    * @return non-cacheable shared conflict without submitted values
    */
   @ExceptionHandler(CollectionConflictException.class)
-  ResponseEntity<ProblemResponse> conflict(CollectionConflictException exception) {
-    return ResponseEntity.status(409)
-        .contentType(MediaType.APPLICATION_PROBLEM_JSON)
-        .cacheControl(CacheControl.noStore())
-        .body(
-            new ProblemResponse(
-                URI.create("urn:blockout:problem:" + exception.getType()), "Conflict", 409));
+  ResponseEntity<Object> conflict(CollectionConflictException exception) {
+    return HttpProblems.response(
+        HttpStatus.CONFLICT, "urn:blockout:problem:" + exception.getType());
   }
 
   /**
@@ -43,15 +34,9 @@ public class CollectionExceptionHandler {
    * @return canonical non-cacheable business-input refusal
    */
   @ExceptionHandler({InvalidSourceException.class, InvalidSeasonConfirmationException.class})
-  ResponseEntity<ProblemResponse> invalidSource() {
-    return ResponseEntity.status(422)
-        .contentType(MediaType.APPLICATION_PROBLEM_JSON)
-        .cacheControl(CacheControl.noStore())
-        .body(
-            new ProblemResponse(
-                URI.create("urn:blockout:problem:unprocessable-content"),
-                "Unprocessable Content",
-                422));
+  ResponseEntity<Object> invalidSource() {
+    return HttpProblems.response(
+        HttpStatus.UNPROCESSABLE_CONTENT, "urn:blockout:problem:unprocessable-content");
   }
 
   /**
@@ -59,11 +44,8 @@ public class CollectionExceptionHandler {
    *
    * @return non-cacheable shared missing-current-context response
    */
-  @ExceptionHandler({CollectionNotFoundException.class, SportingResourceNotFoundException.class})
-  ResponseEntity<ProblemResponse> notFound() {
-    return ResponseEntity.status(404)
-        .contentType(MediaType.APPLICATION_PROBLEM_JSON)
-        .cacheControl(CacheControl.noStore())
-        .body(new ProblemResponse(URI.create("urn:blockout:problem:not-found"), "Not Found", 404));
+  @ExceptionHandler(CollectionNotFoundException.class)
+  ResponseEntity<Object> notFound() {
+    return HttpProblems.response(HttpStatus.NOT_FOUND, "urn:blockout:problem:not-found");
   }
 }

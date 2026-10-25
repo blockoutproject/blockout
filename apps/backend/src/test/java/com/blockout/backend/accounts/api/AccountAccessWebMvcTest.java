@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -14,8 +15,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.blockout.backend.access.application.CurrentPermissions;
 import com.blockout.backend.access.application.MaintenanceAdmission;
 import com.blockout.backend.access.domain.Permission;
+import com.blockout.backend.accounts.application.AccountContext;
 import com.blockout.backend.accounts.application.AccountStore;
+import com.blockout.backend.accounts.application.ChangeAccountProfile;
 import com.blockout.backend.accounts.application.EstablishAccount;
+import com.blockout.backend.accounts.application.ProfilePhotoPreparation;
 import com.blockout.backend.accounts.application.ReadAccount;
 import com.blockout.backend.accounts.application.exception.AccountUnavailableException;
 import com.blockout.backend.accounts.application.exception.ProviderEmailUnavailableException;
@@ -53,7 +57,8 @@ import org.springframework.transaction.CannotCreateTransactionException;
   ApiExceptionHandler.class,
   AccountExceptionHandler.class,
   ReadAccount.class,
-  AccountApiMapperImpl.class
+  AccountApiMapperImpl.class,
+  AccountRequest.class
 })
 @DisplayName("Explicit account access HTTP boundary")
 class AccountAccessWebMvcTest {
@@ -64,8 +69,8 @@ class AccountAccessWebMvcTest {
   @Autowired private MockMvc mvc;
   @MockitoBean private AccountStore store;
   @MockitoBean private EstablishAccount establishment;
-  @MockitoBean private com.blockout.backend.accounts.application.ChangeAccountProfile changes;
-  @MockitoBean private com.blockout.backend.accounts.infrastructure.ProfilePhotoProcessor photos;
+  @MockitoBean private ChangeAccountProfile changes;
+  @MockitoBean private ProfilePhotoPreparation photos;
   @MockitoBean private CurrentPermissions permissions;
   @MockitoBean private MaintenanceAdmission admission;
 
@@ -74,7 +79,7 @@ class AccountAccessWebMvcTest {
   @DisplayName("Establishes explicitly with canonical status and generated current permissions")
   void establishesExplicitly(boolean created) throws Exception {
     // Given
-    when(establishment.establish(ISSUER, "auth0|one"))
+    when(establishment.establish(new AccountContext(ISSUER, "auth0|one", Optional.empty())))
         .thenReturn(
             new EstablishAccount.Outcome(
                 new ReadAccount.View(ACCOUNT, false, Set.of(Permission.MANAGE_MAINTENANCE)),
@@ -107,10 +112,10 @@ class AccountAccessWebMvcTest {
     when(permissions.forAccount(ID)).thenReturn(Set.of());
 
     // When
-    mvc.perform(get("/accounts/me").with(principal("mobile-test")))
-        // Then
-        .andExpect(status().isOk())
-        .andExpect(header().string("Cache-Control", "no-store"));
+    ResultActions response = mvc.perform(get("/accounts/me").with(principal("mobile-test")));
+
+    // Then
+    response.andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"));
     verifyNoInteractions(establishment, admission);
   }
 
@@ -121,8 +126,10 @@ class AccountAccessWebMvcTest {
     when(store.findByPrincipal(ISSUER, "auth0|one")).thenReturn(Optional.empty());
 
     // When
-    mvc.perform(get("/accounts/me").with(principal("mobile-test")))
-        // Then
+    ResultActions response = mvc.perform(get("/accounts/me").with(principal("mobile-test")));
+
+    // Then
+    response
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:not-found"))
         .andExpect(header().string("Cache-Control", "no-store"));
@@ -141,8 +148,10 @@ class AccountAccessWebMvcTest {
     when(store.findByPrincipal(ISSUER, "auth0|one")).thenThrow(failure);
 
     // When
-    mvc.perform(get("/accounts/me").with(principal("mobile-test")))
-        // Then
+    ResultActions response = mvc.perform(get("/accounts/me").with(principal("mobile-test")));
+
+    // Then
+    response
         .andExpect(status().isServiceUnavailable())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:unavailable"))
         .andExpect(jsonPath("$.status").value(503))
@@ -159,8 +168,10 @@ class AccountAccessWebMvcTest {
         .thenThrow(new DataIntegrityViolationException("Synthetic private constraint details"));
 
     // When
-    mvc.perform(get("/accounts/me").with(principal("mobile-test")))
-        // Then
+    ResultActions response = mvc.perform(get("/accounts/me").with(principal("mobile-test")));
+
+    // Then
+    response
         .andExpect(status().isInternalServerError())
         .andExpect(jsonPath("$.type").value("about:blank"))
         .andExpect(jsonPath("$.detail").doesNotExist())
@@ -179,8 +190,10 @@ class AccountAccessWebMvcTest {
                     ID, ISSUER, "auth0|other", "Other_player", "shared@example.invalid", null)));
 
     // When
-    mvc.perform(get("/accounts/" + ID).with(principal("mobile-test")))
-        // Then
+    ResultActions response = mvc.perform(get("/accounts/" + ID).with(principal("mobile-test")));
+
+    // Then
+    response
         .andExpect(status().isNotFound())
         .andExpect(header().string("Cache-Control", "no-store"));
     verifyNoInteractions(permissions, establishment);
@@ -195,12 +208,16 @@ class AccountAccessWebMvcTest {
         .requireOrdinaryAccess(ISSUER, "auth0|one", false);
 
     // When
-    mvc.perform(post("/accounts").with(principal("mobile-test")))
-        // Then
+    ResultActions establishmentResponse =
+        mvc.perform(post("/accounts").with(principal("mobile-test")));
+    ResultActions accountResponse =
+        mvc.perform(get("/accounts/" + ID).with(principal("mobile-test")));
+
+    // Then
+    establishmentResponse
         .andExpect(status().isServiceUnavailable())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:unavailable"));
-    mvc.perform(get("/accounts/" + ID).with(principal("mobile-test")))
-        .andExpect(status().isServiceUnavailable());
+    accountResponse.andExpect(status().isServiceUnavailable());
     verifyNoInteractions(store, establishment);
   }
 
@@ -261,8 +278,10 @@ class AccountAccessWebMvcTest {
     when(permissions.forAccount(ID)).thenReturn(Set.of());
 
     // When
-    mvc.perform(get("/accounts/" + ID).with(principal("mobile-test")))
-        // Then
+    ResultActions response = mvc.perform(get("/accounts/" + ID).with(principal("mobile-test")));
+
+    // Then
+    response
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.hasPhoto").value(true))
         .andExpect(header().string("Accept-Patch", "multipart/form-data"))
@@ -274,11 +293,14 @@ class AccountAccessWebMvcTest {
   @DisplayName("Reports an unavailable establishment without announcing a usable account")
   void reportsUnavailableEstablishment() throws Exception {
     // Given
-    when(establishment.establish(ISSUER, "auth0|one")).thenThrow(new AccountUnavailableException());
+    when(establishment.establish(new AccountContext(ISSUER, "auth0|one", Optional.empty())))
+        .thenThrow(new AccountUnavailableException());
 
     // When
-    mvc.perform(post("/accounts").with(principal("mobile-test")))
-        // Then
+    ResultActions response = mvc.perform(post("/accounts").with(principal("mobile-test")));
+
+    // Then
+    response
         .andExpect(status().isServiceUnavailable())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:unavailable"));
     verifyNoInteractions(store, permissions);
@@ -288,12 +310,14 @@ class AccountAccessWebMvcTest {
   @DisplayName("Returns the canonical missing-provider-email refusal without private details")
   void reportsMissingInitialEmail() throws Exception {
     // Given
-    when(establishment.establish(ISSUER, "auth0|one"))
+    when(establishment.establish(new AccountContext(ISSUER, "auth0|one", Optional.empty())))
         .thenThrow(new ProviderEmailUnavailableException());
 
     // When
-    mvc.perform(post("/accounts").with(principal("mobile-test")))
-        // Then
+    ResultActions response = mvc.perform(post("/accounts").with(principal("mobile-test")));
+
+    // Then
+    response
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:provider-email-unavailable"))
         .andExpect(header().string("Cache-Control", "no-store"));
@@ -309,14 +333,84 @@ class AccountAccessWebMvcTest {
         .requireOrdinaryAccess(ISSUER, "auth0|one", true);
 
     // When
-    mvc.perform(
+    ResultActions response =
+        mvc.perform(
             post("/accounts")
                 .header("Blockout-Maintenance-Bypass", "true")
-                .with(principal("mobile-test")))
-        // Then
-        .andExpect(status().isServiceUnavailable());
+                .with(principal("mobile-test")));
+
+    // Then
+    response.andExpect(status().isServiceUnavailable());
     verify(admission).requireOrdinaryAccess(ISSUER, "auth0|one", true);
     verifyNoInteractions(establishment);
+  }
+
+  @Test
+  @DisplayName("Retains the exact admitted lifecycle for establishment")
+  void retainsAdmittedLifecycle() throws Exception {
+    // Given
+    AccountContext context = new AccountContext(ISSUER, "auth0|one", Optional.of(ID));
+    when(admission.requireOrdinaryAccess(ISSUER, "auth0|one", true)).thenReturn(Optional.of(ID));
+    when(establishment.establish(context))
+        .thenReturn(
+            new EstablishAccount.Outcome(new ReadAccount.View(ACCOUNT, false, Set.of()), false));
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            post("/accounts")
+                .header("Blockout-Maintenance-Bypass", "true")
+                .with(principal("mobile-test")));
+
+    // Then
+    response
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.accountId").value(ID.toString()))
+        .andExpect(header().doesNotExist("Location"));
+    verify(establishment).establish(context);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", "/photo"})
+  @DisplayName("Refuses a foreign bypass lifecycle before reading private account data")
+  void refusesForeignAdmittedLifecycle(String suffix) throws Exception {
+    // Given
+    UUID admitted = UUID.fromString("00000000-0000-4000-8000-000000000170");
+    when(admission.requireOrdinaryAccess(ISSUER, "auth0|one", true))
+        .thenReturn(Optional.of(admitted));
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            get("/accounts/" + ID + suffix)
+                .header("Blockout-Maintenance-Bypass", "true")
+                .with(principal("mobile-test")));
+
+    // Then
+    response
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:not-found"))
+        .andExpect(header().string("Cache-Control", "no-store"));
+    verifyNoInteractions(store, establishment, permissions, photos, changes);
+  }
+
+  @Test
+  @DisplayName("Keeps unfinished erasure unavailable after ordinary admission")
+  void preservesUnavailableErasure() throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request =
+        delete("/accounts/" + ID).with(principal("mobile-test"));
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response
+        .andExpect(status().isServiceUnavailable())
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:unavailable"))
+        .andExpect(header().string("Cache-Control", "no-store"));
+    verify(admission).requireOrdinaryAccess(ISSUER, "auth0|one", false);
+    verifyNoInteractions(store, establishment, permissions, photos, changes);
   }
 
   @Test
