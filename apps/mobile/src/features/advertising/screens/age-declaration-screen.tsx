@@ -6,7 +6,7 @@ import {
   Text,
   View,
 } from "react-native";
-import Animated, {
+import {
   cancelAnimation,
   Easing,
   ReduceMotion,
@@ -60,14 +60,7 @@ function AgeBackdrop() {
     );
     return () => cancelAnimation(offset);
   }, [offset, reducedMotion]);
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[StyleSheet.absoluteFill, animatedStyle]}
-    >
-      <DiscoveryBackdrop />
-    </Animated.View>
-  );
+  return <DiscoveryBackdrop artworkStyle={animatedStyle} />;
 }
 
 /** Mandatory initial/renewal surface; the router guards home and owns completion navigation. */

@@ -1,11 +1,17 @@
 import { Image } from "expo-image";
 import { ChevronRight, Flag } from "lucide-react-native";
+import type { ComponentProps } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
-/** Original Figma illustration, including outlined Outfit Black; cropped at source geometry, never redrawn. */
-export function DiscoveryBackdrop() {
+/** Original Figma illustration; optional artwork motion stays inside the fixed source crop. */
+export function DiscoveryBackdrop({
+  artworkStyle,
+}: {
+  artworkStyle?: ComponentProps<typeof Animated.View>["style"];
+}) {
   const { scheme } = useTheme();
   return (
     <View
@@ -14,15 +20,17 @@ export function DiscoveryBackdrop() {
       importantForAccessibility="no-hide-descendants"
       style={styles.backdrop}
     >
-      <Image
-        accessible={false}
-        source={
-          scheme === "dark"
-            ? require("../../../../assets/onboarding/community-backdrop-dark.svg")
-            : require("../../../../assets/onboarding/community-backdrop-light.svg")
-        }
-        style={styles.backdropAsset}
-      />
+      <Animated.View style={[styles.backdropAsset, artworkStyle]}>
+        <Image
+          accessible={false}
+          source={
+            scheme === "dark"
+              ? require("../../../../assets/onboarding/community-backdrop-dark.svg")
+              : require("../../../../assets/onboarding/community-backdrop-light.svg")
+          }
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
     </View>
   );
 }
