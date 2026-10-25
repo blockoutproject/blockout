@@ -139,18 +139,13 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
       if (refreshed.shards().failed() != 0
           || refreshed.shards().successful() != refreshed.shards().total())
         throw new SearchUnavailableException();
-      GetAliasResponse current = aliases();
       UpdateAliasesRequest.Builder request = new UpdateAliasesRequest.Builder();
       for (Map.Entry<Kind, String> target : generation.entrySet()) {
         String alias = alias(target.getKey());
-        current
-            .result()
-            .forEach(
-                (index, state) -> {
-                  if (state.aliases().containsKey(alias))
-                    request.actions(
-                        action -> action.remove(remove -> remove.index(index).alias(alias)));
-                });
+        request.actions(
+            action ->
+                action.remove(
+                    remove -> remove.index(indexes.prefix() + "-*").alias(alias).mustExist(false)));
         request.actions(action -> action.add(add -> add.index(target.getValue()).alias(alias)));
       }
       try {

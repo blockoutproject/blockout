@@ -5,6 +5,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.blockout.backend.search.application.SearchDocuments;
@@ -21,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch.indices.GetAliasRequest;
-import org.opensearch.client.opensearch.indices.OpenSearchIndicesClient;
+import org.opensearch.client.transport.OpenSearchTransport;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
@@ -183,22 +185,13 @@ class SearchDiagnosticsTest {
   @DisplayName("Logs cleanup failure without deleting when current aliases cannot be read")
   void diagnosesCleanupFailure(CapturedOutput output) throws Exception {
     // Given
-    OpenSearchClient client = mock(OpenSearchClient.class);
-    OpenSearchIndicesClient indices = mock(OpenSearchIndicesClient.class);
-    when(client.indices()).thenReturn(indices);
-    when(indices.getAlias(any(GetAliasRequest.class)))
-        .thenThrow(new IOException("private-city raw-payload"));
-    // The SDK lambda overload delegates to its request overload; execute that standard overload.
-    when(indices.getAlias(
-            org.mockito.ArgumentMatchers
-                .<java.util.function.Function<
-                        GetAliasRequest.Builder,
-                        org.opensearch.client.util.ObjectBuilder<GetAliasRequest>>>
-                    any()))
+    OpenSearchTransport transport = mock(OpenSearchTransport.class);
+    when(transport.performRequest(any(GetAliasRequest.class), any(), any()))
         .thenThrow(new IOException("private-city raw-payload"));
     OpenSearchProjectionWriter writer =
         new OpenSearchProjectionWriter(
-            client, new SearchIndexProperties("blockout-local-search-diag"));
+            new OpenSearchClient(transport),
+            new SearchIndexProperties("blockout-local-search-diag"));
 
     // When
     writer.cleanup();
@@ -207,8 +200,8 @@ class SearchDiagnosticsTest {
     assertThat(output.getAll())
         .contains("cleanup", "failed")
         .doesNotContain("private-city", "raw-payload");
-    org.mockito.Mockito.verify(indices, org.mockito.Mockito.never())
-        .delete(any(org.opensearch.client.opensearch.indices.DeleteIndexRequest.class));
+    verify(transport).performRequest(any(GetAliasRequest.class), any(), any());
+    verifyNoMoreInteractions(transport);
   }
 
   /** Starts only the native logging boundary, without SQL or background projection work. */
