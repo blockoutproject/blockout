@@ -76,14 +76,11 @@ response and no activity write. Native SDK credentials and HTTP are controlled i
 Jest; these tests do not qualify backend transaction outcomes, provider identity
 or native rendering.
 
-Native editor captures remain unavailable: the assigned iPhone 18 Pro - A
-(iOS 27.0, UDID `2C22FCF3-D4A7-4F84-BAB1-F358C71C7649`) opened the compatible
-installed `com.blockout.local` development client through `agent-device` session
-`issue-178`, but this worktree has no configured Auth0 environment or authenticated
-operator. No native build or synthetic identity provider was introduced. T055,
-[#433](https://github.com/blockoutproject/blockout/issues/433) live Dynamic Type and
-[#449](https://github.com/blockoutproject/blockout/issues/449) minimum-iOS input
-qualification remain pending; no iOS/Android matrix or design approval is claimed.
+The mobile correction uses [Product Design mapping controls](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4652-28674), [division catalogue](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1340-9338), [creation](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1370-10242) and [gradient/lifecycle](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1368-10291). The selectors follow UI Library `164:200`; color derivation follows its Color notes `3193:116`/`3193:125`. Selection uses F13's native stack sheet and the existing RHF control. Lifecycle recovery shares the presentation editor's original revision and explicit reread; no per-card recovery store remains. The catalogue uses a virtualized list, local name/activity filters and one editor entry per editable row. Tests also cover readable division foregrounds, automatic-gradient restoration and dirty presentation values surviving an independent activity command.
+
+T018 remains incomplete against the entire approved journey. Current OpenAPI reads expose individual classifications and division presentation/activity, but no global mapping projection with source/season filters and pack/pool summaries, nor division pool counts. This delivery stays within the mobile scope: no new backend/database reads, client-side N+1 reconstruction or invented counts. Classification therefore keeps its existing contextual route rather than claiming the inline global catalogue. Full preview transitions and F03/F10 navigation remain outside these editor routes; root/public navigation is unchanged. Ordinary actions scroll with fields and confirmations use native alerts, as already selected by F13. These limits are not design acceptance.
+
+Native editor captures remain unavailable: the compatible installed `com.blockout.local` client was opened on the previously allocated iPhone simulator, but this worktree has no configured Auth0 environment or authenticated operator. The device session and lane were released. No native build or synthetic identity provider was introduced. The new sheet routes, editor rendering, keyboard, enlarged text and accessibility still require iOS/Android runtime evidence. T055, [#433](https://github.com/blockoutproject/blockout/issues/433) live Dynamic Type and [#449](https://github.com/blockoutproject/blockout/issues/449) minimum-iOS input qualification remain pending; source comparison and Jest do not establish strict visual fidelity or provider approval.
 
 ## Presentation, contacts and continuity
 

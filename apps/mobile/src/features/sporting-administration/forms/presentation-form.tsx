@@ -1,5 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
+import { ImageOff } from "lucide-react-native";
+import { useDivisionActivity } from "../api/classification";
+import { DivisionColorFields } from "../components/division-color-fields";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
@@ -8,6 +11,8 @@ import {
   ApiError,
   isUncertainMutationFailure,
 } from "../../../shared/api/api-fetch";
+import { DivisionActivityAction } from "../components/division-activity-action";
+import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
 import { Button } from "../../../shared/components/button";
 import { ImageField } from "../../../shared/components/image-field";
 import {
@@ -54,6 +59,7 @@ export function PresentationForm({
 }: PresentationFormProps) {
   const session = useAccountSession();
   const router = useRouter();
+  const activity = useDivisionActivity(target.id ?? "");
   const creating = target.kind === "division-creation";
   const isDivision = target.kind === "division" || creating;
   const { colors } = useTheme();
@@ -74,6 +80,12 @@ export function PresentationForm({
     control,
   });
   const draft = useWatch({ control, name: "logo" });
+  const draftName = useWatch({ control, name: "name" });
+  const draftColor = useWatch({ control, name: "color" });
+  const draftGradient = useWatch({ control, name: "gradient" });
+  const previewColor = /^#[0-9a-fA-F]{6}$/.test(draftColor)
+    ? draftColor
+    : colors.mediaPlaceholder;
   // Subscribing to dirty fields is required by RHF's native keepDirtyValues reset option.
   const dirtyLogo = dirtyFields.logo !== undefined;
   const changed =
@@ -88,6 +100,7 @@ export function PresentationForm({
     preparing ||
     isSubmitting ||
     editing.saving ||
+    activity.saving ||
     editing.query.isFetching;
   const currentLogo =
     baseline.kind !== "pool" && baseline.kind !== "division-creation"
@@ -101,7 +114,7 @@ export function PresentationForm({
   const artwork = usePresentationLogo(
     target,
     selection,
-    !disabled && hasLogo && draft.action !== "replace",
+    hasLogo && draft.action !== "replace",
     baseline.kind === "division-creation" ? "" : baseline.data.revision,
   );
   const uri =
@@ -229,6 +242,32 @@ export function PresentationForm({
     });
     reset(presentationValues(result.data), { keepDirtyValues: true });
   }
+  /** A lifecycle response advances this same revision while preserving all edited presentation values. */
+  function activityAccepted(division: DivisionResponse) {
+    if (!session.isCurrent(session.generation)) return;
+    const accepted: Presentation = { kind: "division", data: division };
+    editor.update({
+      baseline: accepted,
+      needsRead: false,
+      feedback: division.active
+        ? "Division réactivée. Les autres restrictions restent applicables."
+        : "Division désactivée. L’historique est conservé.",
+    });
+    reset(presentationValues(accepted), { keepDirtyValues: true });
+  }
+  /** Uncertainty or revision conflict blocks both revision-dependent commands until this division is reread. */
+  function activityFailed(error: unknown) {
+    const requiresRead =
+      isUncertainMutationFailure(error) ||
+      (error instanceof ApiError && error.status === 409);
+    editor.update({
+      ...editor.getSnapshot(),
+      needsRead: requiresRead,
+      feedback: requiresRead
+        ? "L’action n’a pas abouti. Relisez l’état courant avant de réessayer."
+        : "L’action a été refusée. Votre présentation est conservée.",
+    });
+  }
   /** Restoring is draft intent; source/LNV/club fallback is resolved by the existing binary read. */
   function restoreLogo() {
     setValue(
@@ -239,19 +278,75 @@ export function PresentationForm({
   }
   return (
     <View style={styles.form}>
-      <View style={[card, styles.context]}>
+      <View
+        style={[
+          card,
+          styles.context,
+          isDivision && styles.divisionContext,
+          isDivision && {
+            backgroundColor: `${previewColor}14`,
+            borderColor: `${previewColor}4D`,
+          },
+        ]}
+      >
         {uri && (
           <Image
             source={{ uri }}
             contentFit="contain"
             cachePolicy="none"
             accessible={false}
-            style={styles.contextLogo}
+            style={isDivision ? styles.divisionLogo : styles.contextLogo}
           />
         )}
-        <Text style={[styles.contextName, { color: colors.text }]}>
-          {title}
-        </Text>
+        {isDivision && !uri && (
+          <View
+            style={[
+              styles.divisionPlaceholder,
+              { backgroundColor: colors.mediaPlaceholder },
+            ]}
+          >
+            <ImageOff
+              accessible={false}
+              size={tokens.size.actionIcon}
+              color={colors.icon}
+            />
+          </View>
+        )}
+        <View style={styles.contextName}>
+          <Text style={[tokens.typography.strong, { color: colors.text }]}>
+            {isDivision ? draftName.trim() || "Nouvelle division" : title}
+          </Text>
+          {isDivision && (
+            <Text
+              style={[
+                tokens.typography.metadata,
+                { color: colors.secondaryText },
+              ]}
+            >
+              Aperçu
+            </Text>
+          )}
+        </View>
+        {isDivision && (
+          <View style={styles.palette}>
+            {(draftGradient.some((value) => value !== "")
+              ? draftGradient
+              : [previewColor, previewColor, previewColor]
+            ).map((value, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.paletteColor,
+                  {
+                    backgroundColor: /^#[0-9a-fA-F]{6}$/.test(value)
+                      ? value
+                      : previewColor,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        )}
       </View>
       <View style={card}>
         {target.kind !== "pool" && (
@@ -267,7 +362,7 @@ export function PresentationForm({
               />
             )}
             <ImageField
-              label="Photo ou logo"
+              label={isDivision ? undefined : "Photo ou logo"}
               images={uri ? [{ id: "logo", uri, label: "Logo" }] : []}
               contentFit="contain"
               disabled={busy}
@@ -276,7 +371,14 @@ export function PresentationForm({
               replaceLabel="Changer le logo"
               removeLabel="Rétablir le logo automatique"
               error={errors.logo?.message}
-              onRemove={restoreLogo}
+              placeholderIcon={isDivision ? ImageOff : undefined}
+              onRemove={
+                !isDivision ||
+                currentLogo?.manualUrl != null ||
+                draft.action === "replace"
+                  ? restoreLogo
+                  : undefined
+              }
               onSelect={async (assets) => {
                 const asset = assets[0];
                 if (!asset || !session.isCurrent(session.generation)) return;
@@ -355,50 +457,14 @@ export function PresentationForm({
             )}
           />
         )}
-        {isDivision && (
-          <>
-            <Controller
-              control={control}
-              name="color"
-              render={({ field: { value, onChange, onBlur, ref } }) => (
-                <TextField
-                  ref={ref}
-                  label="Couleur"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!busy}
-                  error={errors.color?.message}
-                  helper="#RRGGBB"
-                />
-              )}
-            />
-            {([0, 1, 2] as const).map((index) => (
-              <Controller
-                key={index}
-                control={control}
-                name={`gradient.${index}`}
-                render={({ field: { value, onChange, onBlur, ref } }) => (
-                  <TextField
-                    ref={ref}
-                    label={`Dégradé ${index + 1}`}
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={!busy}
-                    error={errors.gradient?.[index]?.message}
-                    helper="Trois couleurs #RRGGBB, ou toutes vides pour le traitement automatique."
-                  />
-                )}
-              />
-            ))}
-          </>
-        )}
       </View>
+      {isDivision && (
+        <DivisionColorFields
+          control={control}
+          setValue={setValue}
+          disabled={busy}
+        />
+      )}
       {isDirty && (
         <Text
           style={[tokens.typography.metadata, { color: colors.secondaryText }]}
@@ -416,10 +482,20 @@ export function PresentationForm({
       )}
       {rereadRequired && (
         <Button
-          label="Relire la présentation"
+          label={
+            target.kind === "division"
+              ? "Relire la division"
+              : "Relire la présentation"
+          }
           variant="secondary"
           onPress={() => void reread()}
-          disabled={busy}
+          disabled={
+            preparing ||
+            isSubmitting ||
+            editing.saving ||
+            activity.saving ||
+            editing.query.isFetching
+          }
           loading={editing.query.isFetching}
         />
       )}
@@ -430,26 +506,43 @@ export function PresentationForm({
           onPress={() => router.replace("/administration/divisions")}
         />
       )}
-      <Button
-        label="Enregistrer"
-        fullWidth
-        disabled={busy || rereadRequired}
-        loading={isSubmitting || preparing}
-        onPress={() =>
-          void handleSubmit((values) => {
-            if (creating)
-              Alert.alert(
-                "Créer la division ?",
-                "La nouvelle division sera active. Sa présentation ne changera jamais implicitement son activité.",
-                [
-                  { text: "Annuler", style: "cancel" },
-                  { text: "Confirmer", onPress: () => void submit(values) },
-                ],
-              );
-            else return submit(values);
-          })()
-        }
-      />
+      {(!disabled || !isDivision) && (
+        <Button
+          label="Enregistrer"
+          fullWidth
+          disabled={busy || rereadRequired}
+          loading={isSubmitting || preparing}
+          onPress={() =>
+            void handleSubmit((values) => {
+              if (creating)
+                Alert.alert(
+                  "Créer la division ?",
+                  "La nouvelle division sera active. Sa présentation ne changera jamais implicitement son activité.",
+                  [
+                    { text: "Annuler", style: "cancel" },
+                    { text: "Confirmer", onPress: () => void submit(values) },
+                  ],
+                );
+              else return submit(values);
+            })()
+          }
+        />
+      )}
+      {baseline.kind === "division" && !creating && (
+        <DivisionActivityAction
+          division={baseline.data}
+          editing={activity}
+          disabled={
+            preparing ||
+            isSubmitting ||
+            editing.saving ||
+            editing.query.isFetching ||
+            rereadRequired
+          }
+          onAccepted={activityAccepted}
+          onFailure={activityFailed}
+        />
+      )}
     </View>
   );
 }
@@ -467,5 +560,19 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.md,
   },
   contextLogo: { width: 64, height: 64, borderRadius: tokens.radius.media },
-  contextName: { ...tokens.typography.strong, flex: 1 },
+  contextName: { flex: 1, gap: tokens.spacing.xs },
+  divisionContext: {
+    padding: tokens.spacing.compact,
+    borderRadius: tokens.radius.control,
+  },
+  divisionLogo: { width: 38, height: 38 },
+  divisionPlaceholder: {
+    width: 38,
+    height: 38,
+    borderRadius: tokens.radius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  palette: { flexDirection: "row", gap: tokens.spacing.xs },
+  paletteColor: { width: 8, height: 18, borderRadius: 2 },
 });

@@ -29,6 +29,8 @@ export const appearanceColors = {
     icon: "#1C1C1E",
     error: "#B42340",
     focus: "#555555",
+    overlayScrim: "#1010127A",
+    onScrim: reference.white,
     // F12 maintenance control: Product Design 5978:48721 and 1450:14015.
     successAction: "#287E63",
     onSuccessAction: reference.white,
@@ -53,6 +55,8 @@ export const appearanceColors = {
     icon: "#F7F7F8",
     error: "#FFB3C3",
     focus: "#F7F7F8",
+    overlayScrim: "#1010127A",
+    onScrim: reference.white,
     // The action remains the same green; subtle feedback follows the dark semantic mode.
     successAction: "#287E63",
     onSuccessAction: reference.white,

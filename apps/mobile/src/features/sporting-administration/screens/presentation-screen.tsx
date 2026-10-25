@@ -25,7 +25,11 @@ export function PresentationScreen({
     target.kind === "division-creation"
       ? permissions?.manageDivisionLifecycle === true
       : permissions?.manageSportingPresentation === true;
-  const editing = usePresentation(target, canManage);
+  const canRead =
+    canManage ||
+    (target.kind === "division" &&
+      permissions?.manageDivisionLifecycle === true);
+  const editing = usePresentation(target, canRead);
   const presentation =
     sessionStatus === "authenticated" ? editing.query.data : undefined;
   const pending =
@@ -40,7 +44,7 @@ export function PresentationScreen({
           ? "Modifier le club"
           : target.kind === "pool"
             ? "Modifier la poule"
-            : "Modifier la division";
+            : "Personnaliser la division";
   return (
     <EditorPage title={title}>
       {pending ? (
@@ -51,7 +55,7 @@ export function PresentationScreen({
           onRetry={() => void account.refetch()}
           retrying={account.isFetching}
         />
-      ) : !canManage ? (
+      ) : !canRead ? (
         <RequestError message="Cette action nécessite une permission dédiée." />
       ) : null}
       {presentation ? (
@@ -64,7 +68,7 @@ export function PresentationScreen({
           onDirtyChange={onDirtyChange}
         />
       ) : (
-        canManage &&
+        canRead &&
         (editing.query.isError ? (
           <RequestError
             message="La présentation est indisponible."

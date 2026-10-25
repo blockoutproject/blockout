@@ -83,22 +83,27 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
   const saving = useIsMutating({ mutationKey: queryKey }) > 0;
 
   /** Rechecks current F05/F12 authority after credentials; the server still owns resource authorization. */
-  async function request(signal?: AbortSignal) {
+  async function request(signal?: AbortSignal, writing = false) {
     const credentials = await auth.getCredentials();
     if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
     version.assertCurrent();
     const account = client.getQueryState<AccountResponse>(
       getSessionQueryKey(session.generation, getGetMyAccountQueryKey()),
     );
-    if (
-      !enabled ||
-      account?.status !== "success" ||
-      account.data?.accountId !== session.accountId ||
-      (target.kind === "division-creation"
-        ? account.data.permissions.manageDivisionLifecycle !== true
-        : account.data.permissions.manageSportingPresentation !== true)
-    )
-      throw new ApiError("http", 403);
+    const grants =
+      account?.status === "success" &&
+      account.data?.accountId === session.accountId
+        ? account.data.permissions
+        : undefined;
+    const allowed =
+      target.kind === "division-creation"
+        ? grants?.manageDivisionLifecycle === true
+        : target.kind === "division" && !writing
+          ? grants?.manageSportingPresentation === true ||
+            grants?.manageDivisionLifecycle === true ||
+            grants?.manageSportingClassification === true
+          : grants?.manageSportingPresentation === true;
+    if (!enabled || !allowed) throw new ApiError("http", 403);
     if (!credentials) throw new ApiError("http", 401);
     return {
       session,
@@ -151,7 +156,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
       revision: string;
       values: PresentationValues;
     }): Promise<Presentation> => {
-      const options = await request();
+      const options = await request(undefined, true);
       const image =
         values.logo.action === "replace" ? { image: values.logo.prepared } : {};
       const common = { revision, logoAction: values.logo.action };

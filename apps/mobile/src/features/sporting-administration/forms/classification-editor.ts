@@ -25,15 +25,15 @@ export const classificationSchema = z
   });
 /** RHF owns this complete editable snapshot, independently of server cache refreshes. */
 export type ClassificationValues = z.infer<typeof classificationSchema>;
-/** Defaults use the setting, retaining inheritance as a separate visible choice. */
+/** Seeds selectors from the setting or effective inheritance without creating an override. */
 export function classificationValues(
   current: ClassificationDetailResponse,
 ): ClassificationValues {
   return {
     custom: current.setting !== null,
-    divisionId: current.setting?.divisionId ?? "",
-    format: current.setting?.format ?? "6x6",
-    gender: current.setting?.gender ?? "female",
+    divisionId: (current.setting ?? current.effective)?.divisionId ?? "",
+    format: (current.setting ?? current.effective)?.format ?? "6x6",
+    gender: (current.setting ?? current.effective)?.gender ?? "female",
   };
 }
 /** Original revision and required reread survive temporary route removal with the form. */
@@ -63,6 +63,13 @@ export function discardClassificationEditor(
   const key = `${generation}:${target.kind}:${target.id}`;
   editors.get(key)?.release();
   editors.delete(key);
+}
+/** Native selection routes reuse the original RHF draft; a direct link cannot invent an editing baseline. */
+export function findClassificationEditor(
+  generation: string,
+  target: ClassificationTarget,
+) {
+  return editors.get(`${generation}:${target.kind}:${target.id}`);
 }
 /** Uses RHF's standalone control to retain dirty input through protected-route suspension. */
 export function classificationEditor(

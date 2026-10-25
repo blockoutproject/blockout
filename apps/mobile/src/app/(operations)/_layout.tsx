@@ -1,4 +1,5 @@
 import { Stack } from "expo-router";
+import { sheetScreenOptions } from "../../shared/components/sheet";
 import { useAccessAdmission } from "../../features/access/queries/use-access-admission";
 
 /** Protects each implemented operational destination with its own current action grant. */
@@ -20,6 +21,10 @@ export default function OperationsLayout() {
         guard={permissions?.manageSportingClassification === true}
       >
         <Stack.Screen name="administration/classification/[kind]/[id]" />
+        <Stack.Screen
+          name="administration/classification-selection"
+          options={{ ...sheetScreenOptions, sheetAllowedDetents: [0.5] }}
+        />
       </Stack.Protected>
       <Stack.Protected
         guard={
@@ -29,6 +34,14 @@ export default function OperationsLayout() {
         }
       >
         <Stack.Screen name="administration/divisions/index" />
+      </Stack.Protected>
+      <Stack.Protected
+        guard={
+          permissions?.manageSportingPresentation === true ||
+          permissions?.manageDivisionLifecycle === true
+        }
+      >
+        <Stack.Screen name="administration/divisions/[id]" />
       </Stack.Protected>
       <Stack.Protected guard={permissions?.manageDivisionLifecycle === true}>
         <Stack.Screen name="administration/divisions/new" />

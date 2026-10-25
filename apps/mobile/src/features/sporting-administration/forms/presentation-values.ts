@@ -65,7 +65,7 @@ export function presentationValues(
       kind: "division",
       name: "",
       shortName: "",
-      color: "",
+      color: "#245FD8",
       gradient: ["", "", ""],
       logo: { action: "keep" },
     };

@@ -34,13 +34,15 @@ export interface ImageFieldImage {
  * Errors supplied by the caller are safe French messages; thrown native/preparation errors are hidden.
  */
 export interface ImageFieldProps {
-  label: string;
+  /** Optional visible heading; action labels retain their accessible names. */
+  label?: string;
   images: readonly ImageFieldImage[];
   onSelect: (
     assets: ImagePicker.ImagePickerAsset[],
     replaceId?: string,
   ) => void | Promise<void>;
-  onRemove: (id: string) => void;
+  /** Omit when the current image permits preview/replacement but no removal. */
+  onRemove?: (id: string) => void;
   multiple?: boolean;
   selectionLimit?: number;
   /** Opts into the system crop UI; defaults off. Multiple additions disable editing; single replacements can use it. */
@@ -130,9 +132,11 @@ export function ImageField({
 
   return (
     <View style={[styles.field, disabled && styles.disabled]}>
-      <Text style={[tokens.typography.label, { color: colors.text }]}>
-        {label}
-      </Text>
+      {label && (
+        <Text style={[tokens.typography.label, { color: colors.text }]}>
+          {label}
+        </Text>
+      )}
       {images.map((image) => (
         <View key={image.id} style={styles.field}>
           <View
@@ -184,18 +188,22 @@ export function ImageField({
               </Text>
             </Pressable>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${removeLabel} : ${image.label}`}
-            accessibilityState={{ disabled: unavailable }}
-            disabled={unavailable}
-            onPress={() => onRemove(image.id)}
-            style={[styles.remove, compact && styles.compactRemove]}
-          >
-            <Text style={[styles.removeLabel, { color: colors.secondaryText }]}>
-              {removeLabel}
-            </Text>
-          </Pressable>
+          {onRemove && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${removeLabel} : ${image.label}`}
+              accessibilityState={{ disabled: unavailable }}
+              disabled={unavailable}
+              onPress={() => onRemove?.(image.id)}
+              style={[styles.remove, compact && styles.compactRemove]}
+            >
+              <Text
+                style={[styles.removeLabel, { color: colors.secondaryText }]}
+              >
+                {removeLabel}
+              </Text>
+            </Pressable>
+          )}
         </View>
       ))}
       {(images.length === 0 || multiple) && (

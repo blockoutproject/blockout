@@ -1,14 +1,8 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { getListClubTeamsQueryKey } from "../../../../.generated/mobile";
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from "@testing-library/react-native";
+import { act, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { Alert, Pressable, Text } from "react-native";
-import { Stack, router } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType } from "react";
 import RootLayout from "../../../app/_layout";
@@ -16,6 +10,10 @@ import OnboardingRoute from "../../../app/onboarding";
 import OperationsLayout from "../../../app/(operations)/_layout";
 import ClassificationRoute from "../../../app/(operations)/administration/classification/[kind]/[id]";
 import DivisionsRoute from "../../../app/(operations)/administration/divisions/index";
+import DivisionRoute from "../../../app/(operations)/administration/divisions/[id]";
+import ClassificationSelectionRoute from "../../../app/(operations)/administration/classification-selection";
+import { ClassificationSelectionScreen } from "../screens/classification-selection-screen";
+import { PresentationScreen } from "../screens/presentation-screen";
 import CreateDivisionRoute from "../../../app/(operations)/administration/divisions/new";
 import { AdministrationScreen } from "../../access/screens/administration-screen";
 import { useCurrentAccount } from "../../accounts/current-account";
@@ -61,10 +59,6 @@ jest.mock("react-native-auth0", () => {
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
-jest.mock("expo-router", () => ({
-  ...jest.requireActual("expo-router"),
-  useRouter: () => ({ back: jest.fn(), push: jest.fn() }),
-}));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, options?: RequestInit) =>
     String(url).endsWith("/application-access")
@@ -134,7 +128,9 @@ async function respond(
               { ...division, id: inactiveId, name: "Inactive", active: false },
             ],
           }
-        : stored,
+        : String(url).includes(`/divisions/${divisionId}`)
+          ? division
+          : stored,
   );
 }
 beforeEach(async () => {
@@ -163,23 +159,59 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 /** Uses real session, access, Query and theme owners; only device credentials and HTTP are controlled. */
-async function renderEditor(kind: "pack" | "pool" | "divisions" = "pool") {
-  await render(
-    <QueryClientProvider client={client}>
-      <ThemeProvider>
-        <ApplicationAccessProvider>
-          <AccountSessionProvider>
-            {kind === "divisions" ? (
-              <DivisionsScreen />
-            ) : (
-              <ClassificationScreen target={{ kind, id }} />
-            )}
-          </AccountSessionProvider>
-        </ApplicationAccessProvider>
-      </ThemeProvider>
-    </QueryClientProvider>,
+async function renderEditor(
+  kind: "pack" | "pool" | "divisions" | "division" = "pool",
+) {
+  await renderRouter(
+    {
+      _layout: () => <Stack screenOptions={{ headerShown: false }} />,
+      index: () =>
+        kind === "divisions" ? (
+          <DivisionsScreen />
+        ) : kind === "division" ? (
+          <PresentationScreen target={{ kind, id: divisionId }} />
+        ) : (
+          <ClassificationScreen target={{ kind, id }} />
+        ),
+      "administration/classification-selection":
+        function SelectionRouteFixture() {
+          const params = useLocalSearchParams<{
+            kind: "pack" | "pool";
+            id: string;
+            field: "divisionId" | "gender" | "format";
+          }>();
+          return (
+            <ClassificationSelectionScreen
+              target={params}
+              field={params.field}
+            />
+          );
+        },
+    },
+    {
+      initialUrl: "/",
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={client}>
+          <ThemeProvider>
+            <ApplicationAccessProvider>
+              <AccountSessionProvider>{children}</AccountSessionProvider>
+            </ApplicationAccessProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      ),
+    },
   );
   return userEvent.setup();
+}
+/** Chooses through the real native-stack selection route and returns to the original form. */
+async function choose(
+  user: ReturnType<typeof userEvent.setup>,
+  field: string,
+  label: string,
+) {
+  await user.press(await screen.findByRole("button", { name: field }));
+  await user.press(await screen.findByRole("radio", { name: label }));
+  await screen.findByRole("button", { name: field });
 }
 /** Accepts the native confirmation only when a test explicitly chooses its final action. */
 async function confirm() {
@@ -195,14 +227,12 @@ it("submits a complete pool override after confirmation and excludes inactive ch
   // Given
   jest.spyOn(Alert, "alert");
   const user = await renderEditor();
-  await screen.findByRole("radio", { name: "Hériter du pack" });
+  await screen.findByRole("radio", { name: "Du pack" });
   // When
-  await user.press(
-    screen.getByRole("radio", { name: "Classification propre" }),
-  );
-  await user.press(screen.getByRole("radio", { name: "National 2" }));
-  await user.press(screen.getByRole("radio", { name: "4x4" }));
-  await user.press(screen.getByRole("radio", { name: "Mixte" }));
+  await user.press(screen.getByRole("radio", { name: "Personnalisé" }));
+  await choose(user, "Division", "National 2");
+  await choose(user, "Format", "4 × 4");
+  await choose(user, "Genre", "Mixte");
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   // Then
   expect(screen.queryByRole("radio", { name: "Inactive" })).toBeNull();
@@ -268,14 +298,12 @@ it("retains dirty choices and displays conflicting scopes without applying a sub
       : initialFetch(url, options),
   );
   const user = await renderEditor();
-  await screen.findByRole("radio", { name: "Classification propre" });
+  await screen.findByRole("radio", { name: "Personnalisé" });
   // When
-  await user.press(
-    screen.getByRole("radio", { name: "Classification propre" }),
-  );
-  await user.press(screen.getByRole("radio", { name: "National 2" }));
-  await user.press(screen.getByRole("radio", { name: "2x2" }));
-  await user.press(screen.getByRole("radio", { name: "Masculin" }));
+  await user.press(screen.getByRole("radio", { name: "Personnalisé" }));
+  await choose(user, "Division", "National 2");
+  await choose(user, "Format", "2 × 2");
+  await choose(user, "Genre", "Masculin");
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await confirm();
   // Then
@@ -286,8 +314,8 @@ it("retains dirty choices and displays conflicting scopes without applying a sub
     ),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole("radio", { name: "2x2", checked: true }),
-  ).toBeOnTheScreen();
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "2 × 2" });
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 });
 it("requires a successful current-state read after an uncertain write and preserves the draft", async () => {
@@ -301,9 +329,9 @@ it("requires a successful current-state read after an uncertain write and preser
       : initialFetch(url, options),
   );
   const user = await renderEditor();
-  await screen.findByRole("radio", { name: "4x4" });
+  await screen.findByRole("button", { name: "Format" });
   // When
-  await user.press(screen.getByRole("radio", { name: "4x4" }));
+  await choose(user, "Format", "4 × 4");
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await confirm();
   await screen.findByRole("button", { name: "Relire la classification" });
@@ -313,8 +341,8 @@ it("requires a successful current-state read after an uncertain write and preser
   );
   // Then
   expect(
-    screen.getByRole("radio", { name: "4x4", checked: true }),
-  ).toBeOnTheScreen();
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
@@ -323,10 +351,10 @@ it("requires a successful current-state read after an uncertain write and preser
 it("uses an independent explicit activity command with the division revision", async () => {
   // Given
   jest.spyOn(Alert, "alert");
-  const user = await renderEditor("divisions");
+  const user = await renderEditor("division");
   // When
   await user.press(
-    await screen.findByRole("button", { name: "Désactiver National 2" }),
+    await screen.findByRole("button", { name: "Désactiver la division" }),
   );
   await confirm();
   // Then
@@ -358,14 +386,13 @@ it("does not grant classification reads or writes to a lifecycle-only operator",
 
 it("refuses an incomplete override without opening confirmation or writing", async () => {
   // Given
+  stored.effective = null;
   jest.spyOn(Alert, "alert");
   const user = await renderEditor();
-  await screen.findByRole("radio", { name: "Classification propre" });
+  await screen.findByRole("radio", { name: "Personnalisé" });
 
   // When
-  await user.press(
-    screen.getByRole("radio", { name: "Classification propre" }),
-  );
+  await user.press(screen.getByRole("radio", { name: "Personnalisé" }));
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
@@ -391,10 +418,10 @@ it("keeps a failed recovery read blocking and never retries the uncertain write"
       : initialFetch(url, options),
   );
   const user = await renderEditor();
-  await screen.findByRole("radio", { name: "4x4" });
+  await screen.findByRole("button", { name: "Format" });
 
   // When
-  await user.press(screen.getByRole("radio", { name: "4x4" }));
+  await choose(user, "Format", "4 × 4");
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await confirm();
   await screen.findByRole("button", { name: "Relire la classification" });
@@ -408,8 +435,8 @@ it("keeps a failed recovery read blocking and never retries the uncertain write"
     "La relecture a échoué. Votre brouillon est conservé.",
   );
   expect(
-    screen.getByRole("radio", { name: "4x4", checked: true }),
-  ).toBeOnTheScreen();
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
@@ -426,26 +453,24 @@ it("reconciles uncertain deactivation before offering explicit reactivation", as
       deactivationSent = true;
       return Promise.reject(new TypeError("Lost response"));
     }
-    return deactivationSent && String(url).includes("/divisions?")
-      ? Promise.resolve(
-          json({ items: [{ ...division, revision: "d2", active: false }] }),
-        )
+    return deactivationSent && String(url).endsWith(`/divisions/${divisionId}`)
+      ? Promise.resolve(json({ ...division, revision: "d2", active: false }))
       : initialFetch(url, options);
   });
-  const user = await renderEditor("divisions");
+  const user = await renderEditor("division");
 
   // When
   await user.press(
-    await screen.findByRole("button", { name: "Désactiver National 2" }),
+    await screen.findByRole("button", { name: "Désactiver la division" }),
   );
   await confirm();
   await user.press(
-    await screen.findByRole("button", { name: "Relire National 2" }),
+    await screen.findByRole("button", { name: "Relire la division" }),
   );
 
   // Then
   expect(
-    await screen.findByRole("button", { name: "Réactiver National 2" }),
+    await screen.findByRole("button", { name: "Réactiver la division" }),
   ).toBeEnabled();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
@@ -500,6 +525,9 @@ async function openRoutes() {
       "(operations)/administration/classification/[kind]/[id]":
         ClassificationRoute,
       "(operations)/administration/divisions/index": DivisionsRoute,
+      "(operations)/administration/divisions/[id]": DivisionRoute,
+      "(operations)/administration/classification-selection":
+        ClassificationSelectionRoute,
       "(operations)/administration/divisions/new": CreateDivisionRoute,
     },
     { initialUrl: "/" },
@@ -525,7 +553,7 @@ it("retains a classification draft and uncertainty through actual protected-rout
     await screen.findByRole("button", { name: "Relire les permissions" }),
   );
   await user.press(screen.getByText("Modifier la classification"));
-  await user.press(await screen.findByRole("radio", { name: "4x4" }));
+  await choose(user, "Format", "4 × 4");
   jest.spyOn(Alert, "alert");
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await confirm();
@@ -545,7 +573,9 @@ it("retains a classification draft and uncertainty through actual protected-rout
     ),
   );
   await waitFor(() =>
-    expect(screen.queryByRole("radio", { name: "4x4" })).not.toBeOnTheScreen(),
+    expect(
+      screen.queryByRole("button", { name: "Format" }),
+    ).not.toBeOnTheScreen(),
   );
   mockFetch.mockImplementation(initialFetch);
   await user.press(
@@ -555,8 +585,8 @@ it("retains a classification draft and uncertainty through actual protected-rout
 
   // Then
   expect(
-    await screen.findByRole("radio", { name: "4x4", checked: true }),
-  ).toBeOnTheScreen();
+    await screen.findByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
   expect(
     screen.getByRole("button", { name: "Relire la classification" }),
   ).toBeOnTheScreen();
@@ -611,13 +641,13 @@ it.each(["classification", "activity"])(
         : respond(url, options);
     });
     const user = await renderEditor(
-      operation === "activity" ? "divisions" : "pool",
+      operation === "activity" ? "division" : "pool",
     );
 
     // When
     if (operation === "activity")
       await user.press(
-        await screen.findByRole("button", { name: "Désactiver National 2" }),
+        await screen.findByRole("button", { name: "Désactiver la division" }),
       );
     else
       await user.press(
@@ -666,7 +696,7 @@ it("distinguishes a stale revision and uses the reread revision only on explicit
       : respond(url, options),
   );
   const user = await renderEditor();
-  await user.press(await screen.findByRole("radio", { name: "4x4" }));
+  await choose(user, "Format", "4 × 4");
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
@@ -735,7 +765,7 @@ it("shows current activity on reentry for an operator with classification permis
   await openRoutes();
   await screen.findByText("Permissions connues");
   await act(async () => router.push("/administration/divisions"));
-  await screen.findByText("Active");
+  await screen.findByText("National 2");
 
   // When
   await act(async () => router.back());
@@ -753,8 +783,31 @@ it("shows current activity on reentry for an operator with classification permis
   );
 
   // Then
-  expect(await screen.findByText("Inactive")).toBeOnTheScreen();
+  await screen.findByText("Aucune division active");
+  await user.press(screen.getByRole("tab", { name: "Inactives" }));
+  expect(await screen.findByText("National 2")).toBeOnTheScreen();
   expect(
-    screen.queryByRole("button", { name: "Désactiver National 2" }),
+    screen.queryByRole("button", { name: "Désactiver la division" }),
   ).not.toBeOnTheScreen();
+});
+
+it("filters division names within the selected activity catalogue without exposing lifecycle commands on cards", async () => {
+  // Given
+  const user = await renderEditor("divisions");
+  await screen.findByRole("button", { name: "National 2" });
+
+  // When
+  await user.type(screen.getByLabelText("Rechercher une division"), "national");
+  await user.press(screen.getByRole("tab", { name: "Inactives" }));
+
+  // Then
+  expect(
+    await screen.findByText("Aucune division ne correspond à votre recherche."),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Désactiver la division" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+  ).toBe(false);
 });

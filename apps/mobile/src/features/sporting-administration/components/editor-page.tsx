@@ -21,19 +21,22 @@ const FormScrollView =
 export function EditorPage({
   title,
   children,
-}: PropsWithChildren<{ title: string }>) {
+  scrollable = true,
+}: PropsWithChildren<{ title: string; scrollable?: boolean }>) {
   const { colors } = useTheme();
   const router = useRouter();
   const page = (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <View style={styles.header}>
-        <IconButton label="Retour" onPress={() => router.back()}>
-          <ChevronLeft
-            accessible={false}
-            size={tokens.size.actionIcon}
-            color={colors.icon}
-          />
-        </IconButton>
+        <View style={styles.rail}>
+          <IconButton label="Retour" onPress={() => router.back()}>
+            <ChevronLeft
+              accessible={false}
+              size={tokens.size.actionIcon}
+              color={colors.icon}
+            />
+          </IconButton>
+        </View>
         <Text
           accessibilityRole="header"
           style={[styles.title, { color: colors.text }]}
@@ -42,16 +45,20 @@ export function EditorPage({
         </Text>
         <View style={styles.rail} />
       </View>
-      <FormScrollView
-        automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.content}
-      >
-        {children}
-      </FormScrollView>
+      {scrollable ? (
+        <FormScrollView
+          automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.content}
+        >
+          {children}
+        </FormScrollView>
+      ) : (
+        children
+      )}
     </SafeAreaView>
   );
-  return Platform.OS === "android" ? (
+  return Platform.OS === "android" && scrollable ? (
     <KeyboardProvider>{page}</KeyboardProvider>
   ) : (
     page
@@ -89,6 +96,15 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   title: { ...tokens.typography.navigation, flex: 1, textAlign: "center" },
-  rail: { width: tokens.touchTarget.android },
-  content: { padding: tokens.spacing.lg, gap: tokens.spacing.lg },
+  rail: {
+    width: tokens.size.control,
+    minHeight: tokens.size.control,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  content: {
+    padding: tokens.spacing.lg,
+    paddingTop: tokens.spacing.sm,
+    gap: tokens.spacing.lg,
+  },
 });

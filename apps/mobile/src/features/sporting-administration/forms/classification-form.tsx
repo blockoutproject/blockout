@@ -1,3 +1,4 @@
+import { ClassificationSelect } from "../components/classification-select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useForm, useWatch, Controller } from "react-hook-form";
@@ -175,13 +176,9 @@ export function ClassificationForm({
         control={control}
         name="custom"
         render={({ field }) => (
-          <>
+          <View style={[styles.segment, { backgroundColor: colors.subtle }]}>
             <Choice
-              label={
-                target.kind === "pool"
-                  ? "Hériter du pack"
-                  : "Sans classification"
-              }
+              label={target.kind === "pool" ? "Du pack" : "Sans classification"}
               selected={!field.value}
               disabled={busy}
               onPress={() => field.onChange(false)}
@@ -189,24 +186,18 @@ export function ClassificationForm({
             <Choice
               label={
                 target.kind === "pool"
-                  ? "Classification propre"
+                  ? "Personnalisé"
                   : "Classification du pack"
               }
               selected={field.value}
               disabled={busy}
               onPress={() => field.onChange(true)}
             />
-          </>
+          </View>
         )}
       />
       {custom && (
         <>
-          <Text
-            accessibilityRole="header"
-            style={[tokens.typography.strong, { color: colors.text }]}
-          >
-            Division
-          </Text>
           {divisions.query.isError && (
             <RequestError
               message="Les divisions sont indisponibles."
@@ -218,86 +209,64 @@ export function ClassificationForm({
             control={control}
             name="divisionId"
             render={({ field }) => (
-              <>
-                {choices.map((choice) => (
-                  <Choice
-                    key={choice.id}
-                    label={choice.name}
-                    selected={field.value === choice.id}
-                    disabled={busy}
-                    onPress={() => field.onChange(choice.id)}
-                  />
-                ))}
-              </>
+              <ClassificationSelect
+                target={target}
+                field="divisionId"
+                label="Division"
+                value={
+                  choices.find((choice) => choice.id === field.value)?.name
+                }
+                disabled={busy}
+                error={errors.divisionId?.message}
+              />
             )}
           />
           {divisionId &&
             !choices.some((choice) => choice.id === divisionId) && (
-              <Text style={[tokens.typography.body, { color: colors.text }]}>
+              <Text
+                style={[
+                  tokens.typography.metadata,
+                  { color: colors.secondaryText },
+                ]}
+              >
                 La division sélectionnée est inactive ou indisponible.
                 Choisissez une division active avant une nouvelle affectation.
               </Text>
             )}
-          {errors.divisionId && (
-            <Text
-              accessibilityRole="alert"
-              style={[tokens.typography.body, { color: colors.text }]}
-            >
-              {errors.divisionId.message}
-            </Text>
-          )}
-          <Text
-            accessibilityRole="header"
-            style={[tokens.typography.strong, { color: colors.text }]}
-          >
-            Format
-          </Text>
-          <Controller
-            control={control}
-            name="format"
-            render={({ field }) => (
-              <>
-                {(["6x6", "4x4", "2x2"] as const).map((format) => (
-                  <Choice
-                    key={format}
-                    label={format}
-                    selected={field.value === format}
-                    disabled={busy}
-                    onPress={() => field.onChange(format)}
-                  />
-                ))}
-              </>
-            )}
-          />
-          <Text
-            accessibilityRole="header"
-            style={[tokens.typography.strong, { color: colors.text }]}
-          >
-            Genre
-          </Text>
-          <Controller
-            control={control}
-            name="gender"
-            render={({ field }) => (
-              <>
-                {(
-                  [
-                    { value: "female", label: "Féminin" },
-                    { value: "male", label: "Masculin" },
-                    { value: "mixed", label: "Mixte" },
-                  ] as const
-                ).map((gender) => (
-                  <Choice
-                    key={gender.value}
-                    label={gender.label}
-                    selected={field.value === gender.value}
-                    disabled={busy}
-                    onPress={() => field.onChange(gender.value)}
-                  />
-                ))}
-              </>
-            )}
-          />
+          <View style={styles.row}>
+            <Controller
+              control={control}
+              name="gender"
+              render={({ field }) => (
+                <ClassificationSelect
+                  target={target}
+                  field="gender"
+                  label="Genre"
+                  value={
+                    field.value === "female"
+                      ? "Féminin"
+                      : field.value === "male"
+                        ? "Masculin"
+                        : "Mixte"
+                  }
+                  disabled={busy}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="format"
+              render={({ field }) => (
+                <ClassificationSelect
+                  target={target}
+                  field="format"
+                  label="Format"
+                  value={field.value.replace("x", " × ")}
+                  disabled={busy}
+                />
+              )}
+            />
+          </View>
         </>
       )}
       {isDirty && (
@@ -356,13 +325,12 @@ function Choice({
       style={[
         styles.choice,
         {
-          backgroundColor: selected ? colors.raised : colors.surface,
-          borderColor: colors.border,
+          backgroundColor: selected ? colors.canvas : colors.subtle,
+          borderColor: "transparent",
         },
       ]}
     >
       <Text style={[tokens.typography.strong, { color: colors.text }]}>
-        {selected ? "● " : "○ "}
         {label}
       </Text>
     </Pressable>
@@ -370,7 +338,17 @@ function Choice({
 }
 const styles = StyleSheet.create({
   form: { gap: tokens.spacing.md },
+  row: { flexDirection: "row", gap: tokens.spacing.md },
+  segment: {
+    flexDirection: "row",
+    padding: tokens.spacing.xs,
+    gap: tokens.spacing.xs,
+    borderRadius: tokens.radius.control,
+  },
   choice: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
     minHeight: tokens.size.control,
     padding: tokens.spacing.md,
     borderRadius: tokens.radius.control,
