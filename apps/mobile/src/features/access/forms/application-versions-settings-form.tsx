@@ -1,12 +1,16 @@
+import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { applicationVersionsValues as values } from "./application-versions-values";
 import { toApplicationVersionsRequest } from "../api/application-versions-request";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { applicationVersionsEditor } from "./application-versions-editor";
+import {
+  applicationVersionsEditor,
+  discardApplicationVersionsEditor,
+} from "./application-versions-editor";
 import { applicationUpdateMessage } from "../application-update-message";
 import { ChevronDown, ChevronRight, Check } from "lucide-react-native";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
 import {
   Alert,
   Modal,
@@ -37,7 +41,6 @@ export interface ApplicationVersionsSettingsFormProps {
   settings: ApplicationVersionsResponse;
   editing: ReturnType<typeof useApplicationVersionsSettings>;
   disabled?: boolean;
-  onDirtyChange?: (dirty: boolean) => void;
 }
 
 /** Publishes atomic dirty-field changes without changing maintenance or replaying uncertain writes. */
@@ -45,7 +48,6 @@ export function ApplicationVersionsSettingsForm({
   settings,
   editing,
   disabled = false,
-  onDirtyChange,
 }: ApplicationVersionsSettingsFormProps) {
   const session = useAccountSession();
   const { colors } = useTheme();
@@ -58,14 +60,16 @@ export function ApplicationVersionsSettingsForm({
   const [expanded, setExpanded] = useState({ ios: false, android: false });
   const [preview, setPreview] = useState(false);
   const [acknowledged, setAcknowledged] = useState<string>();
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting, isDirty, dirtyFields },
-  } = useForm<ApplicationVersionsValues>({
+  const { control, handleSubmit, reset } = useForm<ApplicationVersionsValues>({
     formControl: editor.form.formControl,
     resolver: zodResolver(applicationVersionsSchema),
+  });
+  const { errors, isSubmitting, isDirty, dirtyFields } = useFormState({
+    control,
+  });
+  useDiscardChanges(isDirty, () => {
+    reset();
+    discardApplicationVersionsEditor();
   });
   const [iosMinimum, iosStore, androidMinimum, androidStore, message] =
     useWatch({
@@ -89,10 +93,6 @@ export function ApplicationVersionsSettingsForm({
   const busy =
     disabled || isSubmitting || editing.saving || editing.query.isFetching;
   const rereadRequired = needsRead || settings.revision > baseline.revision;
-  useEffect(() => {
-    onDirtyChange?.(isDirty);
-    return () => onDirtyChange?.(false);
-  }, [isDirty, onDirtyChange]);
 
   useEffect(() => {
     mounted.current = true;
@@ -170,7 +170,7 @@ export function ApplicationVersionsSettingsForm({
       feedback:
         "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
     });
-    reset(values(result.data), { keepDirtyValues: true });
+    reset(values(result.data), { keepDirtyValues: true, keepDirty: true });
     setAcknowledged(undefined);
   }
   return (

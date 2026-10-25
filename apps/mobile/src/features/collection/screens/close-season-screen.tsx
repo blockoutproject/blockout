@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
 import { Text, View } from "react-native";
 import { z } from "zod";
 import type { CollectionSeasonResponse } from "../../../../.generated/schemas/index.zod";
@@ -27,7 +27,7 @@ import {
   discardCloseSeasonEditor,
   type CloseSeasonValues,
 } from "../forms/close-season-editor";
-import { usePreparationDiscard } from "../forms/use-preparation-discard";
+import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { collectionCommandContext } from "../forms/collection-command-context";
 
 const closureSchema = z.object({ confirmation: z.string() });
@@ -83,15 +83,11 @@ function ClosureForm({
     command.subscribe,
     command.getSnapshot,
   );
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { isDirty, isSubmitting },
-  } = useForm<CloseSeasonValues>({
+  const { control, handleSubmit, reset } = useForm<CloseSeasonValues>({
     resolver: zodResolver(closureSchema),
     formControl: editor.form.formControl,
   });
+  const { isDirty, isSubmitting } = useFormState({ control });
   const confirmation = useWatch({ control, name: "confirmation" });
   const current = editing.season.data ?? season;
   const closed = current.state === "closed";
@@ -102,7 +98,7 @@ function ClosureForm({
     editing.season.isFetching;
   const needsRead =
     commandState.needsRead || current.revision !== baseline.revision;
-  usePreparationDiscard(isDirty && !closed, () => {
+  useDiscardChanges(isDirty && !closed, () => {
     reset({ confirmation: "" });
     discardCloseSeasonEditor();
   });

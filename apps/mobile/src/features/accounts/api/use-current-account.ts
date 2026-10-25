@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useAuth0 } from "react-native-auth0";
 import {
   establishAccount,
+  getEstablishAccountMutationKey,
   getGetMyAccountQueryKey,
   getMyAccount,
 } from "../../../../.generated/mobile";
@@ -57,7 +58,12 @@ export function useEstablishAccount() {
   const { request } = useOrdinaryRequest();
   const auth = useAuth0();
   const client = useQueryClient();
+  const currentSession = useAccountSession();
   return useMutation({
+    mutationKey: getSessionQueryKey(
+      currentSession.generation,
+      getEstablishAccountMutationKey(),
+    ),
     gcTime: 0,
     mutationFn: async (session: AccountSession) => {
       try {

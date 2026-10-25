@@ -1,5 +1,10 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react-native";
+import {
+  act,
+  cleanup,
+  renderHook,
+  waitFor,
+} from "@testing-library/react-native";
 import type { PropsWithChildren } from "react";
 import {
   getAccountPhoto,
@@ -85,7 +90,8 @@ beforeEach(() => {
     return new Response("photo", { headers: { "Content-Type": "image/png" } });
   });
 });
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   client.clear();
   process.env = { ...environment };
 });
@@ -471,3 +477,19 @@ it.each([401, 403])(
     expect(result.current.access.snapshot.maintenance?.revision).toBe(1);
   },
 );
+
+it("aborts the captured bypass intent when its provider is removed", async () => {
+  // Given
+  const hook = await setup();
+  await act(async () => {
+    hook.result.current.access.bypassMaintenance();
+  });
+  const captured = hook.result.current.ordinary.bypass;
+  expect(captured?.signal.aborted).toBe(false);
+
+  // When
+  await hook.unmount();
+
+  // Then: an intent retained by asynchronous work cannot outlive its provider.
+  expect(captured?.signal.aborted).toBe(true);
+});

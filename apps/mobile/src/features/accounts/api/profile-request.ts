@@ -15,7 +15,7 @@ export function toProfileBody(
   return {
     metadata,
     ...(values.photo.action === "replace"
-      ? { image: values.photo.prepared.file }
+      ? { image: values.photo.prepared }
       : {}),
   };
 }

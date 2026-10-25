@@ -136,7 +136,12 @@ export function InformationRow({
 }
 
 /** Whole-row native link with honest opening failure; a later explicit press is the only retry. */
-export function ContactLink({
+export function ContactLink(props: ContactLinkProps) {
+  return <ContactHandoff key={props.destination} {...props} />;
+}
+
+/** Keeps native failure with one mounted destination; changing it discards old feedback and late completion. */
+function ContactHandoff({
   label,
   value,
   destination,

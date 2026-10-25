@@ -1,3 +1,5 @@
+import { deletePreparedImage } from "../../../shared/images/delete-prepared-image";
+import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
 import { ImageOff } from "lucide-react-native";
@@ -46,7 +48,6 @@ export interface PresentationFormProps {
   target: PresentationTarget;
   editing: ReturnType<typeof usePresentation>;
   disabled: boolean;
-  onDirtyChange?: (dirty: boolean) => void;
 }
 
 /** Saves one revision atomically and retains dirty fields through refusals and explicit original-target rereads. */
@@ -55,7 +56,6 @@ export function PresentationForm({
   target,
   editing,
   disabled,
-  onDirtyChange,
 }: PresentationFormProps) {
   const session = useAccountSession();
   const router = useRouter();
@@ -70,7 +70,7 @@ export function PresentationForm({
   const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
   const { baseline, needsRead, feedback } = state;
   const [preparing, setPreparing] = useState(false);
-  const { control, handleSubmit, setValue, setError, reset } =
+  const { control, handleSubmit, setError, setValue } =
     useForm<PresentationValues>({
       resolver: zodResolver(presentationSchema),
       formControl: editor.form.formControl,
@@ -78,6 +78,9 @@ export function PresentationForm({
   // Read the retained control's current state on remount; RHF remains the sole submission owner.
   const { errors, isSubmitting, isDirty, dirtyFields } = useFormState({
     control,
+  });
+  useDiscardChanges(isDirty, () => {
+    discardPresentationEditor(session.generation, target);
   });
   const draft = useWatch({ control, name: "logo" });
   const draftName = useWatch({ control, name: "name" });
@@ -144,14 +147,15 @@ export function PresentationForm({
       mounted.current = false;
     };
   }, []);
-  useEffect(() => {
-    onDirtyChange?.(isDirty);
-    return () => onDirtyChange?.(false);
-  }, [isDirty, onDirtyChange]);
 
   /** Only the user's save event writes; conflicts and uncertain outcomes require a new current-state read. */
   async function submit(values: PresentationValues) {
-    if (busy || rereadRequired || !session.isCurrent(session.generation))
+    if (
+      !mounted.current ||
+      busy ||
+      rereadRequired ||
+      !session.isCurrent(session.generation)
+    )
       return;
     if (
       baseline.kind === "division-creation" &&
@@ -168,6 +172,9 @@ export function PresentationForm({
       return;
     }
     editor.update({ ...state, feedback: undefined });
+    const file =
+      values.logo.action === "replace" ? values.logo.prepared : undefined;
+    editor.beginUpload(file);
     try {
       const accepted = await editing.save.mutateAsync({
         revision:
@@ -180,10 +187,9 @@ export function PresentationForm({
         needsRead: false,
         feedback: "Présentation enregistrée.",
       });
-      reset(presentationValues(accepted));
+      editor.reset(presentationValues(accepted));
       if (creating) {
         discardPresentationEditor(session.generation, target);
-        onDirtyChange?.(false);
       }
     } catch (error) {
       if (!session.isCurrent(session.generation)) return;
@@ -220,6 +226,8 @@ export function PresentationForm({
         )
           setError("name", { message: "Ce nom de division est déjà utilisé." });
       }
+    } finally {
+      editor.finishUpload(file);
     }
   }
   /** Refreshes non-dirty fields and the revision only after a successful explicit read; no write is replayed. */
@@ -240,7 +248,7 @@ export function PresentationForm({
       feedback:
         "Présentation relue. Vérifiez votre brouillon avant de l’enregistrer à nouveau.",
     });
-    reset(presentationValues(result.data), { keepDirtyValues: true });
+    editor.reset(presentationValues(result.data), true);
   }
   /** A lifecycle response advances this same revision while preserving all edited presentation values. */
   function activityAccepted(division: DivisionResponse) {
@@ -253,7 +261,7 @@ export function PresentationForm({
         ? "Division réactivée. Les autres restrictions restent applicables."
         : "Division désactivée. L’historique est conservé.",
     });
-    reset(presentationValues(accepted), { keepDirtyValues: true });
+    editor.reset(presentationValues(accepted), true);
   }
   /** Uncertainty or revision conflict blocks both revision-dependent commands until this division is reread. */
   function activityFailed(error: unknown) {
@@ -270,11 +278,7 @@ export function PresentationForm({
   }
   /** Restoring is draft intent; source/LNV/club fallback is resolved by the existing binary read. */
   function restoreLogo() {
-    setValue(
-      "logo",
-      { action: "automatic" },
-      { shouldDirty: true, shouldValidate: true },
-    );
+    editor.replaceLogo({ action: "automatic" });
   }
   return (
     <View style={styles.form}>
@@ -386,11 +390,8 @@ export function PresentationForm({
                 try {
                   const prepared = await prepareSportingLogo(asset, session);
                   if (mounted.current && session.isCurrent(session.generation))
-                    setValue(
-                      "logo",
-                      { action: "replace", prepared },
-                      { shouldDirty: true, shouldValidate: true },
-                    );
+                    editor.replaceLogo({ action: "replace", prepared });
+                  else deletePreparedImage(prepared);
                 } catch {
                   if (mounted.current && session.isCurrent(session.generation))
                     setError("logo", {

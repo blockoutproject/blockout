@@ -1,6 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
-import { Controller, useForm, type UseFormProps } from "react-hook-form";
+import {
+  Controller,
+  useForm,
+  useFormState,
+  type UseFormProps,
+} from "react-hook-form";
 import { View } from "react-native";
 import { Button } from "../../../shared/components/button";
 import { TextField } from "../../../shared/components/text-field";
@@ -16,7 +20,6 @@ export interface CreateSourceFormProps {
   disabled: boolean;
   saving: boolean;
   onSubmit: (values: CreateSourceValues) => Promise<void>;
-  onDirtyChange?: (dirty: boolean) => void;
 }
 
 /** Keeps the original expected scope and URL after refusal, conflict or uncertain acknowledgement. */
@@ -25,20 +28,12 @@ export function CreateSourceForm({
   disabled,
   saving,
   onSubmit,
-  onDirtyChange,
 }: CreateSourceFormProps) {
-  const {
-    control,
-    handleSubmit,
-    formState: { errors, isDirty, isSubmitting },
-  } = useForm<CreateSourceValues>({
+  const { control, handleSubmit } = useForm<CreateSourceValues>({
     formControl,
     resolver: zodResolver(createSourceSchema),
   });
-  useEffect(() => {
-    onDirtyChange?.(isDirty);
-    return () => onDirtyChange?.(false);
-  }, [isDirty, onDirtyChange]);
+  const { errors, isSubmitting } = useFormState({ control });
   return (
     <View style={preparationStyles.form}>
       <Controller

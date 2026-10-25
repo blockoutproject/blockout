@@ -66,7 +66,13 @@ export function prepareProNativeIO() {
     .mockReset()
     .mockResolvedValue(credentialsFor("auth0|synthetic"));
   mockAuth0.clearCredentials.mockReset().mockResolvedValue();
-  mockPurchases.isConfigured.mockReset().mockResolvedValue(true);
+  let configured = false;
+  mockPurchases.configure.mockReset().mockImplementation(() => {
+    configured = true;
+  });
+  mockPurchases.isConfigured
+    .mockReset()
+    .mockImplementation(async () => configured);
   mockPurchases.isAnonymous.mockReset().mockResolvedValue(false);
   const info = customerInfo({
     active: {},

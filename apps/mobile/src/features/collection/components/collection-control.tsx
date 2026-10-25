@@ -19,6 +19,7 @@ export interface CollectionControlProps {
   editing: ReturnType<typeof useCollectionControl>;
   season?: CollectionSeasonResponse;
   rereadSeason?: () => Promise<boolean>;
+  seasonFetching?: boolean;
   stateUnavailable?: boolean;
 }
 
@@ -28,6 +29,7 @@ export function CollectionControl({
   editing,
   season,
   rereadSeason,
+  seasonFetching = false,
   stateUnavailable = false,
 }: CollectionControlProps) {
   const { colors } = useTheme();
@@ -41,10 +43,9 @@ export function CollectionControl({
     context.getSnapshot,
   );
   const mounted = useRef(false);
-  const [reading, setReading] = useState(false);
+  const reading = editing.query.isFetching || seasonFetching;
   const closed = season?.state === "closed";
-  const busy =
-    !authority.enabled || editing.saving || editing.query.isFetching || reading;
+  const busy = !authority.enabled || editing.saving || reading;
   const running = control.cycle?.state === "running";
   useEffect(() => {
     mounted.current = true;
@@ -125,13 +126,11 @@ export function CollectionControl({
   /** Only an explicit successful control/season read releases uncertainty; cache refresh alone never does. */
   async function reread() {
     if (busy) return;
-    setReading(true);
     const [current, seasonRead] = await Promise.all([
       editing.query.refetch(),
       rereadSeason?.() ?? true,
     ]);
     if (!mounted.current || !session.isCurrent(session.generation)) return;
-    setReading(false);
     if (current.isError || !current.data || !seasonRead) {
       context.update({
         needsRead: true,

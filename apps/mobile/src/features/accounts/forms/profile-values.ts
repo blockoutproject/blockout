@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { PreparedProfilePhoto } from "../profile/prepare-profile-photo";
+import type { File } from "expo-file-system";
 
 /** Validates the editable username and explicit photo intent before request conversion. */
 export const profileSchema = z.object({
@@ -15,7 +15,7 @@ export const profileSchema = z.object({
     z.object({ action: z.literal("remove") }),
     z.object({
       action: z.literal("replace"),
-      prepared: z.custom<PreparedProfilePhoto>(),
+      prepared: z.custom<File>(),
     }),
   ]),
 });

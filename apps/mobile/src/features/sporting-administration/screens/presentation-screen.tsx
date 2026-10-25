@@ -8,16 +8,12 @@ import { usePresentation, type PresentationTarget } from "../api/presentation";
 import { PresentationForm } from "../forms/presentation-form";
 import { EditorPage } from "../components/editor-page";
 
-/** Route-owned target and unsaved navigation guard; action grants are read from the current F12 account. */
+/** Route-owned target; the form reads its own dirty state and F12 supplies current action grants. */
 export interface PresentationScreenProps {
   target: PresentationTarget;
-  onDirtyChange?: (dirty: boolean) => void;
 }
 /** Composes the approved editor using the platform's existing ordinary-form keyboard mechanism. */
-export function PresentationScreen({
-  target,
-  onDirtyChange,
-}: PresentationScreenProps) {
+export function PresentationScreen({ target }: PresentationScreenProps) {
   const { permissions, account, sessionStatus } =
     useAdministrationCapabilities();
   const session = useAccountSession();
@@ -65,7 +61,6 @@ export function PresentationScreen({
           target={target}
           editing={editing}
           disabled={!canManage}
-          onDirtyChange={onDirtyChange}
         />
       ) : (
         canRead &&

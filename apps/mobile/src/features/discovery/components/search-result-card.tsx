@@ -7,11 +7,10 @@ import { relativeLuminance } from "../../../shared/theme/color-luminance";
 import { hashKey, useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { ImageOff } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { SportingIdentityResponse } from "../../../../.generated/schemas/index.zod";
 import { useConsultationQueries } from "../../sporting/api/use-consultation-queries";
-import { binaryImagePreview } from "../../../shared/api/binary-image-preview";
 import { LoadingIndicator } from "../../../shared/components/loading-indicator";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -164,8 +163,8 @@ function ResultArtwork({
   if (identity.logoUrl && query.data)
     return (
       <ArtworkImage
-        key={hashKey(options.queryKey)}
-        blob={query.data}
+        key={`${hashKey(options.queryKey)}:${query.dataUpdatedAt}`}
+        uri={query.data}
         identity={identity}
         backgroundColor={backgroundColor}
         plate={kind !== "division"}
@@ -222,38 +221,20 @@ function LogoFallback({
   );
 }
 
-/** Retains a decoded same-identity image during conversion; obsolete callbacks cannot replace it. */
+/** Query owns decoded artwork; failure lasts until another successful read starts a native rendering attempt. */
 function ArtworkImage({
-  blob,
+  uri,
   identity,
   backgroundColor,
   plate,
 }: {
-  blob: Blob;
+  uri: string;
   identity: SportingIdentityResponse;
   backgroundColor?: string;
   plate: boolean;
 }) {
-  const [uri, setUri] = useState<string>();
   const [failed, setFailed] = useState(false);
   const { colors } = useTheme();
-  useEffect(() => {
-    let current = true;
-    void binaryImagePreview(blob).then(
-      (value) => {
-        if (current) {
-          setUri(value);
-          setFailed(false);
-        }
-      },
-      () => {
-        if (current) setFailed(true);
-      },
-    );
-    return () => {
-      current = false;
-    };
-  }, [blob]);
   if (failed || !uri)
     return backgroundColor ? null : (
       <LogoFallback identity={identity} state={failed ? "error" : "loading"} />

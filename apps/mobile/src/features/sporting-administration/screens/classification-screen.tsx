@@ -9,16 +9,12 @@ import {
 } from "../api/classification";
 import { EditorPage, SportingAccessFeedback } from "../components/editor-page";
 import { ClassificationForm } from "../forms/classification-form";
-/** Route-owned original scope and unsaved navigation notification. */
+/** Original route scope; the form owns unsaved-change prevention. */
 export interface ClassificationScreenProps {
   target: ClassificationTarget;
-  onDirtyChange?: (dirty: boolean) => void;
 }
 /** Composes F05/F12 admission, generated reads and the retained correction form. */
-export function ClassificationScreen({
-  target,
-  onDirtyChange,
-}: ClassificationScreenProps) {
+export function ClassificationScreen({ target }: ClassificationScreenProps) {
   const editing = useClassification(target);
   const divisions = useDivisions();
   const { authority } = editing;
@@ -42,7 +38,6 @@ export function ClassificationScreen({
           current={current}
           editing={editing}
           divisions={divisions}
-          onDirtyChange={onDirtyChange}
         />
       ) : (
         authority.enabled &&

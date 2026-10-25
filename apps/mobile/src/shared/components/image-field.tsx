@@ -85,13 +85,18 @@ export function ImageField({
   placeholderIcon: PlaceholderIcon = ImageIcon,
 }: ImageFieldProps) {
   const { colors } = useTheme();
-  const [busy, setBusy] = useState(false);
-  const [selectionError, setSelectionError] = useState<string>();
+  const [selection, setSelection] = useState<"idle" | "pending" | "failed">(
+    "idle",
+  );
   const [previewId, setPreviewId] = useState<string>();
-  const [previewError, setPreviewError] = useState(false);
   const active = useRef(true);
   const preview = images.find((image) => image.id === previewId);
-  const message = error ?? selectionError;
+  const busy = selection === "pending";
+  const message =
+    error ??
+    (selection === "failed"
+      ? "Impossible de sélectionner l’image. Réessayez."
+      : undefined);
   const unavailable = disabled || busy;
   const compact = size === "compact";
   let selectionLabel = chooseLabel;
@@ -108,8 +113,7 @@ export function ImageField({
   /** Cancelling preserves values; native failures never disclose paths or provider diagnostics. */
   async function select(replaceId?: string) {
     if (unavailable) return;
-    setBusy(true);
-    setSelectionError(undefined);
+    setSelection("pending");
     try {
       const allowsMultipleSelection = multiple && replaceId === undefined;
       // The SDK's image-only system library requires no broad photo permission request.
@@ -122,11 +126,9 @@ export function ImageField({
       });
       if (active.current && !result.canceled)
         await onSelect(result.assets, replaceId);
+      if (active.current) setSelection("idle");
     } catch {
-      if (active.current)
-        setSelectionError("Impossible de sélectionner l’image. Réessayez.");
-    } finally {
-      if (active.current) setBusy(false);
+      if (active.current) setSelection("failed");
     }
   }
 
@@ -155,7 +157,6 @@ export function ImageField({
               disabled={unavailable}
               accessibilityState={{ disabled: unavailable }}
               onPress={() => {
-                setPreviewError(false);
                 setPreviewId(image.id);
               }}
             >
@@ -275,43 +276,59 @@ export function ImageField({
         onRequestClose={() => setPreviewId(undefined)}
       >
         {preview && (
-          <SafeAreaView
-            style={[styles.viewer, { backgroundColor: colors.canvas }]}
-            accessibilityViewIsModal
-          >
-            <IconButton
-              label="Fermer l’aperçu"
-              onPress={() => setPreviewId(undefined)}
-            >
-              <X
-                accessible={false}
-                size={tokens.size.actionIcon}
-                color={colors.icon}
-              />
-            </IconButton>
-            {previewError && (
-              <Text
-                accessibilityRole="alert"
-                accessibilityLiveRegion="polite"
-                style={[styles.previewError, { color: colors.error }]}
-              >
-                Impossible d’afficher l’image.
-              </Text>
-            )}
-            <Image
-              onError={() => setPreviewError(true)}
-              source={{ uri: preview.uri }}
-              accessibilityRole="image"
-              accessibilityLabel={preview.label}
-              accessible
-              cachePolicy="none"
-              contentFit="contain"
-              style={styles.fullImage}
-            />
-          </SafeAreaView>
+          <ImagePreview
+            key={`${preview.id}:${preview.uri}`}
+            image={preview}
+            onClose={() => setPreviewId(undefined)}
+          />
         )}
       </Modal>
     </View>
+  );
+}
+
+/** One mounted image attempt owns decode feedback; changing the image or closing the viewer drops it. */
+function ImagePreview({
+  image,
+  onClose,
+}: {
+  image: ImageFieldImage;
+  onClose: () => void;
+}) {
+  const { colors } = useTheme();
+  const [failed, setFailed] = useState(false);
+  return (
+    <SafeAreaView
+      style={[styles.viewer, { backgroundColor: colors.canvas }]}
+      accessibilityViewIsModal
+    >
+      <IconButton label="Fermer l’aperçu" onPress={onClose}>
+        <X
+          accessible={false}
+          size={tokens.size.actionIcon}
+          color={colors.icon}
+        />
+      </IconButton>
+      {failed && (
+        <Text
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+          style={[styles.previewError, { color: colors.error }]}
+        >
+          Impossible d’afficher l’image.
+        </Text>
+      )}
+      <Image
+        onError={() => setFailed(true)}
+        source={{ uri: image.uri }}
+        accessibilityRole="image"
+        accessibilityLabel={image.label}
+        accessible
+        cachePolicy="none"
+        contentFit="contain"
+        style={styles.fullImage}
+      />
+    </SafeAreaView>
   );
 }
 

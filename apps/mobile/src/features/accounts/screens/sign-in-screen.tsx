@@ -11,6 +11,7 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useEstablishAccount } from "../api/use-current-account";
 import { PublicAccountLinks } from "../components/public-account-links";
 import { SignInArtwork } from "../components/sign-in-artwork";
+import { useGuestNavigation } from "../hooks/use-guest-navigation";
 import { useAccountSession } from "../session/account-session-provider";
 
 /** Current ordinary admission supplied by F12; real gate composition belongs to F12 T028. */
@@ -36,41 +37,59 @@ function SignInJourney() {
   const session = useAccountSession();
   const { colors, membership } = useTheme();
   const establishment = useEstablishAccount();
+  const guest = useGuestNavigation();
   const { mutate } = establishment;
-  const [loginSucceeded, setLoginSucceeded] = useState(false);
-  const loginStarted = useRef(false);
-  const [loginError, setLoginError] = useState<string>();
+  const [establishGeneration, setEstablishGeneration] = useState<string>();
+  const mounted = useRef(false);
+  const [loginFailure, setLoginFailure] = useState<{
+    generation: string;
+    message: string;
+  }>();
+  const loginError =
+    loginFailure?.generation === session.generation
+      ? loginFailure.message
+      : undefined;
+  if (
+    establishGeneration !== undefined &&
+    establishGeneration !== session.generation
+  )
+    setEstablishGeneration(undefined);
   const busy =
     session.status === "authenticating" ||
     session.status === "signing-out" ||
-    loginSucceeded ||
+    establishGeneration !== undefined ||
     establishment.isPending ||
     session.status === "restoring";
 
-  /** Uses the current committed SDK/session context after an explicitly completed login only. */
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  // Query's request lifecycle consumes the explicit generation-bound intent once.
   useEffect(() => {
     if (
-      !loginSucceeded ||
-      loginStarted.current ||
-      session.status !== "authenticated"
+      establishGeneration === undefined ||
+      !session.isCurrent(establishGeneration) ||
+      session.status !== "authenticated" ||
+      establishment.status !== "idle"
     )
       return;
-    loginStarted.current = true;
     mutate(session, {
-      onSettled: () => {
-        loginStarted.current = false;
-        setLoginSucceeded(false);
-      },
+      onSettled: () => setEstablishGeneration(undefined),
       onSuccess: () => {
         if (session.isCurrent(session.generation)) router.replace("/profile");
       },
     });
-  }, [loginSucceeded, session, mutate, router]);
+  }, [establishGeneration, establishment.status, session, mutate, router]);
 
   /** Starts either hosted authentication or a targeted retry using still-valid SDK credentials. */
   async function signIn() {
     if (busy) return;
-    setLoginError(undefined);
+    setLoginFailure(undefined);
+    establishment.reset();
     if (session.status === "authenticated") {
       mutate(session, {
         onSuccess: () => {
@@ -81,12 +100,19 @@ function SignInJourney() {
     }
     const audience = process.env.EXPO_PUBLIC_AUTH0_AUDIENCE;
     if (!audience) {
-      setLoginError("La connexion est indisponible. Réessayez.");
+      setLoginFailure({
+        generation: session.generation,
+        message: "La connexion est indisponible. Réessayez.",
+      });
       return;
     }
+    let generation = session.generation;
     try {
-      await session.signIn(audience);
-      setLoginSucceeded(true);
+      const login = session.signIn(audience);
+      generation = session.getSnapshot().generation;
+      await login;
+      if (mounted.current && session.isCurrent(generation))
+        setEstablishGeneration(generation);
     } catch (error) {
       let message = "La connexion est indisponible. Réessayez.";
       if (error instanceof WebAuthError) {
@@ -95,18 +121,8 @@ function SignInJourney() {
         else if (error.type === WebAuthErrorCodes.ACCESS_DENIED)
           message = "Connexion refusée.";
       }
-      setLoginError(message);
-    }
-  }
-
-  /** Leaves the sole credential/session owner before entering guest navigation. */
-  async function continueAsGuest() {
-    if (session.status === "signing-out") return;
-    try {
-      await session.clearCredentials();
-      router.replace("/");
-    } catch {
-      setLoginError("La déconnexion locale a échoué. Réessayez.");
+      if (mounted.current && session.isCurrent(generation))
+        setLoginFailure({ generation, message });
     }
   }
 
@@ -167,6 +183,9 @@ function SignInJourney() {
           ))}
         </View>
         {loginError && <RequestError message={loginError} />}
+        {guest.failed && (
+          <RequestError message="La déconnexion locale a échoué. Réessayez." />
+        )}
         {establishment.isError &&
           !(
             establishment.error instanceof ApiError &&
@@ -204,11 +223,11 @@ function SignInJourney() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Continuer en tant qu’invité"
-          onPress={() => void continueAsGuest()}
-          disabled={session.status === "signing-out"}
+          onPress={() => void guest.continueAsGuest()}
+          disabled={guest.pending}
           accessibilityState={{
-            busy: session.status === "signing-out",
-            disabled: session.status === "signing-out",
+            busy: guest.pending,
+            disabled: guest.pending,
           }}
           style={[
             styles.guest,

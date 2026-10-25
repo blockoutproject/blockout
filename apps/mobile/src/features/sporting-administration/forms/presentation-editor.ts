@@ -1,3 +1,5 @@
+import type { File } from "expo-file-system";
+import { deletePreparedImage } from "../../../shared/images/delete-prepared-image";
 import { createFormControl } from "react-hook-form";
 import type { Presentation, PresentationTarget } from "../api/presentation";
 import type {
@@ -24,7 +26,15 @@ interface PresentationEditor {
   subscribe(listener: () => void): () => void;
   /** Publishes a confirmed outcome or recovery requirement, also while the route is absent. */
   update(state: PresentationEditingState): void;
-  /** Detaches the F05 invalidation observer after explicit discard or session end. */
+  /** Transfers logo intent to RHF, deleting a replaced prepared copy when no upload still uses it. */
+  replaceLogo(logo: PresentationValues["logo"]): void;
+  /** Resets accepted defaults or explicitly preserves dirty input, releasing any retired prepared copy. */
+  reset(values: PresentationValues, keepDirty?: boolean): void;
+  /** Pins the exact upload resource independently of the retained draft lifetime. */
+  beginUpload(file: File | undefined): void;
+  /** Releases a settled upload when the current draft no longer owns its file. */
+  finishUpload(file: File | undefined): void;
+  /** Detaches F05 and releases the draft's prepared copy; a pending upload releases its own copy on settlement. */
   release(): void;
 }
 const editors = new Map<string, PresentationEditor>();
@@ -53,10 +63,26 @@ export function presentationEditor(
     needsRead: false,
   };
   const listeners = new Set<() => void>();
+  let uploading: File | undefined;
+  let released = false;
+  const form = createFormControl<PresentationValues>({
+    defaultValues: presentationValues(presentation),
+  });
+  /** A prepared file is no longer needed only after both the current RHF draft and upload release it. */
+  function releaseUnused(file: File | undefined) {
+    const logo = form.getValues("logo");
+    if (
+      file !== uploading &&
+      (released || logo.action !== "replace" || logo.prepared !== file)
+    )
+      deletePreparedImage(file);
+  }
+  const stopSession = session.subscribe(() => {
+    if (!session.isCurrent(session.generation))
+      discardPresentationEditor(session.generation, target);
+  });
   const editor: PresentationEditor = {
-    form: createFormControl<PresentationValues>({
-      defaultValues: presentationValues(presentation),
-    }),
+    form,
     getSnapshot: () => state,
     /** Subscribes mounted consumers only to revision/recovery metadata; RHF owns field subscriptions. */
     subscribe(listener) {
@@ -70,10 +96,35 @@ export function presentationEditor(
       state = next;
       listeners.forEach((listener) => listener());
     },
-    release: session.subscribe(() => {
-      if (!session.isCurrent(session.generation))
-        discardPresentationEditor(session.generation, target);
-    }),
+    replaceLogo(logo) {
+      const previous = form.getValues("logo");
+      form.setValue("logo", logo, { shouldDirty: true, shouldValidate: true });
+      releaseUnused(
+        previous.action === "replace" ? previous.prepared : undefined,
+      );
+    },
+    reset(values, keepDirty = false) {
+      const previous = form.getValues("logo");
+      form.reset(values, { keepDirtyValues: keepDirty, keepDirty });
+      releaseUnused(
+        previous.action === "replace" ? previous.prepared : undefined,
+      );
+    },
+    beginUpload(file) {
+      uploading = file;
+    },
+    finishUpload(file) {
+      if (uploading === file) uploading = undefined;
+      releaseUnused(file);
+    },
+    release() {
+      if (released) return;
+      released = true;
+      stopSession();
+      const logo = form.getValues("logo");
+      form.reset(presentationValues(state.baseline));
+      releaseUnused(logo.action === "replace" ? logo.prepared : undefined);
+    },
   };
   editors.set(key, editor);
   return editor;

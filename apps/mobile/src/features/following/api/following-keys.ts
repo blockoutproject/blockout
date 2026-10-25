@@ -52,27 +52,14 @@ export function captureFollowingOwner(
     : null;
 }
 
-/** Reuses the generated member key, isolated by original account and session generation. */
-export function followStateKey(
-  owner: FollowingOwner,
-  target: FollowingTarget,
-  bypass = false,
-) {
-  return privateKey(
-    owner,
-    target.type === "team"
+/** One confirmed relationship per original account/session/target; admission affects requests, not its identity. */
+export function followStateKey(owner: FollowingOwner, target: FollowingTarget) {
+  return getSessionQueryKey(owner.generation, [
+    owner.accountId,
+    ...(target.type === "team"
       ? getGetTeamFollowStateQueryKey(owner.accountId, target.id)
-      : getGetPoolFollowStateQueryKey(owner.accountId, target.id),
-    bypass,
-  );
-}
-
-/** Both admitted representations describe the same original-owner relationship and current availability. */
-export function followStateKeys(
-  owner: FollowingOwner,
-  target: FollowingTarget,
-) {
-  return [followStateKey(owner, target), followStateKey(owner, target, true)];
+      : getGetPoolFollowStateQueryKey(owner.accountId, target.id)),
+  ]);
 }
 
 /** One mutation identity per session/account/type/target across all originating controls. */

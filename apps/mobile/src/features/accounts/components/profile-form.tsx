@@ -1,3 +1,5 @@
+import type { File } from "expo-file-system";
+import { deletePreparedImage } from "../../../shared/images/delete-prepared-image";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { UserRound } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
@@ -31,15 +33,18 @@ export interface ProfileFormProps {
 /** Keeps drafts through refetch/refusal and requires original-target reconciliation before an explicit uncertain retry. */
 export function ProfileForm({ account }: ProfileFormProps) {
   const session = useAccountSession();
+  const { generation, isCurrent, subscribe } = session;
   const { colors } = useTheme();
   const { save, original } = useProfileEditing(account.accountId);
   const photo = useProfilePhoto(account.accountId, account.hasPhoto);
   const active = useRef(true);
+  const uploading = useRef<File | undefined>(undefined);
   const [preparing, setPreparing] = useState(false);
   const {
     control,
     handleSubmit,
     setValue,
+    getValues,
     setError,
     reset,
     formState: { errors, isSubmitting, dirtyFields },
@@ -62,14 +67,46 @@ export function ProfileForm({ account }: ProfileFormProps) {
 
   useEffect(() => {
     active.current = true;
+    /** Session invalidation and unmount release the draft, while a sent upload keeps its own file until settlement. */
+    function releasePhoto() {
+      const photo = getValues("photo");
+      if (photo.action === "replace" && photo.prepared !== uploading.current)
+        deletePreparedImage(photo.prepared);
+    }
+    const stop = subscribe(() => {
+      if (!isCurrent(generation)) releasePhoto();
+    });
     return () => {
       active.current = false;
+      stop();
+      releasePhoto();
     };
-  }, []);
+  }, [getValues, generation, isCurrent, subscribe]);
+
+  /** Transfers a prepared copy to RHF and releases the replaced draft without touching an active upload. */
+  function replacePhoto(next: ProfileValues["photo"]) {
+    const previous = getValues("photo");
+    setValue("photo", next, { shouldDirty: true, shouldValidate: true });
+    if (
+      previous.action === "replace" &&
+      (next.action !== "replace" || next.prepared !== previous.prepared) &&
+      previous.prepared !== uploading.current
+    )
+      deletePreparedImage(previous.prepared);
+  }
 
   /** Sends only supplied editing intent; an uncertain failure performs one read without replaying the write. */
   async function submit(values: ProfileValues) {
-    if (needsRead || preparing) return;
+    if (
+      needsRead ||
+      preparing ||
+      !active.current ||
+      !session.isCurrent(session.generation)
+    )
+      return;
+    const file =
+      values.photo.action === "replace" ? values.photo.prepared : undefined;
+    uploading.current = file;
     try {
       const accepted = await save.mutateAsync(
         toProfileBody(values, dirtyFields),
@@ -92,6 +129,16 @@ export function ProfileForm({ account }: ProfileFormProps) {
             "Cette photo ne peut pas être enregistrée. Choisissez une autre image.",
         });
       if (isUncertainMutationFailure(error)) await original.refetch();
+    } finally {
+      uploading.current = undefined;
+      const current = getValues("photo");
+      if (
+        !active.current ||
+        !session.isCurrent(session.generation) ||
+        current.action !== "replace" ||
+        current.prepared !== file
+      )
+        deletePreparedImage(file);
     }
   }
 
@@ -123,13 +170,7 @@ export function ProfileForm({ account }: ProfileFormProps) {
           chooseLabel="Choisir une photo de profil"
           helper="Facultatif. PNG/JPEG, jusqu’à 5 Mio."
           error={errors.photo?.message}
-          onRemove={() =>
-            setValue(
-              "photo",
-              { action: "remove" },
-              { shouldDirty: true, shouldValidate: true },
-            )
-          }
+          onRemove={() => replacePhoto({ action: "remove" })}
           onSelect={async (assets) => {
             const selected = assets[0];
             if (!selected) return;
@@ -137,11 +178,8 @@ export function ProfileForm({ account }: ProfileFormProps) {
             try {
               const prepared = await prepareProfilePhoto(selected, session);
               if (active.current && session.isCurrent(session.generation))
-                setValue(
-                  "photo",
-                  { action: "replace", prepared },
-                  { shouldDirty: true, shouldValidate: true },
-                );
+                replacePhoto({ action: "replace", prepared });
+              else deletePreparedImage(prepared);
             } catch {
               if (active.current && session.isCurrent(session.generation))
                 setError("photo", {

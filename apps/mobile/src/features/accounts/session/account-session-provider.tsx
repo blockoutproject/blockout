@@ -137,9 +137,10 @@ function SessionScope({
   retryAuthentication: () => void;
 }>) {
   const auth = useAuth0();
-  const [operation, setOperation] = useState<
-    "idle" | "authenticating" | "signing-out"
-  >("idle");
+  const [operation, setOperation] = useState<{
+    generation: string;
+    status: "authenticating" | "signing-out";
+  }>();
   const [session] = useState(createSessionGeneration);
   const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot);
   const reauthenticationRequired = requiresReauthentication(auth.error);
@@ -152,11 +153,26 @@ function SessionScope({
   let status: AuthenticationStatus = "guest";
   if (initialization.status === "initialization-error")
     status = "initialization-error";
-  else if (operation !== "idle") status = operation;
+  else if (operation) status = operation.status;
   else if (auth.isLoading) status = "restoring";
   else if (reauthenticationRequired) status = "reauthentication-required";
   else if (auth.user) status = "authenticated";
   else if (auth.error) status = "authentication-error";
+  /** Invalidates private work synchronously and binds the pending command to its own generation. */
+  function beginOperation(status: "authenticating" | "signing-out") {
+    session.invalidate();
+    const generation = session.getSnapshot().generation;
+    setOperation({ generation, status });
+    return generation;
+  }
+
+  /** An older native completion cannot release a newer pending business command. */
+  function finishOperation(generation: string) {
+    setOperation((current) =>
+      current?.generation === generation ? undefined : current,
+    );
+  }
+
   const value: AccountSession = {
     ...session,
     ...snapshot,
@@ -176,33 +192,30 @@ function SessionScope({
     async signIn(audience) {
       if (initialization.status !== "ready")
         throw new Error("Native authentication is unavailable");
-      setOperation("authenticating");
-      session.invalidate();
+      const generation = beginOperation("authenticating");
       try {
         await auth.authorize({
           audience,
           scope: "openid profile email offline_access",
         });
       } finally {
-        setOperation("idle");
+        finishOperation(generation);
       }
     },
     async clearCredentials() {
-      setOperation("signing-out");
-      session.invalidate();
+      const generation = beginOperation("signing-out");
       try {
         if (initialization.status === "ready") await auth.clearCredentials();
       } finally {
-        setOperation("idle");
+        finishOperation(generation);
       }
     },
     async signOut() {
-      setOperation("signing-out");
-      session.invalidate();
+      const generation = beginOperation("signing-out");
       try {
         if (initialization.status === "ready") await signOutNativeSession(auth);
       } finally {
-        setOperation("idle");
+        finishOperation(generation);
       }
     },
     setAccount: (generation, accountId) =>

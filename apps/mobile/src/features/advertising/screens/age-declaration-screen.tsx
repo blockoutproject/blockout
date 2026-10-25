@@ -1,11 +1,5 @@
-import { useEffect, useState } from "react";
-import {
-  AccessibilityInfo,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { useEffect } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   cancelAnimation,
   Easing,
@@ -23,25 +17,18 @@ import {
 } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import { useReducedMotion } from "../../../shared/theme/use-reduced-motion";
 import { DiscoveryBackdrop } from "../../onboarding/components/discovery-artwork";
 import { AgeForm } from "../components/age-form";
 import { useAgeDeclaration } from "../age-declaration-provider";
 
 /** Reuses F14 artwork with slow native motion; reduced motion remains static, including live changes. */
 function AgeBackdrop() {
-  const [reducedMotion, setReducedMotion] = useState(true);
+  const reducedMotion = useReducedMotion();
   const offset = useSharedValue(0);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: offset.get() }],
   }));
-  useEffect(() => {
-    const subscription = AccessibilityInfo.addEventListener(
-      "reduceMotionChanged",
-      setReducedMotion,
-    );
-    void AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion);
-    return () => subscription.remove();
-  }, []);
   useEffect(() => {
     offset.set(0);
     if (reducedMotion) return;

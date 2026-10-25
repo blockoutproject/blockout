@@ -470,3 +470,25 @@ it("keeps public legal navigation available while local age storage is pending",
   // Then
   expect(await readAgeDeclaration()).toBeNull();
 });
+
+it("ignores an obsolete installation read after a new tree loads the current declaration", async () => {
+  // Given
+  await completeDiscovery();
+  await submitAgeDeclaration(18);
+  const previous = Promise.withResolvers<string | null>();
+  jest
+    .spyOn(AsyncStorage, "getItem")
+    .mockResolvedValueOnce("true")
+    .mockReturnValueOnce(previous.promise);
+  const first = await openEntry("/legal");
+
+  // When
+  await first.unmount();
+  await openEntry("/session");
+  await screen.findByText("Category: adult");
+  await act(async () => previous.resolve(null));
+
+  // Then
+  expect(screen.getByText("Category: adult")).toBeOnTheScreen();
+  expect((await readAgeDeclaration())?.category).toBe("adult");
+});

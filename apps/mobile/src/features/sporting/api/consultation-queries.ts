@@ -26,6 +26,7 @@ import {
 import type { TeamLogoSelectionEnum } from "../../../../.generated/schemas/index.zod";
 import { ListMatchesParams } from "../../../../.generated/schemas/index.zod";
 import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
+import { binaryImagePreview } from "../../../shared/api/binary-image-preview";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import type { SessionSnapshot } from "../../accounts/session/session-generation";
 import type { useOrdinaryRequest } from "../../access/ordinary-request";
@@ -101,10 +102,23 @@ export function createConsultationQueries(
     });
   }
 
+  /** Keeps the renderable image in the same request/cache owner as its binary transport. */
+  function imageQuery(
+    key: QueryKey,
+    read: (options: ApiFetchOptions) => Promise<Blob>,
+  ) {
+    return query(key, async (options) => {
+      const uri = await binaryImagePreview(await read(options), options.signal);
+      if (!session.isCurrent(session.generation) || options.signal?.aborted)
+        throw new ApiError("cancelled");
+      return uri;
+    });
+  }
+
   return {
     /** Current club PNG/JPEG through the generated binary transport and the same admission. */
     clubLogo: (clubId: string) =>
-      query(getGetClubLogoQueryKey(clubId), (options) =>
+      imageQuery(getGetClubLogoQueryKey(clubId), (options) =>
         getClubLogo(clubId, options),
       ),
     /** Exact effective or automatic artwork selection; no manual/automatic cache collision. */
@@ -113,13 +127,13 @@ export function createConsultationQueries(
       selection: TeamLogoSelectionEnum = "effective",
     ) => {
       const params = Object.freeze({ selection });
-      return query(getGetTeamLogoQueryKey(teamId, params), (options) =>
+      return imageQuery(getGetTeamLogoQueryKey(teamId, params), (options) =>
         getTeamLogo(teamId, params, options),
       );
     },
     /** Current active division artwork, without credentials for an ordinary public read. */
     divisionLogo: (divisionId: string) =>
-      query(getGetDivisionLogoQueryKey(divisionId), (options) =>
+      imageQuery(getGetDivisionLogoQueryKey(divisionId), (options) =>
         getDivisionLogo(divisionId, options),
       ),
     /** Common public club facts, independent of selected team/calendar season. */

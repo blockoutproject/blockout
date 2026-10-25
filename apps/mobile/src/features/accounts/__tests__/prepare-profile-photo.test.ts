@@ -13,6 +13,7 @@ jest.mock("expo-image-manipulator", () => ({
   SaveFormat: { PNG: "png" },
 }));
 jest.mock("expo-file-system", () => ({ File: jest.fn() }));
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
 const context = {
   resize: jest.fn(),
@@ -20,6 +21,13 @@ const context = {
   release: jest.fn(),
 };
 const image = { saveAsync: jest.fn(), release: jest.fn() };
+const prepared = {
+  uri: "file:///prepared.png",
+  size: 128,
+  type: "image/png",
+  exists: true,
+  delete: jest.fn(),
+};
 const session = createSessionGeneration();
 const asset = {
   uri: "file:///original.heic",
@@ -40,9 +48,7 @@ beforeEach(() => {
     width: 1024,
     height: 1024,
   });
-  jest
-    .mocked(File)
-    .mockImplementation(() => ({ size: 128, type: "image/png" }) as File);
+  jest.mocked(File).mockImplementation(() => prepared as unknown as File);
 });
 
 it("adapts a large cropped source once and checks the prepared PNG instead of the original size", async () => {
@@ -61,6 +67,7 @@ it("adapts a large cropped source once and checks the prepared PNG instead of th
   expect(asset.uri).toBe("file:///original.heic");
   expect(context.release).toHaveBeenCalled();
   expect(image.release).toHaveBeenCalled();
+  expect(prepared.delete).not.toHaveBeenCalled();
 });
 
 it("does not enlarge small squares", async () => {
@@ -87,12 +94,13 @@ it.each([0, 5 * 1024 * 1024 + 1])(
     // Given
     jest
       .mocked(File)
-      .mockImplementation(() => ({ size, type: "image/png" }) as File);
+      .mockImplementation(() => ({ ...prepared, size }) as unknown as File);
 
     // When / Then
     await expect(
       prepareProfilePhoto(asset, { ...session, ...session.getSnapshot() }),
     ).rejects.toThrow();
+    expect(prepared.delete).toHaveBeenCalledTimes(1);
   },
 );
 
@@ -109,6 +117,7 @@ it("discards preparation completed after an A to guest to A transition", async (
   await expect(
     prepareProfilePhoto(asset, captured),
   ).rejects.toMatchObject<ApiError>({ kind: "cancelled" } as ApiError);
+  expect(prepared.delete).toHaveBeenCalledTimes(1);
 });
 
 it.each([

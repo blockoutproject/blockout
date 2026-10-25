@@ -1,12 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from "@testing-library/react-native";
+import { act, screen, userEvent, waitFor } from "@testing-library/react-native";
 import * as ImagePicker from "expo-image-picker";
+import { File } from "expo-file-system";
 import { Alert, Pressable, Text } from "react-native";
 import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
@@ -15,6 +10,8 @@ import RootLayout from "../../../app/_layout";
 import OnboardingRoute from "../../../app/onboarding";
 import OperationsLayout from "../../../app/(operations)/_layout";
 import PresentationRoute from "../../../app/(operations)/administration/presentation/[kind]/[id]";
+import DivisionCreationRoute from "../../../app/(operations)/administration/divisions/new";
+import DivisionRoute from "../../../app/(operations)/administration/divisions/[id]";
 import { PresentationEntry } from "../entry";
 import { useCurrentAccount } from "../../accounts/current-account";
 import { AccessGateScreen } from "../../access/screens/access-gate-screen";
@@ -80,7 +77,10 @@ jest.mock("expo-image-manipulator", () => ({
   ImageManipulator: { manipulate: () => mockContext },
   SaveFormat: { PNG: "png" },
 }));
-jest.mock("expo-file-system", () => ({ File: jest.fn(() => mockFile) }));
+jest.mock("expo-file-system", () => ({
+  File: jest.fn(),
+  Paths: { cache: "file:///cache" },
+}));
 jest.mock("@react-native-async-storage/async-storage", () =>
   jest.requireActual(
     "@react-native-async-storage/async-storage/jest/async-storage-mock",
@@ -95,8 +95,14 @@ const mockContext = {
 const mockImage = { saveAsync: jest.fn(), release: jest.fn() };
 const mockFile = Object.assign(
   new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" }),
-  { uri: "file:///prepared.png" },
+  { uri: "file:///prepared.png", exists: true, delete: jest.fn() },
 );
+const mockOriginal = {
+  size: mockFile.size,
+  type: "image/png",
+  copy: jest.fn(),
+  delete: jest.fn(),
+};
 const mockFetch = jest.fn<
   Promise<Response>,
   [RequestInfo | URL, RequestInit?]
@@ -136,6 +142,18 @@ async function respond(
   );
 }
 beforeEach(async () => {
+  jest
+    .mocked(File)
+    .mockReset()
+    .mockImplementation(
+      (...parts) =>
+        (parts.length === 2 || parts[0] === "file:///prepared.png"
+          ? mockFile
+          : mockOriginal) as unknown as File,
+    );
+  mockFile.delete.mockReset();
+  mockOriginal.copy.mockReset();
+  mockOriginal.delete.mockReset();
   await completeDiscovery();
   client = createQueryClient();
   stored = initial;
@@ -172,24 +190,27 @@ afterEach(() => {
 async function renderEditor(
   kind: "club" | "team" | "pool" | "division" | "division-creation" = "team",
 ) {
-  await render(
-    <QueryClientProvider client={client}>
-      <ThemeProvider>
-        <ApplicationAccessProvider>
-          <AccountSessionProvider>
-            <PresentationScreen
-              target={
-                kind === "division-creation"
-                  ? { kind }
-                  : { kind, id: resourceId }
-              }
-            />
-            <SessionAction />
-          </AccountSessionProvider>
-        </ApplicationAccessProvider>
-      </ThemeProvider>
-    </QueryClientProvider>,
-  );
+  await renderRouter({
+    _layout: () => <Stack />,
+    index: () => (
+      <QueryClientProvider client={client}>
+        <ThemeProvider>
+          <ApplicationAccessProvider>
+            <AccountSessionProvider>
+              <PresentationScreen
+                target={
+                  kind === "division-creation"
+                    ? { kind }
+                    : { kind, id: resourceId }
+                }
+              />
+              <SessionAction />
+            </AccountSessionProvider>
+          </ApplicationAccessProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    ),
+  });
   return userEvent.setup();
 }
 /** Exercises the existing F05 lifecycle rather than replacing session state. */
@@ -641,15 +662,11 @@ async function openRoutes(initialUrl = "/") {
       "(operations)/administration/classification-selection": () => (
         <Text>Selection route</Text>
       ),
-      "(operations)/administration/divisions/[id]": () => (
-        <Text>Division route</Text>
-      ),
+      "(operations)/administration/divisions/[id]": DivisionRoute,
       "(operations)/administration/divisions/index": () => (
         <Text>Divisions route</Text>
       ),
-      "(operations)/administration/divisions/new": () => (
-        <Text>Creation route</Text>
-      ),
+      "(operations)/administration/divisions/new": DivisionCreationRoute,
       "(operations)/administration/index": () => (
         <Text>Administration route</Text>
       ),
@@ -745,6 +762,12 @@ it("enters the real protected route with only the presentation grant and confirm
 
   // When
   await edit("Nom complet personnalisé", "Unsaved");
+  jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+    canceled: false,
+    assets: [{ uri: "file:///source.png", width: 120, height: 60 }],
+  });
+  await user.press(screen.getByRole("button", { name: "Choisir un logo" }));
+  await screen.findByRole("button", { name: "Aperçu : Logo" });
   await act(async () => router.back());
 
   // Then
@@ -765,6 +788,8 @@ it("enters the real protected route with only the presentation grant and confirm
 
   // Then
   await screen.findByText("Modifier la présentation");
+  expect(mockFile.delete).toHaveBeenCalledTimes(1);
+  expect(mockOriginal.delete).not.toHaveBeenCalled();
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
   ).toBe(false);
@@ -788,6 +813,12 @@ it("retains the draft and uncertain outcome when a failed permission refresh rem
   await user.press(screen.getByText("Modifier la présentation"));
   await screen.findByDisplayValue("Current name");
   await edit("Nom complet personnalisé", "Retained draft");
+  jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+    canceled: false,
+    assets: [{ uri: "file:///source.png", width: 120, height: 60 }],
+  });
+  await user.press(screen.getByRole("button", { name: "Choisir un logo" }));
+  await screen.findByRole("button", { name: "Aperçu : Logo" });
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await screen.findByRole("button", { name: "Relire la présentation" });
 
@@ -821,6 +852,10 @@ it("retains the draft and uncertain outcome when a failed permission refresh rem
   expect(
     await screen.findByLabelText("Nom complet personnalisé"),
   ).toHaveDisplayValue("Retained draft");
+  expect(
+    screen.getByRole("button", { name: "Aperçu : Logo" }),
+  ).toBeOnTheScreen();
+  expect(mockFile.delete).not.toHaveBeenCalled();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
   expect(
     screen.getByRole("button", { name: "Relire la présentation" }),
@@ -1253,4 +1288,225 @@ it("preserves an empty invalid gradient stop when another stop changes", async (
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
   ).toBe(false);
+});
+
+it("deletes a removed logo copy while leaving the picker original untouched", async () => {
+  // Given
+  const user = await renderEditor();
+  await screen.findByDisplayValue("Current name");
+  jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+    canceled: false,
+    assets: [{ uri: "file:///source.png", width: 120, height: 60 }],
+  });
+  await user.press(screen.getByRole("button", { name: "Choisir un logo" }));
+  await screen.findByRole("button", { name: "Aperçu : Logo" });
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Rétablir le logo automatique : Logo" }),
+  );
+
+  // Then
+  expect(mockFile.delete).toHaveBeenCalledTimes(1);
+  expect(mockOriginal.delete).not.toHaveBeenCalled();
+  expect(
+    screen.queryByRole("button", { name: "Aperçu : Logo" }),
+  ).not.toBeOnTheScreen();
+});
+
+it("keeps a sent logo until upload settlement after session invalidation", async () => {
+  // Given
+  const user = await renderEditor();
+  await screen.findByDisplayValue("Current name");
+  jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+    canceled: false,
+    assets: [{ uri: "file:///source.png", width: 120, height: 60 }],
+  });
+  await user.press(screen.getByRole("button", { name: "Choisir un logo" }));
+  await screen.findByRole("button", { name: "Aperçu : Logo" });
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PATCH" ? response.promise : respond(url, options),
+  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+    ).toBe(true),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Quitter la session" }));
+
+  // Then
+  expect(mockFile.delete).not.toHaveBeenCalled();
+
+  // When
+  await act(async () => response.resolve(json(initial)));
+
+  // Then
+  await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
+  expect(mockOriginal.delete).not.toHaveBeenCalled();
+});
+
+it("deletes a prepared logo completed after its form unmounts", async () => {
+  // Given
+  const user = await renderEditor();
+  await screen.findByDisplayValue("Current name");
+  jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+    canceled: false,
+    assets: [
+      {
+        uri: "file:///source.heic",
+        mimeType: "image/heic",
+        width: 120,
+        height: 60,
+      },
+    ],
+  });
+  const output = Promise.withResolvers<{
+    uri: string;
+    width: number;
+    height: number;
+  }>();
+  mockImage.saveAsync.mockReturnValue(output.promise);
+  await user.press(screen.getByRole("button", { name: "Choisir un logo" }));
+  await waitFor(() => expect(mockImage.saveAsync).toHaveBeenCalled());
+
+  // When
+  await screen.unmount();
+  await act(async () =>
+    output.resolve({ uri: "file:///prepared.png", width: 120, height: 60 }),
+  );
+
+  // Then
+  expect(mockFile.delete).toHaveBeenCalledTimes(1);
+  expect(mockOriginal.delete).not.toHaveBeenCalled();
+});
+
+it.each(["division-creation", "division"] as const)(
+  "ignores the retained %s confirmation after protected-route removal and readmission",
+  async (kind) => {
+    // Given
+    permissions = { manageDivisionLifecycle: true };
+    stored =
+      kind === "division-creation"
+        ? { items: [] }
+        : {
+            id: resourceId,
+            revision: "d1",
+            name: "National 2",
+            color: "#123456",
+            gradient: null,
+            logo,
+            active: true,
+          };
+    jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    const user = userEvent.setup();
+    await openRoutes();
+    await screen.findByRole("button", { name: "Relire les permissions" });
+    const permissionRead = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url) =>
+      String(url).endsWith("/accounts/me")
+        ? permissionRead.promise
+        : Promise.resolve(json(stored)),
+    );
+    await user.press(
+      screen.getByRole("button", { name: "Relire les permissions" }),
+    );
+    const path =
+      kind === "division-creation"
+        ? "/administration/divisions/new"
+        : `/administration/divisions/${resourceId}`;
+    await act(async () => router.push(path));
+    if (kind === "division-creation") {
+      await screen.findByLabelText("Nom de la division");
+      await edit("Nom de la division", "National 2");
+      await edit("Couleur HEX", "#123456");
+      await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+    } else
+      await user.press(
+        await screen.findByRole("button", { name: "Désactiver la division" }),
+      );
+    const confirm = jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)?.[2]
+      ?.find((button) => button.text === "Confirmer");
+    expect(confirm).toBeDefined();
+
+    // When
+    await act(async () =>
+      permissionRead.resolve(
+        json(
+          {
+            type: "urn:blockout:problem:unavailable",
+            title: "Unavailable",
+            status: 503,
+          },
+          503,
+        ),
+      ),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByLabelText("Nom de la division"),
+      ).not.toBeOnTheScreen(),
+    );
+    mockFetch.mockImplementation(respond);
+    await user.press(
+      await screen.findByRole("button", { name: "Relire les permissions" }),
+    );
+    await waitFor(() =>
+      expect(
+        mockFetch.mock.calls.filter(([url]) =>
+          String(url).endsWith("/accounts/me"),
+        ),
+      ).toHaveLength(3),
+    );
+    await act(async () => router.push(path));
+    await screen.findByLabelText("Nom de la division");
+    await act(async () => confirm?.onPress?.());
+
+    // Then
+    expect(
+      mockFetch.mock.calls.filter(([, options]) =>
+        ["POST", "PUT"].includes(options?.method ?? ""),
+      ),
+    ).toHaveLength(0);
+  },
+);
+
+it("releases only the replaced logo copy while the new draft remains usable", async () => {
+  // Given
+  const user = await renderEditor();
+  await screen.findByDisplayValue("Current name");
+  const replacement = Object.assign(
+    new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" }),
+    { uri: "file:///replacement.png", exists: true, delete: jest.fn() },
+  );
+  jest
+    .mocked(File)
+    .mockReturnValueOnce(mockOriginal as unknown as File)
+    .mockReturnValueOnce(mockFile as unknown as File)
+    .mockReturnValueOnce(mockOriginal as unknown as File)
+    .mockReturnValueOnce(replacement as unknown as File);
+  jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+    canceled: false,
+    assets: [{ uri: "file:///source.png", width: 120, height: 60 }],
+  });
+  await user.press(screen.getByRole("button", { name: "Choisir un logo" }));
+  await screen.findByRole("button", { name: "Aperçu : Logo" });
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Changer le logo : Logo" }),
+  );
+
+  // Then
+  await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
+  expect(replacement.delete).not.toHaveBeenCalled();
+  expect(mockOriginal.delete).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole("button", { name: "Aperçu : Logo" }),
+  ).toBeOnTheScreen();
 });

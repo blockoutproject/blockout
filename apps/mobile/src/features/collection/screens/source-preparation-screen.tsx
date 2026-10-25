@@ -9,18 +9,16 @@ import {
 } from "../components/preparation-layout";
 import { SourceCandidateForm } from "../forms/source-candidate-form";
 
-/** Ordinary source route inputs; the router owns draft-discard confirmation. */
+/** Original source route inputs; its retained form owns draft-discard confirmation. */
 export interface SourcePreparationScreenProps {
   seasonId: string;
   sourceId: string;
-  onDirtyChange?: (dirty: boolean) => void;
 }
 
 /** Retains a source draft read-only on grant/read failure; identity changes discard the obsolete editor. */
 export function SourcePreparationScreen({
   seasonId,
   sourceId,
-  onDirtyChange,
 }: SourcePreparationScreenProps) {
   const editing = useSourcePreparation(seasonId, sourceId);
   const { authority, source, season } = editing;
@@ -35,7 +33,6 @@ export function SourcePreparationScreen({
           source={current}
           season={season.data}
           editing={editing}
-          onDirtyChange={onDirtyChange}
         />
       ) : (
         authority.enabled &&

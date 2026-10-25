@@ -358,3 +358,7 @@ When parallel work is explicitly authorized, use the distinct-file batches above
 ## Authorized SDK maintenance
 
 - [x] T078 Upgrade `apps/mobile/package.json`, the workspace overrides/lockfile and affected native configuration to Expo SDK 58 with its supported React Native/React and testing dependencies. Remove superseded scene/Kotlin workarounds, adapt strict native types and Router draft-discard handling, and reconcile affected specifications/plans without changing accepted product behavior. Run repository verification, Expo Doctor and regenerated iOS/Android builds; requalify the F12 component on Android API 29/API 37 and iOS 27.1, retaining the separately deferred oldest-iOS proof. Record actual results and remaining limits in the owning quickstarts.
+
+## Authorized frontend state maintenance
+
+- [x] T079 Normalize all implemented frontend state under [#521](https://github.com/blockoutproject/blockout/issues/521): inventory sources of truth, lifetimes, consumers and reset rules in F13 research; remove redundant Query/SDK/form/local owners and migrate all consumers; preserve session, draft, command and installation boundaries; release owned prepared-image files without deleting originals or interrupting uploads. Verify obsolete identities, route removal/remount, foreground return and asynchronous completion through the [state qualification](quickstart.md#frontend-state-ownership-qualification), review all changed tests and independently search for residual owners/variants.

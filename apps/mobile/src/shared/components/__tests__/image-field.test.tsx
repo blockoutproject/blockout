@@ -480,6 +480,64 @@ it("keeps preview dismissal available when native image decoding fails", async (
   expect(screen.queryByText(/private file path/)).not.toBeOnTheScreen();
 });
 
+it("starts a new preview attempt when an image URI returns or the viewer reopens", async () => {
+  // Given
+  const user = userEvent.setup();
+  const onSelect = jest.fn();
+  const view = await render(
+    <ImageField images={[logo]} onSelect={onSelect} />,
+    { wrapper: ThemeProvider },
+  );
+  await user.press(
+    screen.getByRole("button", { name: "Aperçu : Logo du club" }),
+  );
+  await fireEvent(
+    screen.getByRole("image", { name: "Logo du club" }),
+    "error",
+    { nativeEvent: { error: "Native decoding failed" } },
+  );
+  expect(screen.getByText("Impossible d’afficher l’image.")).toBeOnTheScreen();
+
+  // When
+  await view.rerender(
+    <ImageField
+      images={[{ ...logo, uri: "file:///replacement.png" }]}
+      onSelect={onSelect}
+    />,
+  );
+
+  // Then
+  expect(
+    screen.queryByText("Impossible d’afficher l’image."),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByRole("image", { name: "Logo du club" })).toBeOnTheScreen();
+
+  // When the same original URI returns, its previous error belongs to an unmounted attempt.
+  await view.rerender(<ImageField images={[logo]} onSelect={onSelect} />);
+
+  // Then
+  expect(
+    screen.queryByText("Impossible d’afficher l’image."),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByRole("image", { name: "Logo du club" })).toBeOnTheScreen();
+
+  // When the current attempt fails and the user closes and reopens it.
+  await fireEvent(
+    screen.getByRole("image", { name: "Logo du club" }),
+    "error",
+    { nativeEvent: { error: "Native decoding failed" } },
+  );
+  await user.press(screen.getByRole("button", { name: "Fermer l’aperçu" }));
+  await user.press(
+    screen.getByRole("button", { name: "Aperçu : Logo du club" }),
+  );
+
+  // Then
+  expect(
+    screen.queryByText("Impossible d’afficher l’image."),
+  ).not.toBeOnTheScreen();
+});
+
 it("offers the caller's retry meaning after an empty-field validation error", async () => {
   // Given
   launch.mockResolvedValue({ canceled: false, assets: [photo] });

@@ -50,6 +50,7 @@ jest.mock("expo-image-manipulator", () => ({
   SaveFormat: { PNG: "png" },
 }));
 jest.mock("expo-file-system", () => ({ File: jest.fn(() => mockFile) }));
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
 const mockContext = {
   resize: jest.fn(),
@@ -59,7 +60,12 @@ const mockContext = {
 const mockImage = { saveAsync: jest.fn(), release: jest.fn() };
 const mockFile = Object.assign(
   new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" }),
-  { bytes: async () => new Uint8Array([137, 80, 78, 71]) },
+  {
+    bytes: async () => new Uint8Array([137, 80, 78, 71]),
+    uri: "file:///prepared.png",
+    exists: true,
+    delete: jest.fn(),
+  },
 );
 const mockFetch = jest.fn<
   Promise<Response>,
@@ -87,6 +93,7 @@ const retryLabel = "Réessayer la lecture de l’ancienneté";
 const previousEnvironment = { ...process.env };
 
 beforeEach(() => {
+  mockFile.delete.mockReset();
   client = createQueryClient();
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",

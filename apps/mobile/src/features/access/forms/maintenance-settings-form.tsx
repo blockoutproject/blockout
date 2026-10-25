@@ -1,7 +1,8 @@
+import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
 import { FileText, Wrench } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import type { MaintenanceSettingsResponse } from "../../../../.generated/schemas/index.zod";
@@ -28,22 +29,23 @@ export interface MaintenanceSettingsFormProps {
   settings: MaintenanceSettingsResponse;
   editing: ReturnType<typeof useMaintenanceSettings>;
   disabled?: boolean;
-  onDirtyChange?: (dirty: boolean) => void;
 }
 
-/** Separates content and activation and requires explicit reconciliation after conflict or uncertainty. */
+/** Owns one route-local draft, separating content and activation with explicit conflict/uncertainty reconciliation. */
 export function MaintenanceSettingsForm({
   settings,
   editing,
   disabled = false,
-  onDirtyChange,
 }: MaintenanceSettingsFormProps) {
   const session = useAccountSession();
   const { colors } = useTheme();
-  const [baseline, setBaseline] = useState(settings);
-  const [needsRead, setNeedsRead] = useState(false);
-  const [feedback, setFeedback] = useState<string>();
-  const [previewFailure, setPreviewFailure] = useState<string>();
+  const [state, setState] = useState<{
+    baseline: MaintenanceSettingsResponse;
+    needsRead: boolean;
+    feedback?: string;
+  }>({ baseline: settings, needsRead: false });
+  const { baseline, needsRead, feedback } = state;
+  const mounted = useRef(false);
   const {
     control,
     handleSubmit,
@@ -53,6 +55,13 @@ export function MaintenanceSettingsForm({
     resolver: zodResolver(maintenanceSchema),
     defaultValues: maintenanceValues(settings),
   });
+  useDiscardChanges(isDirty, () => reset());
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const imageUrl = useWatch({ control, name: "imageUrl" });
   const busy =
     disabled ||
@@ -63,17 +72,18 @@ export function MaintenanceSettingsForm({
   const rereadRequired = needsRead || settings.revision > baseline.revision;
   const validPreview =
     imageUrl !== "" && maintenanceImageSchema.safeParse(imageUrl).success;
-  useEffect(() => {
-    onDirtyChange?.(isDirty);
-    return () => onDirtyChange?.(false);
-  }, [isDirty, onDirtyChange]);
 
   /** Confirms content preparation with the native F13 confirmation, independently of activation. */
   function confirmContent(draft: MaintenanceValues) {
     if (busy || rereadRequired) return;
     Alert.alert("Enregistrer le contenu ?", "L’activation reste inchangée.", [
       { text: "Annuler", style: "cancel" },
-      { text: "Enregistrer", onPress: () => void submit(draft) },
+      {
+        text: "Enregistrer",
+        onPress: () => {
+          if (mounted.current) void submit(draft);
+        },
+      },
     ]);
   }
   /** Confirms the desired global state using saved content, preserving the editing draft. */
@@ -88,7 +98,9 @@ export function MaintenanceSettingsForm({
         { text: "Annuler", style: "cancel" },
         {
           text: baseline.active ? "Désactiver" : "Activer",
-          onPress: () => void activate(),
+          onPress: () => {
+            if (mounted.current) void activate();
+          },
         },
       ],
     );
@@ -96,16 +108,20 @@ export function MaintenanceSettingsForm({
 
   /** Keeps a failed draft intact; only ambiguous outcomes and conflicts block further writes. */
   function failed(error: unknown) {
-    if (!session.isCurrent(session.generation)) return;
+    if (!mounted.current || !session.isCurrent(session.generation)) return;
     if (requiresSettingsReread(error)) {
-      setNeedsRead(true);
-      setFeedback(
-        "Le résultat doit être vérifié. Relisez les réglages avant une nouvelle soumission.",
-      );
+      setState({
+        ...state,
+        needsRead: true,
+        feedback:
+          "Le résultat doit être vérifié. Relisez les réglages avant une nouvelle soumission.",
+      });
     } else
-      setFeedback(
-        "L’enregistrement a été refusé. Vérifiez les valeurs et vos permissions.",
-      );
+      setState({
+        ...state,
+        feedback:
+          "L’enregistrement a été refusé. Vérifiez les valeurs et vos permissions.",
+      });
   }
   /** Submits supplied dirty content against its accepted editing revision, without activation. */
   async function submit(draft: MaintenanceValues) {
@@ -115,10 +131,13 @@ export function MaintenanceSettingsForm({
       const accepted = await editing.content.mutateAsync(
         toMaintenanceRequest(baseline.revision, draft, dirtyFields),
       );
-      if (!session.isCurrent(session.generation)) return;
-      setBaseline(accepted);
+      if (!mounted.current || !session.isCurrent(session.generation)) return;
+      setState({
+        baseline: accepted,
+        needsRead: false,
+        feedback: "Contenu enregistré.",
+      });
       reset(maintenanceValues(accepted));
-      setFeedback("Contenu enregistré.");
     } catch (error) {
       failed(error);
     }
@@ -132,9 +151,12 @@ export function MaintenanceSettingsForm({
         revision: baseline.revision,
         active: !baseline.active,
       });
-      if (!session.isCurrent(session.generation)) return;
-      setBaseline(accepted);
-      setFeedback("Activation enregistrée.");
+      if (!mounted.current || !session.isCurrent(session.generation)) return;
+      setState({
+        baseline: accepted,
+        needsRead: false,
+        feedback: "Activation enregistrée.",
+      });
     } catch (error) {
       failed(error);
     }
@@ -142,22 +164,25 @@ export function MaintenanceSettingsForm({
   /** Rereads the actual outcome without replay; dirty fields remain until an explicit new submit. */
   async function reread() {
     const result = await editing.query.refetch();
-    if (!session.isCurrent(session.generation)) return;
+    if (!mounted.current || !session.isCurrent(session.generation)) return;
     if (
       !result.data ||
       result.isError ||
       result.data.revision < baseline.revision
     ) {
-      setNeedsRead(true);
-      setFeedback(undefined);
+      setState({ ...state, needsRead: true, feedback: undefined });
       return;
     }
-    setBaseline(result.data);
-    reset(maintenanceValues(result.data), { keepDirtyValues: true });
-    setNeedsRead(false);
-    setFeedback(
-      "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
-    );
+    setState({
+      baseline: result.data,
+      needsRead: false,
+      feedback:
+        "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
+    });
+    reset(maintenanceValues(result.data), {
+      keepDirtyValues: true,
+      keepDirty: true,
+    });
   }
   return (
     <View style={styles.form}>
@@ -270,18 +295,8 @@ export function MaintenanceSettingsForm({
             />
           )}
         />
-        {validPreview && previewFailure !== imageUrl && (
-          <Image
-            accessible
-            accessibilityLabel="Aperçu de l’image de maintenance"
-            source={{ uri: imageUrl }}
-            style={styles.preview}
-            contentFit="contain"
-            onError={() => setPreviewFailure(imageUrl)}
-          />
-        )}
-        {validPreview && previewFailure === imageUrl && (
-          <RequestError message="L’image ne peut pas être affichée." />
+        {validPreview && (
+          <MaintenanceImagePreview key={imageUrl} uri={imageUrl} />
         )}
         {isDirty && (
           <Text
@@ -318,6 +333,23 @@ export function MaintenanceSettingsForm({
         />
       )}
     </View>
+  );
+}
+
+/** A validated draft image owns feedback only for its current mounted decode attempt. */
+function MaintenanceImagePreview({ uri }: { uri: string }) {
+  const [failed, setFailed] = useState(false);
+  return failed ? (
+    <RequestError message="L’image ne peut pas être affichée." />
+  ) : (
+    <Image
+      accessible
+      accessibilityLabel="Aperçu de l’image de maintenance"
+      source={{ uri }}
+      style={styles.preview}
+      contentFit="contain"
+      onError={() => setFailed(true)}
+    />
   );
 }
 

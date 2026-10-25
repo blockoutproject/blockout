@@ -15,11 +15,12 @@ import { readMaintenanceProblem } from "./api/maintenance-problem";
  * prepared options for later requests. An obsolete choice fails instead of becoming a public read.
  */
 export function useOrdinaryRequest() {
-  const { observations, bypass } = useApplicationAccess();
+  const { observations, bypass, snapshot } = useApplicationAccess();
   const client = useQueryClient();
   const intent = useSyncExternalStore(bypass.subscribe, bypass.getSnapshot);
 
   return {
+    admitted: accessPresentation(snapshot, intent !== undefined).ordinary,
     bypass: intent,
     /** Adds only this caller's current F12 intent and refusal observation; credentials remain caller-owned. */
     request(options: ApiFetchOptions): ApiFetchOptions {
@@ -54,7 +55,7 @@ export function useOrdinaryRequest() {
         onHttpError(error) {
           const maintenance = readMaintenanceProblem(error);
           if (maintenance) observations.maintenance(maintenance);
-          else if (error.status === 503) observations.fail();
+          else if (error.status === 503) observations.refuse();
           if (
             intent === bypass.getSnapshot() &&
             (maintenance || error.status === 401 || error.status === 403)

@@ -29,7 +29,10 @@ const inactive = customerInfo({
 });
 
 beforeEach(() => {
-  mockPurchases.isConfigured.mockResolvedValue(true);
+  mockPurchases.isConfigured.mockReset().mockResolvedValue(true);
+  mockPurchases.logIn
+    .mockReset()
+    .mockResolvedValue({ customerInfo: inactive, created: false });
   mockPurchases.getCustomerInfo.mockReset().mockResolvedValue(inactive);
 });
 

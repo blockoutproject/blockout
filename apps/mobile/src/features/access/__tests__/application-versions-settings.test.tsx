@@ -46,6 +46,7 @@ jest.mock("react-native-auth0", () => {
 
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
+  usePreventRemove: jest.fn(),
   useRouter: () => ({ back: jest.fn() }),
 }));
 jest.mock("expo/fetch", () => ({
@@ -518,6 +519,9 @@ it.each(["conflict", "lost", "invalid-response"])(
     expect(screen.getByLabelText("Version minimale iOS")).toHaveDisplayValue(
       "1.8.0",
     );
+    expect(
+      screen.getByRole("button", { name: "Appliquer les modifications" }),
+    ).toBeEnabled();
 
     // When
     await user.press(

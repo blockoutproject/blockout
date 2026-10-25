@@ -28,7 +28,14 @@ let owner: ReturnType<typeof createProSession>;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest.mocked(Purchases.isConfigured).mockResolvedValue(true);
+  let configured = false;
+  jest.mocked(Purchases.configure).mockImplementation(() => {
+    configured = true;
+  });
+  jest
+    .mocked(Purchases.isConfigured)
+    .mockReset()
+    .mockImplementation(async () => configured);
   jest.mocked(Purchases.isAnonymous).mockResolvedValue(false);
   jest
     .mocked(Purchases.logIn)
@@ -94,8 +101,12 @@ it("preserves current login-supplied active rights if the following ordinary rea
 it("finishes configuration before logging out when its account is erased", async () => {
   // Given
   const configured = Promise.withResolvers<boolean>();
-  jest.mocked(Purchases.isConfigured).mockReturnValueOnce(configured.promise);
+  jest
+    .mocked(Purchases.isConfigured)
+    .mockResolvedValueOnce(false)
+    .mockReturnValueOnce(configured.promise);
   session.setAccount(session.getSnapshot().generation, a);
+  await waitFor(() => expect(Purchases.configure).toHaveBeenCalledTimes(1));
 
   // When
   session.invalidate();
@@ -113,8 +124,12 @@ it.each([a, b])(
   async (target) => {
     // Given: configure is void; isConfigured is the SDK's asynchronous setup check.
     const configured = Promise.withResolvers<boolean>();
-    jest.mocked(Purchases.isConfigured).mockReturnValueOnce(configured.promise);
+    jest
+      .mocked(Purchases.isConfigured)
+      .mockResolvedValueOnce(false)
+      .mockReturnValueOnce(configured.promise);
     session.setAccount(session.getSnapshot().generation, a);
+    await waitFor(() => expect(Purchases.configure).toHaveBeenCalledTimes(1));
 
     // When
     session.invalidate();
@@ -238,4 +253,41 @@ it.each([a, b])("rejects an old read across A → guest → %s", async (target) 
   expect(owner.getSnapshot().evidence?.session).toEqual(session.getSnapshot());
   expect(owner.getSnapshot().evidence?.customerInfo).toBe(info);
   expect(Purchases.configure).toHaveBeenCalledTimes(1);
+});
+
+it("uses SDK configuration when a React owner is recreated", async () => {
+  // Given: the native process already configured RevenueCat before this owner existed.
+  jest.mocked(Purchases.isConfigured).mockResolvedValue(true);
+
+  // When
+  session.setAccount(session.getSnapshot().generation, a);
+
+  // Then
+  await waitFor(() =>
+    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
+  );
+  expect(Purchases.configure).not.toHaveBeenCalled();
+  expect(Purchases.logIn).toHaveBeenCalledWith(a);
+});
+
+it("abandons an obsolete account before mutating native identity after an SDK configuration read", async () => {
+  // Given
+  const configured = Promise.withResolvers<boolean>();
+  jest.mocked(Purchases.isConfigured).mockReturnValueOnce(configured.promise);
+  session.setAccount(session.getSnapshot().generation, a);
+
+  // When
+  session.setAccount(session.getSnapshot().generation, b);
+  configured.resolve(false);
+
+  // Then
+  await waitFor(() =>
+    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
+  );
+  expect(Purchases.configure).toHaveBeenCalledTimes(1);
+  expect(Purchases.configure).toHaveBeenCalledWith({
+    apiKey: "test_public",
+    appUserID: b,
+  });
+  expect(Purchases.logIn).not.toHaveBeenCalled();
 });

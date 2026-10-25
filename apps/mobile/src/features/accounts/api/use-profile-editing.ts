@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth0 } from "react-native-auth0";
 import {
   changeAccountProfile,
+  getChangeAccountProfileMutationKey,
   getAccount,
   getAccountPhoto,
   getGetAccountQueryKey,
@@ -86,6 +87,10 @@ export function useProfileEditing(accountId: string) {
     },
   });
   const save = useMutation({
+    mutationKey: getSessionQueryKey(session.generation, [
+      ...getChangeAccountProfileMutationKey(),
+      accountId,
+    ]),
     gcTime: 0,
     mutationFn: async (body: ChangeAccountProfileBody) => {
       const credentials = await auth.getCredentials();
@@ -129,7 +134,7 @@ export function useProfilePhoto(accountId: string, hasPhoto: boolean) {
           headers: { Authorization: `Bearer ${credentials.accessToken}` },
         }),
       );
-      const uri = await binaryImagePreview(blob);
+      const uri = await binaryImagePreview(blob, signal);
       if (!session.isCurrent(session.generation))
         throw new ApiError("cancelled");
       return uri;

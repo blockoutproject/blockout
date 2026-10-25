@@ -1,9 +1,10 @@
+import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { formatCollectionTimestamp } from "../model/collection-time";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { ChevronRight, Globe } from "lucide-react-native";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useFormState } from "react-hook-form";
 import {
   Alert,
   Linking,
@@ -36,14 +37,16 @@ import {
   sourceCandidateSchema,
   type SourceCandidateValues,
 } from "../schemas/source-candidate";
-import { sourcePreparationEditor } from "./preparation-editors";
+import {
+  sourcePreparationEditor,
+  discardSourcePreparationEditor,
+} from "./preparation-editors";
 
 /** One source editor snapshot; failures and current-state reads preserve its dirty URL until explicit submission. */
 export interface SourceCandidateFormProps {
   source: SourceBindingResponse;
   season: CollectionSeasonResponse;
   editing: ReturnType<typeof useSourcePreparation>;
-  onDirtyChange?: (dirty: boolean) => void;
 }
 
 /** Inline supported-candidate editing and explicit qualification/confirmation, without post-launch repair. */
@@ -51,7 +54,6 @@ export function SourceCandidateForm({
   source,
   season,
   editing,
-  onDirtyChange,
 }: SourceCandidateFormProps) {
   const { authority } = editing;
   const { session } = authority;
@@ -61,14 +63,16 @@ export function SourceCandidateForm({
   const [editor] = useState(() => sourcePreparationEditor(session, source));
   const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
   const { baseline, editingUrl, needsRead, feedback } = state;
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { isDirty, isSubmitting, errors, dirtyFields },
-  } = useForm<SourceCandidateValues>({
+  const { control, handleSubmit, reset } = useForm<SourceCandidateValues>({
     resolver: zodResolver(sourceCandidateSchema),
     formControl: editor.form.formControl,
+  });
+  const { isDirty, isSubmitting, errors, dirtyFields } = useFormState({
+    control,
+  });
+  useDiscardChanges(isDirty, () => {
+    reset();
+    discardSourcePreparationEditor();
   });
   // Subscribe to RHF's dirty fields so keepDirtyValues retains the editable snapshot on reread.
   void dirtyFields;
@@ -87,10 +91,6 @@ export function SourceCandidateForm({
     editing.source.isFetching ||
     editing.season.isFetching;
   const rereadRequired = needsRead || current.revision > baseline.revision;
-  useEffect(() => {
-    onDirtyChange?.(isDirty);
-    return () => onDirtyChange?.(false);
-  }, [isDirty, onDirtyChange]);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -225,7 +225,7 @@ export function SourceCandidateForm({
     }
     reset(
       { candidateUrl: sourceResult.data.candidateUrl ?? "" },
-      { keepDirtyValues: true },
+      { keepDirtyValues: true, keepDirty: true },
     );
     editor.update({
       ...editor.getSnapshot(),

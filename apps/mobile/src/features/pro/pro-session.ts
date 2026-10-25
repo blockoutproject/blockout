@@ -15,7 +15,8 @@ import { verifiedProOperation } from "./pro-operations";
 /** Current native evidence and verification lifecycle; rights remain SDK-owned. */
 export interface ProSessionSnapshot {
   evidence: ProSessionState | null;
-  refreshing: boolean;
+  /** The current attributed read owns both callback acceptance and the derived pending presentation. */
+  read: symbol | null;
   verificationFailed: boolean;
 }
 
@@ -47,14 +48,12 @@ function sameSession(
  */
 export function createProSession() {
   let target: SessionSnapshot | null = null;
-  let configured = false;
   let identityInFlight = false;
   let snapshot: ProSessionSnapshot = {
     evidence: null,
-    refreshing: false,
+    read: null,
     verificationFailed: false,
   };
-  let currentRead: symbol | null = null;
   const listeners = new Set<() => void>();
 
   /** Notifies React without storing a derived entitlement or a second session generation. */
@@ -75,13 +74,12 @@ export function createProSession() {
   async function refresh(session: SessionSnapshot): Promise<void> {
     if (!isAssociated(session)) return;
     const request = Symbol();
-    currentRead = request;
-    publish({ ...snapshot, refreshing: true });
+    publish({ ...snapshot, read: request });
     try {
       const customerInfo = await Purchases.getCustomerInfo();
       if (
         isAssociated(session) &&
-        currentRead === request &&
+        snapshot.read === request &&
         snapshot.evidence
       ) {
         publish({
@@ -93,18 +91,16 @@ export function createProSession() {
               customerInfo,
             ),
           },
-          refreshing: false,
+          read: null,
           verificationFailed: false,
         });
       }
     } catch {
       diagnose("read", "failed");
-      if (isAssociated(session) && currentRead === request) {
+      if (isAssociated(session) && snapshot.read === request) {
         // A failed refresh never withdraws independently known current rights.
-        publish({ ...snapshot, refreshing: false, verificationFailed: true });
+        publish({ ...snapshot, read: null, verificationFailed: true });
       }
-    } finally {
-      if (currentRead === request) currentRead = null;
     }
   }
 
@@ -114,6 +110,8 @@ export function createProSession() {
     identityInFlight = true;
     const desired = target;
     try {
+      const configured = await Purchases.isConfigured();
+      if (!sameSession(target, desired)) return;
       if (desired?.accountId) {
         let customerInfo: CustomerInfo | null = null;
         if (!configured) {
@@ -125,7 +123,6 @@ export function createProSession() {
           // The SDK's default handler forwards raw provider strings to the console.
           Purchases.setLogHandler(() => {});
           Purchases.configure({ apiKey, appUserID: desired.accountId });
-          configured = true;
           if (!(await Purchases.isConfigured()))
             throw new Error("Pro setup unavailable");
         } else {
@@ -140,7 +137,7 @@ export function createProSession() {
               customerInfo,
               operation: "idle",
             },
-            refreshing: false,
+            read: null,
             verificationFailed: false,
           });
           void refresh(desired);
@@ -158,7 +155,7 @@ export function createProSession() {
             customerInfo: null,
             operation: "idle",
           },
-          refreshing: false,
+          read: null,
           verificationFailed: true,
         });
       }
@@ -210,7 +207,6 @@ export function createProSession() {
     setTarget(next: SessionSnapshot | null) {
       if (sameSession(target, next)) return;
       target = next;
-      currentRead = null;
       publish({
         evidence: next?.accountId
           ? {
@@ -220,7 +216,7 @@ export function createProSession() {
               operation: "idle",
             }
           : null,
-        refreshing: false,
+        read: null,
         verificationFailed: false,
       });
       void associate();

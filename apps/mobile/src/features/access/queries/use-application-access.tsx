@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useLayoutEffect,
   useState,
   useSyncExternalStore,
   type PropsWithChildren,
@@ -21,7 +22,8 @@ const AccessContext = createContext<ReturnType<typeof useProcessAccess> | null>(
 function useProcessAccess() {
   const [observations] = useState(createAccessObservations);
   const [bypass] = useState(createMaintenanceBypass);
-  const snapshot = useSyncExternalStore(
+  useLayoutEffect(() => () => bypass.clear(), [bypass]);
+  const observed = useSyncExternalStore(
     observations.subscribe,
     observations.getSnapshot,
   );
@@ -34,23 +36,26 @@ function useProcessAccess() {
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       queryFn: async ({ signal }) => {
-        observations.begin();
-        try {
-          const value = await getApplicationAccess({ signal });
-          if (!observations.complete(value)) throw new ApiError("schema");
-          if (!value.maintenance.active) bypass.clear();
-          return value;
-        } catch (error) {
-          observations.fail();
-          throw error;
-        }
+        const value = await getApplicationAccess({ signal });
+        if (!observations.complete(value)) throw new ApiError("schema");
+        if (!value.maintenance.active) bypass.clear();
+        return value;
       },
     },
   });
+  const complete =
+    query.isSuccess &&
+    !query.isFetching &&
+    !observed.refused &&
+    query.data.maintenance.revision >= (observed.maintenance?.revision ?? 0) &&
+    query.data.versions.revision >= (observed.versions?.revision ?? 0) &&
+    query.data.maintenance.active === observed.maintenance?.active
+      ? query.data
+      : undefined;
   return {
     observations,
     bypass,
-    snapshot,
+    snapshot: { ...observed, complete, checking: query.isFetching },
     checking: query.isFetching,
     retry: () => query.refetch(),
   };
