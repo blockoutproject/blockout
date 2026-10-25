@@ -785,7 +785,9 @@ it("shows a new valid logo after decoding the previous blob failed", async () =>
     expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
     expect(screen.queryByText("VDR")).not.toBeOnTheScreen();
     expect(
-      mockFetch.mock.calls.filter(([url]) => String(url).endsWith("/logo")),
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(url).pathname.endsWith("/logo"),
+      ),
     ).toHaveLength(2);
   } finally {
     await cleanup();
