@@ -240,6 +240,7 @@ it("invites a guest without retaining a command to replay after authentication",
   await act(async () => {
     await session.signIn("https://api.example.invalid");
   });
+  await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
   );
@@ -351,6 +352,95 @@ it("distinguishes a failed initial member read from false and offers an explicit
   );
 });
 
+it("rereads a temporarily hidden target when its public page is reopened after restoration", async () => {
+  // Given
+  let hidden = true;
+  mockFetch.mockImplementation((url, request) =>
+    url.includes("team-follows") && hidden
+      ? Promise.resolve(new Response(null, { status: 404 }))
+      : transport(url, request),
+  );
+  const rendered = await mount(<FollowButton target={team} season={season} />);
+  await screen.findByText("Le suivi est indisponible pour cette ressource.");
+
+  // When
+  await rendered.rerender(<Text>Another page</Text>);
+  hidden = false;
+  await rendered.rerender(<FollowButton target={team} season={season} />);
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  expect(
+    mockFetch.mock.calls.filter(([url]) => url.includes("team-follows")),
+  ).toHaveLength(2);
+});
+
+it("does not resurrect a superseded failure when the successful second control unmounts", async () => {
+  // Given
+  let following = false;
+  let writes = 0;
+  mockFetch.mockImplementation((url, request) => {
+    if (request?.method === "PUT") {
+      if (++writes === 1)
+        return Promise.resolve(new Response(null, { status: 400 }));
+      following = JSON.parse(String(request.body)).following;
+      return Promise.resolve(Response.json({ following }));
+    }
+    return url.includes("team-follows")
+      ? Promise.resolve(Response.json({ following }))
+      : transport(url, request);
+  });
+  const user = userEvent.setup();
+  const rendered = await mount(
+    <>
+      <FollowButton key="first" target={team} season={season} />
+      <FollowButton key="second" target={team} season={season} />
+    </>,
+  );
+  await waitFor(() =>
+    expect(
+      screen.getAllByRole("button", { name: "Suivre", disabled: false }),
+    ).toHaveLength(2),
+  );
+  await user.press(screen.getAllByRole("button", { name: "Suivre" })[0]);
+  await screen.findAllByText(
+    "La demande de suivi a échoué. Vous pouvez réessayer.",
+  );
+  await user.press(screen.getAllByRole("button", { name: "Suivre" })[1]);
+  await waitFor(() =>
+    expect(
+      screen.getAllByRole("button", { name: "Suivi", busy: false }),
+    ).toHaveLength(2),
+  );
+
+  // When
+  await rendered.rerender(
+    <>
+      <FollowButton key="first" target={team} season={season} />
+    </>,
+  );
+
+  // Then
+  // Trigger the public cache lifecycle that previously exposed the older observed error.
+  await waitFor(() =>
+    expect(
+      client.getMutationCache().findAll({ status: "success" }),
+    ).toHaveLength(0),
+  );
+  expect(
+    screen.queryByText("La demande de suivi a échoué. Vous pouvez réessayer."),
+  ).not.toBeOnTheScreen();
+  await user.press(screen.getByRole("button", { name: "Suivi" }));
+  await screen.findByRole("button", { name: "Suivre", busy: false });
+  expect(
+    mockFetch.mock.calls
+      .filter(([, request]) => request?.method === "PUT")
+      .map(([, request]) => JSON.parse(String(request?.body))),
+  ).toEqual([{ following: true }, { following: true }, { following: false }]);
+});
+
 it("applies authoritative success after the initiating control unmounts", async () => {
   // Given
   const response = Promise.withResolvers<Response>();
@@ -392,6 +482,7 @@ it("resets affected retained selections and invalidates options/count without to
     seasonId: season.id,
   });
   const optionsKey = followOptionsKey(owner);
+  const bypassOptionsKey = followOptionsKey(owner, true);
   const countKey = followerCountKey(team);
   client.setQueryData(listKey, {
     pages: ["former page", "continuation"],
@@ -402,6 +493,7 @@ it("resets affected retained selections and invalidates options/count without to
     pageParams: [undefined],
   });
   client.setQueryData(optionsKey, { seasons: [season] });
+  client.setQueryData(bypassOptionsKey, { seasons: [season] });
   client.setQueryData(countKey, { count: 7 });
   const otherKey = followListKey(
     { ...owner, accountId: "00000000-0000-4000-8000-000000000099" },
@@ -418,6 +510,7 @@ it("resets affected retained selections and invalidates options/count without to
   expect(client.getQueryData(calendarKey)).toBeUndefined();
   expect(client.getQueryData(otherKey)).toBe("other owner");
   expect(client.getQueryState(optionsKey)?.isInvalidated).toBe(true);
+  expect(client.getQueryState(bypassOptionsKey)?.isInvalidated).toBe(true);
   expect(client.getQueryState(countKey)?.isInvalidated).toBe(true);
 });
 
@@ -686,8 +779,15 @@ it.each(["guest", "other", "same"] as const)(
   async (destination) => {
     // Given
     const response = Promise.withResolvers<Response>();
+    let currentAccountId = accountId;
     mockFetch.mockImplementation((url, request) =>
-      request?.method === "PUT" ? response.promise : transport(url, request),
+      request?.method === "PUT"
+        ? response.promise
+        : url.endsWith("/accounts/me")
+          ? Promise.resolve(
+              Response.json({ ...profile, accountId: currentAccountId }),
+            )
+          : transport(url, request),
     );
     const user = userEvent.setup();
     await mount(<FollowButton target={team} season={season} />);
@@ -704,21 +804,31 @@ it.each(["guest", "other", "same"] as const)(
 
     // When
     await act(async () => {
-      session.invalidate();
+      await session.clearCredentials();
       if (destination !== "guest") {
-        const snapshot = session.getSnapshot();
-        session.setAccount(
-          snapshot.generation,
+        currentAccountId =
           destination === "same"
             ? accountId
-            : "00000000-0000-4000-8000-000000000099",
+            : "00000000-0000-4000-8000-000000000099";
+        mockAuth0.webAuth.mockResolvedValue(
+          credentialsFor(`auth0|${destination}`),
         );
+        mockAuth0.saveCredentials.mockResolvedValue();
+        await session.signIn("https://api.example.invalid");
       }
       response.resolve(Response.json({ following: true }));
     });
 
     // Then
     await waitFor(() => expect(client.isMutating()).toBe(0));
+    await waitFor(() =>
+      expect(session.status).toBe(
+        destination === "guest" ? "guest" : "authenticated",
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+    );
     expect(client.getQueryData(followStateKey(owner, team))).toBeUndefined();
     expect(screen.queryByText(/Suivi confirmé/)).not.toBeOnTheScreen();
     unsubscribe();

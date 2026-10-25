@@ -122,6 +122,10 @@ export function useFollowMutation(
           exact: true,
         }),
         client.invalidateQueries({
+          queryKey: followOptionsKey(owner, !bypass),
+          exact: true,
+        }),
+        client.invalidateQueries({
           queryKey: followerCountKey(target),
           exact: true,
         }),
@@ -158,6 +162,11 @@ export function useFollowMutation(
         client.isMutating({ mutationKey, exact: true })
       )
         return;
+      // A finished attempt must not become current again when a newer control unmounts.
+      const cache = client.getMutationCache();
+      cache
+        .findAll({ mutationKey, exact: true })
+        .forEach((previous) => cache.remove(previous));
       mutation.mutate(following);
     },
   };

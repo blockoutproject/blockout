@@ -59,6 +59,8 @@ export function useFollowState(target: FollowingTarget) {
       ? followStateKey(owner, target, bypass)
       : ["following-unavailable"],
     enabled: usable,
+    // A hidden target may reappear before its prior failed read leaves memory.
+    retryOnMount: true,
     staleTime: Infinity,
     queryFn: ({ signal }) => read(signal),
   });

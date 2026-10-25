@@ -62,6 +62,8 @@ generated member operations and response validation. Only native Auth0 I/O and H
 It covers shared target busy/provisional state, independent typed targets, explicit replacement,
 guest invitation with no sign-in replay, unavailable profile, exact sporting-route composition,
 completion after unmount and retired-session rejection. Definite refusals retain confirmation;
+reopening a restored target retries its failed member read. A new explicit attempt retires superseded
+terminal mutation entries, so an older failure cannot return when another control unmounts.
 response loss performs one bounded member read without replay, and failed observation leaves an
 ordinary explicit retry of the same requested value. A successful observation is not announced as
 proof of the original write or delayed cancellation.
