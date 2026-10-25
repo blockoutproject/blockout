@@ -1,4 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
+import { getListClubTeamsQueryKey } from "../../../../.generated/mobile";
 import {
   act,
   render,
@@ -11,6 +12,7 @@ import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType } from "react";
 import RootLayout from "../../../app/_layout";
+import OnboardingRoute from "../../../app/onboarding";
 import OperationsLayout from "../../../app/(operations)/_layout";
 import ClassificationRoute from "../../../app/(operations)/administration/classification/[kind]/[id]";
 import DivisionsRoute from "../../../app/(operations)/administration/divisions/index";
@@ -110,6 +112,31 @@ function json(value: unknown, status = 200) {
     },
   });
 }
+/** Synthetic baseline HTTP peer; each scenario owns its changed network outcome. */
+async function respond(
+  url: RequestInfo | URL,
+  _options?: RequestInit,
+): Promise<Response> {
+  return json(
+    String(url).endsWith("/accounts/me")
+      ? {
+          accountId: "00000000-0000-4000-8000-000000000001",
+          username: "Operator",
+          email: "operator@example.invalid",
+          principalCreatedAt: null,
+          hasPhoto: false,
+          permissions,
+        }
+      : String(url).includes("/divisions?")
+        ? {
+            items: [
+              division,
+              { ...division, id: inactiveId, name: "Inactive", active: false },
+            ],
+          }
+        : stored,
+  );
+}
 beforeEach(async () => {
   await completeDiscovery();
   jest.mocked(initializeV2Installation).mockResolvedValue();
@@ -128,32 +155,7 @@ beforeEach(async () => {
   mockAuth0.getCredentials
     .mockReset()
     .mockResolvedValue(credentialsFor("auth0|operator-178"));
-  mockFetch.mockReset().mockImplementation(async (url) =>
-    json(
-      String(url).endsWith("/accounts/me")
-        ? {
-            accountId: "00000000-0000-4000-8000-000000000001",
-            username: "Operator",
-            email: "operator@example.invalid",
-            principalCreatedAt: null,
-            hasPhoto: false,
-            permissions,
-          }
-        : String(url).includes("/divisions?")
-          ? {
-              items: [
-                division,
-                {
-                  ...division,
-                  id: inactiveId,
-                  name: "Inactive",
-                  active: false,
-                },
-              ],
-            }
-          : stored,
-    ),
-  );
+  mockFetch.mockReset().mockImplementation(respond);
 });
 afterEach(() => {
   client.clear();
@@ -220,7 +222,9 @@ it("submits a complete pool override after confirmation and excludes inactive ch
       }),
     ),
   );
+  await screen.findByText("Classification enregistrée.");
 });
+
 it("removes the complete pack default with explicit null", async () => {
   // Given
   stored.setting = classification;
@@ -241,11 +245,13 @@ it("removes the complete pack default with explicit null", async () => {
       }),
     ),
   );
+  await screen.findByText("Classification enregistrée.");
 });
+
 it("retains dirty choices and displays conflicting scopes without applying a subset", async () => {
   // Given
   jest.spyOn(Alert, "alert");
-  const initialFetch = mockFetch.getMockImplementation()!;
+  const initialFetch = respond;
   mockFetch.mockImplementation((url, options) =>
     options?.method === "PUT"
       ? Promise.resolve(
@@ -275,6 +281,11 @@ it("retains dirty choices and displays conflicting scopes without applying a sub
   // Then
   expect(await screen.findByText(new RegExp(inactiveId))).toBeOnTheScreen();
   expect(
+    screen.getByText(
+      /division inactive, participations partagées ou identité d’équipe incompatible/,
+    ),
+  ).toBeOnTheScreen();
+  expect(
     screen.getByRole("radio", { name: "2x2", checked: true }),
   ).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
@@ -283,7 +294,7 @@ it("requires a successful current-state read after an uncertain write and preser
   // Given
   stored.setting = classification;
   jest.spyOn(Alert, "alert");
-  const initialFetch = mockFetch.getMockImplementation()!;
+  const initialFetch = respond;
   mockFetch.mockImplementation((url, options) =>
     options?.method === "PUT"
       ? Promise.reject(new TypeError("Lost response"))
@@ -371,7 +382,7 @@ it("keeps a failed recovery read blocking and never retries the uncertain write"
   // Given
   stored.setting = classification;
   jest.spyOn(Alert, "alert");
-  const initialFetch = mockFetch.getMockImplementation()!;
+  const initialFetch = respond;
   let failedRead = false;
   mockFetch.mockImplementation((url, options) =>
     options?.method === "PUT" ||
@@ -408,7 +419,7 @@ it("keeps a failed recovery read blocking and never retries the uncertain write"
 it("reconciles uncertain deactivation before offering explicit reactivation", async () => {
   // Given
   jest.spyOn(Alert, "alert");
-  const initialFetch = mockFetch.getMockImplementation()!;
+  const initialFetch = respond;
   let deactivationSent = false;
   mockFetch.mockImplementation((url, options) => {
     if (options?.method === "PUT") {
@@ -462,6 +473,7 @@ async function openRoutes() {
     {
       _layout: () => <RootLayout />,
       access: PermissionRefresh,
+      onboarding: OnboardingRoute,
       "(ordinary)/_layout": () => (
         <Stack screenOptions={{ headerShown: false }} />
       ),
@@ -472,6 +484,16 @@ async function openRoutes() {
         </>
       ),
       "(operations)/_layout": OperationsLayout,
+      "(operations)/administration/maintenance": () => (
+        <Text>Maintenance route</Text>
+      ),
+      "(operations)/administration/application-versions": () => (
+        <Text>Versions route</Text>
+      ),
+      "(operations)/collection": () => <Text>Collection route</Text>,
+      "(operations)/administration/presentation/[kind]/[id]": () => (
+        <Text>Presentation route</Text>
+      ),
       "(operations)/administration/index": () => (
         <AdministrationScreen admitted />
       ),
@@ -491,7 +513,7 @@ it("retains a classification draft and uncertainty through actual protected-rout
   const user = userEvent.setup();
   await openRoutes();
   const permissionRead = Promise.withResolvers<Response>();
-  const initialFetch = mockFetch.getMockImplementation()!;
+  const initialFetch = respond;
   mockFetch.mockImplementation((url, options) =>
     String(url).endsWith("/accounts/me")
       ? permissionRead.promise
@@ -559,4 +581,139 @@ it("admits the divisions administration destination for the lifecycle grant alon
     await screen.findByRole("button", { name: "Créer une division" }),
   ).toBeEnabled();
   expect(screen.queryByText("Modifier la présentation")).not.toBeOnTheScreen();
+});
+
+it.each(["classification", "activity"])(
+  "invalidates a previously loaded club team list after accepted %s",
+  async (operation) => {
+    // Given
+    const clubKey = getListClubTeamsQueryKey(id, { seasonId: inactiveId });
+    client.setQueryData(clubKey, { seasonId: inactiveId, items: [] });
+    jest.spyOn(Alert, "alert");
+    let accepted = false;
+    mockFetch.mockImplementation((url, options) => {
+      if (options?.method === "PUT") {
+        accepted = true;
+        return Promise.resolve(
+          json(
+            operation === "activity"
+              ? { ...division, revision: "d2", active: false }
+              : { ...stored, revision: "r2" },
+          ),
+        );
+      }
+      return accepted &&
+        operation === "activity" &&
+        String(url).includes("/divisions?")
+        ? Promise.resolve(
+            json({ items: [{ ...division, revision: "d2", active: false }] }),
+          )
+        : respond(url, options);
+    });
+    const user = await renderEditor(
+      operation === "activity" ? "divisions" : "pool",
+    );
+
+    // When
+    if (operation === "activity")
+      await user.press(
+        await screen.findByRole("button", { name: "Désactiver National 2" }),
+      );
+    else
+      await user.press(
+        await screen.findByRole("button", { name: "Enregistrer" }),
+      );
+    await confirm();
+
+    // Then
+    await screen.findByText(
+      operation === "activity"
+        ? "Division désactivée. L’historique est conservé."
+        : "Classification enregistrée.",
+    );
+    await waitFor(() =>
+      expect(client.getQueryState(clubKey)?.isInvalidated).toBe(true),
+    );
+    expect(client.getQueryState(["/application-access"])?.isInvalidated).toBe(
+      false,
+    );
+  },
+);
+
+it("distinguishes a stale revision and uses the reread revision only on explicit resubmission", async () => {
+  // Given
+  stored.setting = classification;
+  jest.spyOn(Alert, "alert");
+  let refuse = true;
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PUT"
+      ? Promise.resolve(
+          refuse
+            ? json(
+                {
+                  type: "urn:blockout:problem:stale-revision",
+                  title: "Conflict",
+                  status: 409,
+                },
+                409,
+              )
+            : json({
+                ...stored,
+                revision: "r3",
+                setting: { ...classification, format: "4x4" },
+              }),
+        )
+      : respond(url, options),
+  );
+  const user = await renderEditor();
+  await user.press(await screen.findByRole("radio", { name: "4x4" }));
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await confirm();
+  await screen.findByText(/La classification a changé depuis votre lecture/);
+  stored = { ...stored, revision: "r2" };
+  await user.press(
+    screen.getByRole("button", { name: "Relire la classification" }),
+  );
+  refuse = false;
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await confirm();
+
+  // Then
+  await screen.findByText("Classification enregistrée.");
+  const writes = mockFetch.mock.calls.filter(
+    ([, options]) => options?.method === "PUT",
+  );
+  expect(writes).toHaveLength(2);
+  expect(JSON.parse(String(writes[1][1]?.body))).toEqual({
+    revision: "r2",
+    classification: { ...classification, format: "4x4" },
+  });
+});
+
+it("reauthorizes a held native confirmation after the current classification grant is revoked", async () => {
+  // Given
+  jest.spyOn(Alert, "alert");
+  const user = await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Enregistrer" }));
+
+  // When
+  permissions = { manageDivisionLifecycle: true };
+  await act(async () =>
+    client.refetchQueries({
+      predicate: ({ queryKey }) =>
+        queryKey.some((part) => part === "/accounts/me"),
+    }),
+  );
+  await confirm();
+
+  // Then
+  expect(
+    await screen.findByText("Cette action nécessite une permission dédiée."),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+  ).toBe(false);
 });

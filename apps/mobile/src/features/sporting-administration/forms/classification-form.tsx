@@ -102,15 +102,19 @@ export function ClassificationForm({
         "conflictingResourceIds" in error.problem
           ? error.problem.conflictingResourceIds
           : undefined;
+      const type = error instanceof ApiError ? error.problem?.type : undefined;
+      const reason =
+        type === "urn:blockout:problem:classification-conflict"
+          ? "Correction entièrement refusée : division inactive, participations partagées ou identité d’équipe incompatible. Réduisez le périmètre ou demandez une intervention technique."
+          : type === "urn:blockout:problem:stale-revision"
+            ? "La classification a changé depuis votre lecture. Relisez l’état courant avant de confirmer votre brouillon."
+            : "L’enregistrement n’a pas abouti. Relisez l’état courant avant de réessayer.";
       editor.update({
         ...editor.getSnapshot(),
         needsRead:
           isUncertainMutationFailure(error) ||
           (error instanceof ApiError && error.status === 409),
-        feedback:
-          Array.isArray(conflictIds) && conflictIds.length > 0
-            ? `Correction entièrement refusée. Périmètres en conflit : ${conflictIds.join(", ")}. Votre brouillon est conservé.`
-            : "L’enregistrement n’a pas abouti. Votre brouillon est conservé. Relisez l’état courant avant de réessayer.",
+        feedback: `${reason}${Array.isArray(conflictIds) && conflictIds.length > 0 ? ` Périmètres en conflit : ${conflictIds.join(", ")}.` : ""} Votre brouillon est conservé.`,
       });
     }
   }

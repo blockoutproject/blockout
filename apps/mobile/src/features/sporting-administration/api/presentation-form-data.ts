@@ -1,4 +1,5 @@
 import type {
+  CreateDivisionBody,
   SetClubPresentationBody,
   SetTeamPresentationBody,
   SetDivisionPresentationBody,
@@ -7,6 +8,7 @@ import type {
 /** Orval multipart adaptation: one JSON metadata part and binary artwork only for replacement. */
 export function presentationFormData(
   body:
+    | CreateDivisionBody
     | SetClubPresentationBody
     | SetTeamPresentationBody
     | SetDivisionPresentationBody,

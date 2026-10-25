@@ -1,9 +1,11 @@
 import {
+  hashKey,
   useIsMutating,
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { invalidateSportingReads } from "./invalidate-sporting-reads";
 import { useAuth0 } from "react-native-auth0";
 import {
   getClubPresentation,
@@ -237,9 +239,10 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
       if (target.kind !== "division-creation")
         client.setQueryData(queryKey, accepted);
       if (target.kind === "division" || target.kind === "division-creation") {
+        invalidateSportingReads(client);
         void client.invalidateQueries({
           predicate: ({ queryKey: key }) =>
-            key !== queryKey &&
+            hashKey(key) !== hashKey(queryKey) &&
             key.some(
               (part) =>
                 typeof part === "string" &&
@@ -268,7 +271,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
         predicate: ({ queryKey: key }) =>
           key.some(
             (part) => typeof part === "string" && affected.includes(part),
-          ) && key !== queryKey,
+          ) && hashKey(key) !== hashKey(queryKey),
       });
       return accepted;
     },

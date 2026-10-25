@@ -130,6 +130,15 @@ let mockMaintenance = false;
 const environment = { ...process.env };
 
 // Presentation routes start after common discovery has been explicitly completed.
+/** Synthetic baseline HTTP peer; each scenario owns its changed network outcome. */
+async function respond(
+  url: RequestInfo | URL,
+  _options?: RequestInit,
+): Promise<Response> {
+  return json(
+    String(url).endsWith("/accounts/me") ? { ...account, permissions } : stored,
+  );
+}
 beforeEach(async () => {
   await completeDiscovery();
   client = createQueryClient();
@@ -155,15 +164,7 @@ beforeEach(async () => {
     .mocked(ImagePicker.launchImageLibraryAsync)
     .mockReset()
     .mockResolvedValue({ canceled: true, assets: null });
-  mockFetch
-    .mockReset()
-    .mockImplementation(async (url) =>
-      json(
-        String(url).endsWith("/accounts/me")
-          ? { ...account, permissions }
-          : stored,
-      ),
-    );
+  mockFetch.mockReset().mockImplementation(respond);
 });
 afterEach(() => {
   client.clear();
@@ -638,6 +639,15 @@ async function openRoutes(initialUrl = "/") {
         </>
       ),
       "(operations)/_layout": OperationsLayout,
+      "(operations)/administration/classification/[kind]/[id]": () => (
+        <Text>Classification route</Text>
+      ),
+      "(operations)/administration/divisions/index": () => (
+        <Text>Divisions route</Text>
+      ),
+      "(operations)/administration/divisions/new": () => (
+        <Text>Creation route</Text>
+      ),
       "(operations)/administration/index": () => (
         <Text>Administration route</Text>
       ),
@@ -950,7 +960,7 @@ it("creates an active division through the existing atomic presentation form wit
   permissions = { manageDivisionLifecycle: true };
   stored = { items: [] };
   jest.spyOn(Alert, "alert");
-  const initialFetch = mockFetch.getMockImplementation()!;
+  const initialFetch = respond;
   const created = {
     id: resourceId,
     revision: "d1",
@@ -989,9 +999,9 @@ it("creates an active division through the existing atomic presentation form wit
     ([, options]) => options?.method === "POST",
   )?.[1];
   expect(request?.body).toBeInstanceOf(FormData);
-  expect(
-    JSON.parse(String((request?.body as FormData).get("metadata"))),
-  ).toEqual({
+  const metadata = (request?.body as FormData).get("metadata") as Blob;
+  expect(metadata.type).toBe("application/json");
+  expect(JSON.parse(await metadata.text())).toEqual({
     name: "National 2",
     color: "#123456",
     gradient: null,
@@ -1008,7 +1018,7 @@ it("rereads divisions after an uncertain creation and keeps the draft while iden
   permissions = { manageDivisionLifecycle: true };
   stored = { items: [] };
   jest.spyOn(Alert, "alert");
-  const initialFetch = mockFetch.getMockImplementation()!;
+  const initialFetch = respond;
   mockFetch.mockImplementation((url, options) =>
     options?.method === "POST"
       ? Promise.reject(new TypeError("Lost response"))

@@ -1,9 +1,11 @@
 import {
+  hashKey,
   useIsMutating,
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { invalidateSportingReads } from "./invalidate-sporting-reads";
 import { useAuth0 } from "react-native-auth0";
 import {
   getPackClassification,
@@ -20,6 +22,7 @@ import {
 } from "../../../../.generated/mobile";
 import type {
   AccountResponse,
+  AccountPermissionsResponse,
   SetClassificationRequest,
   SetDivisionActivityRequest,
 } from "../../../../.generated/schemas/index.zod";
@@ -34,24 +37,31 @@ export interface ClassificationTarget {
   kind: "pack" | "pool";
   id: string;
 }
-/** Rechecks the current F05 account and action-specific F12 grant before and after credentials. */
-export function useSportingAuthority(
-  action: "classification" | "lifecycle" | "divisions",
+type SportingAction = "classification" | "lifecycle" | "divisions";
+/** The canonical action grants are shared by rendered availability and request-time authorization. */
+function hasSportingPermission(
+  grants: AccountPermissionsResponse | undefined,
+  action: SportingAction,
 ) {
+  if (action === "classification")
+    return grants?.manageSportingClassification === true;
+  if (action === "lifecycle") return grants?.manageDivisionLifecycle === true;
+  return (
+    grants?.manageSportingClassification === true ||
+    grants?.manageDivisionLifecycle === true ||
+    grants?.manageSportingPresentation === true
+  );
+}
+/** Rechecks the current F05 account and action-specific F12 grant before and after credentials. */
+export function useSportingAuthority(action: SportingAction) {
   const session = useAccountSession();
   const capabilities = useAdministrationCapabilities();
   const version = useOperationalVersionAdmission();
   const auth = useAuth0();
   const client = useQueryClient();
-  const allowed =
-    action === "classification"
-      ? capabilities.permissions?.manageSportingClassification === true
-      : action === "lifecycle"
-        ? capabilities.permissions?.manageDivisionLifecycle === true
-        : capabilities.permissions?.manageSportingClassification === true ||
-          capabilities.permissions?.manageDivisionLifecycle === true ||
-          capabilities.permissions?.manageSportingPresentation === true;
-  const enabled = allowed && version.satisfied;
+  const enabled =
+    hasSportingPermission(capabilities.permissions, action) &&
+    version.satisfied;
   /** A held confirmation or delayed credential promise cannot retain a revoked action grant. */
   function assertCurrent() {
     if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
@@ -64,15 +74,7 @@ export function useSportingAuthority(
       current.data?.accountId === session.accountId
         ? current.data.permissions
         : undefined;
-    const granted =
-      action === "classification"
-        ? grants?.manageSportingClassification === true
-        : action === "lifecycle"
-          ? grants?.manageDivisionLifecycle === true
-          : grants?.manageSportingClassification === true ||
-            grants?.manageDivisionLifecycle === true ||
-            grants?.manageSportingPresentation === true;
-    if (!granted) throw new ApiError("http", 403);
+    if (!hasSportingPermission(grants, action)) throw new ApiError("http", 403);
   }
   /** Supplies request-local credentials and captured session; no mutation is replayed. */
   async function request() {
@@ -121,18 +123,16 @@ export function useClassification(target: ClassificationTarget) {
       if (!authority.session.isCurrent(authority.session.generation))
         throw new ApiError("cancelled");
       client.setQueryData(queryKey, accepted);
-      // Pack changes can affect inherited pool revisions; collection eligibility and public reads must be refreshed.
+      // Pack changes can affect inherited pool revisions; preserve the confirmed target while invalidating other settings.
       void client.invalidateQueries({
         predicate: ({ queryKey: key }) =>
-          key !== queryKey &&
+          hashKey(key) !== hashKey(queryKey) &&
           key.some(
             (part) =>
-              typeof part === "string" &&
-              (part.includes("/classification") ||
-                part.startsWith("/collection/") ||
-                /^\/(teams|pools|matches)/.test(part)),
+              typeof part === "string" && part.includes("/classification"),
           ),
       });
+      invalidateSportingReads(client);
       return accepted;
     },
   });
@@ -178,16 +178,15 @@ export function useDivisionActivity(id: string) {
         throw new ApiError("cancelled");
       void client.invalidateQueries({
         predicate: ({ queryKey: key }) =>
-          key !== queryKey &&
+          hashKey(key) !== hashKey(queryKey) &&
           key.some(
             (part) =>
               typeof part === "string" &&
               (part.startsWith("/administration/divisions") ||
-                part.includes("/classification") ||
-                part.startsWith("/collection/") ||
-                /^\/(teams|pools|matches)/.test(part)),
+                part.includes("/classification")),
           ),
       });
+      invalidateSportingReads(client);
       return accepted;
     },
   });

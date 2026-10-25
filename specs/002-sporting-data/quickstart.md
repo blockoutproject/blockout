@@ -67,10 +67,11 @@ Routes live under `apps/mobile/src/app/(operations)/administration/`.
 The [classification suite](../../apps/mobile/src/features/sporting-administration/__tests__/classification.test.tsx)
 exercises complete overrides, explicit null/inheritance, incomplete/inactive
 choices, all-request conflict feedback, retained dirty values, failed and
-successful current-state recovery, independent activity and real protected-route
+successful current-state recovery, distinct canonical conflict reasons, invalidation
+of previously loaded club teams, independent activity and real protected-route
 removal/reentry. The [presentation suite](../../apps/mobile/src/features/sporting-administration/__tests__/presentation.test.tsx)
 adds division creation through the same RHF/Zod name/color/logo form and generated
-multipart client, with native confirmation, duplicate-name handling after a lost
+multipart client with an `application/json` metadata part, native confirmation, duplicate-name handling after a lost
 response and no activity write. Native SDK credentials and HTTP are controlled in
 Jest; these tests do not qualify backend transaction outcomes, provider identity
 or native rendering.
