@@ -105,7 +105,7 @@ Keep the target isolated while checking the [prepared owner cases](../../specs/0
 
 - **F05/F06/F12:** reconcile current accounts, subject-to-UUID associations, follows, erasures and distinct application grants/settings. A revoked permission or erased account in the old copy must not regain access. Follow [F05 erasure and return](../../specs/005-accounts-identity/plan.md#erasure-and-manual-resolution): a replacement account receives no deleted profile, follows, grants or gifts; do not merge by email or target a replacement UUID for original-account cleanup. Keep the accepted token-validity and private-log evidence limits; there is no exhaustive deletion ledger.
 - **F09/F11:** verify current provider identity and RevenueCat rights through their [owning rules](../../specs/006-pro-subscriptions/plan.md#environments-and-continuity), including gift expiry/revocation. SQL restoration does not restore a subscription, cancel billing or prove entitlement. Unknown current-account rights remain unknown under the SDK's accepted behavior. Reapply current [privacy restrictions](../../specs/004-advertising-privacy-legal/plan.md#legal-content-and-shared-privacy), including suppressed sporting contact values and affected images/attribution; restoration must not make them accessible again.
-- **F07:** before controlled reads/counts/sends, remove inbox entries aged at least **29 elapsed days**, preserving original creation times and available nonpersonal match announcement facts. Apply current account/destination/follow restrictions. [F07 FR-043–046 and A51](../../specs/011-notifications-delivery/spec.md) accept an exceptional duplicate sporting announcement if restore lost facts; they permit no erased personal data or expired inbox resurrection. Do not replay uncertain pushes or maintenance-suppressed sends.
+- **F07:** before controlled reads/counts/sends, remove inbox entries aged at least **29 elapsed days**, preserving original creation times and available nonpersonal match announcement facts. Require completed cleanup and current erasure/privacy/rights reconciliation for the affected scope; a partial purge or unknown obligation keeps its access/sends closed. Use the [prepared retention/restore cases](../../specs/011-notifications-delivery/quickstart.md#retention-construction-and-isolated-restore-cases--255). Apply current account/destination/follow restrictions. [F07 FR-043–046 and A51](../../specs/011-notifications-delivery/spec.md) accept an exceptional duplicate sporting announcement if restore lost facts; they permit no erased personal data or expired inbox resurrection. Do not replay uncertain pushes or maintenance-suppressed sends.
 - **F04:** rebuild isolated OpenSearch derivatives from the reconciled PostgreSQL data through the [owning startup/full-rebuild path](../../specs/008-search-discovery/plan.md#projection-lifecycle). Start the candidate backend only after SQL reconciliation, under isolation/maintenance with outbound effects blocked. Verify complete alias replacement and current visibility before opening search; a failed/incomplete rebuild keeps affected search unavailable. No independent search backup chain is required. Source collection recovers only what suppliers still expose, not missing customizations, bytes or history.
 
 Missing current evidence keeps the affected access/sends unavailable. Do not bypass that condition by assuming an erased account, revoked right or unknown provider state is valid. Use existing private provider/support tools for authorized manual resolution, with no new recovery service or ledger.
@@ -119,6 +119,29 @@ Recover deployment/provider configuration separately from its authorized owner: 
 Record actual source/candidate versions, backup time, isolated destination, recovered scope/byte comparisons, role checks, current-obligation decisions, gaps and elapsed duration in existing **private** delivery evidence. No duration or loss guarantee follows. Remove temporary downloaded/extracted copies when their authorized purpose ends; restoring does not renew the original backup's retention. Keep source storage intact until any separate disposal decision.
 
 Only after those checks and explicit reopening authorization may the operator reconnect the approved target through the [serialized delivery path](../dokploy/README.md#promotion-and-native-deployment), run any required compatible migration once, verify validation-only startup, readiness and owner outcomes, then lift maintenance/access and resume ordinary sends. Failed migration/startup or unresolved obligations keep the affected capability closed. The initial isolated proof itself opens no production access.
+
+## Notification retention failure
+
+For `operation=notification_retention`, inspect the [safe outcome/configuration fields](../observability/README.md#f07-notification-retention)
+in the existing private F13 stack. A missed, interrupted or `incomplete` pass is a retention
+failure, including rows remaining beyond age 30; it grants no longer lifetime. Preserve
+committed removals. Reads/counts must continue excluding age 29 while physical removal is pending.
+
+Verify the exact environment/backend revision, actual UTC daily cron, process availability,
+database connectivity, application DELETE permission and relevant lock/resource failures using
+authorized private operational access. Retain only the necessary safe type, time and counts.
+Repair the demonstrated cause through the existing owner/deployment process, preserving
+nonpersonal match facts, original dates and independently necessary installation/follow
+associations. Do not recreate personal rows or replay announcements/pushes.
+
+The next ordinary daily pass starts again from due rows; there is no immediate retry timer or
+user-facing purge endpoint. Persistent failures require authorized manual intervention. The
+existing Spring-managed `PurgeNotifications.run()` is the internal operation, not an HTTP route
+or installed operator CLI: an earlier invocation for a separately authorized isolated restore
+requires a reviewed environment-specific invocation of that bean. Do not instantiate it directly
+or replace its transactional boundary with an ad hoc production SQL script. Confirm completed
+cleanup and current obligations before reopening under the reconciliation above. Keep detection,
+intervention and verified recovery distinct; no response-time guarantee is implied.
 
 ## Compatible application rollback
 

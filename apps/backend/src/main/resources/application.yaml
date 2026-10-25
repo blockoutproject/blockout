@@ -35,6 +35,9 @@ server:
     max-swallow-size: 27MB
 
 blockout:
+  notifications:
+    # One ordinary pass per UTC day; Spring's '-' value is for isolated tests only.
+    retention-cron: ${BLOCKOUT_NOTIFICATIONS_RETENTION_CRON:0 0 3 * * *}
   consultation:
     documents:
       # Consumed by the document story adapter after origin/transport qualification.
