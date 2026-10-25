@@ -1,4 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 import { SourcePreparationScreen } from "../../../../../../features/collection/screens/source-preparation-screen";
 import { usePreparationDiscard } from "../../../../../../features/collection/forms/use-preparation-discard";
 import { discardSourcePreparationEditor } from "../../../../../../features/collection/forms/preparation-editors";
@@ -9,7 +10,11 @@ export default function SourcePreparationRoute() {
     seasonId: string;
     sourceId: string;
   }>();
-  const onDirtyChange = usePreparationDiscard(discardSourcePreparationEditor);
+  const [dirty, onDirtyChange] = useState(false);
+  usePreparationDiscard(dirty, () => {
+    onDirtyChange(false);
+    discardSourcePreparationEditor();
+  });
   return (
     <SourcePreparationScreen
       seasonId={seasonId}

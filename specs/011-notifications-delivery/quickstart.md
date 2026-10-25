@@ -17,7 +17,7 @@ no external retained-data posture is qualified.
 
 The [Java contract cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/api/NotificationContractTest.java) exercise generated request binding and producer serialization through a test-only adapter. The [mobile contract cases](../../apps/mobile/src/features/notifications/__tests__/notification-contract.test.ts) exercise actual Orval consumers and one-time F13 response validation before cache admission. Request schema checks use Zod's native `.strict()`; generated Java does not enforce the boolean enum, so F07 explicitly requires true. Orval's multiple-success-status registration function needs the generated `PushSubscriptionResponse` supplied through the existing F13 `schema` request option, as for F05 establishment. Java server responses are serialization evidence, not a generated Java response-decoder qualification.
 
-The [owner cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/NotificationAccessWebMvcTest.java) use real F05 resolution, native security and an isolated signed-JWT/JWKS boundary; account storage and the F12 admission decision are controlled. The [mobile context cases](../../apps/mobile/src/features/notifications/__tests__/notification-context.test.ts) use the existing session owner, transport and one QueryClient, including native infinite-query `pageParam`, A → guest/B → A and late completion without cancellation. These checks qualify the foundation only: production inbox endpoints, notification SQL, account-erasure orchestration, native permissions/lifecycle, physical devices and provider delivery remain with their later tasks, including #245.
+The [owner cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/NotificationAccessWebMvcTest.java) use real F05 resolution, native security and an isolated signed-JWT/JWKS boundary; account storage and the F12 admission decision are controlled. The [mobile context cases](../../apps/mobile/src/features/notifications/__tests__/notification-context.test.ts) use the existing session owner, transport and one QueryClient, including native infinite-query `pageParam`, A → guest/B → A and late completion without cancellation. These checks qualify the foundation only. Backend inbox endpoints and SQL are qualified [below](#current-inbox-construction-evidence-250); account-erasure orchestration, native permissions/lifecycle, physical devices and provider delivery remain with their owning tasks.
 
 Run the README verification for current application, generator and Expo Doctor results;
 revision-specific execution results belong to the delivery PR.
@@ -89,6 +89,30 @@ team/pool reads. The F06 adapter reads both origins with one HQL `UNION ALL`, pr
 relation's identity and target type in one PostgreSQL statement snapshot, qualified against Hibernate
 7.4.5.Final/PostgreSQL 18.6 and the existing F06 SQL suite. The test hook is local
 to that scenario; the production interface, transaction isolation and selected versions are unchanged.
+
+## Current inbox construction evidence (#250)
+
+T015/T016/T019–T021 implement owner collection/member/summary reads and the independent true-only
+read intent. [HTTP cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/api/NotificationsWebMvcTest.java)
+exercise the production generated controller, strict JSON/query handling, private cache headers,
+canonical errors and shared admission. [Cursor cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/api/NotificationCursorTest.java)
+exercise URL-safe keys and exact PostgreSQL microseconds/UUIDs. The existing generated Java/mobile
+contract suites continue to cover strict requests and additive response/omission behavior.
+
+[Read SQL cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/ReadInboxIntegrationTest.java)
+use migrated PostgreSQL 18.6 with actual F03/F08 projections, tied original timestamps, removed
+anchors, insertions, current restrictions, corrections and an all-page count/minimum expiry,
+including an unloaded row just before/exactly 29 elapsed days. Native Hibernate statement
+inspection commits a correction/removal between selection and hydration to verify the read-only
+repeatable-read snapshot. A twenty-distinct-match case bounds query count to exclude N+1 reads.
+
+[Read-command SQL cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/MarkNotificationReadIntegrationTest.java)
+exercise committed monotone marks, repeated/concurrent intents, overlapping GETs and controlled
+original-account/personal-row removal while a command waits. They preserve original age/order,
+current authorization and non-personal consumed facts. These controlled deletions are not actual
+scheduled purge or F05 erasure qualification. T052/#267 owns those races; T051/#360 owns restoration,
+and #253 owns native inbox behavior. No device, push/provider or production evidence is claimed.
+Revision-specific commands and outcomes remain in the delivery PR.
 
 ## Essential scenarios
 

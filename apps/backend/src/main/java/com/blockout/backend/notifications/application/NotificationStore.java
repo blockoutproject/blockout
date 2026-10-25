@@ -6,8 +6,19 @@ import com.blockout.backend.notifications.domain.NotificationVariant;
 import java.time.Instant;
 import java.util.UUID;
 
-/** Required F07 persistence in the producer transaction, after all sporting roots then accounts. */
+/** Required F07 writes after caller-ordered sporting roots then original account locks. */
 public interface NotificationStore {
+  /**
+   * Applies only true to an exact still-retained allocation after sporting and account locks.
+   * Repetition succeeds; a removed row is never recreated.
+   *
+   * @param owner locked original owner
+   * @param id exact personal allocation
+   * @param now retention evaluation instant
+   * @return whether the exact retained allocation still exists
+   */
+  boolean markRead(NotificationContext owner, UUID id, Instant now);
+
   /**
    * Reads minimal allowances after the caller holds the shared F02 match lock.
    *

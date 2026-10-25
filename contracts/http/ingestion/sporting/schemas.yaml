@@ -61,6 +61,9 @@ ObservationOutcomeInternalResponse:
       description: >-
         Stable problem type for a refusal, using the shared error categories.
         urn:blockout:problem:stale-observation identifies an observation older than accepted state.
+        An accepted or unchanged club-detail observation with unprocessable-content means that
+        invalid secondary proposals were ignored while usable fields were retained or updated;
+        consumers report partial integration without exposing the submitted values.
         This is an item outcome, not an HTTP failure of the whole submission.
       format: uri
     homeTeamId:

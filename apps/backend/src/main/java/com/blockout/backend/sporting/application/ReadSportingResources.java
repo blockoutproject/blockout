@@ -20,6 +20,17 @@ public class ReadSportingResources {
   private final SportingReadService owners;
 
   /**
+   * Reads only the current public club identity for summary consumers.
+   *
+   * @param id exact club identity
+   * @return current permitted names and logo link
+   * @throws SportingResourceNotFoundException when the identity is unavailable
+   */
+  public ConsultationViews.Identity clubIdentity(UUID id) {
+    return reads.clubIdentity(id).orElseThrow(SportingResourceNotFoundException::new);
+  }
+
+  /**
    * Reads exact current club facts and viewable seasons.
    *
    * @param id addressed club identity
@@ -39,6 +50,17 @@ public class ReadSportingResources {
    */
   public ConsultationViews.ClubTeams clubTeams(ClubSeasonRequest request) {
     return reads.clubTeams(request).orElseThrow(SportingResourceNotFoundException::new);
+  }
+
+  /**
+   * Reads the current seasonal team summary without its participation detail collection.
+   *
+   * @param id exact seasonal team identity
+   * @return detached current identity, season, classification and optional club
+   * @throws SportingResourceNotFoundException when the team is currently unavailable
+   */
+  public ConsultationViews.TeamSummary teamSummary(UUID id) {
+    return reads.teamSummary(id).orElseThrow(SportingResourceNotFoundException::new);
   }
 
   /**

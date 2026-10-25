@@ -2,6 +2,7 @@ package com.blockout.backend.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -64,6 +65,41 @@ class LoggingTest {
         .isEqualTo(IllegalStateException.class.getName());
     assertThat(event.has("message")).isFalse();
     assertThat(event.path("error").has("stack_trace")).isFalse();
+  }
+
+  @Test
+  @DisplayName(
+      "Excludes advertising, location and support content from ordinary integration errors")
+  void excludesPurposeLimitedContent(CapturedOutput output) {
+    // Given
+    Map<String, Object> provider = Map.of("receipt", "synthetic-private-provider-object");
+    try (MDC.MDCCloseable ignored =
+        MDC.putCloseable("native_consent", "synthetic-consent-string")) {
+      // When
+      LOG.atError()
+          .addKeyValue("operation", "http_request")
+          .addKeyValue("outcome", "failed")
+          .addKeyValue("age", 17)
+          .addKeyValue("consent", "synthetic-consent-string")
+          .addKeyValue("ad_unit_id", "synthetic-ad-unit")
+          .addKeyValue("advertising_id", "synthetic-advertising-id")
+          .addKeyValue("location", "synthetic-private-location")
+          .addKeyValue("support_content", "synthetic-private-support")
+          .addKeyValue("attachment", "synthetic-private-image")
+          .addKeyValue("provider_object", provider)
+          .setCause(new IllegalStateException("synthetic-private-support"))
+          .log("synthetic-consent-string");
+    }
+
+    // Then
+    JsonNode event = JsonMapper.builder().build().readTree(output.getOut().strip());
+    assertThat(event.path("operation").asText()).isEqualTo("http_request");
+    assertThat(event.path("outcome").asText()).isEqualTo("failed");
+    assertThat(event.path("error").path("type").asText())
+        .isEqualTo(IllegalStateException.class.getName());
+    assertThat(event.has("age")).isFalse();
+    assertThat(output.getAll())
+        .doesNotContain("synthetic-", "receipt", "support_content", "provider_object");
   }
 
   @Test

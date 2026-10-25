@@ -60,11 +60,17 @@ function useAdmission() {
     permissions?.bypassMaintenance === true && version === "satisfied";
   const bypassing = canBypass && access.bypass.active(session);
   const presentation = accessPresentation(snapshot, bypassing);
-  const operations = version === "satisfied" && (hasCommands || canBypass);
+  const operations =
+    version === "satisfied" &&
+    (hasCommands ||
+      canBypass ||
+      permissions?.manageSportingPresentation === true);
+  const administration = version === "satisfied" && (hasCommands || canBypass);
   return {
     ...access,
     ...presentation,
     operations,
+    administration,
     permissions,
     canBypass:
       canBypass &&

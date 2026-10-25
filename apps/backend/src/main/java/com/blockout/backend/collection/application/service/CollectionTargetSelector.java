@@ -1,7 +1,6 @@
 package com.blockout.backend.collection.application.service;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
-import com.blockout.backend.collection.application.exception.CollectionNotFoundException;
 import com.blockout.backend.collection.application.model.CollectionAttempt;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.CollectionState.Control;
@@ -17,7 +16,6 @@ import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
-import com.blockout.backend.sporting.application.model.ClubLocalityView;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.service.SeasonService;
@@ -42,6 +40,7 @@ public class CollectionTargetSelector {
   private final CollectionStore store;
   private final SportingReadService sporting;
   private final SeasonService seasons;
+  private final ClubAcquisitionService clubs;
 
   /**
    * Persists the due or explicitly requested scope inside the admission transaction. Mutable club
@@ -58,17 +57,15 @@ public class CollectionTargetSelector {
           && control.family() != CollectionFamilyEnum.GEOCODING) throw invalid();
       UUID afterClub = null;
       while (true) {
-        List<AcquisitionReference> references =
-            sporting.acquisitionClubs(
+        ClubAcquisitionService.TargetBatch references =
+            clubs.targets(
+                control.id(),
                 control.family() == CollectionFamilyEnum.GEOCODING,
                 cycle.mode() != CollectionModeEnum.PERIODIC,
                 afterClub);
-        if (references.isEmpty()) break;
-        retainDue(
-            cycle,
-            control,
-            references.stream().map(reference -> target(reference, null, null)).toList());
-        afterClub = references.getLast().clubId();
+        if (references.lastClubId() == null) break;
+        retainDue(cycle, control, references.items());
+        afterClub = references.lastClubId();
       }
       return;
     }
@@ -161,34 +158,15 @@ public class CollectionTargetSelector {
    * @return current permitted locality for geocoding only; removal/restriction forbids a query
    */
   public List<ServedTarget> serve(List<Target> targets) {
-    List<UUID> clubIds =
-        targets.stream()
-            .filter(target -> target.kind() == CollectionTargetKindEnum.GEOCODING)
-            .map(Target::clubId)
-            .toList();
-    Map<UUID, ClubLocalityView> localities = sporting.clubLocalities(clubIds);
-    return targets.stream()
-        .map(
-            target -> {
-              if (target.kind() != CollectionTargetKindEnum.GEOCODING)
-                return new ServedTarget(target, null, null, null);
-              ClubLocalityView locality = localities.get(target.clubId());
-              if (locality == null) throw new CollectionNotFoundException();
-              return new ServedTarget(
-                  target,
-                  locality.localityRevision(),
-                  locality.municipality(),
-                  locality.postalCode());
-            })
-        .toList();
+    return clubs.serve(targets);
   }
 
   /**
    * Combines qualified owner context without copying personal locality.
    *
    * @param reference eligible F02-owned identity/current configuration
-   * @param source binding for competition work, otherwise absent
-   * @param season canonical season for competition work, otherwise absent
+   * @param source qualified competition source binding
+   * @param season owning canonical competition season
    * @return frozen nonpersonal acquisition context
    */
   private Target target(
@@ -200,17 +178,13 @@ public class CollectionTargetSelector {
             .url(reference.url())
             .poolId(reference.poolId())
             .matchId(reference.matchId())
-            .clubId(reference.clubId())
-            .clubReference(reference.clubReference())
             .packReference(reference.packReference())
             .provider(reference.provider())
             .nativeMatchReference(reference.nativeMatchReference())
-            .fastWindowEndsAt(reference.fastWindowEndsAt());
-    if (source != null)
-      result
-          .sourceBindingId(source.id())
-          .organizerReference(source.organizerReference())
-          .seasonLabel(season.label());
+            .fastWindowEndsAt(reference.fastWindowEndsAt())
+            .sourceBindingId(source.id())
+            .organizerReference(source.organizerReference())
+            .seasonLabel(season.label());
     PoolKey key = reference.poolKey();
     if (key != null)
       result

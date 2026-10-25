@@ -39,6 +39,31 @@ is recorded in [quickstart](quickstart.md#atomic-producer-and-link-qualification
 
 **Evidence.** [Spring Data scrolling](https://docs.spring.io/spring-data/jpa/reference/jpa/query-methods.html#jpa.query-methods.scroll) and [specification fluent queries](https://docs.spring.io/spring-data/jpa/reference/jpa/specifications.html) document keyset scrolling and specification-based fluent reads. Use that supported path; string-based `@Query` scrolling is not supported. Non-null sort properties must be available in the selected projection. The opaque HTTP cursor is a focused mapping of those keys, not a new pagination engine. Criteria joins, index use, timestamp precision and generated serialization remain integration qualifications.
 
+### Bounded inbox construction — #250
+
+`ConsultationMatchSelection` supplies F03-owned scalar Criteria subqueries for filtering before
+F07 keyset paging/counting, and bounded detached match summaries. This explicit database
+composition boundary avoids importing sporting entities/repositories into F07, materializing all
+eligible match IDs, or duplicating sporting state in personal rows. The same F03 summary mapping
+serves ordinary match consultation. A fetched to-one graph and one F08 active-link presence query
+hydrate each selected window; no per-notification owner reads are required. Multi-query GETs use
+a short read-only repeatable-read transaction; they promise no snapshot across HTTP requests.
+
+The installed Spring Data JPA 4.1.1 fluent specification API supplies the selected projected
+keyset operations; both persisted sort values remain in the scalar projection. Separate
+`Notifications`/`PushSubscriptions` generator tags let each owning controller implement only its
+actual operations, without changing wire routes, operation IDs or shapes or adding placeholders.
+
+Read commands reuse the existing season → division → match → account locks before reselecting
+current owner/age/visibility. After the conditional update confirms success, the response reuses
+that authorized projection with read=true; rehydrating the same sporting/link facts adds no
+freshness guarantee under these locks. Already-read entries return unchanged; the update never
+merges or inserts. Cursor validation uses the JDK Base64/Instant/UUID parsers, microsecond precision
+and the encoder's canonical representation rather than a second date/UUID grammar. All emitted
+cursors remain valid; alternate spellings never emitted by the server are rejected. Controlled
+personal-row removal is qualified here; actual scheduled purge, F05 erasure and restoration remain
+with T052/#267 and T051/#360.
+
 ## Association identity and native lifecycle
 
 **Decision.** Random installation UUID, fresh association UUID per sign-in, native token listener and ordinary registration opportunities. Guard removal by exact association and invalidation by its current JPA revision. No persisted logout retry. Keep current-account match navigation independent from notification read success. Reset the app-controlled badge at sign-out/account change or confirmed erasure. Leave presented system notifications to platform behavior; handle and clear tap responses only for ordinary navigation. Keep the foreground receive listener for discreet inbox refresh alongside the SDK handler that suppresses presentation.

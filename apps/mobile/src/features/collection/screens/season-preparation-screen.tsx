@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { Globe, Trophy } from "lucide-react-native";
 import { Text } from "react-native";
+import { Button } from "../../../shared/components/button";
 import {
   RequestError,
   RequestLoading,
@@ -15,7 +16,7 @@ import {
   seasonStatus,
 } from "../components/preparation-layout";
 
-/** Opens each official provider's source preparation, including unlaunched sources in an active season. */
+/** Opens seasonal provider controls, their separate preparation destinations and definitive closure. */
 export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
   const { authority, season } = useCollectionSeason(seasonId);
   const router = useRouter();
@@ -35,7 +36,7 @@ export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
               icon={Globe}
               onPress={() =>
                 router.push({
-                  pathname: "/collection/[seasonId]/[provider]",
+                  pathname: "/collection/[seasonId]/controls/[provider]",
                   params: { seasonId, provider: "ffvb" },
                 })
               }
@@ -46,11 +47,24 @@ export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
               icon={Trophy}
               onPress={() =>
                 router.push({
-                  pathname: "/collection/[seasonId]/[provider]",
+                  pathname: "/collection/[seasonId]/controls/[provider]",
                   params: { seasonId, provider: "lnv" },
                 })
               }
             />
+            {season.data.state !== "closed" && (
+              <Button
+                label="Clôturer la saison"
+                variant="secondary"
+                disabled={season.isError || season.isFetching}
+                onPress={() =>
+                  router.push({
+                    pathname: "/collection/[seasonId]/closure",
+                    params: { seasonId },
+                  })
+                }
+              />
+            )}
           </>
         ) : season.isError ? (
           <RequestError

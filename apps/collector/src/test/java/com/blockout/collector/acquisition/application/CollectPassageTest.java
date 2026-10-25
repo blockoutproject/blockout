@@ -23,6 +23,7 @@ import com.blockout.collector.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionTargetKindEnum;
+import com.blockout.collector.generated.ingestion.model.GeocodingOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.collector.generated.ingestion.model.StandingsPublicationStateEnum;
@@ -69,10 +70,238 @@ class CollectPassageTest {
   private final DiscoverSeasonSources discovery = mock(DiscoverSeasonSources.class);
   private final FfvbAcquisition ffvb = mock(FfvbAcquisition.class);
   private final FfvbAcquisition.Resource resource = mock(FfvbAcquisition.Resource.class);
+  private final ClubSheets clubs = mock(ClubSheets.class);
+  private final MunicipalGeocoder geocoder = mock(MunicipalGeocoder.class);
   private final CollectorLifecycle lifecycle = new CollectorLifecycle(backend);
   private final CollectPassage passage =
       new CollectPassage(
-          backend, sporting, ffvb, lnv, discovery, lifecycle, Clock.fixed(NOW, ZoneOffset.UTC));
+          backend,
+          sporting,
+          ffvb,
+          lnv,
+          clubs,
+          geocoder,
+          discovery,
+          lifecycle,
+          Clock.fixed(NOW, ZoneOffset.UTC));
+
+  @Test
+  @DisplayName(
+      "F02's secondary-field refusal remains partial integration without a personal diagnostic")
+  void reportsInvalidSecondaryClubFields() {
+    // Given
+    CollectorLifecycle.AdmittedCycle admitted = admit(false);
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .scopeId(POOL)
+            .clubId(POOL)
+            .kind(CollectionTargetKindEnum.CLUB_SHEET)
+            .clubReference("000042")
+            .build();
+    SportingObservation.Club sheet =
+        SportingObservation.Club.builder()
+            .sourceName("Synthetic club")
+            .email(JsonNullable.of("invalid-email"))
+            .build();
+    when(backend.targets(admitted.getCycle().id(), 0))
+        .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
+    when(clubs.read("000042")).thenReturn(sheet);
+    when(sporting.club(eq(POOL), any(), eq(sheet)))
+        .thenReturn(
+            new SportingObservation.Outcome(
+                "000042",
+                ObservationOutcomeEnum.ACCEPTED,
+                POOL,
+                URI.create("urn:blockout:problem:unprocessable-content"),
+                null,
+                null));
+    when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+
+    // When
+    passage.execute(admitted);
+
+    // Then
+    ArgumentCaptor<CollectionBackend.Result> result =
+        ArgumentCaptor.forClass(CollectionBackend.Result.class);
+    verify(backend, times(2)).record(eq(admitted.getCycle().id()), result.capture());
+    assertThat(result.getAllValues().getFirst().outcome()).isEqualTo(CollectionOutcomeEnum.SUCCESS);
+    assertThat(result.getAllValues().getLast().outcome()).isEqualTo(CollectionOutcomeEnum.PARTIAL);
+    assertThat(result.getAllValues().getLast().reason())
+        .isEqualTo("urn:blockout:problem:unprocessable-content");
+  }
+
+  @Test
+  @DisplayName("A null current municipality skips the provider without inventing attempt evidence")
+  void skipsRestrictedMunicipality() {
+    // Given
+    CollectorLifecycle.AdmittedCycle admitted = admit(false);
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .scopeId(POOL)
+            .clubId(POOL)
+            .kind(CollectionTargetKindEnum.GEOCODING)
+            .localityRevision("9")
+            .municipality(null)
+            .build();
+    when(backend.targets(admitted.getCycle().id(), 0))
+        .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
+    when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+
+    // When
+    passage.execute(admitted);
+
+    // Then
+    verifyNoInteractions(geocoder, sporting);
+    verify(backend, never()).record(any(), any());
+  }
+
+  @ParameterizedTest
+  @EnumSource(GeocodingOutcomeEnum.class)
+  @DisplayName("Each qualified municipal outcome preserves the exact F02 revision and source order")
+  void integratesMunicipalOutcome(GeocodingOutcomeEnum outcome) {
+    // Given
+    CollectorLifecycle.AdmittedCycle admitted = admit(false);
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .scopeId(POOL)
+            .clubId(POOL)
+            .kind(CollectionTargetKindEnum.GEOCODING)
+            .localityRevision("9")
+            .municipality("Paris")
+            .postalCode("75015")
+            .build();
+    SportingObservation.Locality point =
+        new SportingObservation.Locality(
+            "9",
+            outcome,
+            outcome == GeocodingOutcomeEnum.LOCATED ? 48.86 : null,
+            outcome == GeocodingOutcomeEnum.LOCATED ? 2.34 : null);
+    when(backend.targets(admitted.getCycle().id(), 0))
+        .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
+    when(geocoder.read("Paris", "75015", "9")).thenReturn(point);
+    when(sporting.locality(eq(POOL), any(), eq(point)))
+        .thenReturn(
+            new SportingObservation.Outcome(
+                "000042", ObservationOutcomeEnum.UNCHANGED, POOL, null, null, null));
+    when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+
+    // When
+    passage.execute(admitted);
+
+    // Then
+    ArgumentCaptor<SportingObservation.Context> evidence =
+        ArgumentCaptor.forClass(SportingObservation.Context.class);
+    verify(sporting).locality(eq(POOL), evidence.capture(), eq(point));
+    assertThat(evidence.getValue().cycleId()).isEqualTo(admitted.getCycle().id());
+    assertThat(evidence.getValue().readOrdinal()).isEqualTo(1);
+    ArgumentCaptor<CollectionBackend.Result> results =
+        ArgumentCaptor.forClass(CollectionBackend.Result.class);
+    verify(backend, times(2)).record(eq(admitted.getCycle().id()), results.capture());
+    assertThat(results.getAllValues().getFirst().reason())
+        .isEqualTo("IGN municipality: " + outcome.getValue());
+    assertThat(results.getAllValues())
+        .allSatisfy(
+            result -> assertThat(result.outcome()).isEqualTo(CollectionOutcomeEnum.SUCCESS));
+  }
+
+  @Test
+  @DisplayName("A technical geocoding failure cannot submit an empty locality or replay the read")
+  void preservesLocalityOnTechnicalFailure(CapturedOutput output) {
+    // Given
+    CollectorLifecycle.AdmittedCycle admitted = admit(false);
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .scopeId(POOL)
+            .clubId(POOL)
+            .kind(CollectionTargetKindEnum.GEOCODING)
+            .localityRevision("9")
+            .municipality("Paris")
+            .build();
+    when(backend.targets(admitted.getCycle().id(), 0))
+        .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
+    when(geocoder.read("Paris", null, "9"))
+        .thenThrow(new IllegalStateException("private-provider-response"));
+    when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+
+    // When
+    passage.execute(admitted);
+
+    // Then
+    verifyNoInteractions(sporting);
+    verify(geocoder).read("Paris", null, "9");
+    ArgumentCaptor<CollectionBackend.Result> result =
+        ArgumentCaptor.forClass(CollectionBackend.Result.class);
+    verify(backend).record(eq(admitted.getCycle().id()), result.capture());
+    assertThat(result.getValue().phase()).isEqualTo(CollectionPhaseEnum.ACQUISITION);
+    assertThat(result.getValue().outcome()).isEqualTo(CollectionOutcomeEnum.FAILED);
+    assertThat(result.getValue().reason()).doesNotContain("private-provider-response");
+    assertThat(output.getAll()).doesNotContain("private-provider-response");
+  }
+
+  @Test
+  @DisplayName("A lost club integration acknowledgement is reported once without replay")
+  void reportsUncertainClubIntegration() {
+    // Given
+    CollectorLifecycle.AdmittedCycle admitted = admit(false);
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .scopeId(POOL)
+            .clubId(POOL)
+            .kind(CollectionTargetKindEnum.CLUB_SHEET)
+            .clubReference("000042")
+            .build();
+    SportingObservation.Club sheet =
+        SportingObservation.Club.builder().sourceName("Synthetic club").build();
+    when(backend.targets(admitted.getCycle().id(), 0))
+        .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
+    when(clubs.read("000042")).thenReturn(sheet);
+    when(sporting.club(eq(POOL), any(), eq(sheet))).thenThrow(uncertain());
+    when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+
+    // When
+    passage.execute(admitted);
+
+    // Then
+    verify(sporting).club(eq(POOL), any(), eq(sheet));
+    ArgumentCaptor<CollectionBackend.Result> result =
+        ArgumentCaptor.forClass(CollectionBackend.Result.class);
+    verify(backend, times(2)).record(eq(admitted.getCycle().id()), result.capture());
+    assertThat(result.getAllValues().getLast().phase()).isEqualTo(CollectionPhaseEnum.INTEGRATION);
+    assertThat(result.getAllValues().getLast().outcome())
+        .isEqualTo(CollectionOutcomeEnum.UNCONFIRMED);
+  }
+
+  @Test
+  @DisplayName("An admitted club-sheet target reaches F02 independently of competition seasons")
+  void executesClubSheetFamily() {
+    // Given
+    CollectorLifecycle.AdmittedCycle admitted = admit(false);
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .scopeId(POOL)
+            .clubId(POOL)
+            .clubReference("000042")
+            .provider(CollectionProviderEnum.FFVB)
+            .kind(CollectionTargetKindEnum.CLUB_SHEET)
+            .build();
+    when(backend.targets(admitted.getCycle().id(), 0))
+        .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
+    when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+
+    SportingObservation.Club sheet =
+        SportingObservation.Club.builder().sourceName("Synthetic club").build();
+    when(clubs.read("000042")).thenReturn(sheet);
+    when(sporting.club(eq(POOL), any(), eq(sheet)))
+        .thenReturn(
+            new SportingObservation.Outcome(
+                "000042", ObservationOutcomeEnum.ACCEPTED, POOL, null, null, null));
+
+    // When
+    passage.execute(admitted);
+
+    // Then
+    verify(sporting).club(eq(POOL), any(), eq(sheet));
+  }
 
   @Test
   @DisplayName("Complete accepted catalog removal prevents an old frozen pool from being read")
@@ -311,6 +540,8 @@ class CollectPassageTest {
             sporting,
             ffvb,
             lnv,
+            clubs,
+            geocoder,
             realDiscovery,
             lifecycle,
             Clock.fixed(NOW, ZoneOffset.UTC));
