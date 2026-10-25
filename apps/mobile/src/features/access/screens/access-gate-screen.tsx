@@ -5,10 +5,10 @@ import { RotateCw, X } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Defs, Image as SvgImage, Mask, Rect } from "react-native-svg";
 import type { PublicMaintenanceResponse } from "../../../../.generated/schemas/index.zod";
 import { IconButton } from "../../../shared/components/icon-button";
 import { Button } from "../../../shared/components/button";
+import { BrandMark } from "../../../shared/components/brand-mark";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -64,23 +64,7 @@ function GateView({
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <View style={[styles.header, { borderColor: colors.border }]}>
         <View style={styles.identity}>
-          <Svg width={28} height={28} accessible={false}>
-            <Defs>
-              <Mask id="brand" maskType="luminance">
-                <SvgImage
-                  href={require("../../../../assets/access/brand-mark.png")}
-                  width={28}
-                  height={28}
-                />
-              </Mask>
-            </Defs>
-            <Rect
-              width={28}
-              height={28}
-              fill={colors.text}
-              mask="url(#brand)"
-            />
-          </Svg>
+          <BrandMark />
           <Text style={[styles.brand, { color: colors.text }]}>BLOCKOUT</Text>
         </View>
         <Text

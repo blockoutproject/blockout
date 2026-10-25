@@ -86,6 +86,12 @@ npm run bundle:contracts
 
 This completes the repository integration of T037/T040 using the implementation already delivered by #405. No controller, mapper, deployment setting, security matcher or contract needed alteration. Synthetic retirement versions/listing IDs are fixtures, not qualified release inputs. MockMvc exercises the real servlet/security application without a live network listener; JWT signature validation retains its existing dedicated suite. Installed V1 binaries, native numeric-version comparison/update actions, network failures with retained configuration, compatible public host, signed V2 releases, actual store availability, writer retirement and production cutover remain unqualified here under T043 and their later owners.
 
+## Common discovery construction — T006–T010
+
+The common five-step journey uses the approved Figma references in [the plan](plan.md#design-reconciliation). Its separate `blockout:v2-discovery-complete` AsyncStorage flag is written only after explicit skip or finish; failed persistence retains the current journey and an explicit retry. Root routing waits for the installation read, preserves current F12 blocking and operational admission, then hands completed discovery to the ordinary F05 sign-in/guest journey. Initialization, account state, Pro and advertising choices remain independent.
+
+Controlled Jest cases cover interruption, V1/initialization flags, finish/skip, read/write failures, restart, foreground, sign-out, later app versions, pending-read deep links, current gates and cancelled/failed/profile-unavailable F05 entry with guest/help availability. HTTP and native SDK I/O are controlled; this is not actual provider or store qualification. Local Android API 29 debug-build observations and representative light/dark, compact and enlarged-text captures are recorded in [PR #487](https://github.com/blockoutproject/blockout/pull/487); they use a demonstration public-admission peer and do not establish signed-upgrade or complete native acceptance. Actual-owner integration T011, signed upgrade/reinstall/backup T012 and complete native/accessibility qualification T013–T014 remain pending.
+
 ## Current repository checks
 
 Run the [README verification commands](../../README.md#verification), including the legacy OpenAPI root and backend tests. They cover generation, binding, serialization, HTTP admission and missing configuration. The real F12 repository integration is recorded above; actual old-binary compatibility and deployment remain separate qualification boundaries.
