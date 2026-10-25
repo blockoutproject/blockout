@@ -1,4 +1,3 @@
-import { getGetApplicationAccessQueryKey } from "../../../../.generated/mobile";
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../queries/use-application-access";
@@ -20,7 +19,10 @@ import {
   credentialsFor,
   mockAuth0,
 } from "../../accounts/test-support/native-auth0";
-import { getGetMaintenanceSettingsQueryKey } from "../../../../.generated/mobile";
+import {
+  getGetApplicationAccessQueryKey,
+  getGetMaintenanceSettingsQueryKey,
+} from "../../../../.generated/mobile";
 import { MaintenanceSettingsScreen } from "../screens/maintenance-settings-screen";
 import MaintenanceRoute from "../../../app/(operations)/administration/maintenance";
 

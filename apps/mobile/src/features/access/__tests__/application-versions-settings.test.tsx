@@ -1,4 +1,3 @@
-import { getGetApplicationAccessQueryKey } from "../../../../.generated/mobile";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { Linking } from "react-native";
@@ -24,7 +23,10 @@ import {
   credentialsFor,
   mockAuth0,
 } from "../../accounts/test-support/native-auth0";
-import { getGetApplicationVersionSettingsQueryKey } from "../../../../.generated/mobile";
+import {
+  getGetApplicationAccessQueryKey,
+  getGetApplicationVersionSettingsQueryKey,
+} from "../../../../.generated/mobile";
 import { ApplicationVersionsSettingsScreen } from "../screens/application-versions-settings-screen";
 import ApplicationVersionsRoute from "../../../app/(operations)/administration/application-versions";
 
