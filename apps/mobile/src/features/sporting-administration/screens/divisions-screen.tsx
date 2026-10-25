@@ -142,7 +142,7 @@ function DivisionCard({
         {division.name}
       </Text>
       <Text style={[tokens.typography.body, { color: colors.text }]}>
-        {baseline.active ? "Active" : "Inactive"}
+        {division.active ? "Active" : "Inactive"}
       </Text>
       <PresentationEntry target={{ kind: "division", id: division.id }} />
       {feedback && (

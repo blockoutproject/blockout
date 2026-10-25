@@ -717,3 +717,44 @@ it("reauthorizes a held native confirmation after the current classification gra
     mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
   ).toBe(false);
 });
+
+it("shows current activity on reentry for an operator with classification permission only", async () => {
+  // Given
+  permissions = { manageSportingClassification: true };
+  let active = true;
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/divisions?")
+      ? Promise.resolve(
+          json({
+            items: [{ ...division, revision: active ? "d1" : "d2", active }],
+          }),
+        )
+      : respond(url, options),
+  );
+  const user = userEvent.setup();
+  await openRoutes();
+  await screen.findByText("Permissions connues");
+  await act(async () => router.push("/administration/divisions"));
+  await screen.findByText("Active");
+
+  // When
+  await act(async () => router.back());
+  active = false;
+  await user.press(
+    await screen.findByRole("button", { name: "Relire les permissions" }),
+  );
+  await act(async () => router.push("/administration/divisions"));
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        String(url).includes("/divisions?"),
+      ),
+    ).toHaveLength(2),
+  );
+
+  // Then
+  expect(await screen.findByText("Inactive")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Désactiver National 2" }),
+  ).not.toBeOnTheScreen();
+});

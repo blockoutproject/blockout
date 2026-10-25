@@ -9,7 +9,7 @@ interface ActivityState {
   needsRead: boolean;
   feedback?: string;
 }
-/** Holds only lifecycle revision/recovery metadata, never presentation or a second server cache. */
+/** Retains the original lifecycle decision; Query owns current display data and presentation stays separate. */
 interface ActivityEditor {
   /** Reads the current decision snapshot. */
   getSnapshot(): ActivityState;
