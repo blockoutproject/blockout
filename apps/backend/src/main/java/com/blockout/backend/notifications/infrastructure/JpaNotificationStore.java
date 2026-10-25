@@ -6,6 +6,7 @@ import com.blockout.backend.notifications.application.NotificationStore;
 import com.blockout.backend.notifications.domain.MatchAnnouncementFacts;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,30 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 @Transactional(propagation = Propagation.MANDATORY)
 public class JpaNotificationStore implements NotificationStore {
+  private static final int PURGE_BATCH_SIZE = 100;
   private final EntityManager entities;
+
+  /** {@inheritDoc} */
+  @Override
+  public PurgeBatch deleteExpired(Instant cutoff) {
+    List<UUID> selected =
+        entities
+            .createQuery(
+                "SELECT n.id FROM NotificationEntity n WHERE n.createdAt<=:cutoff ORDER BY n.createdAt,n.id",
+                UUID.class)
+            .setParameter("cutoff", cutoff)
+            .setMaxResults(PURGE_BATCH_SIZE)
+            .getResultList();
+    if (selected.isEmpty()) return new PurgeBatch(0, false);
+    int deleted =
+        entities
+            .createQuery(
+                "DELETE FROM NotificationEntity n WHERE n.id IN :ids AND n.createdAt<=:cutoff")
+            .setParameter("ids", selected)
+            .setParameter("cutoff", cutoff)
+            .executeUpdate();
+    return new PurgeBatch(deleted, selected.size() == PURGE_BATCH_SIZE);
+  }
 
   /** {@inheritDoc} */
   @Override

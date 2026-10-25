@@ -2,6 +2,18 @@
 
 This guide prepares [isolated restoration and compatible rollback](#inputs-and-isolation) under F13 and [V1-to-V2 continuity](#private-continuity-inventory) under F14. Each operation needs its own authorization and evidence; preparing these instructions performs none of them.
 
+## Search projection and reconstruction
+
+F04 uses one web-backend scheduler for after-commit scopes and full rebuilds: startup, then a configurable one-hour delay after completion. Failed/lost transient work waits for the next full run. Non-web operators never start a second writer. There is no durable queue, checkpoint, retry operation or rebuild endpoint. An authorized restart of this environment's serving backend starts the same ordinary reconstruction path; stop the old instance before starting its replacement.
+
+Inspect private ECS `operation=search_projection`, `stage=targeted|submission|rebuild|cleanup`, `outcome`, bounded `affected_count`, safe exception `reason` and `last_success_at`. Failed bulk diagnostics use `affected_count` for submitted items and `partial_count` for explicitly successful returned items. The last-success epoch is zero before this process confirms a complete refreshed generation; targeted success never advances it. Native Micrometer `search.projection.last.success.time` exposes that epoch in seconds; `search.projection.runs` counts outcomes by bounded `action`/`outcome` through F13's existing OTLP path. No query text, city/contact, credentials, raw engine error or document is collected.
+
+The [native Grafana rule reference](../observability/grafana/search-alerts.yaml) detects projection/cleanup failures through private Loki. Its sparse failure count uses native `or vector(0)`: no failures means zero. Query B reads the continuously exported last-success gauge, whose default [Grafana OTLP conversion](https://grafana.com/docs/grafana-cloud/send-data/otlp/otlp-format-considerations/) is `search_projection_last_success_time_seconds`. The native math expression C is `$A + (0 * $B)`; threshold D is greater than zero. A missing gauge causes [native No Data](https://grafana.com/docs/grafana/latest/visualizations/panels-visualizations/query-transform-data/expression-queries/#special-cases), and a source error stays Error. The gauge's value does not set a freshness deadline or make zero an established reconstruction success. Before activation, verify success-only→0/Normal, present failure→Firing, missing gauge→No Data and inaccessible source→Error against the actual provider. Use actual datasource/environment identifiers and F13's private contact point/grouping/repeat settings. Grafana Cloud has no file provisioning: create the equivalent rule in its UI and retain its provider identifiers. The YAML doubles expression dollars for native file provisioning; use single dollars in the UI. Local syntax checks and documented semantics do not establish alert execution/delivery. Inspect last-success evidence with actual search rather than inventing a freshness SLA.
+
+Before any separately authorized cleanup or recovery, read the three current aliases using native `GET /<environment-prefix>-*/_alias`. Every club/team/pool alias must resolve to its usable generation. A response lost during `POST /_aliases` leaves an uncertain outcome: reread aliases, but an old-state read cannot prove that the switch is no longer in flight. If all three candidates are not confirmed active, retain every temporary generation until the next confirmed full run. The writer cleans only after a confirmed complete publication and a fresh metadata read, at most twelve unaliased UUID generation indexes per run in its owned namespace. If metadata cannot be read, it deletes nothing. Any index with an alias is preserved. Cleanup failure does not invalidate a confirmed generation or claim successful deletion. Never clear active indexes or delete by a broad environment wildcard.
+
+After PostgreSQL restoration, run this same reconstruction before search is used. Verify actual current filtered searches and alias targets; an HTTP bulk envelope, scheduler run, reachable API or resolved alert alone does not establish usable search. Actual isolated deployment/restoration remains F04 T041/#351 and F13/F14's separately authorized operations.
+
 ## Auth0 V1 default-role isolation
 
 [F14 T019](../../specs/014-v1-v2-transition/tasks.md) and [#162](https://github.com/blockoutproject/blockout/issues/162) restrict the existing `assign-default-role` post-login Action to the retained V1 native client. Obtain authorization for this exact tenant/Action operation before editing or deploying it. V2 permissions remain PostgreSQL-owned; no replacement role endpoint, identity linking, credential rotation or V1 retirement is included.
@@ -105,7 +117,7 @@ Keep the target isolated while checking the [prepared owner cases](../../specs/0
 
 - **F05/F06/F12:** reconcile current accounts, subject-to-UUID associations, follows, erasures and distinct application grants/settings. A revoked permission or erased account in the old copy must not regain access. Follow [F05 erasure and return](../../specs/005-accounts-identity/plan.md#erasure-and-manual-resolution): a replacement account receives no deleted profile, follows, grants or gifts; do not merge by email or target a replacement UUID for original-account cleanup. Keep the accepted token-validity and private-log evidence limits; there is no exhaustive deletion ledger.
 - **F09/F11:** verify current provider identity and RevenueCat rights through their [owning rules](../../specs/006-pro-subscriptions/plan.md#environments-and-continuity), including gift expiry/revocation. SQL restoration does not restore a subscription, cancel billing or prove entitlement. Unknown current-account rights remain unknown under the SDK's accepted behavior. Reapply current [privacy restrictions](../../specs/004-advertising-privacy-legal/plan.md#legal-content-and-shared-privacy), including suppressed sporting contact values and affected images/attribution; restoration must not make them accessible again.
-- **F07:** before controlled reads/counts/sends, remove inbox entries aged at least **29 elapsed days**, preserving original creation times and available nonpersonal match announcement facts. Apply current account/destination/follow restrictions. [F07 FR-043–046 and A51](../../specs/011-notifications-delivery/spec.md) accept an exceptional duplicate sporting announcement if restore lost facts; they permit no erased personal data or expired inbox resurrection. Do not replay uncertain pushes or maintenance-suppressed sends.
+- **F07:** before controlled reads/counts/sends, remove inbox entries aged at least **29 elapsed days**, preserving original creation times and available nonpersonal match announcement facts. Require completed cleanup and current erasure/privacy/rights reconciliation for the affected scope; a partial purge or unknown obligation keeps its access/sends closed. Use the [prepared retention/restore cases](../../specs/011-notifications-delivery/quickstart.md#retention-construction-and-isolated-restore-cases--255). Apply current account/destination/follow restrictions. [F07 FR-043–046 and A51](../../specs/011-notifications-delivery/spec.md) accept an exceptional duplicate sporting announcement if restore lost facts; they permit no erased personal data or expired inbox resurrection. Do not replay uncertain pushes or maintenance-suppressed sends.
 - **F04:** rebuild isolated OpenSearch derivatives from the reconciled PostgreSQL data through the [owning startup/full-rebuild path](../../specs/008-search-discovery/plan.md#projection-lifecycle). Start the candidate backend only after SQL reconciliation, under isolation/maintenance with outbound effects blocked. Verify complete alias replacement and current visibility before opening search; a failed/incomplete rebuild keeps affected search unavailable. No independent search backup chain is required. Source collection recovers only what suppliers still expose, not missing customizations, bytes or history.
 
 Missing current evidence keeps the affected access/sends unavailable. Do not bypass that condition by assuming an erased account, revoked right or unknown provider state is valid. Use existing private provider/support tools for authorized manual resolution, with no new recovery service or ledger.
@@ -119,6 +131,29 @@ Recover deployment/provider configuration separately from its authorized owner: 
 Record actual source/candidate versions, backup time, isolated destination, recovered scope/byte comparisons, role checks, current-obligation decisions, gaps and elapsed duration in existing **private** delivery evidence. No duration or loss guarantee follows. Remove temporary downloaded/extracted copies when their authorized purpose ends; restoring does not renew the original backup's retention. Keep source storage intact until any separate disposal decision.
 
 Only after those checks and explicit reopening authorization may the operator reconnect the approved target through the [serialized delivery path](../dokploy/README.md#promotion-and-native-deployment), run any required compatible migration once, verify validation-only startup, readiness and owner outcomes, then lift maintenance/access and resume ordinary sends. Failed migration/startup or unresolved obligations keep the affected capability closed. The initial isolated proof itself opens no production access.
+
+## Notification retention failure
+
+For `operation=notification_retention`, inspect the [safe outcome/configuration fields](../observability/README.md#f07-notification-retention)
+in the existing private F13 stack. A missed, interrupted or `incomplete` pass is a retention
+failure, including rows remaining beyond age 30; it grants no longer lifetime. Preserve
+committed removals. Reads/counts must continue excluding age 29 while physical removal is pending.
+
+Verify the exact environment/backend revision, actual UTC daily cron, process availability,
+database connectivity, application DELETE permission and relevant lock/resource failures using
+authorized private operational access. Retain only the necessary safe type, time and counts.
+Repair the demonstrated cause through the existing owner/deployment process, preserving
+nonpersonal match facts, original dates and independently necessary installation/follow
+associations. Do not recreate personal rows or replay announcements/pushes.
+
+The next ordinary daily pass starts again from due rows; there is no immediate retry timer or
+user-facing purge endpoint. Persistent failures require authorized manual intervention. The
+existing Spring-managed `PurgeNotifications.run()` is the internal operation, not an HTTP route
+or installed operator CLI: an earlier invocation for a separately authorized isolated restore
+requires a reviewed environment-specific invocation of that bean. Do not instantiate it directly
+or replace its transactional boundary with an ad hoc production SQL script. Confirm completed
+cleanup and current obligations before reopening under the reconciliation above. Keep detection,
+intervention and verified recovery distinct; no response-time guarantee is implied.
 
 ## Compatible application rollback
 
@@ -247,6 +282,8 @@ This is the T024 preparation consumed by T049 **immediately before authorized re
 5. Reassess the destruction gates above and hand the result to the authorized release operator. A failed check permits correction or retry while sources remain protected, never automatic destructive continuation or partial opening. For restoration of a retained copy, use the existing [F13 reconciliation before access or sends](#reconcile-before-access-or-sends); current F05/F09/F11 restrictions take precedence and unresolved affected access stays closed. After opening, recovery remains V2 repair or compatible restoration.
 
 ## Collection inspection and explicit recovery
+
+Use the [F01 native conditions](../observability/README.md#collection-evidence-and-native-conditions-f01) to distinguish actionable failures, grouped administration needs and uncertain terminal operations. Compare the exact control/scope/stage/phase current result and its own last success/first failure. Native resolved notifications, log expiry, pause, closure and success elsewhere supply no affected-scope repair evidence. A new usable acquisition result leaves failed integration independent; qualified empty or ambiguous municipal acquisition is not a provider outage. Keep elapsed 24-hour club/geocoding failure age anchored to the first actual failed observation.
 
 F01 retains current intent, cycles and scope results, not an execution history. The backend is the sole database writer. A lost response is not proof that the write failed. Keep the original control/cycle/source identity in the private operational case; never paste credentials, provider documents, locality or private diagnostics into this repository or a public issue. [F01's ordered cases](../../specs/001-source-acquisition/quickstart.md#ordered-uncertainty-cases-t044-preparation) distinguish response loss before and after acceptance.
 

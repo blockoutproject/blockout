@@ -55,6 +55,48 @@ Read beyond one twenty-item follow page, including equal names and French accent
 
 ## Mobile journeys
 
+### Native follow action boundary (T008, T014, T015)
+
+`follow-action.test.tsx` exercises the real Query, theme, F05 session and F12 admission owners,
+generated member operations and response validation. Only native Auth0 I/O and HTTP are controlled.
+It covers shared target busy/provisional state, independent typed targets, explicit replacement,
+guest invitation with no sign-in replay, unavailable profile, exact sporting-route composition,
+completion after unmount and retired-session rejection. Definite refusals retain confirmation;
+reopening a restored target reads its current member state and retires superseded action feedback.
+A new explicit attempt also retires terminal mutation entries, so an older failure cannot return
+when another control unmounts. Confirmed state reconciles both ordinary and explicit F12 bypass
+cache variants. Response loss performs one bounded member read without replay, and failed observation leaves an
+ordinary explicit retry of the same requested value. A successful observation is not announced as
+proof of the original write or delayed cancellation.
+
+Current 403/404 availability belongs to the member Query, independently of mutation collection.
+An earlier saved write response cannot erase a newer refusal; a successful current member read
+restores the control. The tests include native five-minute collection with another control still mounted.
+
+Controlled future infinite-query consumers prove cancellation of former traversal, visible first-page
+reload, hidden-query deferral and preserved write confirmation after dependent-read failure. These
+are interface tests, not completed list/calendar screens or their integrated qualifications.
+The compact inverse action uses the public target's displayed season and accessible hint without
+writing a personal season selection or adding a success panel. Compare the live
+[team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1010-15711),
+[followed team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1023-5097)
+and [dark pool](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1755-14354)
+instances with the UI Library's [compact button](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=3386-697):
+36-point pill, 20-point leading Plus/Check, inverse surface/content, contextual border and a
+separate platform touch target. The F03 action region supplies its separator and 12-point inset.
+The generated boundary remains unchanged; no public follower-count UI is delivered here.
+
+```sh
+npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/following/__tests__/follow-action.test.tsx
+```
+
+These JavaScript checks establish no actual authentication provider, account-erasure orchestration,
+native accessibility or design qualification. T016, later story tasks and T045 retain their scopes;
+live Dynamic Type [#433](https://github.com/blockoutproject/blockout/issues/433) and iOS input
+[#449](https://github.com/blockoutproject/blockout/issues/449) remain deferred.
+
+### Integrated journeys to qualify
+
 Using Jest Expo/React Native Testing Library and native device checks where applicable:
 
 - Open the same target in different tabs, act once and observe the same immediate provisional/busy state; repeated taps do not enqueue work and another target remains usable.

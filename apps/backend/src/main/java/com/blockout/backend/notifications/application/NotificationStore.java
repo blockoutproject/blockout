@@ -6,8 +6,26 @@ import com.blockout.backend.notifications.domain.NotificationVariant;
 import java.time.Instant;
 import java.util.UUID;
 
-/** Required F07 writes after caller-ordered sporting roots then original account locks. */
+/** F07 writes: producer/read locks are caller ordered; retention deletes only due personal rows. */
 public interface NotificationStore {
+  /**
+   * Deletes one bounded batch of personal rows across all owners, read and visibility states. Uses
+   * a dedicated retention transaction; never deletes facts or installation associations.
+   *
+   * @param cutoff inclusive original creation cutoff, calculated once for this pass
+   * @return affected deletion count and whether selection filled the batch; caller owns commit
+   */
+  PurgeBatch deleteExpired(Instant cutoff);
+
+  /**
+   * Bounded retention progress; a full selection requires another batch even after concurrent
+   * removal.
+   *
+   * @param deleted personal rows removed by this transaction
+   * @param more whether the selected batch was full
+   */
+  record PurgeBatch(int deleted, boolean more) {}
+
   /**
    * Applies only true to an exact still-retained allocation after sporting and account locks.
    * Repetition succeeds; a removed row is never recreated.

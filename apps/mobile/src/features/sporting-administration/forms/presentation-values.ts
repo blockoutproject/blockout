@@ -60,6 +60,15 @@ export type PresentationValues = z.infer<typeof presentationSchema>;
 export function presentationValues(
   presentation: Presentation,
 ): PresentationValues {
+  if (presentation.kind === "division-creation")
+    return {
+      kind: "division",
+      name: "",
+      shortName: "",
+      color: "#245FD8",
+      gradient: ["", "", ""],
+      logo: { action: "keep" },
+    };
   const division =
     presentation.kind === "division" ? presentation.data : undefined;
   const names =

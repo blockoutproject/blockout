@@ -55,6 +55,37 @@ Verify `Cache-Control: no-store` on administration/ingestion successes and error
 
 Try wrong-environment M2M tokens and unauthorized/stale administrative commands. Expect no effects. Lose a response and read current state before an explicit retry; no automatic mutation replay. Exceed the calendar/image bounds and verify explicit refusal, never truncation or deletion of valid images. Qualify a complete source-season catalog against the 8-MiB JSON bound; include repeated pool labels under distinct compound contexts and identical duplicates. Expect positional result correlation, one atomic catalog commit, and no absence change for stale, invalid or oversized input.
 
+## Classification and division editors — #178
+
+T014/T018 use the existing F05 session and F12 operational admission. Enter pack/pool
+classification from the discovered collection children with both the collection
+read and classification action grants. `manageSportingClassification` and
+`manageDivisionLifecycle` independently admit technical administration and the
+division list; collection, presentation and activity remain separate grants.
+Routes live under `apps/mobile/src/app/(operations)/administration/`.
+
+The [classification suite](../../apps/mobile/src/features/sporting-administration/__tests__/classification.test.tsx)
+exercises complete overrides, explicit null/inheritance, incomplete/inactive
+choices, all-request conflict feedback, retained dirty values, failed and
+successful current-state recovery, distinct canonical conflict reasons, invalidation
+of previously loaded club teams, independent activity and real protected-route
+removal/reentry. The [presentation suite](../../apps/mobile/src/features/sporting-administration/__tests__/presentation.test.tsx)
+adds division creation through the same RHF/Zod name/color/logo form and generated
+multipart client with an `application/json` metadata part, native confirmation, duplicate-name handling after a lost
+response and no activity write. Native SDK credentials and HTTP are controlled in
+Jest; these tests do not qualify backend transaction outcomes, provider identity
+or native rendering.
+
+The mobile correction uses [Product Design mapping controls](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4652-28674), [division catalogue](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1340-9338), [creation](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1370-10242) and [gradient/lifecycle](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1368-10291). The selectors follow UI Library `164:200`; color derivation follows its Color notes `3193:116`/`3193:125`. Selection uses F13's native stack sheet and the existing RHF control. Lifecycle recovery shares the presentation editor's original revision and explicit reread; no per-card recovery store remains. The catalogue uses a virtualized list, local name/activity filters and one editor entry per editable row. Tests also cover readable division foregrounds, automatic-gradient restoration and dirty presentation values surviving an independent activity command.
+
+T018 remains incomplete against the entire approved journey. Current OpenAPI reads expose individual classifications and division presentation/activity, but no global mapping projection with source/season filters and pack/pool summaries, nor division pool counts. This delivery stays within the mobile scope: no new backend/database reads, client-side N+1 reconstruction or invented counts. Classification therefore keeps its existing contextual route rather than claiming the inline global catalogue. Full preview transitions and F03/F10 navigation remain outside these editor routes; root/public navigation is unchanged. Ordinary actions scroll with fields and confirmations use native alerts, as already selected by F13. These limits are not design acceptance.
+
+Native examples were exercised on application revision `6735bb0`, iPhone 18 Pro B / iOS 27.0, 402 × 874 logical points, system text size `large`, with the actual F05/F12 session/admission, generated clients and unchanged backend against isolated synthetic data. Observed: active/inactive catalogue filtering and creation entry; native creation confirmation and persisted creation; keyboard-open scrolling to the save action; independent deactivation/reactivation; native division/genre/format sheets retaining the RHF draft; complete pool correction persisted as Ligue B / `4x4` / `mixed`; and Light/Dark appearance. [Nine reviewed captures](https://github.com/blockoutproject/blockout/pull/502#issuecomment-6395696451) are attached to the PR Conversation, outside Git.
+
+The development client's floating tools window intercepted the catalogue's + target. Its installed SDK launch option `__expo_disable_fab=1` restored normal entry; no application workaround was retained. The native flow began from an admitted session: initial development-client restoration/deep-link attempts produced a `ROUTE_NAMES_CHANGED` warning and the ordinary empty launcher. These captures do not qualify cold restoration/deep links. The semantic creation-entry case also passes through the actual protected route tree in the classification suite.
+
+This sample does not establish strict complete Figma fidelity, Android, narrow/enlarged-text, screen-reader, logo-provider or failure/uncertainty qualification. T055, [#433](https://github.com/blockoutproject/blockout/issues/433) live Dynamic Type and [#449](https://github.com/blockoutproject/blockout/issues/449) minimum-iOS input remain pending. The native session and task-owned services were released after capture.
+
 ## Presentation, contacts and continuity
 
 In existing native journeys, verify a professional team with no club remains readable/followable without a club link or invented point. Exercise team override → LNV → optional club → missing artwork, plus unchanged nonprofessional inheritance. Fail logo retrieval/replacement and retain the last valid presentation. Check both themes, enlarged text, focus and meaningful accessible action labels.

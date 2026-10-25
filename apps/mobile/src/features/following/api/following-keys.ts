@@ -67,6 +67,14 @@ export function followStateKey(
   );
 }
 
+/** Both admitted representations describe the same original-owner relationship and current availability. */
+export function followStateKeys(
+  owner: FollowingOwner,
+  target: FollowingTarget,
+) {
+  return [followStateKey(owner, target), followStateKey(owner, target, true)];
+}
+
 /** One mutation identity per session/account/type/target across all originating controls. */
 export function followMutationKey(
   owner: FollowingOwner,

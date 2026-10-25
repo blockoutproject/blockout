@@ -1,6 +1,6 @@
 # F11 validation guide
 
-The mobile dependency/configuration foundation, current-context eligibility and isolated interstitial lifecycle are executable. Advertising initialization, consent, age forms, integrated sporting entries and native serving remain separate implementation/qualification work.
+The mobile dependency/configuration foundation, current-context eligibility and isolated interstitial lifecycle are executable. The installation-local age form and ordinary-home guard are also executable. Advertising initialization, consent, integrated sporting entries and native serving remain separate implementation/qualification work.
 
 ## Controlled eligibility boundary (T003/T004)
 
@@ -17,6 +17,20 @@ Run `npm run test --workspace=@blockout/mobile -- --runInBand src/features/adver
 Before privacy reconfiguration, call `invalidate()` to settle a valid pending destination or abandon its obsolete session before destroying preparation. Same-mode treatment changes require this explicit invalidation. Current session, authorized mode and eligibility are also checked before SDK requests/presentation and when processing native events. Invalidation preserves the counter. `dispose()` settles a still-valid destination before teardown; actual process loss retains nothing. Failure/no-fill waits for the next eligible sporting action, while dismissal permits one new preload.
 
 This proves isolated JavaScript behavior only. T007/T009 retain real entry/provider composition, T018/T019 retain native-choice readiness, and T010/T020 retain physical-device, serving and mediation qualification. No root layout binding, SDK initialization or real ad activation is supplied here.
+
+## Installation-local declaration and entry (T011/T012/T015–T017)
+
+Run `npm run test --workspace=@blockout/mobile -- --runInBand src/features/advertising/__tests__/age-declaration.test.ts src/features/advertising/__tests__/age-form.test.tsx src/features/advertising/__tests__/age-entry.test.tsx` after mobile generation. The real form, root router, F05/F09 providers and installation persistence are exercised with native storage/identity/entitlement I/O and HTTP controlled. The initial root regression reached empty ordinary home after guest selection without an age form before implementation.
+
+The declaration contains only `category` (`under16`, `16–17`, `adult`) and the local `declaredAt` day. The native slider is the installed 5.2.1 selected by Expo 58; no dependency changed. Its initial zero position supplies no form value; slider interaction or precise minus/plus selection must precede confirmation. Cancelling/unmounting unsubmitted edits preserves the previous declaration. Invalid/missing/future declarations receive child protection without a fabricated record. A minor renews at the next installation-tree launch after one calendar year (February 29 clamps to February 28); there is no expiry timer, category promotion or annual adult prompt.
+
+The root composes one local declaration owner and a protected age route; ordinary home redirects to it while required. F14 skip/finish still leads to sign-in selection and remains independent. Back/restart cannot establish a declaration. Current known-active F09 Pro suppresses the prompt; its exemption does not transfer on logout. Independent sign-in/legal/support destinations retain their F12 gates. Tests use probes for the not-yet-implemented legal/support destination content; they do not certify document reading or support submission. The shared form is ready for correction reuse; the actual privacy/correction sheet and ad invalidation remain T019.
+
+Native visual checks use the approved age journey and shared F14 artwork/F13 controls. iOS simulator captures establish only the observed revision, appearance and interaction. Android, physical-device VoiceOver/TalkBack, provider consent/ATT/serving and T020 accessibility/mediation qualification remain separate. Existing F13 limitations [#433](https://github.com/blockoutproject/blockout/issues/433) (live Dynamic Type) and [#449](https://github.com/blockoutproject/blockout/issues/449) (iOS 17 input) are unchanged; no remount, font arithmetic or SDK patch is introduced.
+
+Observed local iOS evidence uses the reused `com.blockout.local` Expo 58 development client on iOS 27.0 simulator `2C22FCF3-D4A7-4F84-BAB1-F358C71C7649` (402 × 874 points), agent-device session `issue-325`. On code `0cad1708`, native 100+ selection, precise 100 → 99 adjustment, unconfirmed process restart and confirmed adult persistence across relaunch/direct age-route entry were exercised. A targeted storage read showed no declaration before confirmation and exactly `category`/`declaredAt` afterwards. On code `57eaa301`, new captures verify the reconciled Figma tokens/original artwork in light/dark, explicit 1 and 100+ choices, a blank minor-renewal form, enlarged renewal text with scroll to the action, and slow artwork motion within a fixed crop. Only the task's synthetic declaration fixture was replaced for renewal and then restored; no account or other installation state changed.
+
+HTTP admission was a local demonstration response; no real backend, Auth0 sign-in, Pro provider, advertising initialization or consent request was exercised. Native reduced-motion/VoiceOver/TalkBack, the effective slider touch region, compact-width and Android rendering remain unqualified; controlled JavaScript tests cover live reduced-motion changes without losing the draft. Representative screenshots and the motion clip belong in the [delivery PR Conversation](https://github.com/blockoutproject/blockout/pull/501), outside Git. Captures establish the observed rendering, not complete cross-platform Figma or accessibility qualification.
 
 ## Native setup boundary (T001/T002)
 

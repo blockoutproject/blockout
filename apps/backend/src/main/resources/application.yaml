@@ -35,6 +35,9 @@ server:
     max-swallow-size: 27MB
 
 blockout:
+  notifications:
+    # One ordinary pass per UTC day; Spring's '-' value is for isolated tests only.
+    retention-cron: ${BLOCKOUT_NOTIFICATIONS_RETENTION_CRON:0 0 3 * * *}
   consultation:
     documents:
       # Consumed by the document story adapter after origin/transport qualification.
@@ -50,6 +53,8 @@ blockout:
       connect-timeout: 3s
       read-timeout: 5s
   search:
+    projection:
+      full-rebuild-delay: ${BLOCKOUT_SEARCH_PROJECTION_FULL_REBUILD_DELAY:1h}
     indexes:
       prefix: ${BLOCKOUT_SEARCH_INDEX_PREFIX:blockout-local-search}
     enabled: false
@@ -115,6 +120,18 @@ logging:
         - affected_count
         - partial_count
         - last_success_at
+        - phase
+        - collection_control
+        - collection_season
+        - collection_cycle_order
+        - collection_read_ordinal
+        - collection_observed_at
+        - collection_first_failure_at
+        - collection_first_structural_failure_at
+        - collection_alert_at
+        - collection_subject
+        - collection_destination
+        - collection_count_capped
         - account_cleanup
         - account_cleanup.original_account_id
         - account_cleanup.auth0_subject

@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
-import type { SportingIdentityResponse } from "../../../../.generated/schemas/index.zod";
+import type {
+  SportingIdentityResponse,
+  SportingSeasonResponse,
+} from "../../../../.generated/schemas/index.zod";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import {
   ResourceCard,
@@ -22,7 +25,11 @@ import {
 /** Optional F06/later-story owner compositions receive stable identities, independently of public reads. */
 export interface TeamScreenProps {
   teamId: string;
-  renderFollow?: (identity: SportingIdentityResponse) => ReactNode;
+  renderFollow?: (
+    identity: SportingIdentityResponse,
+    season: SportingSeasonResponse,
+    contextColor?: string,
+  ) => ReactNode;
   renderCalendar?: (selection: TeamCalendarSelection) => ReactNode;
   renderStandings?: RenderStandings;
 }
@@ -85,7 +92,11 @@ function TeamPage({
                 label={`Voir le club ${data.team.club.name}`}
               />
             )}
-            {renderFollow?.(data.team.team)}
+            {renderFollow?.(
+              data.team.team,
+              data.team.season,
+              data.team.classification.division?.color,
+            )}
           </SportingIdentity>
           <ResourceTabs
             selected={tab ?? "upcoming"}

@@ -20,6 +20,8 @@ export function useAdministrationCapabilities() {
   const hasCommands =
     permissions?.manageMaintenance === true ||
     permissions?.manageApplicationVersions === true ||
-    permissions?.manageCollection === true;
+    permissions?.manageCollection === true ||
+    permissions?.manageSportingClassification === true ||
+    permissions?.manageDivisionLifecycle === true;
   return { permissions, hasCommands, account, sessionStatus: session.status };
 }

@@ -154,8 +154,8 @@ it.each([
   { bypassMaintenance: true },
   {
     manageSportingPresentation: true,
-    manageSportingClassification: true,
-    manageDivisionLifecycle: true,
+    manageSportingClassification: false,
+    manageDivisionLifecycle: false,
     moderateStreamLinks: true,
   },
   { isAdmin: true, owner: true, futureAction: true },
@@ -512,3 +512,30 @@ function json(body: unknown, status = 200) {
     headers: { "Content-Type": "application/json" },
   });
 }
+
+it.each(["manageSportingClassification", "manageDivisionLifecycle"])(
+  "offers only the delivered division destination for %s",
+  async (grant) => {
+    // Given
+    mockFetch.mockImplementation(async () =>
+      json({ ...account, permissions: { [grant]: true } }),
+    );
+
+    // When
+    await renderAdministration();
+
+    // Then
+    expect(
+      await screen.findByRole("link", { name: "Divisions" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Collectes" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Maintenance" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Versions minimales" }),
+    ).not.toBeOnTheScreen();
+  },
+);

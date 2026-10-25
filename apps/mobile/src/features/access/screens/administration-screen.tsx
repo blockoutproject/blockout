@@ -81,6 +81,13 @@ export function AdministrationScreen({
             Versions minimales
           </Link>
         )}
+        {(permissions?.manageSportingClassification === true ||
+          permissions?.manageDivisionLifecycle === true ||
+          permissions?.manageSportingPresentation === true) && (
+          <Link href="/administration/divisions" style={linkStyle}>
+            Divisions
+          </Link>
+        )}
         {permissions?.manageCollection === true && (
           <Link href="/collection" style={linkStyle}>
             Collectes
