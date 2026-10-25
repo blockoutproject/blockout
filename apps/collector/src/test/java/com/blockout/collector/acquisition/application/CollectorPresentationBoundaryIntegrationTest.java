@@ -237,7 +237,7 @@ class CollectorPresentationBoundaryIntegrationTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"unavailable", "corrupt", "oversized"})
+  @ValueSource(strings = {"unavailable", "corrupt", "unsupported", "oversized"})
   @DisplayName(
       "A failed image attempt retains accepted bytes without blocking matches or retrying the team")
   void preservesLastValidLogo(String failure) throws Exception {
@@ -254,6 +254,10 @@ class CollectorPresentationBoundaryIntegrationTest {
     switch (failure) {
       case "unavailable" -> imageStatus = 404;
       case "corrupt" -> imageBody = "not an image".getBytes(StandardCharsets.UTF_8);
+      case "unsupported" -> {
+        imageBody = image("gif");
+        assertThat(ImageIO.read(new ByteArrayInputStream(imageBody))).isNotNull();
+      }
       case "oversized" -> imageBody = oversizedImage();
       default -> throw new IllegalArgumentException(failure);
     }

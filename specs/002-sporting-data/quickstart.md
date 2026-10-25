@@ -116,17 +116,17 @@ passage, generated ingestion clients/mappers, backend security/controllers and
 F01/F02 commits on PostgreSQL 18.6, explicitly migrated with Liquibase. The isolated
 Compose project was `blockout-issue-200`, PostgreSQL port 5500 and backend port 8200;
 the backend used the restricted application role. Collector `verify` passed 284
-ordinary tests plus 12 presentation/locality and 10 existing cross-owner runtime
+ordinary tests plus 13 presentation/locality and 10 existing cross-owner runtime
 cases. Backend packaging, contract lint/bundling, Checkstyle, Spotless and repository
 Prettier passed.
 
-The 12 cases establish:
+The 13 cases establish:
 
 - One image acquisition per distinct resolved team across repeated matches and
-  pools in a passage, including failed attempts. Two teams sharing one URL still
+  pools with distinct calendar URLs in a passage, including failed attempts. Two teams sharing one URL still
   receive their independent acquisition. PNG content served under a JPEG name/type
   is retained as PNG.
-- HTTP 404, corrupt bytes and a decodable PNG above 5,242,880 bytes preserve the last
+- HTTP 404, corrupt bytes, a valid unsupported GIF and a decodable PNG above 5,242,880 bytes preserve the last
   accepted source image, manual logo and name while every usable match commits.
   The oversized PNG remains below the decoded-pixel and 8-MiB transport bounds.
 - Target reads resolve a correction made after admission. The generated locality
