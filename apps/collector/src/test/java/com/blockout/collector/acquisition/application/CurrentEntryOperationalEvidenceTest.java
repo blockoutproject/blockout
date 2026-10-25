@@ -22,6 +22,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
@@ -98,13 +100,19 @@ class CurrentEntryOperationalEvidenceTest {
     verify(backend, never()).observeSource(any());
   }
 
-  @Test
-  @DisplayName("An accepted FFVB neighbor does not cover the failed part of its entry")
-  void retainsPartialEntryFailure(CapturedOutput output) {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  @DisplayName("An accepted FFVB neighbor does not cover an unreadable branch")
+  void retainsPartialEntryFailure(boolean http200, CapturedOutput output) {
     // Given
     URI entry = URI.create("https://www.ffvb.org/120-37-1-Championnats-Regionaux");
     URI broken = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/broken.htm");
     URI valid = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/valid.htm");
+    when(http.page(broken))
+        .thenReturn(
+            http200
+                ? response(broken, "<html>unrecognized page</html>")
+                : CompletableFuture.failedFuture(new IOException("private-provider-body")));
     when(http.page(entry))
         .thenReturn(
             response(

@@ -284,7 +284,8 @@ public class DiscoverSeasonSources {
    * Reads published current FFVB menus and submits only a uniquely evidenced sporting year.
    *
    * @param entry one fixed official current entry, never an archive crawl root
-   * @return whether the entry yielded qualified evidence without an unreadable branch
+   * @return whether the entry yielded qualified evidence without an unreadable branch; a leaf must
+   *     have attributable catalog context or native navigation
    */
   private boolean currentFfvb(URI entry) {
     boolean usable = false;
@@ -315,6 +316,10 @@ public class DiscoverSeasonSources {
                   .filter(Objects::nonNull)
                   .distinct()
                   .toList();
+          List<URI> navigation =
+              links.stream()
+                  .filter(link -> !link.getPath().endsWith("vbspo_calendrier.php"))
+                  .toList();
           if (!organizers.isEmpty() && seasons.size() == 1) {
             for (String organizer : organizers) {
               try {
@@ -336,11 +341,10 @@ public class DiscoverSeasonSources {
                 complete = false;
               }
             }
+          } else if (navigation.isEmpty()) {
+            complete = false;
           }
-          pending.addAll(
-              links.stream()
-                  .filter(link -> !link.getPath().endsWith("vbspo_calendrier.php"))
-                  .toList());
+          pending.addAll(navigation);
         } catch (RuntimeException failure) {
           complete = false;
           discoveryFailure(failure);
