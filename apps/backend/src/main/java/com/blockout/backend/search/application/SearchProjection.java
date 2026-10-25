@@ -48,18 +48,17 @@ public class SearchProjection {
 
   /** Rebuilds all resource generations from bounded current reads, then publishes together. */
   public void rebuild() {
-    try {
-      Map<Kind, String> generation = writer.createGeneration();
-      for (Kind kind : List.of(Kind.CLUB, Kind.TEAM, Kind.POOL)) {
-        for (int page = 0; ; page++) {
-          List<SportingPublicInput> batch = sporting.projectionInputs(kind, page, 200);
-          if (batch.isEmpty()) break;
-          writer.write(generation.get(kind), batch.stream().map(SearchDocuments::from).toList());
-        }
+    Map<Kind, String> generation = writer.createGeneration();
+    for (Kind kind : List.of(Kind.CLUB, Kind.TEAM, Kind.POOL)) {
+      for (int page = 0; ; page++) {
+        List<SportingPublicInput> batch = sporting.projectionInputs(kind, page, 200);
+        if (batch.isEmpty()) break;
+        writer.write(generation.get(kind), batch.stream().map(SearchDocuments::from).toList());
       }
-      writer.publish(generation);
-    } finally {
-      writer.cleanup();
     }
+    writer.publish(generation);
+    // An old alias read cannot prove that a timed-out switch is no longer in flight.
+    // Only a confirmed publication permits cleanup; failed temporaries wait for the next full run.
+    writer.cleanup();
   }
 }

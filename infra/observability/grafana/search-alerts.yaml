@@ -1,4 +1,4 @@
-# Native Grafana reference: replace datasource UID/environment with the actual provider values.
+# Native Grafana reference: replace datasource UIDs/environment with actual provider values.
 # Grafana Cloud has no file provisioning; create the equivalent native rule through its UI.
 apiVersion: 1
 groups:
@@ -9,7 +9,7 @@ groups:
     rules:
       - uid: blockout-search-projection-failed
         title: Search projection failed
-        condition: B
+        condition: D
         for: 0s
         noDataState: NoData
         execErrState: Error
@@ -24,18 +24,42 @@ groups:
                 type: loki
                 uid: ${LOKI_DATASOURCE_UID}
               editorMode: code
-              expr: sum(count_over_time({environment="${BLOCKOUT_ENVIRONMENT}",service_name="blockout-backend"} | json | operation="search_projection" | outcome="failed" [5m]))
+              expr: sum(count_over_time({environment="${BLOCKOUT_ENVIRONMENT}",service_name="blockout-backend"} | json | operation="search_projection" | outcome="failed" [5m])) or vector(0)
               instant: true
               queryType: instant
               refId: A
           - refId: B
+            datasourceUid: ${PROMETHEUS_DATASOURCE_UID}
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              datasource:
+                type: prometheus
+                uid: ${PROMETHEUS_DATASOURCE_UID}
+              editorMode: code
+              expr: max(search_projection_last_success_time_seconds{service_name="blockout-backend",deployment_environment_name="${BLOCKOUT_ENVIRONMENT}"})
+              instant: true
+              range: false
+              refId: B
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              type: math
+              # Native provisioning escapes dollars; enter $A + (0 * $B) in the Cloud UI.
+              expression: $$A + (0 * $$B)
+              refId: C
+          - refId: D
             datasourceUid: __expr__
             relativeTimeRange:
               from: 0
               to: 0
             model:
               type: threshold
-              expression: A
+              expression: C
               conditions:
                 - evaluator:
                     type: gt
@@ -45,7 +69,7 @@ groups:
                   reducer:
                     type: last
                   type: query
-              refId: B
+              refId: D
         labels:
           environment: ${BLOCKOUT_ENVIRONMENT}
           service_name: blockout-backend

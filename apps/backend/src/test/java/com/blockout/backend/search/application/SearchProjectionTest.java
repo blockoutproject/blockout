@@ -60,8 +60,37 @@ class SearchProjectionTest {
   }
 
   @Test
-  @DisplayName("Cleans temporary generations when a full write fails without publishing")
-  void cleansFailedGeneration() {
+  @DisplayName(
+      "Traverses more than one bounded owner page before publishing the complete generation")
+  void traversesBoundedPages() {
+    // Given
+    Map<Kind, String> generation =
+        Map.of(Kind.CLUB, "clubs-new", Kind.TEAM, "teams-new", Kind.POOL, "pools-new");
+    when(writer.createGeneration()).thenReturn(generation);
+    List<SportingPublicInput> clubs =
+        java.util.stream.IntStream.rangeClosed(1, 201)
+            .mapToObj(position -> club(new UUID(0, position), "Club " + position))
+            .toList();
+    when(sporting.projectionInputs(Kind.CLUB, 0, 200)).thenReturn(clubs.subList(0, 200));
+    when(sporting.projectionInputs(Kind.CLUB, 1, 200)).thenReturn(clubs.subList(200, 201));
+
+    // When
+    projection.rebuild();
+
+    // Then
+    ArgumentCaptor<List<SearchDocuments>> batches = ArgumentCaptor.captor();
+    verify(writer, org.mockito.Mockito.times(2))
+        .write(org.mockito.ArgumentMatchers.eq("clubs-new"), batches.capture());
+    assertThat(batches.getAllValues()).extracting(List::size).containsExactly(200, 1);
+    assertThat(batches.getAllValues().stream().flatMap(List::stream).map(SearchDocuments::id))
+        .containsExactlyElementsOf(clubs.stream().map(SportingPublicInput::id).toList());
+    verify(writer).publish(generation);
+    verify(writer).cleanup();
+  }
+
+  @Test
+  @DisplayName("Preserves temporary generations after an unconfirmed full run")
+  void preservesFailedGeneration() {
     // Given
     Map<Kind, String> generation =
         Map.of(Kind.CLUB, "clubs-new", Kind.TEAM, "teams-new", Kind.POOL, "pools-new");
@@ -75,7 +104,7 @@ class SearchProjectionTest {
 
     // Then
     assertThatThrownBy(rebuild).isInstanceOf(SearchUnavailableException.class);
-    verify(writer).cleanup();
+    verify(writer, org.mockito.Mockito.never()).cleanup();
     verify(writer, org.mockito.Mockito.never()).publish(any());
   }
 

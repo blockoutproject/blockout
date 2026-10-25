@@ -92,6 +92,7 @@ class SearchProjectionIntegrationTest {
   @BeforeEach
   void fixture() throws Exception {
     drain();
+    assertThat(aliases()).hasSize(3);
     try (java.sql.Connection connection =
             java.sql.DriverManager.getConnection(
                 DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
@@ -298,6 +299,13 @@ class SearchProjectionIntegrationTest {
                 .indices()
                 .exists(request -> request.index(candidate.get(Kind.CLUB)))
                 .value())
+        .isTrue();
+    full();
+    assertThat(
+            SearchTestEngine.client
+                .indices()
+                .exists(request -> request.index(candidate.get(Kind.CLUB)))
+                .value())
         .isFalse();
   }
 
@@ -370,6 +378,59 @@ class SearchProjectionIntegrationTest {
     // Then
     assertThat(aliases().keySet()).containsExactlyInAnyOrderElementsOf(candidate.values());
     assertThat(document("clubs", CLUB).names()).containsExactly("Replacement");
+  }
+
+  @Test
+  @DisplayName("Preserves candidates when a timed-out alias request applies after the state reread")
+  void preservesInFlightCandidates() throws Exception {
+    // Given
+    full();
+    sql.update("UPDATE sporting_club SET source_name = 'Pending replacement' WHERE id = ?", CLUB);
+    Map<Kind, String> candidate = writer.createGeneration();
+    java.util.concurrent.atomic.AtomicReference<UpdateAliasesRequest> pending =
+        new java.util.concurrent.atomic.AtomicReference<>();
+    OpenSearchIndicesClient indices = spy(SearchTestEngine.client.indices());
+    doAnswer(
+            invocation -> {
+              pending.set(invocation.getArgument(0));
+              throw new IOException("synthetic alias request still in flight");
+            })
+        .when(indices)
+        .updateAliases(any(UpdateAliasesRequest.class));
+    OpenSearchClient controlled = mock(OpenSearchClient.class);
+    when(controlled.indices()).thenReturn(indices);
+    OpenSearchProjectionWriter uncertain =
+        new OpenSearchProjectionWriter(controlled, new SearchIndexProperties(PREFIX));
+    OpenSearchProjectionWriter delayed = spy(writer);
+    org.mockito.Mockito.doReturn(candidate).when(delayed).createGeneration();
+    doAnswer(
+            invocation -> {
+              uncertain.publish(invocation.getArgument(0));
+              return null;
+            })
+        .when(delayed)
+        .publish(any());
+    SearchProjection delayedProjection = new SearchProjection(sporting, delayed);
+
+    // When
+    Throwable failure =
+        org.assertj.core.api.Assertions.catchThrowable(
+            () -> tasks.submit(delayedProjection::rebuild).get(20, TimeUnit.SECONDS));
+    // The native operation completes after the application has reread the still-old state.
+    SearchTestEngine.client.indices().updateAliases(pending.get());
+
+    // Then
+    assertThat(failure).hasCauseInstanceOf(SearchUnavailableException.class);
+    assertThat(aliases().keySet()).containsExactlyInAnyOrderElementsOf(candidate.values());
+    assertThat(document("clubs", CLUB).names()).containsExactly("Pending replacement");
+    full();
+    assertThat(document("clubs", CLUB).names()).containsExactly("Pending replacement");
+    assertThat(
+            SearchTestEngine.client
+                .indices()
+                .exists(request -> request.index(candidate.get(Kind.CLUB)))
+                .value())
+        .isFalse();
   }
 
   @Test

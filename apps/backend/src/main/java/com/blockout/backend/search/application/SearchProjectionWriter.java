@@ -37,6 +37,9 @@ public interface SearchProjectionWriter {
    */
   void publish(Map<Kind, String> generation);
 
-  /** Rechecks native aliases before bounded inactive-generation cleanup; logs cleanup failure. */
+  /**
+   * Rechecks aliases for bounded cleanup after a confirmed publication; logs cleanup failure.
+   * Failed/unconfirmed runs must leave their candidates until a later confirmed full run.
+   */
   void cleanup();
 }
