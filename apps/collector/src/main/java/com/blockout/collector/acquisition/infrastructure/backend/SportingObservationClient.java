@@ -3,6 +3,7 @@ package com.blockout.collector.acquisition.infrastructure.backend;
 import com.blockout.collector.acquisition.application.SportingBackend;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.generated.ingestion.api.SportingApi;
+import com.blockout.collector.shared.mapping.TemporalMapping;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
@@ -74,10 +75,10 @@ public class SportingObservationClient implements SportingBackend {
                     id,
                     context.cycleId(),
                     context.readOrdinal(),
-                    mapper.toDate(context.observedAt()),
+                    TemporalMapping.toDate(context.observedAt()),
                     new ByteArrayResource(image),
                     context.providerPublishedAt() == null
                         ? null
-                        : mapper.toDate(context.providerPublishedAt()))));
+                        : TemporalMapping.toDate(context.providerPublishedAt()))));
   }
 }

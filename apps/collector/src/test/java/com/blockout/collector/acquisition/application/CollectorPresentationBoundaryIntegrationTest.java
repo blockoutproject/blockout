@@ -99,19 +99,31 @@ class CollectorPresentationBoundaryIntegrationTest {
   private byte[] imageBody;
   private int imageStatus = 200;
 
-  /** Starts the explicitly packaged backend against the selected disposable migrated database. */
+  /**
+   * Starts the explicitly packaged backend against the selected disposable migrated database.
+   *
+   * @throws Exception if the selected local runtime cannot start
+   */
   @BeforeAll
   static void startBackend() throws Exception {
     runtime = new CollectorSportingRuntime();
   }
 
-  /** Stops only this suite's backend process and local signing endpoint. */
+  /**
+   * Stops only this suite's backend process and local signing endpoint.
+   *
+   * @throws Exception if owned runtime shutdown fails
+   */
   @AfterAll
   static void stopBackend() throws Exception {
     if (runtime != null) runtime.close();
   }
 
-  /** Resets disposable data and creates real collector transport plus a local mobile principal. */
+  /**
+   * Resets disposable data and creates real collector transport plus a local mobile principal.
+   *
+   * @throws Exception if fixture initialization or native client setup fails
+   */
   @BeforeEach
   void prepareBoundaries() throws Exception {
     try (Connection connection =
@@ -190,7 +202,11 @@ class CollectorPresentationBoundaryIntegrationTest {
     images = new LnvTeamImages(imageHttp, clock);
   }
 
-  /** Releases this test's native pools and HTTP listener without touching other task resources. */
+  /**
+   * Releases this test's native pools and HTTP listener without touching other task resources.
+   *
+   * @throws Exception if owned native resources cannot close
+   */
   @AfterEach
   void closeBoundaries() throws Exception {
     try {
@@ -621,7 +637,8 @@ class CollectorPresentationBoundaryIntegrationTest {
         geocoder,
         discovery,
         lifecycle,
-        clock);
+        clock,
+        new CollectionStageMapperImpl());
   }
 
   /**

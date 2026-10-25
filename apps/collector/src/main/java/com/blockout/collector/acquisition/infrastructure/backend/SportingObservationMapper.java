@@ -22,16 +22,14 @@ import com.blockout.collector.generated.ingestion.model.ObservationOutcomeIntern
 import com.blockout.collector.generated.ingestion.model.StandingRowInternalRequest;
 import com.blockout.collector.generated.ingestion.model.StandingsObservationInternalRequest;
 import com.blockout.collector.generated.ingestion.model.TeamCandidateInternalRequest;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import com.blockout.collector.shared.mapping.TemporalMapping;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.openapitools.jackson.nullable.JsonNullable;
 
 /** Mechanical generated-contract mapping; presence decisions remain in provider interpretation. */
-@Mapper(config = MappingConfiguration.class)
+@Mapper(config = MappingConfiguration.class, uses = TemporalMapping.class)
 public interface SportingObservationMapper {
   /**
    * Carries pre-read order and timestamps without inferring publication time.
@@ -280,15 +278,5 @@ public interface SportingObservationMapper {
   default JsonNullable<InformationSheetInternalRequest> sheet(
       JsonNullable<SportingObservation.InformationSheet> source) {
     return source.map(this::toDto);
-  }
-
-  /**
-   * Represents an actual instant in UTC.
-   *
-   * @param source known instant
-   * @return its UTC representation, never an inferred publication time
-   */
-  default OffsetDateTime toDate(Instant source) {
-    return source.atOffset(ZoneOffset.UTC);
   }
 }

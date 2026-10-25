@@ -145,7 +145,7 @@ public final class FfvbPage {
    */
   public List<NameValuePair> exportFields() {
     return export.formData().stream()
-        .map(field -> (NameValuePair) new BasicNameValuePair(field.key(), field.value()))
+        .<NameValuePair>map(field -> new BasicNameValuePair(field.key(), field.value()))
         .toList();
   }
 

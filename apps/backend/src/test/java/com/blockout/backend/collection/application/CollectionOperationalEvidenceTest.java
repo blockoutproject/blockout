@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.blockout.backend.access.application.CurrentPermissions;
 import com.blockout.backend.collection.application.model.CollectionResult;
+import com.blockout.backend.collection.application.model.CollectionStageMapper;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.collection.application.port.CollectionStore;
@@ -25,14 +26,15 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.mapstruct.factory.Mappers;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -50,7 +52,20 @@ class CollectionOperationalEvidenceTest {
   @Mock private SportingReadService sporting;
   @Mock private CurrentPermissions permissions;
   @Mock private ApplicationEventPublisher events;
-  @InjectMocks private CollectionResultService service;
+  private CollectionResultService service;
+
+  /** Uses real enum mapping while replacing only external application collaborators. */
+  @BeforeEach
+  void createService() {
+    service =
+        new CollectionResultService(
+            store,
+            cycles,
+            sporting,
+            permissions,
+            events,
+            Mappers.getMapper(CollectionStageMapper.class));
+  }
 
   @Test
   @DisplayName("Requests committed diagnostics on the first competition failure")

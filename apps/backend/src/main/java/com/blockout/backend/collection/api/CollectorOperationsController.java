@@ -20,6 +20,7 @@ import com.blockout.backend.generated.ingestion.model.SeasonSourceInternalRespon
 import com.blockout.backend.generated.ingestion.model.SourceValidationInternalResponse;
 import com.blockout.backend.generated.ingestion.model.StartCollectionCycleInternalRequest;
 import com.blockout.backend.generated.ingestion.model.SubmitSourceValidationInternalRequest;
+import com.blockout.backend.shared.mapping.TemporalMapping;
 import java.net.URI;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -74,7 +75,9 @@ public class CollectorOperationsController implements CollectorOperationsApi, Co
       UUID cycleId, CompleteCollectionCycleInternalRequest request) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(results.complete(cycleId, request.getCompletedAt().toInstant())));
+        .body(
+            mapper.toDto(
+                results.complete(cycleId, TemporalMapping.toInstant(request.getCompletedAt()))));
   }
 
   /** {@inheritDoc} */

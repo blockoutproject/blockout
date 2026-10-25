@@ -33,7 +33,7 @@ public class ConsultationController implements ConsultationApi {
   public ResponseEntity<ClubDetailResponse> getClub(UUID clubId, Boolean bypass) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toResponse(resources.club(clubId)));
+        .body(mapper.toDto(resources.club(clubId)));
   }
 
   /** {@inheritDoc} */
@@ -41,7 +41,7 @@ public class ConsultationController implements ConsultationApi {
   public ResponseEntity<TeamDetailResponse> getTeam(UUID teamId, Boolean bypass) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toResponse(resources.team(teamId)));
+        .body(mapper.toDto(resources.team(teamId)));
   }
 
   /** {@inheritDoc} */
@@ -49,7 +49,7 @@ public class ConsultationController implements ConsultationApi {
   public ResponseEntity<PoolDetailResponse> getPool(UUID poolId, Boolean bypass) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toResponse(resources.pool(poolId)));
+        .body(mapper.toDto(resources.pool(poolId)));
   }
 
   /** {@inheritDoc} */
@@ -57,7 +57,7 @@ public class ConsultationController implements ConsultationApi {
   public ResponseEntity<MatchDetailResponse> getMatch(UUID matchId, Boolean bypass) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toResponse(resources.match(matchId)));
+        .body(mapper.toDto(resources.match(matchId)));
   }
 
   /** {@inheritDoc} */
@@ -66,7 +66,7 @@ public class ConsultationController implements ConsultationApi {
       UUID clubId, UUID seasonId, Boolean bypass) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toResponse(resources.clubTeams(new ClubSeasonRequest(clubId, seasonId))));
+        .body(mapper.toDto(resources.clubTeams(new ClubSeasonRequest(clubId, seasonId))));
   }
 
   /** {@inheritDoc} */

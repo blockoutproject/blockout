@@ -54,7 +54,7 @@ import com.blockout.backend.sporting.support.SportingImageFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture.Scope;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -1440,6 +1440,6 @@ class SportingPresentationIntegrationTest {
    */
   private MatchObservation.Context context(CollectionState.Cycle cycle, long ordinal) {
     return new MatchObservation.Context(
-        cycle.id(), ordinal, OffsetDateTime.parse("2026-10-24T12:00:00Z"), null);
+        cycle.id(), ordinal, Instant.parse("2026-10-24T12:00:00Z"), null);
   }
 }

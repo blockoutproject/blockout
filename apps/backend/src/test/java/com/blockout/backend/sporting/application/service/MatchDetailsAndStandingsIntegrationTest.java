@@ -173,7 +173,7 @@ class MatchDetailsAndStandingsIntegrationTest {
     assertThat(accepted.sets()).isEqualTo(previous.sets());
     assertThat(accepted.setsObservedAt()).isEqualTo(previous.setsObservedAt());
     assertThat(accepted.setsPublishedAt()).isEqualTo(FIRST.toInstant());
-    assertThat(accepted.resultObservedAt()).isEqualTo(context(3).observedAt().toInstant());
+    assertThat(accepted.resultObservedAt()).isEqualTo(context(3).observedAt());
     assertThat(accepted.resultPublishedAt()).isNull();
     assertThat(accepted.venueName()).isEqualTo("Synthetic venue");
   }
@@ -441,7 +441,7 @@ class MatchDetailsAndStandingsIntegrationTest {
       StandingsView refreshed = table();
       assertThat(refreshed.rows()).isEqualTo(previous.rows());
       assertThat(refreshed.readOrdinal()).isEqualTo(3);
-      assertThat(refreshed.tableObservedAt()).isEqualTo(context(3).observedAt().toInstant());
+      assertThat(refreshed.tableObservedAt()).isEqualTo(context(3).observedAt());
       assertThat(refreshed.tablePublishedAt()).isNull();
     } finally {
       statistics.setStatisticsEnabled(enabled);
@@ -477,7 +477,7 @@ class MatchDetailsAndStandingsIntegrationTest {
     assertThat(table().tableAvailable()).isTrue();
     assertThat(table().rows()).isEqualTo(previous.rows());
     assertThat(table().tableObservedAt()).isEqualTo(previous.tableObservedAt());
-    assertThat(table().observedAt()).isEqualTo(context(3).observedAt().toInstant());
+    assertThat(table().observedAt()).isEqualTo(context(3).observedAt());
     assertThat(stale.outcome()).isEqualTo(ObservationOutcomeEnum.STALE);
   }
 
@@ -595,7 +595,7 @@ class MatchDetailsAndStandingsIntegrationTest {
     assertThat(
             sql.queryForObject("SELECT COUNT(*) FROM sporting_standing_statistic", Integer.class))
         .isZero();
-    assertThat(table().tableObservedAt()).isEqualTo(context(3).observedAt().toInstant());
+    assertThat(table().tableObservedAt()).isEqualTo(context(3).observedAt());
     assertThat(table().tablePublishedAt()).isNull();
   }
 
@@ -669,7 +669,7 @@ class MatchDetailsAndStandingsIntegrationTest {
                     null))
             .cycle();
     MatchObservation.Context authorized =
-        new MatchObservation.Context(professionalCycle.id(), 1, FIRST, null);
+        new MatchObservation.Context(professionalCycle.id(), 1, FIRST.toInstant(), null);
     CalendarObservation.Match professional =
         new CalendarObservation.Match(
             "LNV-M1",
@@ -740,7 +740,10 @@ class MatchDetailsAndStandingsIntegrationTest {
    */
   private MatchObservation.Context context(long ordinal) {
     return new MatchObservation.Context(
-        scope.cycle().id(), ordinal, FIRST.plusMinutes(ordinal), ordinal == 2 ? FIRST : null);
+        scope.cycle().id(),
+        ordinal,
+        FIRST.plusMinutes(ordinal).toInstant(),
+        ordinal == 2 ? FIRST.toInstant() : null);
   }
 
   /**

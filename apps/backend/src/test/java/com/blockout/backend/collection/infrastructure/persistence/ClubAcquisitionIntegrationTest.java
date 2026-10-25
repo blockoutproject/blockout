@@ -30,8 +30,6 @@ import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -219,8 +217,7 @@ class ClubAcquisitionIntegrationTest {
         details.accept(
             CLUB,
             new SportingPresentation.ClubObservation(
-                new MatchObservation.Context(
-                    sheets.id(), 2, OffsetDateTime.ofInstant(now, ZoneOffset.UTC), null),
+                new MatchObservation.Context(sheets.id(), 2, now, null),
                 "Updated synthetic name",
                 Map.of(ContactField.EMAIL, JsonNullable.of("invalid-email"))));
 
@@ -471,8 +468,7 @@ class ClubAcquisitionIntegrationTest {
    * @return first read ordinal at the controlled instant
    */
   private MatchObservation.Context context(CollectionState.Cycle cycle) {
-    return new MatchObservation.Context(
-        cycle.id(), 1, OffsetDateTime.ofInstant(now, ZoneOffset.UTC), null);
+    return new MatchObservation.Context(cycle.id(), 1, now, null);
   }
 
   /**

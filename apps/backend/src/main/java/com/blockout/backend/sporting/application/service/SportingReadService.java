@@ -7,6 +7,7 @@ import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
 import com.blockout.backend.sporting.application.model.ClubAcquisitionReference;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
+import com.blockout.backend.sporting.application.model.SportingModelMapper;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingPublicInput;
 import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
@@ -39,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class SportingReadService {
   private final SportingStore store;
+  private final SportingModelMapper mapper;
   private final SportingReadStore publicReads;
 
   /**
@@ -162,11 +164,8 @@ public class SportingReadService {
                       table.rows().stream()
                           .map(
                               row ->
-                                  new StandingsView.Row(
-                                      row.sourceName(),
-                                      row.nativeTeamReference(),
-                                      row.position(),
-                                      row.statistics(),
+                                  mapper.toRow(
+                                      row,
                                       row.teamId() != null && eligible.contains(row.teamId())
                                           ? row.teamId()
                                           : null))
@@ -342,8 +341,7 @@ public class SportingReadService {
   public Optional<SportingPresentation.View> publicPresentation(Kind kind, UUID id) {
     return visibility(kind, id)
         .filter(SportingVisibility::viewable)
-        .flatMap(
-            ignored -> store.presentation(SportingProjectionChanges.Kind.valueOf(kind.name()), id));
+        .flatMap(ignored -> store.presentation(mapper.toProjectionKind(kind), id));
   }
 
   /**
@@ -388,7 +386,7 @@ public class SportingReadService {
     boolean visible =
         kind == SportingProjectionChanges.Kind.DIVISION
             ? store.division(id).filter(DivisionView::active).isPresent()
-            : visibility(Kind.valueOf(kind.name()), id)
+            : visibility(mapper.toVisibilityKind(kind), id)
                 .filter(SportingVisibility::viewable)
                 .isPresent();
     return visible ? store.effectiveLogo(kind, id) : Optional.empty();

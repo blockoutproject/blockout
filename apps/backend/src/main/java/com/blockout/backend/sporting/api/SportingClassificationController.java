@@ -24,7 +24,7 @@ public class SportingClassificationController implements SportingClassificationA
   public ResponseEntity<ClassificationDetailResponse> getPackClassification(UUID packId) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toResponse(classifications.pack(account.id(), packId)));
+        .body(mapper.toDto(classifications.pack(account.id(), packId)));
   }
 
   /** {@inheritDoc} */
@@ -32,7 +32,7 @@ public class SportingClassificationController implements SportingClassificationA
   public ResponseEntity<ClassificationDetailResponse> getPoolClassification(UUID poolId) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toResponse(classifications.pool(account.id(), poolId)));
+        .body(mapper.toDto(classifications.pool(account.id(), poolId)));
   }
 
   /** {@inheritDoc} */
@@ -42,12 +42,12 @@ public class SportingClassificationController implements SportingClassificationA
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(
-            mapper.toResponse(
+            mapper.toDto(
                 classifications.setPack(
                     account.id(),
                     packId,
                     request.getRevision(),
-                    mapper.toClassification(request.getClassification().get()))));
+                    mapper.toCommand(request.getClassification().get()))));
   }
 
   /** {@inheritDoc} */
@@ -57,11 +57,11 @@ public class SportingClassificationController implements SportingClassificationA
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(
-            mapper.toResponse(
+            mapper.toDto(
                 classifications.setPool(
                     account.id(),
                     poolId,
                     request.getRevision(),
-                    mapper.toClassification(request.getClassification().get()))));
+                    mapper.toCommand(request.getClassification().get()))));
   }
 }

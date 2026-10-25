@@ -4,11 +4,14 @@ import { FileText, Wrench } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { Alert, StyleSheet, Text, View } from "react-native";
-import { z } from "zod";
-import type {
-  MaintenanceSettingsResponse,
-  ChangeMaintenanceRequest,
-} from "../../../../.generated/schemas/index.zod";
+import type { MaintenanceSettingsResponse } from "../../../../.generated/schemas/index.zod";
+import {
+  maintenanceImageSchema,
+  maintenanceSchema,
+  maintenanceValues,
+  type MaintenanceValues,
+} from "./maintenance-values";
+import { toMaintenanceRequest } from "../api/maintenance-request";
 import { Button } from "../../../shared/components/button";
 import { RequestError } from "../../../shared/components/request-feedback";
 import { TextField } from "../../../shared/components/text-field";
@@ -19,21 +22,6 @@ import {
   requiresSettingsReread,
   useMaintenanceSettings,
 } from "../api/use-maintenance-settings";
-
-const imageSchema = z.string().refine((value) => {
-  if (value === "") return true;
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" && !url.username && !url.password;
-  } catch {
-    return false;
-  }
-}, "Utilisez une URL HTTPS d’image sans identifiant ni suivi personnalisé.");
-const schema = z.object({
-  message: z.string().trim().min(1, "Saisissez un message de maintenance."),
-  imageUrl: imageSchema,
-});
-type MaintenanceValues = z.infer<typeof schema>;
 
 /** One editable snapshot; newer remote data cannot silently replace dirty input or its revision. */
 export interface MaintenanceSettingsFormProps {
@@ -62,8 +50,8 @@ export function MaintenanceSettingsForm({
     reset,
     formState: { errors, isSubmitting, isDirty, dirtyFields },
   } = useForm<MaintenanceValues>({
-    resolver: zodResolver(schema),
-    defaultValues: values(settings),
+    resolver: zodResolver(maintenanceSchema),
+    defaultValues: maintenanceValues(settings),
   });
   const imageUrl = useWatch({ control, name: "imageUrl" });
   const busy =
@@ -74,7 +62,7 @@ export function MaintenanceSettingsForm({
     editing.query.isFetching;
   const rereadRequired = needsRead || settings.revision > baseline.revision;
   const validPreview =
-    imageUrl !== "" && imageSchema.safeParse(imageUrl).success;
+    imageUrl !== "" && maintenanceImageSchema.safeParse(imageUrl).success;
   useEffect(() => {
     onDirtyChange?.(isDirty);
     return () => onDirtyChange?.(false);
@@ -123,15 +111,13 @@ export function MaintenanceSettingsForm({
   async function submit(draft: MaintenanceValues) {
     if (!session.isCurrent(session.generation) || rereadRequired || busy)
       return;
-    const body: ChangeMaintenanceRequest = { revision: baseline.revision };
-    if (dirtyFields.message) body.message = draft.message;
-    if (dirtyFields.imageUrl)
-      body.imageUrl = draft.imageUrl === "" ? null : draft.imageUrl;
     try {
-      const accepted = await editing.content.mutateAsync(body);
+      const accepted = await editing.content.mutateAsync(
+        toMaintenanceRequest(baseline.revision, draft, dirtyFields),
+      );
       if (!session.isCurrent(session.generation)) return;
       setBaseline(accepted);
-      reset(values(accepted));
+      reset(maintenanceValues(accepted));
       setFeedback("Contenu enregistré.");
     } catch (error) {
       failed(error);
@@ -167,7 +153,7 @@ export function MaintenanceSettingsForm({
       return;
     }
     setBaseline(result.data);
-    reset(values(result.data), { keepDirtyValues: true });
+    reset(maintenanceValues(result.data), { keepDirtyValues: true });
     setNeedsRead(false);
     setFeedback(
       "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
@@ -334,10 +320,7 @@ export function MaintenanceSettingsForm({
     </View>
   );
 }
-/** Maps optional transport media into the form's explicit empty editing value. */
-function values(settings: MaintenanceSettingsResponse): MaintenanceValues {
-  return { message: settings.message, imageUrl: settings.imageUrl ?? "" };
-}
+
 const styles = StyleSheet.create({
   heading: {
     flexDirection: "row",

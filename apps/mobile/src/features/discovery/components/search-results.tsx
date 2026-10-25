@@ -10,38 +10,8 @@ import type { ReactNode } from "react";
 import type { DiscoveryPage } from "../api/discovery-queries";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
-import {
-  SearchResultCard,
-  type SearchResultCardProps,
-} from "./search-result-card";
-
-/** Maps current generated summaries to available presentation slots without storing a second result collection. */
-function results(page: DiscoveryPage): SearchResultCardProps[] {
-  if ("clubs" in page)
-    return page.clubs.map(({ club, city }) => ({
-      kind: "club",
-      identity: club,
-      city,
-    }));
-  if ("teams" in page)
-    return page.teams.map(({ team, club, season, classification }) => ({
-      kind: "team",
-      identity: team,
-      subtitle: club?.name,
-      season,
-      classification,
-    }));
-  return page.pools.map(
-    ({ pool, season, classification, competitionName, phaseName }) => ({
-      kind: "pool",
-      identity: pool,
-      subtitle:
-        [competitionName, phaseName].filter(Boolean).join(" · ") || undefined,
-      season,
-      classification,
-    }),
-  );
-}
+import { SearchResultCard } from "./search-result-card";
+import { searchResults } from "../model/search-result";
 
 /** Initial text results; complete continuation and destination activation remain with US4. */
 export interface SearchResultsProps {
@@ -56,7 +26,7 @@ export function SearchResults({
   onClear,
   feedback,
 }: SearchResultsProps) {
-  const items = pages.flatMap(results);
+  const items = pages.flatMap(searchResults);
   return (
     <FlatList
       data={items}

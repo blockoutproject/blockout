@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { hashKey, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import type {
   SportingIdentityResponse,
@@ -35,10 +35,7 @@ export interface PoolScreenProps {
 export function PoolScreen(props: PoolScreenProps) {
   const queries = useConsultationQueries();
   return (
-    <PoolPage
-      key={JSON.stringify(queries.pool(props.poolId).queryKey)}
-      {...props}
-    />
+    <PoolPage key={hashKey(queries.pool(props.poolId).queryKey)} {...props} />
   );
 }
 

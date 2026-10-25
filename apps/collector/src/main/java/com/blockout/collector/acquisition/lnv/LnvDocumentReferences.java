@@ -110,10 +110,11 @@ public class LnvDocumentReferences {
         fields.add(
             new BasicNameValuePair(
                 "__EVENTARGUMENT", JSON.writeValueAsString(Map.of("type", 0, "index", index))));
-        ObjectNode clientState =
+        JsonNode retainedState =
             previous != null && !previous.attr("value").isBlank()
-                ? (ObjectNode) JSON.readTree(previous.attr("value"))
+                ? JSON.readTree(previous.attr("value"))
                 : JSON.createObjectNode();
+        if (!(retainedState instanceof ObjectNode clientState)) throw LnvPage.invalid();
         clientState.putArray("selectedIndexes").add(index);
         fields.add(new BasicNameValuePair(stateName, JSON.writeValueAsString(clientState)));
         URI action = form.attr("action").isBlank() ? page : URI.create(form.absUrl("action"));

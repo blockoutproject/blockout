@@ -1,3 +1,4 @@
+import { formatCollectionTimestamp } from "../model/collection-time";
 import { Text } from "react-native";
 import type { CollectionResultResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "../../../shared/theme/tokens";
@@ -63,14 +64,14 @@ export function CollectionResult({
       <Text
         style={[tokens.typography.metadata, { color: colors.secondaryText }]}
       >
-        Observé le {new Date(result.observedAt).toLocaleString("fr-FR")}
+        Observé le {formatCollectionTimestamp(result.observedAt)}
       </Text>
       <Text
         style={[tokens.typography.metadata, { color: colors.secondaryText }]}
       >
         Dernier succès de ce périmètre :{" "}
         {result.lastSuccessAt
-          ? new Date(result.lastSuccessAt).toLocaleString("fr-FR")
+          ? formatCollectionTimestamp(result.lastSuccessAt)
           : "aucun"}
       </Text>
       <Text

@@ -9,7 +9,6 @@ import com.blockout.backend.generated.mobile.api.StreamSubmissionApi;
 import com.blockout.backend.generated.mobile.model.CreateModeratedStreamContributionRequest;
 import com.blockout.backend.generated.mobile.model.CreateStreamContributionRequest;
 import com.blockout.backend.generated.mobile.model.ModeratedStreamContributionDetailResponse;
-import com.blockout.backend.generated.mobile.model.ModeratedStreamContributionResponse;
 import com.blockout.backend.generated.mobile.model.OwnStreamContributionDetailResponse;
 import com.blockout.backend.generated.mobile.model.OwnStreamContributionsResponse;
 import java.net.URI;
@@ -43,10 +42,7 @@ public class ContributionsController implements StreamSubmissionApi {
             + matchId
             + "/stream-contributions/"
             + outcome.version().id();
-    return response(
-        outcome.created(),
-        member,
-        new OwnStreamContributionDetailResponse(outcome.revision(), mapper.own(outcome.version())));
+    return response(outcome.created(), member, mapper.toDto(outcome));
   }
 
   /** {@inheritDoc} */
@@ -56,7 +52,7 @@ public class ContributionsController implements StreamSubmissionApi {
     request.current().requireOriginalAccount(accountId);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.page(reads.read(accountId, matchId, page == null ? 0 : page)));
+        .body(mapper.toDto(reads.read(accountId, matchId, page == null ? 0 : page)));
   }
 
   /** {@inheritDoc} */
@@ -65,11 +61,7 @@ public class ContributionsController implements StreamSubmissionApi {
       UUID accountId, UUID matchId, UUID contributionId, Boolean bypass) {
     request.current().requireOriginalAccount(accountId);
     ReadOwnContributions.Detail detail = reads.member(accountId, matchId, contributionId);
-    return ResponseEntity.ok()
-        .cacheControl(CacheControl.noStore())
-        .body(
-            new OwnStreamContributionDetailResponse(
-                detail.revision(), mapper.own(detail.version())));
+    return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(mapper.toDto(detail));
   }
 
   /** {@inheritDoc} */
@@ -83,12 +75,10 @@ public class ContributionsController implements StreamSubmissionApi {
     SubmitContribution.Outcome outcome =
         submissions.submit(context.accountId(), matchId, body.getRevision(), body.getUrl(), true);
     ContributionVersion version = outcome.version();
-    ModeratedStreamContributionResponse contribution =
-        mapper.moderated(version, accounts.displayName(context.accountId()));
     return response(
         outcome.created(),
         "/administration/matches/" + matchId + "/stream-contributions/" + version.id(),
-        new ModeratedStreamContributionDetailResponse(outcome.revision(), contribution));
+        mapper.toDto(outcome, accounts.displayName(context.accountId())));
   }
 
   /**

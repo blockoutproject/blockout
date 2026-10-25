@@ -25,22 +25,59 @@ import com.blockout.backend.generated.mobile.model.CollectionSeasonResponse;
 import com.blockout.backend.generated.mobile.model.DiscoveredCollectionResourcePageResponse;
 import com.blockout.backend.generated.mobile.model.DiscoveredCollectionResourceResponse;
 import com.blockout.backend.generated.mobile.model.SourceBindingResponse;
+import com.blockout.backend.shared.api.RequiredNullableMapping;
+import com.blockout.backend.shared.mapping.TemporalMapping;
+import com.blockout.backend.shared.mapping.UriMapping;
 import com.blockout.backend.sporting.application.model.SportingViews;
-import java.net.URI;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.util.UUID;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 import org.mapstruct.NullValueCheckStrategy;
 import org.openapitools.jackson.nullable.JsonNullable;
 
 /**
  * Maps current application state to generated contracts without loading owners or mutating state.
  */
-@Mapper(config = MappingConfiguration.class)
+@Mapper(
+    config = MappingConfiguration.class,
+    uses = {RequiredNullableMapping.class, TemporalMapping.class, UriMapping.class})
 public interface CollectionApiMapper {
+  /**
+   * Wraps selected controls in their existing order.
+   *
+   * @param source current authorized controls
+   * @return the generated collection envelope
+   */
+  default com.blockout.backend.generated.mobile.model.CollectionControlListResponse toControlsDto(
+      java.util.List<CollectionState.ControlView> source) {
+    return new com.blockout.backend.generated.mobile.model.CollectionControlListResponse(
+        source.stream().map(this::toDto).toList());
+  }
+
+  /**
+   * Wraps the current preparation seasons in their selected order.
+   *
+   * @param source authorized season views
+   * @return the generated collection envelope
+   */
+  default com.blockout.backend.generated.mobile.model.CollectionSeasonListResponse toSeasonsDto(
+      java.util.List<SportingViews.CollectionSeasonView> source) {
+    return new com.blockout.backend.generated.mobile.model.CollectionSeasonListResponse(
+        source.stream().map(this::toDto).toList());
+  }
+
+  /**
+   * Wraps the selected sources without changing their evidence.
+   *
+   * @param source authorized source views
+   * @return the generated collection envelope
+   */
+  default com.blockout.backend.generated.mobile.model.SourceBindingListResponse toSourcesDto(
+      java.util.List<CollectionState.Source> source) {
+    return new com.blockout.backend.generated.mobile.model.SourceBindingListResponse(
+        source.stream().map(this::toDto).toList());
+  }
+
   /**
    * Projects intent and confirmed execution without inventing freshness.
    *
@@ -182,26 +219,6 @@ public interface CollectionApiMapper {
   DiscoveredCollectionResourceResponse toDto(SportingViews.CollectionResource source);
 
   /**
-   * Preserves explicit null for absent required URL evidence.
-   *
-   * @param value candidate or accepted URL, possibly absent
-   * @return present nullable URI
-   */
-  default JsonNullable<URI> nullableUri(String value) {
-    return JsonNullable.of(value == null ? null : URI.create(value));
-  }
-
-  /**
-   * Preserves explicit null for absent required explanatory evidence.
-   *
-   * @param value optional evidence stored in a required nullable response property
-   * @return present nullable text
-   */
-  default JsonNullable<String> nullableText(String value) {
-    return JsonNullable.of(value);
-  }
-
-  /**
    * Converts independently reported phase evidence to the application command.
    *
    * @param source validated result submission
@@ -235,26 +252,6 @@ public interface CollectionApiMapper {
       source = "firstFailureAt",
       nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   CollectionResultResponse toDto(CollectionResult source);
-
-  /**
-   * Wraps a required nullable timestamp without turning null into omission.
-   *
-   * @param value required nullable evidence
-   * @return present nullable UTC timestamp
-   */
-  default JsonNullable<OffsetDateTime> nullableDate(Instant value) {
-    return JsonNullable.of(value == null ? null : toDate(value));
-  }
-
-  /**
-   * Preserves the instant represented by a validated wire timestamp.
-   *
-   * @param value validated wire timestamp
-   * @return its actual instant
-   */
-  default Instant toInstant(OffsetDateTime value) {
-    return value.toInstant();
-  }
 
   /**
    * Retains the conditional admission purpose.
@@ -330,18 +327,8 @@ public interface CollectionApiMapper {
    */
   @Mapping(target = ".", source = "target")
   @Mapping(target = "additionalProperties", ignore = true)
-  @Mapping(target = "municipality", expression = "java(municipality(source))")
+  @Mapping(target = "municipality", source = "source", qualifiedByName = "municipality")
   CollectionTargetInternalResponse toDto(CollectionState.ServedTarget source);
-
-  /**
-   * Preserves required nullable runtime identity.
-   *
-   * @param id current startup, or null before registration
-   * @return present nullable value; omission is not valid for runtime responses
-   */
-  default JsonNullable<UUID> nullableId(UUID id) {
-    return JsonNullable.of(id);
-  }
 
   /**
    * Separates required geocoding null from non-geocoding omission.
@@ -349,29 +336,10 @@ public interface CollectionApiMapper {
    * @param source selected target
    * @return required current municipal value for geocoding, otherwise an omitted field
    */
+  @Named("municipality")
   default JsonNullable<String> municipality(CollectionState.ServedTarget source) {
     return source.target().kind() == CollectionTargetKindEnum.GEOCODING
         ? JsonNullable.of(source.municipality())
         : JsonNullable.undefined();
-  }
-
-  /**
-   * Converts an already qualified source URL.
-   *
-   * @param value qualified absolute source URL
-   * @return native URI for the generated contract
-   */
-  default URI toUri(String value) {
-    return URI.create(value);
-  }
-
-  /**
-   * Normalizes the representation of a known instant to UTC.
-   *
-   * @param instant known application timestamp
-   * @return the same instant serialized at UTC
-   */
-  default OffsetDateTime toDate(Instant instant) {
-    return instant.atOffset(ZoneOffset.UTC);
   }
 }

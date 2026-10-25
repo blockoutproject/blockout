@@ -416,7 +416,7 @@ class SportingIngestionWebMvcTest {
     Assertions.assertThat(image.getValue().bytes()).isEqualTo(content);
     Assertions.assertThat(image.getValue().mediaType()).isEqualTo("image/png");
     Assertions.assertThat(context.getValue().providerPublishedAt())
-        .isEqualTo(java.time.OffsetDateTime.parse("2026-10-23T12:00:00Z"));
+        .isEqualTo(java.time.Instant.parse("2026-10-23T12:00:00Z"));
   }
 
   @ParameterizedTest

@@ -34,9 +34,7 @@ public class CollectionControlsController implements CollectionApi {
   public ResponseEntity<CollectionControlListResponse> listCollectionControls(UUID seasonId) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(
-            new CollectionControlListResponse(
-                controls.list(account.id(), seasonId).stream().map(mapper::toDto).toList()));
+        .body(mapper.toControlsDto(controls.list(account.id(), seasonId)));
   }
 
   /** {@inheritDoc} */

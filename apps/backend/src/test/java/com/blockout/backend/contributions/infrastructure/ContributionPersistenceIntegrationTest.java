@@ -382,7 +382,7 @@ class ContributionPersistenceIntegrationTest {
                   entityManager.persist(entity);
                   entityManager.flush();
                   entityManager.clear();
-                  return mapper.toVersion(
+                  return mapper.toDomain(
                       entityManager.find(ContributionVersionEntity.class, entity.getId()));
                 });
 
@@ -424,7 +424,7 @@ class ContributionPersistenceIntegrationTest {
         new TransactionTemplate(transactions)
             .execute(
                 status ->
-                    mapper.toVersion(entityManager.find(ContributionVersionEntity.class, FIRST)));
+                    mapper.toDomain(entityManager.find(ContributionVersionEntity.class, FIRST)));
 
     // Then
     assertThat(result.ownerId()).isNull();
@@ -452,7 +452,7 @@ class ContributionPersistenceIntegrationTest {
                   entityManager.persist(entity);
                   entityManager.flush();
                   entityManager.clear();
-                  return mapper.toState(
+                  return mapper.toDomain(
                       entityManager.find(MatchContributionStateEntity.class, MATCH));
                 });
 
@@ -485,7 +485,7 @@ class ContributionPersistenceIntegrationTest {
         new TransactionTemplate(transactions)
             .execute(
                 status ->
-                    mapper.toVersion(entityManager.find(ContributionVersionEntity.class, FIRST)));
+                    mapper.toDomain(entityManager.find(ContributionVersionEntity.class, FIRST)));
 
     // Then
     assertThat(result.ownerId()).isNull();

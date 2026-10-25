@@ -729,7 +729,7 @@ class SportingVisibilityIntegrationTest {
    * @return real cycle attribution
    */
   private MatchObservation.Context context(long ordinal) {
-    return new MatchObservation.Context(cycle.id(), ordinal, NOW, null);
+    return new MatchObservation.Context(cycle.id(), ordinal, NOW.toInstant(), null);
   }
 
   /**

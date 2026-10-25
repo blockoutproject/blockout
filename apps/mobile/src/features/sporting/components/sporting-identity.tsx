@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { genderLabel, formatLabel } from "../classification-presentation";
+import { hashKey, useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
@@ -78,11 +79,7 @@ export function SportingLogo({
         ]}
       >
         {data ? (
-          <LogoImage
-            key={JSON.stringify(queryKey)}
-            blob={data}
-            size={imageSize}
-          />
+          <LogoImage key={hashKey(queryKey)} blob={data} size={imageSize} />
         ) : (
           <Text
             accessible={false}
@@ -114,7 +111,7 @@ export function SportingArtwork({
 }: Pick<SportingLogoProps, "identity" | "kind">) {
   const { query: logo, queryKey } = useSportingLogo(identity, kind);
   return identity.logoUrl && logo.data ? (
-    <LogoImage key={JSON.stringify(queryKey)} blob={logo.data} blurred />
+    <LogoImage key={hashKey(queryKey)} blob={logo.data} blurred />
   ) : null;
 }
 
@@ -210,14 +207,7 @@ export function SportingIdentity({
   children,
 }: SportingIdentityProps) {
   const { colors } = useTheme();
-  const gender =
-    classification?.gender === "female"
-      ? "Féminin"
-      : classification?.gender === "male"
-        ? "Masculin"
-        : classification?.gender === "mixed"
-          ? "Mixte"
-          : undefined;
+  const gender = genderLabel(classification?.gender);
   return (
     <View
       style={[
@@ -269,7 +259,7 @@ export function SportingIdentity({
           </Text>
         )}
         <View style={styles.metadata}>
-          {[season?.label, classification?.format?.replace("x", " × "), gender]
+          {[season?.label, formatLabel(classification?.format), gender]
             .filter(Boolean)
             .map((label) => (
               <Text

@@ -17,8 +17,8 @@ import com.blockout.backend.sporting.application.service.SeasonService;
 import com.blockout.backend.sporting.application.service.SportingIdentityService;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -114,6 +114,6 @@ class ResultAnnouncementIntegrationTest {
    */
   private MatchObservation.Context context(long ordinal) {
     return new MatchObservation.Context(
-        scope.cycle().id(), ordinal, OffsetDateTime.parse("2026-10-24T12:00:00Z"), null);
+        scope.cycle().id(), ordinal, Instant.parse("2026-10-24T12:00:00Z"), null);
   }
 }

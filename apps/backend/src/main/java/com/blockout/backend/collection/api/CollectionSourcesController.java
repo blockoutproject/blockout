@@ -34,9 +34,7 @@ public class CollectionSourcesController implements CollectionSourcesApi {
   public ResponseEntity<CollectionSeasonListResponse> listCollectionSeasons() {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(
-            new CollectionSeasonListResponse(
-                preparation.seasons(account.id()).stream().map(mapper::toDto).toList()));
+        .body(mapper.toSeasonsDto(preparation.seasons(account.id())));
   }
 
   /** {@inheritDoc} */
@@ -52,9 +50,7 @@ public class CollectionSourcesController implements CollectionSourcesApi {
   public ResponseEntity<SourceBindingListResponse> listCollectionSources(UUID seasonId) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(
-            new SourceBindingListResponse(
-                preparation.list(account.id(), seasonId).stream().map(mapper::toDto).toList()));
+        .body(mapper.toSourcesDto(preparation.list(account.id(), seasonId)));
   }
 
   /** {@inheritDoc} */

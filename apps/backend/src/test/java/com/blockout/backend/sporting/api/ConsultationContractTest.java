@@ -67,7 +67,7 @@ class ConsultationContractTest {
     MatchDetail view = detail(null, null, null, null);
 
     // When
-    MatchDetailResponse response = mapper.toResponse(view);
+    MatchDetailResponse response = mapper.toDto(view);
     JsonNode body = json.readTree(json.writeValueAsString(response));
 
     // Then
@@ -98,7 +98,7 @@ class ConsultationContractTest {
     MatchDetail view = new MatchDetail(summary, null, null, null, List.of(), null, null, List.of());
 
     // When
-    JsonNode body = json.readTree(json.writeValueAsString(mapper.toResponse(view)));
+    JsonNode body = json.readTree(json.writeValueAsString(mapper.toDto(view)));
 
     // Then
     assertThat(body.at("/match/result/specialLabel").asString()).isEqualTo("F");
@@ -116,7 +116,7 @@ class ConsultationContractTest {
 
     // When
     JsonNode body =
-        json.readTree(json.writeValueAsString(mapper.toResponse(detail(stream, null, null, null))));
+        json.readTree(json.writeValueAsString(mapper.toDto(detail(stream, null, null, null))));
 
     // Then
     assertThat(body.get("streamUrl").asString()).isEqualTo(stream.url().toString());
@@ -134,7 +134,7 @@ class ConsultationContractTest {
 
     // When
     JsonNode body =
-        json.readTree(json.writeValueAsString(mapper.toResponse(detail(stream, null, null, null))));
+        json.readTree(json.writeValueAsString(mapper.toDto(detail(stream, null, null, null))));
 
     // Then
     assertThat(body.has("streamUrl")).isTrue();
@@ -160,7 +160,7 @@ class ConsultationContractTest {
 
     // When
     com.blockout.backend.generated.mobile.model.MatchDocumentResponse response =
-        mapper.toResponse(document);
+        mapper.toDto(document);
 
     // Then
     assertThat(response.getKind()).isEqualTo(kind);
@@ -176,15 +176,15 @@ class ConsultationContractTest {
         new Division(ID, "Division", null, "#112233", List.of("#112233", "#223344", "#334455"));
 
     // When
-    SportingDivisionResponse response = mapper.toResponse(plain);
+    SportingDivisionResponse response = mapper.toDto(plain);
     JsonNode body = json.readTree(json.writeValueAsString(response));
 
     // Then
     assertThat(body.has("gradient")).isTrue();
     assertThat(body.get("gradient").isNull()).isTrue();
-    assertThat(mapper.toResponse(colored).getGradient().get())
+    assertThat(mapper.toDto(colored).getGradient().get())
         .containsExactly("#112233", "#223344", "#334455");
-    assertThat(validator.validate(mapper.toResponse(colored))).isEmpty();
+    assertThat(validator.validate(mapper.toDto(colored))).isEmpty();
   }
 
   @ParameterizedTest
@@ -204,7 +204,7 @@ class ConsultationContractTest {
                 : List.of());
 
     // When
-    JsonNode body = json.readTree(json.writeValueAsString(mapper.toResponse(view)));
+    JsonNode body = json.readTree(json.writeValueAsString(mapper.toDto(view)));
 
     // Then
     assertThat(body.get("availability").asString()).isEqualTo(availability.getValue());
@@ -240,7 +240,7 @@ class ConsultationContractTest {
     ConsultationViews.Calendar calendar =
         new ConsultationViews.Calendar(
             CalendarCategoryEnum.UPCOMING, "Europe/Paris", OBSERVED, List.of(), null);
-    String valid = json.writeValueAsString(mapper.toResponse(calendar));
+    String valid = json.writeValueAsString(mapper.toDto(calendar));
     assertThat(validator.validate(json.readValue(valid, MatchCalendarResponse.class))).isEmpty();
     tools.jackson.databind.node.ObjectNode body =
         (tools.jackson.databind.node.ObjectNode) json.readTree(valid);

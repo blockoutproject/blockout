@@ -125,7 +125,12 @@ class ConsultationAccessTest {
     SportingReadStore current = mock(SportingReadStore.class);
     when(current.visibility(Kind.MATCH, ID))
         .thenReturn(Optional.of(new SportingVisibility(ID, Kind.MATCH, Set.of(reason))));
-    SportingReadService reads = new SportingReadService(facts, current);
+    SportingReadService reads =
+        new SportingReadService(
+            facts,
+            org.mapstruct.factory.Mappers.getMapper(
+                com.blockout.backend.sporting.application.model.SportingModelMapper.class),
+            current);
 
     // When
     Optional<MatchView> match = reads.publicMatch(ID);
@@ -147,7 +152,12 @@ class ConsultationAccessTest {
         .thenReturn(
             Optional.of(new SportingVisibility(ID, Kind.MATCH, Set.of())),
             Optional.of(new SportingVisibility(ID, Kind.MATCH, Set.of(Reason.DATE_UNKNOWN))));
-    SportingReadService reads = new SportingReadService(facts, current);
+    SportingReadService reads =
+        new SportingReadService(
+            facts,
+            org.mapstruct.factory.Mappers.getMapper(
+                com.blockout.backend.sporting.application.model.SportingModelMapper.class),
+            current);
     assertThat(reads.publicMatch(ID)).contains(match);
 
     // When

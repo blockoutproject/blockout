@@ -12,6 +12,7 @@ import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.domain.MatchFacts;
 import java.net.URI;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -89,7 +90,8 @@ class SportingObservationMapperTest {
                 .informationSheet(new InformationSheetInternalRequest("2026/2027", "LIG", "M42"))
                 .scoresheetUrl(URI.create("https://example.invalid/scoresheet.pdf"))
                 .statisticsUrl(URI.create("https://example.invalid/statistics.pdf")));
-    request.getContext().providerPublishedAt(OffsetDateTime.parse("2026-10-18T17:00:00Z"));
+    request.getContext().observedAt(OffsetDateTime.parse("2026-10-18T20:00:00+02:00"));
+    request.getContext().providerPublishedAt(OffsetDateTime.parse("2026-10-18T18:00:00+01:00"));
 
     // When
     MatchObservation result = mapper.toObservation(MATCH, request);
@@ -98,10 +100,9 @@ class SportingObservationMapperTest {
     assertThat(result.matchId()).isEqualTo(MATCH);
     assertThat(result.context().cycleId()).isEqualTo(request.getContext().getCycleId());
     assertThat(result.context().readOrdinal()).isEqualTo(7L);
-    assertThat(result.context().observedAt())
-        .isEqualTo(OffsetDateTime.parse("2026-10-18T18:00:00Z"));
+    assertThat(result.context().observedAt()).isEqualTo(Instant.parse("2026-10-18T18:00:00Z"));
     assertThat(result.context().providerPublishedAt())
-        .isEqualTo(OffsetDateTime.parse("2026-10-18T17:00:00Z"));
+        .isEqualTo(Instant.parse("2026-10-18T17:00:00Z"));
     assertThat(result.facts().localDate().get()).isEqualTo(LocalDate.of(2026, 10, 18));
     assertThat(result.facts().localTime().get()).isEqualTo("19:30");
     assertThat(result.facts().timeZone()).isEqualTo("Europe/Paris");
@@ -154,6 +155,23 @@ class SportingObservationMapperTest {
     // Then
     assertThat(observation.facts().sets().get()).containsExactly(new MatchFacts.SetScore(25, 20));
     assertThat(observation.facts().referees().get()).containsExactly("Synthetic referee");
+  }
+
+  @Test
+  @DisplayName("Maps multipart offsets without inventing a provider publication time")
+  void mapsMultipartAttribution() {
+    // Given
+    UUID cycle = UUID.fromString("00000000-0000-4000-8000-000000000002");
+    OffsetDateTime observed = OffsetDateTime.parse("2026-10-25T02:30:00+02:00");
+
+    // When
+    MatchObservation.Context context = mapper.toContext(cycle, 4L, observed, null);
+
+    // Then
+    assertThat(context.observedAt()).isEqualTo(Instant.parse("2026-10-25T00:30:00Z"));
+    assertThat(context.providerPublishedAt()).isNull();
+    assertThat(context.cycleId()).isEqualTo(cycle);
+    assertThat(context.readOrdinal()).isEqualTo(4L);
   }
 
   /**

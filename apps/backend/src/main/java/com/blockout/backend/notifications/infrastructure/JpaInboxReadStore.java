@@ -35,6 +35,7 @@ public class JpaInboxReadStore implements InboxReadStore {
   private final EntityManager entities;
   private final ConsultationMatchSelection sporting;
   private final ReadPublicContribution contributions;
+  private final NotificationPersistenceMapper mapper;
 
   /** {@inheritDoc} */
   @Override
@@ -114,16 +115,7 @@ public class JpaInboxReadStore implements InboxReadStore {
     Map<UUID, MatchSummary> matches = sporting.summaries(ids, now);
     Set<UUID> links = contributions.availableForConsultableMatches(ids);
     return rows.stream()
-        .map(
-            row ->
-                new Entry(
-                    row.id(),
-                    row.createdAt(),
-                    row.family(),
-                    row.variant(),
-                    row.read(),
-                    matches.get(row.matchId()),
-                    links.contains(row.matchId())))
+        .map(row -> mapper.toView(row, matches.get(row.matchId()), links.contains(row.matchId())))
         .toList();
   }
 }

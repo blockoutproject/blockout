@@ -1,10 +1,10 @@
 package com.blockout.backend.shared.http;
 
+import com.blockout.backend.access.api.AccessApiMapper;
 import com.blockout.backend.access.domain.MaintenanceRequiredException;
 import com.blockout.backend.access.domain.MaintenanceSettings;
 import com.blockout.backend.generated.mobile.model.AccessProblemResponse;
 import com.blockout.backend.generated.mobile.model.ProblemResponse;
-import com.blockout.backend.generated.mobile.model.PublicMaintenanceResponse;
 import java.net.URI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,12 +45,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     AccessProblemResponse problem =
         new AccessProblemResponse(
                 URI.create("urn:blockout:problem:maintenance"), "Service Unavailable", 503)
-            .maintenance(
-                new PublicMaintenanceResponse(
-                    maintenance.revision(),
-                    true,
-                    maintenance.message(),
-                    maintenance.imageUrl() == null ? null : URI.create(maintenance.imageUrl())));
+            .maintenance(AccessApiMapper.toPublicDto(maintenance));
     return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
         .contentType(MediaType.APPLICATION_PROBLEM_JSON)
         .cacheControl(org.springframework.http.CacheControl.noStore())

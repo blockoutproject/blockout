@@ -5,6 +5,7 @@ import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.exception.CollectionNotFoundException;
 import com.blockout.backend.collection.application.model.CollectionResult;
+import com.blockout.backend.collection.application.model.CollectionStageMapper;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.collection.application.port.CollectionStore;
@@ -34,6 +35,7 @@ public class CollectionResultService {
   private final SportingReadService sporting;
   private final CurrentPermissions permissions;
   private final ApplicationEventPublisher events;
+  private final CollectionStageMapper stages;
 
   /**
    * Accepts only newer evidence for this scope/stage/phase without replaying any sporting write.
@@ -152,8 +154,7 @@ public class CollectionResultService {
       return store.containsAnyTarget(
           cycleId, sporting.teamPools(scopeId), CollectionTargetKindEnum.CALENDAR);
     }
-    if (store.containsTarget(
-        cycleId, scopeId, CollectionTargetKindEnum.fromValue(stage.getValue()))) return true;
+    if (store.containsTarget(cycleId, scopeId, stages.toTargetKind(stage))) return true;
     return stage == CollectionStageEnum.DETAILS
         && sporting
             .matchPoolId(scopeId)

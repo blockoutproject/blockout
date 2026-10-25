@@ -2,7 +2,6 @@ package com.blockout.backend.sporting.infrastructure;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
-import com.blockout.backend.sporting.application.model.SportingPresentation.ContactValue;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.CollectionTable;
@@ -134,22 +133,22 @@ public class ClubEntity {
   private ClubContactValue website = new ClubContactValue();
 
   /**
-   * @return all six current contact fields, with restricted values already suppressed
+   * @return all six current contact fields, for conversion at the persistence boundary
    */
-  Map<ContactField, ContactValue> contactValues() {
+  Map<ContactField, ClubContactValue> contactValues() {
     return Map.of(
         ContactField.ADDRESS,
-        address.toValue(),
+        address,
         ContactField.CITY,
-        city.toValue(),
+        city,
         ContactField.POSTAL_CODE,
-        postalCode.toValue(),
+        postalCode,
         ContactField.EMAIL,
-        email.toValue(),
+        email,
         ContactField.PHONE,
-        phone.toValue(),
+        phone,
         ContactField.WEBSITE,
-        website.toValue());
+        website);
   }
 
   /**
@@ -157,13 +156,13 @@ public class ClubEntity {
    *
    * @param values all six independently decided fields
    */
-  void replaceContacts(Map<ContactField, ContactValue> values) {
-    address = new ClubContactValue(values.get(ContactField.ADDRESS));
-    city = new ClubContactValue(values.get(ContactField.CITY));
-    postalCode = new ClubContactValue(values.get(ContactField.POSTAL_CODE));
-    email = new ClubContactValue(values.get(ContactField.EMAIL));
-    phone = new ClubContactValue(values.get(ContactField.PHONE));
-    website = new ClubContactValue(values.get(ContactField.WEBSITE));
+  void replaceContacts(Map<ContactField, ClubContactValue> values) {
+    address = values.get(ContactField.ADDRESS);
+    city = values.get(ContactField.CITY);
+    postalCode = values.get(ContactField.POSTAL_CODE);
+    email = values.get(ContactField.EMAIL);
+    phone = values.get(ContactField.PHONE);
+    website = values.get(ContactField.WEBSITE);
   }
 
   @ElementCollection

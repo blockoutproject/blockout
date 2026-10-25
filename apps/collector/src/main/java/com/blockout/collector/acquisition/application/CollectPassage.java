@@ -39,6 +39,7 @@ public class CollectPassage {
   private final DiscoverSeasonSources discovery;
   private final CollectorLifecycle lifecycle;
   private final Clock clock;
+  private final CollectionStageMapper stageMapper;
 
   /**
    * Executes supported stages from the frozen selection and attempts ordinary completion. Only
@@ -996,7 +997,7 @@ public class CollectPassage {
             context,
             new CollectionBackend.Result(
                 target.scopeId(),
-                CollectionStageEnum.fromValue(target.kind().getValue()),
+                stageMapper.toStage(target.kind()),
                 CollectionPhaseEnum.ACQUISITION,
                 ordinal,
                 clock.instant(),
@@ -1067,7 +1068,7 @@ public class CollectPassage {
     record(
         context,
         target.scopeId(),
-        CollectionStageEnum.fromValue(target.kind().getValue()),
+        stageMapper.toStage(target.kind()),
         ordinal,
         phase,
         outcome,

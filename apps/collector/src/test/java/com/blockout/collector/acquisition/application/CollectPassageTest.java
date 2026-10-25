@@ -83,7 +83,8 @@ class CollectPassageTest {
           geocoder,
           discovery,
           lifecycle,
-          Clock.fixed(NOW, ZoneOffset.UTC));
+          Clock.fixed(NOW, ZoneOffset.UTC),
+          new CollectionStageMapperImpl());
 
   @Test
   @DisplayName(
@@ -544,7 +545,8 @@ class CollectPassageTest {
             geocoder,
             realDiscovery,
             lifecycle,
-            Clock.fixed(NOW, ZoneOffset.UTC));
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            new CollectionStageMapperImpl());
     LnvAcquisition.Resource shared = mock(LnvAcquisition.Resource.class);
     SportingObservation.Calendar empty =
         new SportingObservation.Calendar(true, List.of(), List.of(), List.of());

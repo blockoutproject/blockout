@@ -27,19 +27,18 @@ import com.blockout.backend.generated.mobile.model.SportingSeasonResponse;
 import com.blockout.backend.generated.mobile.model.StandingRowResponse;
 import com.blockout.backend.generated.mobile.model.TeamDetailResponse;
 import com.blockout.backend.generated.mobile.model.TeamSummaryResponse;
+import com.blockout.backend.shared.api.RequiredNullableMapping;
 import com.blockout.backend.sporting.application.ConsultationViews;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.domain.MatchFacts.SetScore;
-import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.NullValueCheckStrategy;
-import org.openapitools.jackson.nullable.JsonNullable;
 
 /**
  * Maps detached permitted public views to canonical generated DTOs without consulting source data.
  */
-@Mapper(config = MappingConfiguration.class)
+@Mapper(config = MappingConfiguration.class, uses = RequiredNullableMapping.class)
 public interface ConsultationApiMapper {
   /**
    * Maps the public identity without inferred defaults or administrative fields.
@@ -48,7 +47,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  SportingIdentityResponse toResponse(ConsultationViews.Identity source);
+  SportingIdentityResponse toDto(ConsultationViews.Identity source);
 
   /**
    * Maps the public division without inferred defaults or administrative fields.
@@ -61,7 +60,7 @@ public interface ConsultationApiMapper {
       target = "gradient",
       source = "gradient",
       nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  SportingDivisionResponse toResponse(ConsultationViews.Division source);
+  SportingDivisionResponse toDto(ConsultationViews.Division source);
 
   /**
    * Maps the public classification without inferred defaults or administrative fields.
@@ -70,7 +69,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  SportingClassificationResponse toResponse(ConsultationViews.Classification source);
+  SportingClassificationResponse toDto(ConsultationViews.Classification source);
 
   /**
    * Maps the public contacts without inferred defaults or administrative fields.
@@ -79,7 +78,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  SportingContactsResponse toResponse(ConsultationViews.Contacts source);
+  SportingContactsResponse toDto(ConsultationViews.Contacts source);
 
   /**
    * Maps the public location without inferred defaults or administrative fields.
@@ -88,7 +87,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  MunicipalityLocationResponse toResponse(ConsultationViews.Location source);
+  MunicipalityLocationResponse toDto(ConsultationViews.Location source);
 
   /**
    * Maps the public clubDetail without inferred defaults or administrative fields.
@@ -97,7 +96,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  ClubDetailResponse toResponse(ConsultationViews.ClubDetail source);
+  ClubDetailResponse toDto(ConsultationViews.ClubDetail source);
 
   /**
    * Maps the public poolSummary without inferred defaults or administrative fields.
@@ -106,7 +105,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  PoolSummaryResponse toResponse(ConsultationViews.PoolSummary source);
+  PoolSummaryResponse toDto(ConsultationViews.PoolSummary source);
 
   /**
    * Maps the public teamSummary without inferred defaults or administrative fields.
@@ -115,7 +114,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  TeamSummaryResponse toResponse(ConsultationViews.TeamSummary source);
+  TeamSummaryResponse toDto(ConsultationViews.TeamSummary source);
 
   /**
    * Maps the public clubTeams without inferred defaults or administrative fields.
@@ -124,7 +123,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  ClubTeamsResponse toResponse(ConsultationViews.ClubTeams source);
+  ClubTeamsResponse toDto(ConsultationViews.ClubTeams source);
 
   /**
    * Maps the public teamDetail without inferred defaults or administrative fields.
@@ -133,7 +132,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  TeamDetailResponse toResponse(ConsultationViews.TeamDetail source);
+  TeamDetailResponse toDto(ConsultationViews.TeamDetail source);
 
   /**
    * Maps the public poolDetail without inferred defaults or administrative fields.
@@ -142,7 +141,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  PoolDetailResponse toResponse(ConsultationViews.PoolDetail source);
+  PoolDetailResponse toDto(ConsultationViews.PoolDetail source);
 
   /**
    * Maps the public standingRow without inferred defaults or administrative fields.
@@ -151,7 +150,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  StandingRowResponse toResponse(ConsultationViews.StandingRow source);
+  StandingRowResponse toDto(ConsultationViews.StandingRow source);
 
   /**
    * Maps the public standings without inferred defaults or administrative fields.
@@ -160,7 +159,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  PoolStandingsResponse toResponse(ConsultationViews.Standings source);
+  PoolStandingsResponse toDto(ConsultationViews.Standings source);
 
   /**
    * Maps the public participant without inferred defaults or administrative fields.
@@ -169,7 +168,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  PoolParticipantResponse toResponse(ConsultationViews.Participant source);
+  PoolParticipantResponse toDto(ConsultationViews.Participant source);
 
   /**
    * Maps the public participants without inferred defaults or administrative fields.
@@ -178,7 +177,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  PoolParticipantsResponse toResponse(ConsultationViews.Participants source);
+  PoolParticipantsResponse toDto(ConsultationViews.Participants source);
 
   /**
    * Maps the public schedule without inferred defaults or administrative fields.
@@ -188,7 +187,7 @@ public interface ConsultationApiMapper {
    */
   @Mapping(target = "additionalProperties", ignore = true)
   @Mapping(target = "_localDate", ignore = true)
-  MatchScheduleResponse toResponse(ConsultationViews.Schedule source);
+  MatchScheduleResponse toDto(ConsultationViews.Schedule source);
 
   /**
    * Maps the public result without inferred defaults or administrative fields.
@@ -197,7 +196,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  MatchResultResponse toResponse(ConsultationViews.Result source);
+  MatchResultResponse toDto(ConsultationViews.Result source);
 
   /**
    * Maps the public sets without inferred defaults or administrative fields.
@@ -206,7 +205,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  MatchSetsResponse toResponse(ConsultationViews.Sets source);
+  MatchSetsResponse toDto(ConsultationViews.Sets source);
 
   /**
    * Maps the public matchSummary without inferred defaults or administrative fields.
@@ -215,7 +214,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  MatchSummaryResponse toResponse(ConsultationViews.MatchSummary source);
+  MatchSummaryResponse toDto(ConsultationViews.MatchSummary source);
 
   /**
    * Maps the public poolGroup without inferred defaults or administrative fields.
@@ -224,7 +223,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  MatchPoolGroupResponse toResponse(ConsultationViews.PoolGroup source);
+  MatchPoolGroupResponse toDto(ConsultationViews.PoolGroup source);
 
   /**
    * Maps the public day without inferred defaults or administrative fields.
@@ -233,7 +232,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  MatchDayResponse toResponse(ConsultationViews.Day source);
+  MatchDayResponse toDto(ConsultationViews.Day source);
 
   /**
    * Maps the public calendar without inferred defaults or administrative fields.
@@ -242,7 +241,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  MatchCalendarResponse toResponse(ConsultationViews.Calendar source);
+  MatchCalendarResponse toDto(ConsultationViews.Calendar source);
 
   /**
    * Maps the public document without inferred defaults or administrative fields.
@@ -251,7 +250,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  MatchDocumentResponse toResponse(ConsultationViews.Document source);
+  MatchDocumentResponse toDto(ConsultationViews.Document source);
 
   /**
    * Maps the public matchDetail without inferred defaults or administrative fields.
@@ -262,7 +261,7 @@ public interface ConsultationApiMapper {
   @Mapping(target = "additionalProperties", ignore = true)
   @Mapping(target = "streamUrl", source = "stream.url")
   @Mapping(target = "streamContributionId", source = "stream.contributionId")
-  MatchDetailResponse toResponse(ConsultationViews.MatchDetail source);
+  MatchDetailResponse toDto(ConsultationViews.MatchDetail source);
 
   /**
    * Maps the existing canonical season identity, without a new season model.
@@ -271,7 +270,7 @@ public interface ConsultationApiMapper {
    * @return generated public season
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  SportingSeasonResponse toResponse(SeasonView source);
+  SportingSeasonResponse toDto(SeasonView source);
 
   /**
    * Maps accepted set points without calculating totals or winners.
@@ -280,15 +279,5 @@ public interface ConsultationApiMapper {
    * @return generated point pair
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  MatchSetScoreResponse toResponse(SetScore source);
-
-  /**
-   * Keeps a required null gradient present rather than omitting the field.
-   *
-   * @param source complete configured gradient, or null for color-derived treatment
-   * @return present nullable generated field
-   */
-  default JsonNullable<List<String>> nullableGradient(List<String> source) {
-    return JsonNullable.of(source);
-  }
+  MatchSetScoreResponse toDto(SetScore source);
 }

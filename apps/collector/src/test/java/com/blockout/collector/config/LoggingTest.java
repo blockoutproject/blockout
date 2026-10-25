@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import com.blockout.collector.acquisition.application.CollectPassage;
 import com.blockout.collector.acquisition.application.CollectionBackend;
 import com.blockout.collector.acquisition.application.CollectionBackendFailure;
+import com.blockout.collector.acquisition.application.CollectionStageMapperImpl;
 import com.blockout.collector.acquisition.application.CollectorLifecycle;
 import com.blockout.collector.acquisition.application.DiscoverSeasonSources;
 import com.blockout.collector.acquisition.application.FfvbAcquisition;
@@ -110,7 +111,8 @@ class LoggingTest {
             mock(com.blockout.collector.acquisition.application.MunicipalGeocoder.class),
             mock(DiscoverSeasonSources.class),
             lifecycle,
-            Clock.fixed(now, ZoneOffset.UTC));
+            Clock.fixed(now, ZoneOffset.UTC),
+            new CollectionStageMapperImpl());
 
     // When
     boolean confirmed = passage.execute(admitted);

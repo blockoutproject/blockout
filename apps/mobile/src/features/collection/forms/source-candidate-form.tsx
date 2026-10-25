@@ -1,3 +1,4 @@
+import { formatCollectionTimestamp } from "../model/collection-time";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { ChevronRight, Globe } from "lucide-react-native";
@@ -317,7 +318,7 @@ export function SourceCandidateForm({
               { color: colors.secondaryText },
             ]}
           >
-            Validée le {new Date(current.validatedAt).toLocaleString("fr-FR")}
+            Validée le {formatCollectionTimestamp(current.validatedAt)}
           </Text>
         )}
         {current.reason && (

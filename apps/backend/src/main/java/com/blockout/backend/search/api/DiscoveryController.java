@@ -13,7 +13,6 @@ import com.blockout.backend.search.application.SearchContext;
 import com.blockout.backend.search.application.SearchContinuation;
 import com.blockout.backend.search.application.SearchEngine;
 import com.blockout.backend.search.application.SearchPage;
-import com.blockout.backend.sporting.api.ConsultationApiMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Set;
 import java.util.UUID;
@@ -31,7 +30,6 @@ public class DiscoveryController implements DiscoveryApi {
   private final ReadSearch reads;
   private final DiscoveryRequest requests;
   private final DiscoveryApiMapper mapper;
-  private final ConsultationApiMapper sporting;
   private final HttpServletRequest request;
 
   /** {@inheritDoc} */
@@ -44,10 +42,7 @@ public class DiscoveryController implements DiscoveryApi {
     SearchPage page = read(context, cursor, exampleIds);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(
-            new ClubSearchResponse(
-                    page.items().stream().map(item -> mapper.toResponse(item.club())).toList())
-                .nextCursor(cursor(context, page)));
+        .body(mapper.toClubDto(page, cursor(context, page)));
   }
 
   /** {@inheritDoc} */
@@ -73,10 +68,7 @@ public class DiscoveryController implements DiscoveryApi {
     SearchPage page = read(context, cursor, exampleIds);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(
-            new TeamSearchResponse(
-                    page.items().stream().map(item -> sporting.toResponse(item.team())).toList())
-                .nextCursor(cursor(context, page)));
+        .body(mapper.toTeamDto(page, cursor(context, page)));
   }
 
   /** {@inheritDoc} */
@@ -102,10 +94,7 @@ public class DiscoveryController implements DiscoveryApi {
     SearchPage page = read(context, cursor, exampleIds);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(
-            new PoolSearchResponse(
-                    page.items().stream().map(item -> sporting.toResponse(item.pool())).toList())
-                .nextCursor(cursor(context, page)));
+        .body(mapper.toPoolDto(page, cursor(context, page)));
   }
 
   /** {@inheritDoc} */

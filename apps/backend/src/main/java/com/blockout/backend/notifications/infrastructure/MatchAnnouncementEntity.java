@@ -10,10 +10,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.util.UUID;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /** One nonpersonal match allowance row; no audience, sporting text, score or delivery state. */
 @Entity
+@Getter
 @Table(name = "match_announcement")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class MatchAnnouncementEntity {
@@ -55,15 +57,5 @@ public class MatchAnnouncementEntity {
       resultProcessed = true;
       resultComposition = facts.resultComposition();
     }
-  }
-
-  /**
-   * Detaches minimal allowances without leaking a persistence object across owners.
-   *
-   * @return current nonpersonal match facts
-   */
-  MatchAnnouncementFacts facts() {
-    return new MatchAnnouncementFacts(
-        matchId, liveProcessed, resultProcessed, postResultProcessed, resultComposition);
   }
 }

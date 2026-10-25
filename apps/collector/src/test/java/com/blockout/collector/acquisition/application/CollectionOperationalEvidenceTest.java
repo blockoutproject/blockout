@@ -66,7 +66,8 @@ class CollectionOperationalEvidenceTest {
           geocoder,
           mock(DiscoverSeasonSources.class),
           lifecycle,
-          Clock.fixed(NOW, ZoneOffset.UTC));
+          Clock.fixed(NOW, ZoneOffset.UTC),
+          new CollectionStageMapperImpl());
 
   @ParameterizedTest
   @MethodSource("acquisitionFailures")
@@ -170,7 +171,8 @@ class CollectionOperationalEvidenceTest {
             geocoder,
             mock(DiscoverSeasonSources.class),
             lifecycle,
-            Clock.fixed(NOW, ZoneOffset.UTC));
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            new CollectionStageMapperImpl());
     CollectionBackend.Target target =
         CollectionBackend.Target.builder()
             .scopeId(CLUB)

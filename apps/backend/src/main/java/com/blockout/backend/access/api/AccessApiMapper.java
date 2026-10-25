@@ -15,17 +15,18 @@ import com.blockout.backend.generated.mobile.model.ChangePlatformVersionRequest;
 import com.blockout.backend.generated.mobile.model.MaintenanceSettingsResponse;
 import com.blockout.backend.generated.mobile.model.PlatformVersionResponse;
 import com.blockout.backend.generated.mobile.model.PublicMaintenanceResponse;
+import com.blockout.backend.shared.api.RequiredNullableMapping;
+import com.blockout.backend.shared.mapping.UriMapping;
 import java.net.URI;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.NullValueCheckStrategy;
 import org.openapitools.jackson.nullable.JsonNullable;
 
 /**
  * Maps the sole generated transport boundary, retaining nullable presence and public visibility.
  */
-@Mapper(
-    config = MappingConfiguration.class,
-    imports = {JsonNullable.class, URI.class})
+@Mapper(config = MappingConfiguration.class, uses = RequiredNullableMapping.class)
 public interface AccessApiMapper {
   /**
    * Maps a complete private maintenance group, including explicit null media.
@@ -35,8 +36,8 @@ public interface AccessApiMapper {
   @Mapping(target = "additionalProperties", ignore = true)
   @Mapping(
       target = "imageUrl",
-      expression =
-          "java(JsonNullable.of(source.imageUrl() == null ? null : URI.create(source.imageUrl())))")
+      source = "imageUrl",
+      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   MaintenanceSettingsResponse toDto(MaintenanceSettings source);
 
   /**
@@ -45,7 +46,10 @@ public interface AccessApiMapper {
    * @param source complete valid versions group
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  @Mapping(target = "message", expression = "java(JsonNullable.of(source.message()))")
+  @Mapping(
+      target = "message",
+      source = "message",
+      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   ApplicationVersionsResponse toDto(ApplicationVersionSettings source);
 
   /**
@@ -54,11 +58,14 @@ public interface AccessApiMapper {
    * @param source complete platform settings
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  @Mapping(target = "minimumVersion", expression = "java(JsonNullable.of(source.minimumVersion()))")
+  @Mapping(
+      target = "minimumVersion",
+      source = "minimumVersion",
+      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   @Mapping(
       target = "storeUrl",
-      expression =
-          "java(JsonNullable.of(source.storeUrl() == null ? null : URI.create(source.storeUrl())))")
+      source = "storeUrl",
+      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   PlatformVersionResponse toDto(ApplicationVersionSettings.Platform source);
 
   /**
@@ -67,16 +74,22 @@ public interface AccessApiMapper {
    * @param source both groups from one statement snapshot
    */
   default ApplicationAccessResponse toDto(Snapshot source) {
-    MaintenanceSettings maintenance = source.maintenance();
     return new ApplicationAccessResponse(
-        new PublicMaintenanceResponse(
-            maintenance.revision(),
-            maintenance.active(),
-            maintenance.active() ? maintenance.message() : null,
-            maintenance.active() && maintenance.imageUrl() != null
-                ? URI.create(maintenance.imageUrl())
-                : null),
-        toDto(source.versions()));
+        toPublicDto(source.maintenance()), toDto(source.versions()));
+  }
+
+  /**
+   * Reveals prepared maintenance content only while its owner marks it active.
+   *
+   * @param source coherent stored maintenance state
+   * @return the same public projection for reads and admission refusals
+   */
+  static PublicMaintenanceResponse toPublicDto(MaintenanceSettings source) {
+    return new PublicMaintenanceResponse(
+        source.revision(),
+        source.active(),
+        source.active() ? source.message() : null,
+        source.active() ? UriMapping.toUri(source.imageUrl()) : null);
   }
 
   /**
@@ -106,6 +119,6 @@ public interface AccessApiMapper {
    * @param value generated URI presence, including a present null
    */
   default JsonNullable<String> text(JsonNullable<URI> value) {
-    return value.map(uri -> uri == null ? null : uri.toString());
+    return value.map(UriMapping::toText);
   }
 }
