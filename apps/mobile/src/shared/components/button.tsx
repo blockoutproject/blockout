@@ -1,6 +1,13 @@
 import { Image } from "expo-image";
 import type { LucideIcon } from "lucide-react-native";
-import { Pressable, StyleSheet, Text, type PressableProps } from "react-native";
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type PressableProps,
+} from "react-native";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
 import { LoadingIndicator } from "./loading-indicator";
@@ -23,17 +30,26 @@ const containerGradient = {
   y2: 99.282,
 };
 
-/** Regular action: the caller owns effects, busy state, variant and the full accessible label. */
+/** Shared action: callers own effects, busy/selected state, contextual accent and the full accessible label. */
 export interface ButtonProps {
   label: string;
   onPress: PressableProps["onPress"];
   disabled?: boolean;
   loading?: boolean;
   fullWidth?: boolean;
-  /** Approved flat success or bordered secondary action; primary retains its context gradient. */
-  variant?: "primary" | "success" | "secondary";
+  /** Compact visuals retain a separate, non-overlapping native touch target. UI Library 3386:697. */
+  size?: "regular" | "compact";
+  /** Selected state is announced independently of the label, colour and busy state. */
+  selected?: boolean;
+  accessibilityHint?: string;
+  /** Effective F02 #RRGGBB accent; only the inverse action's contextual border consumes it. */
+  contextColor?: string;
+  /** Source-owned paints: gradient primary, flat success, bordered secondary or semantic inverse. */
+  variant?: "primary" | "success" | "secondary" | "inverse";
   /** Decorative trailing glyph from the library; busy state replaces it with the shared indicator. */
   trailingIcon?: LucideIcon;
+  /** Compact actions use this leading slot; when supplied it takes precedence over trailingIcon. */
+  leadingIcon?: LucideIcon;
 }
 
 /** Presents approved action variants with source-owned paints and native unavailable states. */
@@ -43,8 +59,13 @@ export function Button({
   disabled = false,
   loading = false,
   fullWidth = false,
+  size = "regular",
+  selected,
+  accessibilityHint,
+  contextColor,
   variant = "primary",
   trailingIcon: TrailingIcon,
+  leadingIcon: LeadingIcon,
 }: ButtonProps) {
   const { context, colors } = useTheme();
   const foreground =
@@ -52,7 +73,21 @@ export function Button({
       ? context.onAction
       : variant === "success"
         ? colors.onSuccessAction
-        : colors.text;
+        : variant === "inverse"
+          ? colors.onInverse
+          : colors.text;
+  const Icon = LeadingIcon ?? TrailingIcon;
+  const icon =
+    Icon &&
+    (loading ? (
+      <LoadingIndicator color={foreground} />
+    ) : (
+      <Icon
+        accessible={false}
+        size={tokens.size.controlIcon}
+        color={foreground}
+      />
+    ));
   const gradient = fullWidth ? containerGradient : contentGradient;
   const background = `<svg xmlns="http://www.w3.org/2000/svg" width="${gradient.width}" height="48" viewBox="0 0 ${gradient.width} 48" preserveAspectRatio="none">
     <defs><linearGradient id="fill" x1="${gradient.x1}" y1="${gradient.y1}" x2="${gradient.x2}" y2="${gradient.y2}" gradientUnits="userSpaceOnUse">
@@ -62,76 +97,105 @@ export function Button({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ disabled: disabled || loading, busy: loading }}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{
+        disabled: disabled || loading,
+        busy: loading,
+        selected,
+      }}
       disabled={disabled || loading}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.action,
+      style={[
         fullWidth ? styles.container : styles.content,
-        {
-          backgroundColor:
-            variant === "primary"
-              ? context.primary
-              : variant === "success"
-                ? colors.successAction
-                : colors.raised,
-          borderWidth: variant === "secondary" ? tokens.borderWidth : 0,
-          borderColor: colors.border,
-          opacity: disabled
-            ? tokens.opacity.disabled
-            : pressed
-              ? tokens.opacity.pressed
-              : 1,
-          boxShadow:
-            disabled || pressed || variant !== "primary"
-              ? []
-              : [
-                  {
-                    offsetX: tokens.elevation.offsetX,
-                    offsetY: tokens.elevation.offsetY,
-                    blurRadius: tokens.elevation.blur,
-                    color: context.shadow,
-                  },
-                ],
-        },
+        size === "compact" && styles.compactTarget,
       ]}
     >
-      {variant === "primary" && (
-        <Image
-          accessible={false}
-          source={{ uri: `data:image/svg+xml;base64,${btoa(background)}` }}
-          recyclingKey={`${context.actionStart}/${context.actionEnd}`}
-          contentFit="fill"
-          style={styles.gradient}
-        />
+      {({ pressed }) => (
+        <View
+          style={[
+            styles.action,
+            fullWidth ? styles.container : styles.content,
+            size === "compact" && styles.compact,
+            {
+              backgroundColor:
+                variant === "primary"
+                  ? context.primary
+                  : variant === "success"
+                    ? colors.successAction
+                    : variant === "inverse"
+                      ? colors.inverse
+                      : colors.raised,
+              borderWidth:
+                variant === "secondary" || variant === "inverse"
+                  ? tokens.borderWidth
+                  : 0,
+              borderColor:
+                variant === "inverse" && contextColor
+                  ? `${contextColor}${colors.contextBorderAlpha}`
+                  : colors.border,
+              opacity: disabled
+                ? tokens.opacity.disabled
+                : pressed
+                  ? tokens.opacity.pressed
+                  : 1,
+              boxShadow:
+                disabled || pressed || variant !== "primary"
+                  ? []
+                  : [
+                      {
+                        offsetX: tokens.elevation.offsetX,
+                        offsetY: tokens.elevation.offsetY,
+                        blurRadius: tokens.elevation.blur,
+                        color: context.shadow,
+                      },
+                    ],
+            },
+          ]}
+        >
+          {variant === "primary" && (
+            <Image
+              accessible={false}
+              source={{ uri: `data:image/svg+xml;base64,${btoa(background)}` }}
+              recyclingKey={`${context.actionStart}/${context.actionEnd}`}
+              contentFit="fill"
+              style={styles.gradient}
+            />
+          )}
+          {LeadingIcon && icon}
+          {loading && !Icon && <LoadingIndicator color={foreground} />}
+          <Text
+            style={[
+              styles.label,
+              !fullWidth && styles.contentLabel,
+              { color: foreground },
+            ]}
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
+            {label}
+          </Text>
+          {!LeadingIcon && icon}
+        </View>
       )}
-      {loading && !TrailingIcon && <LoadingIndicator color={foreground} />}
-      <Text
-        style={[
-          styles.label,
-          !fullWidth && styles.contentLabel,
-          { color: foreground },
-        ]}
-        numberOfLines={2}
-        ellipsizeMode="tail"
-      >
-        {label}
-      </Text>
-      {TrailingIcon &&
-        (loading ? (
-          <LoadingIndicator color={foreground} />
-        ) : (
-          <TrailingIcon
-            accessible={false}
-            size={tokens.size.controlIcon}
-            color={foreground}
-          />
-        ))}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  compactTarget: {
+    minHeight:
+      Platform.OS === "android"
+        ? tokens.touchTarget.android
+        : tokens.touchTarget.ios,
+    justifyContent: "center",
+  },
+  compact: {
+    minHeight: tokens.size.compactControl,
+    // Figma strokes are inset; native padding excludes the border to preserve the 36-point visual.
+    paddingHorizontal: tokens.spacing.md - tokens.borderWidth,
+    paddingVertical: tokens.spacing.sm - tokens.borderWidth,
+    borderRadius: tokens.radius.full,
+  },
   action: {
     minHeight: tokens.size.control,
     paddingHorizontal: tokens.spacing.lg,

@@ -23,6 +23,10 @@ export const appearanceColors = {
     subtle: "#2021240F",
     mediaPlaceholder: "#EDEDEE",
     raised: "#FFFFFFF7",
+    // Semantic surface/inverse and text/on-inverse; Product Design follow action 1010:15711.
+    inverse: reference.neutral900,
+    onInverse: "#F7F7F8",
+    contextBorderAlpha: "4D",
     border: "#20212424",
     text: "#1C1C1E",
     accentPrimary: reference.neutral900,
@@ -50,6 +54,9 @@ export const appearanceColors = {
     subtle: "#FFFFFF14",
     mediaPlaceholder: "#2B2B2D",
     raised: "#181819F5",
+    inverse: "#F7F7F8",
+    onInverse: reference.neutral900,
+    contextBorderAlpha: "6B",
     border: "#FFFFFF2E",
     text: "#F7F7F8",
     accentPrimary: "#F1F1F2",
@@ -119,6 +126,7 @@ export const tokens = {
   radius: { badge: 8, control: 12, media: 16, sheet: 22, full: 999 },
   size: {
     control: 48,
+    compactControl: 36,
     multiline: 96,
     actionIcon: 24,
     controlIcon: 20,
