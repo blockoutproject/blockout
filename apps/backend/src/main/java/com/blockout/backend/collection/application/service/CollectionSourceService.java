@@ -41,9 +41,10 @@ public class CollectionSourceService {
 
   /**
    * Creates only a missing unvalidated candidate, preserving every existing operator choice.
+   * Accepted observations request an aggregate preparation report after commit.
    *
    * @param proposal attributable entry evidence from the current authenticated collector
-   * @return canonical season and root binding; repeated proposals have no additional effect
+   * @return canonical season and root binding; repeated proposals preserve stored choices
    * @throws CollectionConflictException when the incarnation is obsolete or the season is closed
    */
   @Transactional
@@ -57,22 +58,22 @@ public class CollectionSourceService {
       throw new CollectionConflictException("conflict");
     Optional<Source> existing =
         store.source(season.id(), proposal.provider(), proposal.organizerReference());
+    Source source;
     if (existing.isPresent()) {
-      events.publishEvent(
-          new CollectionOperationalDiagnostics.SourceObserved(season.id(), proposal.provider()));
-      return new Resolved(season.id(), existing.orElseThrow().id());
+      source = existing.orElseThrow();
+    } else {
+      CollectorRuntimeService.requireAdvance(season.collectionRevision());
+      source =
+          store.createSource(
+              season.id(),
+              proposal.provider(),
+              proposal.organizerReference(),
+              proposal.candidateUrl().toString());
+      seasons.updatePreparation(season.id(), false);
     }
-    CollectorRuntimeService.requireAdvance(season.collectionRevision());
-    Source created =
-        store.createSource(
-            season.id(),
-            proposal.provider(),
-            proposal.organizerReference(),
-            proposal.candidateUrl().toString());
-    seasons.updatePreparation(season.id(), false);
     events.publishEvent(
         new CollectionOperationalDiagnostics.SourceObserved(season.id(), proposal.provider()));
-    return new Resolved(season.id(), created.id());
+    return new Resolved(season.id(), source.id());
   }
 
   /**

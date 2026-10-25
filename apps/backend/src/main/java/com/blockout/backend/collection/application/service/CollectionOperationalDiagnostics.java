@@ -134,7 +134,9 @@ public class CollectionOperationalDiagnostics {
           Control control = lockControl(event.controlId());
           if (control.seasonId() == null) return;
           CollectionProviderEnum provider =
-              CollectionProviderEnum.fromValue(provider(control.family()));
+              control.family() == CollectionFamilyEnum.LNV
+                  ? CollectionProviderEnum.LNV
+                  : CollectionProviderEnum.FFVB;
           report(
               control.seasonId(),
               provider,
