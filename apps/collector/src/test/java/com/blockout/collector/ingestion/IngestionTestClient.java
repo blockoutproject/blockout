@@ -3,6 +3,7 @@ package com.blockout.collector.ingestion;
 import com.blockout.collector.generated.ingestion.ApiClient;
 import io.micrometer.observation.ObservationRegistry;
 import java.time.Duration;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 
 /**
@@ -17,6 +18,18 @@ public record IngestionTestClient(ApiClient api, HttpComponentsClientHttpRequest
    * @return owned native client and connection pool
    */
   public static IngestionTestClient connect(String baseUrl) {
+    return connect(baseUrl, (request, body, execution) -> execution.execute(request, body));
+  }
+
+  /**
+   * Uses the production client configuration with a controlled native interceptor.
+   *
+   * @param baseUrl controlled listener
+   * @param interceptor test authentication, exchange observation or fault injection
+   * @return owned generated client and connection pool
+   */
+  public static IngestionTestClient connect(
+      String baseUrl, ClientHttpRequestInterceptor interceptor) {
     IngestionClientConfiguration configuration = new IngestionClientConfiguration();
     IngestionProperties properties =
         new IngestionProperties(baseUrl, "ingestion-test", Duration.ofSeconds(2));
@@ -24,10 +37,7 @@ public record IngestionTestClient(ApiClient api, HttpComponentsClientHttpRequest
         configuration.ingestionRequestFactory(properties);
     ApiClient client =
         configuration.ingestionApiClient(
-            factory,
-            ObservationRegistry.NOOP,
-            properties,
-            (request, body, execution) -> execution.execute(request, body));
+            factory, ObservationRegistry.NOOP, properties, interceptor);
     client.setBearerToken("harmless-test-token");
     return new IngestionTestClient(client, factory);
   }
