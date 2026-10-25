@@ -35,7 +35,11 @@ export function FollowButton({ target, season }: FollowButtonProps) {
   );
   if (unavailable)
     return (
-      <RequestError message="Le suivi est indisponible pour cette ressource." />
+      <RequestError
+        message="Le suivi est indisponible pour cette ressource."
+        onRetry={usable ? () => void query.refetch() : undefined}
+        retrying={query.isFetching}
+      />
     );
   const provisional =
     action.pending && typeof latest?.variables === "boolean"

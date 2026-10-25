@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth0 } from "react-native-auth0";
 import {
   getTeamFollowState,
@@ -15,13 +15,16 @@ import {
   followStateKey,
   type FollowingTarget,
 } from "./following-keys";
+import { retireSettledFollowAttempts } from "./follow-mutations";
 
 /**
  * Binds the generated member read to the original account and current admission.
  * Profile errors suspend personal actions without removing public sporting content.
+ * Reopening reads current state and retires older action feedback; pending actions remain shared.
  */
 export function useFollowState(target: FollowingTarget) {
   const session = useAccountSession();
+  const client = useQueryClient();
   const profile = useCurrentAccount();
   const admission = useOrdinaryRequest();
   const { getCredentials } = useAuth0();
@@ -61,8 +64,14 @@ export function useFollowState(target: FollowingTarget) {
     enabled: usable,
     // A hidden target may reappear before its prior failed read leaves memory.
     retryOnMount: true,
+    refetchOnMount: "always",
     staleTime: Infinity,
-    queryFn: ({ signal }) => read(signal),
+    queryFn: async ({ signal }) => {
+      const state = await read(signal);
+      if (owner?.isCurrent(owner.generation))
+        retireSettledFollowAttempts(client, owner, target);
+      return state;
+    },
   });
   return {
     query,

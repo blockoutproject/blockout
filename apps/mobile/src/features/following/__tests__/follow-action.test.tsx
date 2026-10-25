@@ -18,7 +18,10 @@ import {
 } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
+import {
+  ApplicationAccessProvider,
+  useApplicationAccess,
+} from "../../access/queries/use-application-access";
 import {
   AccountSessionProvider,
   useAccountSession,
@@ -92,14 +95,17 @@ const profile = {
 };
 let client = createQueryClient();
 let session: AccountSession;
+let access: ReturnType<typeof useApplicationAccess>;
 const environment = { ...process.env };
 
 /** Captures the real session API; private query cleanup is the same root-owned binding as production. */
 function SessionProbe({ children }: { children: ReactNode }) {
   const current = useAccountSession();
+  const currentAccess = useApplicationAccess();
   useEffect(() => {
     session = current;
-  }, [current]);
+    access = currentAccess;
+  }, [current, currentAccess]);
   return children;
 }
 
@@ -137,7 +143,7 @@ beforeEach(() => {
   // TanStack's documented Jest setting avoids waiting for inactive-cache collection timers.
   client.setDefaultOptions({
     queries: { ...client.getDefaultOptions().queries, gcTime: Infinity },
-    mutations: client.getDefaultOptions().mutations,
+    mutations: { ...client.getDefaultOptions().mutations, gcTime: Infinity },
   });
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
@@ -423,12 +429,13 @@ it("does not resurrect a superseded failure when the successful second control u
   );
 
   // Then
-  // Trigger the public cache lifecycle that previously exposed the older observed error.
-  await waitFor(() =>
-    expect(
-      client.getMutationCache().findAll({ status: "success" }),
-    ).toHaveLength(0),
-  );
+  // Exercise later collection of the detached success while the first control remains mounted.
+  await act(async () => {
+    const cache = client.getMutationCache();
+    cache
+      .findAll({ status: "success" })
+      .forEach((completed) => cache.remove(completed));
+  });
   expect(
     screen.queryByText("La demande de suivi a échoué. Vous pouvez réessayer."),
   ).not.toBeOnTheScreen();
@@ -440,6 +447,129 @@ it("does not resurrect a superseded failure when the successful second control u
       .map(([, request]) => JSON.parse(String(request?.body))),
   ).toEqual([{ following: true }, { following: true }, { following: false }]);
 });
+
+it("keeps the confirmed member state when returning from an explicit maintenance bypass", async () => {
+  // Given
+  let maintenance = false;
+  let revision = 0;
+  let following = false;
+  mockFetch.mockImplementation((url, request) => {
+    if (url.endsWith("/application-access"))
+      return Promise.resolve(
+        Response.json({
+          ...applicationAccessResponse(),
+          maintenance: {
+            revision,
+            active: maintenance,
+            message: null,
+            imageUrl: null,
+          },
+        }),
+      );
+    if (url.endsWith("/accounts/me"))
+      return Promise.resolve(
+        Response.json({
+          ...profile,
+          permissions: { ...profile.permissions, bypassMaintenance: true },
+        }),
+      );
+    if (url.includes("team-follows")) {
+      if (request?.method === "PUT")
+        following = JSON.parse(String(request.body)).following;
+      return Promise.resolve(Response.json({ following }));
+    }
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  await mount(<FollowButton target={team} season={season} />);
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  maintenance = true;
+  revision = 1;
+  await act(async () => {
+    await access.retry();
+    access.bypass.request(session.getSnapshot(), true);
+  });
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  await user.press(screen.getByRole("button", { name: "Suivre" }));
+  await screen.findByRole("button", { name: "Suivi", busy: false });
+
+  // When
+  maintenance = false;
+  revision = 2;
+  await act(async () => {
+    await access.retry();
+  });
+
+  // Then
+  expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled();
+  await user.press(screen.getByRole("button", { name: "Suivi" }));
+  await screen.findByRole("button", { name: "Suivre", busy: false });
+  const writes = mockFetch.mock.calls.filter(
+    ([, request]) => request?.method === "PUT",
+  );
+  expect(
+    writes.map(([, request]) => JSON.parse(String(request?.body))),
+  ).toEqual([{ following: true }, { following: false }]);
+  expect(
+    new Headers(writes[0][1]?.headers).get("Blockout-Maintenance-Bypass"),
+  ).toBe("true");
+  expect(
+    new Headers(writes[1][1]?.headers).has("Blockout-Maintenance-Bypass"),
+  ).toBe(false);
+});
+
+it.each([403, 404])(
+  "retires an obsolete mutation refusal %s after a current read on another reopened control",
+  async (refusal) => {
+    // Given
+    let available = false;
+    mockFetch.mockImplementation((url, request) =>
+      request?.method === "PUT" && !available
+        ? Promise.resolve(new Response(null, { status: refusal }))
+        : transport(url, request),
+    );
+    const user = userEvent.setup();
+    const rendered = await mount(
+      <>
+        <FollowButton key="first" target={team} season={season} />
+      </>,
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+    );
+    await user.press(screen.getByRole("button", { name: "Suivre" }));
+    await screen.findByText("Le suivi est indisponible pour cette ressource.");
+
+    // When
+    available = true;
+    await rendered.rerender(
+      <>
+        <FollowButton key="first" target={team} season={season} />
+        <FollowButton key="reopened" target={team} season={season} />
+      </>,
+    );
+
+    // Then
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole("button", { name: "Suivre", disabled: false }),
+      ).toHaveLength(2),
+    );
+    expect(
+      screen.queryByText("Le suivi est indisponible pour cette ressource."),
+    ).not.toBeOnTheScreen();
+    await user.press(screen.getAllByRole("button", { name: "Suivre" })[1]);
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole("button", { name: "Suivi", busy: false }),
+      ).toHaveLength(2),
+    );
+  },
+);
 
 it("applies authoritative success after the initiating control unmounts", async () => {
   // Given

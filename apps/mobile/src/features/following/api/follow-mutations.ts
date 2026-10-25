@@ -2,6 +2,7 @@ import {
   useMutation,
   useMutationState,
   useQueryClient,
+  type QueryClient,
 } from "@tanstack/react-query";
 import {
   replaceTeamFollowState,
@@ -21,6 +22,7 @@ import {
   followOptionsKey,
   followerCountKey,
   type FollowingTarget,
+  type FollowingOwner,
 } from "./following-keys";
 import type { useFollowState } from "./follow-state";
 
@@ -28,6 +30,19 @@ import type { useFollowState } from "./follow-state";
 interface FollowResult {
   state: FollowStateResponse;
   observed: boolean;
+}
+
+/** Drops superseded feedback after a fresh read or new command, preserving any pending target action. */
+export function retireSettledFollowAttempts(
+  client: QueryClient,
+  owner: FollowingOwner,
+  target: FollowingTarget,
+) {
+  const cache = client.getMutationCache();
+  cache
+    .findAll({ mutationKey: followMutationKey(owner, target), exact: true })
+    .filter(({ state }) => state.status !== "pending")
+    .forEach((previous) => cache.remove(previous));
 }
 
 /**
@@ -43,17 +58,19 @@ export function useFollowMutation(
   const mutationKey = owner
     ? followMutationKey(owner, target)
     : ["following-unavailable"];
+  const stateKeys = owner
+    ? [followStateKey(owner, target), followStateKey(owner, target, true)]
+    : [];
   const mutation = useMutation({
     mutationKey,
-    gcTime: 0,
     retry: false,
     networkMode: "always",
     onMutate: async () => {
-      if (owner)
-        await client.cancelQueries({
-          queryKey: followStateKey(owner, target, bypass),
-          exact: true,
-        });
+      await Promise.all(
+        stateKeys.map((queryKey) =>
+          client.cancelQueries({ queryKey, exact: true }),
+        ),
+      );
     },
     mutationFn: async (following: boolean): Promise<FollowResult> => {
       if (!owner || !owner.isCurrent(owner.generation))
@@ -97,12 +114,15 @@ export function useFollowMutation(
     },
     onSuccess: async (result) => {
       if (!owner?.isCurrent(owner.generation)) return;
-      await client.cancelQueries({
-        queryKey: followStateKey(owner, target, bypass),
-        exact: true,
-      });
+      await Promise.all(
+        stateKeys.map((queryKey) =>
+          client.cancelQueries({ queryKey, exact: true }),
+        ),
+      );
       if (!owner.isCurrent(owner.generation)) return;
-      client.setQueryData(followStateKey(owner, target, bypass), result.state);
+      stateKeys.forEach((queryKey) =>
+        client.setQueryData(queryKey, result.state),
+      );
       // Consumers own visible-tab enablement and must not supply former initial/placeholder data.
       void Promise.allSettled([
         client.resetQueries({
@@ -163,10 +183,7 @@ export function useFollowMutation(
       )
         return;
       // A finished attempt must not become current again when a newer control unmounts.
-      const cache = client.getMutationCache();
-      cache
-        .findAll({ mutationKey, exact: true })
-        .forEach((previous) => cache.remove(previous));
+      retireSettledFollowAttempts(client, owner, target);
       mutation.mutate(following);
     },
   };
