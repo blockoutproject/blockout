@@ -4,6 +4,53 @@ import { initializeSentry } from "../sentry";
 
 jest.mock("@sentry/react-native", () => ({ init: jest.fn() }));
 
+it("excludes advertising choices, location and private support data from diagnostics", async () => {
+  // Given
+  initializeSentry();
+  const options = jest.mocked(Sentry.init).mock.calls[0][0];
+  const privateData = {
+    age: 17,
+    consent: "synthetic-consent-string",
+    adUnitId: "synthetic-ad-unit",
+    advertisingId: "synthetic-advertising-id",
+    location: { latitude: 48.86, longitude: 2.34 },
+    supportContent: "synthetic-private-support",
+    providerObject: { receipt: "synthetic-private-provider-object" },
+    originalAccountId: "synthetic-original-target",
+  };
+  const event: ErrorEvent = {
+    type: undefined,
+    tags: {
+      feature: "advertising",
+      consent: privateData.consent,
+      age: privateData.age,
+    },
+    extra: privateData,
+    contexts: { advertising: privateData, support: privateData },
+    breadcrumbs: [{ data: privateData }],
+    exception: {
+      values: [{ type: "Error", value: JSON.stringify(privateData) }],
+    },
+  };
+  const hint = {
+    attachments: [
+      { filename: "synthetic-private.png", data: "synthetic-image" },
+    ],
+  };
+
+  // When
+  const result = await options?.beforeSend?.(event, hint);
+
+  // Then
+  expect(result?.exception?.values?.[0]?.type).toBe("Error");
+  expect(result?.tags).toBeUndefined();
+  expect(result?.extra).toBeUndefined();
+  expect(result?.contexts).toBeUndefined();
+  expect(result?.breadcrumbs).toBeUndefined();
+  expect(JSON.stringify(result)).not.toMatch(/synthetic-|"age":|"location":/);
+  expect(hint.attachments).toEqual([]);
+});
+
 it("retains only finite Pro operation context while stripping raw provider diagnostics", async () => {
   // Given
   initializeSentry();
