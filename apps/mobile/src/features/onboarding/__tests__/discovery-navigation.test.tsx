@@ -231,6 +231,37 @@ it("preserves a completed installation’s deep link while its local flag is bei
   expect(screen.queryByRole("button", { name: "Passer" })).toBeNull();
 });
 
+it("keeps the root loading gate during an explicit installation-read retry", async () => {
+  // Given
+  const read = Promise.withResolvers<string | null>();
+  jest
+    .spyOn(AsyncStorage, "getItem")
+    .mockRejectedValueOnce(new Error("Storage"))
+    .mockReturnValueOnce(read.promise);
+  const user = userEvent.setup();
+  await openInstallation();
+  expect(
+    await screen.findByText("La découverte n’a pas pu être chargée."),
+  ).toBeOnTheScreen();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    screen.getByRole("progressbar", { name: "Chargement en cours" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Passer" })).toBeNull();
+
+  // When
+  await act(async () => read.resolve(null));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Passer" }),
+  ).toBeOnTheScreen();
+});
+
 it.each(["maintenance", "minimum version"])(
   "suppresses discovery under %s",
   async (gate) => {

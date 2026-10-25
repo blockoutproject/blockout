@@ -3,20 +3,16 @@ import { useEffect, useRef, useState, type ComponentRef } from "react";
 import {
   AccessibilityInfo,
   BackHandler,
-  findNodeHandle,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Defs, Image as SvgImage, Mask, Rect } from "react-native-svg";
+import { BrandMark } from "../../../shared/components/brand-mark";
 import { Button } from "../../../shared/components/button";
 import { IconButton } from "../../../shared/components/icon-button";
-import {
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestError } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import {
@@ -65,7 +61,7 @@ const steps = [
   },
 ];
 
-/** Common skippable discovery; only explicit finish/skip persists completion, with ordinary sign-in following it. */
+/** Common skippable discovery after the root's installation-read gate; explicit finish/skip persists completion. */
 export function DiscoveryScreen() {
   const { colors } = useTheme();
   const discovery = useDiscovery();
@@ -76,9 +72,9 @@ export function DiscoveryScreen() {
 
   useEffect(() => {
     scroll.current?.scrollTo({ y: 0, animated: false });
-    const node = findNodeHandle(heading.current);
-    if (node) AccessibilityInfo.setAccessibilityFocus(node);
-  }, [step, discovery.loading]);
+    if (heading.current)
+      AccessibilityInfo.sendAccessibilityEvent(heading.current, "focus");
+  }, [step]);
   useEffect(() => {
     const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
@@ -97,28 +93,12 @@ export function DiscoveryScreen() {
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <View style={[styles.header, { borderColor: colors.border }]}>
         <View style={styles.brand} accessible accessibilityLabel="Blockout">
-          <Svg width={28} height={28} viewBox="0 0 28 28" accessible={false}>
-            <Defs>
-              <Mask id="discovery-brand" maskType="luminance">
-                <SvgImage
-                  href={require("../../../../assets/access/brand-mark.png")}
-                  width={28}
-                  height={28}
-                />
-              </Mask>
-            </Defs>
-            <Rect
-              width={28}
-              height={28}
-              fill={colors.text}
-              mask="url(#discovery-brand)"
-            />
-          </Svg>
+          <BrandMark />
           <Text style={[tokens.typography.navigation, { color: colors.text }]}>
             BLOCKOUT
           </Text>
         </View>
-        {!discovery.loading && discovery.error !== "read" && step < 4 && (
+        {discovery.error !== "read" && step < 4 && (
           <View style={styles.trailingAction}>
             <Button
               label="Passer"
@@ -134,9 +114,7 @@ export function DiscoveryScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.stage}
       >
-        {discovery.loading ? (
-          <RequestLoading />
-        ) : discovery.error === "read" ? (
+        {discovery.error === "read" ? (
           <RequestError
             message="La découverte n’a pas pu être chargée."
             onRetry={discovery.retryRead}
@@ -162,6 +140,7 @@ export function DiscoveryScreen() {
                 </Text>
                 <Text
                   ref={heading}
+                  accessible
                   accessibilityRole="header"
                   style={[styles.title, { color: colors.text }]}
                 >
@@ -186,7 +165,7 @@ export function DiscoveryScreen() {
           </>
         )}
       </ScrollView>
-      {!discovery.loading && discovery.error !== "read" && (
+      {discovery.error !== "read" && (
         <View style={styles.footer}>
           <View
             style={[

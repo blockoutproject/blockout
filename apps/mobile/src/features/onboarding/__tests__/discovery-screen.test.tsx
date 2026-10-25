@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { act, render, screen, userEvent } from "@testing-library/react-native";
 import { Text } from "react-native";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { DiscoveryProvider, useDiscovery } from "../discovery-provider";
 import { readDiscoveryCompletion } from "../discovery-state";
 import { DiscoveryScreen } from "../screens/discovery-screen";
@@ -17,9 +18,10 @@ beforeEach(async () => {
 });
 afterEach(() => jest.restoreAllMocks());
 
-/** Observes the same completion boundary as root routing without replacing its behavior. */
+/** Applies the root's installation-read and completion boundaries without replacing discovery behavior. */
 function Journey() {
   const discovery = useDiscovery();
+  if (discovery.loading) return <RequestLoading />;
   return discovery.complete ? (
     <Text>Ordinary routes</Text>
   ) : (

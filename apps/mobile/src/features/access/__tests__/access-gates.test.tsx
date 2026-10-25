@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { focusManager, onlineManager } from "@tanstack/react-query";
 import { act, screen, waitFor, userEvent } from "@testing-library/react-native";
 import { Stack, router } from "expo-router";
@@ -10,6 +9,8 @@ import NotFoundRoute from "../../../app/+not-found";
 import OperationsLayout from "../../../app/(operations)/_layout";
 import AdministrationRoute from "../../../app/(operations)/administration";
 import RootLayout from "../../../app/_layout";
+import OnboardingRoute from "../../../app/onboarding";
+import { completeDiscovery } from "../../onboarding/discovery-state";
 import { useAccountSession } from "../../accounts/current-account";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import {
@@ -73,10 +74,7 @@ jest.mock("@react-native-async-storage/async-storage", () =>
   ),
 );
 beforeEach(async () => {
-  await AsyncStorage.setItem("blockout:v2-discovery-complete", "true");
-});
-
-beforeEach(() => {
+  await completeDiscovery();
   Object.assign(process.env, {
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
     EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
@@ -100,6 +98,7 @@ async function openRoute(path: string) {
   return renderRouter(
     {
       _layout: () => <RootLayout />,
+      onboarding: OnboardingRoute,
       "(ordinary)/_layout": () => <Stack />,
       "(operations)/_layout": OperationsLayout,
       access: AccessGateScreen,
