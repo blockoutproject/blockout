@@ -82,10 +82,18 @@ class SearchProjectionIntegrationTest {
     SearchTestEngine.startEngine();
   }
 
-  /** Stops this suite's TLS engine; Testcontainers owns its PostgreSQL lifecycle. */
+  /**
+   * Stops the owned scheduler before its TLS engine; Testcontainers owns PostgreSQL.
+   *
+   * @param tasks this fixture's single writer, also managed by the cached Spring context
+   */
   @AfterAll
-  static void stopEngine() throws Exception {
-    SearchTestEngine.stopEngine();
+  static void stopEngine(@Autowired ThreadPoolTaskScheduler tasks) throws Exception {
+    try {
+      tasks.shutdown();
+    } finally {
+      SearchTestEngine.stopEngine();
+    }
   }
 
   /** Resets only this suite's disposable SQL state and publishes a clean empty generation. */
