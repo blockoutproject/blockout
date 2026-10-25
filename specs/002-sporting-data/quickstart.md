@@ -59,6 +59,43 @@ Try wrong-environment M2M tokens and unauthorized/stale administrative commands.
 
 In existing native journeys, verify a professional team with no club remains readable/followable without a club link or invented point. Exercise team override → LNV → optional club → missing artwork, plus unchanged nonprofessional inheritance. Fail logo retrieval/replacement and retain the last valid presentation. Check both themes, enlarged text, focus and meaningful accessible action labels.
 
+For T045, use the exact [approved editor, professional-team, partial-map and
+320-point/200% references](plan.md#consumer-and-design-reconciliation). Prepare
+demonstration resources and a current account with `manageSportingPresentation`;
+classification, lifecycle, moderation and Pro alone must grant no editor access.
+Enter the club, team, pool and division presentation routes through their resource
+action and the actual F12 operational group. Confirm that club edits contain one
+name, team/pool edits contain independent full/short names, pools have no image,
+and division name/colors/logo do not change activity. No contact-correction form
+is part of this mobile scope.
+
+On native iOS and Android, run both system themes at ordinary and narrow widths,
+then enlarged text including the approved 320-point/200% specimen. With VoiceOver
+or TalkBack, check labels, image preview/close, replacement and restoration,
+validation focus, keyboard reachability of the final field/save action, and
+back/gesture cancellation versus explicit draft discard. This preparation does
+not qualify the separately retained iOS text-resizing/minimum-iOS limits.
+
+Save names and a nonsquare PNG/JPEG in one multipart request, including manual
+logo → automatic → missing fallback, and reject invalid/oversized artwork without
+changing names or the last valid image. Exercise protected binary retrieval under
+current visibility/maintenance, including an unavailable logo with usable editor
+fields. Keep dirty fields during refetch. Race another editor, lose a save
+response, fail the subsequent read and withdraw the action grant/session while
+the picker or save is pending. No mutation may replay automatically; re-enable an
+explicit retry only after a successful original-target read, preserving dirty
+fields and updating untouched fields/current revision. A current matching state
+establishes only the observed outcome.
+
+In the F03-owned journey, separately check the professional team without a club,
+the optional club link when present, and partial maps without invented locations.
+For A39, use private F14 recovery inputs: certain identity with retained file,
+unresolved/missing identity with retained association, and certain identity with
+missing file. Reapply only the certain retained file; keep unresolved evidence
+private and report missing bytes explicitly. Never publish recovery associations,
+original URLs, personal diagnostics or files in this repository/PR. These cases
+are prepared here; execution remains with T055/T056 and their authorized inputs.
+
 Change effective municipality/postal context while a geocoding response is in flight: the old point must not return. A street-only or overridden source change must not move it. Exercise each contact mode and current privacy restrictions without retaining former personal details.
 
 Exercise standings with and without a retained usable table: `published` with empty rows remains an available table; `not-published` with empty arrays is qualified absence, and a failed/unreadable read is neither. Preserve a still-usable retained table and its own freshness on failure or non-publication; without one, F03 distinguishes qualified absence from unavailable acquisition. Reject non-publication with nonempty arrays and stale absence observations without effects. A successful table containing an unlinked row preserves official order without a fabricated team. Close a season and verify history remains while new cycles are refused. F14 logo preservation and controlled initial reconstruction remain prerequisites for any separately authorized transition, not actions of this quickstart.

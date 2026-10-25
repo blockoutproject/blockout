@@ -16,6 +16,9 @@ export default function OperationsLayout() {
       <Stack.Protected guard={permissions?.manageCollection === true}>
         <Stack.Screen name="collection" />
       </Stack.Protected>
+      <Stack.Protected guard={permissions?.manageSportingPresentation === true}>
+        <Stack.Screen name="administration/presentation/[kind]/[id]" />
+      </Stack.Protected>
     </Stack>
   );
 }
