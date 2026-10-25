@@ -1,0 +1,10 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle id="Crest halo &#194;&#183; transparent edge" cx="60" cy="60" r="60" fill="url(#paint0_radial_0_1987)"/>
+<defs>
+<radialGradient id="paint0_radial_0_1987" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(60 60) scale(60)">
+<stop stop-color="#F14B59" stop-opacity="0.2"/>
+<stop offset="0.42" stop-color="#EE636F" stop-opacity="0.13"/>
+<stop offset="1" stop-color="#EE636F" stop-opacity="0"/>
+</radialGradient>
+</defs>
+</svg>

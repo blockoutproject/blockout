@@ -70,7 +70,7 @@ it.each(["Europe/Paris", "America/New_York", "Pacific/Kiritimati"])(
     expect(sportingDay(schedule, zone)).toBe("2026-09-20");
     expect(presentation).toEqual({
       date: "20 sept. 2026",
-      time: "Horaire à confirmer",
+      time: "Heure à définir",
     });
     expect(schedule.instant).toBeUndefined();
   },

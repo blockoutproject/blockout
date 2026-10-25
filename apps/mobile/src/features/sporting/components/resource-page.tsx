@@ -21,30 +21,42 @@ import {
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 
-/** Shared public-resource chrome; bounded content scrolls under the native safe areas. */
+/** Shared resource chrome; a missing title preserves Figma's empty, balanced header identity slot. */
+export interface ResourcePageProps extends PropsWithChildren {
+  title?: string;
+  scroll?: boolean;
+}
+
+/** Native safe areas and the source-owned 48 px header; bounded content uses the 16 px section gap. */
 export function ResourcePage({
   title,
   children,
   scroll = true,
-}: PropsWithChildren<{ title: string; scroll?: boolean }>) {
+}: ResourcePageProps) {
   const router = useRouter();
   const { colors } = useTheme();
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <View style={styles.header}>
-        <IconButton label="Retour" onPress={() => router.back()}>
-          <ChevronLeft
-            accessible={false}
-            color={colors.icon}
-            size={tokens.size.actionIcon}
-          />
-        </IconButton>
-        <Text
-          accessibilityRole="header"
-          style={[styles.title, { color: colors.text }]}
-        >
-          {title}
-        </Text>
+        <View style={styles.headerRail}>
+          <IconButton label="Retour" onPress={() => router.back()}>
+            <ChevronLeft
+              accessible={false}
+              color={colors.icon}
+              size={tokens.size.actionIcon}
+            />
+          </IconButton>
+        </View>
+        {title ? (
+          <Text
+            accessibilityRole="header"
+            style={[styles.title, { color: colors.text }]}
+          >
+            {title}
+          </Text>
+        ) : (
+          <View style={styles.title} />
+        )}
         <View style={styles.headerRail} />
       </View>
       {scroll ? (
@@ -181,11 +193,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.lg,
   },
   title: { ...tokens.typography.navigation, flex: 1, textAlign: "center" },
-  headerRail: { width: tokens.size.control },
+  headerRail: { width: tokens.size.control, alignItems: "center" },
   content: {
     padding: tokens.spacing.lg,
     paddingTop: tokens.spacing.sm,
-    gap: tokens.spacing.md,
+    gap: tokens.spacing.lg,
     paddingBottom: tokens.spacing.section,
   },
   card: {

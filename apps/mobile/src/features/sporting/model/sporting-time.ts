@@ -93,6 +93,6 @@ export function formatSportingSchedule(
           minute: "2-digit",
           hourCycle: "h23",
         }).format(new Date(schedule.instant))
-      : "Horaire à confirmer",
+      : "Heure à définir",
   };
 }

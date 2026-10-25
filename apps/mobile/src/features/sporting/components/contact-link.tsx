@@ -45,7 +45,94 @@ export interface ContactLinkProps {
   label: string;
   value?: string;
   destination?: string;
-  icon: LucideIcon;
+  icon?: LucideIcon;
+  /** Match information uses the approved compact label/value row rather than a contact tile. */
+  presentation?: "contact" | "information";
+}
+
+/** Approved match-information row; an explicit host action alone makes it a navigation control. */
+export interface InformationRowProps {
+  label: string;
+  value: string;
+  supporting?: string;
+  icon?: LucideIcon;
+  onPress?: () => void;
+  separated?: boolean;
+}
+
+/** Label/value composition from Product Design 4388:37876, retaining wrapping and whole-row access. */
+export function InformationRow({
+  label,
+  value,
+  supporting,
+  icon: Icon,
+  onPress,
+  separated = true,
+}: InformationRowProps) {
+  const { colors } = useTheme();
+  const content = (
+    <>
+      <Text style={[styles.informationLabel, { color: colors.secondaryText }]}>
+        {label}
+      </Text>
+      <View style={styles.informationValue}>
+        {Icon && (
+          <Icon
+            accessible={false}
+            size={tokens.size.inlineIcon}
+            color={colors.icon}
+          />
+        )}
+        <View style={[styles.value, styles.informationCopy]}>
+          <Text style={[styles.known, { color: colors.text }]}>{value}</Text>
+          {supporting && (
+            <Text style={[styles.label, { color: colors.secondaryText }]}>
+              {supporting}
+            </Text>
+          )}
+        </View>
+      </View>
+      {onPress && (
+        <ChevronRight
+          accessible={false}
+          size={tokens.size.inlineIcon}
+          color={colors.icon}
+        />
+      )}
+    </>
+  );
+  const name = `${label} : ${value}`;
+  return (
+    <View>
+      {separated && (
+        <View
+          accessible={false}
+          style={[
+            styles.informationSeparator,
+            { backgroundColor: colors.border },
+          ]}
+        />
+      )}
+      {onPress ? (
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={name}
+          onPress={onPress}
+          style={styles.informationRow}
+        >
+          {content}
+        </Pressable>
+      ) : (
+        <View
+          accessible
+          accessibilityLabel={name}
+          style={styles.informationRow}
+        >
+          {content}
+        </View>
+      )}
+    </View>
+  );
 }
 
 /** Whole-row native link with honest opening failure; a later explicit press is the only retry. */
@@ -54,14 +141,21 @@ export function ContactLink({
   value,
   destination,
   icon: Icon,
+  presentation = "contact",
 }: ContactLinkProps) {
   const { colors } = useTheme();
   const [failed, setFailed] = useState(false);
   const content = (
     <>
-      <View style={[styles.icon, { backgroundColor: colors.canvas }]}>
-        <Icon accessible={false} size={20} color={colors.icon} />
-      </View>
+      {Icon && (
+        <View style={[styles.icon, { backgroundColor: colors.canvas }]}>
+          <Icon
+            accessible={false}
+            size={tokens.size.controlIcon}
+            color={colors.icon}
+          />
+        </View>
+      )}
       <View style={styles.value}>
         <Text style={[styles.label, { color: colors.secondaryText }]}>
           {label}
@@ -76,24 +170,38 @@ export function ContactLink({
         </Text>
       </View>
       {destination && (
-        <ChevronRight accessible={false} size={16} color={colors.icon} />
+        <ChevronRight
+          accessible={false}
+          size={tokens.size.inlineIcon}
+          color={colors.icon}
+        />
       )}
     </>
   );
+  /** Opens only the caller-qualified destination; rejection retains the row for an explicit retry. */
+  async function openDestination() {
+    if (!destination) return;
+    setFailed(false);
+    try {
+      await Linking.openURL(destination);
+    } catch {
+      setFailed(true);
+    }
+  }
   return (
     <View>
-      {destination ? (
+      {presentation === "information" ? (
+        <InformationRow
+          label={label}
+          value={value ?? "Non renseigné"}
+          icon={Icon}
+          onPress={destination ? () => void openDestination() : undefined}
+        />
+      ) : destination ? (
         <Pressable
           accessibilityRole="link"
           accessibilityLabel={`${label} : ${value}`}
-          onPress={async () => {
-            setFailed(false);
-            try {
-              await Linking.openURL(destination);
-            } catch {
-              setFailed(true);
-            }
-          }}
+          onPress={() => void openDestination()}
           style={styles.row}
         >
           {content}
@@ -114,6 +222,33 @@ export function ContactLink({
 }
 
 const styles = StyleSheet.create({
+  informationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: tokens.size.control,
+    paddingHorizontal: tokens.spacing.lg,
+    paddingVertical: tokens.spacing.compact,
+    gap: tokens.spacing.compact,
+  },
+  informationLabel: {
+    ...tokens.typography.metadata,
+    width: tokens.sporting.informationLabelWidth,
+  },
+  informationValue: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+  },
+  informationCopy: { gap: tokens.spacing.optical },
+  informationSeparator: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    height: tokens.borderWidth,
+  },
   row: {
     minHeight: 72,
     flexDirection: "row",

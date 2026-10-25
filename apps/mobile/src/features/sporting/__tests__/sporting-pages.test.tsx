@@ -384,7 +384,7 @@ it("keeps match identities and independent missing sections without a zero score
 
   // When
   await user.press(await screen.findByRole("link", { name: "Home" }));
-  await user.press(screen.getByRole("link", { name: "Pool" }));
+  await user.press(screen.getByRole("link", { name: "Poule : Pool" }));
 
   // Then
   expect(mockPush).toHaveBeenCalledWith({
@@ -395,10 +395,10 @@ it("keeps match identities and independent missing sections without a zero score
     pathname: "/pools/[poolId]",
     params: { poolId: sportingId },
   });
-  expect(screen.getByText("Horaire à confirmer")).toBeOnTheScreen();
-  expect(screen.getByText("Résultat indisponible")).toBeOnTheScreen();
-  expect(screen.getByText("Lieu non renseigné")).toBeOnTheScreen();
-  expect(screen.getByText("Arbitres non renseignés")).toBeOnTheScreen();
+  expect(screen.getByText("Heure à définir")).toBeOnTheScreen();
+  expect(screen.getByText("À venir")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Lieu : Non renseigné")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Arbitres : Non renseignés")).toBeOnTheScreen();
   expect(screen.queryByText("0")).not.toBeOnTheScreen();
 });
 
@@ -463,7 +463,7 @@ it.each(["provisional", "unconfirmed", "final"] as const)(
     expect(
       screen.getByText(
         state === "final"
-          ? "Résultat définitif"
+          ? "Terminé"
           : state === "provisional"
             ? "Résultat provisoire · Résultat définitif indisponible"
             : "Résultat non confirmé · Résultat définitif indisponible",
@@ -492,7 +492,7 @@ it("retains exact published set points and separates the match venue from a club
   // When
   await user.press(
     await screen.findByRole("link", {
-      name: "Lieu du match : Gymnase des Rives · 12 rue des Sports, Niort",
+      name: "Lieu : Gymnase des Rives · 12 rue des Sports, Niort",
     }),
   );
 
@@ -500,7 +500,7 @@ it("retains exact published set points and separates the match venue from a club
   expect(screen.getByLabelText("Set 1 : 25 à 0")).toBeOnTheScreen();
   expect(screen.getByLabelText("Set 2 : 23 à 25")).toBeOnTheScreen();
   expect(
-    screen.getByText("Arbitres : Arbitre de démonstration"),
+    screen.getByLabelText("Arbitres : Arbitre de démonstration"),
   ).toBeOnTheScreen();
   expect(open).toHaveBeenCalledWith(
     expect.stringContaining(encodeURIComponent(match.venueAddress)),
@@ -824,7 +824,7 @@ it("shows the known match competition independently of a generic pool name", asy
   await renderPage(<MatchScreen matchId={sportingId} />);
 
   // When
-  await screen.findByRole("link", { name: "Pool" });
+  await screen.findByRole("link", { name: "Poule : Pool" });
 
   // Then
   expect(screen.getByText("Championnat de démonstration")).toBeOnTheScreen();

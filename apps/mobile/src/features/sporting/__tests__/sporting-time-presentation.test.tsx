@@ -90,7 +90,7 @@ it("renders a readable unchanged date and meaningful unknown-time label", async 
 
   // Then
   expect(screen.getByText("20 sept. 2026")).toBeOnTheScreen();
-  expect(screen.getByText("Horaire à confirmer")).toBeOnTheScreen();
+  expect(screen.getByText("Heure à définir")).toBeOnTheScreen();
   expect(screen.queryByText(/00:00/)).not.toBeOnTheScreen();
 });
 
@@ -114,7 +114,7 @@ it("updates retained match detail to the current phone zone on foreground return
   );
   const events = jest.spyOn(AppState, "addEventListener");
   await render(<MatchScreen matchId={sportingId} />, { wrapper: Providers });
-  await screen.findByText("20 sept. 2026 · 00:30");
+  await screen.findAllByText("20 sept. 2026 à 00:30");
   const requests = mockFetch.mock.calls.length;
 
   // When
@@ -126,8 +126,8 @@ it("updates retained match detail to the current phone zone on foreground return
   });
 
   // Then: presentation alone needs no reread; actual calendar/navigation qualification is T023.
-  expect(screen.getByText("19 sept. 2026 · 18:30")).toBeOnTheScreen();
-  expect(screen.queryByText("20 sept. 2026 · 00:30")).not.toBeOnTheScreen();
+  expect(screen.getAllByText("19 sept. 2026 à 18:30")).toHaveLength(2);
+  expect(screen.queryByText("20 sept. 2026 à 00:30")).not.toBeOnTheScreen();
   expect(mockFetch).toHaveBeenCalledTimes(requests);
 });
 
@@ -160,4 +160,41 @@ it("uses the rendering day when an initial match response crosses midnight", asy
     await screen.findByText("Aujourd’hui · 20 sept. 2026"),
   ).toBeOnTheScreen();
   expect(screen.queryByText("Demain · 20 sept. 2026")).not.toBeOnTheScreen();
+});
+
+it("keeps the summary pool heading informational instead of inventing a navigation control", async () => {
+  // Given
+  const match = matchDetail().match;
+  mockFetch.mockResolvedValue(Response.json(applicationAccessResponse()));
+
+  // When
+  await render(<MatchSummary match={match} />, { wrapper: Providers });
+
+  // Then
+  expect(screen.getByText(match.pool.pool.name)).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: match.pool.pool.name }),
+  ).not.toBeOnTheScreen();
+});
+
+it("does not introduce an empty score section on an upcoming match without accepted result or sets", async () => {
+  // Given
+  const detail = matchDetail();
+  mockFetch.mockImplementation((url: string) =>
+    Promise.resolve(
+      Response.json(
+        new URL(url).pathname.endsWith("/application-access")
+          ? applicationAccessResponse()
+          : detail,
+      ),
+    ),
+  );
+
+  // When
+  await render(<MatchScreen matchId={sportingId} />, { wrapper: Providers });
+  await screen.findByRole("link", { name: detail.match.home.name });
+
+  // Then
+  expect(screen.getByText("À venir")).toBeOnTheScreen();
+  expect(screen.queryByRole("header", { name: "Score" })).not.toBeOnTheScreen();
 });
