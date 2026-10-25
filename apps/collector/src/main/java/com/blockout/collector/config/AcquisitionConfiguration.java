@@ -235,8 +235,11 @@ public class AcquisitionConfiguration {
                 (request, scope, chain) -> {
                   RateLimiter.waitForPermission(limiter);
                   ClassicHttpResponse response = chain.proceed(request, scope);
-                  if (response.getCode() >= 300 && response.getEntity() != null) {
-                    // Discard unused bodies before native retries/redirects can drain them.
+                  if (response.getCode() >= 300
+                      && response.getCode() != 400
+                      && response.getEntity() != null) {
+                    // Discard intermediate bodies before native retries/redirects drain them.
+                    // HTTP 400 is terminal; IGN alone interprets its bounded qualified body.
                     ((ModalCloseable) response).close(CloseMode.IMMEDIATE);
                     response.setEntity(null);
                   }
