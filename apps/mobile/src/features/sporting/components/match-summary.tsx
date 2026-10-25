@@ -11,19 +11,13 @@ export interface MatchSummaryProps {
   match: MatchSummaryResponse;
   /** Current phone zone for text only; a calendar retains its separate loading-zone day groups. */
   displayTimeZone?: string;
-  /** Shared presentation clock, reevaluated on detail foreground return. */
-  now?: Date;
 }
 
 /** Shared match identity/result surface without winner, live-state or zero-score inference. */
-export function MatchSummary({
-  match,
-  displayTimeZone,
-  now,
-}: MatchSummaryProps) {
+export function MatchSummary({ match, displayTimeZone }: MatchSummaryProps) {
   const { colors } = useTheme();
   const result = match.result;
-  const schedule = formatSportingSchedule(match.schedule, displayTimeZone, now);
+  const schedule = formatSportingSchedule(match.schedule, displayTimeZone);
   return (
     <ResourceCard>
       <View style={styles.pool}>

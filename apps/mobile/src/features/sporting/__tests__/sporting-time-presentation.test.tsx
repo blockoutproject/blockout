@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen } from "@testing-library/react-native";
+import { act, render, screen, waitFor } from "@testing-library/react-native";
 import { AppState } from "react-native";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
@@ -129,4 +129,35 @@ it("updates retained match detail to the current phone zone on foreground return
   expect(screen.getByText("19 sept. 2026 · 18:30")).toBeOnTheScreen();
   expect(screen.queryByText("20 sept. 2026 · 00:30")).not.toBeOnTheScreen();
   expect(mockFetch).toHaveBeenCalledTimes(requests);
+});
+
+it("uses the rendering day when an initial match response crosses midnight", async () => {
+  // Given
+  jest.setSystemTime(new Date("2026-09-19T21:59:59Z"));
+  const detail = matchDetail();
+  detail.match.schedule.localDate = "2026-09-20";
+  const pendingMatch = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith("/application-access")
+      ? Promise.resolve(Response.json(applicationAccessResponse()))
+      : pendingMatch.promise,
+  );
+  await render(<MatchScreen matchId={sportingId} />, { wrapper: Providers });
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.some(([url]) =>
+        new URL(url).pathname.includes("/matches/"),
+      ),
+    ).toBe(true),
+  );
+
+  // When
+  jest.setSystemTime(new Date("2026-09-19T22:00:01Z"));
+  await act(async () => pendingMatch.resolve(Response.json(detail)));
+
+  // Then
+  expect(
+    await screen.findByText("Aujourd’hui · 20 sept. 2026"),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Demain · 20 sept. 2026")).not.toBeOnTheScreen();
 });

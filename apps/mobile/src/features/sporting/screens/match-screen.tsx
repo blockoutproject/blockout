@@ -28,14 +28,13 @@ export interface MatchScreenProps {
 export function MatchScreen({ matchId }: MatchScreenProps) {
   const [presentation, setPresentation] = useState(() => ({
     timeZone: currentSportingTimeZone(),
-    now: new Date(),
   }));
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") {
+        // A fresh context also rerenders relative dates when the phone zone is unchanged.
         setPresentation({
           timeZone: currentSportingTimeZone(),
-          now: new Date(),
         });
       }
     });
@@ -57,7 +56,6 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
           <MatchSummary
             match={data.match}
             displayTimeZone={presentation.timeZone}
-            now={presentation.now}
           />
           <ResourceCard>
             <Text
