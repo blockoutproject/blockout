@@ -1,0 +1,48 @@
+# Merge with compose.yaml in the same environment-specific application project.
+services:
+  backend:
+    environment:
+      BLOCKOUT_SEARCH_ENABLED: "true"
+      BLOCKOUT_SEARCH_ENDPOINT: https://opensearch:9200
+      BLOCKOUT_SEARCH_INDEX_PREFIX: blockout-${BLOCKOUT_ENVIRONMENT:?Select environment}-search
+      BLOCKOUT_SEARCH_USERNAME: blockout_search
+      BLOCKOUT_SEARCH_PASSWORD: ${BLOCKOUT_SEARCH_PASSWORD:?Supply this environment's private backend password}
+      SPRING_SSL_BUNDLE_PEM_OPENSEARCH_TRUSTSTORE_CERTIFICATE: file:/run/opensearch/ca.pem
+    volumes:
+      - ${BLOCKOUT_SEARCH_TLS_DIRECTORY:?Supply the environment TLS directory}/ca.pem:/run/opensearch/ca.pem:ro
+    networks:
+      - search
+
+  opensearch:
+    image: opensearchproject/opensearch:3.9.0
+    restart: unless-stopped
+    stop_grace_period: 40s
+    environment:
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+      BLOCKOUT_ENVIRONMENT: ${BLOCKOUT_ENVIRONMENT:?Select environment}
+      BLOCKOUT_SEARCH_NODE_DN: ${BLOCKOUT_SEARCH_NODE_DN:?Supply this environment's node certificate DN}
+      BLOCKOUT_SEARCH_ADMIN_DN: ${BLOCKOUT_SEARCH_ADMIN_DN:?Supply this environment's separate operator certificate DN}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - search-data:/usr/share/opensearch/data
+      - ./opensearch/opensearch.yml:/usr/share/opensearch/config/opensearch.yml:ro
+      - ${BLOCKOUT_SEARCH_SECURITY_DIRECTORY:?Supply the environment private security directory}:/usr/share/opensearch/config/opensearch-security:ro
+      - ${BLOCKOUT_SEARCH_TLS_DIRECTORY:?Supply the environment TLS directory}:/usr/share/opensearch/config/tls:ro
+    networks:
+      - search
+
+volumes:
+  search-data:
+    name: blockout-search-${BLOCKOUT_ENVIRONMENT:?Select environment}-data
+
+networks:
+  search:
+    internal: true
+    name: blockout-search-${BLOCKOUT_ENVIRONMENT:?Select environment}

@@ -1,0 +1,54 @@
+# Native Grafana reference: replace datasource UID/environment with the actual provider values.
+# Grafana Cloud has no file provisioning; create the equivalent native rule through its UI.
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: search-projection
+    folder: Blockout
+    interval: 1m
+    rules:
+      - uid: blockout-search-projection-failed
+        title: Search projection failed
+        condition: B
+        for: 0s
+        noDataState: NoData
+        execErrState: Error
+        data:
+          - refId: A
+            datasourceUid: ${LOKI_DATASOURCE_UID}
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              datasource:
+                type: loki
+                uid: ${LOKI_DATASOURCE_UID}
+              editorMode: code
+              expr: sum(count_over_time({environment="${BLOCKOUT_ENVIRONMENT}",service_name="blockout-backend"} | json | operation="search_projection" | outcome="failed" [5m]))
+              instant: true
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+                  operator:
+                    type: and
+                  reducer:
+                    type: last
+                  type: query
+              refId: B
+        labels:
+          environment: ${BLOCKOUT_ENVIRONMENT}
+          service_name: blockout-backend
+        annotations:
+          summary: A targeted, full, submission or cleanup operation failed.
+          description: Inspect safe stage/outcome and last_success_at, then current aliases and actual search. Resolution is not proof of reconstruction.
