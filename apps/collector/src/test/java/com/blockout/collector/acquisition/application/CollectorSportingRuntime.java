@@ -130,25 +130,64 @@ final class CollectorSportingRuntime implements AutoCloseable {
    * @return caller-owned authenticated client and its connection pool
    */
   IngestionTestClient connect(ClientHttpRequestInterceptor interceptor) {
-    Instant now = Instant.now();
-    String token =
-        new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(signingKey)))
-            .encode(
-                JwtEncoderParameters.from(
-                    JwsHeader.with(SignatureAlgorithm.RS256).keyId(signingKey.getKeyID()).build(),
-                    JwtClaimsSet.builder()
-                        .issuer(issuer)
-                        .subject("local-collector@clients")
-                        .audience(List.of("local-ingestion"))
-                        .issuedAt(now)
-                        .expiresAt(now.plusSeconds(600))
-                        .claim("azp", "local-collector")
-                        .claim("scope", "sporting:ingest")
-                        .build()))
-            .getTokenValue();
     IngestionTestClient transport = IngestionTestClient.connect(baseUrl, interceptor);
-    transport.api().setBearerToken(token);
+    transport
+        .api()
+        .setBearerToken(
+            token(
+                "local-collector@clients",
+                "local-ingestion",
+                "local-collector",
+                "sporting:ingest"));
     return transport;
+  }
+
+  /**
+   * Supplies a local mobile principal for real administrative HTTP setup; business grants remain in
+   * PostgreSQL and no external identity provider is contacted.
+   *
+   * @param subject exact synthetic account subject
+   * @return signed token accepted only by this suite's backend
+   */
+  String mobileToken(String subject) {
+    return token(subject, "local-mobile", "local-mobile", "");
+  }
+
+  /** Returns this suite's local issuer for synthetic account fixture association. */
+  String issuer() {
+    return issuer;
+  }
+
+  /** Returns the actual backend origin for native administrative HTTP requests. */
+  String baseUrl() {
+    return baseUrl;
+  }
+
+  /**
+   * Signs a short-lived principal against the suite-owned key endpoint.
+   *
+   * @param subject synthetic principal identity
+   * @param audience selected local API audience
+   * @param client selected local client identity
+   * @param scope explicit OAuth scope, empty for mobile business-grant checks
+   * @return compact signed bearer
+   */
+  private String token(String subject, String audience, String client, String scope) {
+    Instant now = Instant.now();
+    return new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(signingKey)))
+        .encode(
+            JwtEncoderParameters.from(
+                JwsHeader.with(SignatureAlgorithm.RS256).keyId(signingKey.getKeyID()).build(),
+                JwtClaimsSet.builder()
+                    .issuer(issuer)
+                    .subject(subject)
+                    .audience(List.of(audience))
+                    .issuedAt(now)
+                    .expiresAt(now.plusSeconds(600))
+                    .claim("azp", client)
+                    .claim("scope", scope)
+                    .build()))
+        .getTokenValue();
   }
 
   /**
