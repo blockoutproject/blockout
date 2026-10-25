@@ -29,6 +29,10 @@ export const appearanceColors = {
     onDarkAccent: reference.white,
     onLightAccent: "#000000",
     raised: "#FFFFFFF7",
+    // Semantic surface/inverse and text/on-inverse; Product Design follow action 1010:15711.
+    inverse: reference.neutral900,
+    onInverse: "#F7F7F8",
+    contextBorderAlpha: "4D",
     border: "#20212424",
     text: "#1C1C1E",
     secondaryText: "#62646A",
@@ -58,6 +62,9 @@ export const appearanceColors = {
     onDarkAccent: reference.white,
     onLightAccent: "#000000",
     raised: "#181819F5",
+    inverse: "#F7F7F8",
+    onInverse: reference.neutral900,
+    contextBorderAlpha: "6B",
     border: "#FFFFFF2E",
     text: "#F7F7F8",
     secondaryText: "#B8B8BC",
@@ -134,6 +141,7 @@ export const tokens = {
   },
   size: {
     control: 48,
+    compactControl: 36,
     multiline: 96,
     actionIcon: 24,
     controlIcon: 20,

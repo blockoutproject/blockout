@@ -1,5 +1,5 @@
 import { render, screen, userEvent } from "@testing-library/react-native";
-import { ChevronRight } from "lucide-react-native";
+import { Check, ChevronRight } from "lucide-react-native";
 import { ThemeProvider } from "../../theme/theme-provider";
 import { Button } from "../button";
 
@@ -53,4 +53,33 @@ it.each([
 
   // Then
   expect(onPress).not.toHaveBeenCalled();
+});
+
+it("exposes a compact selected action and its season without adding a second control", async () => {
+  // Given
+  const onPress = jest.fn();
+  const user = userEvent.setup();
+  await render(
+    <ThemeProvider>
+      <Button
+        label="Suivi"
+        size="compact"
+        variant="inverse"
+        leadingIcon={Check}
+        selected
+        accessibilityHint="Saison 2026/2027"
+        onPress={onPress}
+      />
+    </ThemeProvider>,
+  );
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Suivi", selected: true }),
+  );
+
+  // Then
+  expect(onPress).toHaveBeenCalledTimes(1);
+  expect(screen.getAllByRole("button")).toHaveLength(1);
+  expect(screen.getByHintText("Saison 2026/2027")).toBeOnTheScreen();
 });

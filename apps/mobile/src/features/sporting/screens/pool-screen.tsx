@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import type {
   SportingIdentityResponse,
+  SportingSeasonResponse,
   PoolSummaryResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { useConsultationQueries } from "../api/use-consultation-queries";
@@ -20,7 +21,11 @@ import type {
 /** Independent pool content comes from its owning stories; absence creates no invented table/map. */
 export interface PoolScreenProps {
   poolId: string;
-  renderFollow?: (identity: SportingIdentityResponse) => ReactNode;
+  renderFollow?: (
+    identity: SportingIdentityResponse,
+    season: SportingSeasonResponse,
+    contextColor?: string,
+  ) => ReactNode;
   renderCalendar?: (selection: PoolCalendarSelection) => ReactNode;
   renderStandings?: RenderStandings;
   renderMap?: (pool: PoolSummaryResponse) => ReactNode;
@@ -67,7 +72,11 @@ function PoolPage({
               .filter(Boolean)
               .join(" · ")}
           >
-            {renderFollow?.(data.pool.pool)}
+            {renderFollow?.(
+              data.pool.pool,
+              data.pool.season,
+              data.pool.classification.division?.color,
+            )}
           </SportingIdentity>
           <ResourceTabs
             selected={tab}
