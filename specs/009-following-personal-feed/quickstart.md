@@ -76,8 +76,15 @@ restores the control. The tests include native five-minute collection with anoth
 Controlled future infinite-query consumers prove cancellation of former traversal, visible first-page
 reload, hidden-query deferral and preserved write confirmation after dependent-read failure. These
 are interface tests, not completed list/calendar screens or their integrated qualifications.
-Confirmation names the public target's season without writing a personal season selection. The
-generated boundary remains unchanged; no public follower-count UI is delivered here.
+The compact inverse action uses the public target's displayed season and accessible hint without
+writing a personal season selection or adding a success panel. Compare the live
+[team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1010-15711),
+[followed team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1023-5097)
+and [dark pool](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1755-14354)
+instances with the UI Library's [compact button](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=3386-697):
+36-point pill, 20-point leading Plus/Check, inverse surface/content, contextual border and a
+separate platform touch target. The F03 action region supplies its separator and 12-point inset.
+The generated boundary remains unchanged; no public follower-count UI is delivered here.
 
 ```sh
 npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/following/__tests__/follow-action.test.tsx

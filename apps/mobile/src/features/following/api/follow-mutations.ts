@@ -106,11 +106,7 @@ export function useFollowMutation(
           return { state: await read(), observed: true };
         } catch (readError) {
           // A failed observation cannot establish refusal of the original write.
-          if (
-            readError instanceof ApiError &&
-            [403, 404].includes(readError.status ?? 0)
-          )
-            throw readError;
+          if (isFollowRestriction(readError)) throw readError;
           throw error;
         }
       }
@@ -195,12 +191,6 @@ export function useFollowMutation(
       status: state.status,
       variables: state.variables,
       error: state.error,
-      observed: Boolean(
-        state.data &&
-        typeof state.data === "object" &&
-        "observed" in state.data &&
-        state.data.observed,
-      ),
     }),
   });
   const latest = states.at(-1);

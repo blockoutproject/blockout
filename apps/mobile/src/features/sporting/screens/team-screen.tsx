@@ -28,6 +28,7 @@ export interface TeamScreenProps {
   renderFollow?: (
     identity: SportingIdentityResponse,
     season: SportingSeasonResponse,
+    contextColor?: string,
   ) => ReactNode;
   renderCalendar?: (selection: TeamCalendarSelection) => ReactNode;
   renderStandings?: RenderStandings;
@@ -91,7 +92,11 @@ function TeamPage({
                 label={`Voir le club ${data.team.club.name}`}
               />
             )}
-            {renderFollow?.(data.team.team, data.team.season)}
+            {renderFollow?.(
+              data.team.team,
+              data.team.season,
+              data.team.classification.division?.color,
+            )}
           </SportingIdentity>
           <ResourceTabs
             selected={tab ?? "upcoming"}

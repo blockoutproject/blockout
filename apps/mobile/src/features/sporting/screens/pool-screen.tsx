@@ -24,6 +24,7 @@ export interface PoolScreenProps {
   renderFollow?: (
     identity: SportingIdentityResponse,
     season: SportingSeasonResponse,
+    contextColor?: string,
   ) => ReactNode;
   renderCalendar?: (selection: PoolCalendarSelection) => ReactNode;
   renderStandings?: RenderStandings;
@@ -71,7 +72,11 @@ function PoolPage({
               .filter(Boolean)
               .join(" · ")}
           >
-            {renderFollow?.(data.pool.pool, data.pool.season)}
+            {renderFollow?.(
+              data.pool.pool,
+              data.pool.season,
+              data.pool.classification.division?.color,
+            )}
           </SportingIdentity>
           <ResourceTabs
             selected={tab}

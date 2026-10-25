@@ -213,8 +213,15 @@ it("shares the requested value and busy state across tabs, ignores repeated taps
     ),
   ).toHaveLength(1);
   expect(
-    await screen.findByText(
-      "Suivi confirmé pour la saison 2026/2027. Retrouvez-le dans cette saison ou Toutes les saisons.",
+    await screen.findByRole("button", {
+      name: "Suivi",
+      selected: true,
+      busy: false,
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByHintText(
+      "Saison 2026/2027. Retrouvez ce suivi dans cette saison ou Toutes les saisons.",
     ),
   ).toBeOnTheScreen();
   await act(async () => response.resolve(Response.json({ following: true })));
@@ -321,10 +328,14 @@ it.each(["team", "pool"] as const)(
 
     // Then
     expect(
-      await screen.findByText(
-        "Suivi confirmé pour la saison 2026/2027. Retrouvez-le dans cette saison ou Toutes les saisons.",
-      ),
+      await screen.findByRole("button", {
+        name: "Suivi",
+        selected: true,
+        busy: false,
+      }),
     ).toBeOnTheScreen();
+    expect(screen.getByText("2026/2027")).toBeOnTheScreen();
+    expect(screen.queryByText(/Suivi confirmé/)).not.toBeOnTheScreen();
     expect(
       mockFetch.mock.calls
         .filter(([, request]) => request?.method === "PUT")
@@ -974,11 +985,15 @@ it("observes current state once after losing a write response without announcing
 
   // Then
   expect(
-    await screen.findByText(
-      "État actuel : suivi. Une demande retardée peut encore aboutir.",
-    ),
+    await screen.findByRole("button", {
+      name: "Suivi",
+      selected: true,
+      busy: false,
+    }),
   ).toBeOnTheScreen();
-  expect(screen.queryByText(/Suivi confirmé/)).not.toBeOnTheScreen();
+  expect(
+    screen.queryByText(/Suivi confirmé|État actuel/),
+  ).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
   ).toHaveLength(1);

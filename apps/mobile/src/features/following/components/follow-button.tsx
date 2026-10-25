@@ -1,11 +1,10 @@
 import { useRouter } from "expo-router";
 import { Check, Plus } from "lucide-react-native";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import type { SportingSeasonResponse } from "../../../../.generated/schemas/index.zod";
 import { isUncertainMutationFailure } from "../../../shared/api/api-fetch";
 import { Button } from "../../../shared/components/button";
 import { RequestError } from "../../../shared/components/request-feedback";
-import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useFollowState } from "../api/follow-state";
 import {
@@ -18,14 +17,19 @@ import type { FollowingTarget } from "../api/following-keys";
 export interface FollowButtonProps {
   target: FollowingTarget;
   season: SportingSeasonResponse;
+  /** Public F02 accent used by the approved follow action's contextual border. */
+  contextColor?: string;
 }
 
-/** Uses the existing F05 invitation and F13 busy/success controls without a Pro gate. */
-export function FollowButton({ target, season }: FollowButtonProps) {
+/** Uses the compact inverse Figma action and F05 invitation without a Pro gate or extra success panel. */
+export function FollowButton({
+  target,
+  season,
+  contextColor,
+}: FollowButtonProps) {
   const context = useFollowState(target);
   const action = useFollowMutation(target, context);
   const router = useRouter();
-  const { colors } = useTheme();
   const { query, profile, usable, sessionStatus } = context;
   const latest = action.latest;
   const failed = latest?.status === "error";
@@ -51,8 +55,16 @@ export function FollowButton({ target, season }: FollowButtonProps) {
         label={
           uncertain ? "Réessayer le suivi" : following ? "Suivi" : "Suivre"
         }
-        variant={following && !uncertain ? "success" : "primary"}
-        trailingIcon={following && !uncertain ? Check : Plus}
+        size="compact"
+        variant="inverse"
+        contextColor={contextColor}
+        leadingIcon={following ? Check : Plus}
+        selected={following ?? false}
+        accessibilityHint={
+          following && !action.pending
+            ? `Saison ${season.label}. Retrouvez ce suivi dans cette saison ou Toutes les saisons.`
+            : `Saison ${season.label}.`
+        }
         loading={
           action.pending ||
           (!guest && usable && query.isPending && !query.isError)
@@ -94,15 +106,6 @@ export function FollowButton({ target, season }: FollowButtonProps) {
               : "La demande de suivi a échoué. Vous pouvez réessayer."
           }
         />
-      ) : latest?.status === "success" && following ? (
-        <Text
-          accessibilityLiveRegion="polite"
-          style={[tokens.typography.body, { color: colors.text }]}
-        >
-          {latest.observed
-            ? "État actuel : suivi. Une demande retardée peut encore aboutir."
-            : `Suivi confirmé pour la saison ${season.label}. Retrouvez-le dans cette saison ou Toutes les saisons.`}
-        </Text>
       ) : null}
     </View>
   );

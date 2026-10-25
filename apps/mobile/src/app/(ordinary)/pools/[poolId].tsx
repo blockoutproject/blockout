@@ -8,10 +8,11 @@ export default function PoolRoute() {
   return (
     <PoolScreen
       poolId={poolId}
-      renderFollow={(identity, season) => (
+      renderFollow={(identity, season, contextColor) => (
         <SportingActions
           target={{ type: "pool", id: identity.id }}
           season={season}
+          contextColor={contextColor}
         />
       )}
     />
