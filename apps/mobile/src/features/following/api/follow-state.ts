@@ -13,7 +13,6 @@ import { useOrdinaryRequest } from "../../access/ordinary-request";
 import {
   captureFollowingOwner,
   followStateKey,
-  followStateKeys,
   type FollowingTarget,
 } from "./following-keys";
 import { retireSettledFollowAttempts } from "./follow-mutations";
@@ -31,6 +30,7 @@ export function useFollowState(target: FollowingTarget) {
   const { getCredentials } = useAuth0();
   const owner = captureFollowingOwner(session);
   const usable =
+    admission.admitted &&
     session.status === "authenticated" &&
     profile.isSuccess &&
     profile.data.accountId === owner?.accountId;
@@ -59,9 +59,7 @@ export function useFollowState(target: FollowingTarget) {
   }
 
   const query = useQuery({
-    queryKey: owner
-      ? followStateKey(owner, target, bypass)
-      : ["following-unavailable"],
+    queryKey: owner ? followStateKey(owner, target) : ["following-unavailable"],
     enabled: usable,
     // A hidden target may reappear before its prior failed read leaves memory.
     retryOnMount: true,
@@ -71,16 +69,6 @@ export function useFollowState(target: FollowingTarget) {
       const state = await read(signal);
       if (!owner?.isCurrent(owner.generation) || signal.aborted)
         throw new ApiError("cancelled");
-      await client.cancelQueries({
-        queryKey: followStateKey(owner, target, !bypass),
-        exact: true,
-      });
-      if (!owner.isCurrent(owner.generation) || signal.aborted)
-        throw new ApiError("cancelled");
-      // Publish this current observation together, before another callback can inspect an older admission.
-      followStateKeys(owner, target).forEach((queryKey) =>
-        client.setQueryData(queryKey, state),
-      );
       retireSettledFollowAttempts(client, owner, target);
       return state;
     },

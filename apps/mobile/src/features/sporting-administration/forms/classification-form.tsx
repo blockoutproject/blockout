@@ -1,3 +1,4 @@
+import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import {
   genderLabel,
   formatLabel,
@@ -10,8 +11,8 @@ import {
 import { toClassificationRequest } from "../api/classification-request";
 import { ClassificationSelect } from "../components/classification-select";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { useForm, useWatch, Controller } from "react-hook-form";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useForm, useFormState, useWatch, Controller } from "react-hook-form";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import type { ClassificationDetailResponse } from "../../../../.generated/schemas/index.zod";
 import {
@@ -27,7 +28,10 @@ import type {
   useClassification,
   useDivisions,
 } from "../api/classification";
-import { classificationEditor } from "./classification-editor";
+import {
+  classificationEditor,
+  discardClassificationEditor,
+} from "./classification-editor";
 
 /** One current resource, its generated operations and original-session draft. */
 export interface ClassificationFormProps {
@@ -35,7 +39,6 @@ export interface ClassificationFormProps {
   current: ClassificationDetailResponse;
   editing: ReturnType<typeof useClassification>;
   divisions: ReturnType<typeof useDivisions>;
-  onDirtyChange?: (dirty: boolean) => void;
 }
 /** Complete override/inheritance correction with native confirmation and explicit current-state recovery. */
 export function ClassificationForm({
@@ -43,24 +46,32 @@ export function ClassificationForm({
   current,
   editing,
   divisions,
-  onDirtyChange,
 }: ClassificationFormProps) {
   const { session } = editing.authority;
   const { colors } = useTheme();
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const [editor] = useState(() =>
     classificationEditor(session, target, current),
   );
   const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
   const { baseline, needsRead, feedback } = state;
-  const {
+  const { control, handleSubmit, reset, setError } =
+    useForm<ClassificationValues>({
+      resolver: zodResolver(classificationSchema),
+      formControl: editor.form.formControl,
+    });
+  const { isDirty, isSubmitting, errors, dirtyFields } = useFormState({
     control,
-    handleSubmit,
-    reset,
-    setError,
-    formState: { isDirty, isSubmitting, errors, dirtyFields },
-  } = useForm<ClassificationValues>({
-    resolver: zodResolver(classificationSchema),
-    formControl: editor.form.formControl,
+  });
+  useDiscardChanges(isDirty, () => {
+    reset();
+    discardClassificationEditor(session.generation, target);
   });
   void dirtyFields;
   const custom = useWatch({ control, name: "custom" });
@@ -74,10 +85,6 @@ export function ClassificationForm({
   const rereadRequired = needsRead || current.revision !== baseline.revision;
   const choices =
     divisions.query.data?.items.filter((item) => item.active) ?? [];
-  useEffect(() => {
-    onDirtyChange?.(isDirty);
-    return () => onDirtyChange?.(false);
-  }, [isDirty, onDirtyChange]);
   /** Sends the complete confirmed state once; every 409 or uncertain acknowledgement requires an explicit read. */
   async function save(values: ClassificationValues) {
     if (busy || rereadRequired || !session.isCurrent(session.generation))
@@ -135,7 +142,12 @@ export function ClassificationForm({
       "La correction est appliquée entièrement ou refusée. Retirer le réglage conserve les identités et la dernière classification publiée ; cela peut arrêter la collecte.",
       [
         { text: "Annuler", style: "cancel" },
-        { text: "Confirmer", onPress: () => void save(values) },
+        {
+          text: "Confirmer",
+          onPress: () => {
+            if (mounted.current) void save(values);
+          },
+        },
       ],
     );
   }
@@ -145,7 +157,7 @@ export function ClassificationForm({
       editing.query.refetch(),
       divisions.query.refetch(),
     ]);
-    if (!session.isCurrent(session.generation)) return;
+    if (!mounted.current || !session.isCurrent(session.generation)) return;
     if (result.isError || !result.data || available.isError) {
       editor.update({
         ...editor.getSnapshot(),
@@ -154,7 +166,10 @@ export function ClassificationForm({
       });
       return;
     }
-    reset(classificationValues(result.data), { keepDirtyValues: true });
+    reset(classificationValues(result.data), {
+      keepDirtyValues: true,
+      keepDirty: true,
+    });
     editor.update({
       baseline: result.data,
       needsRead: false,

@@ -1,6 +1,6 @@
 import { LoaderCircle } from "lucide-react-native";
-import { useEffect, useState } from "react";
-import { AccessibilityInfo, StyleSheet } from "react-native";
+import { useEffect } from "react";
+import { StyleSheet } from "react-native";
 import Animated, {
   cancelAnimation,
   Easing,
@@ -11,23 +11,15 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { tokens } from "../theme/tokens";
+import { useReducedMotion } from "../theme/use-reduced-motion";
 
 /** Keeps the approved action glyph static whenever the current native reduced-motion setting is enabled. */
 export function LoadingIndicator({ color }: { color: string }) {
-  const [reducedMotion, setReducedMotion] = useState(true);
+  const reducedMotion = useReducedMotion();
   const rotation = useSharedValue(0);
   const style = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value}deg` }],
   }));
-
-  useEffect(() => {
-    const subscription = AccessibilityInfo.addEventListener(
-      "reduceMotionChanged",
-      setReducedMotion,
-    );
-    void AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion);
-    return () => subscription.remove();
-  }, []);
 
   useEffect(() => {
     rotation.value = 0;

@@ -1,3 +1,5 @@
+import { useFormState } from "react-hook-form";
+import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useRouter } from "expo-router";
 import { ChevronRight, Globe, Trophy } from "lucide-react-native";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -27,21 +29,22 @@ import {
   preparationStyles,
 } from "../components/preparation-layout";
 import { CreateSourceForm } from "../forms/create-source-form";
-import { providerPreparationEditor } from "../forms/preparation-editors";
+import {
+  providerPreparationEditor,
+  discardProviderPreparationEditor,
+} from "../forms/preparation-editors";
 import type { CreateSourceValues } from "../schemas/source-candidate";
 
-/** Provider preparation keeps manual candidate drafts local; the route owns navigation discard. */
+/** Provider preparation retains its manual draft and reads its form owner directly for navigation discard. */
 export interface ProviderSourcesScreenProps {
   seasonId: string;
   provider: CollectionProviderEnum;
-  onDirtyChange?: (dirty: boolean) => void;
 }
 
 /** Lists missing/discovered source coverage and launches only explicitly selected qualified bindings. */
 export function ProviderSourcesScreen({
   seasonId,
   provider,
-  onDirtyChange,
 }: ProviderSourcesScreenProps) {
   const editing = useSeasonPreparation(seasonId);
   const { authority, season, sources } = editing;
@@ -56,7 +59,6 @@ export function ProviderSourcesScreen({
           season={current}
           provider={provider}
           editing={editing}
-          onDirtyChange={onDirtyChange}
         />
       ) : (
         authority.enabled &&
@@ -82,12 +84,10 @@ function ProviderPreparation({
   season,
   provider,
   editing,
-  onDirtyChange,
 }: {
   season: CollectionSeasonResponse;
   provider: CollectionProviderEnum;
   editing: ReturnType<typeof useSeasonPreparation>;
-  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const { authority } = editing;
   const { session } = authority;
@@ -99,6 +99,11 @@ function ProviderPreparation({
   );
   const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
   const { baseline, selected, adding, needsRead, feedback } = state;
+  const { isDirty } = useFormState({ control: editor.form.control });
+  useDiscardChanges(isDirty, () => {
+    editor.form.reset();
+    discardProviderPreparationEditor();
+  });
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -326,7 +331,6 @@ function ProviderPreparation({
             disabled={busy || closed || rereadRequired}
             saving={editing.saving}
             onSubmit={create}
-            onDirtyChange={onDirtyChange}
           />
         </PreparationCard>
       )}

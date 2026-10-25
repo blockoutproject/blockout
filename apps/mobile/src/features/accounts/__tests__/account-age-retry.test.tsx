@@ -49,7 +49,16 @@ jest.mock("expo-image-manipulator", () => ({
   ImageManipulator: { manipulate: () => mockContext },
   SaveFormat: { PNG: "png" },
 }));
-jest.mock("expo-file-system", () => ({ File: jest.fn(() => mockFile) }));
+jest.mock("expo-file-system", () => ({
+  File: jest.fn((uri: string) =>
+    uri.startsWith("file:///cache/ImagePicker/") ? mockPickedFile : mockFile,
+  ),
+  Paths: {
+    cache: { uri: "file:///cache/" },
+    normalize: jest.requireActual("expo-file-system").Paths.normalize,
+  },
+}));
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
 const mockContext = {
   resize: jest.fn(),
@@ -57,9 +66,15 @@ const mockContext = {
   release: jest.fn(),
 };
 const mockImage = { saveAsync: jest.fn(), release: jest.fn() };
+const mockPickedFile = { exists: true, delete: jest.fn() };
 const mockFile = Object.assign(
   new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" }),
-  { bytes: async () => new Uint8Array([137, 80, 78, 71]) },
+  {
+    bytes: async () => new Uint8Array([137, 80, 78, 71]),
+    uri: "file:///prepared.png",
+    exists: true,
+    delete: jest.fn(),
+  },
 );
 const mockFetch = jest.fn<
   Promise<Response>,
@@ -87,6 +102,8 @@ const retryLabel = "Réessayer la lecture de l’ancienneté";
 const previousEnvironment = { ...process.env };
 
 beforeEach(() => {
+  mockFile.delete.mockReset();
+  mockPickedFile.delete.mockReset();
   client = createQueryClient();
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
@@ -106,7 +123,9 @@ beforeEach(() => {
     .mockReset()
     .mockResolvedValue({
       canceled: false,
-      assets: [{ uri: "file:///source.heic", width: 64, height: 64 }],
+      assets: [
+        { uri: "file:///cache/ImagePicker/source.heic", width: 64, height: 64 },
+      ],
     });
   mockContext.renderAsync.mockReset().mockResolvedValue(mockImage);
   mockImage.saveAsync

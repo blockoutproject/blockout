@@ -415,3 +415,37 @@ it("invalidates private work immediately even when native credential clearing is
   // Then
   expect(hook.result.current.status).toBe("guest");
 });
+
+it("keeps a newer local sign-out pending when an older hosted login completes", async () => {
+  // Given: SDK session state remains real; only the two native completions are controlled.
+  const login = Promise.withResolvers<Credentials>();
+  const clearing = Promise.withResolvers<void>();
+  mockAuth0.webAuth.mockReturnValueOnce(login.promise);
+  mockAuth0.clearCredentials.mockReturnValueOnce(clearing.promise);
+  const hook = await renderHook(useAccountSession, {
+    wrapper: AccountSessionProvider,
+  });
+  let signingIn: Promise<void>;
+  let signingOut: Promise<void>;
+  await act(async () => {
+    signingIn = hook.result.current.signIn("https://api.example.invalid");
+  });
+  await act(async () => {
+    signingOut = hook.result.current.clearCredentials();
+  });
+
+  // When
+  await act(async () => {
+    login.resolve(credentialsFor("auth0|a"));
+    await signingIn;
+  });
+
+  // Then: completing old native work cannot reopen business admission during the current command.
+  expect(hook.result.current.status).toBe("signing-out");
+  expect(hook.result.current.accountId).toBeNull();
+  await act(async () => {
+    clearing.resolve();
+    await signingOut;
+  });
+  expect(hook.result.current.status).toBe("guest");
+});

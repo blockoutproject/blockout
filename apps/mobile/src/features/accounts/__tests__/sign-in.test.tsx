@@ -388,6 +388,47 @@ it.each(["sign-in", "profile"])(
   },
 );
 
+it.each(["sign-in", "profile"])(
+  "does not navigate from an obsolete guest handoff on %s",
+  async (entry) => {
+    // Given
+    mockAuth0.hasValidCredentials.mockResolvedValue(true);
+    mockFetch.mockImplementation(async () => json(account));
+    const firstClear = Promise.withResolvers<void>();
+    mockAuth0.clearCredentials
+      .mockReturnValueOnce(firstClear.promise)
+      .mockResolvedValueOnce();
+    const user = userEvent.setup();
+    await renderJourney(
+      <>
+        {entry === "profile" ? (
+          <ProfileScreen admitted proEntry={null} />
+        ) : (
+          <SignInScreen admitted />
+        )}
+        <EndSession />
+      </>,
+    );
+    await user.press(
+      await screen.findByRole("button", {
+        name: "Continuer en tant qu’invité",
+      }),
+    );
+
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Quitter la session" }),
+    );
+    await act(async () => firstClear.resolve());
+
+    // Then
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(
+      screen.queryByText("La déconnexion locale a échoué. Réessayez."),
+    ).not.toBeOnTheScreen();
+  },
+);
+
 it("does not admit login or profile navigation through a controlled F12 refusal", async () => {
   // Given / When
   await renderJourney(<SignInScreen admitted={false} />);

@@ -20,26 +20,18 @@ import { ApplicationVersionsSettingsForm } from "../forms/application-versions-s
 
 const FormScrollView =
   Platform.OS === "ios" ? ScrollView : KeyboardAwareScrollView;
-/** Route-owned unsaved-change prevention receives only the form's coarse editing state. */
-export interface ApplicationVersionsSettingsScreenProps {
-  onDirtyChange?: (dirty: boolean) => void;
-}
 /** Authorized atomic versions editor; production route admission remains with its route owner. */
-export function ApplicationVersionsSettingsScreen(
-  props: ApplicationVersionsSettingsScreenProps,
-) {
+export function ApplicationVersionsSettingsScreen() {
   return Platform.OS === "android" ? (
     <KeyboardProvider>
-      <ApplicationVersionsContent {...props} />
+      <ApplicationVersionsContent />
     </KeyboardProvider>
   ) : (
-    <ApplicationVersionsContent {...props} />
+    <ApplicationVersionsContent />
   );
 }
 /** Loads only with current grants and retains an existing draft read-only when they become unavailable. */
-function ApplicationVersionsContent({
-  onDirtyChange,
-}: ApplicationVersionsSettingsScreenProps) {
+function ApplicationVersionsContent() {
   const { permissions, account, sessionStatus } =
     useAdministrationCapabilities();
   const session = useAccountSession();
@@ -71,7 +63,6 @@ function ApplicationVersionsContent({
         settings={settings}
         editing={editing}
         disabled={!canManage}
-        onDirtyChange={onDirtyChange}
       />
     );
   } else if (!accessError && editing.query.isError) {

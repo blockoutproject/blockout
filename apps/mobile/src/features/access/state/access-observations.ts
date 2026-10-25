@@ -4,41 +4,42 @@ import type {
   PublicMaintenanceResponse,
 } from "../../../../.generated/schemas/index.zod";
 
-/** Highest process observations; only a complete current check supplies ordinary admission. */
-export interface AccessSnapshot {
+/** Process history of restrictions; Query exclusively owns the complete response and request lifecycle. */
+export interface AccessObservationsSnapshot {
   maintenance?: PublicMaintenanceResponse;
   versions?: ApplicationVersionsResponse;
-  complete?: ApplicationAccessResponse;
-  checking: boolean;
+  /** A generic ordinary-request refusal closes admission until a new complete check succeeds. */
+  refused: boolean;
 }
 
-/** Owns process-local revision ordering without persisting or combining partial reads into admission. */
+/** Owns monotone process observations, without a second complete response or request-status store. */
 export function createAccessObservations() {
-  let snapshot: AccessSnapshot = { checking: true };
+  let snapshot: AccessObservationsSnapshot = { refused: false };
   const listeners = new Set<() => void>();
-  /** Publishes one immutable observation to React and asynchronous consumers. */
-  function publish(next: AccessSnapshot) {
+
+  /** Publishes immutable restriction history to React and asynchronous request consumers. */
+  function publish(next: AccessObservationsSnapshot) {
     snapshot = next;
     listeners.forEach((listener) => listener());
   }
+
   return {
     getSnapshot: () => snapshot,
-    /** Subscribes to accepted observations, returning its cleanup. */
+
+    /** Subscribes to accepted restrictions, returning its cleanup. */
     subscribe(listener: () => void) {
       listeners.add(listener);
       return () => {
         listeners.delete(listener);
       };
     },
-    /** Closes admission during the explicit complete verification while retaining known restrictions. */
-    begin() {
-      publish({ ...snapshot, complete: undefined, checking: true });
+
+    /** Records a refusal without guessing a settings revision or erasing known restrictions. */
+    refuse() {
+      publish({ ...snapshot, refused: true });
     },
-    /** A failed check cannot use the previous permissive snapshot as a fallback. */
-    fail() {
-      publish({ ...snapshot, complete: undefined, checking: false });
-    },
-    /** Accepts only a complete snapshot at least as recent as both highest group observations. */
+
+    /** Admits a complete response to Query only when it is at least as recent as both known groups. */
     complete(value: ApplicationAccessResponse): boolean {
       const current =
         value.maintenance.revision >= (snapshot.maintenance?.revision ?? 0) &&
@@ -52,37 +53,24 @@ export function createAccessObservations() {
           value.versions.revision >= (snapshot.versions?.revision ?? 0)
             ? value.versions
             : snapshot.versions,
-        complete: current ? value : undefined,
-        checking: false,
+        refused: current ? false : snapshot.refused,
       });
       return current;
     },
-    /** Advances maintenance from a partial read/write or typed refusal; an old refusal has no effect. */
+
+    /** Advances a partial maintenance observation; an older refusal cannot replace newer evidence. */
     maintenance(value: PublicMaintenanceResponse) {
       if (value.revision < (snapshot.maintenance?.revision ?? 0)) return;
-      const changed =
-        !snapshot.maintenance ||
-        value.revision > snapshot.maintenance.revision ||
-        value.active !== snapshot.maintenance.active;
-      publish({
-        ...snapshot,
-        maintenance: value,
-        complete: changed ? undefined : snapshot.complete,
-      });
+      publish({ ...snapshot, maintenance: value });
     },
-    /** Observes a whole versions group without treating its partial response as complete admission. */
+
+    /** Advances a partial versions observation without establishing complete admission. */
     versions(value: ApplicationVersionsResponse) {
       if (value.revision < (snapshot.versions?.revision ?? 0)) return;
-      const changed =
-        !snapshot.versions || value.revision > snapshot.versions.revision;
-      publish({
-        ...snapshot,
-        versions: value,
-        complete: changed ? undefined : snapshot.complete,
-      });
+      publish({ ...snapshot, versions: value });
     },
   };
 }
 
-/** Process owner shared by the public check, transport observations and route composition. */
+/** Restriction owner shared by complete checking, validated partial results and request refusals. */
 export type AccessObservations = ReturnType<typeof createAccessObservations>;

@@ -100,7 +100,7 @@ export function ProProvider({ children }: PropsWithChildren) {
     <ProSessionContext
       value={{
         state: getProState(account, native.evidence),
-        refreshing: current && native.refreshing,
+        refreshing: current && native.read !== null,
         verificationFailed: current && native.verificationFailed,
         refresh,
         retry,

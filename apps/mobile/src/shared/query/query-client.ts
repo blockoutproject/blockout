@@ -34,22 +34,31 @@ export function getSessionQueryKey(generation: string, queryKey: QueryKey) {
 
 /**
  * Connects the existing session owner to native Query cleanup; returns its unsubscribe function.
- * Public keys are untouched. The owner supplies lifecycle notifications and generation validity.
+ * Public keys are untouched. Private mutation records share the query namespace and cleanup boundary.
+ * The owner supplies lifecycle notifications and generation validity.
  */
 export function bindSessionQueries(
   client: QueryClient,
   subscribe: (listener: () => void) => () => void,
   isCurrent: (generation: string) => boolean,
 ) {
-  /** Cancels in-flight reads and removes cached values belonging to invalidated sessions. */
+  /** Recognizes the same session namespace on private query and mutation keys. */
+  function obsolete(key: readonly unknown[] | undefined) {
+    return (
+      key?.[0] === "session" && typeof key[1] === "string" && !isCurrent(key[1])
+    );
+  }
+
+  /** Removes private reads and command records; mutation callbacks still guard their captured generation. */
   function removeObsoleteQueries() {
     const filters: QueryFilters = {
-      predicate: ({ queryKey }) =>
-        queryKey[0] === "session" &&
-        typeof queryKey[1] === "string" &&
-        !isCurrent(queryKey[1]),
+      predicate: ({ queryKey }) => obsolete(queryKey),
     };
     client.removeQueries(filters);
+    const mutations = client.getMutationCache();
+    mutations.getAll().forEach((mutation) => {
+      if (obsolete(mutation.options.mutationKey)) mutations.remove(mutation);
+    });
   }
 
   removeObsoleteQueries();

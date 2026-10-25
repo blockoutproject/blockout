@@ -591,6 +591,12 @@ it("retains a classification draft and uncertainty through actual protected-rout
     screen.getByRole("button", { name: "Relire la classification" }),
   ).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  await act(async () => router.back());
+  expect(Alert.alert).toHaveBeenLastCalledWith(
+    "Abandonner les modifications ?",
+    "Votre brouillon n’a pas été enregistré.",
+    expect.any(Array),
+  );
 });
 
 it("admits the divisions administration destination for the lifecycle grant alone", async () => {
@@ -830,4 +836,54 @@ it("opens division creation from the catalogue for a lifecycle-only operator", a
     await screen.findByRole("header", { name: "Créer une division" }),
   ).toBeOnTheScreen();
   expect(await screen.findByLabelText("Nom de la division")).toBeOnTheScreen();
+});
+
+it("discards a held classification confirmation when its protected route is removed", async () => {
+  // Given
+  permissions = { manageSportingClassification: true };
+  stored.setting = classification;
+  const user = userEvent.setup();
+  await openRoutes();
+  const permissionRead = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    String(url).endsWith("/accounts/me")
+      ? permissionRead.promise
+      : respond(url, options),
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Relire les permissions" }),
+  );
+  await user.press(screen.getByText("Modifier la classification"));
+  jest.spyOn(Alert, "alert");
+  await user.press(await screen.findByRole("button", { name: "Enregistrer" }));
+  const confirmation = jest
+    .mocked(Alert.alert)
+    .mock.lastCall?.[2]?.find((action) => action.text === "Confirmer")?.onPress;
+  if (!confirmation)
+    throw new Error("Missing native classification confirmation");
+
+  // When
+  await act(async () =>
+    permissionRead.resolve(
+      json(
+        {
+          type: "urn:blockout:problem:unavailable",
+          title: "Unavailable",
+          status: 503,
+        },
+        503,
+      ),
+    ),
+  );
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("button", { name: "Enregistrer" }),
+    ).not.toBeOnTheScreen(),
+  );
+  await act(async () => confirmation());
+
+  // Then
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+  ).toBe(false);
 });

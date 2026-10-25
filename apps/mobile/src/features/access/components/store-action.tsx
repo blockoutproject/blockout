@@ -11,28 +11,31 @@ export interface StoreActionProps {
 
 /** Opens the configured store through native Linking; failure retains an explicit new attempt. */
 export function StoreAction({ url }: StoreActionProps) {
-  const [opening, setOpening] = useState(false);
-  const [failed, setFailed] = useState(false);
+  return <StoreHandoff key={url} url={url} />;
+}
+
+/** Destination-scoped handoff lifecycle; replacing the configured URL discards its prior feedback. */
+function StoreHandoff({ url }: StoreActionProps) {
+  const [phase, setPhase] = useState<"idle" | "pending" | "failed">("idle");
   /** Performs one native handoff and leaves all access decisions with the complete-check owner. */
   async function open() {
-    setOpening(true);
+    if (phase === "pending") return;
+    setPhase("pending");
     try {
       await Linking.openURL(url);
-      setFailed(false);
+      setPhase("idle");
     } catch {
-      setFailed(true);
-    } finally {
-      setOpening(false);
+      setPhase("failed");
     }
   }
   return (
     <>
-      {failed && <RequestError />}
+      {phase === "failed" && <RequestError />}
       <Button
         fullWidth
         label={"Mettre à jour l’application"}
         onPress={() => void open()}
-        loading={opening}
+        loading={phase === "pending"}
         trailingIcon={ArrowUpRight}
       />
     </>

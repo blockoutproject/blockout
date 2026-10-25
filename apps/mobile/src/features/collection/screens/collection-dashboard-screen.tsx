@@ -166,6 +166,7 @@ function SeasonControlScope({
       family={family}
       season={season.data}
       seasonUnavailable={season.isError || season.isFetching}
+      seasonFetching={season.isFetching}
       rereadSeason={async () => {
         const read = await season.refetch();
         return !read.isError && !!read.data;
@@ -179,11 +180,13 @@ function ControlScope({
   family,
   season,
   seasonUnavailable = false,
+  seasonFetching = false,
   rereadSeason,
 }: {
   family: CollectionFamilyEnum;
   season?: CollectionSeasonResponse;
   seasonUnavailable?: boolean;
+  seasonFetching?: boolean;
   rereadSeason?: () => Promise<boolean>;
 }) {
   const { authority, query } = useCollectionControls(season?.id);
@@ -215,6 +218,7 @@ function ControlScope({
       family={family}
       season={season}
       seasonUnavailable={seasonUnavailable}
+      seasonFetching={seasonFetching}
       rereadSeason={rereadSeason}
     />
   );
@@ -226,12 +230,14 @@ function ControlDashboard({
   family,
   season,
   seasonUnavailable,
+  seasonFetching,
   rereadSeason,
 }: {
   controlId: string;
   family: CollectionFamilyEnum;
   season?: CollectionSeasonResponse;
   seasonUnavailable: boolean;
+  seasonFetching: boolean;
   rereadSeason?: () => Promise<boolean>;
 }) {
   const editing = useCollectionControl(controlId, season?.id);
@@ -239,15 +245,13 @@ function ControlDashboard({
   const { colors } = useTheme();
   const router = useRouter();
   const [diagnostics, setDiagnostics] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+  const refreshing = query.isFetching || results.isFetching || seasonFetching;
   const current = query.data;
   const matches = current?.family === family && current.seasonId === season?.id;
   const rows = results.data?.pages.flatMap((page) => page.items) ?? [];
   /** Refresh reads each projection only; command reconciliation is released by its separate explicit reread action. */
   async function refresh() {
-    setRefreshing(true);
     await Promise.all([query.refetch(), results.refetch(), rereadSeason?.()]);
-    setRefreshing(false);
   }
   const header = (
     <View style={styles.section}>
@@ -269,6 +273,7 @@ function ControlDashboard({
               editing={editing}
               season={season}
               rereadSeason={rereadSeason}
+              seasonFetching={seasonFetching}
               stateUnavailable={seasonUnavailable}
             />
           ) : query.isError ? (

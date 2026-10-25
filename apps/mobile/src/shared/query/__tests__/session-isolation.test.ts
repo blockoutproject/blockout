@@ -188,3 +188,63 @@ it.each([false, true])(
     expect(mockFetch.mock.calls[0][1]).not.toHaveProperty("session");
   },
 );
+
+it.each(["B", "A"] as const)(
+  "removes settled and pending private mutation records across A → guest → %s",
+  async (nextAccount) => {
+    // Given: Query owns real mutation records; the original request completion is controlled.
+    const session = createSessionGeneration();
+    session.setAccount(session.getSnapshot().generation, "A");
+    const generation = session.getSnapshot().generation;
+    const unsubscribe = bindSessionQueries(
+      client,
+      session.subscribe,
+      session.isCurrent,
+    );
+    const cache = client.getMutationCache();
+    const settledKey = getSessionQueryKey(generation, ["saved-profile"]);
+    const pendingKey = getSessionQueryKey(generation, ["pending-follow"]);
+    const settled = cache.build(client, {
+      mutationKey: settledKey,
+      mutationFn: async () => account,
+    });
+    await settled.execute(undefined);
+    const response = Promise.withResolvers<{ following: boolean }>();
+    const pending = cache.build(client, {
+      mutationKey: pendingKey,
+      mutationFn: () => response.promise,
+    });
+    const completion = pending.execute(undefined);
+    const publicMutation = cache.build(client, {
+      mutationKey: ["public-operation"],
+      mutationFn: async () => "public",
+    });
+    await publicMutation.execute(undefined);
+
+    // When
+    session.invalidate();
+    session.setAccount(session.getSnapshot().generation, nextAccount);
+    const currentKey = getSessionQueryKey(session.getSnapshot().generation, [
+      "current-operation",
+    ]);
+    const current = cache.build(client, {
+      mutationKey: currentKey,
+      mutationFn: async () => "current",
+    });
+    await current.execute(undefined);
+    response.resolve({ following: true });
+    await completion;
+
+    // Then: a late native completion does not recreate removed cache entries.
+    expect(cache.findAll({ mutationKey: settledKey, exact: true })).toEqual([]);
+    expect(cache.findAll({ mutationKey: pendingKey, exact: true })).toEqual([]);
+    expect(
+      cache.find({ mutationKey: currentKey, exact: true })?.state.data,
+    ).toBe("current");
+    expect(
+      cache.find({ mutationKey: ["public-operation"], exact: true })?.state
+        .data,
+    ).toBe("public");
+    unsubscribe();
+  },
+);

@@ -3,7 +3,7 @@ import { hashKey, useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type {
   SportingIdentityResponse,
@@ -79,7 +79,11 @@ export function SportingLogo({
         ]}
       >
         {data ? (
-          <LogoImage key={hashKey(queryKey)} blob={data} size={imageSize} />
+          <LogoImage
+            key={`${hashKey(queryKey)}:${logo.dataUpdatedAt}`}
+            uri={data}
+            size={imageSize}
+          />
         ) : (
           <Text
             accessible={false}
@@ -111,38 +115,25 @@ export function SportingArtwork({
 }: Pick<SportingLogoProps, "identity" | "kind">) {
   const { query: logo, queryKey } = useSportingLogo(identity, kind);
   return identity.logoUrl && logo.data ? (
-    <LogoImage key={hashKey(queryKey)} blob={logo.data} blurred />
+    <LogoImage
+      key={`${hashKey(queryKey)}:${logo.dataUpdatedAt}`}
+      uri={logo.data}
+      blurred
+    />
   ) : null;
 }
 
-/** Converts a received Blob, clears a prior failure on success and aborts the local read on unmount. */
+/** Query owns decoded data; a successful read starts a new native rendering attempt, including identical bytes. */
 function LogoImage({
-  blob,
+  uri,
   size,
   blurred = false,
 }: {
-  blob: Blob;
+  uri: string;
   size?: number;
   blurred?: boolean;
 }) {
-  const [uri, setUri] = useState<string>();
   const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setUri(reader.result);
-        setFailed(false);
-      }
-    };
-    reader.onerror = () => setFailed(true);
-    reader.readAsDataURL(blob);
-    return () => {
-      reader.onload = null;
-      reader.onerror = null;
-      if (reader.readyState === FileReader.LOADING) reader.abort();
-    };
-  }, [blob]);
   return failed && !blurred ? (
     <ResourceText>Logo indisponible</ResourceText>
   ) : !failed && uri ? (

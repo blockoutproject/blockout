@@ -20,24 +20,18 @@ import { MaintenanceSettingsForm } from "../forms/maintenance-settings-form";
 
 const FormScrollView =
   Platform.OS === "ios" ? ScrollView : KeyboardAwareScrollView;
-/** Route-owned unsaved-change prevention receives only the form's coarse editing state. */
-export interface MaintenanceSettingsScreenProps {
-  onDirtyChange?: (dirty: boolean) => void;
-}
 /** Isolated authorized maintenance component; production route admission remains with its route owner. */
-export function MaintenanceSettingsScreen(
-  props: MaintenanceSettingsScreenProps,
-) {
+export function MaintenanceSettingsScreen() {
   return Platform.OS === "android" ? (
     <KeyboardProvider>
-      <MaintenanceContent {...props} />
+      <MaintenanceContent />
     </KeyboardProvider>
   ) : (
-    <MaintenanceContent {...props} />
+    <MaintenanceContent />
   );
 }
 /** Loads only with current grants and retains an existing draft read-only when they become unavailable. */
-function MaintenanceContent({ onDirtyChange }: MaintenanceSettingsScreenProps) {
+function MaintenanceContent() {
   const { permissions, account, sessionStatus } =
     useAdministrationCapabilities();
   const session = useAccountSession();
@@ -69,7 +63,6 @@ function MaintenanceContent({ onDirtyChange }: MaintenanceSettingsScreenProps) {
         settings={settings}
         editing={editing}
         disabled={!canManage}
-        onDirtyChange={onDirtyChange}
       />
     );
   } else if (!accessError && editing.query.isError) {

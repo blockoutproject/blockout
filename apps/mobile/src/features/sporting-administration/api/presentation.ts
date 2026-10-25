@@ -309,7 +309,7 @@ export function usePresentationLogo(
               ? await getDivisionLogo(target.id, options)
               : undefined;
       if (!blob) throw new ApiError("configuration");
-      const uri = await binaryImagePreview(blob);
+      const uri = await binaryImagePreview(blob, signal);
       if (!session.isCurrent(session.generation) || signal.aborted)
         throw new ApiError("cancelled");
       return uri;

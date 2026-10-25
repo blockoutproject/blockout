@@ -1,7 +1,16 @@
+import { useEffect, useRef } from "react";
 import { usePreventRemove } from "expo-router";
 import { Alert } from "react-native";
-/** Uses the installed router's removal guard; only explicit discard releases the original-session draft. */
-export function useEditorDiscard(dirty: boolean, discard: () => void) {
+
+/** Confirms navigation against actual form dirtiness; the owner resets/releases its draft, and unmount invalidates the native confirmation. */
+export function useDiscardChanges(dirty: boolean, discard: () => void) {
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   usePreventRemove(dirty, ({ repeat }) =>
     Alert.alert(
       "Abandonner les modifications ?",
@@ -12,6 +21,7 @@ export function useEditorDiscard(dirty: boolean, discard: () => void) {
           text: "Abandonner",
           style: "destructive",
           onPress: () => {
+            if (!mounted.current) return;
             discard();
             repeat();
           },

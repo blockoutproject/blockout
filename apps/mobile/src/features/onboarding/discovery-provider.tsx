@@ -14,65 +14,70 @@ interface Discovery {
   saving: boolean;
   error: "read" | "write" | undefined;
   retryRead(): void;
-  finish(): Promise<void>;
+  finish(): void;
 }
 
 const DiscoveryContext = createContext<Discovery | null>(null);
 
+/** Mutually exclusive persistence phases; completion is acknowledged storage, never optimistic UI. */
+type DiscoveryPhase =
+  | "loading"
+  | "read-error"
+  | "incomplete"
+  | "saving"
+  | "write-error"
+  | "complete";
+
 /** Reads once per mounted installation tree and admits ordinary routes only after persisted completion. */
 export function DiscoveryProvider({ children }: PropsWithChildren) {
-  const [complete, setComplete] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<Discovery["error"]>();
-  const [attempt, setAttempt] = useState(0);
+  const [phase, setPhase] = useState<DiscoveryPhase>("loading");
 
   useEffect(() => {
+    if (phase !== "loading" && phase !== "saving") return;
     let mounted = true;
-    readDiscoveryCompletion().then(
+    const operation =
+      phase === "loading"
+        ? readDiscoveryCompletion()
+        : completeDiscovery().then(() => true);
+    void operation.then(
       (value) => {
-        if (mounted) {
-          setComplete(value);
-          setLoading(false);
-        }
+        if (mounted) setPhase(value ? "complete" : "incomplete");
       },
       () => {
-        if (mounted) {
-          setError("read");
-          setLoading(false);
-        }
+        if (mounted)
+          setPhase(phase === "loading" ? "read-error" : "write-error");
       },
     );
     return () => {
       mounted = false;
     };
-  }, [attempt]);
+  }, [phase]);
 
   /** Retries only the rejected read after an explicit user action. */
   function retryRead() {
-    setError(undefined);
-    setLoading(true);
-    setAttempt((value) => value + 1);
+    if (phase === "read-error") setPhase("loading");
   }
 
   /** Leaves discovery incomplete on persistence rejection; the same explicit action may retry. */
-  async function finish() {
-    if (loading || saving || error === "read") return;
-    setSaving(true);
-    setError(undefined);
-    try {
-      await completeDiscovery();
-      setComplete(true);
-    } catch {
-      setError("write");
-    } finally {
-      setSaving(false);
-    }
+  function finish() {
+    if (phase === "incomplete" || phase === "write-error") setPhase("saving");
   }
 
   return (
     <DiscoveryContext
-      value={{ complete, loading, saving, error, retryRead, finish }}
+      value={{
+        complete: phase === "complete",
+        loading: phase === "loading",
+        saving: phase === "saving",
+        error:
+          phase === "read-error"
+            ? "read"
+            : phase === "write-error"
+              ? "write"
+              : undefined,
+        retryRead,
+        finish,
+      }}
     >
       {children}
     </DiscoveryContext>

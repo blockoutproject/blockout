@@ -81,7 +81,10 @@ it.each(["ios", "android"] as const)(
     observations.complete(full);
 
     // When
-    const presentation = accessPresentation(observations.getSnapshot());
+    const presentation = accessPresentation({
+      ...observations.getSnapshot(),
+      complete: full,
+    });
 
     // Then
     expect(presentation.versions?.storeUrl).toBe(

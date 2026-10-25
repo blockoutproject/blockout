@@ -17,7 +17,7 @@ import {
   isUncertainMutationFailure,
 } from "../../../shared/api/api-fetch";
 import {
-  followStateKeys,
+  followStateKey,
   followMutationKey,
   followOptionsKey,
   followerCountKey,
@@ -63,17 +63,15 @@ export function useFollowMutation(
   const mutationKey = owner
     ? followMutationKey(owner, target)
     : ["following-unavailable"];
-  const stateKeys = owner ? followStateKeys(owner, target) : [];
+  const stateKey = owner
+    ? followStateKey(owner, target)
+    : ["following-unavailable"];
   const mutation = useMutation({
     mutationKey,
     retry: false,
     networkMode: "always",
     onMutate: async () => {
-      await Promise.all(
-        stateKeys.map((queryKey) =>
-          client.cancelQueries({ queryKey, exact: true }),
-        ),
-      );
+      await client.cancelQueries({ queryKey: stateKey, exact: true });
     },
     mutationFn: async (following: boolean): Promise<FollowResult> => {
       if (!owner || !owner.isCurrent(owner.generation))
@@ -113,27 +111,22 @@ export function useFollowMutation(
     },
     onSuccess: async (result) => {
       if (!owner?.isCurrent(owner.generation)) return;
-      await Promise.all(
-        stateKeys.map((queryKey) =>
-          client.cancelQueries({ queryKey, exact: true }),
-        ),
-      );
+      await client.cancelQueries({ queryKey: stateKey, exact: true });
       if (!owner.isCurrent(owner.generation)) return;
-      const restriction = stateKeys
-        .map((queryKey) => client.getQueryState(queryKey))
-        .find((state) => isFollowRestriction(state?.error));
-      stateKeys.forEach((queryKey) => {
-        if (restriction && !result.observed) {
-          // The write may have been recorded before a newer visibility refusal arrived.
-          client.getQueryCache().find({ queryKey, exact: true })?.setState({
+      const current = client.getQueryState(stateKey);
+      if (isFollowRestriction(current?.error) && !result.observed) {
+        // The write may have been recorded before a newer visibility refusal arrived.
+        client
+          .getQueryCache()
+          .find({ queryKey: stateKey, exact: true })
+          ?.setState({
             data: result.state,
             dataUpdatedAt: Date.now(),
             status: "error",
-            error: restriction.error,
-            errorUpdatedAt: restriction.errorUpdatedAt,
+            error: current.error,
+            errorUpdatedAt: current.errorUpdatedAt,
           });
-        } else client.setQueryData(queryKey, result.state);
-      });
+      } else client.setQueryData(stateKey, result.state);
       // Consumers own visible-tab enablement and must not supply former initial/placeholder data.
       void Promise.allSettled([
         client.resetQueries({
@@ -169,20 +162,17 @@ export function useFollowMutation(
     onError: async (error) => {
       if (!owner?.isCurrent(owner.generation) || !isFollowRestriction(error))
         return;
-      await Promise.all(
-        stateKeys.map((queryKey) =>
-          client.cancelQueries({ queryKey, exact: true }),
-        ),
-      );
+      await client.cancelQueries({ queryKey: stateKey, exact: true });
       if (!owner.isCurrent(owner.generation)) return;
       // Query owns current availability independently of temporary mutation feedback and its collection.
-      stateKeys.forEach((queryKey) =>
-        client.getQueryCache().find({ queryKey, exact: true })?.setState({
+      client
+        .getQueryCache()
+        .find({ queryKey: stateKey, exact: true })
+        ?.setState({
           status: "error",
           error,
           errorUpdatedAt: Date.now(),
-        }),
-      );
+        });
     },
   });
   const states = useMutationState({

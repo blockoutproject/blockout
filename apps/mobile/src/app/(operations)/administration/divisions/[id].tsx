@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from "expo-router";
 import { z } from "zod";
 import { useOperationalAdmission } from "../../../../features/access/queries/use-access-admission";
-import { PresentationEditorScreen } from "../../../../features/sporting-administration/screens/presentation-editor-screen";
+import { PresentationScreen } from "../../../../features/sporting-administration/screens/presentation-screen";
 import { RequestError } from "../../../../shared/components/request-feedback";
 /** The division editor admits presentation and lifecycle operators, keeping their commands independent. */
 export default function DivisionRoute() {
@@ -14,7 +14,7 @@ export default function DivisionRoute() {
       <RequestError message="L’accès à l’application doit être vérifié avant de continuer." />
     );
   return params.success ? (
-    <PresentationEditorScreen
+    <PresentationScreen
       key={params.data.id}
       target={{ kind: "division", id: params.data.id }}
     />

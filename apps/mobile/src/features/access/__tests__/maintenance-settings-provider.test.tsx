@@ -40,6 +40,7 @@ jest.mock("react-native-auth0", () => {
 
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
+  usePreventRemove: jest.fn(),
   useRouter: () => ({ back: jest.fn() }),
 }));
 // Node Fetch replaces native networking only. Every request reaches the actual Spring provider.

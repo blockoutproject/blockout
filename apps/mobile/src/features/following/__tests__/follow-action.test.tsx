@@ -1113,3 +1113,50 @@ it.each(["guest", "other", "same"] as const)(
     unsubscribe();
   },
 );
+
+it("suspends the canonical confirmed relation when its maintenance bypass is cleared", async () => {
+  // Given: the confirmed relationship is shared, while admission belongs to the current intent.
+  mockFetch.mockImplementation((url, request) => {
+    if (url.endsWith("/application-access"))
+      return Promise.resolve(
+        Response.json({
+          ...applicationAccessResponse(),
+          maintenance: {
+            revision: 1,
+            active: true,
+            message: null,
+            imageUrl: null,
+          },
+        }),
+      );
+    if (url.endsWith("/accounts/me"))
+      return Promise.resolve(
+        Response.json({
+          ...profile,
+          permissions: { ...profile.permissions, bypassMaintenance: true },
+        }),
+      );
+    if (url.includes("team-follows"))
+      return Promise.resolve(Response.json({ following: true }));
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  await mount(<FollowButton target={team} season={season} />);
+  await waitFor(() => expect(session.accountId).toBe(accountId));
+  await act(async () => {
+    access.bypass.request(session.getSnapshot(), true);
+  });
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
+  );
+
+  // When
+  await act(async () => access.bypass.clear());
+  await user.press(screen.getByRole("button", { name: "Suivi" }));
+
+  // Then: retained display data cannot authorize a new write.
+  expect(screen.getByRole("button", { name: "Suivi" })).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toEqual([]);
+});

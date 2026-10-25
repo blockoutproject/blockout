@@ -1,3 +1,4 @@
+import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
 import type { ImagePickerAsset } from "expo-image-picker";
 import { File } from "expo-file-system";
 import {
@@ -7,22 +8,17 @@ import {
 } from "expo-image-manipulator";
 import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
 
-/** Prepared PNG and local preview; the library original is never changed. */
-export interface PreparedProfilePhoto {
-  uri: string;
-  file: File;
-}
-
 /**
  * Adapts one ImageField native square crop to bounded PNG without modifying the library original.
  * A large source is allowed: the byte limit applies to the single prepared output. ImageManipulator
  * owns aspect-preserving resize and PNG encoding; the server validates actual content. Native failures
- * reject without returning a draft value; obsolete generations reject as cancellations.
+ * delete any prepared output before rejecting; obsolete generations reject as cancellations.
+ * The returned File is owned by the draft/upload consumer and must be deleted when both release it.
  */
 export async function prepareProfilePhoto(
   asset: ImagePickerAsset,
   session: NonNullable<ApiFetchOptions["session"]>,
-): Promise<PreparedProfilePhoto> {
+): Promise<File> {
   if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
   if (
     !Number.isSafeInteger(asset.width) ||
@@ -33,15 +29,19 @@ export async function prepareProfilePhoto(
   const dimension = Math.min(asset.width, 1024);
   const context = ImageManipulator.manipulate(asset.uri);
   let rendered: ImageRef | undefined;
+  let file: File | undefined;
   try {
     context.resize({ width: dimension });
     rendered = await context.renderAsync();
     const output = await rendered.saveAsync({ format: SaveFormat.PNG });
+    file = new File(output.uri);
     if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
-    const file = new File(output.uri);
     if (file.size < 1 || file.size > 5 * 1024 * 1024)
       throw new Error("La photo préparée doit être un PNG de 5 Mio maximum.");
-    return { uri: output.uri, file };
+    return file;
+  } catch (error) {
+    deleteOwnedImage(file);
+    throw error;
   } finally {
     rendered?.release();
     context.release();

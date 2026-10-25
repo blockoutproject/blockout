@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Alert, Pressable, StyleSheet, Text } from "react-native";
 import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "../../../shared/theme/tokens";
@@ -22,12 +23,19 @@ export function DivisionActivityAction({
   onFailure,
 }: DivisionActivityActionProps) {
   const { colors } = useTheme();
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   if (editing.authority.permissions?.manageDivisionLifecycle !== true)
     return null;
   const busy = disabled || !editing.authority.enabled || editing.saving;
   /** Rechecks current authority through the generated mutation after the native confirmation. */
   async function save() {
-    if (busy) return;
+    if (!mounted.current || busy) return;
     try {
       onAccepted(
         await editing.save.mutateAsync({

@@ -264,7 +264,7 @@ it("preserves a dirty draft when departure is cancelled, and leaves only after e
   );
 });
 
-it("retains the same-session draft when a pending permission refresh removes the operational route", async () => {
+it("retains the draft through protected-route removal and ignores an obsolete discard confirmation", async () => {
   // Given
   const serve = responses({ manageApplicationVersions: true });
   await openRoute("/access");
@@ -283,6 +283,13 @@ it("retains the same-session draft when a pending permission refresh removes the
     await screen.findByLabelText("Message commun"),
     "Mon brouillon",
   );
+  await user.press(screen.getByRole("button", { name: "Retour" }));
+  const discard = jest
+    .mocked(Alert.alert)
+    .mock.lastCall?.[2]?.find(
+      (action) => action.text === "Abandonner",
+    )?.onPress;
+  if (!discard) throw new Error("Missing native discard confirmation");
 
   // When
   await act(async () =>
@@ -312,6 +319,8 @@ it("retains the same-session draft when a pending permission refresh removes the
     await screen.findByRole("link", { name: "Accès administrateur" }),
   );
   await user.press(await screen.findByText("Versions minimales"));
+  await screen.findByLabelText("Message commun");
+  await act(async () => discard());
 
   // Then
   expect(await screen.findByLabelText("Message commun")).toHaveDisplayValue(

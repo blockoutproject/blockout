@@ -37,6 +37,7 @@ jest.mock("react-native-auth0", () => {
 
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
+  usePreventRemove: jest.fn(),
   useRouter: () => ({ back: jest.fn() }),
 }));
 jest.mock("expo/fetch", () => ({
@@ -383,6 +384,43 @@ it("keeps text and actions usable when preview display fails", async () => {
     screen.getByRole("button", { name: "Enregistrer le contenu" }),
   ).toBeEnabled();
 });
+it("starts a fresh draft image preview when a previously failed URL returns", async () => {
+  // Given
+  const user = userEvent.setup();
+  const originalUrl = "https://assets.example.invalid/original.png";
+  stored = { ...initial, imageUrl: originalUrl };
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await fireEvent(
+    screen.getByLabelText("Aperçu de l’image de maintenance"),
+    "error",
+    {
+      nativeEvent: { error: "Unavailable" },
+    },
+  );
+  expect(
+    await screen.findByText("L’image ne peut pas être affichée."),
+  ).toBeOnTheScreen();
+
+  // When
+  await user.clear(screen.getByLabelText("URL de l’image"));
+  await user.type(
+    screen.getByLabelText("URL de l’image"),
+    "https://assets.example.invalid/replacement.png",
+  );
+  await user.clear(screen.getByLabelText("URL de l’image"));
+  await user.type(screen.getByLabelText("URL de l’image"), originalUrl);
+
+  // Then
+  expect(
+    screen.getByLabelText("Aperçu de l’image de maintenance"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByText("L’image ne peut pas être affichée."),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByDisplayValue(initial.message)).toBeOnTheScreen();
+});
+
 it.each([400, 403, 422])(
   "retains the draft after a confirmed %i refusal",
   async (status) => {

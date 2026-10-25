@@ -1,6 +1,13 @@
 import { Platform } from "react-native";
 import { installedVersionStatus } from "../native/installed-version";
-import type { AccessSnapshot } from "./access-observations";
+import type { ApplicationAccessResponse } from "../../../../.generated/schemas/index.zod";
+import type { AccessObservationsSnapshot } from "./access-observations";
+
+/** Render-time composition only; neither complete response nor checking is stored outside Query. */
+export interface AccessSnapshot extends AccessObservationsSnapshot {
+  complete?: ApplicationAccessResponse;
+  checking?: boolean;
+}
 
 /** Chooses the approved maintenance-first presentation without allowing any minimum-version exception. */
 export function accessPresentation(

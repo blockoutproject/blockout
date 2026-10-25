@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth0 } from "react-native-auth0";
 import {
   changeMaintenanceSettings,
+  getChangeMaintenanceSettingsMutationKey,
+  getSetMaintenanceActivationMutationKey,
   getMaintenanceSettings,
   setMaintenanceActivation,
   getGetMaintenanceSettingsQueryKey,
@@ -88,11 +90,19 @@ export function useMaintenanceSettings(enabled: boolean) {
       ),
   });
   const content = useMutation({
+    mutationKey: getSessionQueryKey(
+      session.generation,
+      getChangeMaintenanceSettingsMutationKey(),
+    ),
     gcTime: 0,
     mutationFn: async (body: ChangeMaintenanceRequest) =>
       accept(await changeMaintenanceSettings(body, await request())),
   });
   const activation = useMutation({
+    mutationKey: getSessionQueryKey(
+      session.generation,
+      getSetMaintenanceActivationMutationKey(),
+    ),
     gcTime: 0,
     mutationFn: async (body: SetMaintenanceActivationRequest) =>
       accept(await setMaintenanceActivation(body, await request())),

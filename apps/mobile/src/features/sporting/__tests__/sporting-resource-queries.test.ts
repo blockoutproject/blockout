@@ -5,6 +5,10 @@ import { createQueryClient } from "../../../shared/query/query-client";
 import { sportingId, matchDetail } from "../test-support/consultation-data";
 
 const mockFetch = jest.fn();
+// Native decoding is controlled; generated HTTP requests, cancellation and Query caching remain real.
+jest.mock("../../../shared/api/binary-image-preview", () => ({
+  binaryImagePreview: jest.fn(async () => "data:image/png;base64,c3ludGhldGlj"),
+}));
 jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),
 }));
@@ -46,7 +50,7 @@ it("keeps automatic and effective logo selections in distinct generated query en
     );
 
     // Then
-    expect(await result.text()).toBe("synthetic-image");
+    expect(result).toBe("data:image/png;base64,c3ludGhldGlj");
     expect(mockFetch.mock.calls[0][0]).toContain("selection=automatic");
     expect(queries.teamLogo(sportingId, "automatic").queryKey).not.toEqual(
       queries.teamLogo(sportingId, "effective").queryKey,

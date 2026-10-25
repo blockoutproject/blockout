@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { Platform, ScrollView, StyleSheet, Text } from "react-native";
 import {
   KeyboardAwareScrollView,
@@ -22,6 +22,7 @@ import {
 import { ProfileForm } from "../components/profile-form";
 import { PublicAccountLinks } from "../components/public-account-links";
 import { useAccountSession } from "../session/account-session-provider";
+import { useGuestNavigation } from "../hooks/use-guest-navigation";
 
 /** Current ordinary admission; identification reads do not grant profile navigation. */
 export interface ProfileScreenProps {
@@ -51,21 +52,10 @@ function ProfileContent({ admitted, proEntry }: ProfileScreenProps) {
   const account = useCurrentAccount();
   const router = useRouter();
   const { colors } = useTheme();
-  const [guestError, setGuestError] = useState(false);
+  const guest = useGuestNavigation();
   const missing =
     account.error instanceof ApiError && account.error.status === 404;
 
-  /** Invalidates private state and clears native credentials before announcing guest navigation. */
-  async function continueAsGuest() {
-    if (session.status === "signing-out") return;
-    setGuestError(false);
-    try {
-      await session.clearCredentials();
-      router.replace("/");
-    } catch {
-      setGuestError(true);
-    }
-  }
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <ProfileScrollView
@@ -126,13 +116,13 @@ function ProfileContent({ admitted, proEntry }: ProfileScreenProps) {
               </>
             )}
             <AdministrationEntry />
-            {guestError && (
+            {guest.failed && (
               <RequestError message="La déconnexion locale a échoué. Réessayez." />
             )}
             <Button
               label="Continuer en tant qu’invité"
-              onPress={() => void continueAsGuest()}
-              loading={session.status === "signing-out"}
+              onPress={() => void guest.continueAsGuest()}
+              loading={guest.pending}
             />
             {proEntry}
             <PublicAccountLinks />

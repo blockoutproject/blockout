@@ -9,6 +9,7 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import * as ImagePicker from "expo-image-picker";
+import { File } from "expo-file-system";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
@@ -50,7 +51,16 @@ jest.mock("expo-image-manipulator", () => ({
   ImageManipulator: { manipulate: () => mockContext },
   SaveFormat: { PNG: "png" },
 }));
-jest.mock("expo-file-system", () => ({ File: jest.fn(() => mockFile) }));
+jest.mock("expo-file-system", () => ({
+  File: jest.fn((uri: string) =>
+    uri.startsWith("file:///cache/ImagePicker/") ? mockPickedFile : mockFile,
+  ),
+  Paths: {
+    cache: { uri: "file:///cache/" },
+    normalize: jest.requireActual("expo-file-system").Paths.normalize,
+  },
+}));
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
 const mockContext = {
   resize: jest.fn(),
@@ -58,9 +68,13 @@ const mockContext = {
   release: jest.fn(),
 };
 const mockImage = { saveAsync: jest.fn(), release: jest.fn() };
+const mockPickedFile = { exists: true, delete: jest.fn() };
 const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
 const mockFile = Object.assign(new Blob([png], { type: "image/png" }), {
   bytes: async () => png,
+  uri: "file:///prepared.png",
+  exists: true,
+  delete: jest.fn(),
 });
 const mockFetch = jest.fn<
   Promise<Response>,
@@ -87,6 +101,17 @@ const account = {
 const previousEnvironment = { ...process.env };
 
 beforeEach(() => {
+  mockFile.delete.mockReset();
+  mockPickedFile.delete.mockReset();
+  jest
+    .mocked(File)
+    .mockReset()
+    .mockImplementation(
+      (...parts) =>
+        (String(parts[0]).startsWith("file:///cache/ImagePicker/")
+          ? mockPickedFile
+          : mockFile) as unknown as File,
+    );
   client = createQueryClient();
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
@@ -312,7 +337,9 @@ it("submits prepared replacement then explicit removal without a username edit",
   const user = await renderProfile();
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
-    assets: [{ uri: "file:///source.heic", width: 64, height: 64 }],
+    assets: [
+      { uri: "file:///cache/ImagePicker/source.heic", width: 64, height: 64 },
+    ],
   });
   await user.press(
     screen.getByRole("button", { name: "Choisir une photo de profil" }),
@@ -350,6 +377,7 @@ it("submits prepared replacement then explicit removal without a username edit",
   const remove = [...bodies[1].entries()];
   expect(remove).toHaveLength(1);
   expect(await (remove[0][1] as Blob).text()).toBe('{"photoAction":"remove"}');
+  expect(mockFile.delete).toHaveBeenCalledTimes(2);
 });
 
 it.each([
@@ -369,7 +397,9 @@ it.each([
     await user.type(screen.getByLabelText("Pseudo"), username);
     jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
       canceled: false,
-      assets: [{ uri: "file:///source.heic", width: 64, height: 64 }],
+      assets: [
+        { uri: "file:///cache/ImagePicker/source.heic", width: 64, height: 64 },
+      ],
     });
     await user.press(
       screen.getByRole("button", { name: "Choisir une photo de profil" }),
@@ -396,7 +426,9 @@ it("retains the previous prepared choice and username when another preparation f
   const user = await renderProfile();
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
-    assets: [{ uri: "file:///source.heic", width: 64, height: 64 }],
+    assets: [
+      { uri: "file:///cache/ImagePicker/source.heic", width: 64, height: 64 },
+    ],
   });
   await user.press(
     screen.getByRole("button", { name: "Choisir une photo de profil" }),
@@ -417,6 +449,7 @@ it("retains the previous prepared choice and username when another preparation f
     screen.getByRole("button", { name: "Aperçu : Photo de profil" }),
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Original")).toBeOnTheScreen();
+  expect(mockFile.delete).not.toHaveBeenCalled();
 });
 
 it.each(["preparation", "save"])(
@@ -430,7 +463,13 @@ it.each(["preparation", "save"])(
     if (operation === "preparation") {
       jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
         canceled: false,
-        assets: [{ uri: "file:///source.heic", width: 64, height: 64 }],
+        assets: [
+          {
+            uri: "file:///cache/ImagePicker/source.heic",
+            width: 64,
+            height: 64,
+          },
+        ],
       });
       mockContext.renderAsync.mockImplementation(
         () =>
@@ -468,6 +507,8 @@ it.each(["preparation", "save"])(
       screen.queryByRole("button", { name: "Aperçu : Photo de profil" }),
     ).not.toBeOnTheScreen();
     expect(screen.queryByText("Profil enregistré.")).not.toBeOnTheScreen();
+    if (operation === "preparation")
+      expect(mockFile.delete).toHaveBeenCalledTimes(1);
   },
 );
 
@@ -510,7 +551,9 @@ it("cancels an initial photo read before refreshing the accepted replacement", a
     await waitFor(() => expect(reads).toHaveLength(1));
     jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
       canceled: false,
-      assets: [{ uri: "file:///source.heic", width: 64, height: 64 }],
+      assets: [
+        { uri: "file:///cache/ImagePicker/source.heic", width: 64, height: 64 },
+      ],
     });
     await user.press(
       screen.getByRole("button", { name: "Choisir une photo de profil" }),
@@ -552,4 +595,115 @@ it("cancels an initial photo read before refreshing the accepted replacement", a
       Object.defineProperty(globalThis, "FileReader", previousReader);
     else Reflect.deleteProperty(globalThis, "FileReader");
   }
+});
+
+it.each(["unmount", "session"])(
+  "deletes a prepared profile draft on %s",
+  async (exit) => {
+    // Given
+    const user = await renderProfile();
+    jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+      canceled: false,
+      assets: [
+        { uri: "file:///cache/ImagePicker/source.heic", width: 64, height: 64 },
+      ],
+    });
+    await user.press(
+      screen.getByRole("button", { name: "Choisir une photo de profil" }),
+    );
+    await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+
+    // When
+    if (exit === "unmount") await screen.unmount();
+    else
+      await user.press(
+        screen.getByRole("button", { name: "Quitter la session" }),
+      );
+
+    // Then
+    expect(mockFile.delete).toHaveBeenCalled();
+  },
+);
+
+it("deletes the replaced profile copy while preserving the new draft", async () => {
+  // Given
+  const user = await renderProfile();
+  const replacement = Object.assign(new Blob([png], { type: "image/png" }), {
+    uri: "file:///replacement.png",
+    exists: true,
+    delete: jest.fn(),
+  });
+  jest
+    .mocked(File)
+    .mockImplementation(
+      (...parts) =>
+        (String(parts[0]).startsWith("file:///cache/ImagePicker/")
+          ? mockPickedFile
+          : parts[0] === replacement.uri
+            ? replacement
+            : mockFile) as unknown as File,
+    );
+  mockImage.saveAsync
+    .mockResolvedValueOnce({ uri: mockFile.uri, width: 64, height: 64 })
+    .mockResolvedValueOnce({ uri: replacement.uri, width: 64, height: 64 });
+  jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+    canceled: false,
+    assets: [
+      { uri: "file:///cache/ImagePicker/source.heic", width: 64, height: 64 },
+    ],
+  });
+  await user.press(
+    screen.getByRole("button", { name: "Choisir une photo de profil" }),
+  );
+  await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Changer l’image : Photo de profil" }),
+  );
+
+  // Then
+  await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
+  expect(replacement.delete).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole("button", { name: "Aperçu : Photo de profil" }),
+  ).toBeOnTheScreen();
+});
+
+it("keeps a sent profile file until its upload settles after sign-out", async () => {
+  // Given
+  const user = await renderProfile();
+  jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+    canceled: false,
+    assets: [
+      { uri: "file:///cache/ImagePicker/source.heic", width: 64, height: 64 },
+    ],
+  });
+  await user.press(
+    screen.getByRole("button", { name: "Choisir une photo de profil" }),
+  );
+  await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation(async (_url, request) =>
+    request?.method === "PATCH" ? response.promise : json(account),
+  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.some(([, request]) => request?.method === "PATCH"),
+    ).toBe(true),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Quitter la session" }));
+
+  // Then
+  expect(mockFile.delete).not.toHaveBeenCalled();
+
+  // When
+  await act(async () => response.resolve(json(account)));
+
+  // Then
+  await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
+  expect(screen.queryByText("Profil enregistré.")).not.toBeOnTheScreen();
 });

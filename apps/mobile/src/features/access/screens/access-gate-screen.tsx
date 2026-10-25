@@ -43,7 +43,6 @@ function GateView({
   onClose,
 }: GateViewProps) {
   const { colors } = useTheme();
-  const [failedImage, setFailedImage] = useState<string | null>(null);
   const update = gate === "update";
   const inMaintenance = gate === "maintenance";
   const image = inMaintenance ? maintenance?.imageUrl : null;
@@ -99,35 +98,7 @@ function GateView({
             >
               {!update && (
                 <View style={styles.mediaInset}>
-                  {image && image !== failedImage ? (
-                    <Image
-                      key={image}
-                      source={{ uri: image }}
-                      contentFit="contain"
-                      accessible={false}
-                      style={styles.media}
-                      onError={() => setFailedImage(image)}
-                    />
-                  ) : (
-                    <View
-                      style={[
-                        styles.placeholder,
-                        {
-                          backgroundColor: colors.mediaPlaceholder,
-                          borderColor: colors.secondaryText,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.copy,
-                          { color: colors.secondaryText, textAlign: "center" },
-                        ]}
-                      >
-                        Illustration à définir
-                      </Text>
-                    </View>
-                  )}
+                  <GateImage key={image ?? "placeholder"} uri={image} />
                 </View>
               )}
               <Text
@@ -181,6 +152,40 @@ function GateView({
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+/** Native decode feedback belongs to one mounted illustration and is discarded when its URI changes. */
+function GateImage({ uri }: { uri?: string | null }) {
+  const { colors } = useTheme();
+  const [failed, setFailed] = useState(false);
+  return uri && !failed ? (
+    <Image
+      source={{ uri }}
+      contentFit="contain"
+      accessible={false}
+      style={styles.media}
+      onError={() => setFailed(true)}
+    />
+  ) : (
+    <View
+      style={[
+        styles.placeholder,
+        {
+          backgroundColor: colors.mediaPlaceholder,
+          borderColor: colors.secondaryText,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          styles.copy,
+          { color: colors.secondaryText, textAlign: "center" },
+        ]}
+      >
+        Illustration à définir
+      </Text>
+    </View>
   );
 }
 

@@ -1,7 +1,7 @@
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { createAccessObservations } from "../state/access-observations";
 
-it("starts every process closed even after another process admitted access", () => {
+it("starts every process without another process’s restriction history", () => {
   // Given
   const previous = createAccessObservations();
   previous.complete(applicationAccessResponse());
@@ -10,8 +10,8 @@ it("starts every process closed even after another process admitted access", () 
   const next = createAccessObservations();
 
   // Then
-  expect(previous.getSnapshot().complete).toBeDefined();
-  expect(next.getSnapshot().complete).toBeUndefined();
+  expect(previous.getSnapshot().maintenance).toBeDefined();
+  expect(next.getSnapshot().maintenance).toBeUndefined();
 });
 
 it.each(["maintenance", "versions"] as const)(
@@ -29,7 +29,6 @@ it.each(["maintenance", "versions"] as const)(
 
     // Then
     expect(accepted).toBe(false);
-    expect(observations.getSnapshot().complete).toBeUndefined();
     expect(observations.getSnapshot()[group]?.revision).toBe(4);
   },
 );
@@ -46,7 +45,7 @@ it("retains restrictions through failures and partial inactive maintenance", () 
   observations.maintenance(active);
 
   // When
-  observations.fail();
+  observations.refuse();
   observations.maintenance({
     ...active,
     revision: 3,
@@ -56,7 +55,7 @@ it("retains restrictions through failures and partial inactive maintenance", () 
 
   // Then
   expect(observations.getSnapshot().maintenance?.active).toBe(false);
-  expect(observations.getSnapshot().complete).toBeUndefined();
+  expect(observations.getSnapshot().refused).toBe(true);
 });
 
 it("a lowered partial minimum cannot admit until a sufficiently current complete check", () => {
@@ -68,10 +67,10 @@ it("a lowered partial minimum cannot admit until a sufficiently current complete
 
   // When
   observations.versions({ ...response.versions, revision: 5 });
-  observations.fail();
+  observations.refuse();
 
   // Then
-  expect(observations.getSnapshot().complete).toBeUndefined();
+  expect(observations.getSnapshot().refused).toBe(true);
   expect(observations.complete(response)).toBe(false);
   response.versions.revision = 5;
   expect(observations.complete(response)).toBe(true);
@@ -93,19 +92,19 @@ it("ignores a late refusal older than a newer complete read", () => {
   });
 
   // Then
-  expect(observations.getSnapshot().complete).toEqual(current);
+  expect(observations.getSnapshot().refused).toBe(false);
   expect(observations.getSnapshot().maintenance?.active).toBe(false);
 });
 
-it("a failed retry closes a previously permissive complete check", () => {
+it("a generic refusal retains known restrictions until a complete check succeeds", () => {
   // Given
   const observations = createAccessObservations();
   observations.complete(applicationAccessResponse());
 
   // When
-  observations.fail();
+  observations.refuse();
 
   // Then
-  expect(observations.getSnapshot().complete).toBeUndefined();
+  expect(observations.getSnapshot().refused).toBe(true);
   expect(observations.getSnapshot().maintenance?.revision).toBe(0);
 });

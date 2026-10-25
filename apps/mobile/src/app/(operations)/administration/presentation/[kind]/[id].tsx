@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from "expo-router";
 import { z } from "zod";
 import { useOperationalAdmission } from "../../../../../features/access/queries/use-access-admission";
-import { PresentationEditorScreen } from "../../../../../features/sporting-administration/screens/presentation-editor-screen";
+import { PresentationScreen } from "../../../../../features/sporting-administration/screens/presentation-screen";
 import { RequestError } from "../../../../../shared/components/request-feedback";
 
 const targetSchema = z.object({
@@ -19,7 +19,7 @@ export default function PresentationRoute() {
   if (!params.success)
     return <RequestError message="Cette ressource est introuvable." />;
   return (
-    <PresentationEditorScreen
+    <PresentationScreen
       key={`${params.data.kind}:${params.data.id}`}
       target={params.data}
     />

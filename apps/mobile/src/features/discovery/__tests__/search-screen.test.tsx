@@ -5,6 +5,7 @@ import {
 } from "@tanstack/react-query";
 import {
   act,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -433,3 +434,59 @@ it.each([200, 503])(
       ).toBeOnTheScreen();
   },
 );
+
+it("retries native rendering after a successful logo reread with identical bytes", async () => {
+  // Given: native decoding returns the same URI; HTTP, Query and the card remain real.
+  mockFetch.mockImplementation((url: string) => {
+    if (new URL(url).pathname.endsWith("/logo"))
+      return Promise.resolve(
+        new Response("synthetic-image", {
+          headers: { "Content-Type": "image/png" },
+        }),
+      );
+    if (url.includes("/teams?"))
+      return Promise.resolve(
+        Response.json({
+          teams: [
+            {
+              team: {
+                id: firstId,
+                name: "Volley",
+                logoUrl: `/teams/${firstId}/logo`,
+              },
+              season,
+              classification: {},
+              professional: false,
+            },
+          ],
+        }),
+      );
+    return publicReads(url);
+  });
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.paste(await screen.findByLabelText("Rechercher"), "Volley");
+  await fireEvent(
+    await screen.findByRole("image", { name: "Logo : Volley" }),
+    "error",
+    { nativeEvent: { error: "Native decode failed" } },
+  );
+  expect(
+    screen.getByRole("image", { name: "Logo indisponible : Volley" }),
+  ).toBeOnTheScreen();
+
+  // When
+  await act(async () => {
+    await client.refetchQueries({
+      predicate: (query) => query.queryKey.includes(`/teams/${firstId}/logo`),
+    });
+  });
+
+  // Then
+  expect(
+    await screen.findByRole("image", { name: "Logo : Volley" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("image", { name: "Logo indisponible : Volley" }),
+  ).not.toBeOnTheScreen();
+});

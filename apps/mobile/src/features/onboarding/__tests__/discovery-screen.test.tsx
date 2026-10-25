@@ -165,3 +165,47 @@ it("offers explicit recovery when the installation flag cannot be read", async (
   ).toBeOnTheScreen();
   expect(await readDiscoveryCompletion()).toBe(false);
 });
+
+it("ignores a previous mount's unfinished read after the installation is completed", async () => {
+  // Given
+  const previous = Promise.withResolvers<string | null>();
+  jest.spyOn(AsyncStorage, "getItem").mockReturnValueOnce(previous.promise);
+  const first = await openDiscovery();
+
+  // When
+  await first.unmount();
+  await AsyncStorage.setItem("blockout:v2-discovery-complete", "true");
+  await openDiscovery();
+  await screen.findByText("Ordinary routes");
+  await act(async () => previous.resolve(null));
+
+  // Then
+  expect(screen.getByText("Ordinary routes")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Passer" }),
+  ).not.toBeOnTheScreen();
+});
+
+it("preserves an acknowledged installation write when the submitting tree is removed", async () => {
+  // Given
+  const acknowledge = Promise.withResolvers<void>();
+  const setItem = AsyncStorage.setItem;
+  jest
+    .spyOn(AsyncStorage, "setItem")
+    .mockImplementationOnce(async (key, value) => {
+      await acknowledge.promise;
+      await setItem(key, value);
+    });
+  const user = userEvent.setup();
+  const first = await openDiscovery();
+  await user.press(await screen.findByRole("button", { name: "Passer" }));
+
+  // When
+  await first.unmount();
+  await act(async () => acknowledge.resolve());
+  await openDiscovery();
+
+  // Then
+  expect(await screen.findByText("Ordinary routes")).toBeOnTheScreen();
+  expect(await readDiscoveryCompletion()).toBe(true);
+});
