@@ -173,6 +173,15 @@ public interface CollectionStore {
   List<Source> sources(UUID seasonId);
 
   /**
+   * Counts current preparation needs without loading unrelated source bindings.
+   *
+   * @param seasonId locked canonical season
+   * @param provider accepted entry authority
+   * @return aggregate unlaunched source count, without per-source values
+   */
+  long countUnlaunchedSources(UUID seasonId, CollectionProviderEnum provider);
+
+  /**
    * Locks the accepted reference on its first initial use without launching it.
    *
    * @param source qualified selected source in the locked season

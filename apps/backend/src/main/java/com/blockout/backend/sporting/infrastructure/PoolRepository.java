@@ -13,6 +13,21 @@ import org.springframework.data.jpa.repository.Query;
 /** Native Spring Data access to the sporting pool owner. */
 interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
   /**
+   * Aggregates missing effective settings independently of historical published classification.
+   *
+   * @param seasonId canonical catalog season
+   * @param provider designated authority
+   * @return current catalog pool count, excluding local overrides and inherited settings
+   */
+  @Query(
+      """
+      SELECT COUNT(p) FROM PoolEntity p JOIN p.pack pack
+      WHERE p.season.id = :seasonId AND p.provider = :provider AND p.catalogEligible = TRUE
+        AND p.setting.settingDivisionId IS NULL AND pack.setting.settingDivisionId IS NULL
+      """)
+  long countUnclassified(UUID seasonId, CollectionProviderEnum provider);
+
+  /**
    * Pages direct children of an already scope-checked pack without filtering unmapped pools.
    *
    * @param packId pack in the selected source

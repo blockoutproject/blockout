@@ -970,7 +970,8 @@ public class CollectPassage {
   }
 
   /**
-   * Retains a safe cause while allowing independent scopes and phases to proceed.
+   * Records the failed observation through its backend owner. If that write is unconfirmed, keeps
+   * the original safe cause here for investigation while independent scopes may proceed.
    *
    * @param context admitted capability
    * @param target affected stage and scope
@@ -983,23 +984,36 @@ public class CollectPassage {
       long ordinal,
       RuntimeException failure) {
     String reason = failureReason(failure);
-    log.atWarn()
-        .addKeyValue("operation", "collection_acquisition")
-        .addKeyValue("cycleId", context.getCycle().id())
-        .addKeyValue("scope", target.scopeId())
-        .addKeyValue("stage", target.kind())
-        .addKeyValue("reason", reason)
-        .log("Provider observation failed; independent selected work may continue");
-    record(
-        context,
-        target,
-        ordinal,
-        CollectionPhaseEnum.ACQUISITION,
-        CollectionOutcomeEnum.FAILED,
-        null,
-        null,
-        clock.instant(),
-        reason);
+    URI reasonType =
+        URI.create(
+            (failure instanceof FfvbAcquisitionException ffvbFailure
+                        && ffvbFailure.getKind() == FfvbAcquisitionException.Kind.STRUCTURE)
+                    || failure instanceof IllegalArgumentException
+                ? "urn:blockout:acquisition:structure"
+                : "urn:blockout:acquisition:technical");
+    boolean confirmed =
+        record(
+            context,
+            new CollectionBackend.Result(
+                target.scopeId(),
+                CollectionStageEnum.fromValue(target.kind().getValue()),
+                CollectionPhaseEnum.ACQUISITION,
+                ordinal,
+                clock.instant(),
+                CollectionOutcomeEnum.FAILED,
+                reasonType,
+                reason,
+                null,
+                null));
+    if (!confirmed) {
+      log.atWarn()
+          .addKeyValue("operation", "collection_acquisition")
+          .addKeyValue("cycleId", context.getCycle().id())
+          .addKeyValue("scope", target.scopeId())
+          .addKeyValue("stage", target.kind().getValue())
+          .addKeyValue("reason", reason)
+          .log("Failed source observation has no confirmed backend evidence");
+    }
   }
 
   /**
@@ -1088,33 +1102,49 @@ public class CollectPassage {
       Long rejected,
       Instant observedAt,
       String reason) {
+    record(
+        context,
+        new CollectionBackend.Result(
+            scope,
+            stage,
+            phase,
+            ordinal,
+            observedAt,
+            outcome,
+            outcome == CollectionOutcomeEnum.SUCCESS
+                ? null
+                : URI.create("urn:blockout:acquisition:" + outcome.getValue()),
+            reason,
+            obtained,
+            rejected));
+  }
+
+  /**
+   * Sends one actual result once. The backend owns committed diagnostics; an unconfirmed reporting
+   * exchange is logged here without repeating the underlying business mutation.
+   *
+   * @param context admitted control capability
+   * @param result safe typed evidence including its original reason category
+   * @return whether backend acceptance of the evidence was confirmed
+   */
+  private boolean record(
+      CollectorLifecycle.AdmittedCycle context, CollectionBackend.Result result) {
     try {
-      backend.record(
-          context.getCycle().id(),
-          new CollectionBackend.Result(
-              scope,
-              stage,
-              phase,
-              ordinal,
-              observedAt,
-              outcome,
-              outcome == CollectionOutcomeEnum.SUCCESS
-                  ? null
-                  : URI.create("urn:blockout:acquisition:" + outcome.getValue()),
-              reason,
-              obtained,
-              rejected));
+      backend.record(context.getCycle().id(), result);
+      return true;
     } catch (CollectionBackendFailure failure) {
       if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
       log.atError()
           .addKeyValue("operation", "collection_result")
           .addKeyValue("cycleId", context.getCycle().id())
-          .addKeyValue("scope", scope)
-          .addKeyValue("stage", stage)
-          .addKeyValue("phase", phase)
+          .addKeyValue("collection_control", context.getCycle().controlId())
+          .addKeyValue("scope", result.scopeId())
+          .addKeyValue("stage", result.stage().getValue())
+          .addKeyValue("phase", result.phase().getValue())
           .addKeyValue("outcome", "unconfirmed")
           .log(
               "Current collection evidence could not be confirmed; the operation was not replayed");
+      return false;
     }
   }
 }

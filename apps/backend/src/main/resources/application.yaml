@@ -118,6 +118,18 @@ logging:
         - affected_count
         - partial_count
         - last_success_at
+        - phase
+        - collection_control
+        - collection_season
+        - collection_cycle_order
+        - collection_read_ordinal
+        - collection_observed_at
+        - collection_first_failure_at
+        - collection_first_structural_failure_at
+        - collection_alert_at
+        - collection_subject
+        - collection_destination
+        - collection_count_capped
         - account_cleanup
         - account_cleanup.original_account_id
         - account_cleanup.auth0_subject

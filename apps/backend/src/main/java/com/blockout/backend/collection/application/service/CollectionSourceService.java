@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,7 @@ public class CollectionSourceService {
   private final CollectionStore store;
   private final CollectorRuntimeService runtimes;
   private final SeasonService seasons;
+  private final ApplicationEventPublisher events;
 
   /** Qualified discovery evidence; the collector owns provider interpretation, never lifecycle. */
   public record Proposal(
@@ -39,9 +41,10 @@ public class CollectionSourceService {
 
   /**
    * Creates only a missing unvalidated candidate, preserving every existing operator choice.
+   * Accepted observations request an aggregate preparation report after commit.
    *
    * @param proposal attributable entry evidence from the current authenticated collector
-   * @return canonical season and root binding; repeated proposals have no additional effect
+   * @return canonical season and root binding; repeated proposals preserve stored choices
    * @throws CollectionConflictException when the incarnation is obsolete or the season is closed
    */
   @Transactional
@@ -55,16 +58,22 @@ public class CollectionSourceService {
       throw new CollectionConflictException("conflict");
     Optional<Source> existing =
         store.source(season.id(), proposal.provider(), proposal.organizerReference());
-    if (existing.isPresent()) return new Resolved(season.id(), existing.orElseThrow().id());
-    CollectorRuntimeService.requireAdvance(season.collectionRevision());
-    Source created =
-        store.createSource(
-            season.id(),
-            proposal.provider(),
-            proposal.organizerReference(),
-            proposal.candidateUrl().toString());
-    seasons.updatePreparation(season.id(), false);
-    return new Resolved(season.id(), created.id());
+    Source source;
+    if (existing.isPresent()) {
+      source = existing.orElseThrow();
+    } else {
+      CollectorRuntimeService.requireAdvance(season.collectionRevision());
+      source =
+          store.createSource(
+              season.id(),
+              proposal.provider(),
+              proposal.organizerReference(),
+              proposal.candidateUrl().toString());
+      seasons.updatePreparation(season.id(), false);
+    }
+    events.publishEvent(
+        new CollectionOperationalDiagnostics.SourceObserved(season.id(), proposal.provider()));
+    return new Resolved(season.id(), source.id());
   }
 
   /**

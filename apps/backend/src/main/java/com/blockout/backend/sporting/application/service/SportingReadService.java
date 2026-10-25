@@ -42,6 +42,18 @@ public class SportingReadService {
   private final SportingReadStore publicReads;
 
   /**
+   * Counts current catalog pools still lacking an effective acquisition setting. Published
+   * classifications, inactive divisions and deliberate pauses do not redefine this need.
+   *
+   * @param seasonId canonical accepted catalog season
+   * @param provider designated catalog provider
+   * @return number of unclassified current pools, without materializing their identities
+   */
+  public long countUnclassifiedPools(UUID seasonId, CollectionProviderEnum provider) {
+    return store.countUnclassifiedPools(seasonId, provider);
+  }
+
+  /**
    * Rechecks current eligibility independently of index documents, follows and old links.
    *
    * @param kind owning resource kind

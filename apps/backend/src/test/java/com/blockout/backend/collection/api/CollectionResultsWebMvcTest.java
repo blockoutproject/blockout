@@ -92,6 +92,7 @@ class CollectionResultsWebMvcTest {
             null,
             null,
             null,
+            null,
             null);
     when(results.list(ACCOUNT, ID, 0, 50))
         .thenReturn(new CollectionState.ResultPage(List.of(result), 0, false));

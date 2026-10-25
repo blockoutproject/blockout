@@ -13,6 +13,15 @@ import org.springframework.data.jpa.repository.Query;
 /** Current supported bindings; their immutable season identity is owned by F02. */
 interface SourceBindingRepository extends JpaRepository<SourceBindingEntity, UUID> {
   /**
+   * Counts current unlaunched proposals without materializing source entities.
+   *
+   * @param seasonId locked canonical season
+   * @param provider accepted entry authority
+   * @return aggregate number of pending source preparations
+   */
+  long countBySeasonIdAndProviderAndLaunchedFalse(UUID seasonId, CollectionProviderEnum provider);
+
+  /**
    * Selects one root through its native unique key.
    *
    * @param seasonId canonical season

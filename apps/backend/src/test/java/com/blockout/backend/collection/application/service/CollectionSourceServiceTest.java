@@ -38,6 +38,7 @@ class CollectionSourceServiceTest {
   @Mock private CollectionStore store;
   @Mock private CollectorRuntimeService runtimes;
   @Mock private SeasonService seasons;
+  @Mock private org.springframework.context.ApplicationEventPublisher events;
   @InjectMocks private CollectionSourceService service;
 
   @Test
