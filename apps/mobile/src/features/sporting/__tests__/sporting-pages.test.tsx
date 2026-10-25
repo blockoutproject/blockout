@@ -730,6 +730,71 @@ it("retains a usable logo through a failed refresh and clears it after a current
   }
 });
 
+it("shows a new valid logo after decoding the previous blob failed", async () => {
+  // Given
+  const previousReader = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "FileReader",
+  );
+  let decodeFails = true;
+  /** Controls only native binary decoding; HTTP and Query still replace the actual Blob. */
+  class LogoReader {
+    static LOADING = 1;
+    readyState = 2;
+    result = "data:image/png;base64,cmVjb3ZlcmVk";
+    onload?: () => void;
+    onerror?: () => void;
+    /** Reports the scenario's current native decoding result. */
+    readAsDataURL() {
+      if (decodeFails) this.onerror?.();
+      else this.onload?.();
+    }
+  }
+  Object.defineProperty(globalThis, "FileReader", {
+    configurable: true,
+    value: LogoReader,
+  });
+  try {
+    team.team.team.logoUrl = `/teams/${sportingId}/logo`;
+    team.team.team.shortName = "VDR";
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).pathname.endsWith("/logo")
+        ? Promise.resolve(
+            new Response("synthetic", {
+              headers: { "Content-Type": "image/png" },
+            }),
+          )
+        : reads(url),
+    );
+    await renderPage(<TeamScreen teamId={sportingId} />);
+    await screen.findByText("Logo indisponible");
+
+    // When
+    decodeFails = false;
+    await act(async () => {
+      await client.refetchQueries({
+        predicate: (query) =>
+          query.queryKey.includes(`/teams/${sportingId}/logo`),
+      });
+    });
+
+    // Then
+    await waitFor(() =>
+      expect(screen.queryByText("Logo indisponible")).not.toBeOnTheScreen(),
+    );
+    expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
+    expect(screen.queryByText("VDR")).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([url]) => String(url).endsWith("/logo")),
+    ).toHaveLength(2);
+  } finally {
+    await cleanup();
+    if (previousReader)
+      Object.defineProperty(globalThis, "FileReader", previousReader);
+    else Reflect.deleteProperty(globalThis, "FileReader");
+  }
+});
+
 it("retains the club teams when returning to a visited tab without an implicit reread", async () => {
   // Given
   const user = userEvent.setup();
