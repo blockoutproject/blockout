@@ -13,6 +13,7 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
+import { consultationOpeningPolicy } from "../api/consultation-queries";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import { ResourceText } from "./resource-page";
 
@@ -38,8 +39,7 @@ function useSportingLogo(
   const query = useQuery({
     ...options,
     enabled: !!identity.logoUrl,
-    refetchOnMount: "always",
-    retryOnMount: true,
+    ...consultationOpeningPolicy,
   });
   return { query, queryKey: options.queryKey };
 }

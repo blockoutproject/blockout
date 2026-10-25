@@ -34,7 +34,7 @@ it("starts an ordinary public read with no account, credentials or entitlement d
   mockFetch.mockResolvedValue(Response.json(clubDetail()));
   try {
     // When
-    const result = await client.fetchQuery(queries.club(sportingId));
+    const result = await client.query(queries.club(sportingId));
 
     // Then
     expect(result.club.name).toBe("Club");
@@ -78,13 +78,13 @@ it.each(["resource", "season"] as const)(
     const observer = new QueryObserver(client, firstOptions);
     const unsubscribe = observer.subscribe(() => {});
     const oldResult = client
-      .fetchQuery(firstOptions)
+      .query(firstOptions)
       .catch((error: unknown) => error);
     await started.promise;
     try {
       // When
       observer.setOptions(nextOptions);
-      await client.fetchQuery(nextOptions);
+      await client.query(nextOptions);
       old.resolve(
         Response.json({
           seasonId: sportingId,
@@ -122,7 +122,7 @@ it("rejects an old public-session completion even without native cancellation", 
   const response = Promise.withResolvers<Response>();
   mockFetch.mockReturnValue(response.promise);
   const options = queries.club(sportingId);
-  const result = client.fetchQuery(options);
+  const result = client.query(options);
   const rejected = expect(result).rejects.toMatchObject({ kind: "cancelled" });
 
   try {
@@ -153,7 +153,7 @@ it.each([401, 403, 404, 503])(
     const options = queries.match(sportingId);
     try {
       // When
-      const result = client.fetchQuery(options);
+      const result = client.query(options);
 
       // Then
       await expect(result).rejects.toMatchObject({ kind: "http", status });
@@ -189,7 +189,7 @@ it("obtains credentials only for captured explicit bypass and lets F12 prepare e
   mockFetch.mockResolvedValue(Response.json(clubDetail()));
   try {
     // When
-    await client.fetchQuery(queries.club(sportingId));
+    await client.query(queries.club(sportingId));
 
     // Then
     expect(credentials).toHaveBeenCalledTimes(1);
@@ -237,8 +237,8 @@ it("shares one in-flight read across consumers of the same F12 bypass intent", a
   try {
     // When
     const results = [
-      client.fetchQuery(first.club(sportingId)),
-      client.fetchQuery(second.club(sportingId)),
+      client.query(first.club(sportingId)),
+      client.query(second.club(sportingId)),
     ];
     ready.resolve();
     await Promise.all(results);
@@ -272,7 +272,7 @@ it("rejects revoked bypass while credentials are pending", async () => {
     () => credentials.promise,
   );
   const client = createQueryClient();
-  const result = client.fetchQuery(queries.club(sportingId));
+  const result = client.query(queries.club(sportingId));
   const rejected = expect(result).rejects.toMatchObject({ kind: "cancelled" });
 
   try {
@@ -326,7 +326,7 @@ it("keeps a newer successful representation when cancelled credential work later
   try {
     // When
     cancelled.abort();
-    await client.fetchQuery(options);
+    await client.query(options);
     late.resolve(undefined);
     await rejected;
 
@@ -369,7 +369,7 @@ it("rejects a late bypass body after intent ends and keeps ordinary context sepa
   mockFetch.mockResolvedValue(response);
   const client = createQueryClient();
   const options = queries.club(sportingId);
-  const result = client.fetchQuery(options);
+  const result = client.query(options);
   const rejected = expect(result).rejects.toMatchObject({ kind: "cancelled" });
   await reading.promise;
 
@@ -467,7 +467,7 @@ it.each(["session", "bypass"] as const)(
     const observer = new QueryObserver(client, previous.club(sportingId));
     const unsubscribe = observer.subscribe(() => {});
     const oldResult = client
-      .fetchQuery(previous.club(sportingId))
+      .query(previous.club(sportingId))
       .catch((error: unknown) => error);
     await started.promise;
 
@@ -481,7 +481,7 @@ it.each(["session", "bypass"] as const)(
       const current = capture();
       const options = current.club(sportingId);
       observer.setOptions(options);
-      const result = client.fetchQuery(options);
+      const result = client.query(options);
       oldResponse.resolve(Response.json(clubDetail("Obsolete")));
 
       // Then

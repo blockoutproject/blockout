@@ -6,7 +6,7 @@ import { isUncertainMutationFailure } from "../../../shared/api/api-fetch";
 import { Button } from "../../../shared/components/button";
 import { RequestError } from "../../../shared/components/request-feedback";
 import { tokens } from "../../../shared/theme/tokens";
-import { useFollowState } from "../api/follow-state";
+import { useFollowStateQuery } from "../api/use-follow-state-query";
 import {
   useFollowMutation,
   isFollowRestriction,
@@ -27,7 +27,7 @@ export function FollowButton({
   season,
   contextColor,
 }: FollowButtonProps) {
-  const context = useFollowState(target);
+  const context = useFollowStateQuery(target);
   const action = useFollowMutation(target, context);
   const router = useRouter();
   const { query, profile, usable, sessionStatus } = context;
@@ -48,6 +48,9 @@ export function FollowButton({
       : undefined;
   const following = provisional ?? query.data?.following;
   const uncertain = failed && isUncertainMutationFailure(latest.error);
+  // A failed bounded observation preserves the original explicit same-command retry.
+  // Query still exposes the read failure; current permission/visibility refusals were handled above.
+  const canRepeatUncertain = uncertain && query.data !== undefined;
   const guest = sessionStatus === "guest";
   return (
     <View style={styles.control}>
@@ -70,7 +73,10 @@ export function FollowButton({
           (!guest && usable && query.isPending && !query.isError)
         }
         disabled={
-          !guest && (!usable || following === undefined || query.isError)
+          !guest &&
+          (!usable ||
+            following === undefined ||
+            (query.isError && !canRepeatUncertain))
         }
         onPress={() => {
           if (guest)
@@ -92,7 +98,7 @@ export function FollowButton({
           onRetry={() => void profile.refetch()}
           retrying={profile.isFetching}
         />
-      ) : query.isError ? (
+      ) : query.isError && !canRepeatUncertain ? (
         <RequestError
           message="Impossible de lire le suivi."
           onRetry={() => void query.refetch()}

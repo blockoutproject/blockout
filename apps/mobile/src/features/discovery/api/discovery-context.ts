@@ -9,8 +9,6 @@ import {
   getListTeamsQueryKey,
   getListPoolsQueryKey,
 } from "../../../../.generated/mobile";
-import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
-import { getSessionQueryKey } from "../../../shared/query/query-client";
 
 /** Public discovery kind; the generated options enum owns the sporting subset. */
 export type DiscoveryResource = "club" | SearchResourceTypeEnum;
@@ -20,15 +18,13 @@ export type DiscoveryResource = "club" | SearchResourceTypeEnum;
  * Generated schemas validate individual request shapes. Cross-field modes stay at this boundary.
  * Wire text stays unchanged; the key folds Unicode whitespace and case without imposing a second
  * length limit on the normalized result. Other control and format characters remain textual input.
- * Pagination is excluded from the key; examples retain ordered identities. The caller owns bypass
- * authorization and cancels its signal when intent changes; transport rejects old-session completions.
- * Supply fresh F12 request options immediately after credentials in each queryFn or command. This
- * selection helper does not revalidate retained options; they are not a reusable authorization grant.
+ * Pagination is excluded from the generated selection key; examples retain ordered identities.
+ * The owning query-options factory alone adds captured session/bypass identity and prepares
+ * fresh F12 request options for each execution. This pure selection holds no authorization data.
  */
 export function createDiscoveryContext(
   resource: DiscoveryResource,
   input: ListTeamsParams = {},
-  bypass?: ApiFetchOptions,
 ) {
   let schema:
     typeof ListClubsParams | typeof ListTeamsParams | typeof ListPoolsParams =
@@ -61,25 +57,5 @@ export function createDiscoveryContext(
   if (resource === "club") queryKey = getListClubsQueryKey(selection);
   else if (resource === "team") queryKey = getListTeamsQueryKey(selection);
   else queryKey = getListPoolsQueryKey(selection);
-  const request = bypass ?? {};
-  if (
-    bypass &&
-    (!request.session ||
-      !request.signal ||
-      new Headers(request.headers).get("Blockout-Maintenance-Bypass") !==
-        "true")
-  )
-    throw new Error("Discovery bypass requires captured F12 request options");
-  return Object.freeze({
-    resource,
-    params,
-    queryKey:
-      bypass && request.session
-        ? getSessionQueryKey(request.session.generation, [
-            "discovery-bypass",
-            ...queryKey,
-          ])
-        : queryKey,
-    request: Object.freeze({ ...request }),
-  });
+  return Object.freeze({ resource, params, queryKey });
 }

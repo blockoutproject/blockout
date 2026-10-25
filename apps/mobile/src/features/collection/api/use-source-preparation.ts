@@ -5,22 +5,16 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { createCollectionQueries } from "./collection-queries";
 import { useAuth0 } from "react-native-auth0";
 import {
   confirmCollectionSourceSeason,
   createCollectionSource,
-  getCollectionSeason,
-  getCollectionSource,
   getGetCollectionSeasonQueryKey,
-  getGetCollectionSourceQueryKey,
   getGetMyAccountQueryKey,
   getListCollectionSeasonsQueryKey,
   getListCollectionSourcesQueryKey,
-  getListCollectionSourceChildrenQueryKey,
   launchCollectionSources,
-  listCollectionSeasons,
-  listCollectionSources,
-  listCollectionSourceChildren,
   requestCollectionSourceValidation,
   setCollectionSourceCandidate,
   getCreateCollectionSourceMutationKey,
@@ -95,32 +89,14 @@ export function useCollectionAuthority() {
 /** Lists canonical seasons only; reads never create seasons or contact a provider. */
 export function useCollectionSeasons() {
   const authority = useCollectionAuthority();
-  const query = useQuery({
-    queryKey: getSessionQueryKey(
-      authority.session.generation,
-      getListCollectionSeasonsQueryKey(),
-    ),
-    enabled: authority.enabled,
-    gcTime: 0,
-    queryFn: async ({ signal }) =>
-      listCollectionSeasons({ ...(await authority.request()), signal }),
-  });
+  const query = useQuery(createCollectionQueries(authority).seasons());
   return { authority, query };
 }
 
 /** Reads only the season needed by provider navigation, sharing its session-scoped cache with editors. */
 export function useCollectionSeason(seasonId: string) {
   const authority = useCollectionAuthority();
-  const season = useQuery({
-    queryKey: getSessionQueryKey(
-      authority.session.generation,
-      getGetCollectionSeasonQueryKey(seasonId),
-    ),
-    enabled: authority.enabled,
-    gcTime: 0,
-    queryFn: async ({ signal }) =>
-      getCollectionSeason(seasonId, { ...(await authority.request()), signal }),
-  });
+  const season = useQuery(createCollectionQueries(authority).season(seasonId));
   return { authority, season };
 }
 
@@ -133,20 +109,9 @@ export function useSeasonPreparation(seasonId: string) {
     getGetCollectionSeasonQueryKey(seasonId),
   );
   const saving = useIsMutating({ mutationKey: seasonKey }) > 0;
-  const sourcesKey = getSessionQueryKey(
-    authority.session.generation,
-    getListCollectionSourcesQueryKey(seasonId),
-  );
-  const sources = useQuery({
-    queryKey: sourcesKey,
-    enabled: authority.enabled,
-    gcTime: 0,
-    queryFn: async ({ signal }) =>
-      listCollectionSources(seasonId, {
-        ...(await authority.request()),
-        signal,
-      }),
-  });
+  const sourcesOptions = createCollectionQueries(authority).sources(seasonId);
+  const sourcesKey = sourcesOptions.queryKey;
+  const sources = useQuery(sourcesOptions);
   /** Refreshes only this season's projections after a confirmed command, without retrying the write. */
   function invalidate() {
     if (!authority.session.isCurrent(authority.session.generation))
@@ -200,18 +165,10 @@ export function useSeasonPreparation(seasonId: string) {
 export function useSourcePreparation(seasonId: string, sourceId: string) {
   const { authority, season } = useCollectionSeason(seasonId);
   const client = useQueryClient();
-  const queryKey = getSessionQueryKey(
-    authority.session.generation,
-    getGetCollectionSourceQueryKey(sourceId),
-  );
+  const sourceOptions = createCollectionQueries(authority).source(sourceId);
+  const queryKey = sourceOptions.queryKey;
   const saving = useIsMutating({ mutationKey: queryKey }) > 0;
-  const source = useQuery({
-    queryKey,
-    enabled: authority.enabled,
-    gcTime: 0,
-    queryFn: async ({ signal }) =>
-      getCollectionSource(sourceId, { ...(await authority.request()), signal }),
-  });
+  const source = useQuery(sourceOptions);
   /** Cancels older reads before publishing the validated response and invalidating its season projections. */
   async function accept(value: SourceBindingResponse) {
     await client.cancelQueries({ queryKey, exact: true });
@@ -290,21 +247,8 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
 /** Paginates discovered direct children without importing classification, totals or provider data. */
 export function useSourceChildren(sourceId: string, parentId?: string) {
   const authority = useCollectionAuthority();
-  const query = useInfiniteQuery({
-    queryKey: getSessionQueryKey(
-      authority.session.generation,
-      getListCollectionSourceChildrenQueryKey(sourceId, { parentId }),
-    ),
-    initialPageParam: 0,
-    enabled: authority.enabled,
-    gcTime: 0,
-    queryFn: async ({ pageParam, signal }) =>
-      listCollectionSourceChildren(
-        sourceId,
-        { parentId, page: pageParam, size: 50 },
-        { ...(await authority.request()), signal },
-      ),
-    getNextPageParam: (last) => (last.hasNext ? last.page + 1 : undefined),
-  });
+  const query = useInfiniteQuery(
+    createCollectionQueries(authority).children(sourceId, parentId),
+  );
   return { authority, query };
 }

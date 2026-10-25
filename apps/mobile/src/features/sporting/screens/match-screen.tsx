@@ -30,11 +30,7 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
     return () => subscription.remove();
   }, []);
   const queries = useConsultationQueries();
-  const match = useQuery({
-    ...queries.match(matchId),
-    refetchOnMount: "always",
-    retryOnMount: true,
-  });
+  const match = useQuery(queries.match(matchId));
   const data = match.data;
   return (
     <ResourcePage>

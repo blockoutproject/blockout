@@ -54,7 +54,7 @@ it.each([
   const options = getListClubsQueryOptions();
 
   // When
-  const result = cache.fetchQuery(options);
+  const result = cache.query(options);
 
   // Then
   await expect(result).rejects.toMatchObject({ kind: "schema" });

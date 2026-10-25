@@ -70,7 +70,7 @@ it.each([
     const options = queries.club(sportingId);
     try {
       // When
-      const result = client.fetchQuery(options);
+      const result = client.query(options);
 
       // Then
       await expect(result).rejects.toMatchObject({ kind: "schema" });

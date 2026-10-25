@@ -1,12 +1,11 @@
+import { createMaintenanceSettingsQueryOptions } from "./access-settings-queries";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth0 } from "react-native-auth0";
 import {
   changeMaintenanceSettings,
   getChangeMaintenanceSettingsMutationKey,
   getSetMaintenanceActivationMutationKey,
-  getMaintenanceSettings,
   setMaintenanceActivation,
-  getGetMaintenanceSettingsQueryKey,
 } from "../../../../.generated/mobile";
 import type {
   ChangeMaintenanceRequest,
@@ -35,10 +34,15 @@ export function useMaintenanceSettings(enabled: boolean) {
   const auth = useAuth0();
   const client = useQueryClient();
   const { observations } = useApplicationAccess();
-  const queryKey = getSessionQueryKey(
-    session.generation,
-    getGetMaintenanceSettingsQueryKey(),
+  const options = createMaintenanceSettingsQueryOptions(
+    {
+      generation: session.generation,
+      enabled: enabled && session.status === "authenticated",
+      request,
+    },
+    observe,
   );
+  const queryKey = options.queryKey;
   /** Requires this observer's enabled state and current generation; the server rechecks the actual grant. */
   async function request() {
     if (!enabled) throw new ApiError("http", 403);
@@ -79,16 +83,7 @@ export function useMaintenanceSettings(enabled: boolean) {
     });
     return value;
   }
-  const query = useQuery({
-    queryKey,
-    gcTime: 0,
-    enabled: enabled && session.status === "authenticated",
-    queryFn: async ({ signal }) =>
-      observe(
-        await getMaintenanceSettings({ ...(await request()), signal }),
-        signal,
-      ),
-  });
+  const query = useQuery(options);
   const content = useMutation({
     mutationKey: getSessionQueryKey(
       session.generation,

@@ -52,7 +52,7 @@ it("keeps captured calendar days and continuation inputs while display uses the 
   mockFetch.mockReset().mockResolvedValueOnce(Response.json(page));
   try {
     const options = queries.calendar(selection);
-    const loaded = await client.fetchQuery(options);
+    const loaded = await client.query(options);
 
     // When: formatting travels, while the retained response supplies the grouping context.
     const displayZone = "America/New_York";
@@ -78,7 +78,7 @@ it("keeps captured calendar days and continuation inputs while display uses the 
     mockFetch.mockResolvedValueOnce(
       Response.json({ ...page, days: [], nextDay: undefined }),
     );
-    await client.fetchQuery(
+    await client.query(
       queries.calendar({ ...selection, nextDay: loaded.nextDay }),
     );
     const continuation = new URL(mockFetch.mock.calls[1][0]);

@@ -24,7 +24,7 @@ import {
   type FollowingTarget,
   type FollowingOwner,
 } from "./following-keys";
-import type { useFollowState } from "./follow-state";
+import type { useFollowStateQuery } from "./use-follow-state-query";
 
 /** Distinguishes a saved response from a current-state observation after response loss. */
 interface FollowResult {
@@ -56,10 +56,10 @@ export function retireSettledFollowAttempts(
  */
 export function useFollowMutation(
   target: FollowingTarget,
-  context: ReturnType<typeof useFollowState>,
+  context: ReturnType<typeof useFollowStateQuery>,
 ) {
   const client = useQueryClient();
-  const { owner, bypass, request, read } = context;
+  const { owner, bypass, request, options } = context;
   const mutationKey = owner
     ? followMutationKey(owner, target)
     : ["following-unavailable"];
@@ -77,20 +77,20 @@ export function useFollowMutation(
       if (!owner || !owner.isCurrent(owner.generation))
         throw new ApiError("cancelled");
       // Credential preparation cannot have saved a write; only transport failures need reconciliation.
-      const options = await request();
+      const requestOptions = await request();
       try {
         const state = await (target.type === "team"
           ? replaceTeamFollowState(
               owner.accountId,
               target.id,
               { following },
-              options,
+              requestOptions,
             )
           : replacePoolFollowState(
               owner.accountId,
               target.id,
               { following },
-              options,
+              requestOptions,
             ));
         return { state, observed: false };
       } catch (error) {
@@ -101,7 +101,17 @@ export function useFollowMutation(
           throw error;
         // One bounded observation cannot prove that the original request has stopped.
         try {
-          return { state: await read(), observed: true };
+          const previousUpdates =
+            client.getQueryState(stateKey)?.dataUpdateCount ?? 0;
+          const state = await client.query({ ...options, staleTime: 0 });
+          // Native cancellation can resolve with reverted data; only a newly accepted read is evidence.
+          if (
+            !owner.isCurrent(owner.generation) ||
+            (client.getQueryState(stateKey)?.dataUpdateCount ?? 0) <=
+              previousUpdates
+          )
+            throw new ApiError("cancelled");
+          return { state, observed: true };
         } catch (readError) {
           // A failed observation cannot establish refusal of the original write.
           if (isFollowRestriction(readError)) throw readError;

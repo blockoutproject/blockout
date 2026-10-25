@@ -12,7 +12,7 @@ import type { SessionSnapshot } from "../../accounts";
 import { useAccountSession } from "../../accounts/current-account";
 import { usePro } from "../pro-provider";
 import { canPurchasePro } from "../pro-offering";
-import { useProOffering } from "../use-pro-offering";
+import { useProOffering } from "../api/use-pro-offering";
 import { ProEntry } from "./pro-entry";
 import { ProVerification } from "./pro-verification";
 
