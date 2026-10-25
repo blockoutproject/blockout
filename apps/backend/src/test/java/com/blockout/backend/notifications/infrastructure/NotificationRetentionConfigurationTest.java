@@ -16,6 +16,7 @@ import org.springframework.boot.test.context.ConfigDataApplicationContextInitial
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor;
 import org.springframework.scheduling.config.CronTask;
 import org.springframework.scheduling.config.ScheduledTask;
@@ -28,8 +29,25 @@ class NotificationRetentionConfigurationTest {
       new ApplicationContextRunner()
           .withInitializer(new ConfigDataApplicationContextInitializer())
           .withUserConfiguration(Scheduling.class)
+          .withBean(TaskScheduler.class, () -> mock(TaskScheduler.class))
           .withBean(NotificationStore.class, () -> mock(NotificationStore.class))
           .withBean(PurgeNotifications.class, () -> mock(PurgeNotifications.class));
+
+  @Test
+  @DisplayName("Disables retention in ordinary backend test contexts")
+  void disablesOrdinaryTestCallback() {
+    // Given / When
+    context.run(
+        application -> {
+          // Then
+          assertThat(application).hasNotFailed();
+          assertThat(
+                  application
+                      .getBean(ScheduledAnnotationBeanPostProcessor.class)
+                      .getScheduledTasks())
+              .isEmpty();
+        });
+  }
 
   @Test
   @DisplayName("Registers the shipped daily UTC trigger across daylight-saving transitions")
@@ -38,25 +56,27 @@ class NotificationRetentionConfigurationTest {
     Instant before = Instant.parse("2026-10-24T03:00:00Z");
 
     // When
-    context.run(
-        application -> {
-          ScheduledAnnotationBeanPostProcessor scheduler =
-              application.getBean(ScheduledAnnotationBeanPostProcessor.class);
-          ScheduledTask scheduled = scheduler.getScheduledTasks().iterator().next();
-          CronTask task = (CronTask) scheduled.getTask();
-          SimpleTriggerContext trigger =
-              new SimpleTriggerContext(Clock.fixed(before, ZoneId.of("Europe/Paris")));
-          Instant first = task.getTrigger().nextExecution(trigger);
-          trigger.update(first, first, first);
-          Instant second = task.getTrigger().nextExecution(trigger);
+    context
+        .withPropertyValues("spring.config.location=classpath:/application.yaml")
+        .run(
+            application -> {
+              ScheduledAnnotationBeanPostProcessor scheduler =
+                  application.getBean(ScheduledAnnotationBeanPostProcessor.class);
+              ScheduledTask scheduled = scheduler.getScheduledTasks().iterator().next();
+              CronTask task = (CronTask) scheduled.getTask();
+              SimpleTriggerContext trigger =
+                  new SimpleTriggerContext(Clock.fixed(before, ZoneId.of("Europe/Paris")));
+              Instant first = task.getTrigger().nextExecution(trigger);
+              trigger.update(first, first, first);
+              Instant second = task.getTrigger().nextExecution(trigger);
 
-          // Then
-          assertThat(scheduler.getScheduledTasks()).hasSize(1);
-          assertThat(first).isEqualTo(Instant.parse("2026-10-25T03:00:00Z"));
-          assertThat(Duration.between(first, second)).isEqualTo(Duration.ofDays(1));
-          task.getRunnable().run();
-          verify(application.getBean(PurgeNotifications.class)).run();
-        });
+              // Then
+              assertThat(scheduler.getScheduledTasks()).hasSize(1);
+              assertThat(first).isEqualTo(Instant.parse("2026-10-25T03:00:00Z"));
+              assertThat(Duration.between(first, second)).isEqualTo(Duration.ofDays(1));
+              task.getRunnable().run();
+              verify(application.getBean(PurgeNotifications.class)).run();
+            });
   }
 
   @Test

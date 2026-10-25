@@ -126,9 +126,9 @@ Revision-specific commands and results belong in the delivery PR; these cases es
 actual F05 erasure, mobile expiry, sender/provider or operational restoration evidence.
 
 The [#255 delivery evidence](https://github.com/blockoutproject/blockout/pull/497) records
-six passing unit/scheduling cases and twelve passing migrated PostgreSQL 18.6 purge cases
-through the ordinary repository CI. The tests use actual Spring/JPA transactions and current
-inbox reads, with a controlled clock and test-only SQL interruption. No sender/ephemeral-work
+seven passing unit/scheduling cases and twelve passing migrated PostgreSQL 18.6 purge cases
+from isolated local checks and ordinary repository CI. They use actual Spring/JPA transactions
+and current inbox reads, with a controlled clock and test-only SQL interruption. No sender/ephemeral-work
 or installation-subscription persistence exists at this base; their lifecycle remains with its
 owning construction, and these results do not qualify sending after failed deletion.
 
