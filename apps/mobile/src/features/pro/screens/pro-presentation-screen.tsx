@@ -7,7 +7,7 @@ import { useAccountSession } from "../../accounts/current-account";
 import { usePro } from "../pro-provider";
 import { canPurchasePro } from "../pro-offering";
 import { purchaseErrorOutcome } from "../pro-operations";
-import { useProOffering } from "../use-pro-offering";
+import { useProOffering } from "../api/use-pro-offering";
 
 /** F12 admission and explicit management intent; F10 supplies the real destination only when implemented. */
 export interface ProPresentationScreenProps {

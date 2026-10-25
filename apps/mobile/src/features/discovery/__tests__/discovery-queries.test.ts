@@ -43,7 +43,7 @@ it("uses the returned cursor as pageParam inside one native infinite-query entry
     .mockResolvedValueOnce(Response.json({ clubs: [] }));
   try {
     // When
-    const result = await client.fetchInfiniteQuery({ ...options, pages: 2 });
+    const result = await client.infiniteQuery({ ...options, pages: 2 });
 
     // Then
     expect(result.pageParams).toEqual([undefined, "opaque-boundary"]);
@@ -156,7 +156,7 @@ it.each(["club", "team", "pool"] as const)(
     );
     try {
       // When
-      const result = client.fetchInfiniteQuery(options);
+      const result = client.infiniteQuery(options);
 
       // Then
       await expect(result).rejects.toMatchObject({ kind: "schema" });
@@ -182,14 +182,14 @@ it("attempts an offline read once and rejects an old-session completion", async 
   mockFetch.mockRejectedValueOnce(new TypeError("offline"));
   try {
     // When / Then
-    await expect(client.fetchInfiniteQuery(options)).rejects.toMatchObject({
+    await expect(client.infiniteQuery(options)).rejects.toMatchObject({
       kind: "network",
     });
     onlineManager.setOnline(true);
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const pending = Promise.withResolvers<Response>();
     mockFetch.mockReturnValue(pending.promise);
-    const request = client.fetchInfiniteQuery(options);
+    const request = client.infiniteQuery(options);
     const rejected = expect(request).rejects.toMatchObject({
       kind: "cancelled",
     });

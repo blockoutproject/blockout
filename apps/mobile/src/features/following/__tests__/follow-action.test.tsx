@@ -1005,6 +1005,61 @@ it("observes current state once after losing a write response without announcing
   ).toHaveLength(2);
 });
 
+it("shares an uncertain-write observation with an explicit member reread and cancels both through Query", async () => {
+  // Given
+  const observation = Promise.withResolvers<Response>();
+  let attempted = false;
+  mockFetch.mockImplementation((url, request) => {
+    if (request?.method === "PUT") {
+      attempted = true;
+      return Promise.reject(new TypeError("response lost"));
+    }
+    if (url.includes("team-follows") && attempted) return observation.promise;
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  await mount(<FollowButton target={team} season={season} />);
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  const key = followStateKey({ ...session, accountId }, team);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Suivre" }));
+  await waitFor(() =>
+    expect(client.getQueryState(key)?.fetchStatus).toBe("fetching"),
+  );
+  let reread: Promise<void>;
+  await act(async () => {
+    reread = client.refetchQueries(
+      { queryKey: key, exact: true },
+      { cancelRefetch: false },
+    );
+  });
+  const reads = mockFetch.mock.calls.filter(
+    ([url, request]) =>
+      url.includes("team-follows") && request?.method !== "PUT",
+  );
+  await act(async () => {
+    await client.cancelQueries({ queryKey: key, exact: true });
+    observation.resolve(Response.json({ following: true }));
+    await reread;
+  });
+
+  // Then
+  expect(reads).toHaveLength(2);
+  expect(reads[1][1]?.signal?.aborted).toBe(true);
+  expect(client.getQueryData(key)).toEqual({ following: false });
+  expect(
+    await screen.findByText(
+      "Le résultat du suivi n’a pas pu être confirmé. Vous pouvez réessayer la même demande.",
+    ),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(1);
+});
+
 it("does not invent an outcome when both write response and reconciliation are lost", async () => {
   // Given
   let attempted = false;

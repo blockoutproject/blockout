@@ -1,5 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useAuth0 } from "react-native-auth0";
 import {
   establishAccount,
@@ -16,37 +20,51 @@ import {
   type AccountSession,
 } from "../session/account-session-provider";
 
-/** Reads the local profile on restoration; absence is never converted into establishment. */
+/**
+ * Reads the local profile on restoration; absence never establishes an account.
+ * The shared request publishes F05 identity once, independently of observer count.
+ */
 export function useCurrentAccount() {
   const session = useAccountSession();
   const auth = useAuth0();
-  const query = useQuery({
-    // The root observer retains the active account; detached private generations retain no cache.
-    gcTime: 0,
-    queryKey: getSessionQueryKey(session.generation, getGetMyAccountQueryKey()),
-    enabled: session.status === "authenticated",
-    queryFn: async ({ signal }) => {
-      const credentials = await auth.getCredentials();
-      if (!credentials) throw new ApiError("http", 401);
-      return getMyAccount({
-        signal,
-        session,
-        headers: { Authorization: `Bearer ${credentials.accessToken}` },
-      });
-    },
-  });
-  useEffect(() => {
-    if (
-      query.error instanceof ApiError &&
-      query.error.status === 404 &&
-      session.accountId
-    ) {
-      session.invalidate();
-    } else if (query.data && !query.isError) {
-      session.setAccount(session.generation, query.data.accountId);
-    }
-  }, [query.data, query.error, query.isError, session]);
-  return query;
+  return useQuery(
+    queryOptions({
+      // The root observer retains the active account; detached private generations retain no cache.
+      gcTime: 0,
+      queryKey: getSessionQueryKey(
+        session.generation,
+        getGetMyAccountQueryKey(),
+      ),
+      enabled: session.status === "authenticated",
+      queryFn: async ({ signal }) => {
+        try {
+          const credentials = await auth.getCredentials();
+          if (!credentials) throw new ApiError("http", 401);
+          const account = await getMyAccount({
+            signal,
+            session,
+            headers: { Authorization: `Bearer ${credentials.accessToken}` },
+          });
+          if (signal.aborted || !session.isCurrent(session.generation))
+            throw new ApiError("cancelled");
+          session.setAccount(session.generation, account.accountId);
+          if (!session.isCurrent(session.generation))
+            throw new ApiError("cancelled");
+          return account;
+        } catch (error) {
+          if (signal.aborted || !session.isCurrent(session.generation))
+            throw new ApiError("cancelled");
+          if (
+            error instanceof ApiError &&
+            error.status === 404 &&
+            session.accountId
+          )
+            session.invalidate();
+          throw error;
+        }
+      },
+    }),
+  );
 }
 
 /**
@@ -93,6 +111,7 @@ export function useEstablishAccount() {
               }
             : account,
         );
+        session.setAccount(session.generation, account.accountId);
         return account;
       } catch (error) {
         // Credential preparation precedes the shared transport's generation guard.

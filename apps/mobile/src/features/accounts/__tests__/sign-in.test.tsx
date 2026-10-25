@@ -182,6 +182,33 @@ it("establishes explicitly after successful hosted login without replaying a pro
   expect(mockNavigate).not.toHaveBeenCalledWith("/protected-action");
 });
 
+/** Observes only F05 identity, so establishment cannot rely on a profile query observer's effect. */
+function EstablishedSessionProbe() {
+  const session = useAccountSession();
+  return <Text>Established account: {session.accountId ?? "unavailable"}</Text>;
+}
+
+it("publishes established identity without mounting a current-account reader", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderJourney(
+    <>
+      <SignInScreen admitted />
+      <EstablishedSessionProbe />
+    </>,
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
+  // Then
+  expect(
+    await screen.findByText(`Established account: ${account.accountId}`),
+  ).toBeOnTheScreen();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(mockFetch.mock.calls[0][1]?.method).toBe("POST");
+});
+
 it("offers explicit login when stored DPoP credentials cannot serve the Bearer configuration", async () => {
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(true);

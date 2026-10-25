@@ -5,7 +5,9 @@ import { File } from "expo-file-system";
 import { Alert, Pressable, Text } from "react-native";
 import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
+import { useDivisions } from "../api/classification";
+import { getListDivisionsQueryKey } from "../../../../.generated/mobile";
 import RootLayout from "../../../app/_layout";
 import OnboardingRoute from "../../../app/onboarding";
 import OperationsLayout from "../../../app/(operations)/_layout";
@@ -193,6 +195,7 @@ afterEach(() => {
 /** Real form, Query, identity and access owners; only native credentials/images and HTTP are controlled. */
 async function renderEditor(
   kind: "club" | "team" | "pool" | "division" | "division-creation" = "team",
+  peers?: ReactNode,
 ) {
   await renderRouter({
     _layout: () => <Stack />,
@@ -201,6 +204,7 @@ async function renderEditor(
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
+              {peers}
               <PresentationScreen
                 target={
                   kind === "division-creation"
@@ -971,7 +975,7 @@ it("rejects an invalid generated response before it replaces the accepted cache 
 
   // Then
   await waitFor(() => expect(query?.state.status).toBe("error"));
-  expect(query?.state.data).toEqual({ kind: "team", data: initial });
+  expect(query?.state.data).toEqual(initial);
   expect(screen.getByLabelText("Nom complet personnalisé")).toHaveDisplayValue(
     "My draft",
   );
@@ -1537,4 +1541,133 @@ it("releases only the replaced logo copy while the new draft remains usable", as
   expect(
     screen.getByRole("button", { name: "Aperçu : Logo" }),
   ).toBeOnTheScreen();
+});
+
+/** A second real consumer makes the shared list and its creation invalidation visible. */
+function DivisionListObserver() {
+  const { query, authority } = useDivisions();
+  return (
+    <>
+      <Text>{`Known divisions: ${query.data?.items.map((item) => item.name).join(", ") ?? "loading"}`}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Refresh divisions"
+        onPress={() => void query.refetch()}
+      >
+        <Text>Refresh divisions</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Refresh permissions"
+        onPress={() => void authority.account.refetch()}
+      >
+        <Text>Refresh permissions</Text>
+      </Pressable>
+    </>
+  );
+}
+
+it("shares one raw division list across creation and navigation and refreshes it after creation", async () => {
+  // Given
+  permissions = { manageDivisionLifecycle: true };
+  stored = { items: [] };
+  const created = {
+    id: resourceId,
+    revision: "d1",
+    name: "National 2",
+    color: "#123456",
+    gradient: null,
+    logo,
+    active: true,
+  };
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "POST") {
+      stored = { items: [created] };
+      return Promise.resolve(json(created, 201));
+    }
+    return respond(url, options);
+  });
+  jest.spyOn(Alert, "alert");
+  const user = await renderEditor(
+    "division-creation",
+    <DivisionListObserver />,
+  );
+  await screen.findByLabelText("Nom de la division");
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      String(url).includes("/administration/divisions"),
+    ),
+  ).toHaveLength(1);
+  const listPath = getListDivisionsQueryKey({ includeInactive: true })[0];
+  const entries = client
+    .getQueryCache()
+    .findAll({ predicate: ({ queryKey }) => queryKey.includes(listPath) });
+  expect(entries).toHaveLength(1);
+  expect(entries[0]?.state.data).toEqual({ items: [] });
+  await edit("Nom de la division", "National 2");
+  await edit("Couleur HEX", "#123456");
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  const confirm = jest
+    .mocked(Alert.alert)
+    .mock.calls.at(-1)?.[2]
+    ?.find((button) => button.text === "Confirmer");
+  await act(async () => {
+    confirm?.onPress?.();
+  });
+
+  // Then
+  expect(
+    await screen.findByText("Known divisions: National 2"),
+  ).toBeOnTheScreen();
+  expect(entries[0]?.state.data).toEqual({ items: [created] });
+  expect(
+    mockFetch.mock.calls.filter(
+      ([url, options]) =>
+        String(url).includes("/administration/divisions") &&
+        options?.method === "GET",
+    ),
+  ).toHaveLength(2);
+});
+
+it("keeps the shared division read authorized when creation loses its separate lifecycle grant", async () => {
+  // Given
+  permissions = {
+    manageDivisionLifecycle: true,
+    manageSportingPresentation: true,
+  };
+  stored = { items: [] };
+  const user = await renderEditor(
+    "division-creation",
+    <DivisionListObserver />,
+  );
+  await screen.findByLabelText("Nom de la division");
+  permissions = { manageSportingPresentation: true };
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Refresh permissions" }));
+  await screen.findByText("Cette action nécessite une permission dédiée.");
+  stored = {
+    items: [
+      {
+        id: resourceId,
+        revision: "d1",
+        name: "Current division",
+        color: "#123456",
+        gradient: null,
+        logo,
+        active: true,
+      },
+    ],
+  };
+  await user.press(screen.getByRole("button", { name: "Refresh divisions" }));
+
+  // Then
+  expect(
+    await screen.findByText("Known divisions: Current division"),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+  ).toHaveLength(0);
 });

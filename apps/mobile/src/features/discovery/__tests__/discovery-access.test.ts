@@ -1,6 +1,8 @@
-import { listClubs } from "../../../../.generated/mobile";
-import { createDiscoveryContext } from "../api/discovery-context";
+import { isCancelledError } from "@tanstack/react-query";
+import { createDiscoveryQueryOptions } from "../api/discovery-queries";
 import { createSessionGeneration } from "../../accounts/session/session-generation";
+import { createMaintenanceBypass } from "../../access/state/maintenance-bypass";
+import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
 import {
   createQueryClient,
   bindSessionQueries,
@@ -21,36 +23,68 @@ afterEach(() => {
   else process.env.EXPO_PUBLIC_API_URL = originalUrl;
 });
 
+/** Captures real session/intent owners; only F12 grant admission is controlled in these transport scenarios. */
+function bypassContext() {
+  const session = createSessionGeneration();
+  session.setAccount(
+    session.getSnapshot().generation,
+    "00000000-0000-4000-8000-000000000001",
+  );
+  const bypass = createMaintenanceBypass();
+  bypass.request(session.getSnapshot(), true);
+  const intent = bypass.getSnapshot();
+  if (!intent) throw new Error("Expected a deliberate bypass intent");
+  const options = createDiscoveryQueryOptions(
+    "club",
+    { q: "Volley" },
+    { ...session.getSnapshot(), isCurrent: session.isCurrent },
+    {
+      bypass: intent,
+      request: (request: ApiFetchOptions) => ({
+        ...request,
+        signal: request.signal
+          ? AbortSignal.any([request.signal, intent.signal])
+          : intent.signal,
+        headers: { ...request.headers, "Blockout-Maintenance-Bypass": "true" },
+      }),
+    },
+    async () => ({ accessToken: "synthetic-token" }),
+  );
+  return { session, bypass, options };
+}
+
 it("starts public discovery without reading credentials or entitlement state", async () => {
   // Given
+  const session = createSessionGeneration();
+  const client = createQueryClient();
+  const credentials = jest.fn();
+  const options = createDiscoveryQueryOptions(
+    "club",
+    { q: "Volley" },
+    { ...session.getSnapshot(), isCurrent: session.isCurrent },
+    { bypass: undefined, request: (request) => request },
+    credentials,
+  );
   mockFetch.mockResolvedValue(Response.json({ clubs: [] }));
-  const context = createDiscoveryContext("club");
+  try {
+    // When
+    await client.infiniteQuery(options);
 
-  // When
-  await listClubs(context.params, context.request);
-
-  // Then
-  expect(mockFetch.mock.calls[0][1].headers).toBeUndefined();
-  expect(context.queryKey[0]).not.toBe("session");
+    // Then
+    expect(mockFetch.mock.calls[0][1].headers).toBeUndefined();
+    expect(credentials).not.toHaveBeenCalled();
+    expect(options.queryKey[0]).not.toBe("session");
+  } finally {
+    client.clear();
+  }
 });
 
 it.each([401, 403, 503])(
   "preserves explicit bypass refusal %i without a public retry",
   async (status) => {
-    // Given: the shared owner supplies captured intent; the HTTP response is controlled, not real F12 admission.
-    const session = createSessionGeneration();
-    const context = createDiscoveryContext(
-      "club",
-      {},
-      {
-        headers: {
-          Authorization: "Bearer synthetic-token",
-          "Blockout-Maintenance-Bypass": "true",
-        },
-        session: { ...session.getSnapshot(), isCurrent: session.isCurrent },
-        signal: new AbortController().signal,
-      },
-    );
+    // Given
+    const { options } = bypassContext();
+    const client = createQueryClient();
     mockFetch.mockResolvedValue(
       Response.json(
         {
@@ -67,137 +101,107 @@ it.each([401, 403, 503])(
         },
       ),
     );
+    try {
+      // When
+      const request = client.infiniteQuery(options);
 
-    // When
-    const request = listClubs(context.params, context.request);
-
-    // Then
-    await expect(request).rejects.toMatchObject({ kind: "http", status });
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch.mock.calls[0][1].headers).toMatchObject({
-      Authorization: "Bearer synthetic-token",
-      "Blockout-Maintenance-Bypass": "true",
-    });
+      // Then
+      await expect(request).rejects.toMatchObject({ kind: "http", status });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockFetch.mock.calls[0][1].headers).toMatchObject({
+        Authorization: "Bearer synthetic-token",
+        "Blockout-Maintenance-Bypass": "true",
+      });
+    } finally {
+      client.clear();
+    }
   },
 );
 
 it("rejects an old-session bypass completion before cache admission", async () => {
   // Given
-  const session = createSessionGeneration();
-  const cache = createQueryClient();
+  const { session, options } = bypassContext();
+  const client = createQueryClient();
   const unbind = bindSessionQueries(
-    cache,
+    client,
     session.subscribe,
     session.isCurrent,
   );
-  const context = createDiscoveryContext(
-    "club",
-    {},
-    {
-      headers: {
-        Authorization: "Bearer synthetic-token",
-        "Blockout-Maintenance-Bypass": "true",
-      },
-      session: { ...session.getSnapshot(), isCurrent: session.isCurrent },
-      signal: new AbortController().signal,
-    },
-  );
   const response = Promise.withResolvers<Response>();
-  mockFetch.mockReturnValue(response.promise);
-  cache.setQueryData(context.queryKey, { clubs: [] });
-
+  const started = Promise.withResolvers<void>();
+  mockFetch.mockImplementation(() => {
+    started.resolve();
+    return response.promise;
+  });
+  // Removed in-flight queries still schedule their final GC; no timer is needed for this cache-removal test.
+  const result = client.infiniteQuery({ ...options, gcTime: Infinity });
+  const rejected = result.catch((error: unknown) => error);
+  await started.promise;
   try {
     // When
-    const result = listClubs(context.params, context.request);
-    const rejected = expect(result).rejects.toMatchObject({
-      kind: "cancelled",
-    });
     session.invalidate();
     response.resolve(Response.json({ clubs: [] }));
 
     // Then
-    await rejected;
-    expect(cache.getQueryData(context.queryKey)).toBeUndefined();
+    expect(isCancelledError(await rejected)).toBe(true);
+    expect(client.getQueryData(options.queryKey)).toBeUndefined();
   } finally {
     unbind();
-    cache.clear();
+    client.clear();
   }
 });
 
 it("rejects a late completion after the owner cancels bypass intent", async () => {
   // Given
-  const session = createSessionGeneration();
-  const intent = new AbortController();
-  const context = createDiscoveryContext(
-    "club",
-    {},
-    {
-      headers: {
-        Authorization: "Bearer synthetic-token",
-        "Blockout-Maintenance-Bypass": "true",
-      },
-      session: { ...session.getSnapshot(), isCurrent: session.isCurrent },
-      signal: intent.signal,
-    },
-  );
+  const { bypass, options } = bypassContext();
+  const client = createQueryClient();
   const response = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation((_url: string, options: RequestInit) => {
-    options.signal?.addEventListener(
+  const started = Promise.withResolvers<void>();
+  mockFetch.mockImplementation((_url: string, request: RequestInit) => {
+    request.signal?.addEventListener(
       "abort",
-      () => response.reject(options.signal?.reason),
+      () => response.reject(request.signal?.reason),
       { once: true },
     );
+    started.resolve();
     return response.promise;
   });
+  const result = client.infiniteQuery(options);
+  const rejected = expect(result).rejects.toMatchObject({ kind: "cancelled" });
+  await started.promise;
+  try {
+    // When
+    bypass.clear();
+    response.resolve(Response.json({ clubs: [] }));
 
-  // When
-  const result = listClubs(context.params, context.request);
-  intent.abort();
-  response.resolve(Response.json({ clubs: [] }));
-
-  // Then
-  await expect(result).rejects.toMatchObject({ kind: "cancelled" });
-  expect(createDiscoveryContext("club").queryKey).not.toEqual(context.queryKey);
+    // Then
+    await rejected;
+    expect(client.getQueryData(options.queryKey)).toBeUndefined();
+  } finally {
+    client.clear();
+  }
 });
 
 it("rejects cancelled bypass intent after the response body has completed", async () => {
   // Given: native Fetch cannot retract a completed body; intent may change before transport admission.
-  const session = createSessionGeneration();
-  const intent = new AbortController();
-  const cache = createQueryClient();
-  const context = createDiscoveryContext(
-    "club",
-    {},
-    {
-      headers: {
-        Authorization: "Bearer synthetic-token",
-        "Blockout-Maintenance-Bypass": "true",
-      },
-      session: { ...session.getSnapshot(), isCurrent: session.isCurrent },
-      signal: intent.signal,
-    },
-  );
+  const { bypass, options } = bypassContext();
+  const client = createQueryClient();
   const response = Response.json({ clubs: [] });
   const readBody = response.json.bind(response);
   jest.spyOn(response, "json").mockImplementation(async () => {
     const body: unknown = await readBody();
-    intent.abort();
+    bypass.clear();
     return body;
   });
   mockFetch.mockResolvedValue(response);
-
   try {
     // When
-    const result = cache.fetchQuery({
-      queryKey: context.queryKey,
-      queryFn: () => listClubs(context.params, context.request),
-    });
+    const result = client.infiniteQuery(options);
 
     // Then
     await expect(result).rejects.toMatchObject({ kind: "cancelled" });
-    expect(cache.getQueryData(context.queryKey)).toBeUndefined();
+    expect(client.getQueryData(options.queryKey)).toBeUndefined();
   } finally {
-    jest.restoreAllMocks();
-    cache.clear();
+    client.clear();
   }
 });

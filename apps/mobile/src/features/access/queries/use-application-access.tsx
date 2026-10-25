@@ -6,9 +6,10 @@ import {
   useSyncExternalStore,
   type PropsWithChildren,
 } from "react";
+import { queryOptions, useQuery } from "@tanstack/react-query";
 import {
   getApplicationAccess,
-  useGetApplicationAccess,
+  getGetApplicationAccessQueryKey,
 } from "../../../../.generated/mobile";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { createAccessObservations } from "../state/access-observations";
@@ -27,8 +28,9 @@ function useProcessAccess() {
     observations.subscribe,
     observations.getSnapshot,
   );
-  const query = useGetApplicationAccess({
-    query: {
+  const query = useQuery(
+    queryOptions({
+      queryKey: getGetApplicationAccessQueryKey(),
       staleTime: Infinity,
       gcTime: Infinity,
       retry: false,
@@ -37,12 +39,13 @@ function useProcessAccess() {
       refetchOnReconnect: false,
       queryFn: async ({ signal }) => {
         const value = await getApplicationAccess({ signal });
+        if (signal.aborted) throw new ApiError("cancelled");
         if (!observations.complete(value)) throw new ApiError("schema");
         if (!value.maintenance.active) bypass.clear();
         return value;
       },
-    },
-  });
+    }),
+  );
   const complete =
     query.isSuccess &&
     !query.isFetching &&

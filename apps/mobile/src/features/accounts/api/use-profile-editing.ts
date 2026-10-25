@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useAuth0 } from "react-native-auth0";
 import {
   changeAccountProfile,
@@ -41,12 +46,14 @@ export function useProfileEditing(accountId: string) {
   async function accept(
     account: AccountResponse,
     preserveProviderEvidence = false,
+    signal?: AbortSignal,
   ) {
     await Promise.all([
       client.cancelQueries({ queryKey: currentKey, exact: true }),
       client.cancelQueries({ queryKey: photoKey, exact: true }),
     ]);
-    if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
+    if (signal?.aborted || !session.isCurrent(session.generation))
+      throw new ApiError("cancelled");
     const accepted = client.setQueryData<AccountResponse>(
       currentKey,
       (current) =>
@@ -64,28 +71,30 @@ export function useProfileEditing(accountId: string) {
     return accepted ?? account;
   }
 
-  const original = useQuery({
-    queryKey: getSessionQueryKey(
-      session.generation,
-      getGetAccountQueryKey(accountId),
-    ),
-    enabled: false,
-    gcTime: 0,
-    queryFn: async ({ signal }) => {
-      const credentials = await auth.getCredentials();
-      if (!credentials) throw new ApiError("http", 401);
-      return accept(
-        await getAccount(
-          accountId,
-          request({
-            signal,
-            session,
-            headers: { Authorization: `Bearer ${credentials.accessToken}` },
-          }),
-        ),
-      );
-    },
-  });
+  const original = useQuery(
+    queryOptions({
+      queryKey: getSessionQueryKey(
+        session.generation,
+        getGetAccountQueryKey(accountId),
+      ),
+      enabled: false,
+      gcTime: 0,
+      queryFn: async ({ signal }) => {
+        const credentials = await auth.getCredentials();
+        if (!credentials) throw new ApiError("http", 401);
+        const options = request({
+          signal,
+          session,
+          headers: { Authorization: `Bearer ${credentials.accessToken}` },
+        });
+        return accept(
+          await getAccount(accountId, options),
+          false,
+          options.signal ?? signal,
+        );
+      },
+    }),
+  );
   const save = useMutation({
     mutationKey: getSessionQueryKey(session.generation, [
       ...getChangeAccountProfileMutationKey(),
@@ -116,28 +125,28 @@ export function useProfilePhoto(accountId: string, hasPhoto: boolean) {
   const { request } = useOrdinaryRequest();
   const session = useAccountSession();
   const auth = useAuth0();
-  return useQuery({
-    queryKey: getSessionQueryKey(
-      session.generation,
-      getGetAccountPhotoQueryKey(accountId),
-    ),
-    enabled: hasPhoto && session.status === "authenticated",
-    gcTime: 0,
-    queryFn: async ({ signal }) => {
-      const credentials = await auth.getCredentials();
-      if (!credentials) throw new ApiError("http", 401);
-      const blob = await getAccountPhoto(
-        accountId,
-        request({
+  return useQuery(
+    queryOptions({
+      queryKey: getSessionQueryKey(
+        session.generation,
+        getGetAccountPhotoQueryKey(accountId),
+      ),
+      enabled: hasPhoto && session.status === "authenticated",
+      gcTime: 0,
+      queryFn: async ({ signal }) => {
+        const credentials = await auth.getCredentials();
+        if (!credentials) throw new ApiError("http", 401);
+        const options = request({
           signal,
           session,
           headers: { Authorization: `Bearer ${credentials.accessToken}` },
-        }),
-      );
-      const uri = await binaryImagePreview(blob, signal);
-      if (!session.isCurrent(session.generation))
-        throw new ApiError("cancelled");
-      return uri;
-    },
-  });
+        });
+        const blob = await getAccountPhoto(accountId, options);
+        const uri = await binaryImagePreview(blob, options.signal);
+        if (!session.isCurrent(session.generation) || options.signal?.aborted)
+          throw new ApiError("cancelled");
+        return uri;
+      },
+    }),
+  );
 }

@@ -1,3 +1,4 @@
+import { createApplicationVersionsQueryOptions } from "./access-settings-queries";
 import {
   useIsMutating,
   useMutation,
@@ -7,8 +8,6 @@ import {
 import { useAuth0 } from "react-native-auth0";
 import {
   changeApplicationVersionSettings,
-  getApplicationVersionSettings,
-  getGetApplicationVersionSettingsQueryKey,
   getChangeApplicationVersionSettingsMutationKey,
 } from "../../../../.generated/mobile";
 import type {
@@ -26,10 +25,15 @@ export function useApplicationVersionsSettings(enabled: boolean) {
   const auth = useAuth0();
   const client = useQueryClient();
   const { observations } = useApplicationAccess();
-  const queryKey = getSessionQueryKey(
-    session.generation,
-    getGetApplicationVersionSettingsQueryKey(),
+  const options = createApplicationVersionsQueryOptions(
+    {
+      generation: session.generation,
+      enabled: enabled && session.status === "authenticated",
+      request,
+    },
+    observe,
   );
+  const queryKey = options.queryKey;
   const mutationKey = getSessionQueryKey(
     session.generation,
     getChangeApplicationVersionSettingsMutationKey(),
@@ -56,16 +60,7 @@ export function useApplicationVersionsSettings(enabled: boolean) {
     observations.versions(value);
     return value;
   }
-  const query = useQuery({
-    queryKey,
-    gcTime: 0,
-    enabled: enabled && session.status === "authenticated",
-    queryFn: async ({ signal }) =>
-      observe(
-        await getApplicationVersionSettings({ ...(await request()), signal }),
-        signal,
-      ),
-  });
+  const query = useQuery(options);
   const content = useMutation({
     mutationKey,
     gcTime: 0,

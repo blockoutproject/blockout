@@ -5,18 +5,13 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { createSportingAdministrationQueries } from "./sporting-administration-queries";
 import { invalidateSportingReads } from "./invalidate-sporting-reads";
 import { useAuth0 } from "react-native-auth0";
 import {
-  getPackClassification,
-  getPoolClassification,
   setPackClassification,
   setPoolClassification,
-  listDivisions,
   setDivisionActivity,
-  getGetPackClassificationQueryKey,
-  getGetPoolClassificationQueryKey,
-  getListDivisionsQueryKey,
   getGetDivisionQueryKey,
   getGetMyAccountQueryKey,
 } from "../../../../.generated/mobile";
@@ -37,12 +32,16 @@ export interface ClassificationTarget {
   kind: "pack" | "pool";
   id: string;
 }
-type SportingAction = "classification" | "lifecycle" | "divisions";
+/** Distinct server permissions; division reads accept any sporting-administration capability. */
+type SportingAction =
+  "classification" | "lifecycle" | "divisions" | "presentation";
 /** The canonical action grants are shared by rendered availability and request-time authorization. */
 function hasSportingPermission(
   grants: AccountPermissionsResponse | undefined,
   action: SportingAction,
 ) {
+  if (action === "presentation")
+    return grants?.manageSportingPresentation === true;
   if (action === "classification")
     return grants?.manageSportingClassification === true;
   if (action === "lifecycle") return grants?.manageDivisionLifecycle === true;
@@ -63,7 +62,7 @@ export function useSportingAuthority(action: SportingAction) {
     hasSportingPermission(capabilities.permissions, action) &&
     version.satisfied;
   /** A held confirmation or delayed credential promise cannot retain a revoked action grant. */
-  function assertCurrent() {
+  function assertCurrent(requestedAction: SportingAction) {
     if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
     version.assertCurrent();
     const current = client.getQueryState<AccountResponse>(
@@ -74,16 +73,24 @@ export function useSportingAuthority(action: SportingAction) {
       current.data?.accountId === session.accountId
         ? current.data.permissions
         : undefined;
-    if (!hasSportingPermission(grants, action)) throw new ApiError("http", 403);
+    if (!hasSportingPermission(grants, requestedAction))
+      throw new ApiError("http", 403);
   }
-  /** Supplies request-local credentials and captured session; no mutation is replayed. */
-  async function request() {
-    assertCurrent();
+  /**
+   * Supplies request-local credentials and cancellation after checking the selected action twice.
+   * Reads default to the observer's resource grant; an editor may request its stricter command grant.
+   */
+  async function request(
+    signal?: AbortSignal,
+    requestedAction: SportingAction = action,
+  ) {
+    assertCurrent(requestedAction);
     const credentials = await auth.getCredentials();
-    assertCurrent();
+    assertCurrent(requestedAction);
     if (!credentials) throw new ApiError("http", 401);
     return {
       session,
+      signal,
       headers: { Authorization: `Bearer ${credentials.accessToken}` },
     };
   }
@@ -93,24 +100,14 @@ export function useSportingAuthority(action: SportingAction) {
 export function useClassification(target: ClassificationTarget) {
   const authority = useSportingAuthority("classification");
   const client = useQueryClient();
-  const queryKey = getSessionQueryKey(
-    authority.session.generation,
+  const queries = createSportingAdministrationQueries(authority);
+  const options =
     target.kind === "pack"
-      ? getGetPackClassificationQueryKey(target.id)
-      : getGetPoolClassificationQueryKey(target.id),
-  );
+      ? queries.packClassification(target.id)
+      : queries.poolClassification(target.id);
+  const queryKey = options.queryKey;
   const saving = useIsMutating({ mutationKey: queryKey }) > 0;
-  const query = useQuery({
-    queryKey,
-    enabled: authority.enabled,
-    gcTime: 0,
-    queryFn: async ({ signal }) => {
-      const options = { ...(await authority.request()), signal };
-      return target.kind === "pack"
-        ? getPackClassification(target.id, options)
-        : getPoolClassification(target.id, options);
-    },
-  });
+  const query = useQuery(options);
   const save = useMutation({
     mutationKey: queryKey,
     gcTime: 0,
@@ -141,19 +138,9 @@ export function useClassification(target: ClassificationTarget) {
 /** Configuration list includes inactive entries for lifecycle context; consumers filter assignable choices. */
 export function useDivisions() {
   const authority = useSportingAuthority("divisions");
-  const query = useQuery({
-    queryKey: getSessionQueryKey(
-      authority.session.generation,
-      getListDivisionsQueryKey({ includeInactive: true }),
-    ),
-    enabled: authority.enabled,
-    gcTime: 0,
-    queryFn: async ({ signal }) =>
-      listDivisions(
-        { includeInactive: true },
-        { ...(await authority.request()), signal },
-      ),
-  });
+  const query = useQuery(
+    createSportingAdministrationQueries(authority).divisions(),
+  );
   return { authority, query };
 }
 /** Activity is a separate full-state command and always reconciles the original division on explicit reread. */

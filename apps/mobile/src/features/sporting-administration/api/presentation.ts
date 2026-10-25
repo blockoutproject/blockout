@@ -1,3 +1,4 @@
+import { createPresentationLogoQueryOptions } from "./presentation-logo-query";
 import {
   toCreateDivisionBody,
   toClubPresentationBody,
@@ -12,47 +13,30 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { useSportingAuthority } from "./classification";
+import { createSportingAdministrationQueries } from "./sporting-administration-queries";
 import { invalidateSportingReads } from "./invalidate-sporting-reads";
-import { useAuth0 } from "react-native-auth0";
 import {
-  getClubPresentation,
-  getTeamPresentation,
-  getPoolPresentation,
-  getDivision,
-  listDivisions,
   createDivision,
-  getListDivisionsQueryKey,
   setClubPresentation,
   setTeamPresentation,
   setPoolPresentation,
   setDivisionPresentation,
-  getGetClubPresentationQueryKey,
-  getGetTeamPresentationQueryKey,
-  getGetPoolPresentationQueryKey,
-  getGetDivisionQueryKey,
   getGetClubLogoQueryKey,
   getGetTeamLogoQueryKey,
   getGetDivisionLogoQueryKey,
-  getGetMyAccountQueryKey,
   getGetClubQueryKey,
   getGetTeamQueryKey,
   getGetPoolQueryKey,
-  getClubLogo,
-  getTeamLogo,
-  getDivisionLogo,
 } from "../../../../.generated/mobile";
 import type {
-  AccountResponse,
   SportingPresentationResponse,
   PoolPresentationResponse,
   DivisionResponse,
   DivisionListResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
-import { binaryImagePreview } from "../../../shared/api/binary-image-preview";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
-import { useAccountSession } from "../../accounts/current-account";
-import { useOperationalVersionAdmission } from "../../access/operational-version-admission";
 import type { PresentationValues } from "../forms/presentation-values";
 
 /** Stable original target; no identity, classification or activity can be changed by this editor. */
@@ -67,91 +51,74 @@ export type Presentation =
   | { kind: "division"; data: DivisionResponse }
   | { kind: "division-creation"; data: DivisionListResponse };
 
+/** Raw generated response families remain canonical regardless of the editor observing them. */
+type PresentationData =
+  | SportingPresentationResponse
+  | PoolPresentationResponse
+  | DivisionResponse
+  | DivisionListResponse;
+
+/** Adds the editor's discriminant after cache observation; generated schemas already validated each DTO. */
+function toPresentation(
+  target: PresentationTarget,
+  data: PresentationData,
+): Presentation {
+  if ("items" in data) return { kind: "division-creation", data };
+  if ("name" in data) return { kind: "division", data };
+  if ("logo" in data)
+    return { kind: target.kind === "club" ? "club" : "team", data };
+  return { kind: "pool", data };
+}
+
 /** Original-target reads, single atomic writes and current-session cache admission; never replays a mutation. */
 export function usePresentation(target: PresentationTarget, enabled: boolean) {
-  const session = useAccountSession();
-  const auth = useAuth0();
+  const authority = useSportingAuthority(
+    target.kind === "division-creation" || target.kind === "division"
+      ? "divisions"
+      : "presentation",
+  );
+  const { session } = authority;
   const client = useQueryClient();
-  const version = useOperationalVersionAdmission();
-  const generatedKey =
-    target.kind === "club"
-      ? getGetClubPresentationQueryKey(target.id)
-      : target.kind === "team"
-        ? getGetTeamPresentationQueryKey(target.id)
-        : target.kind === "pool"
-          ? getGetPoolPresentationQueryKey(target.id)
-          : target.kind === "division"
-            ? getGetDivisionQueryKey(target.id)
-            : [
-                ...getListDivisionsQueryKey({ includeInactive: true }),
-                "creation",
-              ];
-  const queryKey = getSessionQueryKey(session.generation, generatedKey);
-  const saving = useIsMutating({ mutationKey: queryKey }) > 0;
-
-  /** Rechecks current F05/F12 authority after credentials; the server still owns resource authorization. */
+  /** Reads use canonical resource grants; only commands additionally require this editor's availability. */
   async function request(signal?: AbortSignal, writing = false) {
-    const credentials = await auth.getCredentials();
-    if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
-    version.assertCurrent();
-    const account = client.getQueryState<AccountResponse>(
-      getSessionQueryKey(session.generation, getGetMyAccountQueryKey()),
-    );
-    const grants =
-      account?.status === "success" &&
-      account.data?.accountId === session.accountId
-        ? account.data.permissions
-        : undefined;
-    const allowed =
-      target.kind === "division-creation"
-        ? grants?.manageDivisionLifecycle === true
-        : target.kind === "division" && !writing
-          ? grants?.manageSportingPresentation === true ||
-            grants?.manageDivisionLifecycle === true ||
-            grants?.manageSportingClassification === true
-          : grants?.manageSportingPresentation === true;
-    if (!enabled || !allowed) throw new ApiError("http", 403);
-    if (!credentials) throw new ApiError("http", 401);
-    return {
-      session,
+    if (writing && !enabled) throw new ApiError("http", 403);
+    return authority.request(
       signal,
-      headers: { Authorization: `Bearer ${credentials.accessToken}` },
-    };
+      writing
+        ? target.kind === "division-creation"
+          ? "lifecycle"
+          : "presentation"
+        : undefined,
+    );
   }
-  const query = useQuery({
-    queryKey,
-    gcTime: 0,
-    enabled: enabled && version.satisfied && session.status === "authenticated",
-    queryFn: async ({ signal }): Promise<Presentation> => {
-      const options = await request(signal);
-      switch (target.kind) {
-        case "club":
-          return {
-            kind: "club",
-            data: await getClubPresentation(target.id, options),
-          };
-        case "team":
-          return {
-            kind: "team",
-            data: await getTeamPresentation(target.id, options),
-          };
-        case "pool":
-          return {
-            kind: "pool",
-            data: await getPoolPresentation(target.id, options),
-          };
-        case "division-creation":
-          return {
-            kind: "division-creation",
-            data: await listDivisions({ includeInactive: true }, options),
-          };
-        case "division":
-          return {
-            kind: "division",
-            data: await getDivision(target.id, options),
-          };
-      }
-    },
+  const queries = createSportingAdministrationQueries({
+    ...authority,
+    enabled: enabled && authority.enabled && session.status === "authenticated",
+    request,
+  });
+  const options =
+    target.kind === "club"
+      ? queries.clubPresentation(target.id)
+      : target.kind === "team"
+        ? queries.teamPresentation(target.id)
+        : target.kind === "pool"
+          ? queries.poolPresentation(target.id)
+          : target.kind === "division"
+            ? queries.division(target.id)
+            : queries.divisions();
+  const queryKey = options.queryKey;
+  const saving = useIsMutating({ mutationKey: queryKey }) > 0;
+  const query = useQuery<
+    PresentationData,
+    Error,
+    Presentation,
+    ReturnType<typeof getSessionQueryKey>
+  >({
+    queryKey: options.queryKey,
+    queryFn: options.queryFn,
+    gcTime: options.gcTime,
+    enabled: enabled && authority.enabled && session.status === "authenticated",
+    select: (data) => toPresentation(target, data),
   });
   const save = useMutation({
     mutationKey: queryKey,
@@ -217,12 +184,13 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
       if (!session.isCurrent(session.generation))
         throw new ApiError("cancelled");
       if (target.kind !== "division-creation")
-        client.setQueryData(queryKey, accepted);
+        client.setQueryData(queryKey, accepted.data);
       if (target.kind === "division" || target.kind === "division-creation") {
         invalidateSportingReads(client);
         void client.invalidateQueries({
           predicate: ({ queryKey: key }) =>
-            hashKey(key) !== hashKey(queryKey) &&
+            (target.kind === "division-creation" ||
+              hashKey(key) !== hashKey(queryKey)) &&
             key.some(
               (part) =>
                 typeof part === "string" &&
@@ -266,53 +234,21 @@ export function usePresentationLogo(
   enabled: boolean,
   revision: string,
 ) {
-  const session = useAccountSession();
-  const auth = useAuth0();
-  const version = useOperationalVersionAdmission();
-  const generatedKey =
-    target.kind === "team"
-      ? getGetTeamLogoQueryKey(target.id, { selection })
-      : target.kind === "club"
-        ? getGetClubLogoQueryKey(target.id)
-        : target.kind === "division"
-          ? getGetDivisionLogoQueryKey(target.id)
-          : [];
-  return useQuery({
-    queryKey: getSessionQueryKey(session.generation, [
-      ...generatedKey,
+  const authority = useSportingAuthority(
+    target.kind === "division" ? "divisions" : "presentation",
+  );
+  return useQuery(
+    createPresentationLogoQueryOptions(
+      {
+        ...authority,
+        enabled:
+          enabled &&
+          authority.enabled &&
+          authority.session.status === "authenticated",
+      },
+      target,
+      selection,
       revision,
-    ]),
-    enabled:
-      enabled &&
-      target.kind !== "pool" &&
-      target.kind !== "division-creation" &&
-      version.satisfied &&
-      session.status === "authenticated",
-    gcTime: 0,
-    queryFn: async ({ signal }) => {
-      const credentials = await auth.getCredentials();
-      if (!session.isCurrent(session.generation))
-        throw new ApiError("cancelled");
-      version.assertCurrent();
-      if (!credentials) throw new ApiError("http", 401);
-      const options = {
-        signal,
-        session,
-        headers: { Authorization: `Bearer ${credentials.accessToken}` },
-      };
-      const blob =
-        target.kind === "team"
-          ? await getTeamLogo(target.id, { selection }, options)
-          : target.kind === "club"
-            ? await getClubLogo(target.id, options)
-            : target.kind === "division"
-              ? await getDivisionLogo(target.id, options)
-              : undefined;
-      if (!blob) throw new ApiError("configuration");
-      const uri = await binaryImagePreview(blob, signal);
-      if (!session.isCurrent(session.generation) || signal.aborted)
-        throw new ApiError("cancelled");
-      return uri;
-    },
-  });
+    ),
+  );
 }

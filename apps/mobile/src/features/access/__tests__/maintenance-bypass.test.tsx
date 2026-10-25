@@ -10,7 +10,6 @@ import {
   getAccountPhoto,
   getGetMyAccountQueryKey,
   getMyAccount,
-  listClubs,
 } from "../../../../.generated/mobile";
 import { apiFetch } from "../../../shared/api/api-fetch";
 import {
@@ -22,7 +21,10 @@ import {
   AccountSessionProvider,
   useAccountSession,
 } from "../../accounts/session/account-session-provider";
-import { useProfileEditing } from "../../accounts/api/use-profile-editing";
+import {
+  useProfileEditing,
+  useProfilePhoto,
+} from "../../accounts/api/use-profile-editing";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import {
   credentialsFor,
@@ -34,7 +36,7 @@ import {
   useAccessAdmission,
 } from "../queries/use-access-admission";
 import { useOrdinaryRequest } from "../ordinary-request";
-import { createDiscoveryContext } from "../../discovery/api/discovery-context";
+import { createDiscoveryQueryOptions } from "../../discovery/api/discovery-queries";
 
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
@@ -352,12 +354,14 @@ it("never downgrades a captured public discovery bypass after its intent is clea
   });
   const intent = result.current.ordinary.bypass;
   expect(intent).toBeDefined();
-  const request = result.current.ordinary.request({
-    session: result.current.session,
-    headers: { Authorization: "Bearer existing" },
-  });
-  const context = createDiscoveryContext("club", {}, request);
-  expect(context.queryKey[0]).toBe("session");
+  const options = createDiscoveryQueryOptions(
+    "club",
+    { q: "Volley" },
+    result.current.session,
+    result.current.ordinary,
+    async () => ({ accessToken: "existing" }),
+  );
+  expect(options.queryKey[0]).toBe("session");
 
   // When
   await act(() => {
@@ -366,9 +370,9 @@ it("never downgrades a captured public discovery bypass after its intent is clea
   mockFetch.mockClear();
 
   // Then
-  await expect(
-    listClubs(context.params, context.request),
-  ).rejects.toMatchObject({ kind: "cancelled" });
+  await expect(client.infiniteQuery(options)).rejects.toMatchObject({
+    kind: "cancelled",
+  });
   expect(mockFetch).not.toHaveBeenCalled();
 });
 
@@ -492,4 +496,68 @@ it("aborts the captured bypass intent when its provider is removed", async () =>
 
   // Then: an intent retained by asynchronous work cannot outlive its provider.
   expect(captured?.signal.aborted).toBe(true);
+});
+
+it("cancels a profile photo conversion when its captured bypass intent ends", async () => {
+  // Given: real Query/session/F12 owners and generated transport; only native FileReader is controlled.
+  const previousReader = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "FileReader",
+  );
+  const readers: PhotoReader[] = [];
+  /** Retains one native conversion until this scenario delivers cancellation or a late completion. */
+  class PhotoReader {
+    static LOADING = 1;
+    readyState = PhotoReader.LOADING;
+    result = "data:image/png;base64,obsolete";
+    onload: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    abort = jest.fn();
+    /** Marks this conversion as started without completing native I/O. */
+    readAsDataURL() {
+      readers.push(this);
+    }
+  }
+  Object.defineProperty(globalThis, "FileReader", {
+    configurable: true,
+    value: PhotoReader,
+  });
+  try {
+    const { result } = await renderHook(
+      () => {
+        const access = useAccessAdmission();
+        const ordinary = useOrdinaryRequest();
+        const photo = useProfilePhoto(
+          account.accountId,
+          Boolean(ordinary.bypass),
+        );
+        return { access, photo };
+      },
+      { wrapper: Providers },
+    );
+    await waitFor(() => expect(result.current.access.canBypass).toBe(true));
+    await act(() => {
+      result.current.access.bypassMaintenance();
+    });
+    await waitFor(() => expect(readers).toHaveLength(1));
+    const lateCompletion = readers[0].onload;
+
+    // When
+    await act(() => {
+      result.current.access.bypass.clear();
+      lateCompletion?.();
+    });
+
+    // Then
+    await waitFor(() =>
+      expect(result.current.photo.error).toMatchObject({ kind: "cancelled" }),
+    );
+    expect(readers[0].abort).toHaveBeenCalledTimes(1);
+    expect(result.current.photo.data).toBeUndefined();
+    expect(readers[0].onload).toBeNull();
+  } finally {
+    if (previousReader)
+      Object.defineProperty(globalThis, "FileReader", previousReader);
+    else Reflect.deleteProperty(globalThis, "FileReader");
+  }
 });
