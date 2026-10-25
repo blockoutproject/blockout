@@ -1,5 +1,6 @@
 package com.blockout.backend.accounts.application;
 
+import com.blockout.backend.accounts.application.exception.AccountCreationConflictException;
 import com.blockout.backend.accounts.application.exception.AccountUnavailableException;
 import com.blockout.backend.accounts.application.exception.ProviderEmailUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
@@ -8,8 +9,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.exception.ConstraintViolationException;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
@@ -85,8 +84,8 @@ public class EstablishAccount {
       try {
         return transaction.execute(
             status -> commit(issuer, subject, original, available, providerUnavailable));
-      } catch (DataIntegrityViolationException failure) {
-        if (!isEstablishmentCollision(failure)) throw failure;
+      } catch (AccountCreationConflictException conflict) {
+        // The failed insert transaction has rolled back before another candidate is considered.
       }
     }
     throw new AccountUnavailableException();
@@ -127,22 +126,6 @@ public class EstablishAccount {
     String username = "Player_" + UUID.randomUUID().toString().replace("-", "").substring(0, 24);
     return new Outcome(
         accounts.create(issuer, subject, username, evidence.email(), evidence.createdAt()), true);
-  }
-
-  /**
-   * Retries only the two named account uniqueness races after transaction rollback.
-   *
-   * @param failure translated database refusal
-   * @return whether another principal read/new neutral candidate can settle this race
-   */
-  private static boolean isEstablishmentCollision(DataIntegrityViolationException failure) {
-    for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-      if (cause instanceof ConstraintViolationException constraint) {
-        return "uk_account_principal".equals(constraint.getConstraintName())
-            || "uk_account_username".equals(constraint.getConstraintName());
-      }
-    }
-    return false;
   }
 
   /**

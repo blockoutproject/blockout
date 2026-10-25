@@ -9,6 +9,8 @@ import com.blockout.backend.access.domain.MaintenanceSettings;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Maps only valid current database state; initialization is exclusively migration-owned. */
 @Repository
@@ -30,18 +32,21 @@ public class JpaAccessSettingsStore implements AccessSettingsStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public MaintenanceSettings maintenanceForChange() {
     return maintenance(row("maintenance", true));
   }
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public ApplicationVersionSettings versionsForChange() {
     return versions(row("versions", true));
   }
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public MaintenanceSettings saveMaintenance(MaintenanceSettings settings) {
     AccessSettingsEntity entity = row("maintenance", false);
     entity.maintenance(settings);
@@ -51,6 +56,7 @@ public class JpaAccessSettingsStore implements AccessSettingsStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public ApplicationVersionSettings saveVersions(ApplicationVersionSettings settings) {
     AccessSettingsEntity entity = row("versions", false);
     entity.versions(settings);
@@ -62,22 +68,19 @@ public class JpaAccessSettingsStore implements AccessSettingsStore {
   @Override
   public Snapshot readComplete() {
     AccessSettingsRows value = rows.complete().orElseThrow(AccessSettingsUnavailableException::new);
-    try {
-      if (value.active() == null) throw new IllegalArgumentException("Missing active state");
-      return new Snapshot(
-          new MaintenanceSettings(
-              value.maintenanceRevision(),
-              value.active(),
-              value.maintenanceMessage(),
-              value.imageUrl()),
-          new ApplicationVersionSettings(
-              value.versionsRevision(),
-              new Platform(value.iosMinimumVersion(), value.iosStoreUrl()),
-              new Platform(value.androidMinimumVersion(), value.androidStoreUrl()),
-              value.updateMessage()));
-    } catch (IllegalArgumentException invalid) {
-      throw new AccessSettingsUnavailableException(invalid);
-    }
+    return new Snapshot(
+        maintenance(
+            value.maintenanceRevision(),
+            value.active(),
+            value.maintenanceMessage(),
+            value.imageUrl()),
+        versions(
+            value.versionsRevision(),
+            value.iosMinimumVersion(),
+            value.iosStoreUrl(),
+            value.androidMinimumVersion(),
+            value.androidStoreUrl(),
+            value.updateMessage()));
   }
 
   /**
@@ -89,7 +92,7 @@ public class JpaAccessSettingsStore implements AccessSettingsStore {
    * @throws AccessSettingsUnavailableException if the required row is missing
    */
   private AccessSettingsEntity row(String id, boolean forChange) {
-    return (forChange ? rows.forChange(id) : rows.findById(id))
+    return (forChange ? rows.findByIdForUpdate(id) : rows.findById(id))
         .orElseThrow(AccessSettingsUnavailableException::new);
   }
 
@@ -101,10 +104,25 @@ public class JpaAccessSettingsStore implements AccessSettingsStore {
    * @throws AccessSettingsUnavailableException for invalid persisted state
    */
   private static MaintenanceSettings maintenance(AccessSettingsEntity entity) {
+    return maintenance(
+        entity.getRevision(), entity.getActive(), entity.getMessage(), entity.getImageUrl());
+  }
+
+  /**
+   * Validates the same stored maintenance facts from entity and complete snapshot reads.
+   *
+   * @param revision current group revision
+   * @param active required stored activation state
+   * @param message optional prepared message
+   * @param imageUrl optional prepared image
+   * @return complete valid maintenance state
+   * @throws AccessSettingsUnavailableException for invalid persisted state
+   */
+  private static MaintenanceSettings maintenance(
+      long revision, Boolean active, String message, String imageUrl) {
     try {
-      if (entity.getActive() == null) throw new IllegalArgumentException("Missing active state");
-      return new MaintenanceSettings(
-          entity.getRevision(), entity.getActive(), entity.getMessage(), entity.getImageUrl());
+      if (active == null) throw new IllegalArgumentException("Missing active state");
+      return new MaintenanceSettings(revision, active, message, imageUrl);
     } catch (IllegalArgumentException invalid) {
       throw new AccessSettingsUnavailableException(invalid);
     }
@@ -118,12 +136,40 @@ public class JpaAccessSettingsStore implements AccessSettingsStore {
    * @throws AccessSettingsUnavailableException for invalid persisted state
    */
   private static ApplicationVersionSettings versions(AccessSettingsEntity entity) {
+    return versions(
+        entity.getRevision(),
+        entity.getIosMinimumVersion(),
+        entity.getIosStoreUrl(),
+        entity.getAndroidMinimumVersion(),
+        entity.getAndroidStoreUrl(),
+        entity.getMessage());
+  }
+
+  /**
+   * Validates both platform settings consistently for entity and complete snapshot reads.
+   *
+   * @param revision current shared versions revision
+   * @param iosMinimumVersion optional stored iOS minimum
+   * @param iosStoreUrl optional stored iOS destination
+   * @param androidMinimumVersion optional stored Android minimum
+   * @param androidStoreUrl optional stored Android destination
+   * @param message optional shared update message
+   * @return complete valid versions state
+   * @throws AccessSettingsUnavailableException for invalid persisted state
+   */
+  private static ApplicationVersionSettings versions(
+      long revision,
+      String iosMinimumVersion,
+      String iosStoreUrl,
+      String androidMinimumVersion,
+      String androidStoreUrl,
+      String message) {
     try {
       return new ApplicationVersionSettings(
-          entity.getRevision(),
-          new Platform(entity.getIosMinimumVersion(), entity.getIosStoreUrl()),
-          new Platform(entity.getAndroidMinimumVersion(), entity.getAndroidStoreUrl()),
-          entity.getMessage());
+          revision,
+          new Platform(iosMinimumVersion, iosStoreUrl),
+          new Platform(androidMinimumVersion, androidStoreUrl),
+          message);
     } catch (IllegalArgumentException invalid) {
       throw new AccessSettingsUnavailableException(invalid);
     }

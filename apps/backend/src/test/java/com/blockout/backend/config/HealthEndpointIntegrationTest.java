@@ -18,7 +18,7 @@ import com.blockout.backend.following.application.FollowStore;
 import com.blockout.backend.notifications.application.InboxReadStore;
 import com.blockout.backend.notifications.application.NotificationStore;
 import com.blockout.backend.sporting.application.ConsultationMatchSelection;
-import com.blockout.backend.sporting.application.ConsultationReadPort;
+import com.blockout.backend.sporting.application.ConsultationStore;
 import com.blockout.backend.sporting.application.port.SportingReadStore;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import org.junit.jupiter.api.DisplayName;
@@ -57,7 +57,10 @@ class HealthEndpointIntegrationTest {
 
   // Business persistence is outside the operational HTTP boundary qualified by this context.
   @MockitoBean private SportingStore sportingStore;
-  @MockitoBean private ConsultationReadPort consultationReads;
+
+  @MockitoBean(extraInterfaces = ConsultationMatchSelection.class)
+  private ConsultationStore consultationReads;
+
   @MockitoBean private SportingReadStore sportingReads;
   @MockitoBean private CollectionStore collectionStore;
 
@@ -67,7 +70,6 @@ class HealthEndpointIntegrationTest {
   @MockitoBean private FollowStore follows;
   @MockitoBean private NotificationStore notifications;
   @MockitoBean private InboxReadStore inbox;
-  @MockitoBean private ConsultationMatchSelection matchSelection;
   @MockitoBean private ContributionStore contributions;
   @MockitoBean private EstablishAccount establishment;
   @MockitoBean private PermissionStore permissions;

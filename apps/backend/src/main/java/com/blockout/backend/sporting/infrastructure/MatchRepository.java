@@ -4,6 +4,7 @@ import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -75,5 +76,36 @@ interface MatchRepository extends JpaRepository<MatchEntity, UUID> {
    */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT m FROM MatchEntity m WHERE m.id = :id")
-  Optional<MatchEntity> lockById(UUID id);
+  Optional<MatchEntity> findByIdForUpdate(UUID id);
+
+  /**
+   * Projects current visibility without loading result, document or image state.
+   *
+   * @param id exact match identity
+   * @return scalar current restrictions, or empty for an unknown match
+   */
+  @Query(
+      """
+      SELECT NEW com.blockout.backend.sporting.infrastructure.MatchVisibilityRow(
+        p.id, p.catalogEligible, p.calendarEmpty, d.id, d.active,
+        m.present, m.localDate, m.homeTeam.id, m.awayTeam.id)
+      FROM MatchEntity m JOIN m.pool p LEFT JOIN p.division d WHERE m.id = :id
+      """)
+  Optional<MatchVisibilityRow> findVisibility(UUID id);
+
+  /**
+   * Hydrates a bounded admitted selection with the to-one presentation graph.
+   *
+   * @param ids match identities selected before pagination
+   * @return managed matches without multiplying roots through collection fetches
+   */
+  @Query(
+      """
+      SELECT m FROM MatchEntity m
+      JOIN FETCH m.pool p JOIN FETCH p.season JOIN FETCH p.division
+      JOIN FETCH m.homeTeam h JOIN FETCH h.season JOIN FETCH h.division LEFT JOIN FETCH h.club
+      JOIN FETCH m.awayTeam a JOIN FETCH a.season JOIN FETCH a.division LEFT JOIN FETCH a.club
+      WHERE m.id IN :ids
+      """)
+  List<MatchEntity> findPresentationByIdIn(Set<UUID> ids);
 }

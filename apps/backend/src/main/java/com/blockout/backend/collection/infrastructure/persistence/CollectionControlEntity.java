@@ -54,8 +54,14 @@ class CollectionControlEntity {
 
   @Setter private UUID currentCycleId;
   @Setter private Instant lastStartedAt;
-  @Setter private Instant lastAttemptAt;
-  @Setter private Instant lastSuccessAt;
+
+  // Only the monotonic freshness queries write these fields, without advancing editor revision.
+  // Excluding them from entity UPDATEs prevents a later intent change from restoring stale values.
+  @Column(updatable = false)
+  private Instant lastAttemptAt;
+
+  @Column(updatable = false)
+  private Instant lastSuccessAt;
 
   @ElementCollection
   @Fetch(FetchMode.SUBSELECT)

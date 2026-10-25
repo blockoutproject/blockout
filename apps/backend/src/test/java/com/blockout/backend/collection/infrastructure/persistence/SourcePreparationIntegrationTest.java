@@ -50,6 +50,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.util.AopTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -432,6 +433,9 @@ class SourcePreparationIntegrationTest {
     runtimes.register(runtimes.current().revision(), replacement);
     TransactionTemplate renewal = new TransactionTemplate(transactions);
     renewal.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    // Configure Mockito without entering transaction advice; application actions retain their
+    // proxy.
+    CollectionStore persistence = AopTestUtils.getUltimateTargetObject(store);
     doAnswer(
             invocation -> {
               Object loaded = invocation.callRealMethod();
@@ -440,7 +444,7 @@ class SourcePreparationIntegrationTest {
                   status -> preparation.requestValidation(ACCOUNT, SOURCE, pending.revision()));
               return loaded;
             })
-        .when(store)
+        .when(persistence)
         .source(SOURCE);
 
     // When

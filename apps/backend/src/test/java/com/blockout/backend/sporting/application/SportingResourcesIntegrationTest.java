@@ -9,7 +9,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
-import com.blockout.backend.sporting.application.ConsultationReadPort.ClubSeasonRequest;
+import com.blockout.backend.sporting.application.ConsultationStore.ClubSeasonRequest;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;

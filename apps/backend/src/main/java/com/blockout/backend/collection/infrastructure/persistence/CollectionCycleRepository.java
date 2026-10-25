@@ -31,7 +31,7 @@ interface CollectionCycleRepository extends JpaRepository<CollectionCycleEntity,
    */
   @Lock(LockModeType.PESSIMISTIC_READ)
   @Query("SELECT c FROM CollectionCycleEntity c WHERE c.id = :id")
-  Optional<CollectionCycleEntity> lockById(UUID id);
+  Optional<CollectionCycleEntity> findByIdForShare(UUID id);
 
   /**
    * Serializes evidence recording with terminal completion.
@@ -41,7 +41,7 @@ interface CollectionCycleRepository extends JpaRepository<CollectionCycleEntity,
    */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT c FROM CollectionCycleEntity c WHERE c.id = :id")
-  Optional<CollectionCycleEntity> lockForUpdate(UUID id);
+  Optional<CollectionCycleEntity> findByIdForUpdate(UUID id);
 
   /**
    * Reads a retained cycle by its external UUID.

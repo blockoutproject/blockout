@@ -8,7 +8,6 @@ import com.blockout.backend.contributions.domain.ContributionVersion.DecisionKin
 import com.blockout.backend.contributions.domain.ContributionVersion.State;
 import com.blockout.backend.contributions.domain.StreamAddress;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.Tuple;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -17,9 +16,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /** JPA contribution persistence; callers own ordered sporting/account locks and transactions. */
 @Repository
@@ -33,14 +35,7 @@ public class JpaContributionStore implements ContributionStore {
   @Override
   public Set<UUID> activeMatchIds(Set<UUID> matchIds) {
     if (matchIds.isEmpty()) return Set.of();
-    return Set.copyOf(
-        entities
-            .createQuery(
-                "SELECT v.matchId FROM ContributionVersionEntity v WHERE v.matchId IN :ids AND v.state = :active",
-                UUID.class)
-            .setParameter("ids", matchIds)
-            .setParameter("active", State.ACTIVE)
-            .getResultList());
+    return Set.copyOf(versions.findMatchIdsByMatchIdInAndState(matchIds, State.ACTIVE));
   }
 
   /** {@inheritDoc} */
@@ -67,26 +62,18 @@ public class JpaContributionStore implements ContributionStore {
   /** {@inheritDoc} */
   @Override
   public ContributionQuota.Usage usage(UUID ownerId, UUID matchId, ContributionQuota.Day day) {
-    return versions.usage(ownerId, matchId, day);
+    return versions.usage(ownerId, matchId, day.startsAt(), day.endsAt());
   }
 
   /** {@inheritDoc} */
   @Override
   public Set<UUID> attributionAccounts(UUID matchId) {
-    List<Tuple> rows =
-        entities
-            .createQuery(
-                "SELECT v.ownerId AS owner, v.publicationActorId AS publicationActor, v.decisionActorId AS decisionActor FROM ContributionVersionEntity v WHERE v.matchId = :match AND v.state IN :states",
-                Tuple.class)
-            .setParameter("match", matchId)
-            .setParameter("states", List.of(State.ACTIVE, State.PENDING))
-            .getResultList();
     Set<UUID> accounts = new HashSet<>();
-    for (Tuple row : rows) {
-      for (String field : List.of("owner", "publicationActor", "decisionActor")) {
-        UUID account = row.get(field, UUID.class);
-        if (account != null) accounts.add(account);
-      }
+    for (ContributionVersionRepository.Attribution row :
+        versions.findAttributions(matchId, List.of(State.ACTIVE, State.PENDING))) {
+      if (row.getOwnerId() != null) accounts.add(row.getOwnerId());
+      if (row.getPublicationActorId() != null) accounts.add(row.getPublicationActorId());
+      if (row.getDecisionActorId() != null) accounts.add(row.getDecisionActorId());
     }
     return Set.copyOf(accounts);
   }
@@ -109,6 +96,7 @@ public class JpaContributionStore implements ContributionStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public ContributionVersion record(
       UUID matchId,
       UUID ownerId,
@@ -127,7 +115,7 @@ public class JpaContributionStore implements ContributionStore {
         decide(old, State.SUPERSEDED, DecisionKind.SUPERSESSION, ownerId, now);
     }
     // Native insert ordering would otherwise place INSERT before UPDATE against partial uniqueness.
-    entities.flush();
+    versions.flush();
     ContributionVersionEntity created =
         new ContributionVersionEntity(
             matchId,
@@ -142,7 +130,7 @@ public class JpaContributionStore implements ContributionStore {
       created.setPublicationAt(now);
       created.setPublicationActorId(ownerId);
     }
-    entities.persist(created);
+    versions.save(created);
     for (ContributionVersionEntity old : replaced) old.setReplacedByVersionId(created.getId());
     return mapper.toVersion(created);
   }
@@ -166,10 +154,12 @@ public class JpaContributionStore implements ContributionStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public ContributionState advance(UUID matchId, boolean clearHold) {
     MatchContributionStateEntity state = entities.find(MatchContributionStateEntity.class, matchId);
     if (state == null) {
       state = new MatchContributionStateEntity(matchId);
+      // The match supplies this ID: persist must reject a duplicate, never merge an old revision.
       entities.persist(state);
     }
     state.setRevision(state.getRevision() + 1);
@@ -180,17 +170,6 @@ public class JpaContributionStore implements ContributionStore {
   /** {@inheritDoc} */
   @Override
   public List<UUID> activeMatches(UUID afterId) {
-    String after = afterId == null ? "" : " AND v.matchId > :after";
-    jakarta.persistence.TypedQuery<UUID> query =
-        entities
-            .createQuery(
-                "SELECT v.matchId FROM ContributionVersionEntity v WHERE v.state = :state"
-                    + after
-                    + " ORDER BY v.matchId",
-                UUID.class)
-            .setParameter("state", State.ACTIVE)
-            .setMaxResults(100);
-    if (afterId != null) query.setParameter("after", afterId);
-    return query.getResultList();
+    return versions.findMatchIdsAfter(State.ACTIVE, afterId, Limit.of(100));
   }
 }

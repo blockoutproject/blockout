@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,6 +15,49 @@ import org.springframework.data.jpa.repository.Query;
 
 /** Current versions, native history slices and quota aggregates over persisted creation facts. */
 interface ContributionVersionRepository extends JpaRepository<ContributionVersionEntity, UUID> {
+  /**
+   * Selects active public-link identities for an already admitted bounded match selection.
+   *
+   * @param matchIds current sporting identities
+   * @param state active lifecycle selected by the store
+   * @return matching identities without loading contribution bodies
+   */
+  @Query(
+      "SELECT v.matchId FROM ContributionVersionEntity v WHERE v.matchId IN :matchIds AND v.state = :state")
+  List<UUID> findMatchIdsByMatchIdInAndState(Collection<UUID> matchIds, State state);
+
+  /**
+   * Selects every attribution needed before acquiring account locks in UUID order.
+   *
+   * @param matchId encounter protected by its sporting locks
+   * @param states current version lifecycles
+   * @return nullable original attribution identities without entity hydration
+   */
+  @Query(
+      "SELECT v.ownerId AS ownerId, v.publicationActorId AS publicationActorId, v.decisionActorId AS decisionActorId FROM ContributionVersionEntity v WHERE v.matchId = :matchId AND v.state IN :states")
+  List<Attribution> findAttributions(UUID matchId, Collection<State> states);
+
+  /**
+   * Reads a bounded deterministic maintenance batch, exclusive of the last processed match.
+   *
+   * @param state active lifecycle selected by the store
+   * @param afterId exclusive match UUID, or null for the first batch
+   * @param limit maximum batch size
+   * @return ordered match identities; active uniqueness guarantees no duplicates
+   */
+  @Query(
+      "SELECT v.matchId FROM ContributionVersionEntity v WHERE v.state = :state AND (:afterId IS NULL OR v.matchId > :afterId) ORDER BY v.matchId")
+  List<UUID> findMatchIdsAfter(State state, UUID afterId, Limit limit);
+
+  /** Scalar attribution projection; null means absent attribution or an erased original account. */
+  interface Attribution {
+    UUID getOwnerId();
+
+    UUID getPublicationActorId();
+
+    UUID getDecisionActorId();
+  }
+
   /**
    * Reads the single version in a match state protected by native conditional uniqueness.
    *
@@ -75,16 +119,4 @@ interface ContributionVersionRepository extends JpaRepository<ContributionVersio
       WHERE v.ownerId = :ownerId AND v.quotaParticipating = TRUE
       """)
   ContributionQuota.Usage usage(UUID ownerId, UUID matchId, Instant start, Instant end);
-
-  /**
-   * Reads one coherent aggregate; write protection still requires the command's account lock.
-   *
-   * @param ownerId usable original account
-   * @param matchId target match
-   * @param day successive Paris-midnight boundaries
-   * @return detached ordinary usage without any update or quota refund
-   */
-  default ContributionQuota.Usage usage(UUID ownerId, UUID matchId, ContributionQuota.Day day) {
-    return usage(ownerId, matchId, day.startsAt(), day.endsAt());
-  }
 }

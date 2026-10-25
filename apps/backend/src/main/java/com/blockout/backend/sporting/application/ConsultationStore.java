@@ -17,7 +17,7 @@ import java.util.UUID;
  * unknown or currently hidden, while dependency failures propagate rather than becoming empty data.
  * Calendar, standings, participant and document operations are added by their owning story tasks.
  */
-public interface ConsultationReadPort {
+public interface ConsultationStore {
   /**
    * Reads current public club identity without contacts, locality or season collections.
    *

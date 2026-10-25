@@ -2,6 +2,7 @@ package com.blockout.backend.accounts.infrastructure;
 
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.accounts.application.ProfilePhoto;
+import com.blockout.backend.accounts.application.exception.AccountCreationConflictException;
 import com.blockout.backend.accounts.application.exception.UsernameUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
@@ -45,7 +46,7 @@ public class JpaAccountStore implements AccountStore {
   /** {@inheritDoc} */
   @Override
   public boolean hasPhoto(UUID id) {
-    return accounts.hasPhoto(id);
+    return photos.existsByIdAndBytesIsNotNull(id);
   }
 
   /** {@inheritDoc} */
@@ -65,11 +66,8 @@ public class JpaAccountStore implements AccountStore {
       // Flush before returning so only the named username constraint becomes a business refusal.
       accounts.flush();
     } catch (DataIntegrityViolationException failure) {
-      for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-        if (cause instanceof ConstraintViolationException constraint
-            && "uk_account_username".equals(constraint.getConstraintName()))
-          throw new UsernameUnavailableException();
-      }
+      if ("uk_account_username".equals(constraintName(failure)))
+        throw new UsernameUnavailableException();
       throw failure;
     }
   }
@@ -78,7 +76,7 @@ public class JpaAccountStore implements AccountStore {
   @Override
   @Transactional(propagation = Propagation.MANDATORY)
   public Optional<Account> lockById(UUID id) {
-    return accounts.lockById(id).map(mapper::toDomain);
+    return accounts.findByIdForUpdate(id).map(mapper::toDomain);
   }
 
   /** {@inheritDoc} */
@@ -86,8 +84,17 @@ public class JpaAccountStore implements AccountStore {
   @Transactional(propagation = Propagation.MANDATORY)
   public Account create(
       String issuer, String subject, String username, String email, Instant principalCreatedAt) {
-    return mapper.toDomain(
-        accounts.save(new AccountEntity(issuer, subject, username, email, principalCreatedAt)));
+    try {
+      // Immediate uniqueness must be translated here, then retried only after caller rollback.
+      return mapper.toDomain(
+          accounts.saveAndFlush(
+              new AccountEntity(issuer, subject, username, email, principalCreatedAt)));
+    } catch (DataIntegrityViolationException failure) {
+      String constraint = constraintName(failure);
+      if ("uk_account_principal".equals(constraint) || "uk_account_username".equals(constraint))
+        throw new AccountCreationConflictException(failure);
+      throw failure;
+    }
   }
 
   /** {@inheritDoc} */
@@ -95,7 +102,7 @@ public class JpaAccountStore implements AccountStore {
   @Transactional(propagation = Propagation.MANDATORY)
   public Optional<Account> synchronize(UUID id, String email, Instant principalCreatedAt) {
     return accounts
-        .lockById(id)
+        .findByIdForUpdate(id)
         .map(
             entity -> {
               Account updated =
@@ -104,5 +111,19 @@ public class JpaAccountStore implements AccountStore {
               entity.setPrincipalCreatedAt(updated.principalCreatedAt());
               return updated;
             });
+  }
+
+  /**
+   * Reads the database constraint identity without inferring a business refusal from SQL text.
+   *
+   * @param failure translated persistence failure
+   * @return exact named constraint, or null for another integrity failure
+   */
+  private static String constraintName(DataIntegrityViolationException failure) {
+    for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+      if (cause instanceof ConstraintViolationException constraint)
+        return constraint.getConstraintName();
+    }
+    return null;
   }
 }

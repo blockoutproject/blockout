@@ -47,7 +47,7 @@ interface DivisionRepository extends JpaRepository<DivisionEntity, UUID> {
    */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT d FROM DivisionEntity d WHERE d.id = :id")
-  Optional<DivisionEntity> lockById(UUID id);
+  Optional<DivisionEntity> findByIdForUpdate(UUID id);
 
   /**
    * Reads list metadata and image presence using database case folding and UUID ordering.
@@ -59,4 +59,14 @@ interface DivisionRepository extends JpaRepository<DivisionEntity, UUID> {
       SUMMARY_SELECT
           + " WHERE :includeInactive = TRUE OR d.active = TRUE ORDER BY LOWER(d.name), d.id")
   List<DivisionSummary> findConfigured(boolean includeInactive);
+
+  /**
+   * Reads all configured terms for one bounded division selection.
+   *
+   * @param ids selected division identities
+   * @return owner-keyed terms without loading division artwork
+   */
+  @Query(
+      "SELECT NEW com.blockout.backend.sporting.infrastructure.DivisionTermRow(d.id, term) FROM DivisionEntity d JOIN d.searchTerms term WHERE d.id IN :ids")
+  List<DivisionTermRow> findTerms(Set<UUID> ids);
 }

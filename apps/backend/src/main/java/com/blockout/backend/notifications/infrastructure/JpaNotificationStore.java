@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,40 +22,21 @@ import org.springframework.transaction.annotation.Transactional;
 public class JpaNotificationStore implements NotificationStore {
   private static final int PURGE_BATCH_SIZE = 100;
   private final EntityManager entities;
+  private final NotificationRepository notifications;
 
   /** {@inheritDoc} */
   @Override
   public PurgeBatch deleteExpired(Instant cutoff) {
-    List<UUID> selected =
-        entities
-            .createQuery(
-                "SELECT n.id FROM NotificationEntity n WHERE n.createdAt<=:cutoff ORDER BY n.createdAt,n.id",
-                UUID.class)
-            .setParameter("cutoff", cutoff)
-            .setMaxResults(PURGE_BATCH_SIZE)
-            .getResultList();
+    List<UUID> selected = notifications.findExpiredIds(cutoff, Limit.of(PURGE_BATCH_SIZE));
     if (selected.isEmpty()) return new PurgeBatch(0, false);
-    int deleted =
-        entities
-            .createQuery(
-                "DELETE FROM NotificationEntity n WHERE n.id IN :ids AND n.createdAt<=:cutoff")
-            .setParameter("ids", selected)
-            .setParameter("cutoff", cutoff)
-            .executeUpdate();
+    int deleted = notifications.deleteExpired(selected, cutoff);
     return new PurgeBatch(deleted, selected.size() == PURGE_BATCH_SIZE);
   }
 
   /** {@inheritDoc} */
   @Override
   public boolean markRead(NotificationContext owner, UUID id, Instant now) {
-    return entities
-            .createQuery(
-                "UPDATE NotificationEntity n SET n.read=TRUE WHERE n.id=:id AND n.accountId=:owner AND n.createdAt>:cutoff")
-            .setParameter("id", id)
-            .setParameter("owner", owner.accountId())
-            .setParameter("cutoff", now.minus(InboxReadStore.RETENTION))
-            .executeUpdate()
-        == 1;
+    return notifications.markRead(owner.accountId(), id, now.minus(InboxReadStore.RETENTION)) == 1;
   }
 
   /** {@inheritDoc} */
@@ -68,6 +50,7 @@ public class JpaNotificationStore implements NotificationStore {
   @Override
   public void saveFacts(MatchAnnouncementFacts facts) {
     MatchAnnouncementEntity entity = entities.find(MatchAnnouncementEntity.class, facts.matchId());
+    // Assigned match IDs are insert-only; merging could replace already consumed allowances.
     if (entity == null) entities.persist(new MatchAnnouncementEntity(facts));
     else entity.advance(facts);
   }
@@ -75,6 +58,7 @@ public class JpaNotificationStore implements NotificationStore {
   /** {@inheritDoc} */
   @Override
   public void create(Entry entry) {
+    // Allocations have caller-assigned IDs: a duplicate must fail, never merge immutable facts.
     entities.persist(new NotificationEntity(entry));
   }
 }

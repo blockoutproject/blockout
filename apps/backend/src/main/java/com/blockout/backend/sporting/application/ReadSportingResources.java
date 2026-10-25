@@ -1,7 +1,7 @@
 package com.blockout.backend.sporting.application;
 
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
-import com.blockout.backend.sporting.application.ConsultationReadPort.ClubSeasonRequest;
+import com.blockout.backend.sporting.application.ConsultationStore.ClubSeasonRequest;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import com.blockout.backend.sporting.application.service.SportingReadService;
@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 public class ReadSportingResources {
-  private final ConsultationReadPort reads;
+  private final ConsultationStore reads;
   private final SportingReadService owners;
 
   /**

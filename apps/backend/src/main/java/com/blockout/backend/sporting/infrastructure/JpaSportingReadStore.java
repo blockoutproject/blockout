@@ -11,7 +11,6 @@ import com.blockout.backend.sporting.application.model.SportingVisibility;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Reason;
 import com.blockout.backend.sporting.application.port.SportingReadStore;
-import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -23,19 +22,19 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 /** Canonical JPA reads; search engines and retained follows never authorize public hydration. */
 @Repository
 @RequiredArgsConstructor
 public class JpaSportingReadStore implements SportingReadStore {
-  private static final String POOL_VISIBLE =
-      "p.catalogEligible = TRUE AND p.calendarEmpty = FALSE AND p.division.active = TRUE";
-  private static final String TEAM_VISIBLE =
-      "t.division.active = TRUE AND EXISTS (SELECT r.id FROM ParticipationEntity r JOIN r.pool p WHERE r.team = t AND r.current = TRUE AND "
-          + POOL_VISIBLE
-          + ")";
-  private final EntityManager entities;
+  private final ClubRepository clubs;
+  private final PoolRepository pools;
+  private final TeamRepository teams;
+  private final MatchRepository matches;
+  private final DivisionRepository divisions;
+  private final ParticipationRepository participations;
   private final SportingIdentityMapper mapper;
 
   /** {@inheritDoc} */
@@ -44,24 +43,10 @@ public class JpaSportingReadStore implements SportingReadStore {
     Set<Reason> reasons = EnumSet.noneOf(Reason.class);
     switch (kind) {
       case CLUB -> {
-        if (entities
-            .createQuery("SELECT c.id FROM ClubEntity c WHERE c.id = :id", UUID.class)
-            .setParameter("id", id)
-            .getResultList()
-            .isEmpty()) return Optional.empty();
+        if (!clubs.existsById(id)) return Optional.empty();
       }
       case POOL -> {
-        PoolVisibilityRow pool =
-            entities
-                .createQuery(
-                    """
-            SELECT NEW com.blockout.backend.sporting.infrastructure.PoolVisibilityRow(
-              p.catalogEligible, p.calendarEmpty, d.id, d.active)
-            FROM PoolEntity p LEFT JOIN p.division d WHERE p.id = :id
-            """,
-                    PoolVisibilityRow.class)
-                .setParameter("id", id)
-                .getSingleResultOrNull();
+        PoolVisibilityRow pool = pools.findVisibility(id).orElse(null);
         if (pool == null) return Optional.empty();
         reasons.addAll(
             poolReasons(
@@ -71,29 +56,13 @@ public class JpaSportingReadStore implements SportingReadStore {
                 pool.divisionActive()));
       }
       case TEAM -> {
-        Boolean active =
-            entities
-                .createQuery(
-                    "SELECT t.division.active FROM TeamEntity t WHERE t.id = :id", Boolean.class)
-                .setParameter("id", id)
-                .getSingleResultOrNull();
+        Boolean active = teams.findDivisionActivity(id).orElse(null);
         if (active == null) return Optional.empty();
         if (!active) reasons.add(Reason.DIVISION_INACTIVE);
         if (visiblePoolIds(Set.of(id)).isEmpty()) reasons.add(Reason.NO_VISIBLE_PARTICIPATION);
       }
       case MATCH -> {
-        MatchVisibilityRow match =
-            entities
-                .createQuery(
-                    """
-            SELECT NEW com.blockout.backend.sporting.infrastructure.MatchVisibilityRow(
-              p.id, p.catalogEligible, p.calendarEmpty, d.id, d.active,
-              m.present, m.localDate, m.homeTeam.id, m.awayTeam.id)
-            FROM MatchEntity m JOIN m.pool p LEFT JOIN p.division d WHERE m.id = :id
-            """,
-                    MatchVisibilityRow.class)
-                .setParameter("id", id)
-                .getSingleResultOrNull();
+        MatchVisibilityRow match = matches.findVisibility(id).orElse(null);
         if (match == null) return Optional.empty();
         reasons.addAll(
             poolReasons(
@@ -136,30 +105,13 @@ public class JpaSportingReadStore implements SportingReadStore {
   /** {@inheritDoc} */
   @Override
   public Set<UUID> viewablePoolTeamIds(UUID poolId) {
-    return Set.copyOf(
-        entities
-            .createQuery(
-                "SELECT t.id FROM ParticipationEntity r JOIN r.pool p JOIN r.team t WHERE p.id = :poolId AND r.current = TRUE AND t.division.active = TRUE AND "
-                    + POOL_VISIBLE,
-                UUID.class)
-            .setParameter("poolId", poolId)
-            .getResultList());
+    return Set.copyOf(participations.findVisibleTeamIds(poolId));
   }
 
   /** {@inheritDoc} */
   @Override
   public List<SeasonView> viewableClubSeasons(UUID clubId) {
-    return entities
-        .createQuery(
-            "SELECT DISTINCT s FROM TeamEntity t JOIN t.season s WHERE t.club.id = :clubId AND "
-                + TEAM_VISIBLE
-                + " ORDER BY s.startYear DESC, s.id",
-            SeasonEntity.class)
-        .setParameter("clubId", clubId)
-        .getResultList()
-        .stream()
-        .map(mapper::toView)
-        .toList();
+    return teams.findVisibleClubSeasons(clubId).stream().map(mapper::toView).toList();
   }
 
   /**
@@ -168,18 +120,7 @@ public class JpaSportingReadStore implements SportingReadStore {
    */
   @Override
   public List<TeamView> viewableClubTeams(UUID clubId, UUID seasonId) {
-    return entities
-        .createQuery(
-            "SELECT t FROM TeamEntity t WHERE t.club.id = :clubId AND t.season.id = :seasonId AND "
-                + TEAM_VISIBLE
-                + " ORDER BY t.id",
-            TeamEntity.class)
-        .setParameter("clubId", clubId)
-        .setParameter("seasonId", seasonId)
-        .getResultList()
-        .stream()
-        .map(mapper::toView)
-        .toList();
+    return teams.findVisibleClubTeams(clubId, seasonId).stream().map(mapper::toView).toList();
   }
 
   /** {@inheritDoc} */
@@ -191,69 +132,28 @@ public class JpaSportingReadStore implements SportingReadStore {
   /** {@inheritDoc} */
   @Override
   public List<SportingPublicInput> projectionInputs(Kind kind, int page, int size) {
+    PageRequest request = PageRequest.of(page, size);
     List<UUID> ids =
-        entities
-            .createQuery(selection(kind), UUID.class)
-            .setFirstResult(Math.multiplyExact(page, size))
-            .setMaxResults(size)
-            .getResultList();
+        switch (kind) {
+          case CLUB -> clubs.findProjectionIds(request);
+          case TEAM -> teams.findProjectionIds(request);
+          case POOL -> pools.findProjectionIds(request);
+          case MATCH -> throw new IllegalArgumentException("Matches have no search projection");
+        };
     return publicInputs(kind, new LinkedHashSet<>(ids));
-  }
-
-  /**
-   * Keeps filtering and UUID ordering in the database before bounded hydration.
-   *
-   * @param kind indexable resource kind
-   * @return JPQL selecting only current eligible root IDs
-   */
-  private String selection(Kind kind) {
-    return switch (kind) {
-      case CLUB -> "SELECT c.id FROM ClubEntity c WHERE TRUE = TRUE ORDER BY c.id";
-      case TEAM -> "SELECT t.id FROM TeamEntity t WHERE " + TEAM_VISIBLE + " ORDER BY t.id";
-      case POOL -> "SELECT p.id FROM PoolEntity p WHERE " + POOL_VISIBLE + " ORDER BY p.id";
-      case MATCH -> throw new IllegalArgumentException("Matches have no search projection");
-    };
   }
 
   /** {@inheritDoc} */
   @Override
   public List<SportingPublicInput> publicInputs(Kind kind, Set<UUID> ids) {
     if (ids.isEmpty()) return List.of();
-    String query =
+    List<SportingSearchRow> rows =
         switch (kind) {
-          case CLUB ->
-              """
-          SELECT NEW com.blockout.backend.sporting.infrastructure.SportingSearchRow(
-            c.id, NULL, c.sourceName, COALESCE(c.manualName, c.sourceName), NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-            CASE WHEN c.city.restricted = TRUE OR c.city.mode = ContactModeEnum.HIDDEN THEN NULL WHEN c.city.mode = ContactModeEnum.MANUAL THEN c.city.manualValue ELSE c.city.sourceValue END)
-          FROM ClubEntity c WHERE c.id IN :ids ORDER BY c.id
-          """;
-          case POOL ->
-              """
-          SELECT NEW com.blockout.backend.sporting.infrastructure.SportingSearchRow(
-            p.id, p.season.id, p.sourceName, COALESCE(p.manualName, p.sourceName), COALESCE(p.manualShortName, p.sourceName), p.division.id, p.division.name, p.format, p.gender,
-            NULL, NULL, NULL)
-          FROM PoolEntity p WHERE p.id IN :ids AND
-          """
-                  + POOL_VISIBLE
-                  + " ORDER BY p.id";
-          case TEAM ->
-              """
-          SELECT NEW com.blockout.backend.sporting.infrastructure.SportingSearchRow(
-            t.id, t.season.id, t.sourceName, COALESCE(t.manualName, t.sourceName), COALESCE(t.manualShortName, t.sourceName), t.division.id, t.division.name, t.format, t.gender,
-            c.id, COALESCE(c.manualName, c.sourceName),
-            CASE WHEN c.city.restricted = TRUE OR c.city.mode = ContactModeEnum.HIDDEN THEN NULL WHEN c.city.mode = ContactModeEnum.MANUAL THEN c.city.manualValue ELSE c.city.sourceValue END)
-          FROM TeamEntity t LEFT JOIN t.club c WHERE t.id IN :ids AND
-          """
-                  + TEAM_VISIBLE
-                  + " ORDER BY t.id";
+          case CLUB -> clubs.findSearchInputs(ids);
+          case POOL -> pools.findSearchInputs(ids);
+          case TEAM -> teams.findSearchInputs(ids);
           case MATCH -> throw new IllegalArgumentException("Matches have no search projection");
         };
-    List<SportingSearchRow> rows =
-        entities
-            .createQuery(query, SportingSearchRow.class)
-            .setParameter("ids", ids)
-            .getResultList();
     Map<UUID, Set<Alias>> aliases = aliases(kind, ids);
     Map<UUID, Set<String>> terms = divisionTerms(rows);
     Map<UUID, List<UUID>> memberships = kind == Kind.TEAM ? visiblePoolIds(ids) : Map.of();
@@ -291,14 +191,8 @@ public class JpaSportingReadStore implements SportingReadStore {
     for (SportingSearchRow row : rows) if (row.divisionId() != null) ids.add(row.divisionId());
     Map<UUID, Set<String>> result = new HashMap<>();
     if (!ids.isEmpty())
-      for (Object[] row :
-          entities
-              .createQuery(
-                  "SELECT d.id, term FROM DivisionEntity d JOIN d.searchTerms term WHERE d.id IN :ids",
-                  Object[].class)
-              .setParameter("ids", ids)
-              .getResultList())
-        result.computeIfAbsent((UUID) row[0], ignored -> new HashSet<>()).add((String) row[1]);
+      for (DivisionTermRow row : divisions.findTerms(ids))
+        result.computeIfAbsent(row.divisionId(), ignored -> new HashSet<>()).add(row.term());
     return result;
   }
 
@@ -310,27 +204,23 @@ public class JpaSportingReadStore implements SportingReadStore {
    * @return immutable alias values grouped by exact owner
    */
   private Map<UUID, Set<Alias>> aliases(Kind kind, Set<UUID> ids) {
-    String owner =
+    List<SportingAliasRow> rows =
         switch (kind) {
-          case CLUB -> "ClubEntity";
-          case TEAM -> "TeamEntity";
-          case POOL -> "PoolEntity";
+          case CLUB -> clubs.findAliases(ids);
+          case TEAM -> teams.findAliases(ids);
+          case POOL -> pools.findAliases(ids);
           case MATCH -> throw new IllegalArgumentException("Matches have no search projection");
         };
     Map<UUID, Set<Alias>> result = new HashMap<>();
-    for (Object[] row :
-        entities
-            .createQuery(
-                "SELECT o.id, a.seasonId, a.organizerReference, a.competitionReference, a.comparisonName FROM "
-                    + owner
-                    + " o JOIN o.aliases a WHERE o.id IN :ids",
-                Object[].class)
-            .setParameter("ids", ids)
-            .getResultList()) {
+    for (SportingAliasRow row : rows)
       result
-          .computeIfAbsent((UUID) row[0], ignored -> new HashSet<>())
-          .add(new Alias((UUID) row[1], (String) row[2], (String) row[3], (String) row[4]));
-    }
+          .computeIfAbsent(row.ownerId(), ignored -> new HashSet<>())
+          .add(
+              new Alias(
+                  row.seasonId(),
+                  row.organizerReference(),
+                  row.competitionReference(),
+                  row.comparisonName()));
     return result;
   }
 
@@ -342,16 +232,8 @@ public class JpaSportingReadStore implements SportingReadStore {
    */
   private Map<UUID, List<UUID>> visiblePoolIds(Set<UUID> teamIds) {
     Map<UUID, List<UUID>> result = new HashMap<>();
-    for (Object[] row :
-        entities
-            .createQuery(
-                "SELECT r.team.id, p.id FROM ParticipationEntity r JOIN r.pool p WHERE r.team.id IN :ids AND r.current = TRUE AND r.team.division.active = TRUE AND "
-                    + POOL_VISIBLE
-                    + " ORDER BY p.id",
-                Object[].class)
-            .setParameter("ids", teamIds)
-            .getResultList())
-      result.computeIfAbsent((UUID) row[0], ignored -> new ArrayList<>()).add((UUID) row[1]);
+    for (TeamPoolRow row : participations.findVisibleMemberships(teamIds))
+      result.computeIfAbsent(row.teamId(), ignored -> new ArrayList<>()).add(row.poolId());
     return result;
   }
 
@@ -364,51 +246,18 @@ public class JpaSportingReadStore implements SportingReadStore {
           || scope.kind() == SportingProjectionChanges.Kind.TEAM
           || scope.kind() == SportingProjectionChanges.Kind.POOL) result.add(scope);
     }
-    Set<UUID> clubs = scopeIds(scopes, SportingProjectionChanges.Kind.CLUB);
+    Set<UUID> clubIds = scopeIds(scopes, SportingProjectionChanges.Kind.CLUB);
     Set<UUID> teams = scopeIds(scopes, SportingProjectionChanges.Kind.TEAM);
     Set<UUID> pools = scopeIds(scopes, SportingProjectionChanges.Kind.POOL);
-    Set<UUID> divisions = scopeIds(scopes, SportingProjectionChanges.Kind.DIVISION);
+    Set<UUID> divisionIds = scopeIds(scopes, SportingProjectionChanges.Kind.DIVISION);
     Set<UUID> seasons = scopeIds(scopes, SportingProjectionChanges.Kind.SEASON);
-    if (!divisions.isEmpty() || !seasons.isEmpty()) {
-      pools.addAll(
-          entities
-              .createQuery(
-                  "SELECT p.id FROM PoolEntity p WHERE p.division.id IN :divisions OR p.season.id IN :seasons",
-                  UUID.class)
-              .setParameter("divisions", divisions)
-              .setParameter("seasons", seasons)
-              .getResultList());
-      teams.addAll(
-          entities
-              .createQuery(
-                  "SELECT t.id FROM TeamEntity t WHERE t.division.id IN :divisions OR t.season.id IN :seasons",
-                  UUID.class)
-              .setParameter("divisions", divisions)
-              .setParameter("seasons", seasons)
-              .getResultList());
+    if (!divisionIds.isEmpty() || !seasons.isEmpty()) {
+      pools.addAll(this.pools.findProjectionDependents(divisionIds, seasons));
+      teams.addAll(this.teams.findProjectionDependents(divisionIds, seasons));
     }
-    if (!clubs.isEmpty())
-      teams.addAll(
-          entities
-              .createQuery("SELECT t.id FROM TeamEntity t WHERE t.club.id IN :clubs", UUID.class)
-              .setParameter("clubs", clubs)
-              .getResultList());
-    if (!pools.isEmpty())
-      teams.addAll(
-          entities
-              .createQuery(
-                  "SELECT DISTINCT r.team.id FROM ParticipationEntity r WHERE r.pool.id IN :pools",
-                  UUID.class)
-              .setParameter("pools", pools)
-              .getResultList());
-    if (!teams.isEmpty())
-      pools.addAll(
-          entities
-              .createQuery(
-                  "SELECT DISTINCT r.pool.id FROM ParticipationEntity r WHERE r.team.id IN :teams",
-                  UUID.class)
-              .setParameter("teams", teams)
-              .getResultList());
+    if (!clubIds.isEmpty()) teams.addAll(this.teams.findIdsByClubIds(clubIds));
+    if (!pools.isEmpty()) teams.addAll(participations.findTeamIdsByPoolIds(pools));
+    if (!teams.isEmpty()) pools.addAll(participations.findPoolIdsByTeamIds(teams));
     teams.forEach(id -> result.add(new Scope(SportingProjectionChanges.Kind.TEAM, id)));
     pools.forEach(id -> result.add(new Scope(SportingProjectionChanges.Kind.POOL, id)));
     return Set.copyOf(result);

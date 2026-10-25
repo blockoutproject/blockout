@@ -3,6 +3,7 @@ package com.blockout.backend.contributions.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.blockout.backend.contributions.application.ContributionStore;
 import com.blockout.backend.contributions.domain.ContributionQuota;
 import com.blockout.backend.contributions.domain.ContributionState;
 import com.blockout.backend.contributions.domain.ContributionVersion;
@@ -14,6 +15,7 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,7 +52,7 @@ class ContributionPersistenceIntegrationTest {
   private static final UUID SECOND = UUID.fromString("00000000-0000-4000-8000-000000000021");
   private static final Instant NOW = Instant.parse("2026-10-24T12:00:00Z");
   @Autowired private JdbcTemplate sql;
-  @Autowired private ContributionVersionRepository versions;
+  @Autowired private ContributionStore store;
   @Autowired private ContributionPersistenceMapper mapper;
   @Autowired private EntityManager entityManager;
   @Autowired private PlatformTransactionManager transactions;
@@ -100,6 +102,37 @@ class ContributionPersistenceIntegrationTest {
         "INSERT INTO sporting_match(id, pool_id, reference, home_team_id, away_team_id) VALUES (?, '00000000-0000-4000-8000-000000000033', 'one', '00000000-0000-4000-8000-000000000034', '00000000-0000-4000-8000-000000000035'), (?, '00000000-0000-4000-8000-000000000033', 'two', '00000000-0000-4000-8000-000000000034', '00000000-0000-4000-8000-000000000035')",
         MATCH,
         NEXT_MATCH);
+  }
+
+  @Test
+  @DisplayName("Traverses active matches in bounded exclusive UUID batches")
+  void pagesActiveMatchesByIdentity() {
+    // Given
+    sql.update(
+        """
+        INSERT INTO sporting_match(id, pool_id, reference, home_team_id, away_team_id)
+        SELECT CAST('00000000-0000-4000-9000-' || LPAD(TO_HEX(n), 12, '0') AS UUID),
+               pool_id, 'cursor-' || n, home_team_id, away_team_id
+        FROM sporting_match CROSS JOIN GENERATE_SERIES(1, 101) n WHERE id = ?
+        """,
+        MATCH);
+    sql.update(
+        """
+        INSERT INTO contribution_version(id, match_id, address, platform, owner_id, state, created_at, quota_participating)
+        SELECT id, id, 'https://youtube.com/watch?v=cursor', 'YOUTUBE', ?, 'ACTIVE', ?, FALSE
+        FROM sporting_match WHERE reference LIKE 'cursor-%'
+        """,
+        OWNER, Timestamp.from(NOW));
+    insertVersion(FIRST, MATCH, OWNER, "PENDING", true, NOW);
+
+    // When
+    List<UUID> first = store.activeMatches(null);
+    List<UUID> next = store.activeMatches(first.getLast());
+
+    // Then
+    assertThat(first).hasSize(100).isSorted().doesNotContain(MATCH);
+    assertThat(next).containsExactly(UUID.fromString("00000000-0000-4000-9000-000000000065"));
+    assertThat(store.activeMatches(next.getLast())).isEmpty();
   }
 
   @Test
@@ -523,7 +556,7 @@ class ContributionPersistenceIntegrationTest {
             sql.queryForObject(
                 "SELECT COUNT(*) FROM contribution_version WHERE state = 'PENDING'", Long.class))
         .isEqualTo(1L);
-    assertThat(versions.usage(OWNER, MATCH, ContributionQuota.dayAt(NOW)).versionsUsed())
+    assertThat(store.usage(OWNER, MATCH, ContributionQuota.dayAt(NOW)).versionsUsed())
         .isEqualTo(4L);
   }
 
@@ -534,7 +567,7 @@ class ContributionPersistenceIntegrationTest {
     ContributionQuota.Day day = ContributionQuota.dayAt(NOW);
 
     // When
-    ContributionQuota.Usage usage = versions.usage(OWNER, MATCH, day);
+    ContributionQuota.Usage usage = store.usage(OWNER, MATCH, day);
 
     // Then
     assertThat(usage).isEqualTo(new ContributionQuota.Usage(0, 0, false));
@@ -579,14 +612,13 @@ class ContributionPersistenceIntegrationTest {
         now);
 
     // When
-    ContributionQuota.Usage usage = versions.usage(OWNER, MATCH, day);
+    ContributionQuota.Usage usage = store.usage(OWNER, MATCH, day);
 
     // Then
     assertThat(usage).isEqualTo(new ContributionQuota.Usage(2, 2, true));
-    assertThat(versions.usage(OWNER, NEXT_MATCH, ContributionQuota.dayAt(day.endsAt())))
+    assertThat(store.usage(OWNER, NEXT_MATCH, ContributionQuota.dayAt(day.endsAt())))
         .isEqualTo(new ContributionQuota.Usage(2, 1, true));
-    assertThat(versions.usage(OTHER, MATCH, day))
-        .isEqualTo(new ContributionQuota.Usage(0, 1, false));
+    assertThat(store.usage(OTHER, MATCH, day)).isEqualTo(new ContributionQuota.Usage(0, 1, false));
   }
 
   @Test
@@ -623,8 +655,8 @@ class ContributionPersistenceIntegrationTest {
         NOW);
 
     // When
-    ContributionQuota.Usage newMatch = versions.usage(OWNER, fourth, day);
-    ContributionQuota.Usage continuation = versions.usage(OWNER, MATCH, day);
+    ContributionQuota.Usage newMatch = store.usage(OWNER, fourth, day);
+    ContributionQuota.Usage continuation = store.usage(OWNER, MATCH, day);
 
     // Then
     assertThat(newMatch).isEqualTo(new ContributionQuota.Usage(1, 3, false));
@@ -656,7 +688,7 @@ class ContributionPersistenceIntegrationTest {
         false,
         NOW);
     ContributionQuota.Day day = ContributionQuota.dayAt(NOW);
-    ContributionQuota.Usage before = versions.usage(OWNER, MATCH, day);
+    ContributionQuota.Usage before = store.usage(OWNER, MATCH, day);
 
     // When
     sql.update(
@@ -672,13 +704,13 @@ class ContributionPersistenceIntegrationTest {
               pending.setPublicationAt(NOW.plusSeconds(1));
               pending.setPublicationActorId(OTHER);
             });
-    ContributionQuota.Usage after = versions.usage(OWNER, MATCH, day);
+    ContributionQuota.Usage after = store.usage(OWNER, MATCH, day);
 
     // Then
     assertThat(before).isEqualTo(new ContributionQuota.Usage(3, 1, true));
     assertThat(after).isEqualTo(before);
     assertThat(ContributionQuota.limit(after)).isEqualTo(ContributionQuota.Limit.VERSION_LIMIT);
-    assertThat(versions.usage(OWNER, MATCH, ContributionQuota.dayAt(day.endsAt())))
+    assertThat(store.usage(OWNER, MATCH, ContributionQuota.dayAt(day.endsAt())))
         .isEqualTo(new ContributionQuota.Usage(3, 0, false));
   }
 

@@ -16,12 +16,12 @@
 
 **Rationale.** Match facts prevent duplicates even with no recipient and after inbox purge. Current follows at actual processing avoid an exact-H subscription history. Short per-match transactions preserve independently accepted matches. A correction affects derived content and never creates another notification. The match lock fixes result/link composition once.
 
-Construction uses JPA `EntityManager.persist` for application-assigned UUIDs and dirty checking for existing match facts. Spring Data's [default new-state detection](https://docs.spring.io/spring-data/jpa/reference/jpa/entity-persistence.html) treats these non-null, unversioned IDs as existing and calls `merge`; the PostgreSQL regression demonstrates that re-creating a retained entry would then reset its read state. Direct native insertion preserves the focused application port without an artificial version, new-state flag or empty CRUD repositories. Later query owners may introduce Spring Data repositories when their actual read operations require them.
+Construction uses JPA `EntityManager.persist` for application-assigned UUIDs and dirty checking for existing match facts. Spring Data's [default new-state detection](https://docs.spring.io/spring-data/jpa/reference/jpa/entity-persistence.html) treats these non-null, unversioned IDs as existing and calls `merge`; the PostgreSQL regression demonstrates that re-creating a retained entry would then reset its read state. Direct JPA insertion preserves the focused application port without an artificial version, new-state flag or empty CRUD repositories. The inbox repository owns scalar reads, keyset selection and bounded bulk updates; assigned-ID lifecycle operations remain in the same feature adapter without a forwarding repository fragment.
 
 F06 recipient construction uses one supported [HQL set operation](https://docs.hibernate.org/orm/7.4/querylanguage/html_single/)
 for team/pool origins. PostgreSQL [READ COMMITTED](https://www.postgresql.org/docs/18/transaction-iso.html#XACT-READ-COMMITTED)
 provides a snapshot per statement, so two separate origin reads could invent an empty union during
-committed turnover. A single `UNION ALL` fixes that boundary in its F06 adapter without a separate
+committed turnover. A single `UNION ALL` fixes that boundary in the F06 Spring Data repository without a separate
 transaction, later account lock or replay. Actual Hibernate 7.4.5.Final/PostgreSQL 18.6 qualification
 is recorded in [quickstart](quickstart.md#atomic-producer-and-link-qualification--252).
 
