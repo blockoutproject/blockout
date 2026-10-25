@@ -485,17 +485,7 @@ class CollectorSportingBoundaryIntegrationTest {
     try (Connection blocker = runtime.sql.getDataSource().getConnection();
         ExecutorService workers = Executors.newFixedThreadPool(2)) {
       blocker.setAutoCommit(false);
-      int blockerPid;
-      try (java.sql.Statement statement = blocker.createStatement();
-          java.sql.ResultSet pid = statement.executeQuery("SELECT pg_backend_pid()")) {
-        assertThat(pid.next()).isTrue();
-        blockerPid = pid.getInt(1);
-      }
-      try (java.sql.PreparedStatement lock =
-          blocker.prepareStatement("SELECT id FROM sporting_match WHERE id=? FOR UPDATE")) {
-        lock.setObject(1, match);
-        lock.executeQuery().close();
-      }
+      int blockerPid = lockMatch(blocker, match);
       try {
         Future<SportingObservation.Outcome> accepting =
             workers.submit(
@@ -553,8 +543,7 @@ class CollectorSportingBoundaryIntegrationTest {
     CollectorLifecycle.AdmittedCycle context = lifecycle.admit(CONTROL, null, 0, null);
     List<SportingObservation.Match> initial =
         java.util.stream.IntStream.rangeClosed(1, 3)
-            .mapToObj(
-                index -> calendar("M" + index, LocalDate.of(2026, 10, 24)).matches().getFirst())
+            .mapToObj(index -> match("M" + index, LocalDate.of(2026, 10, 24)))
             .toList();
     sporting.calendar(
         POOL,
@@ -562,8 +551,7 @@ class CollectorSportingBoundaryIntegrationTest {
         new SportingObservation.Calendar(true, initial, List.of(), List.of()));
     List<SportingObservation.Match> updated =
         java.util.stream.IntStream.rangeClosed(1, 3)
-            .mapToObj(
-                index -> calendar("M" + index, LocalDate.of(2026, 10, 25)).matches().getFirst())
+            .mapToObj(index -> match("M" + index, LocalDate.of(2026, 10, 25)))
             .toList();
     UUID blocked =
         runtime.sql.queryForObject(
@@ -699,10 +687,8 @@ class CollectorSportingBoundaryIntegrationTest {
   void supersedesCalendarBeforeFinalization() throws Exception {
     // Given
     CollectorLifecycle.AdmittedCycle context = lifecycle.admit(CONTROL, null, 0, null);
-    SportingObservation.Match retained =
-        calendar("M2", LocalDate.of(2026, 10, 24)).matches().getFirst();
-    SportingObservation.Match first =
-        calendar("M1", LocalDate.of(2026, 10, 24)).matches().getFirst();
+    SportingObservation.Match retained = match("M2", LocalDate.of(2026, 10, 24));
+    SportingObservation.Match first = match("M1", LocalDate.of(2026, 10, 24));
     UUID match =
         sporting
             .calendar(
@@ -732,9 +718,7 @@ class CollectorSportingBoundaryIntegrationTest {
                         context(context, 3),
                         new SportingObservation.Calendar(
                             true,
-                            List.of(
-                                calendar("M1", LocalDate.of(2026, 10, 26)).matches().getFirst(),
-                                retained),
+                            List.of(match("M1", LocalDate.of(2026, 10, 26)), retained),
                             List.of(),
                             List.of())));
 
@@ -847,16 +831,23 @@ class CollectorSportingBoundaryIntegrationTest {
    */
   private SportingObservation.Calendar calendar(String reference, LocalDate date) {
     return new SportingObservation.Calendar(
-        true,
-        List.of(
-            new SportingObservation.Match(
-                reference,
-                team("Home", "000192"),
-                team("Away", "000193"),
-                SportingObservation.Facts.builder().localDate(JsonNullable.of(date)).build(),
-                null)),
-        List.of(),
-        List.of());
+        true, List.of(match(reference, date)), List.of(), List.of());
+  }
+
+  /**
+   * Creates one attributable FFVB encounter with the fixture's exact club references.
+   *
+   * @param reference contextual native match identity
+   * @param date proposed known date
+   * @return synthetic encounter with the usual qualified participants
+   */
+  private SportingObservation.Match match(String reference, LocalDate date) {
+    return new SportingObservation.Match(
+        reference,
+        team("Home", "000192"),
+        team("Away", "000193"),
+        SportingObservation.Facts.builder().localDate(JsonNullable.of(date)).build(),
+        null);
   }
 
   /**
