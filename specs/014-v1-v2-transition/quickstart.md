@@ -81,7 +81,7 @@ The focused README/Maven verification command passed **24 existing legacy config
 
 ```sh
 npm run bundle:contracts
-./mvnw -B -ntp -pl apps/backend verify -Dtest='Legacy*WebMvcTest,LegacyRetirementPropertiesTest' -Dit.test='Legacy*IntegrationTest'
+./mvnw -B -ntp -pl apps/backend verify -Dtest='Legacy*WebMvcTest' -Dit.test='Legacy*IntegrationTest'
 ```
 
 This completes the repository integration of T037/T040 using the implementation already delivered by #405. No controller, mapper, deployment setting, security matcher or contract needed alteration. Synthetic retirement versions/listing IDs are fixtures, not qualified release inputs. MockMvc exercises the real servlet/security application without a live network listener; JWT signature validation retains its existing dedicated suite. Installed V1 binaries, native numeric-version comparison/update actions, network failures with retained configuration, compatible public host, signed V2 releases, actual store availability, writer retirement and production cutover remain unqualified here under T043 and their later owners.

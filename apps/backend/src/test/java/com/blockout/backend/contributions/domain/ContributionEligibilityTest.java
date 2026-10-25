@@ -9,7 +9,6 @@ import com.blockout.backend.contributions.domain.ContributionEligibility.Status;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -100,21 +99,6 @@ class ContributionEligibilityTest {
     assertThat(result.status()).isEqualTo(Status.START_UNCONFIRMED);
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"Europe/Paris", "America/New_York"})
-  @DisplayName("Makes the same age and H minus one decision in either display zone")
-  void ignoresDisplayZone(String displayZone) {
-    // Given
-    Instant now = NOW.atZone(ZoneId.of(displayZone)).toInstant();
-
-    // When
-    ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(ORDINARY, ELIGIBLE, INITIAL, 0, ADDRESS, EMPTY, now);
-
-    // Then
-    assertThat(result.status()).isEqualTo(Status.ACTIVE);
-  }
-
   @Test
   @DisplayName("Requires approval after a definitive result even when the start is unconfirmed")
   void routesDefinitiveResultToApproval() {
@@ -151,7 +135,6 @@ class ContributionEligibilityTest {
     ContributionVersion pending = version(OWNER, ContributionVersion.State.PENDING, ADDRESS);
     Current current = new Current(new ContributionState(MATCH, 2, null), null, pending);
     StreamAddress third = new StreamAddress("https://twitch.tv/third");
-    Match rescheduled = new Match(true, false, ELIGIBLE.date(), NOW.plusSeconds(7200), false);
 
     // When
     ContributionEligibility.Decision result =
@@ -159,11 +142,23 @@ class ContributionEligibilityTest {
 
     // Then
     assertThat(result.status()).isEqualTo(Status.ACTIVE);
-    assertThat(
-            ContributionEligibility.evaluate(ORDINARY, rescheduled, current, 2, third, EMPTY, NOW)
-                .status())
-        .isEqualTo(Status.WINDOW_NOT_OPEN);
-    assertThat(current.ownPending()).isEqualTo(pending);
+  }
+
+  @Test
+  @DisplayName("Reassesses a postponed start despite an existing pending proposal")
+  void reassessesPostponedStart() {
+    // Given
+    ContributionVersion pending = version(OWNER, ContributionVersion.State.PENDING, ADDRESS);
+    Current current = new Current(new ContributionState(MATCH, 2, null), null, pending);
+    StreamAddress third = new StreamAddress("https://twitch.tv/third");
+    Match rescheduled = new Match(true, false, ELIGIBLE.date(), NOW.plusSeconds(7200), false);
+
+    // When
+    ContributionEligibility.Decision result =
+        ContributionEligibility.evaluate(ORDINARY, rescheduled, current, 2, third, EMPTY, NOW);
+
+    // Then
+    assertThat(result.status()).isEqualTo(Status.WINDOW_NOT_OPEN);
   }
 
   @Test
@@ -183,27 +178,28 @@ class ContributionEligibilityTest {
 
   @ParameterizedTest
   @CsvSource({
-    "false, false, true, MATCH_UNAVAILABLE",
-    "true, true, true, PROFESSIONAL_MATCH",
-    "true, false, false, MATCH_UNAVAILABLE"
+    "false, false, true, false, MATCH_UNAVAILABLE",
+    "false, false, true, true, MATCH_UNAVAILABLE",
+    "true, true, true, false, PROFESSIONAL_MATCH",
+    "true, true, true, true, PROFESSIONAL_MATCH",
+    "true, false, false, false, MATCH_UNAVAILABLE",
+    "true, false, false, true, MATCH_UNAVAILABLE"
   })
   @DisplayName(
       "Keeps visibility, professional context without clubs and usable date restrictions for moderators")
   void retainsIndependentRestrictions(
-      boolean viewable, boolean professional, boolean hasDate, Status expected) {
+      boolean viewable, boolean professional, boolean hasDate, boolean moderator, Status expected) {
     // Given
     Match match = new Match(viewable, professional, hasDate ? ELIGIBLE.date() : null, null, true);
+    Actor actor = moderator ? MODERATOR : ORDINARY;
+    ContributionQuota.Usage usage = moderator ? FULL : EMPTY;
 
     // When
     ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(MODERATOR, match, INITIAL, 0, ADDRESS, FULL, NOW);
+        ContributionEligibility.evaluate(actor, match, INITIAL, 0, ADDRESS, usage, NOW);
 
     // Then
     assertThat(result.status()).isEqualTo(expected);
-    assertThat(
-            ContributionEligibility.evaluate(ORDINARY, match, INITIAL, 0, ADDRESS, EMPTY, NOW)
-                .status())
-        .isEqualTo(expected);
   }
 
   @Test
@@ -243,10 +239,11 @@ class ContributionEligibilityTest {
     assertThat(result.existingVersionId()).isEqualTo(VERSION);
   }
 
-  @Test
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
   @DisplayName(
       "Rejects a stale revision before recognizing an unchanged address, including for moderators")
-  void rejectsStaleRepetition() {
+  void rejectsStaleRepetition(boolean moderator) {
     // Given
     Current current =
         new Current(
@@ -254,15 +251,14 @@ class ContributionEligibilityTest {
             version(OWNER, ContributionVersion.State.ACTIVE, ADDRESS),
             null);
 
+    Actor actor = moderator ? MODERATOR : ORDINARY;
+
     // When
-    ContributionEligibility.Decision ordinary =
-        ContributionEligibility.evaluate(ORDINARY, ELIGIBLE, current, 3, ADDRESS, FULL, NOW);
-    ContributionEligibility.Decision moderator =
-        ContributionEligibility.evaluate(MODERATOR, ELIGIBLE, current, 3, ADDRESS, FULL, NOW);
+    ContributionEligibility.Decision result =
+        ContributionEligibility.evaluate(actor, ELIGIBLE, current, 3, ADDRESS, FULL, NOW);
 
     // Then
-    assertThat(ordinary.status()).isEqualTo(Status.STALE_REVISION);
-    assertThat(moderator.status()).isEqualTo(Status.STALE_REVISION);
+    assertThat(result.status()).isEqualTo(Status.STALE_REVISION);
   }
 
   @Test
@@ -321,29 +317,41 @@ class ContributionEligibilityTest {
 
     // Then
     assertThat(result.status()).isEqualTo(Status.NOT_OWNER);
-    assertThat(
-            ContributionEligibility.evaluate(
-                    MODERATOR,
-                    ELIGIBLE,
-                    current,
-                    0,
-                    new StreamAddress("https://twitch.tv/new"),
-                    FULL,
-                    NOW)
-                .status())
-        .isEqualTo(Status.ACTIVE);
   }
 
-  @Test
+  @ParameterizedTest
+  @CsvSource(
+      nullValues = "NULL",
+      value = {"00000000-0000-4000-8000-000000000002", "NULL"})
+  @DisplayName("Allows a moderator to replace an active address despite its retained ownership")
+  void allowsModeratedReplacement(UUID owner) {
+    // Given
+    Current current =
+        new Current(
+            ContributionState.initial(MATCH),
+            version(owner, ContributionVersion.State.ACTIVE, ADDRESS),
+            null);
+    StreamAddress replacement = new StreamAddress("https://twitch.tv/new");
+
+    // When
+    ContributionEligibility.Decision result =
+        ContributionEligibility.evaluate(MODERATOR, ELIGIBLE, current, 0, replacement, FULL, NOW);
+
+    // Then
+    assertThat(result.status()).isEqualTo(Status.ACTIVE);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"https://YOUTUBE.COM/watch?v=one", "https://youtube.com/watch?v=two"})
   @DisplayName("Does not equate a changed query or host case at a reached quota")
-  void comparesAddressesLiterally() {
+  void comparesAddressesLiterally(String literal) {
     // Given
     Current current =
         new Current(
             ContributionState.initial(MATCH),
             version(OWNER, ContributionVersion.State.ACTIVE, ADDRESS),
             null);
-    StreamAddress changed = new StreamAddress("https://YOUTUBE.COM/watch?v=one");
+    StreamAddress changed = new StreamAddress(literal);
 
     // When
     ContributionEligibility.Decision result =

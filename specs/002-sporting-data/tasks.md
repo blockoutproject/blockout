@@ -41,7 +41,7 @@ The quoted data-model constraints below remain literal. Concrete Java classes gr
 **Purpose**: Qualify the common F02 generated presence/mapping boundary before building sporting stories.
 
 - [x] T003 [P] Write failing generated binding/mapping tests in `apps/backend/src/test/java/com/blockout/backend/sporting/api/SportingObservationMapperTest.java` for omitted/null/value, nested strict requests, additive responses, enums and dates using the existing ingestion schemas; preserve required identity/context separately from optional facts and use test-scoped adapters rather than production fixture endpoints.
-- [x] T004 [P] Write failing real-consumer serialization cases in `apps/collector/src/test/java/com/blockout/collector/ingestion/SportingContractTest.java` and `apps/mobile/src/features/sporting-administration/__tests__/sporting-contract.test.ts` against the canonical generated consumers and a controlled transport; cover undefined versus explicit null, safe errors and malformed known fields before cache admission.
+- [x] T004 [P] Write failing real-consumer serialization cases in `apps/collector/src/test/java/com/blockout/collector/ingestion/SportingContractIntegrationTest.java` and `apps/mobile/src/features/sporting-administration/__tests__/sporting-contract.test.ts` against the canonical generated consumers and a controlled transport; cover undefined versus explicit null, safe errors and malformed known fields before cache admission.
 - [x] T005 Implement presence-aware boundary mapping in `apps/backend/src/main/java/com/blockout/backend/sporting/api/SportingObservationMapper.java` using the supported F13 mapper configuration and generated nullable support; make T003–T004 pass without generated-template edits, scalar state wrappers or default values turning omission into a proposal. Keep field decisions in the owning application use cases.
 
 **Checkpoint**: F02's generated shapes and presence mapping are usable. Domain implementation can begin; integrated HTTP operations are qualified in their story, not inferred from these isolated checks.
@@ -150,7 +150,7 @@ The quoted data-model constraints below remain literal. Concrete Java classes gr
 ### Tests for User Story 5
 
 - [x] T035 [P] [US5] Write failing visibility/history tests in `apps/backend/src/test/java/com/blockout/backend/sporting/application/SportingVisibilityIntegrationTest.java`; cover A26–A32, another visible team participation, clubs between seasons, catalog rediscovery after calendar emptiness, wrong-season/partial input, normal versus historical empty input and the single already-running cycle permitted at closure.
-- [x] T036 [P] [US5] Write failing owner-consumer cases in `apps/backend/src/test/java/com/blockout/backend/sporting/application/ReadSportingDataTest.java` for hidden/dateless targets, current effective values and F04 affected-scope notifications; preserve retained identities/follows and official unlinked standings labels, never hydrate public reads directly from stale projections.
+- [x] T036 [P] [US5] Write failing owner-consumer cases in `apps/backend/src/test/java/com/blockout/backend/sporting/application/service/ReadSportingDataTest.java` for hidden/dateless targets, current effective values and F04 affected-scope notifications; preserve retained identities/follows and official unlinked standings labels, never hydrate public reads directly from stale projections.
 
 ### Implementation for User Story 5
 

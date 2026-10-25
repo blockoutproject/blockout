@@ -16,6 +16,7 @@ import javax.imageio.ImageWriter;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.metadata.IIOMetadataNode;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -64,9 +65,11 @@ class ProfilePhotoProcessorTest {
     // Given
     byte[] original = image("png", width, height);
 
-    // When / Then
-    assertThatThrownBy(() -> processor.prepare(original, "image/png"))
-        .isInstanceOf(InvalidProfilePhotoException.class);
+    // When
+    ThrowingCallable prepare = () -> processor.prepare(original, "image/png");
+
+    // Then
+    assertThatThrownBy(prepare).isInstanceOf(InvalidProfilePhotoException.class);
   }
 
   @ParameterizedTest
@@ -77,9 +80,11 @@ class ProfilePhotoProcessorTest {
     // Given
     byte[] original = image("png", 2, 2);
 
-    // When / Then
-    assertThatThrownBy(() -> processor.prepare(original, mediaType))
-        .isInstanceOf(UnsupportedProfilePhotoException.class);
+    // When
+    ThrowingCallable prepare = () -> processor.prepare(original, mediaType);
+
+    // Then
+    assertThatThrownBy(prepare).isInstanceOf(UnsupportedProfilePhotoException.class);
   }
 
   @ParameterizedTest
@@ -89,9 +94,11 @@ class ProfilePhotoProcessorTest {
     // Given
     byte[] original = "not an image".getBytes(StandardCharsets.UTF_8);
 
-    // When / Then
-    assertThatThrownBy(() -> processor.prepare(original, mediaType))
-        .isInstanceOf(InvalidProfilePhotoException.class);
+    // When
+    ThrowingCallable prepare = () -> processor.prepare(original, mediaType);
+
+    // Then
+    assertThatThrownBy(prepare).isInstanceOf(InvalidProfilePhotoException.class);
   }
 
   @Test
@@ -100,9 +107,11 @@ class ProfilePhotoProcessorTest {
     // Given
     byte[] original = image("png", 2, 2);
 
-    // When / Then
-    assertThatThrownBy(() -> processor.prepare(original, "image/jpeg"))
-        .isInstanceOf(InvalidProfilePhotoException.class);
+    // When
+    ThrowingCallable prepare = () -> processor.prepare(original, "image/jpeg");
+
+    // Then
+    assertThatThrownBy(prepare).isInstanceOf(InvalidProfilePhotoException.class);
   }
 
   @Test
@@ -110,6 +119,7 @@ class ProfilePhotoProcessorTest {
   void discardsEmbeddedMetadata() throws Exception {
     // Given
     BufferedImage pixels = new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB);
+    pixels.setRGB(0, 0, 0xFF336699);
     ImageWriter writer = ImageIO.getImageWritersByFormatName("png").next();
     ByteArrayOutputStream encoded = new ByteArrayOutputStream();
     try (MemoryCacheImageOutputStream output = new MemoryCacheImageOutputStream(encoded)) {
@@ -139,6 +149,8 @@ class ProfilePhotoProcessorTest {
     assertThat(new String(photo.bytes(), StandardCharsets.ISO_8859_1))
         .doesNotContain("unrelated-original-metadata");
     assertThat(photo.dimension()).isEqualTo(2);
+    BufferedImage decoded = ImageIO.read(new ByteArrayInputStream(photo.bytes()));
+    assertThat(decoded.getRGB(0, 0)).isEqualTo(0xFF336699);
   }
 
   @Test
@@ -164,7 +176,7 @@ class ProfilePhotoProcessorTest {
    * @return encoded pixels for the current validation scenario
    * @throws Exception if the synthetic image cannot be encoded
    */
-  static byte[] image(String format, int width, int height) throws Exception {
+  private static byte[] image(String format, int width, int height) throws Exception {
     ByteArrayOutputStream bytes = new ByteArrayOutputStream();
     ImageIO.write(new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB), format, bytes);
     return bytes.toByteArray();

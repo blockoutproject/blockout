@@ -8,7 +8,7 @@ Use F13's selected backend/mobile environment and the authored [contracts](contr
 
 ## Contracts and access
 
-The foundation is exercised by `FollowingContractTest`, `FollowAccessTest` and the mobile
+The foundation is exercised by `FollowingContractWebMvcTest`, `FollowAccessWebMvcTest` and the mobile
 `following-contract.test.ts` / `following-context.test.ts` suites through the actual generated
 Java interfaces/DTOs and Orval consumers. Java MVC uses a test-only following adapter; F05 identity
 and F12 admission run with controlled account/settings/transaction collaborators. Mobile uses the
@@ -42,7 +42,7 @@ notification selection, cancellation and delivery; these checks establish none o
 The focused command is:
 
 ```sh
-./mvnw -B -ntp -pl apps/backend verify -Dtest=FollowStateWebMvcTest,ReadFollowEligibilityTest,FollowingContractTest,FollowAccessTest -Dit.test=FollowRelationsIntegrationTest
+./mvnw -B -ntp -pl apps/backend verify -Dtest=FollowStateWebMvcTest,ReadFollowEligibilityTest,FollowingContractWebMvcTest,FollowAccessWebMvcTest -Dit.test=FollowRelationsIntegrationTest
 ```
 
 ## Relationships and calendar

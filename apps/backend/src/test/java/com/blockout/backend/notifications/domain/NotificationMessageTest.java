@@ -5,9 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.blockout.backend.notifications.domain.NotificationMessage.Facts;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 
 /** Safe current editorial independent of persisted sporting text and native presentation. */
@@ -34,37 +34,51 @@ class NotificationMessageTest {
               assertThat(message.body()).contains("Nantes", "Tours");
               assertThat(message.title() + message.body())
                   .doesNotContain("gratuit", "vérifié", "en cours", "vite", "victoire");
-              if (family == NotificationFamily.PLAIN_RESULT
-                  || family == NotificationFamily.ENRICHED_RESULT)
-                assertThat(message.body()).contains("3–1");
             });
   }
 
   @ParameterizedTest
-  @EnumSource(NotificationFamily.class)
-  @DisplayName("Keeps choice across devices and removes withdrawn result and link fragments")
-  void adaptsCurrentFacts(NotificationFamily family) {
+  @CsvSource({
+    "PLAIN_RESULT,FIRST", "PLAIN_RESULT,SECOND", "PLAIN_RESULT,THIRD",
+    "ENRICHED_RESULT,FIRST", "ENRICHED_RESULT,SECOND", "ENRICHED_RESULT,THIRD"
+  })
+  @DisplayName("Includes the reliable final score in every result variant")
+  void includesCurrentScore(NotificationFamily family, NotificationVariant variant) {
     // Given
-    UUID notification = UUID.fromString("00000000-0000-4000-8000-000000000245");
-    NotificationVariant stored = NotificationVariant.choose(notification);
+    Facts facts = new Facts("Nantes", "Tours", true, 3, 1, null, true);
+
+    // When
+    NotificationMessage message = NotificationMessage.render(family, variant, facts);
+
+    // Then
+    assertThat(message.body()).contains("3–1");
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "PLAIN_RESULT,FIRST", "PLAIN_RESULT,SECOND", "PLAIN_RESULT,THIRD",
+    "ENRICHED_RESULT,FIRST", "ENRICHED_RESULT,SECOND", "ENRICHED_RESULT,THIRD",
+    "LIVE_LINK,FIRST", "LIVE_LINK,SECOND", "LIVE_LINK,THIRD",
+    "POST_RESULT_LINK,FIRST", "POST_RESULT_LINK,SECOND", "POST_RESULT_LINK,THIRD"
+  })
+  @DisplayName("Removes withdrawn result and link fragments from the retained editorial variant")
+  void adaptsCurrentFacts(NotificationFamily family, NotificationVariant variant) {
+    // Given
     Facts corrected = new Facts(null, " ", false, 3, 1, null, false);
 
     // When
-    NotificationMessage firstDevice = NotificationMessage.render(family, stored, corrected);
-    NotificationMessage secondDevice =
-        NotificationMessage.render(family, NotificationVariant.choose(notification), corrected);
+    NotificationMessage message = NotificationMessage.render(family, variant, corrected);
 
     // Then
-    assertThat(firstDevice).isEqualTo(secondDevice);
-    assertThat(firstDevice.body())
-        .doesNotContain("3–1", "null", "disponible", "victoire", "en direct");
-    assertThat(firstDevice.body()).contains("match");
+    assertThat(message.body())
+        .doesNotContain("3–1", "null", "disponible", "victoire", "en direct")
+        .contains("match");
   }
 
   @ParameterizedTest
   @EnumSource(NotificationVariant.class)
-  @DisplayName("Uses honest missing-score and special-result fallbacks without naming a winner")
-  void supportsUnknownScores(NotificationVariant variant) {
+  @DisplayName("Preserves recognized special results without inventing a winner or numeric score")
+  void preservesSpecialResult(NotificationVariant variant) {
     // Given
     Facts special = new Facts("Nantes", null, true, null, null, "F/P", false);
 
@@ -76,13 +90,21 @@ class NotificationMessageTest {
     assertThat(message.body())
         .contains("Nantes", "F/P")
         .doesNotContain("3–0", "victoire", "disponible", "null");
-    assertThat(
-            NotificationMessage.render(
-                    NotificationFamily.PLAIN_RESULT,
-                    variant,
-                    new Facts(null, null, true, null, null, null, false))
-                .body())
-        .contains("score indisponible");
+  }
+
+  @ParameterizedTest
+  @EnumSource(NotificationVariant.class)
+  @DisplayName("Acknowledges an unavailable score without inventing a numeric result")
+  void preservesUnknownScore(NotificationVariant variant) {
+    // Given
+    Facts unknown = new Facts(null, null, true, null, null, null, false);
+
+    // When
+    NotificationMessage message =
+        NotificationMessage.render(NotificationFamily.PLAIN_RESULT, variant, unknown);
+
+    // Then
+    assertThat(message.body()).contains("score indisponible").doesNotContain("null", "3–0");
   }
 
   @ParameterizedTest

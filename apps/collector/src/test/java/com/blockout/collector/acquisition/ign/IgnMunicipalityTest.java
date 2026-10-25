@@ -62,9 +62,12 @@ class IgnMunicipalityTest {
     // Given
     ProviderHttpClient http = mock(ProviderHttpClient.class);
 
-    // When / Then
-    assertThatThrownBy(() -> new IgnMunicipalGeocoder(http).read(null, "75001", "9"))
-        .isInstanceOf(IllegalArgumentException.class);
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
+        () -> new IgnMunicipalGeocoder(http).read(null, "75001", "9");
+
+    // Then
+    assertThatThrownBy(action).isInstanceOf(IllegalArgumentException.class);
     verifyNoInteractions(http);
   }
 
@@ -106,9 +109,11 @@ class IgnMunicipalityTest {
   @Test
   @DisplayName("An empty municipal response leaves Monaco or an unmatched context without a point")
   void preservesEmptyResult() {
-    // Given / When
-    SportingObservation.Locality result =
-        IgnMunicipalGeocoder.parse(200, bytes(collection("")), "7");
+    // Given
+    byte[] response = bytes(collection(""));
+
+    // When
+    SportingObservation.Locality result = IgnMunicipalGeocoder.parse(200, response, "7");
 
     // Then
     assertThat(result.outcome()).isEqualTo(GeocodingOutcomeEnum.EMPTY);
@@ -117,13 +122,15 @@ class IgnMunicipalityTest {
   @Test
   @DisplayName("Only the qualified city-filter error is an ordinary no candidate")
   void qualifiesCityFilterError() {
-    // Given / When
-    SportingObservation.Locality result =
-        IgnMunicipalGeocoder.parse(
-            400,
-            bytes(
-                "{\"code\":400,\"message\":\"Failed to parse query\",\"details\":[\"city: No matching cities found\"]}"),
-            "7");
+    // Given
+    byte[] response =
+        bytes(
+            """
+        {"code":400,"message":"Failed to parse query","details":["city: No matching cities found"]}
+        """);
+
+    // When
+    SportingObservation.Locality result = IgnMunicipalGeocoder.parse(400, response, "7");
 
     // Then
     assertThat(result.outcome()).isEqualTo(GeocodingOutcomeEnum.EMPTY);
@@ -140,21 +147,30 @@ class IgnMunicipalityTest {
       })
   @DisplayName("An unqualified successful body remains a technical failure")
   void rejectsMalformedResponse(String json) {
-    // Given / When / Then
-    assertThatThrownBy(() -> IgnMunicipalGeocoder.parse(200, bytes(json), "7"))
-        .isInstanceOf(IllegalArgumentException.class);
+    // Given
+    byte[] response = bytes(json);
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
+        () -> IgnMunicipalGeocoder.parse(200, response, "7");
+
+    // Then
+    assertThatThrownBy(parse).isInstanceOf(IllegalArgumentException.class);
   }
 
   @ParameterizedTest
   @ValueSource(ints = {400, 404, 429, 500})
   @DisplayName("Unqualified HTTP errors cannot suppress an unresolved locality")
   void rejectsOtherErrors(int status) {
-    // Given / When / Then
-    assertThatThrownBy(
-            () ->
-                IgnMunicipalGeocoder.parse(
-                    status, bytes("{\"message\":\"unqualified error\"}"), "7"))
-        .isInstanceOf(IllegalArgumentException.class);
+    // Given
+    byte[] response = bytes("{\"message\":\"unqualified error\"}");
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
+        () -> IgnMunicipalGeocoder.parse(status, response, "7");
+
+    // Then
+    assertThatThrownBy(parse).isInstanceOf(IllegalArgumentException.class);
   }
 
   /**

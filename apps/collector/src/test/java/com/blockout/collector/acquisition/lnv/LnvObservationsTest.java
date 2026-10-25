@@ -8,12 +8,14 @@ import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.util.List;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
@@ -153,10 +155,12 @@ class LnvObservationsTest {
     // Given
     String html = "<div id=Content_Main_903><span id=group_lbl_title>Alterna VOLSTAR</span></div>";
 
-    // When / Then
-    assertThatThrownBy(
-            () -> new LnvCalendarParser().parse(bytes(html), CALENDAR, "901", "902", "903"))
-        .isInstanceOf(LnvAcquisitionException.class);
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
+        () -> new LnvCalendarParser().parse(bytes(html), CALENDAR, "901", "902", "903");
+
+    // Then
+    assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
   }
 
   @Test
@@ -263,9 +267,9 @@ class LnvObservationsTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"", "invalid - 18:00", "17/10/2026 - 24:00"})
+  @CsvSource({"'', true", "invalid - 18:00, false", "17/10/2026 - 24:00, false"})
   @DisplayName("Missing or malformed schedule fields preserve identified calendar participants")
-  void isolatesCalendarSchedule(String schedule) throws Exception {
+  void isolatesCalendarSchedule(String schedule, boolean complete) throws Exception {
     // Given
     String html;
     try (InputStream input = getClass().getResourceAsStream("/acquisition/lnv/calendar.html")) {
@@ -281,7 +285,7 @@ class LnvObservationsTest {
     // Then
     assertThat(read.calendar().matches()).hasSize(1);
     assertThat(read.calendar().matches().getFirst().facts().result().get().homeSets()).isEqualTo(3);
-    assertThat(read.calendar().complete()).isEqualTo(schedule.isBlank());
+    assertThat(read.calendar().complete()).isEqualTo(complete);
   }
 
   @ParameterizedTest
@@ -321,11 +325,14 @@ class LnvObservationsTest {
   @Test
   @DisplayName("A date-only detail never becomes a midnight instant")
   void preservesUnknownTime() {
-    // Given / When
+    // Given
+    byte[] html = bytes("<span id=Content_Main_LB_DateTime>samedi 17 octobre 2026</span>");
+
+    // When
     SportingObservation.Facts facts =
         new LnvDetailParser()
             .parse(
-                bytes("<span id=Content_Main_LB_DateTime>samedi 17 octobre 2026</span>"),
+                html,
                 URI.create(
                     "https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901&CID=903&PID=902"),
                 "990",
@@ -348,8 +355,11 @@ class LnvObservationsTest {
         <a href="CompetitionMatches.aspx?ID=901&PID=905">Final</a>
         <a href="CompetitionMatches.aspx?ID=999&PID=999">Other competition</a>
         """;
-    // When / Then
-    assertThat(new LnvDiscovery().phaseLinks(bytes(html), CALENDAR, "901"))
+    // When
+    List<URI> phases = new LnvDiscovery().phaseLinks(bytes(html), CALENDAR, "901");
+
+    // Then
+    assertThat(phases)
         .extracting(URI::toString)
         .containsExactly(
             "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902",
@@ -365,9 +375,12 @@ class LnvObservationsTest {
     URI detail = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901");
     byte[] html = bytes("<h1>Error</h1>");
 
-    // When / Then
-    assertThatThrownBy(() -> parser.parse(html, detail, "990", "901"))
-        .isInstanceOf(LnvAcquisitionException.class);
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
+        () -> parser.parse(html, detail, "990", "901");
+
+    // Then
+    assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
   }
 
   @Test
@@ -378,14 +391,16 @@ class LnvObservationsTest {
     URI detail = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=991&ID=901");
     byte[] html = bytes("<span id=Content_Main_LB_DateTime>samedi 17 octobre 2026</span>");
 
-    // When / Then
-    assertThatThrownBy(() -> parser.parse(html, detail, "990", "901"))
-        .isInstanceOf(LnvAcquisitionException.class);
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
+        () -> parser.parse(html, detail, "990", "901");
+
+    // Then
+    assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
   }
 
   @Test
-  @DisplayName(
-      "Calendar uses native roster identities, deduplicates views and isolates contradictory rows")
+  @DisplayName("Reads native match identities, local time and logo references from a calendar")
   void parsesCalendar() throws Exception {
     // Given
     byte[] html;
@@ -396,6 +411,7 @@ class LnvObservationsTest {
     // When
     LnvCalendarParser.Read read =
         new LnvCalendarParser().parse(html, CALENDAR, "901", "902", "903");
+
     // Then
     assertThat(read.calendar().matches()).hasSize(1);
     SportingObservation.Match match = read.calendar().matches().getFirst();
@@ -410,10 +426,16 @@ class LnvObservationsTest {
   @Test
   @DisplayName("Broken standings are refused instead of inventing an unpublished table")
   void rejectsBrokenStandings() {
-    // Given / When / Then
-    assertThatThrownBy(
-            () -> new LnvStandingsParser().parse(bytes("<h1>Error</h1>"), CALENDAR, "903"))
-        .isInstanceOf(LnvAcquisitionException.class);
+    // Given
+    byte[] html = bytes("<h1>Error</h1>");
+    LnvStandingsParser parser = new LnvStandingsParser();
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
+        () -> parser.parse(html, CALENDAR, "903");
+
+    // Then
+    assertThatThrownBy(parse).isInstanceOf(LnvAcquisitionException.class);
   }
 
   /**

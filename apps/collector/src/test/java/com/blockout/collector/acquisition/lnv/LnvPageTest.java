@@ -39,11 +39,14 @@ class LnvPageTest {
   @ValueSource(strings = {"17/10/2026", "17/10/2026 - --:--"})
   @DisplayName("A date without a published clock stays date-only")
   void preservesDateOnly(String rendered) {
-    // Given / When
+    // Given
+    LocalDate expectedDate = LocalDate.of(2026, 10, 17);
+
+    // When
     SportingObservation.Facts facts = LnvPage.time(rendered, DATE);
 
     // Then
-    assertThat(facts.localDate().get()).isEqualTo(LocalDate.of(2026, 10, 17));
+    assertThat(facts.localDate().get()).isEqualTo(expectedDate);
     assertThat(facts.localTime().get()).isNull();
     assertThat(facts.timeZone()).isNull();
   }
@@ -62,9 +65,15 @@ class LnvPageTest {
       })
   @DisplayName("Malformed separators and clocks are refused without accepting wider Unicode syntax")
   void rejectsMalformedClock(String rendered) {
-    // Given / When / Then
-    assertThatThrownBy(() -> LnvPage.time(rendered, DATE))
-        .isInstanceOf(LnvAcquisitionException.class);
+    // Given
+    DateTimeFormatter dateFormat = DATE;
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
+        () -> LnvPage.time(rendered, dateFormat);
+
+    // Then
+    assertThatThrownBy(parse).isInstanceOf(LnvAcquisitionException.class);
   }
 
   @Test
@@ -74,8 +83,11 @@ class LnvPageTest {
     // Given: bounded provider input can contain a long run that is not followed by the delimiter.
     String rendered = "17/10/2026" + " ".repeat(150_000) + "invalid";
 
-    // When / Then
-    assertThatThrownBy(() -> LnvPage.time(rendered, DATE))
-        .isInstanceOf(LnvAcquisitionException.class);
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
+        () -> LnvPage.time(rendered, DATE);
+
+    // Then
+    assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
   }
 }

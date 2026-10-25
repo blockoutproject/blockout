@@ -1,318 +1,176 @@
 package com.blockout.collector.acquisition.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
-import com.blockout.collector.acquisition.infrastructure.CollectorStartup;
-import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendClient;
-import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendMapperImpl;
-import com.blockout.collector.generated.ingestion.ApiClient;
-import com.blockout.collector.generated.ingestion.api.CollectionApi;
-import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
-import com.sun.net.httpserver.HttpServer;
-import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
+import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
+import java.io.IOException;
+import java.time.Instant;
 import java.util.UUID;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.slf4j.LoggerFactory;
-import org.springframework.boot.DefaultApplicationArguments;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Exercises startup and read-only uncertainty recovery through a controlled generated HTTP peer.
+ * Proves completion confirmation using real lifecycle-issued capabilities and a controlled backend.
  */
-@DisplayName("Collector startup and uncertain admission through the generated client")
+@DisplayName("Collector lifecycle completion")
 class CollectorLifecycleTest {
-  private HttpServer server;
-  private HttpComponentsClientHttpRequestFactory requests;
-  private final List<String> calls = new ArrayList<>();
-  private UUID registered;
-  private UUID admitted;
-  private String cycle;
-  private boolean loseAdmission;
-  private boolean loseRegistration;
-  private boolean refuseAdmission;
-  private boolean contradictoryPurpose;
-  private boolean refuseCycleRead;
-  private int unavailableCycleStatus = 503;
-  private CollectorLifecycle lifecycle;
-  private CollectionBackendClient backend;
-
-  /** Starts a native local HTTP peer and a generated client with automatic retries disabled. */
-  @BeforeEach
-  void startPeer() throws Exception {
-    server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-    JsonMapper json = JsonMapper.builder().build();
-    server.createContext(
-        "/ingestion",
-        exchange -> {
-          String method = exchange.getRequestMethod();
-          String path = exchange.getRequestURI().getPath();
-          calls.add(method + " " + path);
-          int status = 200;
-          String body;
-          if (path.endsWith("collection-work")) {
-            body =
-                """
-                {"controls":[{"id":"00000000-0000-4000-8000-000000000183","family":"ffvb",
-                "seasonId":"00000000-0000-4000-8000-000000000184","revision":7,"enabled":true,
-                "seasonState":"active","requestId":"00000000-0000-4000-8000-000000000185","requestedMode":"manual"}],
-                "validations":[{"sourceBindingId":"00000000-0000-4000-8000-000000000186","revision":3,
-                "candidateUrl":"https://www.ffvbbeach.org/source","seasonLabel":"2026/2027","provider":"ffvb","organizerReference":"ABCCS"}]}
-                """;
-          } else if (path.endsWith("collector-runtime")) {
-            if (method.equals("PUT"))
-              registered =
-                  UUID.fromString(
-                      json.readTree(exchange.getRequestBody()).get("incarnationId").asText());
-            if (method.equals("PUT") && loseRegistration) {
-              exchange.close();
-              return;
-            }
-            body =
-                "{\"revision\":1,\"incarnationId\":"
-                    + (registered == null ? "null" : "\"" + registered + "\"")
-                    + "}";
-          } else if (method.equals("POST")) {
-            JsonNode command = json.readTree(exchange.getRequestBody());
-            admitted = UUID.fromString(command.get("cycleId").asText());
-            cycle =
-                "{\"id\":\""
-                    + admitted
-                    + "\",\"incarnationId\":\""
-                    + registered
-                    + "\",\"controlId\":\""
-                    + command.get("controlId").asText()
-                    + "\",\"cycleOrder\":3,\"mode\":\"periodic\",\"state\":\"running\",\"startedAt\":\"2026-10-19T10:00:00Z\"}";
-            if (contradictoryPurpose)
-              cycle =
-                  cycle.replace(
-                      "\"mode\":\"periodic\"",
-                      "\"mode\":\"periodic\",\"sourceBindingId\":\"00000000-0000-4000-8000-000000000002\"");
-            if (refuseAdmission) {
-              byte[] problem =
-                  "{\"type\":\"urn:blockout:problem:invalid-cycle-context\",\"title\":\"Conflict\",\"status\":409}"
-                      .getBytes(StandardCharsets.UTF_8);
-              exchange.getResponseHeaders().add("Content-Type", "application/problem+json");
-              exchange.sendResponseHeaders(409, problem.length);
-              exchange.getResponseBody().write(problem);
-              exchange.close();
-              return;
-            }
-            if (loseAdmission) {
-              exchange.close();
-              return;
-            }
-            body = cycle;
-          } else {
-            status = refuseCycleRead ? unavailableCycleStatus : 200;
-            body = refuseCycleRead ? "{}" : cycle;
-          }
-          byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-          exchange.getResponseHeaders().add("Content-Type", "application/json");
-          exchange.sendResponseHeaders(status, bytes.length);
-          exchange.getResponseBody().write(bytes);
-          exchange.close();
-        });
-    server.start();
-    requests =
-        new HttpComponentsClientHttpRequestFactory(
-            HttpClients.custom().disableAutomaticRetries().disableRedirectHandling().build());
-    ApiClient api =
-        new ApiClient(ApiClient.buildRestClientBuilder().requestFactory(requests).build());
-    api.setBasePath("http://127.0.0.1:" + server.getAddress().getPort());
-    backend =
-        new CollectionBackendClient(
-            new CollectorOperationsApi(api),
-            new CollectionApi(api),
-            new CollectionBackendMapperImpl());
-    lifecycle = new CollectorLifecycle(backend);
-  }
-
-  /** Releases the listener and the HTTP pool owned by this scenario. */
-  @AfterEach
-  void closePeer() throws Exception {
-    server.stop(0);
-    requests.destroy();
-  }
+  private static final Instant NOW = Instant.parse("2026-10-19T12:00:00Z");
+  private static final UUID CONTROL = UUID.fromString("00000000-0000-4000-8000-000000000153");
+  private final CollectionBackend backend = mock(CollectionBackend.class);
+  private final CollectorLifecycle lifecycle = new CollectorLifecycle(backend);
 
   @Test
-  @DisplayName(
-      "Current-work polling maps generated conditional intent without admitting or reading providers")
-  void readsGeneratedWork() {
+  @DisplayName("Confirms an uncertain completion by one read of the original cycle")
+  void confirmsCompletionOnce() {
     // Given
+    when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
+    when(backend.register(0, lifecycle.getIncarnationId()))
+        .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
     lifecycle.start();
+    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+    CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
+    when(backend.complete(admitted.getCycle().id(), NOW)).thenThrow(uncertain());
+    when(backend.cycle(admitted.getCycle().id())).thenReturn(completed(admitted, NOW));
 
     // When
-    CollectionBackend.Work work = backend.work(lifecycle.getIncarnationId());
+    boolean confirmed = lifecycle.complete(admitted, NOW);
 
     // Then
-    assertThat(work.controls())
-        .singleElement()
-        .satisfies(
-            control -> {
-              assertThat(control.revision()).isEqualTo(7);
-              assertThat(control.requestedMode())
-                  .isEqualTo(
-                      com.blockout.collector.generated.ingestion.model.CollectionModeEnum.MANUAL);
-              assertThat(control.requestId())
-                  .isEqualTo(UUID.fromString("00000000-0000-4000-8000-000000000185"));
-            });
-    assertThat(work.validations())
-        .singleElement()
-        .satisfies(
-            candidate -> {
-              assertThat(candidate.revision()).isEqualTo(3);
-              assertThat(candidate.sourceBindingId())
-                  .isEqualTo(UUID.fromString("00000000-0000-4000-8000-000000000186"));
-            });
-    assertThat(calls)
-        .containsExactly(
-            "GET /ingestion/collector-runtime",
-            "PUT /ingestion/collector-runtime",
-            "GET /ingestion/collection-work");
+    assertThat(confirmed).isTrue();
+    verify(backend).complete(admitted.getCycle().id(), NOW);
+    verify(backend).cycle(admitted.getCycle().id());
   }
 
   @Test
-  @DisplayName("Reads then registers the startup UUID once before accepting work")
-  void registersOneStartup() throws Exception {
+  @DisplayName("Confirms nanosecond clock completion at the persisted microsecond precision")
+  void confirmsPersistedPrecision() {
+    // Given
+    when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
+    when(backend.register(0, lifecycle.getIncarnationId()))
+        .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
+    lifecycle.start();
+    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+    CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
+    Instant actualEnd = NOW.plusNanos(123_456_789);
+    Instant persistedEnd = NOW.plusNanos(123_456_000);
+    when(backend.complete(admitted.getCycle().id(), persistedEnd))
+        .thenReturn(completed(admitted, persistedEnd));
 
     // When
-    AcquisitionScheduler scheduler = mock(AcquisitionScheduler.class);
-    new CollectorStartup(lifecycle, scheduler).run(new DefaultApplicationArguments());
-    verify(scheduler).start();
+    boolean confirmed = lifecycle.complete(admitted, actualEnd);
 
     // Then
-    assertThat(calls)
-        .containsExactly("GET /ingestion/collector-runtime", "PUT /ingestion/collector-runtime");
-    assertThat(registered).isEqualTo(lifecycle.getIncarnationId());
-    assertThatThrownBy(lifecycle::start).isInstanceOf(IllegalStateException.class);
-    assertThat(calls).hasSize(2);
+    assertThat(confirmed).isTrue();
+    verify(backend).complete(admitted.getCycle().id(), persistedEnd);
+    verify(backend, never()).cycle(any());
   }
 
   @Test
-  @DisplayName(
-      "Reads the same cycle after a lost admission response before exposing provider context")
-  void confirmsUncertainAdmission() {
+  @DisplayName("Leaves an unconfirmed completion blocked after a single confirmation read")
+  void leavesUnconfirmedCompletionBlocked() {
     // Given
+    when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
+    when(backend.register(0, lifecycle.getIncarnationId()))
+        .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
     lifecycle.start();
-    loseAdmission = true;
-    UUID control = UUID.fromString("00000000-0000-4000-8000-000000000001");
+    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+    CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
+    when(backend.complete(admitted.getCycle().id(), NOW)).thenThrow(uncertain());
+    when(backend.cycle(admitted.getCycle().id())).thenReturn(admitted.getCycle());
 
     // When
-    CollectorLifecycle.AdmittedCycle context = lifecycle.admit(control, null, 0, null);
+    boolean confirmed = lifecycle.complete(admitted, NOW);
 
     // Then
-    assertThat(context.getCycle().id()).isEqualTo(admitted);
-    assertThat(calls.subList(2, calls.size()))
-        .containsExactly(
-            "POST /ingestion/collection-cycles", "GET /ingestion/collection-cycles/" + admitted);
-    assertThat(context.nextReadOrdinal()).isEqualTo(1);
-    assertThat(context.nextReadOrdinal()).isEqualTo(2);
-  }
-
-  @ParameterizedTest
-  @ValueSource(ints = {404, 503})
-  @DisplayName(
-      "An unresolved original admission remains uncertain and logs its original UUID for inspection")
-  void refusesUnconfirmedAdmission(int readStatus) {
-    // Given
-    lifecycle.start();
-    loseAdmission = true;
-    refuseCycleRead = true;
-    unavailableCycleStatus = readStatus;
-    Logger logger = (Logger) LoggerFactory.getLogger(CollectorLifecycle.class);
-    ListAppender<ILoggingEvent> events = new ListAppender<>();
-    events.start();
-    logger.addAppender(events);
-    try {
-      // When / Then
-      assertThatThrownBy(() -> lifecycle.admit(UUID.randomUUID(), null, 0, null))
-          .isInstanceOfSatisfying(
-              CollectionBackendFailure.class,
-              failure ->
-                  assertThat(failure.getKind())
-                      .isEqualTo(CollectionBackendFailure.Kind.UNCONFIRMED));
-      assertThat(calls.stream().filter(call -> call.startsWith("POST"))).hasSize(1);
-      assertThat(events.list)
-          .singleElement()
-          .satisfies(
-              event -> {
-                assertThat(event.getKeyValuePairs())
-                    .anySatisfy(
-                        pair -> {
-                          assertThat(pair.key).isEqualTo("cycleId");
-                          assertThat(pair.value).isEqualTo(admitted);
-                        });
-              });
-    } finally {
-      logger.detachAppender(events);
-      events.stop();
-    }
+    assertThat(confirmed).isFalse();
+    verify(backend).complete(admitted.getCycle().id(), NOW);
+    verify(backend).cycle(admitted.getCycle().id());
   }
 
   @Test
-  @DisplayName("Confirms a lost startup acknowledgement without another registration")
-  void confirmsLostRegistration() {
+  @DisplayName("Confirms atomic candidate completion without substituting a control completion")
+  void confirmsCandidateResultOnce() {
     // Given
-    loseRegistration = true;
+    when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
+    when(backend.register(0, lifecycle.getIncarnationId()))
+        .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
+    lifecycle.start();
+    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+    CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(null, CONTROL, 0, null);
+    CollectionBackend.Validation result =
+        new CollectionBackend.Validation(
+            admitted.getCycle().id(), SourceValidationStateEnum.QUALIFIED, NOW, "2026/2027", null);
+    doThrow(uncertain()).when(backend).validate(CONTROL, result);
+    when(backend.cycle(admitted.getCycle().id()))
+        .thenReturn(completed(admitted, NOW.plusSeconds(1)));
 
     // When
-    lifecycle.start();
+    boolean confirmed = lifecycle.validate(admitted, result);
 
     // Then
-    assertThat(calls)
-        .containsExactly(
-            "GET /ingestion/collector-runtime",
-            "PUT /ingestion/collector-runtime",
-            "GET /ingestion/collector-runtime");
-    assertThat(registered).isEqualTo(lifecycle.getIncarnationId());
+    assertThat(confirmed).isTrue();
+    verify(backend).validate(CONTROL, result);
+    verify(backend).cycle(admitted.getCycle().id());
+    verify(backend, never()).complete(any(), any());
   }
 
-  @Test
-  @DisplayName("Supersession stops new reads and never automatically registers again")
-  void stopsSupersededProcess() {
-    // Given
-    lifecycle.start();
-    CollectorLifecycle.AdmittedCycle old = lifecycle.admit(UUID.randomUUID(), null, 0, null);
-    registered = UUID.fromString("00000000-0000-4000-8000-000000000099");
-    refuseAdmission = true;
-
-    // When / Then
-    assertThatThrownBy(() -> lifecycle.admit(UUID.randomUUID(), null, 0, null))
-        .isInstanceOf(CollectionBackendFailure.class);
-    assertThatThrownBy(old::nextReadOrdinal).isInstanceOf(IllegalStateException.class);
-    int observedCalls = calls.size();
-    assertThatThrownBy(() -> lifecycle.admit(UUID.randomUUID(), null, 0, null))
-        .isInstanceOf(IllegalStateException.class);
-    assertThat(calls).hasSize(observedCalls);
-    assertThat(calls.stream().filter(call -> call.startsWith("PUT"))).hasSize(1);
+  /**
+   * Returns the backend's running response correlated to the generated admission identity.
+   *
+   * @param command explicit control or candidate request sent by the real lifecycle
+   * @return runnable response with no side effects or installed stubs
+   */
+  private static CollectionBackend.Cycle runningCycle(CollectionBackend.StartCycle command) {
+    boolean candidate = command.sourceBindingId() != null;
+    return new CollectionBackend.Cycle(
+        command.cycleId(),
+        command.incarnationId(),
+        command.controlId(),
+        command.sourceBindingId(),
+        1,
+        candidate ? null : CollectionModeEnum.PERIODIC,
+        CollectionCycleStateEnum.RUNNING,
+        candidate,
+        null);
   }
 
-  @Test
-  @DisplayName("A contradictory generated cycle never becomes provider authorization")
-  void refusesContradictoryContext() {
-    // Given
-    lifecycle.start();
-    contradictoryPurpose = true;
+  /**
+   * Returns the original context with the exact terminal timestamp.
+   *
+   * @param admitted original capability
+   * @param completedAt accepted backend terminal time
+   * @return the same context with its actual accepted completion
+   */
+  private CollectionBackend.Cycle completed(
+      CollectorLifecycle.AdmittedCycle admitted, Instant completedAt) {
+    CollectionBackend.Cycle cycle = admitted.getCycle();
+    return new CollectionBackend.Cycle(
+        cycle.id(),
+        cycle.incarnationId(),
+        cycle.controlId(),
+        cycle.sourceBindingId(),
+        cycle.cycleOrder(),
+        cycle.mode(),
+        CollectionCycleStateEnum.COMPLETED,
+        cycle.hasCandidate(),
+        completedAt);
+  }
 
-    // When / Then
-    assertThatThrownBy(() -> lifecycle.admit(UUID.randomUUID(), null, 0, null))
-        .isInstanceOf(IllegalStateException.class);
+  /**
+   * Models response loss without a network side effect.
+   *
+   * @return a response-loss classification without a real network side effect
+   */
+  private CollectionBackendFailure uncertain() {
+    return new CollectionBackendFailure(
+        CollectionBackendFailure.Kind.UNCONFIRMED, new IOException("Synthetic response loss"));
   }
 }

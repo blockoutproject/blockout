@@ -45,9 +45,12 @@ class FfvbClubSheetTest {
             CompletableFuture.completedFuture(
                 new ProviderHttpClient.Response(bytes(form), FORM, true)));
 
-    // When / Then
-    assertThatThrownBy(() -> new FfvbClubSheets(http).read("000042"))
-        .isInstanceOf(FfvbAcquisitionException.class);
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
+        () -> new FfvbClubSheets(http).read("000042");
+
+    // Then
+    assertThatThrownBy(action).isInstanceOf(FfvbAcquisitionException.class);
     verify(http, never()).post(any(), any());
   }
 
@@ -126,9 +129,15 @@ class FfvbClubSheetTest {
       })
   @DisplayName("Rejects unqualified or foreign sheets without producing a withdrawal")
   void rejectsUnqualifiedSheet(String html) {
-    // Given / When / Then
-    assertThatThrownBy(() -> FfvbClubSheets.parse(bytes(html), "000042"))
-        .isInstanceOf(FfvbAcquisitionException.class);
+    // Given
+    byte[] response = bytes(html);
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
+        () -> FfvbClubSheets.parse(response, "000042");
+
+    // Then
+    assertThatThrownBy(parse).isInstanceOf(FfvbAcquisitionException.class);
   }
 
   /**

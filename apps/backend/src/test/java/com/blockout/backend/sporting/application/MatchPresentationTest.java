@@ -18,23 +18,20 @@ import org.junit.jupiter.params.provider.CsvSource;
 class MatchPresentationTest {
   @ParameterizedTest
   @CsvSource({
-    "2026-03-29T00:30:00Z,2026-03-29T06:29:59Z,UPCOMING",
-    "2026-03-29T00:30:00Z,2026-03-29T06:30:00Z,COMPLETED",
-    "2026-10-25T00:30:00Z,2026-10-25T06:29:59Z,UPCOMING",
-    "2026-10-25T00:30:00Z,2026-10-25T06:30:00Z,COMPLETED"
+    "2026-03-29,2026-03-29T00:30:00Z,2026-03-29T06:29:59Z,UPCOMING",
+    "2026-03-29,2026-03-29T00:30:00Z,2026-03-29T06:30:00Z,COMPLETED",
+    "2026-10-25,2026-10-25T00:30:00Z,2026-10-25T06:29:59Z,UPCOMING",
+    "2026-10-25,2026-10-25T00:30:00Z,2026-10-25T06:30:00Z,COMPLETED"
   })
   @DisplayName("Uses six elapsed hours through both daylight-saving changes")
-  void usesElapsedHours(String kickoff, String now, CalendarCategoryEnum expected) {
+  void usesElapsedHours(
+      LocalDate date, OffsetDateTime kickoff, Instant now, CalendarCategoryEnum expected) {
     // Given
     ConsultationViews.Schedule schedule =
-        new ConsultationViews.Schedule(
-            LocalDate.parse(kickoff.substring(0, 10)),
-            OffsetDateTime.parse(kickoff),
-            "Europe/Paris",
-            null);
+        new ConsultationViews.Schedule(date, kickoff, "Europe/Paris", null);
 
     // When
-    CalendarCategoryEnum category = MatchPresentation.category(schedule, null, Instant.parse(now));
+    CalendarCategoryEnum category = MatchPresentation.category(schedule, null, now);
 
     // Then
     assertThat(category).isEqualTo(expected);
@@ -78,8 +75,8 @@ class MatchPresentationTest {
   }
 
   @Test
-  @DisplayName("Reassesses a postponed match after result withdrawal without retaining a category")
-  void reassessesCurrentFacts() {
+  @DisplayName("Reclassifies a postponed match from its current schedule")
+  void reclassifiesPostponedMatch() {
     // Given
     Instant now = Instant.parse("2026-10-24T12:00:00Z");
     ConsultationViews.Schedule old =

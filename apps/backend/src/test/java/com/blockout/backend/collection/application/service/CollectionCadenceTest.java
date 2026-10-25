@@ -8,6 +8,7 @@ import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 
 /** Due selection uses actual attempts rather than scheduler ticks or successful results. */
 @DisplayName("Acquisition attempt cadence")
@@ -24,8 +25,7 @@ class CollectionCadenceTest {
     "CLUB_SHEET,false,86400",
     "GEOCODING,false,3600"
   })
-  @DisplayName(
-      "A target becomes due at its exact attempt cadence and never-attempted work is eligible")
+  @DisplayName("Becomes due at the exact cadence after the last attempt")
   void selectsAtExactAttemptCadence(CollectionTargetKindEnum kind, boolean fast, int seconds) {
     // Given
     Instant attempt = Instant.parse("2026-10-24T09:00:00Z");
@@ -39,12 +39,24 @@ class CollectionCadenceTest {
     // When
     boolean beforeCadence = FreezeCollectionTargets.due(target, attempt.plusSeconds(seconds - 1));
     boolean atCadence = FreezeCollectionTargets.due(target, attempt.plusSeconds(seconds));
-    boolean neverAttempted =
-        FreezeCollectionTargets.due(target.toBuilder().lastAttemptAt(null).build(), attempt);
 
     // Then
     assertThat(beforeCadence).isFalse();
     assertThat(atCadence).isTrue();
-    assertThat(neverAttempted).isTrue();
+  }
+
+  @ParameterizedTest
+  @EnumSource(CollectionTargetKindEnum.class)
+  @DisplayName("Admits a target that has never been attempted")
+  void admitsNeverAttemptedTarget(CollectionTargetKindEnum kind) {
+    // Given
+    Instant now = Instant.parse("2026-10-24T09:00:00Z");
+    Target target = Target.builder().kind(kind).lastAttemptAt(null).build();
+
+    // When
+    boolean due = FreezeCollectionTargets.due(target, now);
+
+    // Then
+    assertThat(due).isTrue();
   }
 }

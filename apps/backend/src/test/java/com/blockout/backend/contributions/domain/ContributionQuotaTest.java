@@ -20,6 +20,9 @@ class ContributionQuotaTest {
   })
   @DisplayName("Uses successive Paris midnights including both daylight-saving changes")
   void resolvesParisDay(Instant now, Instant start, Instant end, long hours) {
+    // Given
+    // The table fixes the expected UTC midnights independently of the zone conversion.
+
     // When
     ContributionQuota.Day day = ContributionQuota.dayAt(now);
 

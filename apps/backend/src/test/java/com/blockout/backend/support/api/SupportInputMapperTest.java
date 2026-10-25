@@ -53,7 +53,7 @@ class SupportInputMapperTest {
     // When
     SupportSubmission.Metadata result = mapper.toMetadata(request);
     context.setScreen("changed after mapping");
-    context.getTarget().setId(UUID.randomUUID());
+    context.getTarget().setId(UUID.fromString("00000000-0000-4000-8000-000000000002"));
     context.getSignInFailure().setReason("changed");
 
     // Then

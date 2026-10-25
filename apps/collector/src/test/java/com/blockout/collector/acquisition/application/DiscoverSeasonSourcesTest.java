@@ -108,8 +108,11 @@ class DiscoverSeasonSourcesTest {
             .organizerReference("LIIDF")
             .build();
 
-    // When / Then
-    assertThatThrownBy(() -> service.catalog(target)).isInstanceOf(FfvbAcquisitionException.class);
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable action = () -> service.catalog(target);
+
+    // Then
+    assertThatThrownBy(action).isInstanceOf(FfvbAcquisitionException.class);
   }
 
   @Test
@@ -141,9 +144,12 @@ class DiscoverSeasonSourcesTest {
             .build();
     List<DiscoverSeasonSources.PageRead> consumed = new ArrayList<>();
 
-    // When / Then
-    assertThatThrownBy(() -> service.catalog(target, () -> 1, consumed::add))
-        .isInstanceOf(IllegalArgumentException.class);
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
+        () -> service.catalog(target, () -> 1, consumed::add);
+
+    // Then
+    assertThatThrownBy(action).isInstanceOf(IllegalArgumentException.class);
     assertThat(consumed).isEmpty();
   }
 

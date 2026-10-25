@@ -30,13 +30,13 @@ class StreamAddressTest {
   @DisplayName("Recognizes exact providers, their delimited subdomains and exact short hosts")
   void recognizesAuthorizedHosts(String literal, StreamAddress.Platform platform) {
     // Given
-    StreamAddress address = new StreamAddress(literal);
+    // The table supplies the literal address and its independently expected provider.
 
     // When
-    StreamAddress.Platform recognized = address.platform();
+    StreamAddress address = new StreamAddress(literal);
 
     // Then
-    assertThat(recognized).isEqualTo(platform);
+    assertThat(address.platform()).isEqualTo(platform);
     assertThat(address.value()).isEqualTo(literal);
   }
 
@@ -73,6 +73,9 @@ class StreamAddressTest {
       })
   @DisplayName("Rejects malformed, credentialed, nonweb and lookalike addresses locally")
   void rejectsUnauthorizedAddresses(String literal) {
+    // Given
+    // The source supplies one unsupported literal without performing any provider lookup.
+
     // When
     ThrowingCallable recognize = () -> new StreamAddress(literal);
 
@@ -87,17 +90,30 @@ class StreamAddressTest {
   void preservesLiteralIdentity() {
     // Given
     String literal = "HTTPS://WWW.YouTube.COM/a/../watch?v=A%2fb&x=1#At%20One";
+
     // When
     StreamAddress original = new StreamAddress(literal);
 
     // Then
     assertThat(original.value()).isEqualTo(literal);
     assertThat(original).isEqualTo(new StreamAddress(literal));
-    assertThat(original)
-        .isNotEqualTo(new StreamAddress("https://www.youtube.com/watch?v=A%2Fb&x=1#At%20One"));
-    assertThat(new StreamAddress("https://youtu.be/a"))
-        .isNotEqualTo(new StreamAddress("https://youtube.com/watch?v=a"));
-    assertThat(new StreamAddress("https://youtube.com/watch?a=1&b=2"))
-        .isNotEqualTo(new StreamAddress("https://youtube.com/watch?b=2&a=1"));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "HTTPS://WWW.YouTube.COM/a/../watch?v=A%2fb&x=1#At%20One, https://www.youtube.com/watch?v=A%2Fb&x=1#At%20One",
+    "https://youtu.be/a, https://youtube.com/watch?v=a",
+    "https://youtube.com/watch?a=1&b=2, https://youtube.com/watch?b=2&a=1"
+  })
+  @DisplayName("Keeps distinct literal addresses distinct despite equivalent provider destinations")
+  void preservesDistinctLiterals(String first, String second) {
+    // Given
+    StreamAddress original = new StreamAddress(first);
+
+    // When
+    StreamAddress alternative = new StreamAddress(second);
+
+    // Then
+    assertThat(alternative).isNotEqualTo(original);
   }
 }

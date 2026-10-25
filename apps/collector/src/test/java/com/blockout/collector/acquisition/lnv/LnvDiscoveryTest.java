@@ -43,9 +43,11 @@ class LnvDiscoveryTest {
     String html =
         "<base href='https://foreign.example/'><a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>";
 
-    // When / Then
-    assertThatThrownBy(
-            () -> new LnvDiscovery().phaseLinks(html.getBytes(StandardCharsets.UTF_8), page, "901"))
-        .isInstanceOf(LnvAcquisitionException.class);
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
+        () -> new LnvDiscovery().phaseLinks(html.getBytes(StandardCharsets.UTF_8), page, "901");
+
+    // Then
+    assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
   }
 }

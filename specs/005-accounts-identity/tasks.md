@@ -107,7 +107,7 @@ description: "Implementation tasks for F05 accounts, sessions and erasure"
 
 ### Tests for User Story 4
 
-- [x] T021 [US4] Write failing age tests in `apps/backend/src/test/java/com/blockout/backend/accounts/application/AccountAgeTest.java` and `apps/mobile/src/features/accounts/__tests__/account-age-retry.test.tsx`; cover known-date preservation on provider outage, null evidence, targeted establishment retry with still-valid authentication and actual principal dates after successful/failed provider cleanup using controlled lifecycle fixtures.
+- [x] T021 [US4] Write failing age tests in `apps/backend/src/test/java/com/blockout/backend/accounts/application/EstablishAccountAgeTest.java` and `apps/mobile/src/features/accounts/__tests__/account-age-retry.test.tsx`; cover known-date preservation on provider outage, null evidence, targeted establishment retry with still-valid authentication and actual principal dates after successful/failed provider cleanup using controlled lifecycle fixtures.
 
 ### Implementation and qualification for User Story 4
 
