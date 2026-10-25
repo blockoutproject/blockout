@@ -1,3 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
+import { Image } from "expo-image";
+import { useEffect, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import type {
   SportingIdentityResponse,
@@ -5,7 +8,8 @@ import type {
   SportingSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
 import type { DiscoveryPage } from "../api/discovery-queries";
-import { SportingIdentity } from "../../sporting/components/sporting-identity";
+import { useConsultationQueries } from "../../sporting/api/use-consultation-queries";
+import { binaryImagePreview } from "../../../shared/api/binary-image-preview";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
@@ -51,7 +55,7 @@ export interface SearchResultsProps {
   pages: readonly DiscoveryPage[];
 }
 
-/** Virtualizes public identities using F03 presentation, without claiming a loaded count is a total. */
+/** Virtualizes public summaries without claiming a loaded count is a total or activating destinations. */
 export function SearchResults({ pages }: SearchResultsProps) {
   const { colors } = useTheme();
   return (
@@ -70,9 +74,142 @@ export function SearchResults({ pages }: SearchResultsProps) {
         </Text>
       }
       ItemSeparatorComponent={() => <View style={styles.separator} />}
-      renderItem={({ item }) => <SportingIdentity {...item} />}
+      renderItem={({ item }) => <ResultSummary result={item} />}
     />
   );
+}
+
+/** Search summaries retain current public context; F03's full-page mount refresh does not apply here. */
+function ResultSummary({ result }: { result: SearchResult }) {
+  const { colors } = useTheme();
+  const { identity, kind, subtitle, classification, season } = result;
+  const metadata = [
+    classification?.division?.name,
+    season?.label,
+    classification?.format?.replace("x", " × "),
+    classification?.gender === "female"
+      ? "Féminin"
+      : classification?.gender === "male"
+        ? "Masculin"
+        : classification?.gender === "mixed"
+          ? "Mixte"
+          : undefined,
+  ].filter((value) => value !== undefined);
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: classification?.division?.color ?? colors.border,
+        },
+      ]}
+    >
+      <View style={[styles.identity, { backgroundColor: colors.subtle }]}>
+        {identity.logoUrl && kind !== "pool" && (
+          <ResultLogo identity={identity} kind={kind} />
+        )}
+        {kind === "pool" && classification?.division?.logoUrl && (
+          <ResultLogo identity={classification.division} kind="division" />
+        )}
+        <View style={styles.name}>
+          <Text
+            accessibilityRole="header"
+            style={[styles.heading, { color: colors.text }]}
+          >
+            {identity.name}
+          </Text>
+          {subtitle && (
+            <Text style={[styles.secondary, { color: colors.secondaryText }]}>
+              {subtitle}
+            </Text>
+          )}
+        </View>
+      </View>
+      {metadata.length > 0 && (
+        <View style={styles.metadata}>
+          {metadata.map((label) => (
+            <Text
+              key={label}
+              style={[
+                styles.badge,
+                { color: colors.secondaryText, borderColor: colors.border },
+              ]}
+            >
+              {label}
+            </Text>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+/** Uses F03's generated artwork/admission options with F13's ordinary no-replay lifecycle. */
+function ResultLogo({
+  identity,
+  kind,
+}: {
+  identity: SportingIdentityResponse;
+  kind: "club" | "team" | "division";
+}) {
+  const queries = useConsultationQueries();
+  const options =
+    kind === "club"
+      ? queries.clubLogo(identity.id)
+      : kind === "team"
+        ? queries.teamLogo(identity.id)
+        : queries.divisionLogo(identity.id);
+  const query = useQuery(options);
+  const { colors } = useTheme();
+  return (
+    <View style={styles.logo}>
+      {query.data ? (
+        <LogoPreview key={JSON.stringify(options.queryKey)} blob={query.data} />
+      ) : (
+        <Text style={[styles.secondary, { color: colors.secondaryText }]}>
+          {query.isError ? "Logo indisponible" : "Chargement du logo"}
+        </Text>
+      )}
+    </View>
+  );
+}
+
+/** Owns only the ephemeral native image representation; obsolete conversion completions are ignored. */
+function LogoPreview({ blob }: { blob: Blob }) {
+  const [uri, setUri] = useState<string>();
+  const [failed, setFailed] = useState(false);
+  const { colors } = useTheme();
+  useEffect(() => {
+    let current = true;
+    setUri(undefined);
+    setFailed(false);
+    void binaryImagePreview(blob).then(
+      (value) => {
+        if (current) setUri(value);
+      },
+      () => {
+        if (current) setFailed(true);
+      },
+    );
+    return () => {
+      current = false;
+    };
+  }, [blob]);
+  return failed ? (
+    <Text style={[styles.secondary, { color: colors.secondaryText }]}>
+      Logo indisponible
+    </Text>
+  ) : uri ? (
+    <Image
+      source={{ uri }}
+      accessible={false}
+      cachePolicy="none"
+      contentFit="contain"
+      onError={() => setFailed(true)}
+      style={styles.logoImage}
+    />
+  ) : null;
 }
 
 const styles = StyleSheet.create({
@@ -86,4 +223,36 @@ const styles = StyleSheet.create({
     paddingVertical: tokens.spacing.md,
   },
   separator: { height: tokens.spacing.md },
+  card: {
+    borderWidth: tokens.borderWidth,
+    borderRadius: tokens.radius.sheet,
+    overflow: "hidden",
+  },
+  identity: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: tokens.spacing.lg,
+    gap: tokens.spacing.md,
+  },
+  name: { flex: 1, minWidth: 0, gap: tokens.spacing.xs },
+  secondary: { ...tokens.typography.metadata },
+  metadata: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    padding: tokens.spacing.md,
+    gap: tokens.spacing.sm,
+  },
+  badge: {
+    ...tokens.typography.metadata,
+    borderWidth: tokens.borderWidth,
+    borderRadius: tokens.radius.badge,
+    padding: tokens.spacing.xs,
+    paddingHorizontal: tokens.spacing.sm,
+  },
+  logo: {
+    width: tokens.size.control,
+    minHeight: tokens.size.control,
+    justifyContent: "center",
+  },
+  logoImage: { width: tokens.size.control, height: tokens.size.control },
 });

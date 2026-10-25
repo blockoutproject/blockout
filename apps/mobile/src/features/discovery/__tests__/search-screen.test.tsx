@@ -34,6 +34,11 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),
 }));
+jest.mock("../../../shared/api/binary-image-preview", () => ({
+  binaryImagePreview: jest
+    .fn()
+    .mockResolvedValue("data:image/png;base64,c3ludGhldGlj"),
+}));
 
 const mockFetch = jest.fn();
 const environment = { ...process.env };
@@ -335,3 +340,64 @@ it("leaves empty and whitespace-only text unqueried until the examples owner is 
   expect(screen.queryByText("Exemples")).not.toBeOnTheScreen();
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 });
+
+it.each([200, 503])(
+  "does not replay a logo read after status %i when returning to its tab",
+  async (status) => {
+    // Given: native Blob-to-image conversion and HTTP are controlled; generated reads and Query remain real.
+    mockFetch.mockImplementation((url: string) => {
+      if (new URL(url).pathname.endsWith("/logo"))
+        return Promise.resolve(
+          status === 200
+            ? new Response("synthetic-image", {
+                headers: { "Content-Type": "image/png" },
+              })
+            : Response.json({ status: 503 }, { status: 503 }),
+        );
+      if (url.includes("/teams?"))
+        return Promise.resolve(
+          Response.json({
+            teams: [
+              {
+                team: {
+                  id: firstId,
+                  name: "Volley",
+                  logoUrl: `/teams/${firstId}/logo`,
+                },
+                season,
+                classification: {},
+                professional: false,
+              },
+            ],
+          }),
+        );
+      return publicReads(url);
+    });
+    const user = userEvent.setup();
+    await renderSearch();
+    await user.paste(await screen.findByLabelText("Rechercher"), "Volley");
+    await waitFor(() =>
+      expect(
+        mockFetch.mock.calls.filter(([url]) =>
+          new URL(String(url)).pathname.endsWith("/logo"),
+        ),
+      ).toHaveLength(1),
+    );
+    if (status === 503) await screen.findByText("Logo indisponible");
+
+    // When
+    await user.press(screen.getByRole("tab", { name: "Clubs" }));
+    await screen.findByText("Niort");
+    await user.press(screen.getByRole("tab", { name: "Équipes" }));
+    await screen.findByText("Volley");
+
+    // Then
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(String(url)).pathname.endsWith("/logo"),
+      ),
+    ).toHaveLength(1);
+    if (status === 503)
+      expect(screen.getByText("Logo indisponible")).toBeOnTheScreen();
+  },
+);

@@ -1,10 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { StyleSheet, Text, View } from "react-native";
+import { Search } from "lucide-react-native";
+import { StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ListClubsParams } from "../../../../.generated/schemas/index.zod";
-import { TextField } from "../../../shared/components/text-field";
 import {
   RequestError,
   RequestLoading,
@@ -26,6 +26,7 @@ const searchSchema = ListClubsParams.pick({ q: true });
 export function SearchScreen() {
   const { colors } = useTheme();
   const [resource, setResource] = useState<DiscoveryResource>("team");
+  const [focused, setFocused] = useState(false);
   const { control } = useForm<ListClubsParams>({
     defaultValues: { q: "" },
     resolver: zodResolver(searchSchema),
@@ -55,27 +56,58 @@ export function SearchScreen() {
           control={control}
           name="q"
           render={({ field, fieldState }) => (
-            <TextField
-              ref={field.ref}
-              label="Rechercher"
-              value={field.value ?? ""}
-              onChangeText={field.onChange}
-              onBlur={field.onBlur}
-              placeholder={
-                resource === "club"
-                  ? "Rechercher un club…"
-                  : resource === "team"
-                    ? "Rechercher une équipe…"
-                    : "Rechercher une poule…"
-              }
-              returnKeyType="search"
-              autoCorrect={false}
-              error={
-                fieldState.invalid
-                  ? "La recherche est limitée à 200 caractères."
-                  : undefined
-              }
-            />
+            <View style={styles.field}>
+              <View
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: fieldState.invalid
+                      ? colors.error
+                      : focused
+                        ? colors.focus
+                        : colors.border,
+                  },
+                ]}
+              >
+                <Search
+                  accessible={false}
+                  color={colors.icon}
+                  size={tokens.size.controlIcon}
+                />
+                <TextInput
+                  ref={field.ref}
+                  accessibilityLabel="Rechercher"
+                  value={field.value ?? ""}
+                  onChangeText={field.onChange}
+                  onFocus={() => setFocused(true)}
+                  onBlur={() => {
+                    setFocused(false);
+                    field.onBlur();
+                  }}
+                  placeholder={
+                    resource === "club"
+                      ? "Rechercher un club…"
+                      : resource === "team"
+                        ? "Rechercher une équipe…"
+                        : "Rechercher une poule…"
+                  }
+                  returnKeyType="search"
+                  autoCorrect={false}
+                  placeholderTextColor={colors.secondaryText}
+                  style={[styles.inputText, { color: colors.text }]}
+                />
+              </View>
+              {fieldState.invalid && (
+                <Text
+                  accessibilityRole="alert"
+                  accessibilityLiveRegion="polite"
+                  style={[styles.validation, { color: colors.error }]}
+                >
+                  La recherche est limitée à 200 caractères.
+                </Text>
+              )}
+            </View>
           )}
         />
       </View>
@@ -146,6 +178,23 @@ function TextSearchResults({
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   controls: { padding: tokens.spacing.lg, gap: tokens.spacing.sm },
+  field: { gap: tokens.spacing.label },
+  input: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+    borderWidth: tokens.borderWidth,
+    borderRadius: tokens.radius.control,
+    minHeight: tokens.size.control,
+    paddingHorizontal: tokens.spacing.md,
+  },
+  inputText: {
+    ...tokens.typography.body,
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: tokens.spacing.md,
+  },
+  validation: { ...tokens.typography.metadata },
   feedback: {
     paddingHorizontal: tokens.spacing.lg,
     paddingBottom: tokens.spacing.md,
