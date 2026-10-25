@@ -1,0 +1,17 @@
+cluster.name: blockout-${BLOCKOUT_ENVIRONMENT}-search
+node.name: search
+network.host: 0.0.0.0
+discovery.type: single-node
+bootstrap.memory_lock: true
+plugins.security.ssl.transport.pemcert_filepath: tls/node.pem
+plugins.security.ssl.transport.pemkey_filepath: tls/node-key.pem
+plugins.security.ssl.transport.pemtrustedcas_filepath: tls/ca.pem
+plugins.security.ssl.http.enabled: true
+plugins.security.ssl.http.pemcert_filepath: tls/node.pem
+plugins.security.ssl.http.pemkey_filepath: tls/node-key.pem
+plugins.security.ssl.http.pemtrustedcas_filepath: tls/ca.pem
+plugins.security.nodes_dn:
+  - ${BLOCKOUT_SEARCH_NODE_DN}
+plugins.security.authcz.admin_dn:
+  - ${BLOCKOUT_SEARCH_ADMIN_DN}
+plugins.security.allow_default_init_securityindex: false
