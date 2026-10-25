@@ -177,6 +177,29 @@ it("keeps the summary pool heading informational instead of inventing a navigati
   ).not.toBeOnTheScreen();
 });
 
+it("announces both accepted scores on their team links when set detail is absent", async () => {
+  // Given
+  const match = matchDetail().match;
+  match.result = {
+    state: "final",
+    homeSets: 3,
+    awaySets: 0,
+    observedAt: "2026-09-19T12:00:00Z",
+  };
+  mockFetch.mockResolvedValue(Response.json(applicationAccessResponse()));
+
+  // When
+  await render(<MatchSummary match={match} />, { wrapper: Providers });
+
+  // Then
+  expect(
+    screen.getByRole("link", { name: "Home · Score domicile : 3" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: "Away · Score extérieur : 0" }),
+  ).toBeOnTheScreen();
+});
+
 it("does not introduce an empty score section on an upcoming match without accepted result or sets", async () => {
   // Given
   const detail = matchDetail();
@@ -192,7 +215,9 @@ it("does not introduce an empty score section on an upcoming match without accep
 
   // When
   await render(<MatchScreen matchId={sportingId} />, { wrapper: Providers });
-  await screen.findByRole("link", { name: detail.match.home.name });
+  await screen.findByRole("link", {
+    name: `${detail.match.home.name} · Score domicile : indisponible`,
+  });
 
   // Then
   expect(screen.getByText("À venir")).toBeOnTheScreen();

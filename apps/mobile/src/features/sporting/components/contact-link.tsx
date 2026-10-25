@@ -101,7 +101,7 @@ export function InformationRow({
       )}
     </>
   );
-  const name = `${label} : ${value}`;
+  const name = `${label} : ${[value, supporting].filter(Boolean).join(" · ")}`;
   return (
     <View>
       {separated && (

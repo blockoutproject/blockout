@@ -383,7 +383,11 @@ it("keeps match identities and independent missing sections without a zero score
   await renderPage(<MatchScreen matchId={sportingId} />);
 
   // When
-  await user.press(await screen.findByRole("link", { name: "Home" }));
+  await user.press(
+    await screen.findByRole("link", {
+      name: "Home · Score domicile : indisponible",
+    }),
+  );
   await user.press(screen.getByRole("link", { name: "Poule : Pool" }));
 
   // Then
@@ -821,13 +825,18 @@ it("retains the club teams when returning to a visited tab without an implicit r
 it("shows the known match competition independently of a generic pool name", async () => {
   // Given
   match.match.pool.competitionName = "Championnat de démonstration";
+  match.match.pool.phaseName = "Phase 2";
   await renderPage(<MatchScreen matchId={sportingId} />);
 
   // When
-  await screen.findByRole("link", { name: "Poule : Pool" });
+  await screen.findByRole("link", {
+    name: "Poule : Pool · Championnat de démonstration · Phase 2",
+  });
 
   // Then
-  expect(screen.getByText("Championnat de démonstration")).toBeOnTheScreen();
+  expect(
+    screen.getByText("Championnat de démonstration · Phase 2"),
+  ).toBeOnTheScreen();
 });
 
 it("rereads common club information on a fresh opening while retaining the same QueryClient", async () => {

@@ -105,7 +105,7 @@ export function MatchSummary({ match, displayTimeZone }: MatchSummaryProps) {
           )}
           <Pressable
             accessibilityRole="link"
-            accessibilityLabel={team.name}
+            accessibilityLabel={`${team.name} · Score ${side} : ${score ?? "indisponible"}`}
             onPress={() =>
               router.push({
                 pathname: "/teams/[teamId]",
