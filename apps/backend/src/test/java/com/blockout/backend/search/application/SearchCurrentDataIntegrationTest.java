@@ -6,7 +6,7 @@ import static org.mockito.Mockito.verify;
 
 import com.blockout.backend.search.application.SearchEngine.Candidate;
 import com.blockout.backend.search.application.SearchEngine.Position;
-import com.blockout.backend.sporting.application.ConsultationReadPort;
+import com.blockout.backend.sporting.application.ConsultationStore;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.util.List;
 import java.util.UUID;
@@ -35,7 +35,7 @@ class SearchCurrentDataIntegrationTest {
   @Container static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   @Autowired JdbcTemplate sql;
   @Autowired SearchHydration hydration;
-  @MockitoSpyBean ConsultationReadPort consultation;
+  @MockitoSpyBean ConsultationStore consultation;
 
   /**
    * Applies the actual baseline before Hibernate validation with the restricted application role.

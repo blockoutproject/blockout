@@ -14,7 +14,7 @@ interface CollectorRuntimeRepository extends JpaRepository<CollectorRuntimeEntit
    */
   @Lock(LockModeType.PESSIMISTIC_READ)
   @Query("SELECT r FROM CollectorRuntimeEntity r WHERE r.id = 1")
-  CollectorRuntimeEntity lockCurrent();
+  CollectorRuntimeEntity findCurrentForShare();
 
   /**
    * Excludes admitted writes until replacement commits.
@@ -23,5 +23,5 @@ interface CollectorRuntimeRepository extends JpaRepository<CollectorRuntimeEntit
    */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT r FROM CollectorRuntimeEntity r WHERE r.id = 1")
-  CollectorRuntimeEntity lockForReplacement();
+  CollectorRuntimeEntity findCurrentForUpdate();
 }

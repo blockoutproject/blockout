@@ -52,6 +52,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.util.AopTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -630,13 +631,16 @@ class SportingIdentityIntegrationTest {
     PoolView first = pool(seasons.getOrCreate(2026L), "A", null, CollectionProviderEnum.FFVB);
     PoolView second = pool(seasons.getOrCreate(2027L), "A", null, CollectionProviderEnum.FFVB);
     CyclicBarrier bothRead = new CyclicBarrier(2);
+    // Configure Mockito without entering transaction advice; application actions retain their
+    // proxy.
+    JpaSportingStore persistence = AopTestUtils.getUltimateTargetObject(store);
     doAnswer(
             invocation -> {
               Object existing = invocation.callRealMethod();
               bothRead.await(10, TimeUnit.SECONDS);
               return existing;
             })
-        .when(store)
+        .when(persistence)
         .club(CollectionProviderEnum.FFVB, "race-club");
 
     try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
@@ -672,12 +676,15 @@ class SportingIdentityIntegrationTest {
     // Given
     PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, CollectionProviderEnum.FFVB);
     CompletableFuture<Void> attempted = new CompletableFuture<>();
+    // Configure Mockito without entering transaction advice; application actions retain their
+    // proxy.
+    JpaSportingStore persistence = AopTestUtils.getUltimateTargetObject(store);
     doAnswer(
             invocation -> {
               attempted.complete(null);
               return invocation.callRealMethod();
             })
-        .when(store)
+        .when(persistence)
         .lockPoolSeason(pool.id());
     TransactionTemplate correction = new TransactionTemplate(transactions);
 

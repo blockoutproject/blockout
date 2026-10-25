@@ -7,7 +7,7 @@ import com.blockout.backend.generated.mobile.model.MatchDetailResponse;
 import com.blockout.backend.generated.mobile.model.PoolDetailResponse;
 import com.blockout.backend.generated.mobile.model.TeamDetailResponse;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
-import com.blockout.backend.sporting.application.ConsultationReadPort.ClubSeasonRequest;
+import com.blockout.backend.sporting.application.ConsultationStore.ClubSeasonRequest;
 import com.blockout.backend.sporting.application.ReadSportingResources;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import java.util.UUID;

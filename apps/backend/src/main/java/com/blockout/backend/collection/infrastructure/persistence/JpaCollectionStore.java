@@ -27,9 +27,13 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Current-state JPA adapter; all locks and mutations remain in the application-owned transaction.
+ * Current-state JPA adapter; locks and mutations require the application-owned transaction.
+ * Repositories cannot silently start an isolated write or release a lock before the use case
+ * commits.
  */
 @Repository
 @RequiredArgsConstructor
@@ -59,9 +63,10 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public CollectionState.Cycle lockCycleForUpdate(UUID id) {
     return mapper.toView(
-        cycles.lockForUpdate(id).orElseThrow(CollectionNotFoundException::new),
+        cycles.findByIdForUpdate(id).orElseThrow(CollectionNotFoundException::new),
         runtime().incarnationId());
   }
 
@@ -76,8 +81,13 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void saveResult(UUID controlId, CollectionResult result) {
-    results.saveAndFlush(mapper.toEntity(controlId, result));
+    CollectionResultEntity.Key key =
+        new CollectionResultEntity.Key(controlId, result.scopeId(), result.stage(), result.phase());
+    CollectionResultEntity entity = results.findById(key).orElse(null);
+    if (entity == null) entityManager.persist(mapper.toEntity(controlId, result));
+    else mapper.update(result, entity);
     if (result.phase() == CollectionPhaseEnum.ACQUISITION)
       controls.recordAttempt(controlId, result.observedAt());
   }
@@ -94,6 +104,7 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void complete(CollectionState.Cycle cycle, Instant completedAt) {
     cycles.findById(cycle.id()).orElseThrow().setCompletedAt(completedAt);
     if (cycle.controlId() != null
@@ -103,24 +114,27 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public CollectionState.Source lockAcceptedSource(CollectionState.Source source) {
     return saveSource(source.toBuilder().locked(true).acceptedUrl(source.candidateUrl()).build());
   }
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public CollectionState.Source createSource(
       UUID seasonId,
       CollectionProviderEnum provider,
       String organizerReference,
       String candidateUrl) {
     return mapper.toView(
-        sources.saveAndFlush(
+        sources.save(
             new SourceBindingEntity(seasonId, provider, organizerReference, candidateUrl)));
   }
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public CollectionState.Source saveSource(CollectionState.Source source) {
     SourceBindingEntity entity = sources.findById(source.id()).orElseThrow();
     // Renewing interrupted pending intent only changes the version-excluded cycle pointer.
@@ -129,12 +143,14 @@ class JpaCollectionStore implements CollectionStore {
         && !Objects.equals(entity.getCurrentCycleId(), source.currentCycleId()))
       entityManager.lock(entity, LockModeType.PESSIMISTIC_FORCE_INCREMENT);
     mapper.update(source, entity);
+    // Expose the native editing revision in the returned immutable view.
     sources.flush();
     return mapper.toView(entity);
   }
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void ensureSeasonControl(UUID seasonId, CollectionProviderEnum provider) {
     CollectionFamilyEnum family =
         switch (provider) {
@@ -171,9 +187,10 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public CollectionState.Cycle lockCycle(UUID id) {
     return mapper.toView(
-        cycles.lockById(id).orElseThrow(CollectionNotFoundException::new),
+        cycles.findByIdForShare(id).orElseThrow(CollectionNotFoundException::new),
         runtime().incarnationId());
   }
 
@@ -185,21 +202,25 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public CollectionState.Runtime lockRuntime() {
-    return mapper.toView(runtimes.lockCurrent());
+    return mapper.toView(runtimes.findCurrentForShare());
   }
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public CollectionState.Runtime lockRuntimeForReplacement() {
-    return mapper.toView(runtimes.lockForReplacement());
+    return mapper.toView(runtimes.findCurrentForUpdate());
   }
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public CollectionState.Runtime replaceRuntime(UUID incarnationId) {
     CollectorRuntimeEntity runtime = runtimes.findById(1).orElseThrow();
     runtime.setIncarnationId(incarnationId);
+    // The registration response carries the new native editing revision.
     runtimes.flush();
     return mapper.toView(runtime);
   }
@@ -212,12 +233,15 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public CollectionState.Control lockControl(UUID id) {
-    return mapper.toView(controls.lockById(id).orElseThrow(CollectionNotFoundException::new));
+    return mapper.toView(
+        controls.findByIdForUpdate(id).orElseThrow(CollectionNotFoundException::new));
   }
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public CollectionState.Control setControlIntent(
       UUID id, boolean enabled, UUID requestId, CollectionModeEnum mode) {
     CollectionControlEntity entity =
@@ -229,6 +253,7 @@ class JpaCollectionStore implements CollectionStore {
       entity.getSourceBindingIds().clear();
       entity.getScopeIds().clear();
     }
+    // Return the revision of this accepted intent, including collection changes.
     controls.flush();
     return mapper.toView(entity);
   }
@@ -262,8 +287,10 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public CollectionState.Source lockSource(UUID id) {
-    return mapper.toView(sources.lockById(id).orElseThrow(CollectionNotFoundException::new));
+    return mapper.toView(
+        sources.findByIdForUpdate(id).orElseThrow(CollectionNotFoundException::new));
   }
 
   /** {@inheritDoc} */
@@ -306,6 +333,7 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public CollectionState.Cycle createCycle(
       CollectionState.StartCycle command,
       CollectionModeEnum mode,
@@ -313,6 +341,7 @@ class JpaCollectionStore implements CollectionStore {
       Instant now) {
     CollectionCycleEntity cycle = new CollectionCycleEntity(command, mode, candidate, now);
     try {
+      // Resolve unique context conflicts here while the entire admission can still roll back.
       cycles.saveAndFlush(cycle);
     } catch (DataIntegrityViolationException exception) {
       throw new CollectionConflictException("invalid-cycle-context");
@@ -322,6 +351,7 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void startControl(CollectionState.Control control, CollectionState.Cycle cycle) {
     CollectionControlEntity entity = controls.findById(control.id()).orElseThrow();
     entity.setCurrentCycleId(cycle.id());
@@ -334,18 +364,21 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void startValidation(CollectionState.Source source, CollectionState.Cycle cycle) {
     sources.findById(source.id()).orElseThrow().setCurrentCycleId(cycle.id());
   }
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void discardCycle(UUID id) {
     if (id != null) cycles.deleteById(id);
   }
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void addTargets(UUID cycleId, List<CollectionState.Target> values) {
     for (CollectionState.Target value : values) {
       CollectionTargetEntity row = mapper.toEntity(value);

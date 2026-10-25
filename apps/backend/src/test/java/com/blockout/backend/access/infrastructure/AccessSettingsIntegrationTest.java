@@ -40,6 +40,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
@@ -111,6 +112,33 @@ class AccessSettingsIntegrationTest {
         first,
         second,
         second);
+  }
+
+  @Test
+  @DisplayName("Refuses a settings write without its application transaction")
+  void requiresWriteTransaction() {
+    // Given
+    MaintenanceSettings changed = new MaintenanceSettings(0, true, "Changed", null);
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable write =
+        () -> store.saveMaintenance(changed);
+
+    // Then
+    assertThatThrownBy(write).isInstanceOf(IllegalTransactionStateException.class);
+    assertThat(store.maintenance()).isEqualTo(new MaintenanceSettings(0, false, "Prepared", null));
+  }
+
+  @Test
+  @DisplayName("Refuses optimistic mutation loading without a transaction retaining the check")
+  void requiresMutationLoadTransaction() {
+    // Given: no caller transaction is open.
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable load = store::maintenanceForChange;
+
+    // Then
+    assertThatThrownBy(load).isInstanceOf(IllegalTransactionStateException.class);
   }
 
   @Test

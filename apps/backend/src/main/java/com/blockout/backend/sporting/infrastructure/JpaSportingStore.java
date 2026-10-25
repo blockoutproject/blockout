@@ -57,9 +57,12 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Native JPA sporting persistence adapter; caller-owned transactions retain locks through commit.
+ * Native JPA sporting persistence adapter; writes and locks require the application-owned
+ * transaction. Read projections never open an independent mutation boundary.
  */
 @Repository
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
@@ -278,10 +281,12 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public SportingViews.CollectionSeasonView updatePreparation(UUID id, boolean activate) {
     SeasonEntity season = seasons.findById(id).orElseThrow(SportingResourceNotFoundException::new);
     long revision = season.getCollectionRevision();
     if (activate) season.setCollectionState(CollectionSeasonStateEnum.ACTIVE);
+    // Observe dirty version advancement before forcing a revision for a source-only change.
     seasons.flush();
     if (season.getCollectionRevision() == revision)
       entityManager.lock(season, LockModeType.PESSIMISTIC_FORCE_INCREMENT);
@@ -290,9 +295,11 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public SportingViews.CollectionSeasonView closeCollectionSeason(UUID id) {
     SeasonEntity season = seasons.findById(id).orElseThrow(SportingResourceNotFoundException::new);
     season.setCollectionState(CollectionSeasonStateEnum.CLOSED);
+    // Materialize the editing revision before returning the terminal lifecycle.
     seasons.flush();
     return mapper.toCollectionView(season);
   }
@@ -305,6 +312,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public SeasonView createSeason(long year, String label) {
     return mapper.toView(seasons.save(new SeasonEntity(year, label)));
   }
@@ -317,14 +325,16 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void lockSeason(UUID id) {
     seasons
-        .lockById(id)
+        .findByIdForUpdate(id)
         .orElseThrow(() -> new UnresolvedSportingIdentityException("Unknown canonical season"));
   }
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void lockPoolSeason(UUID poolId) {
     lockSeason(
         pools.findSeasonId(poolId).orElseThrow(() -> new SportingResourceNotFoundException()));
@@ -350,6 +360,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public PoolView createPool(
       PoolKey key, String packReference, String sourceName, SportingClassification classification) {
     SeasonEntity season = seasons.getReferenceById(key.seasonId());
@@ -395,6 +406,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public ClubView createClub(CollectionProviderEnum provider, String reference, String sourceName) {
     ClubView club = mapper.toView(clubs.save(new ClubEntity(provider, reference, sourceName)));
     changes.submit(Kind.CLUB, club.id());
@@ -444,6 +456,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public TeamView createTeam(
       PoolView pool, UUID clubId, TeamCandidate candidate, String comparisonName) {
     SportingClassification classification = pool.classification();
@@ -465,6 +478,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void updateTeamSourceName(UUID id, String sourceName) {
     TeamEntity team = teams.findById(id).orElseThrow();
     if (!Objects.equals(team.getSourceName(), sourceName)) {
@@ -476,6 +490,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void participate(UUID teamId, UUID poolId) {
     ParticipationEntity existing =
         participations.findByTeamIdAndPoolId(teamId, poolId).orElse(null);
@@ -510,6 +525,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public MatchView createMatch(UUID poolId, String reference, UUID homeTeamId, UUID awayTeamId) {
     return mapper.toView(
         matches.save(
@@ -522,6 +538,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void lockPackSeason(UUID packId) {
     lockSeason(packs.findSeasonId(packId).orElseThrow(SportingResourceNotFoundException::new));
   }
@@ -568,20 +585,25 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void setPackClassification(UUID id, SportingClassification setting) {
     packs.findById(id).orElseThrow().setSetting(mapper.toSetting(setting));
+    // The enclosing command returns the updated @Version as its editing revision.
     packs.flush();
   }
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void setPoolClassification(UUID id, SportingClassification setting) {
     pools.findById(id).orElseThrow().setSetting(mapper.toSetting(setting));
+    // The enclosing command returns the updated @Version as its editing revision.
     pools.flush();
   }
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void correctClassification(
       List<UUID> poolIds, List<UUID> teamIds, SportingClassification classification) {
     DivisionEntity division = divisions.getReferenceById(classification.divisionId());
@@ -601,8 +623,9 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public Optional<DivisionDetail> lockDivision(UUID id) {
-    return divisions.lockById(id).map(mapper::toDetail);
+    return divisions.findByIdForUpdate(id).map(mapper::toDetail);
   }
 
   /** {@inheritDoc} */
@@ -619,6 +642,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public DivisionDetail createDivision(
       String name, String color, List<String> gradient, byte[] image, String mediaType) {
     try {
@@ -635,10 +659,12 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public DivisionDetail setDivisionActive(UUID id, boolean active) {
     DivisionEntity division = divisions.findById(id).orElseThrow();
     division.setActive(active);
     changes.submit(Kind.DIVISION, id);
+    // Materialize the revision returned by the activity command.
     divisions.flush();
     return mapper.toDetail(division);
   }
@@ -660,6 +686,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void beginCalendar(UUID poolId, ObservationOrder order) {
     PoolEntity pool = pools.findById(poolId).orElseThrow();
     pool.setCalendarCycleOrder(order.cycleOrder());
@@ -668,6 +695,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void completeCalendar(
       UUID poolId, ObservationOrder order, Set<String> presentReferences, boolean empty) {
     PoolEntity pool = pools.findById(poolId).orElseThrow();
@@ -695,6 +723,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public boolean restoreCalendarPresence(UUID matchId) {
     MatchEntity match = matches.findById(matchId).orElseThrow();
     PoolEntity pool = match.getPool();
@@ -716,9 +745,10 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public MatchSchedule lockMatchSchedule(UUID matchId) {
     return mapper.toSchedule(
-        matches.lockById(matchId).orElseThrow(SportingResourceNotFoundException::new));
+        matches.findByIdForUpdate(matchId).orElseThrow(SportingResourceNotFoundException::new));
   }
 
   /** {@inheritDoc} */
@@ -730,6 +760,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void saveMatchSchedule(MatchSchedule schedule) {
     mapper.updateSchedule(schedule, matches.findById(schedule.id()).orElseThrow());
   }
@@ -739,12 +770,13 @@ public class JpaSportingStore implements SportingStore {
   public ObservationOrder catalogOrder(UUID sourceId) {
     return catalogs
         .findById(sourceId)
-        .map(value -> new ObservationOrder(value.getCycleOrder(), value.getReadOrdinal()))
+        .map(value -> order(value.getCycleOrder(), value.getReadOrdinal()))
         .orElse(null);
   }
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public UUID acceptCatalogPool(PoolKey key, CatalogObservation.Pool candidate) {
     PoolEntity pool = pools.findByKey(key).orElse(null);
     if (pool == null) {
@@ -767,6 +799,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void finishCatalog(
       UUID sourceId,
       UUID seasonId,
@@ -791,7 +824,8 @@ public class JpaSportingStore implements SportingStore {
     catalog.setObservedAt(context.observedAt().toInstant());
     catalog.setProviderPublishedAt(
         context.providerPublishedAt() == null ? null : context.providerPublishedAt().toInstant());
-    if (created) catalogs.save(catalog);
+    // The caller holds the season lock; assigned IDs identify new rows, never merge targets.
+    if (created) entityManager.persist(catalog);
   }
 
   /**
@@ -813,6 +847,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void saveMatchDetails(MatchDetails details) {
     mapper.updateDetails(details, matches.findById(details.id()).orElseThrow());
   }
@@ -825,6 +860,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void saveStandings(StandingsView value) {
     StandingsEntity entity = standings.findById(value.poolId()).orElse(null);
     boolean created = entity == null;
@@ -840,7 +876,8 @@ public class JpaSportingStore implements SportingStore {
         entity.getRows().addAll(mapper.toRows(value.rows()));
       }
     }
-    if (created) standings.save(entity);
+    // A first publication inserts the assigned pool key and its owned rows once.
+    if (created) entityManager.persist(entity);
   }
 
   /** {@inheritDoc} */
@@ -851,20 +888,16 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void lockPresentation(Kind kind, UUID id) {
     switch (kind) {
-      case CLUB -> clubs.lockById(id).orElseThrow(SportingResourceNotFoundException::new);
+      case CLUB -> clubs.findByIdForUpdate(id).orElseThrow(SportingResourceNotFoundException::new);
       case POOL -> lockPoolSeason(id);
       case TEAM -> {
-        UUID season =
-            entityManager
-                .createQuery("SELECT t.season.id FROM TeamEntity t WHERE t.id = :id", UUID.class)
-                .setParameter("id", id)
-                .getSingleResultOrNull();
-        if (season == null) throw new SportingResourceNotFoundException();
+        UUID season = teams.findSeasonId(id).orElseThrow(SportingResourceNotFoundException::new);
         lockSeason(season);
         TeamEntity team = teams.findById(id).orElseThrow();
-        if (team.getClub() != null) clubs.lockById(team.getClub().getId()).orElseThrow();
+        if (team.getClub() != null) clubs.findByIdForUpdate(team.getClub().getId()).orElseThrow();
       }
       default -> throw new IllegalArgumentException("Unsupported presentation kind");
     }
@@ -960,6 +993,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public SportingPresentation.View savePresentation(
       Kind kind, UUID id, SportingPresentation.Edit edit) {
     SportingPresentation.View before =
@@ -1052,6 +1086,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public DivisionDetail saveDivisionPresentation(UUID id, SportingPresentation.DivisionEdit edit) {
     DivisionEntity division = divisions.findById(id).orElseThrow();
     boolean logoChanged =
@@ -1081,6 +1116,7 @@ public class JpaSportingStore implements SportingStore {
       }
       changes.submit(Kind.DIVISION, id);
       try {
+        // Resolve the named uniqueness constraint before mapping the new editing revision.
         divisions.flush();
       } catch (DataIntegrityViolationException failure) {
         if (failure.getCause() instanceof ConstraintViolationException constraint
@@ -1100,15 +1136,14 @@ public class JpaSportingStore implements SportingStore {
         id,
         club.getContactsRevision(),
         club.contactValues(),
-        club.getDetailCycleOrder() == null
-            ? null
-            : new ObservationOrder(club.getDetailCycleOrder(), club.getDetailReadOrdinal()),
+        order(club.getDetailCycleOrder(), club.getDetailReadOrdinal()),
         club.getDetailObservedAt(),
         club.getDetailPublishedAt());
   }
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void saveClubContacts(SportingPresentation.Contacts contacts, String sourceName) {
     ClubEntity club = clubs.findById(contacts.clubId()).orElseThrow();
     Map<SportingPresentation.ContactField, SportingPresentation.ContactValue> before =
@@ -1155,13 +1190,12 @@ public class JpaSportingStore implements SportingStore {
         club.getPostalCode().toValue().effectiveValue(),
         club.getCity().toValue().effectiveValue() == null ? null : club.getLatitude(),
         club.getCity().toValue().effectiveValue() == null ? null : club.getLongitude(),
-        club.getLocalityCycleOrder() == null
-            ? null
-            : new ObservationOrder(club.getLocalityCycleOrder(), club.getLocalityReadOrdinal()));
+        order(club.getLocalityCycleOrder(), club.getLocalityReadOrdinal()));
   }
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void saveLocality(
       UUID id, SportingPresentation.LocalityObservation observation, ObservationOrder order) {
     ClubEntity club = clubs.findById(id).orElseThrow();
@@ -1180,13 +1214,12 @@ public class JpaSportingStore implements SportingStore {
   @Override
   public ObservationOrder sourceLogoOrder(UUID id) {
     TeamEntity team = teams.findById(id).orElseThrow(SportingResourceNotFoundException::new);
-    return team.getLogoCycleOrder() == null
-        ? null
-        : new ObservationOrder(team.getLogoCycleOrder(), team.getLogoReadOrdinal());
+    return order(team.getLogoCycleOrder(), team.getLogoReadOrdinal());
   }
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public boolean saveSourceLogo(
       UUID id,
       SportingPresentation.Image image,

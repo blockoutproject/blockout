@@ -46,6 +46,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
@@ -197,6 +198,21 @@ class TransitionLogoIntegrationTest {
     assertThat(target).isEmpty();
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_club", Integer.class))
         .isEqualTo(2);
+  }
+
+  @Test
+  @DisplayName("Refuses club creation without an application transaction before writing")
+  void rejectsCreationOutsideTransaction() {
+    // Given
+    String reference = "0000340";
+
+    // When
+    ThrowingCallable create =
+        () -> store.createClub(CollectionProviderEnum.FFVB, reference, "Synthetic club");
+
+    // Then
+    assertThatThrownBy(create).isInstanceOf(IllegalTransactionStateException.class);
+    assertThat(store.club(CollectionProviderEnum.FFVB, reference)).isEmpty();
   }
 
   @Test

@@ -50,7 +50,7 @@ interface SourceBindingRepository extends JpaRepository<SourceBindingEntity, UUI
    */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT s FROM SourceBindingEntity s WHERE s.id = :id")
-  Optional<SourceBindingEntity> lockById(UUID id);
+  Optional<SourceBindingEntity> findByIdForUpdate(UUID id);
 
   /**
    * Lists the supported roots of one season.

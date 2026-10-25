@@ -29,7 +29,7 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 @RequiredArgsConstructor
-public class JpaInboxReadAdapter implements InboxReadStore {
+public class JpaInboxReadStore implements InboxReadStore {
   private static final Sort ORDER = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
   private final NotificationRepository notifications;
   private final EntityManager entities;
@@ -66,6 +66,7 @@ public class JpaInboxReadAdapter implements InboxReadStore {
   /** {@inheritDoc} */
   @Override
   public Summary summary(NotificationContext owner, Instant now) {
+    // Criteria keeps the aggregate on the exact same composable selection as keyset/member reads.
     CriteriaBuilder builder = entities.getCriteriaBuilder();
     CriteriaQuery<Tuple> query = builder.createTupleQuery();
     Root<NotificationEntity> root = query.from(NotificationEntity.class);
@@ -83,14 +84,7 @@ public class JpaInboxReadAdapter implements InboxReadStore {
   /** {@inheritDoc} */
   @Override
   public Optional<UUID> matchId(NotificationContext owner, UUID id) {
-    return Optional.ofNullable(
-        entities
-            .createQuery(
-                "SELECT n.matchId FROM NotificationEntity n WHERE n.id=:id AND n.accountId=:owner",
-                UUID.class)
-            .setParameter("id", id)
-            .setParameter("owner", owner.accountId())
-            .getSingleResultOrNull());
+    return notifications.findMatchId(owner.accountId(), id);
   }
 
   /**

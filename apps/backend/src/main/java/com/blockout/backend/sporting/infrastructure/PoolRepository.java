@@ -4,6 +4,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -109,4 +110,73 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
    */
   List<PoolEntity> findBySeasonIdAndProviderAndOrganizerReference(
       UUID seasonId, CollectionProviderEnum provider, String organizerReference);
+
+  /** Canonical current pool eligibility for queries using the pool alias p. */
+  String VISIBLE =
+      "p.catalogEligible = TRUE AND p.calendarEmpty = FALSE AND p.division.active = TRUE";
+
+  /**
+   * Reads visibility facts without hydrating presentation or acquisition state.
+   *
+   * @param id exact pool identity
+   * @return current restrictions, or empty when unknown
+   */
+  @Query(
+      """
+      SELECT NEW com.blockout.backend.sporting.infrastructure.PoolVisibilityRow(
+        p.catalogEligible, p.calendarEmpty, d.id, d.active)
+      FROM PoolEntity p LEFT JOIN p.division d WHERE p.id = :id
+      """)
+  Optional<PoolVisibilityRow> findVisibility(UUID id);
+
+  /**
+   * Selects visible search roots before bounded hydration.
+   *
+   * @param page bounded projection request
+   * @return eligible identities in stable order
+   */
+  @Query("SELECT p.id FROM PoolEntity p WHERE " + VISIBLE + " ORDER BY p.id")
+  List<UUID> findProjectionIds(Pageable page);
+
+  /**
+   * Projects public search facts without image payloads or lazy collection reads.
+   *
+   * @param ids bounded candidate identities
+   * @return currently visible inputs in identity order
+   */
+  @Query(
+      """
+      SELECT NEW com.blockout.backend.sporting.infrastructure.SportingSearchRow(
+        p.id, p.season.id, p.sourceName, COALESCE(p.manualName, p.sourceName), COALESCE(p.manualShortName, p.sourceName), p.division.id, p.division.name, p.format, p.gender,
+        NULL, NULL, NULL)
+      FROM PoolEntity p WHERE p.id IN :ids AND
+      """
+          + VISIBLE
+          + " ORDER BY p.id")
+  List<SportingSearchRow> findSearchInputs(Set<UUID> ids);
+
+  /**
+   * Reads qualified aliases for selected pools.
+   *
+   * @param ids bounded pool identities
+   * @return owner-keyed alias facts
+   */
+  @Query(
+      """
+      SELECT NEW com.blockout.backend.sporting.infrastructure.SportingAliasRow(
+        p.id, a.seasonId, a.organizerReference, a.competitionReference, a.comparisonName)
+      FROM PoolEntity p JOIN p.aliases a WHERE p.id IN :ids
+      """)
+  List<SportingAliasRow> findAliases(Set<UUID> ids);
+
+  /**
+   * Finds affected owners including hidden resources requiring index removal.
+   *
+   * @param divisions changed divisions, possibly empty
+   * @param seasons changed seasons, possibly empty
+   * @return dependent pool identities
+   */
+  @Query(
+      "SELECT p.id FROM PoolEntity p WHERE p.division.id IN :divisions OR p.season.id IN :seasons")
+  List<UUID> findProjectionDependents(Set<UUID> divisions, Set<UUID> seasons);
 }

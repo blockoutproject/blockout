@@ -31,6 +31,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.UUID;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +46,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
@@ -71,6 +73,20 @@ class CollectionResultIntegrationTest {
   @Autowired private SeasonService seasons;
   @Autowired private EntityManagerFactory entityManagerFactory;
   private CollectionState.Cycle cycle;
+
+  @Test
+  @DisplayName("Refuses a runtime lock without an application transaction")
+  void rejectsLockOutsideTransaction() {
+    // Given
+    CollectionState.Runtime before = runtimes.current();
+
+    // When
+    ThrowingCallable lock = () -> store.lockRuntimeForReplacement();
+
+    // Then
+    assertThatThrownBy(lock).isInstanceOf(IllegalTransactionStateException.class);
+    assertThat(runtimes.current()).isEqualTo(before);
+  }
 
   @Test
   @DisplayName("A success in another scope leaves an existing outage unchanged")
@@ -305,6 +321,80 @@ class CollectionResultIntegrationTest {
     assertThat(control().lastSuccessAt()).isEqualTo(cycle.startedAt().plusSeconds(1));
     assertThat(control().lastAttemptAt()).isEqualTo(OBSERVED.plusSeconds(1));
     assertThat(control().revision()).isEqualTo(revision);
+  }
+
+  @Test
+  @DisplayName("A later intent edit preserves bulk-written acquisition and completion freshness")
+  void retainsFreshnessDuringIntentEdit() {
+    // Given
+    long revision = control().revision();
+    Instant completedAt = OBSERVED.plusSeconds(2);
+
+    // When
+    new TransactionTemplate(transactions)
+        .executeWithoutResult(
+            status -> {
+              results.record(
+                  cycle.id(),
+                  evidence(1, CollectionPhaseEnum.ACQUISITION, CollectionOutcomeEnum.SUCCESS));
+              results.record(
+                  cycle.id(),
+                  evidence(1, CollectionPhaseEnum.INTEGRATION, CollectionOutcomeEnum.SUCCESS));
+              results.complete(cycle.id(), completedAt);
+              store.setControlIntent(CONTROL, false, null, null);
+            });
+
+    // Then
+    CollectionState.Control changed = control();
+    assertThat(changed.enabled()).isFalse();
+    assertThat(changed.lastAttemptAt()).isEqualTo(OBSERVED.plusSeconds(1));
+    assertThat(changed.lastSuccessAt()).isEqualTo(completedAt);
+    assertThat(changed.revision()).isEqualTo(revision + 1);
+  }
+
+  @Test
+  @DisplayName(
+      "A failed enclosing transaction rolls back evidence, freshness and completion together")
+  void rollsBackEvidenceWithCompletion() {
+    // Given
+    results.record(
+        cycle.id(), evidence(1, CollectionPhaseEnum.ACQUISITION, CollectionOutcomeEnum.FAILED));
+    CollectionResult before = current(CollectionPhaseEnum.ACQUISITION);
+    CollectionState.Control controlBefore = control();
+
+    // When
+    assertThatThrownBy(
+            () ->
+                new TransactionTemplate(transactions)
+                    .executeWithoutResult(
+                        status -> {
+                          results.record(
+                              cycle.id(),
+                              evidence(
+                                  2,
+                                  CollectionPhaseEnum.ACQUISITION,
+                                  CollectionOutcomeEnum.SUCCESS));
+                          results.record(
+                              cycle.id(),
+                              evidence(
+                                  2,
+                                  CollectionPhaseEnum.INTEGRATION,
+                                  CollectionOutcomeEnum.SUCCESS));
+                          results.complete(cycle.id(), OBSERVED.plusSeconds(3));
+                          throw new IllegalStateException("Abort accepted evidence before commit");
+                        }))
+        .isInstanceOf(IllegalStateException.class);
+
+    // Then
+    assertThat(current(CollectionPhaseEnum.ACQUISITION)).isEqualTo(before);
+    assertThat(
+            store.result(
+                CONTROL, SCOPE, CollectionStageEnum.CLUB_SHEET, CollectionPhaseEnum.INTEGRATION))
+        .isEmpty();
+    assertThat(cycles.get(cycle.id()).completedAt()).isNull();
+    assertThat(control().lastAttemptAt()).isEqualTo(controlBefore.lastAttemptAt());
+    assertThat(control().lastSuccessAt()).isEqualTo(controlBefore.lastSuccessAt());
+    assertThat(control().revision()).isEqualTo(controlBefore.revision());
   }
 
   @ParameterizedTest

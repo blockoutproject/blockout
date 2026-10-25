@@ -4,7 +4,6 @@ import com.blockout.backend.following.application.FollowContext;
 import com.blockout.backend.following.application.FollowContext.Target;
 import com.blockout.backend.following.application.FollowContext.TargetType;
 import com.blockout.backend.following.application.FollowStore;
-import jakarta.persistence.EntityManager;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -22,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class JpaFollowStore implements FollowStore {
   private final TeamFollowRepository teams;
   private final PoolFollowRepository pools;
-  private final EntityManager entities;
 
   /** {@inheritDoc} */
   @Override
@@ -71,25 +69,7 @@ public class JpaFollowStore implements FollowStore {
       }
     }
     if (targets.isEmpty()) return List.of();
-    // Both origins share the PostgreSQL statement snapshot, including during account-lock relookup.
-    return List.copyOf(
-        entities
-            .createQuery(
-                """
-        SELECT NEW com.blockout.backend.following.application.FollowStore$Relation(
-          t.id, t.accountId, NEW com.blockout.backend.following.application.FollowContext$Target(
-            com.blockout.backend.following.application.FollowContext$TargetType.TEAM, t.teamId))
-        FROM TeamFollowEntity t WHERE t.teamId IN :teamIds
-        UNION ALL
-        SELECT NEW com.blockout.backend.following.application.FollowStore$Relation(
-          p.id, p.accountId, NEW com.blockout.backend.following.application.FollowContext$Target(
-            com.blockout.backend.following.application.FollowContext$TargetType.POOL, p.poolId))
-        FROM PoolFollowEntity p WHERE p.poolId IN :poolIds
-        """,
-                Relation.class)
-            .setParameter("teamIds", teamIds)
-            .setParameter("poolIds", poolIds)
-            .getResultList());
+    return List.copyOf(teams.findRelations(teamIds, poolIds));
   }
 
   /**

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.accounts.application.AccountStore;
+import com.blockout.backend.accounts.application.exception.AccountCreationConflictException;
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.validation.ConstraintViolationException;
@@ -112,7 +113,7 @@ class AccountEstablishmentIntegrationTest {
       assertThat(failures)
           .singleElement()
           .isInstanceOfSatisfying(
-              DataIntegrityViolationException.class,
+              AccountCreationConflictException.class,
               failure -> assertThat(failure).hasStackTraceContaining(constraint));
       assertThat(sql.queryForObject("SELECT COUNT(*) FROM account", Long.class)).isEqualTo(1L);
     }
@@ -187,7 +188,7 @@ class AccountEstablishmentIntegrationTest {
                 state -> accounts.create(ISSUER, subject, "Player_144", email, null));
 
     // Then
-    assertThatThrownBy(create).hasRootCauseInstanceOf(ConstraintViolationException.class);
+    assertThatThrownBy(create).isInstanceOf(ConstraintViolationException.class);
     assertThat(accounts.findByPrincipal(ISSUER, subject)).isEmpty();
   }
 
@@ -206,7 +207,7 @@ class AccountEstablishmentIntegrationTest {
                     accounts.create(ISSUER, subject, username, "player@example.invalid", null));
 
     // Then
-    assertThatThrownBy(create).hasRootCauseInstanceOf(ConstraintViolationException.class);
+    assertThatThrownBy(create).isInstanceOf(ConstraintViolationException.class);
     assertThat(accounts.findByPrincipal(ISSUER, subject)).isEmpty();
   }
 

@@ -4,7 +4,8 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.mobile.model.ResultStateEnum;
 import com.blockout.backend.generated.mobile.model.SportFormatEnum;
 import com.blockout.backend.generated.mobile.model.SportGenderEnum;
-import com.blockout.backend.sporting.application.ConsultationReadPort;
+import com.blockout.backend.sporting.application.ConsultationMatchSelection;
+import com.blockout.backend.sporting.application.ConsultationStore;
 import com.blockout.backend.sporting.application.ConsultationViews;
 import com.blockout.backend.sporting.application.MatchPresentation;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
@@ -19,7 +20,10 @@ import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import com.blockout.backend.sporting.application.service.SportingReadService;
-import jakarta.persistence.EntityManager;
+import jakarta.persistence.criteria.CommonAbstractCriteria;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
@@ -29,6 +33,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -37,13 +42,56 @@ import org.springframework.stereotype.Repository;
 /** JPA selections mapped inside the application read transaction using current F02 owner values. */
 @Repository
 @RequiredArgsConstructor
-public class JpaConsultationReadAdapter implements ConsultationReadPort {
-  private final EntityManager entities;
+public class JpaConsultationStore implements ConsultationStore, ConsultationMatchSelection {
+  private final MatchRepository matches;
   private final SportingReadService owners;
   private final SportingStore facts;
   private final Clock clock;
   private final DivisionRepository divisions;
   private final SportingIdentityMapper persistenceMapper;
+
+  /** {@inheritDoc} */
+  @Override
+  public Subquery<UUID> visibleIds(CommonAbstractCriteria query, CriteriaBuilder builder) {
+    Subquery<UUID> selected = query.subquery(UUID.class);
+    Root<MatchEntity> match = selected.from(MatchEntity.class);
+    Subquery<UUID> home = selected.subquery(UUID.class);
+    Root<ParticipationEntity> h = home.from(ParticipationEntity.class);
+    home.select(h.get("id"))
+        .where(
+            builder.equal(h.get("pool"), match.get("pool")),
+            builder.equal(h.get("team"), match.get("homeTeam")),
+            builder.isTrue(h.get("current")));
+    Subquery<UUID> away = selected.subquery(UUID.class);
+    Root<ParticipationEntity> a = away.from(ParticipationEntity.class);
+    away.select(a.get("id"))
+        .where(
+            builder.equal(a.get("pool"), match.get("pool")),
+            builder.equal(a.get("team"), match.get("awayTeam")),
+            builder.isTrue(a.get("current")));
+    selected
+        .select(match.get("id"))
+        .where(
+            builder.isTrue(match.get("present")),
+            builder.isNotNull(match.get("localDate")),
+            builder.isTrue(match.get("pool").get("catalogEligible")),
+            builder.isFalse(match.get("pool").get("calendarEmpty")),
+            builder.isTrue(match.get("pool").get("division").get("active")),
+            builder.isTrue(match.get("homeTeam").get("division").get("active")),
+            builder.isTrue(match.get("awayTeam").get("division").get("active")),
+            builder.exists(home),
+            builder.exists(away));
+    return selected;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Map<UUID, ConsultationViews.MatchSummary> summaries(Set<UUID> ids, Instant now) {
+    if (ids.isEmpty()) return Map.of();
+    return matches.findPresentationByIdIn(ids).stream()
+        .collect(
+            Collectors.toUnmodifiableMap(MatchEntity::getId, match -> matchSummary(match, now)));
+  }
 
   /** {@inheritDoc} */
   @Override
@@ -157,7 +205,7 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
         .publicMatch(matchId)
         .map(
             match -> {
-              MatchEntity schedule = entities.find(MatchEntity.class, matchId);
+              MatchEntity schedule = matches.findById(matchId).orElseThrow();
               MatchDetails details = facts.matchDetails(matchId);
               ConsultationViews.MatchSummary summary = matchSummary(schedule, evaluatedAt);
               return new ConsultationViews.MatchDetail(
@@ -184,7 +232,7 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
    * @param now common presentation evaluation instant
    * @return the same current summary used by ordinary match consultation
    */
-  ConsultationViews.MatchSummary matchSummary(MatchEntity match, Instant now) {
+  private ConsultationViews.MatchSummary matchSummary(MatchEntity match, Instant now) {
     PoolEntity pool = match.getPool();
     ConsultationViews.Schedule schedule =
         new ConsultationViews.Schedule(

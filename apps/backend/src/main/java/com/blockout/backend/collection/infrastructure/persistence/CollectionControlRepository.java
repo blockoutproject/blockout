@@ -41,7 +41,7 @@ interface CollectionControlRepository extends JpaRepository<CollectionControlEnt
    */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT c FROM CollectionControlEntity c WHERE c.id = :id")
-  Optional<CollectionControlEntity> lockById(UUID id);
+  Optional<CollectionControlEntity> findByIdForUpdate(UUID id);
 
   /**
    * Lists finite current configuration in identity order.
@@ -59,7 +59,9 @@ interface CollectionControlRepository extends JpaRepository<CollectionControlEnt
   List<CollectionControlEntity> findBySeasonIdOrderById(UUID seasonId);
 
   /**
-   * Advances actual freshness without changing an operator's editing revision.
+   * Advances actual freshness without changing an operator's editing revision. The mapped column is
+   * excluded from entity updates so a later managed intent edit cannot overwrite this value.
+   * Previously loaded views retain their snapshot; callers needing freshness reload after commit.
    *
    * @param id admitted control
    * @param attemptedAt actual acquisition completion
@@ -73,7 +75,8 @@ interface CollectionControlRepository extends JpaRepository<CollectionControlEnt
   void recordAttempt(UUID id, Instant attemptedAt);
 
   /**
-   * Records fully evidenced passage success without an editor conflict.
+   * Records fully evidenced passage success without an editor conflict. Entity updates exclude this
+   * column; a managed control snapshot must not be used as a fresh operational read afterward.
    *
    * @param id admitted control
    * @param completedAt actual completed successful passage

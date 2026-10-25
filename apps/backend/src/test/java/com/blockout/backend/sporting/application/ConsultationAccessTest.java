@@ -15,7 +15,7 @@ import com.blockout.backend.access.domain.MaintenanceSettings;
 import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
-import com.blockout.backend.sporting.application.ConsultationReadPort.CalendarRequest;
+import com.blockout.backend.sporting.application.ConsultationStore.CalendarRequest;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.model.SportingVisibility;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;

@@ -57,6 +57,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.util.AopTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -449,6 +450,9 @@ class CollectionAdmissionIntegrationTest {
     AtomicBoolean changed = new AtomicBoolean();
     TransactionTemplate independent = new TransactionTemplate(transactions);
     independent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    // Configure Mockito without entering transaction advice; application actions retain their
+    // proxy.
+    CollectionStore persistence = AopTestUtils.getUltimateTargetObject(store);
     Mockito.doAnswer(
             invocation -> {
               Object result = invocation.callRealMethod();
@@ -459,7 +463,7 @@ class CollectionAdmissionIntegrationTest {
                             "INSERT INTO sporting_club(id, provider, reference, municipality) VALUES ('00000000-0000-4000-8000-000000000999', 'FFVB', '999', 'Paris')"));
               return result;
             })
-        .when(store)
+        .when(persistence)
         .addTargets(Mockito.eq(CYCLE), Mockito.anyList());
 
     // When
@@ -509,6 +513,9 @@ class CollectionAdmissionIntegrationTest {
     AtomicBoolean changed = new AtomicBoolean();
     TransactionTemplate independent = new TransactionTemplate(transactions);
     independent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    // Configure Mockito without entering transaction advice; application actions retain their
+    // proxy.
+    CollectionStore persistence = AopTestUtils.getUltimateTargetObject(store);
     Mockito.doAnswer(
             invocation -> {
               Object result = invocation.callRealMethod();
@@ -524,7 +531,7 @@ class CollectionAdmissionIntegrationTest {
                             changingDivision));
               return result;
             })
-        .when(store)
+        .when(persistence)
         .addTargets(Mockito.eq(CYCLE), Mockito.anyList());
 
     // When
