@@ -527,12 +527,19 @@ it.each([403, 404])(
   "retires an obsolete mutation refusal %s after a current read on another reopened control",
   async (refusal) => {
     // Given
-    let available = false;
-    mockFetch.mockImplementation((url, request) =>
-      request?.method === "PUT" && !available
-        ? Promise.resolve(new Response(null, { status: refusal }))
-        : transport(url, request),
-    );
+    let refuse = false;
+    let following = false;
+    mockFetch.mockImplementation((url, request) => {
+      if (request?.method === "PUT") {
+        if (refuse)
+          return Promise.resolve(new Response(null, { status: refusal }));
+        following = JSON.parse(String(request.body)).following;
+        return Promise.resolve(Response.json({ following }));
+      }
+      return url.includes("team-follows")
+        ? Promise.resolve(Response.json({ following }))
+        : transport(url, request);
+    });
     const user = userEvent.setup();
     const rendered = await mount(
       <>
@@ -543,10 +550,13 @@ it.each([403, 404])(
       expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
     );
     await user.press(screen.getByRole("button", { name: "Suivre" }));
+    await screen.findByRole("button", { name: "Suivi", busy: false });
+    refuse = true;
+    await user.press(screen.getByRole("button", { name: "Suivi" }));
     await screen.findByText("Le suivi est indisponible pour cette ressource.");
 
     // When
-    available = true;
+    refuse = false;
     await rendered.rerender(
       <>
         <FollowButton key="first" target={team} season={season} />
@@ -557,16 +567,16 @@ it.each([403, 404])(
     // Then
     await waitFor(() =>
       expect(
-        screen.getAllByRole("button", { name: "Suivre", disabled: false }),
+        screen.getAllByRole("button", { name: "Suivi", disabled: false }),
       ).toHaveLength(2),
     );
     expect(
       screen.queryByText("Le suivi est indisponible pour cette ressource."),
     ).not.toBeOnTheScreen();
-    await user.press(screen.getAllByRole("button", { name: "Suivre" })[1]);
+    await user.press(screen.getAllByRole("button", { name: "Suivi" })[1]);
     await waitFor(() =>
       expect(
-        screen.getAllByRole("button", { name: "Suivi", busy: false }),
+        screen.getAllByRole("button", { name: "Suivre", busy: false }),
       ).toHaveLength(2),
     );
   },

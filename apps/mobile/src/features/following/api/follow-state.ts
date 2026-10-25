@@ -13,6 +13,7 @@ import { useOrdinaryRequest } from "../../access/ordinary-request";
 import {
   captureFollowingOwner,
   followStateKey,
+  followStateKeys,
   type FollowingTarget,
 } from "./following-keys";
 import { retireSettledFollowAttempts } from "./follow-mutations";
@@ -68,8 +69,19 @@ export function useFollowState(target: FollowingTarget) {
     staleTime: Infinity,
     queryFn: async ({ signal }) => {
       const state = await read(signal);
-      if (owner?.isCurrent(owner.generation))
-        retireSettledFollowAttempts(client, owner, target);
+      if (!owner?.isCurrent(owner.generation) || signal.aborted)
+        throw new ApiError("cancelled");
+      await client.cancelQueries({
+        queryKey: followStateKey(owner, target, !bypass),
+        exact: true,
+      });
+      if (!owner.isCurrent(owner.generation) || signal.aborted)
+        throw new ApiError("cancelled");
+      // Publish this current observation together, before another callback can inspect an older admission.
+      followStateKeys(owner, target).forEach((queryKey) =>
+        client.setQueryData(queryKey, state),
+      );
+      retireSettledFollowAttempts(client, owner, target);
       return state;
     },
   });

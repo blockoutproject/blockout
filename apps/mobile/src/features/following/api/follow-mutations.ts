@@ -17,7 +17,7 @@ import {
   isUncertainMutationFailure,
 } from "../../../shared/api/api-fetch";
 import {
-  followStateKey,
+  followStateKeys,
   followMutationKey,
   followOptionsKey,
   followerCountKey,
@@ -63,9 +63,7 @@ export function useFollowMutation(
   const mutationKey = owner
     ? followMutationKey(owner, target)
     : ["following-unavailable"];
-  const stateKeys = owner
-    ? [followStateKey(owner, target), followStateKey(owner, target, true)]
-    : [];
+  const stateKeys = owner ? followStateKeys(owner, target) : [];
   const mutation = useMutation({
     mutationKey,
     retry: false,
