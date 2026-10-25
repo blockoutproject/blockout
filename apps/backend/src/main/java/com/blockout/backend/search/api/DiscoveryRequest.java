@@ -1,6 +1,7 @@
 package com.blockout.backend.search.api;
 
 import com.blockout.backend.search.application.SearchContext;
+import com.blockout.backend.search.application.SearchContinuation;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Base64;
 import java.util.List;
@@ -87,7 +88,7 @@ public class DiscoveryRequest {
    * @param continuation context and score/identity boundary consumed by an adapter
    * @return URL-safe ordinary JSON continuation
    */
-  public String encode(Continuation continuation) {
+  public String encode(SearchContinuation continuation) {
     return Base64.getUrlEncoder()
         .withoutPadding()
         .encodeToString(json.writeValueAsBytes(continuation));
@@ -101,10 +102,10 @@ public class DiscoveryRequest {
    * @param context current admitted selection
    * @return validated native boundary
    */
-  private Continuation decode(String cursor, SearchContext context) {
+  private SearchContinuation decode(String cursor, SearchContext context) {
     try {
-      Continuation value =
-          json.readValue(Base64.getUrlDecoder().decode(cursor), Continuation.class);
+      SearchContinuation value =
+          json.readValue(Base64.getUrlDecoder().decode(cursor), SearchContinuation.class);
       if (value == null
           || !context.equals(value.context())
           || value.score() == null
@@ -134,10 +135,6 @@ public class DiscoveryRequest {
   }
 
   /** Detached request values; absent examples remain distinct from an invalid empty selection. */
-  public record Bound(SearchContext context, List<UUID> exampleIds, Continuation continuation) {}
-
-  /**
-   * Native score/UUID boundary bound to an immutable selection; no snapshot or cursor store exists.
-   */
-  public record Continuation(SearchContext context, Double score, UUID id) {}
+  public record Bound(
+      SearchContext context, List<UUID> exampleIds, SearchContinuation continuation) {}
 }

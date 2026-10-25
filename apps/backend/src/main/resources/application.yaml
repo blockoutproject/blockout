@@ -50,6 +50,8 @@ blockout:
       connect-timeout: 3s
       read-timeout: 5s
   search:
+    indexes:
+      prefix: ${BLOCKOUT_SEARCH_INDEX_PREFIX:blockout-local-search}
     enabled: false
     endpoint: ${BLOCKOUT_SEARCH_ENDPOINT:}
     username: ${BLOCKOUT_SEARCH_USERNAME:}

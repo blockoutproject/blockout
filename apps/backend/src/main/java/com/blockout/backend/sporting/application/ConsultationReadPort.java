@@ -19,6 +19,14 @@ import java.util.UUID;
  */
 public interface ConsultationReadPort {
   /**
+   * Reads current public club identity without contacts, locality or season collections.
+   *
+   * @param clubId stable club identity
+   * @return current permitted identity, or empty when unavailable
+   */
+  Optional<ConsultationViews.Identity> clubIdentity(UUID clubId);
+
+  /**
    * Reads current effective permitted club facts and available seasons for this exact identity.
    *
    * @param clubId stable club identity from navigation
@@ -33,6 +41,14 @@ public interface ConsultationReadPort {
    * @return all viewable teams, possibly an empty collection; empty Optional for unavailable scope
    */
   Optional<ConsultationViews.ClubTeams> clubTeams(ClubSeasonRequest request);
+
+  /**
+   * Reads the current seasonal team summary without constructing participation summaries.
+   *
+   * @param teamId stable seasonal team identity
+   * @return current permitted summary, including an optional club, or empty when unavailable
+   */
+  Optional<ConsultationViews.TeamSummary> teamSummary(UUID teamId);
 
   /**
    * Reads a viewable seasonal team and its current viewable participations, including clubless

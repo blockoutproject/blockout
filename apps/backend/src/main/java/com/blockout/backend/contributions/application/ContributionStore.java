@@ -13,6 +13,14 @@ import java.util.UUID;
  */
 public interface ContributionStore {
   /**
+   * Reads active-link presence for a bounded set of already consultable sporting matches.
+   *
+   * @param matchIds identities admitted by F03 in the caller's consistent transaction
+   * @return matches with a currently active contributed link, without address or attribution
+   */
+  Set<UUID> activeMatchIds(Set<UUID> matchIds);
+
+  /**
    * Reads state without creating activity; absence means initial revision and no hold.
    *
    * @param matchId existing F02 identity

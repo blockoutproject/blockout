@@ -34,7 +34,9 @@ tags:
   - name: StreamContributions
     description: Owned stream links, exact-version reports and authorized video moderation.
   - name: Notifications
-    description: Private inbox, read state, unread totals and current push associations.
+    description: Private inbox, read state and unread totals.
+  - name: PushSubscriptions
+    description: Current private push destination associations.
 security:
   - MobileToken: []
 paths:

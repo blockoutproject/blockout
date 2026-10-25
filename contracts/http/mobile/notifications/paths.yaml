@@ -132,7 +132,7 @@ Subscription:
     - $ref: ../access/parameters.yaml#/MaintenanceBypass
   put:
     operationId: replacePushSubscription
-    tags: [Notifications]
+    tags: [PushSubscriptions]
     summary: Register my push destination
     description: Creates or completely replaces this connection association. Repetition creates no duplicate; the last accepted registration for an installation or delivery address replaces its former association. A new sign-in uses a new association identity.
     requestBody:
@@ -182,7 +182,7 @@ Subscription:
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
   delete:
     operationId: deletePushSubscription
-    tags: [Notifications]
+    tags: [PushSubscriptions]
     summary: Remove my push destination association
     description: Removes only this owner connection association. An absent association succeeds without effects; a later association, including for the same account, and other installations remain unchanged.
     responses:

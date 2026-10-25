@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.generated.mobile.api.NotificationsApi;
+import com.blockout.backend.generated.mobile.api.PushSubscriptionsApi;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
 import com.blockout.backend.generated.mobile.model.MarkNotificationReadRequest;
 import com.blockout.backend.generated.mobile.model.MatchResultResponse;
@@ -320,7 +321,7 @@ class NotificationContractTest {
 
   /** Only binds generated interfaces; business persistence and delivery remain later tasks. */
   @RestController
-  static class Adapter implements NotificationsApi {
+  static class Adapter implements NotificationsApi, PushSubscriptionsApi {
     private final NotificationRequest requests;
     private final HttpServletRequest request;
 

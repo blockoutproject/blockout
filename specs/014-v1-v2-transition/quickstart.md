@@ -47,6 +47,16 @@ On **2026-10-22**, under the owner's explicit authorization for that provider ch
 
 This qualifies the scoped T019 restriction and sampled V1 iOS continuity. It does not qualify Android V1, a real roleless V1 account, V2 native sign-in, complete identity categories or population preservation. Actual Google/Apple and prior-role continuity remain **T021**; final Action removal remains **T050**. No V2 role-assignment endpoint, automatic grant, relinking, tenant replacement, credential rotation or V1 retirement was introduced.
 
+## Protected-logo rehearsal — T027/T028/T030
+
+The [bounded operations procedure](../../infra/operations/README.md#protected-club-logo-preservation-and-reassociation) prepares the private copy, exact target lookup and existing F02 multipart editor. No live V1 access, freeze, export or private inventory was performed for this rehearsal; those remain T029 / [#345](https://github.com/blockoutproject/blockout/issues/345).
+
+On **2026-10-25**, all **11** `TransitionLogoIntegrationTest` cases passed with no failures, errors or skips at the source revision recorded with the full checks in [PR #486](https://github.com/blockoutproject/blockout/pull/486). The suite uses actual F02 identity, presentation, validation and read operations with the existing PostgreSQL 18.6 Testcontainers support and real Liquibase baseline. Its synthetic cases cover distinct `000339` / `339` identities despite identical club names, unmatched `0000339`, original PNG/JPEG bytes in PostgreSQL, a missing file, empty/corrupt content, current grant withdrawal, stale revision refusal, cross-season FFVB inheritance and a clubless LNV team with a coincident native reference. No image host, production identity, collector provider or native device is involved.
+
+Normal V2 uniqueness rejects a duplicate `(FFVB, reference)` club; the suite exercises that database refusal rather than disabling the constraint to manufacture an ambiguous target. Exact lookup and uniqueness operations receive no file path: these tests prove identity handling, not private file preservation. Retaining private copies and resolving conflicting source associations remain manual under the procedure and are not qualified here. Missing/corrupt-file attempts leave current presentation unchanged; the procedure keeps affected destruction blocked.
+
+These cases establish the isolated owner boundary for T027/T030 and the prepared procedure for T028. They establish neither an actual protected-logo population/copy nor deployed V1 collector behavior, native image rendering, full A16–A24/SC-003 qualification or permission to destroy/open anything. T029/T034/T036 and all unrelated tasks remain separate. Run `./mvnw -B -ntp -pl apps/backend verify -Dtest=ImageValidatorTest -Dit.test=TransitionLogoIntegrationTest` after the ordinary contract bundle, or the complete `npx nx run backend:test` from [repository verification](../../README.md#verification); Failsafe discovers the integration suite during `verify`.
+
 ## Legacy status qualification
 
 Use both supported installed V1 store builds and the actual first V2 release for each platform. The October 15 observations were Android 1.3.5/build 84 and iOS 1.3.5/build 122; refresh that inventory before qualification rather than treating those observations as the supported population.
@@ -59,8 +69,25 @@ Use both supported installed V1 store builds and the actual first V2 release for
 
 Record platform, installed version/build, tested backend revision, configured threshold and safe outcomes with T043. Store availability, effective retirement and production activation remain their later tasks; serialization tests alone do not complete them.
 
+### Repository F12 integration — T037/T040
+
+On **2026-10-25**, the [legacy integration suites](../../apps/backend/src/test/java/com/blockout/backend/legacy/api/) exercised the actual Spring application, generated server DTOs/serialization, F12 controllers and admission policy against disposable PostgreSQL 18.6 initialized through the committed Liquibase migrations. They use the existing restricted application role and Spring Security test JWTs; no account/admission/settings collaborator is mocked.
+
+- The F12 activation PUT commits maintenance, the public V2 read reports it active and an ordinary public business read receives the maintenance 503. The exact legacy GET still returns its strict flat snake_case response, explicit historical nulls, `maintenance: false`, fixed platform versions/store links and `Cache-Control: no-store`, including with an obsolete bearer. An authenticated old client gains no access to the tested legacy business mutation.
+- Actual F12 version PATCHes lower and raise both platform minima and change both store links and the update message during maintenance. Removing both minima/links through explicit nulls is also exercised. The public V2 read observes each committed change while the entire legacy response remains fixed.
+- With retirement inputs absent and SQL maintenance active, the legacy GET returns the canonical no-store unavailable 503 without maintenance or retirement fields. Ordinary business admission remains blocked.
+
+The focused README/Maven verification command passed **24 existing legacy configuration/MVC cases and 5 new integration cases**:
+
+```sh
+npm run bundle:contracts
+./mvnw -B -ntp -pl apps/backend verify -Dtest='Legacy*WebMvcTest,LegacyRetirementPropertiesTest' -Dit.test='Legacy*IntegrationTest'
+```
+
+This completes the repository integration of T037/T040 using the implementation already delivered by #405. No controller, mapper, deployment setting, security matcher or contract needed alteration. Synthetic retirement versions/listing IDs are fixtures, not qualified release inputs. MockMvc exercises the real servlet/security application without a live network listener; JWT signature validation retains its existing dedicated suite. Installed V1 binaries, native numeric-version comparison/update actions, network failures with retained configuration, compatible public host, signed V2 releases, actual store availability, writer retirement and production cutover remain unqualified here under T043 and their later owners.
+
 ## Current repository checks
 
-Run the [README verification commands](../../README.md#verification), including the legacy OpenAPI root and backend tests. They cover generation, binding, serialization, HTTP admission and missing configuration. Actual old-binary compatibility and F12 maintenance integration remain separate qualification boundaries.
+Run the [README verification commands](../../README.md#verification), including the legacy OpenAPI root and backend tests. They cover generation, binding, serialization, HTTP admission and missing configuration. The real F12 repository integration is recorded above; actual old-binary compatibility and deployment remain separate qualification boundaries.
 
 Record passed, failed and unavailable evidence with the tested release. A source inspection, scheduled price change, present file or accepted store submission alone does not establish the end-to-end outcome.

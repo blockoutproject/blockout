@@ -117,6 +117,57 @@ class OpenSearchPropertiesTest {
         });
   }
 
+  @Test
+  @DisplayName("Uses the local alias namespace from the actual application YAML")
+  void bindsIndexNamespace() {
+    // Given
+    ApplicationContextRunner application = application(validEnvironment());
+
+    // When
+    application.run(
+        context -> {
+          // Then
+          assertThat(context).hasNotFailed();
+          assertThat(context.getBean(SearchIndexProperties.class).prefix())
+              .isEqualTo("blockout-local-search");
+        });
+  }
+
+  @Test
+  @DisplayName("Accepts an explicit environment-owned alias namespace")
+  void bindsIndexOverride() {
+    // Given
+    Map<String, Object> environment = new HashMap<>(validEnvironment());
+    environment.put("BLOCKOUT_SEARCH_INDEX_PREFIX", "blockout-synthetic-search");
+
+    // When
+    application(environment)
+        .run(
+            context -> {
+              // Then
+              assertThat(context).hasNotFailed();
+              assertThat(context.getBean(SearchIndexProperties.class).prefix())
+                  .isEqualTo("blockout-synthetic-search");
+            });
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {" ", "indexes,*", "UPPER"})
+  @DisplayName("Rejects blank and multi-index namespace shapes")
+  void rejectsInvalidNamespace(String prefix) {
+    // Given
+    ApplicationContextRunner application =
+        application(validEnvironment())
+            .withPropertyValues("blockout.search.indexes.prefix=" + prefix);
+
+    // When
+    application.run(
+        context -> {
+          // Then
+          assertThat(context).hasFailed();
+        });
+  }
+
   /** Returns synthetic inputs only; no real credential is read from the host environment. */
   private static Map<String, Object> validEnvironment() {
     return Map.of(
@@ -160,6 +211,6 @@ class OpenSearchPropertiesTest {
    * Activates only typed property binding so tests do not require networking or production secrets.
    */
   @Configuration(proxyBeanMethods = false)
-  @EnableConfigurationProperties(OpenSearchProperties.class)
+  @EnableConfigurationProperties({OpenSearchProperties.class, SearchIndexProperties.class})
   static class Binding {}
 }

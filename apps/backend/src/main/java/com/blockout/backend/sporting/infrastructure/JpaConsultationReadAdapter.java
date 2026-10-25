@@ -9,6 +9,7 @@ import com.blockout.backend.sporting.application.ConsultationViews;
 import com.blockout.backend.sporting.application.MatchPresentation;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.model.MatchDetails;
+import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
@@ -46,15 +47,20 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
 
   /** {@inheritDoc} */
   @Override
+  public Optional<ConsultationViews.Identity> clubIdentity(UUID clubId) {
+    return owners.publicPresentation(Kind.CLUB, clubId).map(this::identity);
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public Optional<ConsultationViews.ClubDetail> club(UUID clubId) {
-    return owners
-        .publicPresentation(Kind.CLUB, clubId)
+    return clubIdentity(clubId)
         .map(
-            presentation -> {
+            club -> {
               Map<ContactField, String> contacts = owners.publicClubContacts(clubId);
               List<SeasonView> seasons = owners.publicClubSeasons(clubId);
               return new ConsultationViews.ClubDetail(
-                  identity(presentation),
+                  club,
                   new ConsultationViews.Contacts(
                       contacts.get(ContactField.ADDRESS),
                       contacts.get(ContactField.CITY),
@@ -103,29 +109,38 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
 
   /** {@inheritDoc} */
   @Override
-  public Optional<ConsultationViews.TeamDetail> team(UUID teamId) {
+  public Optional<ConsultationViews.TeamSummary> teamSummary(UUID teamId) {
     return owners
         .publicPresentation(Kind.TEAM, teamId)
         .map(
             ignored -> {
               TeamView team = owners.team(teamId).orElseThrow();
-              return new ConsultationViews.TeamDetail(
-                  teamSummary(
-                      team, facts.divisionDetail(team.classification().divisionId()).orElseThrow()),
-                  owners.publicTeamPoolIds(teamId).stream()
-                      .map(id -> poolSummary(id).orElseThrow())
-                      .sorted(
-                          Comparator.comparingLong(
-                                  (ConsultationViews.PoolSummary value) ->
-                                      value.season().startYear())
-                              .reversed()
-                              .thenComparing(
-                                  ConsultationViews.PoolSummary::competitionName,
-                                  Comparator.nullsLast(Comparator.naturalOrder()))
-                              .thenComparing(value -> value.pool().name())
-                              .thenComparing(value -> value.pool().id().toString()))
-                      .toList());
+              return teamSummary(
+                  team, facts.divisionDetail(team.classification().divisionId()).orElseThrow());
             });
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<ConsultationViews.TeamDetail> team(UUID teamId) {
+    return teamSummary(teamId)
+        .map(
+            summary ->
+                new ConsultationViews.TeamDetail(
+                    summary,
+                    owners.publicTeamPoolIds(teamId).stream()
+                        .map(id -> poolSummary(id).orElseThrow())
+                        .sorted(
+                            Comparator.comparingLong(
+                                    (ConsultationViews.PoolSummary value) ->
+                                        value.season().startYear())
+                                .reversed()
+                                .thenComparing(
+                                    ConsultationViews.PoolSummary::competitionName,
+                                    Comparator.nullsLast(Comparator.naturalOrder()))
+                                .thenComparing(value -> value.pool().name())
+                                .thenComparing(value -> value.pool().id().toString()))
+                        .toList()));
   }
 
   /** {@inheritDoc} */
@@ -144,30 +159,7 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
             match -> {
               MatchEntity schedule = entities.find(MatchEntity.class, matchId);
               MatchDetails details = facts.matchDetails(matchId);
-              ConsultationViews.Schedule publicSchedule =
-                  new ConsultationViews.Schedule(
-                      schedule.getLocalDate(),
-                      offset(schedule.getReliableStart()),
-                      schedule.getTimeZone(),
-                      offset(schedule.getScheduleObservedAt()));
-              ConsultationViews.Result result =
-                  details.result() == null
-                      ? null
-                      : new ConsultationViews.Result(
-                          ResultStateEnum.fromValue(details.result().state().getValue()),
-                          details.result().homeSets(),
-                          details.result().awaySets(),
-                          details.result().specialLabel(),
-                          offset(details.resultObservedAt()));
-              ConsultationViews.MatchSummary summary =
-                  new ConsultationViews.MatchSummary(
-                      matchId,
-                      poolSummary(match.poolId()).orElseThrow(),
-                      publicIdentity(Kind.TEAM, match.homeTeamId()),
-                      publicIdentity(Kind.TEAM, match.awayTeamId()),
-                      publicSchedule,
-                      MatchPresentation.category(publicSchedule, result, evaluatedAt),
-                      result);
+              ConsultationViews.MatchSummary summary = matchSummary(schedule, evaluatedAt);
               return new ConsultationViews.MatchDetail(
                   summary,
                   details.sets() == null
@@ -181,6 +173,62 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
                   null,
                   List.of());
             });
+  }
+
+  /**
+   * Composes an already admitted match using owner presentation in the current transaction. Batched
+   * callers fetch its to-one graph first; no collections or additional eligibility reads are needed
+   * for this public summary.
+   *
+   * @param match currently admitted dated match
+   * @param now common presentation evaluation instant
+   * @return the same current summary used by ordinary match consultation
+   */
+  ConsultationViews.MatchSummary matchSummary(MatchEntity match, Instant now) {
+    PoolEntity pool = match.getPool();
+    ConsultationViews.Schedule schedule =
+        new ConsultationViews.Schedule(
+            match.getLocalDate(),
+            offset(match.getReliableStart()),
+            match.getTimeZone(),
+            offset(match.getScheduleObservedAt()));
+    MatchObservation.Result accepted = persistenceMapper.toResult(match);
+    ConsultationViews.Result result =
+        accepted == null
+            ? null
+            : new ConsultationViews.Result(
+                ResultStateEnum.fromValue(accepted.state().getValue()),
+                accepted.homeSets(),
+                accepted.awaySets(),
+                accepted.specialLabel(),
+                offset(match.getResultObservedAt()));
+    ConsultationViews.PoolSummary context =
+        new ConsultationViews.PoolSummary(
+            identity(
+                facts
+                    .presentation(SportingProjectionChanges.Kind.POOL, pool.getId())
+                    .orElseThrow()),
+            persistenceMapper.toView(pool.getSeason()),
+            classification(
+                new SportingClassification(
+                    pool.getDivision().getId(), pool.getFormat(), pool.getGender()),
+                persistenceMapper.toDetail(pool.getDivision())),
+            null,
+            null);
+    return new ConsultationViews.MatchSummary(
+        match.getId(),
+        context,
+        identity(
+            facts
+                .presentation(SportingProjectionChanges.Kind.TEAM, match.getHomeTeam().getId())
+                .orElseThrow()),
+        identity(
+            facts
+                .presentation(SportingProjectionChanges.Kind.TEAM, match.getAwayTeam().getId())
+                .orElseThrow()),
+        schedule,
+        MatchPresentation.category(schedule, result, now),
+        result);
   }
 
   /**
@@ -230,17 +278,6 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
   }
 
   /**
-   * Resolves names and effective logo links exclusively through the F02 presentation owner.
-   *
-   * @param kind visible club, team or pool
-   * @param id exact current identity
-   * @return detached identity without editing metadata
-   */
-  private ConsultationViews.Identity publicIdentity(Kind kind, UUID id) {
-    return identity(owners.publicPresentation(kind, id).orElseThrow());
-  }
-
-  /**
    * Removes private source/manual state from an already admitted presentation.
    *
    * @param view current effective owner presentation
@@ -268,7 +305,7 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
   /**
    * Combines accepted classification with already selected F02 division metadata.
    *
-   * @param value accepted sporting classification
+   * @param value accepted classification, possibly without format or gender
    * @param division current owner presentation from the same read transaction
    * @return public classification without an additional persistence lookup
    */
@@ -281,8 +318,8 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
             division.hasLogo() ? "/divisions/" + division.id() + "/logo" : null,
             division.color(),
             division.gradient()),
-        SportFormatEnum.fromValue(value.format().getValue()),
-        SportGenderEnum.fromValue(value.gender().getValue()));
+        value.format() == null ? null : SportFormatEnum.fromValue(value.format().getValue()),
+        value.gender() == null ? null : SportGenderEnum.fromValue(value.gender().getValue()));
   }
 
   /**
