@@ -1,8 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
-import { StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import {
   ApiError,
   isUncertainMutationFailure,
@@ -29,7 +30,10 @@ import {
   presentationValues,
   type PresentationValues,
 } from "./presentation-values";
-import { presentationEditor } from "./presentation-editor";
+import {
+  discardPresentationEditor,
+  presentationEditor,
+} from "./presentation-editor";
 
 /** One original resource and session; background reads never replace this form's editable snapshot. */
 export interface PresentationFormProps {
@@ -49,6 +53,9 @@ export function PresentationForm({
   onDirtyChange,
 }: PresentationFormProps) {
   const session = useAccountSession();
+  const router = useRouter();
+  const creating = target.kind === "division-creation";
+  const isDivision = target.kind === "division" || creating;
   const { colors } = useTheme();
   const mounted = useRef(false);
   const [editor] = useState(() =>
@@ -69,11 +76,23 @@ export function PresentationForm({
   const draft = useWatch({ control, name: "logo" });
   // Subscribing to dirty fields is required by RHF's native keepDirtyValues reset option.
   const dirtyLogo = dirtyFields.logo !== undefined;
-  const changed = presentation.data.revision !== baseline.data.revision;
+  const changed =
+    presentation.kind !== "division-creation" &&
+    baseline.kind !== "division-creation" &&
+    presentation.data.revision !== baseline.data.revision;
   const rereadRequired = needsRead || changed;
+  const created = creating && baseline.kind === "division";
   const busy =
-    disabled || preparing || isSubmitting || editing.query.isFetching;
-  const currentLogo = baseline.kind !== "pool" ? baseline.data.logo : undefined;
+    disabled ||
+    created ||
+    preparing ||
+    isSubmitting ||
+    editing.saving ||
+    editing.query.isFetching;
+  const currentLogo =
+    baseline.kind !== "pool" && baseline.kind !== "division-creation"
+      ? baseline.data.logo
+      : undefined;
   const selection = draft.action === "automatic" ? "automatic" : "effective";
   const hasLogo =
     draft.action === "automatic"
@@ -83,7 +102,7 @@ export function PresentationForm({
     target,
     selection,
     !disabled && hasLogo && draft.action !== "replace",
-    baseline.data.revision,
+    baseline.kind === "division-creation" ? "" : baseline.data.revision,
   );
   const uri =
     draft.action === "replace"
@@ -92,10 +111,15 @@ export function PresentationForm({
         ? artwork.data
         : undefined;
   const title =
-    baseline.kind === "division"
-      ? baseline.data.name
-      : baseline.data.names.effectiveName;
-  const names = baseline.kind !== "division" ? baseline.data.names : undefined;
+    baseline.kind === "division-creation"
+      ? "Nouvelle division"
+      : baseline.kind === "division"
+        ? baseline.data.name
+        : baseline.data.names.effectiveName;
+  const names =
+    baseline.kind !== "division" && baseline.kind !== "division-creation"
+      ? baseline.data.names
+      : undefined;
   const card = [
     styles.card,
     { backgroundColor: colors.surface, borderColor: colors.border },
@@ -116,10 +140,25 @@ export function PresentationForm({
   async function submit(values: PresentationValues) {
     if (busy || rereadRequired || !session.isCurrent(session.generation))
       return;
+    if (
+      baseline.kind === "division-creation" &&
+      baseline.data.items.some(
+        (item) =>
+          item.name.toLocaleLowerCase() ===
+          values.name.trim().toLocaleLowerCase(),
+      )
+    ) {
+      setError("name", {
+        message:
+          "Ce nom de division est déjà utilisé. Vérifiez la liste des divisions.",
+      });
+      return;
+    }
     editor.update({ ...state, feedback: undefined });
     try {
       const accepted = await editing.save.mutateAsync({
-        revision: baseline.data.revision,
+        revision:
+          baseline.kind === "division-creation" ? "" : baseline.data.revision,
         values,
       });
       if (!session.isCurrent(session.generation)) return;
@@ -129,6 +168,10 @@ export function PresentationForm({
         feedback: "Présentation enregistrée.",
       });
       reset(presentationValues(accepted));
+      if (creating) {
+        discardPresentationEditor(session.generation, target);
+        onDirtyChange?.(false);
+      }
     } catch (error) {
       if (!session.isCurrent(session.generation)) return;
       if (
@@ -158,7 +201,7 @@ export function PresentationForm({
               "Ce logo ne peut pas être enregistré. Choisissez une autre image.",
           });
         if (
-          target.kind === "division" &&
+          isDivision &&
           error instanceof ApiError &&
           error.problem?.type === "urn:blockout:problem:conflict"
         )
@@ -275,7 +318,7 @@ export function PresentationForm({
             <TextField
               ref={ref}
               label={
-                target.kind === "division"
+                isDivision
                   ? "Nom de la division"
                   : target.kind === "club"
                     ? "Nom personnalisé"
@@ -312,7 +355,7 @@ export function PresentationForm({
             )}
           />
         )}
-        {target.kind === "division" && (
+        {isDivision && (
           <>
             <Controller
               control={control}
@@ -380,12 +423,32 @@ export function PresentationForm({
           loading={editing.query.isFetching}
         />
       )}
+      {created && (
+        <Button
+          label="Voir les divisions"
+          variant="secondary"
+          onPress={() => router.replace("/administration/divisions")}
+        />
+      )}
       <Button
         label="Enregistrer"
         fullWidth
         disabled={busy || rereadRequired}
         loading={isSubmitting || preparing}
-        onPress={() => void handleSubmit(submit)()}
+        onPress={() =>
+          void handleSubmit((values) => {
+            if (creating)
+              Alert.alert(
+                "Créer la division ?",
+                "La nouvelle division sera active. Sa présentation ne changera jamais implicitement son activité.",
+                [
+                  { text: "Annuler", style: "cancel" },
+                  { text: "Confirmer", onPress: () => void submit(values) },
+                ],
+              );
+            else return submit(values);
+          })()
+        }
       />
     </View>
   );

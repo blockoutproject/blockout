@@ -33,7 +33,6 @@ import {
   mockAuth0,
 } from "../../accounts/test-support/native-auth0";
 import { PresentationScreen } from "../screens/presentation-screen";
-import type { PresentationTarget } from "../api/presentation";
 
 jest.mock(
   "react-native-safe-area-context",
@@ -173,13 +172,21 @@ afterEach(() => {
 });
 
 /** Real form, Query, identity and access owners; only native credentials/images and HTTP are controlled. */
-async function renderEditor(kind: PresentationTarget["kind"] = "team") {
+async function renderEditor(
+  kind: "club" | "team" | "pool" | "division" | "division-creation" = "team",
+) {
   await render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
         <ApplicationAccessProvider>
           <AccountSessionProvider>
-            <PresentationScreen target={{ kind, id: resourceId }} />
+            <PresentationScreen
+              target={
+                kind === "division-creation"
+                  ? { kind }
+                  : { kind, id: resourceId }
+              }
+            />
             <SessionAction />
           </AccountSessionProvider>
         </ApplicationAccessProvider>
@@ -935,5 +942,128 @@ it("rejects a delayed save result after the session has ended", async () => {
   expect(screen.queryByText("Présentation enregistrée.")).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
+});
+
+it("creates an active division through the existing atomic presentation form with the lifecycle grant alone", async () => {
+  // Given
+  permissions = { manageDivisionLifecycle: true };
+  stored = { items: [] };
+  jest.spyOn(Alert, "alert");
+  const initialFetch = mockFetch.getMockImplementation()!;
+  const created = {
+    id: resourceId,
+    revision: "d1",
+    name: "National 2",
+    color: "#123456",
+    gradient: null,
+    logo,
+    active: true,
+  };
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "POST"
+      ? Promise.resolve(json(created, 201))
+      : initialFetch(url, options),
+  );
+  const user = await renderEditor("division-creation");
+  await screen.findByLabelText("Nom de la division");
+  await edit("Nom de la division", "National 2");
+  await edit("Couleur", "#123456");
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
+  ).toBe(false);
+  const confirm = jest
+    .mocked(Alert.alert)
+    .mock.calls.at(-1)?.[2]
+    ?.find((button) => button.text === "Confirmer");
+  await act(async () => {
+    confirm?.onPress?.();
+  });
+
+  // Then
+  await screen.findByRole("button", { name: "Voir les divisions" });
+  const request = mockFetch.mock.calls.find(
+    ([, options]) => options?.method === "POST",
+  )?.[1];
+  expect(request?.body).toBeInstanceOf(FormData);
+  expect(
+    JSON.parse(String((request?.body as FormData).get("metadata"))),
+  ).toEqual({
+    name: "National 2",
+    color: "#123456",
+    gradient: null,
+    logoAction: "keep",
+  });
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.some(([url]) => String(url).includes("/activity")),
+  ).toBe(false);
+});
+
+it("rereads divisions after an uncertain creation and keeps the draft while identifying an existing name", async () => {
+  // Given
+  permissions = { manageDivisionLifecycle: true };
+  stored = { items: [] };
+  jest.spyOn(Alert, "alert");
+  const initialFetch = mockFetch.getMockImplementation()!;
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "POST"
+      ? Promise.reject(new TypeError("Lost response"))
+      : initialFetch(url, options),
+  );
+  const user = await renderEditor("division-creation");
+  await screen.findByLabelText("Nom de la division");
+  await edit("Nom de la division", "National 2");
+  await edit("Couleur", "#123456");
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  const confirm = jest
+    .mocked(Alert.alert)
+    .mock.calls.at(-1)?.[2]
+    ?.find((button) => button.text === "Confirmer");
+  await act(async () => {
+    confirm?.onPress?.();
+  });
+  await screen.findByRole("button", { name: "Relire la présentation" });
+  stored = {
+    items: [
+      {
+        id: resourceId,
+        revision: "d1",
+        name: "National 2",
+        color: "#123456",
+        gradient: null,
+        logo,
+        active: true,
+      },
+    ],
+  };
+  await user.press(
+    screen.getByRole("button", { name: "Relire la présentation" }),
+  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  const retry = jest
+    .mocked(Alert.alert)
+    .mock.calls.at(-1)?.[2]
+    ?.find((button) => button.text === "Confirmer");
+  await act(async () => {
+    retry?.onPress?.();
+  });
+
+  // Then
+  expect(
+    await screen.findByText(
+      "Ce nom de division est déjà utilisé. Vérifiez la liste des divisions.",
+    ),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Nom de la division")).toHaveDisplayValue(
+    "National 2",
+  );
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
   ).toHaveLength(1);
 });

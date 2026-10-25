@@ -1,7 +1,7 @@
-import { useLocalSearchParams, usePreventRemove } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Alert } from "react-native";
 import { z } from "zod";
+import { useEditorDiscard } from "../../../../../features/sporting-administration/forms/use-editor-discard";
 import { useOperationalAdmission } from "../../../../../features/access/queries/use-access-admission";
 import { PresentationScreen } from "../../../../../features/sporting-administration/screens/presentation-screen";
 import type { PresentationTarget } from "../../../../../features/sporting-administration/api/presentation";
@@ -34,23 +34,9 @@ export default function PresentationRoute() {
 function AdmittedPresentation({ target }: { target: PresentationTarget }) {
   const [dirty, setDirty] = useState(false);
   const session = useAccountSession();
-  usePreventRemove(dirty, ({ repeat }) => {
-    Alert.alert(
-      "Abandonner les modifications ?",
-      "Votre brouillon n’a pas été enregistré.",
-      [
-        { text: "Continuer la saisie", style: "cancel" },
-        {
-          text: "Abandonner",
-          style: "destructive",
-          onPress: () => {
-            discardPresentationEditor(session.generation, target);
-            setDirty(false);
-            repeat();
-          },
-        },
-      ],
-    );
+  useEditorDiscard(dirty, () => {
+    discardPresentationEditor(session.generation, target);
+    setDirty(false);
   });
   return <PresentationScreen target={target} onDirtyChange={setDirty} />;
 }

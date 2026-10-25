@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { Layers } from "lucide-react-native";
-import { FlatList, StyleSheet, Text } from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../../../shared/components/button";
 import {
@@ -9,6 +9,7 @@ import {
 } from "../../../shared/components/request-feedback";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
+import { ClassificationEntry } from "../../sporting-administration/entry";
 import { useSourceChildren } from "../api/use-source-preparation";
 import {
   CollectionAccessFeedback,
@@ -38,7 +39,14 @@ export function SourceChildrenScreen({
         data={authority.enabled ? items : []}
         keyExtractor={(item) => item.id}
         contentContainerStyle={preparationStyles.content}
-        ListHeaderComponent={<CollectionAccessFeedback authority={authority} />}
+        ListHeaderComponent={
+          <>
+            <CollectionAccessFeedback authority={authority} />
+            {parentId && authority.enabled && (
+              <ClassificationEntry target={{ kind: "pack", id: parentId }} />
+            )}
+          </>
+        }
         renderItem={({ item }) =>
           item.kind === "pack" ? (
             <PreparationLink
@@ -53,9 +61,12 @@ export function SourceChildrenScreen({
               }
             />
           ) : (
-            <Text style={[tokens.typography.body, { color: colors.text }]}>
-              {item.label}
-            </Text>
+            <View>
+              <Text style={[tokens.typography.body, { color: colors.text }]}>
+                {item.label}
+              </Text>
+              <ClassificationEntry target={{ kind: "pool", id: item.id }} />
+            </View>
           )
         }
         ListEmptyComponent={

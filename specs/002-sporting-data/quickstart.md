@@ -55,6 +55,35 @@ Verify `Cache-Control: no-store` on administration/ingestion successes and error
 
 Try wrong-environment M2M tokens and unauthorized/stale administrative commands. Expect no effects. Lose a response and read current state before an explicit retry; no automatic mutation replay. Exceed the calendar/image bounds and verify explicit refusal, never truncation or deletion of valid images. Qualify a complete source-season catalog against the 8-MiB JSON bound; include repeated pool labels under distinct compound contexts and identical duplicates. Expect positional result correlation, one atomic catalog commit, and no absence change for stale, invalid or oversized input.
 
+## Classification and division editors — #178
+
+T014/T018 use the existing F05 session and F12 operational admission. Enter pack/pool
+classification from the discovered collection children with both the collection
+read and classification action grants. `manageSportingClassification` and
+`manageDivisionLifecycle` independently admit technical administration and the
+division list; collection, presentation and activity remain separate grants.
+Routes live under `apps/mobile/src/app/(operations)/administration/`.
+
+The [classification suite](../../apps/mobile/src/features/sporting-administration/__tests__/classification.test.tsx)
+exercises complete overrides, explicit null/inheritance, incomplete/inactive
+choices, all-request conflict feedback, retained dirty values, failed and
+successful current-state recovery, independent activity and real protected-route
+removal/reentry. The [presentation suite](../../apps/mobile/src/features/sporting-administration/__tests__/presentation.test.tsx)
+adds division creation through the same RHF/Zod name/color/logo form and generated
+multipart client, with native confirmation, duplicate-name handling after a lost
+response and no activity write. Native SDK credentials and HTTP are controlled in
+Jest; these tests do not qualify backend transaction outcomes, provider identity
+or native rendering.
+
+Native editor captures remain unavailable: the assigned iPhone 18 Pro - A
+(iOS 27.0, UDID `2C22FCF3-D4A7-4F84-BAB1-F358C71C7649`) opened the compatible
+installed `com.blockout.local` development client through `agent-device` session
+`issue-178`, but this worktree has no configured Auth0 environment or authenticated
+operator. No native build or synthetic identity provider was introduced. T055,
+[#433](https://github.com/blockoutproject/blockout/issues/433) live Dynamic Type and
+[#449](https://github.com/blockoutproject/blockout/issues/449) minimum-iOS input
+qualification remain pending; no iOS/Android matrix or design approval is claimed.
+
 ## Presentation, contacts and continuity
 
 In existing native journeys, verify a professional team with no club remains readable/followable without a club link or invented point. Exercise team override → LNV → optional club → missing artwork, plus unchanged nonprofessional inheritance. Fail logo retrieval/replacement and retain the last valid presentation. Check both themes, enlarged text, focus and meaningful accessible action labels.

@@ -16,6 +16,23 @@ export default function OperationsLayout() {
       <Stack.Protected guard={permissions?.manageCollection === true}>
         <Stack.Screen name="collection" />
       </Stack.Protected>
+      <Stack.Protected
+        guard={permissions?.manageSportingClassification === true}
+      >
+        <Stack.Screen name="administration/classification/[kind]/[id]" />
+      </Stack.Protected>
+      <Stack.Protected
+        guard={
+          permissions?.manageSportingClassification === true ||
+          permissions?.manageSportingPresentation === true ||
+          permissions?.manageDivisionLifecycle === true
+        }
+      >
+        <Stack.Screen name="administration/divisions/index" />
+      </Stack.Protected>
+      <Stack.Protected guard={permissions?.manageDivisionLifecycle === true}>
+        <Stack.Screen name="administration/divisions/new" />
+      </Stack.Protected>
       <Stack.Protected guard={permissions?.manageSportingPresentation === true}>
         <Stack.Screen name="administration/presentation/[kind]/[id]" />
       </Stack.Protected>
