@@ -10,34 +10,24 @@ import type {
 } from "../../accounts/session/session-generation";
 import type { ClassificationTarget } from "../api/classification";
 
-/** Original revision and required reread survive temporary route removal with the form. */
+/** Original revision and feedback survive temporary route removal; Query owns command recovery. */
 interface EditingState {
   baseline: ClassificationDetailResponse;
-  needsRead: boolean;
   feedback?: string;
 }
 /** One session-scoped RHF draft; values have no mirror or persistence. */
 interface ClassificationEditor {
   form: ReturnType<typeof createFormControl<ClassificationValues>>;
-  /** Returns current revision/recovery metadata. */
+  /** Returns current revision/presentation metadata. */
   getSnapshot(): EditingState;
   /** Observes metadata independently of field subscriptions. */
   subscribe(listener: () => void): () => void;
   /** Publishes only explicit read/write outcomes. */
   update(state: EditingState): void;
-  /** Detaches session lifetime ownership. */
-  release(): void;
+  /** Removes this exact draft and detaches session lifetime ownership. */
+  discard(): void;
 }
 const editors = new Map<string, ClassificationEditor>();
-/** Explicit discard and F05 invalidation release only this original-target draft. */
-export function discardClassificationEditor(
-  generation: string,
-  target: ClassificationTarget,
-) {
-  const key = `${generation}:${target.kind}:${target.id}`;
-  editors.get(key)?.release();
-  editors.delete(key);
-}
 /** Native selection routes reuse the original RHF draft; a direct link cannot invent an editing baseline. */
 export function findClassificationEditor(
   generation: string,
@@ -54,27 +44,33 @@ export function classificationEditor(
   const key = `${session.generation}:${target.kind}:${target.id}`;
   const existing = editors.get(key);
   if (existing) return existing;
-  let state: EditingState = { baseline: current, needsRead: false };
+  let state: EditingState = { baseline: current };
   const listeners = new Set<() => void>();
+  const stopSession = session.subscribe(() => {
+    if (!session.isCurrent(session.generation)) editor.discard();
+  });
   const editor: ClassificationEditor = {
     form: createFormControl<ClassificationValues>({
       defaultValues: classificationValues(current),
     }),
     getSnapshot: () => state,
+    /** Observes draft metadata separately from RHF field subscriptions. */
     subscribe(listener) {
       listeners.add(listener);
       return () => {
         listeners.delete(listener);
       };
     },
+    /** Publishes only explicit outcomes for the retained original-target draft. */
     update(next) {
       state = next;
       listeners.forEach((listener) => listener());
     },
-    release: session.subscribe(() => {
-      if (!session.isCurrent(session.generation))
-        discardClassificationEditor(session.generation, target);
-    }),
+    /** Identity ownership prevents a stale callback from discarding a replacement with the same target. */
+    discard() {
+      if (editors.get(key) === editor) editors.delete(key);
+      stopSession();
+    },
   };
   editors.set(key, editor);
   return editor;

@@ -158,9 +158,6 @@ export function DiscoveryScreen() {
                   </Text>
                 ))}
               </View>
-              {discovery.error === "write" && (
-                <RequestError message="La fin de la découverte n’a pas pu être enregistrée. Réessayez avec Passer ou Commencer." />
-              )}
             </View>
           </>
         )}

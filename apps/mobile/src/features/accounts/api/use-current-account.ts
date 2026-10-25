@@ -1,6 +1,9 @@
 import {
   queryOptions,
-  useMutation,
+  mutationOptions,
+  MutationObserver,
+  useMutationState,
+  useIsMutating,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -13,11 +16,12 @@ import {
 } from "../../../../.generated/mobile";
 import { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
+import { startCommand } from "../../../shared/query/use-command";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useOrdinaryRequest } from "../../access/ordinary-request";
 import {
   useAccountSession,
-  type AccountSession,
+  type AccountCommandSession,
 } from "../session/account-session-provider";
 
 /**
@@ -77,30 +81,55 @@ export function useEstablishAccount() {
   const auth = useAuth0();
   const client = useQueryClient();
   const currentSession = useAccountSession();
-  return useMutation({
-    mutationKey: getSessionQueryKey(
-      currentSession.generation,
+  const groupKey = getSessionQueryKey(
+    currentSession.generation,
+    getEstablishAccountMutationKey(),
+  );
+  const pending = useIsMutating({ mutationKey: groupKey, exact: true }) > 0;
+  const states = useMutationState({
+    filters: { mutationKey: groupKey, exact: true },
+    select: ({ state }) => ({ status: state.status, error: state.error }),
+  });
+  const latest = states.at(-1);
+
+  /** Captures the successful login's new generation before native Query receives the command. */
+  function createEstablishmentOptions(session: AccountCommandSession) {
+    const mutationKey = getSessionQueryKey(
+      session.generation,
       getEstablishAccountMutationKey(),
-    ),
-    gcTime: 0,
-    mutationFn: async (session: AccountSession) => {
-      try {
-        const credentials = await auth.getCredentials();
-        if (!credentials) throw new ApiError("http", 401);
-        const account = await establishAccount(
-          request({
-            session,
-            schema: AccountResponse,
-            headers: { Authorization: `Bearer ${credentials.accessToken}` },
-          }),
-        );
+    );
+    return mutationOptions({
+      mutationKey,
+      gcTime: Infinity,
+      retry: false,
+      networkMode: "always",
+      mutationFn: async () => {
+        try {
+          if (!session.isCurrent(session.generation))
+            throw new ApiError("cancelled");
+          const credentials = await auth.getCredentials();
+          if (!credentials) throw new ApiError("http", 401);
+          return await establishAccount(
+            request({
+              session,
+              schema: AccountResponse,
+              headers: { Authorization: `Bearer ${credentials.accessToken}` },
+            }),
+          );
+        } catch (error) {
+          if (!session.isCurrent(session.generation))
+            throw new ApiError("cancelled");
+          throw error;
+        }
+      },
+      /** Publishes current provider evidence without replacing concurrent editable profile fields. */
+      onSuccess: async function acceptEstablishedAccount(account) {
         const queryKey = getSessionQueryKey(
           session.generation,
           getGetMyAccountQueryKey(),
         );
         await client.cancelQueries({ queryKey, exact: true });
-        if (!session.isCurrent(session.generation))
-          throw new ApiError("cancelled");
+        if (!session.isCurrent(session.generation)) return;
         client.setQueryData<AccountResponse>(queryKey, (current) =>
           current?.accountId === account.accountId
             ? {
@@ -112,13 +141,31 @@ export function useEstablishAccount() {
             : account,
         );
         session.setAccount(session.generation, account.accountId);
-        return account;
-      } catch (error) {
-        // Credential preparation precedes the shared transport's generation guard.
-        if (!session.isCurrent(session.generation))
-          throw new ApiError("cancelled");
-        throw error;
-      }
-    },
-  });
+      },
+    });
+  }
+
+  /** Starts only explicit establishment, with its captured authenticated generation and no queued duplicate. */
+  function start(session: AccountCommandSession) {
+    if (!session.isCurrent(session.generation)) return;
+    const options = createEstablishmentOptions(session);
+    return startCommand(
+      client,
+      { groupKey: options.mutationKey, requiresRead: () => false },
+      () => {
+        const cache = client.getMutationCache();
+        cache
+          .findAll({ mutationKey: options.mutationKey, exact: true })
+          .forEach((entry) => cache.remove(entry));
+        const observer = new MutationObserver(client, options);
+        return observer.mutate().finally(() => observer.reset());
+      },
+    );
+  }
+  return {
+    start,
+    pending,
+    status: latest?.status ?? "idle",
+    error: latest?.error,
+  };
 }

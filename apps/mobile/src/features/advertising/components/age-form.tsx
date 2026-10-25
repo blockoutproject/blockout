@@ -1,3 +1,4 @@
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Slider from "@react-native-community/slider";
 import { Minus, Plus } from "lucide-react-native";
@@ -6,7 +7,6 @@ import { Platform, StyleSheet, Text, View } from "react-native";
 import { z } from "zod";
 import { Button } from "../../../shared/components/button";
 import { IconButton } from "../../../shared/components/icon-button";
-import { RequestError } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { completedYearsSchema } from "../age-declaration";
@@ -18,32 +18,33 @@ type AgeValues = z.input<typeof valuesSchema>;
 
 /** A confirmed explicit age is transient; the caller owns category/date persistence and subsequent navigation. */
 export interface AgeFormProps {
-  onSubmit(age: number): Promise<unknown>;
+  pending: boolean;
+  onSubmit(age: number): Promise<unknown> | undefined;
 }
 
 /** Shared neutral entry/renewal/correction control; unmounting cancels unsubmitted edits without saving. */
-export function AgeForm({ onSubmit }: AgeFormProps) {
+export function AgeForm({ pending, onSubmit }: AgeFormProps) {
   const { colors } = useTheme();
-  const {
-    control,
-    handleSubmit,
-    setError,
-    clearErrors,
-    formState: { isSubmitting, errors },
-  } = useForm<AgeValues, unknown, z.output<typeof valuesSchema>>({
+  const feedback = useActionFeedback();
+  const { control, handleSubmit } = useForm<
+    AgeValues,
+    unknown,
+    z.output<typeof valuesSchema>
+  >({
     defaultValues: { age: null },
     resolver: zodResolver(valuesSchema),
   });
 
   /** A rejected write leaves the selected age editable; only an explicit new confirmation retries it. */
   async function submit(values: z.output<typeof valuesSchema>) {
-    clearErrors("root");
+    if (pending) return;
     try {
-      await onSubmit(values.age);
+      const operation = onSubmit(values.age);
+      if (!operation) return;
+      feedback.clear();
+      await operation;
     } catch {
-      setError("root", {
-        message: "Votre choix n’a pas pu être enregistré. Réessayez.",
-      });
+      feedback.error("Votre choix n’a pas pu être enregistré. Réessayez.");
     }
   }
 
@@ -78,7 +79,7 @@ export function AgeForm({ onSubmit }: AgeFormProps) {
               <View style={styles.adjust}>
                 <IconButton
                   label="Diminuer l’âge"
-                  disabled={isSubmitting || value === 0}
+                  disabled={pending || value === 0}
                   onPress={() => onChange(Math.max(0, (value ?? 0) - 1))}
                 >
                   <Minus size={24} color={colors.icon} />
@@ -105,7 +106,7 @@ export function AgeForm({ onSubmit }: AgeFormProps) {
                   value={value ?? 0}
                   onValueChange={onChange}
                   onSlidingComplete={onChange}
-                  disabled={isSubmitting}
+                  disabled={pending}
                   minimumTrackTintColor={colors.border}
                   maximumTrackTintColor={colors.border}
                   thumbTintColor={colors.accentPrimary}
@@ -114,21 +115,18 @@ export function AgeForm({ onSubmit }: AgeFormProps) {
                 />
                 <IconButton
                   label="Augmenter l’âge"
-                  disabled={isSubmitting || value === 100}
+                  disabled={pending || value === 100}
                   onPress={() => onChange(Math.min(100, (value ?? 0) + 1))}
                 >
                   <Plus size={24} color={colors.icon} />
                 </IconButton>
               </View>
             </View>
-            {errors.root?.message && (
-              <RequestError message={errors.root.message} />
-            )}
             <Button
               label="Continuer"
               fullWidth
-              loading={isSubmitting}
-              disabled={value === null}
+              loading={pending}
+              disabled={pending || value === null}
               onPress={() => void handleSubmit(submit)()}
             />
           </View>

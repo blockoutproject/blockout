@@ -1,14 +1,12 @@
 import { Image } from "expo-image";
-import * as ImagePicker from "expo-image-picker";
-import { Paths } from "expo-file-system";
-import { deleteOwnedImage } from "../images/delete-owned-image";
+import type { ImageSelection } from "../images/use-image-selection";
 import {
   Image as ImageIcon,
   ImageOff,
   X,
   type LucideIcon,
 } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../theme/theme-provider";
@@ -24,36 +22,19 @@ export interface ImageFieldImage {
 }
 
 /**
- * Controlled image interaction, without upload, persistence or business validation.
- * The caller retains values until it accepts selection/removal. `onSelect` receives native
- * picker assets, including any requested native crop, and the replaced identity (absent for additions).
- * Cache copies are borrowed only until `onSelect` settles: the field deletes them in finally, including
- * after unmount. Consumers must prepare, copy or read any accepted bytes before resolving; library and
- * content-provider sources outside the app cache remain borrowed and are never deleted here.
- * The owning feature uses Expo ImageManipulator for native preparation when needed, checks the 5 MiB upload bound
- * after preparation, and validates actual PNG/JPEG content on the server; picker metadata is not content validation.
- * Only the profile owner
- * prepares squares. Sporting owners decide removal/restoration; F10 owns private files.
- * Owners invalidate session-specific callbacks and unmount/key this field when its owner changes.
- * `selectionLimit` is the caller's remaining native selection capacity (positive when multiple).
- * Errors supplied by the caller are safe French messages; thrown native/preparation errors are hidden.
+ * Controlled preview and actions; `selection` is the caller-owned native picker/preparation lifecycle.
+ * The caller retains accepted values and supplies safe French validation messages. The shared owner
+ * hides native diagnostics; feature owners validate bytes and decide removal/restoration semantics.
+ * `multiple` only exposes the add action beside existing images; configure the same policy on the owner.
  */
 export interface ImageFieldProps {
   /** Optional visible heading; action labels retain their accessible names. */
   label?: string;
   images: readonly ImageFieldImage[];
-  onSelect: (
-    assets: ImagePicker.ImagePickerAsset[],
-    replaceId?: string,
-  ) => void | Promise<void>;
+  selection: ImageSelection;
   /** Omit when the current image permits preview/replacement but no removal. */
   onRemove?: (id: string) => void;
   multiple?: boolean;
-  selectionLimit?: number;
-  /** Opts into the system crop UI; defaults off. Multiple additions disable editing; single replacements can use it. */
-  allowsEditing?: boolean;
-  /** Native Android crop ratio when editing; iOS always crops to a square. */
-  aspect?: ImagePicker.ImagePickerOptions["aspect"];
   disabled?: boolean;
   size?: "standard" | "compact";
   chooseLabel?: string;
@@ -68,16 +49,13 @@ export interface ImageFieldProps {
   placeholderIcon?: LucideIcon;
 }
 
-/** Uses the system image library and a full-screen preview while leaving every accepted value with its owner. */
+/** Renders the caller-owned selection lifecycle and a local full-screen preview. */
 export function ImageField({
   label,
   images,
-  onSelect,
+  selection,
   onRemove,
   multiple = false,
-  selectionLimit = 1,
-  allowsEditing = false,
-  aspect,
   disabled = false,
   size = "standard",
   chooseLabel = "Choisir une image",
@@ -90,57 +68,15 @@ export function ImageField({
   placeholderIcon: PlaceholderIcon = ImageIcon,
 }: ImageFieldProps) {
   const { colors } = useTheme();
-  const [selection, setSelection] = useState<"idle" | "pending" | "failed">(
-    "idle",
-  );
   const [previewId, setPreviewId] = useState<string>();
-  const active = useRef(true);
   const preview = images.find((image) => image.id === previewId);
-  const busy = selection === "pending";
-  const message =
-    error ??
-    (selection === "failed"
-      ? "Impossible de sélectionner l’image. Réessayez."
-      : undefined);
+  const busy = selection.pending;
+  const message = error;
   const unavailable = disabled || busy;
   const compact = size === "compact";
   let selectionLabel = chooseLabel;
   if (busy) selectionLabel = "Chargement…";
   else if (message) selectionLabel = retryLabel;
-
-  useEffect(() => {
-    active.current = true;
-    return () => {
-      active.current = false;
-    };
-  }, []);
-
-  /** Cancelling preserves values; native failures never disclose paths or provider diagnostics. */
-  async function select(replaceId?: string) {
-    if (unavailable) return;
-    setSelection("pending");
-    let assets: ImagePicker.ImagePickerAsset[] = [];
-    try {
-      const allowsMultipleSelection = multiple && replaceId === undefined;
-      // The SDK's image-only system library requires no broad photo permission request.
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsEditing: allowsEditing && !allowsMultipleSelection,
-        aspect,
-        allowsMultipleSelection,
-        selectionLimit: allowsMultipleSelection ? selectionLimit : 1,
-      });
-      assets = result.assets ?? [];
-      if (active.current && !result.canceled) await onSelect(assets, replaceId);
-      if (active.current) setSelection("idle");
-    } catch {
-      if (active.current) setSelection("failed");
-    } finally {
-      assets.forEach(({ uri }) => {
-        if (isPickerCacheCopy(uri)) deleteOwnedImage(uri);
-      });
-    }
-  }
 
   return (
     <View style={[styles.field, disabled && styles.disabled]}>
@@ -190,7 +126,7 @@ export function ImageField({
               accessibilityHint={message ?? helper}
               accessibilityState={{ disabled: unavailable, busy }}
               disabled={unavailable}
-              onPress={() => void select(image.id)}
+              onPress={() => selection.select(image.id)}
               style={styles.action}
             >
               {busy && <LoadingIndicator color={colors.icon} />}
@@ -224,7 +160,7 @@ export function ImageField({
           accessibilityHint={message ?? helper}
           accessibilityState={{ disabled: unavailable, busy }}
           disabled={unavailable}
-          onPress={() => void select()}
+          onPress={() => selection.select()}
           style={[
             styles.body,
             compact && styles.compact,
@@ -295,28 +231,6 @@ export function ImageField({
       </Modal>
     </View>
   );
-}
-
-/** Only delivered app-cache file copies are owned; native fallback content/library URIs are borrowed. */
-function isPickerCacheCopy(uri: string): boolean {
-  try {
-    const selected = new URL(uri);
-    const cache = new URL(Paths.cache.uri);
-    if (
-      selected.protocol !== "file:" ||
-      selected.host !== cache.host ||
-      selected.search ||
-      selected.hash
-    )
-      return false;
-    const selectedPath = Paths.normalize(decodeURIComponent(selected.pathname));
-    const cachePath = Paths.normalize(
-      decodeURIComponent(cache.pathname),
-    ).replace(/\/$/, "");
-    return selectedPath.startsWith(`${cachePath}/`);
-  } catch {
-    return false;
-  }
 }
 
 /** One mounted image attempt owns decode feedback; changing the image or closing the viewer drops it. */

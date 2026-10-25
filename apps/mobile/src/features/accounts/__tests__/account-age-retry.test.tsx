@@ -1,3 +1,4 @@
+import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -145,8 +146,10 @@ async function renderProfile(admitted = true) {
       <ThemeProvider>
         <ApplicationAccessProvider>
           <AccountSessionProvider>
-            <ProfileScreen admitted={admitted} proEntry={null} />
-            <SessionActions />
+            <AccountFeedbackProvider>
+              <ProfileScreen admitted={admitted} proEntry={null} />
+              <SessionActions />
+            </AccountFeedbackProvider>
           </AccountSessionProvider>
         </ApplicationAccessProvider>
       </ThemeProvider>
@@ -455,7 +458,11 @@ it.each(["age", "profile"])(
       // When: the server's earlier snapshot is delivered after the later committed mutation.
       if (lateReply === "age") {
         await act(async () => profile.resolve(json(profileResponse)));
-        await screen.findByText("Profil enregistré.");
+        await waitFor(() =>
+          expect(
+            screen.getByRole("button", { name: "Enregistrer", busy: false }),
+          ).toBeEnabled(),
+        );
         await act(async () => age.resolve(json(ageResponse)));
       } else {
         await act(async () => age.resolve(json(ageResponse)));
@@ -468,7 +475,11 @@ it.each(["age", "profile"])(
       }
 
       // Then
-      await screen.findByText("Profil enregistré.");
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "Enregistrer", busy: false }),
+        ).toBeEnabled(),
+      );
       await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
       expect(
         screen.queryByRole("button", { name: retryLabel }),

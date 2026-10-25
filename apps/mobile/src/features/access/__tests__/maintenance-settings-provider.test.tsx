@@ -1,10 +1,17 @@
+import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import {
   ApplicationAccessProvider,
   useApplicationAccess,
 } from "../queries/use-application-access";
 import { Alert, Text, type AlertButton } from "react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, userEvent } from "@testing-library/react-native";
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
@@ -303,7 +310,11 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
     await act(async () => nativeAction("Enregistrer").onPress?.());
 
     // Then
-    await screen.findByText("Contenu enregistré.");
+    await waitFor(() =>
+      expect(
+        screen.queryByText("Modifications non enregistrées"),
+      ).not.toBeOnTheScreen(),
+    );
     expect((await getMaintenanceSettings(two)).message).toBe(
       "First editor draft",
     );
@@ -352,7 +363,11 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
     await act(async () => nativeAction("Enregistrer").onPress?.());
 
     // Then
-    await screen.findByText("Contenu enregistré.");
+    await waitFor(() =>
+      expect(
+        screen.queryByText("Modifications non enregistrées"),
+      ).not.toBeOnTheScreen(),
+    );
     expect(
       await screen.findByText("Admission requires retry"),
     ).toBeOnTheScreen();
@@ -379,9 +394,11 @@ async function renderEditor() {
       wrapper: ({ children }) => (
         <QueryClientProvider client={client}>
           <ThemeProvider>
-            <ApplicationAccessProvider>
-              <AccountSessionProvider>{children}</AccountSessionProvider>
-            </ApplicationAccessProvider>
+            <ActionFeedbackProvider scopeKey="test">
+              <ApplicationAccessProvider>
+                <AccountSessionProvider>{children}</AccountSessionProvider>
+              </ApplicationAccessProvider>
+            </ActionFeedbackProvider>
           </ThemeProvider>
         </QueryClientProvider>
       ),

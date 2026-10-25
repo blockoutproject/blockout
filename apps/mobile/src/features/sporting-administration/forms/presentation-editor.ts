@@ -11,20 +11,19 @@ import {
   type PresentationValues,
 } from "./presentation-values";
 
-/** Revision and recovery belong to the same original-target draft as its sole RHF control. */
+/** Revision and feedback accompany the original-target RHF draft; Query owns command recovery. */
 interface PresentationEditingState {
   baseline: Presentation;
-  needsRead: boolean;
   feedback?: string;
 }
 /** A session-scoped native form survives temporary protected-route removal without copying its values. */
 interface PresentationEditor {
   form: ReturnType<typeof createFormControl<PresentationValues>>;
-  /** Reads immutable original revision and recovery metadata; field values stay exclusively in RHF. */
+  /** Reads immutable original revision and feedback metadata; field values stay exclusively in RHF. */
   getSnapshot(): PresentationEditingState;
   /** Observes metadata while the native form is mounted. */
   subscribe(listener: () => void): () => void;
-  /** Publishes a confirmed outcome or recovery requirement, also while the route is absent. */
+  /** Publishes a confirmed outcome or feedback, also while the route is absent. */
   update(state: PresentationEditingState): void;
   /** Transfers logo intent to RHF, deleting a replaced prepared copy when no upload still uses it. */
   replaceLogo(logo: PresentationValues["logo"]): void;
@@ -34,22 +33,12 @@ interface PresentationEditor {
   beginUpload(file: File | undefined): void;
   /** Releases a settled upload when the current draft no longer owns its file. */
   finishUpload(file: File | undefined): void;
-  /** Detaches F05 and releases the draft's prepared copy; a pending upload releases its own copy on settlement. */
-  release(): void;
+  /** Discards this exact draft and its assets; a later response cannot retire a replacement editor. */
+  discard(): void;
 }
 const editors = new Map<string, PresentationEditor>();
 
-/** Removes only the explicitly abandoned original-target editor; F05 invalidation clears the session's editors. */
-export function discardPresentationEditor(
-  generation: string,
-  target: PresentationTarget,
-) {
-  const key = `${generation}:${target.kind}:${target.id}`;
-  editors.get(key)?.release();
-  editors.delete(key);
-}
-
-/** Retains RHF itself using its documented standalone API, alongside original revision and uncertainty. */
+/** Retains RHF itself using its documented standalone API, alongside its original revision and feedback. */
 export function presentationEditor(
   session: SessionSnapshot & Pick<SessionGeneration, "subscribe" | "isCurrent">,
   target: PresentationTarget,
@@ -60,7 +49,6 @@ export function presentationEditor(
   if (existing) return existing;
   let state: PresentationEditingState = {
     baseline: presentation,
-    needsRead: false,
   };
   const listeners = new Set<() => void>();
   let uploading: File | undefined;
@@ -78,24 +66,24 @@ export function presentationEditor(
       deleteOwnedImage(file);
   }
   const stopSession = session.subscribe(() => {
-    if (!session.isCurrent(session.generation))
-      discardPresentationEditor(session.generation, target);
+    if (!session.isCurrent(session.generation)) editor.discard();
   });
   const editor: PresentationEditor = {
     form,
     getSnapshot: () => state,
-    /** Subscribes mounted consumers only to revision/recovery metadata; RHF owns field subscriptions. */
+    /** Subscribes mounted consumers only to revision/feedback metadata; RHF owns field subscriptions. */
     subscribe(listener) {
       listeners.add(listener);
       return () => {
         listeners.delete(listener);
       };
     },
-    /** Publishes a confirmed outcome or required reread, including while its route is absent. */
+    /** Publishes outcome feedback, including while its route is absent. */
     update(next) {
       state = next;
       listeners.forEach((listener) => listener());
     },
+    /** Retires the old prepared asset only after transferring editable logo intent to RHF. */
     replaceLogo(logo) {
       const previous = form.getValues("logo");
       form.setValue("logo", logo, { shouldDirty: true, shouldValidate: true });
@@ -103,6 +91,7 @@ export function presentationEditor(
         previous.action === "replace" ? previous.prepared : undefined,
       );
     },
+    /** Publishes accepted defaults and releases only resources no longer retained by RHF or upload. */
     reset(values, keepDirty = false) {
       const previous = form.getValues("logo");
       form.reset(values, { keepDirtyValues: keepDirty, keepDirty });
@@ -110,16 +99,20 @@ export function presentationEditor(
         previous.action === "replace" ? previous.prepared : undefined,
       );
     },
+    /** Keeps the accepted command’s exact file alive independently from subsequent draft changes. */
     beginUpload(file) {
       uploading = file;
     },
+    /** Settles only this upload loan, preserving a resource still referenced by the draft. */
     finishUpload(file) {
       if (uploading === file) uploading = undefined;
       releaseUnused(file);
     },
-    release() {
+    /** Detaches the session observer and releases draft resources once, without cancelling an upload loan. */
+    discard() {
       if (released) return;
       released = true;
+      if (editors.get(key) === editor) editors.delete(key);
       stopSession();
       const logo = form.getValues("logo");
       form.reset(presentationValues(state.baseline));

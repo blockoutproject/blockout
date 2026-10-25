@@ -1,3 +1,4 @@
+import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
 import {
@@ -108,10 +109,12 @@ async function mount(content: React.ReactNode) {
   await render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
-        <AccountSessionProvider>
-          <SessionProbe />
-          {content}
-        </AccountSessionProvider>
+        <ActionFeedbackProvider scopeKey="test">
+          <AccountSessionProvider>
+            <SessionProbe />
+            {content}
+          </AccountSessionProvider>
+        </ActionFeedbackProvider>
       </ThemeProvider>
     </QueryClientProvider>,
   );

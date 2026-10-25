@@ -1,7 +1,9 @@
+import { useActionFeedback } from "../../shared/components/action-feedback";
 import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type PropsWithChildren,
 } from "react";
@@ -12,7 +14,7 @@ interface Discovery {
   complete: boolean;
   loading: boolean;
   saving: boolean;
-  error: "read" | "write" | undefined;
+  error: "read" | undefined;
   retryRead(): void;
   finish(): void;
 }
@@ -21,35 +23,35 @@ const DiscoveryContext = createContext<Discovery | null>(null);
 
 /** Mutually exclusive persistence phases; completion is acknowledged storage, never optimistic UI. */
 type DiscoveryPhase =
-  | "loading"
-  | "read-error"
-  | "incomplete"
-  | "saving"
-  | "write-error"
-  | "complete";
+  "loading" | "read-error" | "incomplete" | "saving" | "complete";
 
 /** Reads once per mounted installation tree and admits ordinary routes only after persisted completion. */
 export function DiscoveryProvider({ children }: PropsWithChildren) {
+  const feedback = useActionFeedback();
   const [phase, setPhase] = useState<DiscoveryPhase>("loading");
+  const mounted = useRef(false);
+  const completion = useRef<Promise<void> | undefined>(undefined);
 
   useEffect(() => {
-    if (phase !== "loading" && phase !== "saving") return;
-    let mounted = true;
-    const operation =
-      phase === "loading"
-        ? readDiscoveryCompletion()
-        : completeDiscovery().then(() => true);
-    void operation.then(
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (phase !== "loading") return;
+    let current = true;
+    void readDiscoveryCompletion().then(
       (value) => {
-        if (mounted) setPhase(value ? "complete" : "incomplete");
+        if (current) setPhase(value ? "complete" : "incomplete");
       },
       () => {
-        if (mounted)
-          setPhase(phase === "loading" ? "read-error" : "write-error");
+        if (current) setPhase("read-error");
       },
     );
     return () => {
-      mounted = false;
+      current = false;
     };
   }, [phase]);
 
@@ -58,9 +60,26 @@ export function DiscoveryProvider({ children }: PropsWithChildren) {
     if (phase === "read-error") setPhase("loading");
   }
 
-  /** Leaves discovery incomplete on persistence rejection; the same explicit action may retry. */
+  /** Starts the explicit write before rendering; one operation survives route disposal without replay. */
   function finish() {
-    if (phase === "incomplete" || phase === "write-error") setPhase("saving");
+    if (!mounted.current || completion.current || phase !== "incomplete")
+      return;
+    feedback.clear();
+    setPhase("saving");
+    completion.current = completeDiscovery().then(
+      () => {
+        if (mounted.current) setPhase("complete");
+      },
+      () => {
+        completion.current = undefined;
+        if (mounted.current) {
+          setPhase("incomplete");
+          feedback.error(
+            "La fin de la découverte n’a pas pu être enregistrée. Réessayez avec Passer ou Commencer.",
+          );
+        }
+      },
+    );
   }
 
   return (
@@ -69,12 +88,7 @@ export function DiscoveryProvider({ children }: PropsWithChildren) {
         complete: phase === "complete",
         loading: phase === "loading",
         saving: phase === "saving",
-        error:
-          phase === "read-error"
-            ? "read"
-            : phase === "write-error"
-              ? "write"
-              : undefined,
+        error: phase === "read-error" ? "read" : undefined,
         retryRead,
         finish,
       }}

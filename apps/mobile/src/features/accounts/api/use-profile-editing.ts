@@ -1,9 +1,4 @@
-import {
-  queryOptions,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth0 } from "react-native-auth0";
 import {
   changeAccountProfile,
@@ -18,7 +13,11 @@ import type {
   AccountResponse,
   ChangeAccountProfileBody,
 } from "../../../../.generated/schemas/index.zod";
-import { ApiError } from "../../../shared/api/api-fetch";
+import {
+  ApiError,
+  isUncertainMutationFailure,
+} from "../../../shared/api/api-fetch";
+import { useCommand } from "../../../shared/query/use-command";
 import { binaryImagePreview } from "../../../shared/api/binary-image-preview";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useOrdinaryRequest } from "../../access/ordinary-request";
@@ -52,8 +51,12 @@ export function useProfileEditing(accountId: string) {
       client.cancelQueries({ queryKey: currentKey, exact: true }),
       client.cancelQueries({ queryKey: photoKey, exact: true }),
     ]);
-    if (signal?.aborted || !session.isCurrent(session.generation))
-      throw new ApiError("cancelled");
+    if (signal?.aborted) throw new ApiError("cancelled");
+    if (!session.isCurrent(session.generation)) {
+      // A received write stays acknowledged; only a cancelled read must reject its cache result.
+      if (signal) throw new ApiError("cancelled");
+      return account;
+    }
     const accepted = client.setQueryData<AccountResponse>(
       currentKey,
       (current) =>
@@ -71,12 +74,13 @@ export function useProfileEditing(accountId: string) {
     return accepted ?? account;
   }
 
+  const originalKey = getSessionQueryKey(
+    session.generation,
+    getGetAccountQueryKey(accountId),
+  );
   const original = useQuery(
     queryOptions({
-      queryKey: getSessionQueryKey(
-        session.generation,
-        getGetAccountQueryKey(accountId),
-      ),
+      queryKey: originalKey,
       enabled: false,
       gcTime: 0,
       queryFn: async ({ signal }) => {
@@ -95,29 +99,45 @@ export function useProfileEditing(accountId: string) {
       },
     }),
   );
-  const save = useMutation({
-    mutationKey: getSessionQueryKey(session.generation, [
-      ...getChangeAccountProfileMutationKey(),
-      accountId,
-    ]),
-    gcTime: 0,
-    mutationFn: async (body: ChangeAccountProfileBody) => {
-      const credentials = await auth.getCredentials();
-      if (!credentials) throw new ApiError("http", 401);
-      return accept(
-        await changeAccountProfile(
+  const groupKey = getSessionQueryKey(session.generation, [
+    ...getChangeAccountProfileMutationKey(),
+    accountId,
+  ]);
+  const save = useCommand(
+    {
+      mutationKey: groupKey,
+      mutationFn: async (body: ChangeAccountProfileBody) => {
+        const credentials = await auth.getCredentials();
+        if (!credentials) throw new ApiError("http", 401);
+        return changeAccountProfile(
           accountId,
           body,
           request({
             session,
             headers: { Authorization: `Bearer ${credentials.accessToken}` },
           }),
-        ),
-        true,
-      );
+        );
+      },
+      /** Publishes acknowledged profile fields while retaining newer provider evidence. */
+      onSuccess: function acceptSavedProfile(account) {
+        return accept(account, true);
+      },
     },
-  });
-  return { save, original };
+    { groupKey, requiresRead: isUncertainMutationFailure },
+  );
+  /** A fresh original-account response resolves uncertainty without reapplying the editing draft. */
+  function reread() {
+    return save.reconcile(
+      [originalKey],
+      () => original.refetch(),
+      (result) =>
+        session.isCurrent(session.generation) &&
+        !result.isError &&
+        result.data?.accountId === accountId,
+    );
+  }
+
+  return { save, original, reread };
 }
 
 /** Loads an owner-only binary photo into an ephemeral native preview, outside JSON response validation. */

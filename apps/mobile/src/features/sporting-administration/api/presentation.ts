@@ -1,3 +1,6 @@
+import { publishSportingRevision } from "./publish-sporting-revision";
+import { requiresPresentationReread } from "./presentation-recovery";
+import { useCommand } from "../../../shared/query/use-command";
 import { createPresentationLogoQueryOptions } from "./presentation-logo-query";
 import {
   toCreateDivisionBody,
@@ -6,18 +9,20 @@ import {
   toPoolPresentationBody,
   toDivisionPresentationBody,
 } from "./presentation-request";
-import {
-  hashKey,
-  useIsMutating,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { hashKey, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSportingAuthority } from "./classification";
 import { createSportingAdministrationQueries } from "./sporting-administration-queries";
-import { invalidateSportingReads } from "./invalidate-sporting-reads";
+import {
+  invalidateSportingReads,
+  invalidateDivisionReads,
+} from "./invalidate-sporting-reads";
 import {
   createDivision,
+  getCreateDivisionMutationKey,
+  getSetClubPresentationMutationKey,
+  getSetTeamPresentationMutationKey,
+  getSetPoolPresentationMutationKey,
+  getSetDivisionPresentationMutationKey,
   setClubPresentation,
   setTeamPresentation,
   setPoolPresentation,
@@ -50,6 +55,9 @@ export type Presentation =
   | { kind: "pool"; data: PoolPresentationResponse }
   | { kind: "division"; data: DivisionResponse }
   | { kind: "division-creation"; data: DivisionListResponse };
+
+/** A confirmed write always returns one resource, never the division-creation list read. */
+type SavedPresentation = Exclude<Presentation, { kind: "division-creation" }>;
 
 /** Raw generated response families remain canonical regardless of the editor observing them. */
 type PresentationData =
@@ -107,7 +115,6 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
             ? queries.division(target.id)
             : queries.divisions();
   const queryKey = options.queryKey;
-  const saving = useIsMutating({ mutationKey: queryKey }) > 0;
   const query = useQuery<
     PresentationData,
     Error,
@@ -120,111 +127,123 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
     enabled: enabled && authority.enabled && session.status === "authenticated",
     select: (data) => toPresentation(target, data),
   });
-  const save = useMutation({
-    mutationKey: queryKey,
-    gcTime: 0,
-    mutationFn: async ({
-      revision,
-      values,
-    }: {
-      revision: string;
-      values: PresentationValues;
-    }): Promise<Presentation> => {
-      const options = await request(undefined, true);
-      let accepted: Presentation;
-      switch (target.kind) {
-        case "division-creation":
-          accepted = {
-            kind: "division",
-            data: await createDivision(toCreateDivisionBody(values), options),
-          };
-          break;
-        case "club":
-          accepted = {
-            kind: "club",
-            data: await setClubPresentation(
-              target.id,
-              toClubPresentationBody(revision, values),
-              options,
-            ),
-          };
-          break;
-        case "team":
-          accepted = {
-            kind: "team",
-            data: await setTeamPresentation(
-              target.id,
-              toTeamPresentationBody(revision, values),
-              options,
-            ),
-          };
-          break;
-        case "pool":
-          accepted = {
-            kind: "pool",
-            data: await setPoolPresentation(
-              target.id,
-              toPoolPresentationBody(revision, values),
-              options,
-            ),
-          };
-          break;
-        case "division":
-          accepted = {
-            kind: "division",
-            data: await setDivisionPresentation(
-              target.id,
-              toDivisionPresentationBody(revision, values),
-              options,
-            ),
-          };
-          break;
-      }
-      await client.cancelQueries({ queryKey, exact: true });
-      if (!session.isCurrent(session.generation))
-        throw new ApiError("cancelled");
-      if (target.kind !== "division-creation")
-        client.setQueryData(queryKey, accepted.data);
-      if (target.kind === "division" || target.kind === "division-creation") {
-        invalidateSportingReads(client);
-        void client.invalidateQueries({
-          predicate: ({ queryKey: key }) =>
-            (target.kind === "division-creation" ||
-              hashKey(key) !== hashKey(queryKey)) &&
-            key.some(
-              (part) =>
-                typeof part === "string" &&
-                part.startsWith("/administration/divisions"),
-            ),
-        });
-      }
-      // Existing public readers share their generated resource URLs; invalidate every current admission context.
-      const affected: readonly unknown[] =
-        target.kind === "club"
+  /** Owns cache publication/invalidation after transport acceptance, without converting a retired session into a refusal. */
+  async function accept(
+    accepted: SavedPresentation,
+    { revision }: { revision: string },
+  ) {
+    await client.cancelQueries({ queryKey, exact: true });
+    if (!session.isCurrent(session.generation)) return;
+    if (target.kind !== "division-creation")
+      publishSportingRevision(client, queryKey, accepted.data, revision);
+    if (target.kind === "division" || target.kind === "division-creation") {
+      invalidateSportingReads(client);
+      invalidateDivisionReads(
+        client,
+        target.kind === "division" ? queryKey : undefined,
+      );
+    }
+    // Existing public readers share their generated resource URLs; invalidate every current admission context.
+    const affected: readonly unknown[] =
+      target.kind === "club"
+        ? [
+            ...getGetClubLogoQueryKey(target.id),
+            ...getGetClubQueryKey(target.id),
+          ]
+        : target.kind === "team"
           ? [
-              ...getGetClubLogoQueryKey(target.id),
-              ...getGetClubQueryKey(target.id),
+              ...getGetTeamLogoQueryKey(target.id),
+              ...getGetTeamQueryKey(target.id),
             ]
-          : target.kind === "team"
-            ? [
-                ...getGetTeamLogoQueryKey(target.id),
-                ...getGetTeamQueryKey(target.id),
-              ]
-            : target.kind === "pool"
-              ? getGetPoolQueryKey(target.id)
-              : target.kind === "division"
-                ? getGetDivisionLogoQueryKey(target.id)
-                : [];
-      void client.invalidateQueries({
-        predicate: ({ queryKey: key }) =>
-          key.some(
-            (part) => typeof part === "string" && affected.includes(part),
-          ) && hashKey(key) !== hashKey(queryKey),
-      });
-      return accepted;
+          : target.kind === "pool"
+            ? getGetPoolQueryKey(target.id)
+            : target.kind === "division"
+              ? getGetDivisionLogoQueryKey(target.id)
+              : [];
+    void client.invalidateQueries({
+      predicate: ({ queryKey: key }) =>
+        key.some(
+          (part) => typeof part === "string" && affected.includes(part),
+        ) && hashKey(key) !== hashKey(queryKey),
+    });
+  }
+  const operationKey =
+    target.kind === "club"
+      ? getSetClubPresentationMutationKey()
+      : target.kind === "team"
+        ? getSetTeamPresentationMutationKey()
+        : target.kind === "pool"
+          ? getSetPoolPresentationMutationKey()
+          : target.kind === "division"
+            ? getSetDivisionPresentationMutationKey()
+            : getCreateDivisionMutationKey();
+  const save = useCommand(
+    {
+      mutationKey: [...queryKey, ...operationKey],
+      mutationFn: async ({
+        revision,
+        values,
+      }: {
+        revision: string;
+        values: PresentationValues;
+      }): Promise<SavedPresentation> => {
+        const options = await request(undefined, true);
+        let accepted: SavedPresentation;
+        switch (target.kind) {
+          case "division-creation":
+            accepted = {
+              kind: "division",
+              data: await createDivision(toCreateDivisionBody(values), options),
+            };
+            break;
+          case "club":
+            accepted = {
+              kind: "club",
+              data: await setClubPresentation(
+                target.id,
+                toClubPresentationBody(revision, values),
+                options,
+              ),
+            };
+            break;
+          case "team":
+            accepted = {
+              kind: "team",
+              data: await setTeamPresentation(
+                target.id,
+                toTeamPresentationBody(revision, values),
+                options,
+              ),
+            };
+            break;
+          case "pool":
+            accepted = {
+              kind: "pool",
+              data: await setPoolPresentation(
+                target.id,
+                toPoolPresentationBody(revision, values),
+                options,
+              ),
+            };
+            break;
+          case "division":
+            accepted = {
+              kind: "division",
+              data: await setDivisionPresentation(
+                target.id,
+                toDivisionPresentationBody(revision, values),
+                options,
+              ),
+            };
+            break;
+        }
+        return accepted;
+      },
+      onSuccess: accept,
     },
-  });
-  return { query, save, saving };
+    { groupKey: queryKey, requiresRead: requiresPresentationReread },
+  );
+  return { query, save, queryKey };
 }
 
 /** Loads backend-controlled binary artwork using #203's generated operations, without direct URL image requests. */

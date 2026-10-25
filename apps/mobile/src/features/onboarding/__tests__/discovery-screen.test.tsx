@@ -1,6 +1,8 @@
+import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { act, render, screen, userEvent } from "@testing-library/react-native";
-import { Text } from "react-native";
+import { useState } from "react";
+import { Pressable, Text } from "react-native";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { DiscoveryProvider, useDiscovery } from "../discovery-provider";
@@ -33,9 +35,11 @@ function Journey() {
 async function openDiscovery() {
   return render(
     <ThemeProvider>
-      <DiscoveryProvider>
-        <Journey />
-      </DiscoveryProvider>
+      <ActionFeedbackProvider scopeKey="test">
+        <DiscoveryProvider>
+          <Journey />
+        </DiscoveryProvider>
+      </ActionFeedbackProvider>
     </ThemeProvider>,
   );
 }
@@ -207,5 +211,59 @@ it("preserves an acknowledged installation write when the submitting tree is rem
 
   // Then
   expect(await screen.findByText("Ordinary routes")).toBeOnTheScreen();
+  expect(await readDiscoveryCompletion()).toBe(true);
+});
+
+/** Removes the provider in the same user event that commits explicit discovery completion. */
+function FinishAndLeave() {
+  const [open, setOpen] = useState(true);
+  return open ? (
+    <ThemeProvider>
+      <ActionFeedbackProvider scopeKey="test">
+        <DiscoveryProvider>
+          <FinishAction onLeave={() => setOpen(false)} />
+        </DiscoveryProvider>
+      </ActionFeedbackProvider>
+    </ThemeProvider>
+  ) : (
+    <Text>Journey closed</Text>
+  );
+}
+
+/** Exercises the public installation command without waiting for an intermediate render. */
+function FinishAction({ onLeave }: { onLeave: () => void }) {
+  const discovery = useDiscovery();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Finish and leave"
+      disabled={discovery.loading}
+      onPress={() => {
+        discovery.finish();
+        discovery.finish();
+        onLeave();
+      }}
+    >
+      <Text>Finish and leave</Text>
+    </Pressable>
+  );
+}
+
+it("dispatches explicit completion once even when its tree leaves in the same event", async () => {
+  // Given
+  const write = jest.spyOn(AsyncStorage, "setItem");
+  const user = userEvent.setup();
+  await render(<FinishAndLeave />);
+  expect(
+    await screen.findByRole("button", { name: "Finish and leave" }),
+  ).toBeEnabled();
+  write.mockClear();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Finish and leave" }));
+
+  // Then
+  expect(screen.getByText("Journey closed")).toBeOnTheScreen();
+  expect(write).toHaveBeenCalledTimes(1);
   expect(await readDiscoveryCompletion()).toBe(true);
 });

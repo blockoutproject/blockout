@@ -20,6 +20,7 @@ import {
 } from "../shared/query/query-client";
 import { initializeSentry } from "../shared/observability/sentry";
 import { ThemeProvider, useTheme } from "../shared/theme/theme-provider";
+import { ActionFeedbackProvider } from "../shared/components/action-feedback";
 import { ProProvider, usePro } from "../features/pro";
 import {
   DiscoveryProvider,
@@ -94,11 +95,14 @@ function InstallationNavigation() {
 /** Projects SDK-active membership into the sole system theme owner without remounting routes. */
 function ThemedNavigation() {
   const { state } = usePro();
+  const session = useAccountSession();
   return (
     <ThemeProvider proAccent={state.status === "active"}>
-      <DiscoveryProvider>
-        <InstallationNavigation />
-      </DiscoveryProvider>
+      <ActionFeedbackProvider scopeKey={session.generation}>
+        <DiscoveryProvider>
+          <InstallationNavigation />
+        </DiscoveryProvider>
+      </ActionFeedbackProvider>
     </ThemeProvider>
   );
 }
@@ -113,7 +117,9 @@ function RootLayout() {
         <AccountSessionProvider
           fallback={
             <ThemeProvider>
-              <StartupAccessGate />
+              <ActionFeedbackProvider scopeKey="startup">
+                <StartupAccessGate />
+              </ActionFeedbackProvider>
             </ThemeProvider>
           }
         >

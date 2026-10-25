@@ -4,6 +4,8 @@ import { randomUUID } from "expo-crypto";
 export interface SessionSnapshot {
   readonly generation: string;
   readonly accountId: string | null;
+  /** An explicit native lifecycle command, owned here so same-turn actions cannot duplicate it. */
+  readonly operation?: "authenticating" | "signing-out";
 }
 
 /** Observable lifecycle boundary shared by React and asynchronous consumers. */
@@ -53,6 +55,24 @@ export function createSessionGeneration() {
     /** Discards the account context and invalidates all previously captured work immediately. */
     invalidate() {
       publish({ generation: randomUUID(), accountId: null });
+    },
+
+    /** Reserves a lifecycle command synchronously; guest departure may supersede login, never the reverse. */
+    beginOperation(operation: "authenticating" | "signing-out") {
+      if (
+        snapshot.operation === "signing-out" ||
+        snapshot.operation === operation
+      )
+        return;
+      const generation = randomUUID();
+      publish({ generation, accountId: null, operation });
+      return generation;
+    },
+
+    /** Releases only this generation's native command; older completion cannot reopen admission. */
+    finishOperation(generation: string) {
+      if (snapshot.generation !== generation || !snapshot.operation) return;
+      publish({ generation, accountId: snapshot.accountId });
     },
   };
 }

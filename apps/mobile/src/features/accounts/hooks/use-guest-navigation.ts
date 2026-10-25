@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useAccountSession } from "../session/account-session-provider";
 
 /**
@@ -9,8 +10,8 @@ import { useAccountSession } from "../session/account-session-provider";
 export function useGuestNavigation() {
   const session = useAccountSession();
   const router = useRouter();
+  const feedback = useActionFeedback();
   const mounted = useRef(false);
-  const [failedGeneration, setFailedGeneration] = useState<string>();
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -20,8 +21,8 @@ export function useGuestNavigation() {
 
   /** Invalidates private work before local cleanup, preserving explicit retry after a current failure. */
   async function continueAsGuest() {
-    if (session.status === "signing-out") return;
-    setFailedGeneration(undefined);
+    if (session.getSnapshot().operation === "signing-out") return;
+    feedback.clear();
     const clearing = session.clearCredentials();
     const generation = session.getSnapshot().generation;
     try {
@@ -29,13 +30,12 @@ export function useGuestNavigation() {
       if (mounted.current && session.isCurrent(generation)) router.replace("/");
     } catch {
       if (mounted.current && session.isCurrent(generation))
-        setFailedGeneration(generation);
+        feedback.error(undefined, generation);
     }
   }
 
   return {
     continueAsGuest,
     pending: session.status === "signing-out",
-    failed: failedGeneration === session.generation,
   };
 }

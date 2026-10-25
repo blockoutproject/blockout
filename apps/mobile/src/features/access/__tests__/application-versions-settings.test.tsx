@@ -1,4 +1,6 @@
-import * as Linking from "expo-linking";
+import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
+import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+import { Linking } from "react-native";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import {
   ApplicationAccessProvider,
@@ -21,7 +23,10 @@ import {
   credentialsFor,
   mockAuth0,
 } from "../../accounts/test-support/native-auth0";
-import { getGetApplicationVersionSettingsQueryKey } from "../../../../.generated/mobile";
+import {
+  getGetApplicationAccessQueryKey,
+  getGetApplicationVersionSettingsQueryKey,
+} from "../../../../.generated/mobile";
 import { ApplicationVersionsSettingsScreen } from "../screens/application-versions-settings-screen";
 import ApplicationVersionsRoute from "../../../app/(operations)/administration/application-versions";
 
@@ -52,13 +57,14 @@ jest.mock("expo-router", () => ({
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, options?: RequestInit) =>
     String(url).endsWith("/application-access")
-      ? Promise.resolve(Response.json(mockApplicationAccessResponse()))
+      ? Promise.resolve(Response.json(mockAccessResponse))
       : mockFetch(url, options),
 }));
 const mockFetch = jest.fn<
   Promise<Response>,
   [RequestInfo | URL, RequestInit?]
 >();
+let mockAccessResponse = mockApplicationAccessResponse();
 let client = createQueryClient();
 const environment = { ...process.env };
 const initial = {
@@ -87,6 +93,7 @@ let stored: import("../../../../.generated/schemas/index.zod").ApplicationVersio
 beforeEach(() => {
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
   client = createQueryClient();
+  mockAccessResponse = mockApplicationAccessResponse();
   stored = { ...initial };
   Object.assign(process.env, {
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
@@ -117,9 +124,11 @@ async function renderSettings(content = <ApplicationVersionsSettingsScreen />) {
     wrapper: ({ children }) => (
       <QueryClientProvider client={client}>
         <ThemeProvider>
-          <ApplicationAccessProvider>
-            <AccountSessionProvider>{children}</AccountSessionProvider>
-          </ApplicationAccessProvider>
+          <ActionFeedbackProvider scopeKey="test">
+            <ApplicationAccessProvider>
+              <AccountSessionProvider>{children}</AccountSessionProvider>
+            </ApplicationAccessProvider>
+          </ActionFeedbackProvider>
         </ThemeProvider>
       </QueryClientProvider>
     ),
@@ -271,7 +280,11 @@ it("saves independent iOS and Android edits atomically under one revision", asyn
   );
 
   // Then
-  await screen.findByText("Réglages de versions enregistrés.");
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
   expect(
     screen.queryByText("Modifications non enregistrées"),
   ).not.toBeOnTheScreen();
@@ -298,7 +311,11 @@ it("removes a platform minimum and optional message with null while omitting the
   await act(async () => nativeAction("Appliquer").onPress?.());
 
   // Then
-  await screen.findByText("Réglages de versions enregistrés.");
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
   const write = mockFetch.mock.calls.find(([, o]) => o?.method === "PATCH");
   expect(JSON.parse(String(write?.[1]?.body))).toEqual({
     revision: 2,
@@ -530,7 +547,11 @@ it.each(["conflict", "lost", "invalid-response"])(
     await act(async () => nativeAction("Appliquer").onPress?.());
 
     // Then
-    await screen.findByText("Réglages de versions enregistrés.");
+    await waitFor(() =>
+      expect(
+        screen.queryByText("Modifications non enregistrées"),
+      ).not.toBeOnTheScreen(),
+    );
     const calls = mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH");
     expect(JSON.parse(String(calls[1][1]?.body))).toEqual({
       revision: 3,
@@ -684,7 +705,11 @@ it("advances only versions observations after a successful partial save and requ
   await act(async () => nativeAction("Appliquer").onPress?.());
 
   // Then
-  await screen.findByText("Réglages de versions enregistrés.");
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
   expect(screen.getByText("Complete access check required")).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.some(([url]) => String(url).includes("/maintenance")),
@@ -761,7 +786,7 @@ it("previews absent optional copy with the same fallback and preserves the draft
 
 it("hands the validated current-platform preview link to the existing native store action without saving", async () => {
   // Given
-  const open = jest.spyOn(Linking, "openURL").mockResolvedValue(true);
+  const open = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
   const user = userEvent.setup();
@@ -777,4 +802,131 @@ it("hands the validated current-platform preview link to the existing native sto
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
   ).toBe(false);
+});
+
+it("shows a store failure in the native preview and retires it when the preview closes", async () => {
+  // Given
+  jest
+    .spyOn(Linking, "openURL")
+    .mockRejectedValue(new Error("Store unavailable"));
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("button", { name: "Aperçu" }));
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Mettre à jour l’application" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Mettre à jour l’application" }),
+  ).toBeEnabled();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer l’aperçu" }));
+  await user.press(screen.getByRole("button", { name: "Aperçu" }));
+
+  // Then
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([, request]) => request?.method === "PATCH"),
+  ).toBe(false);
+});
+
+it("ignores a late store failure from a previously closed native preview", async () => {
+  // Given
+  const opening = Promise.withResolvers<void>();
+  jest.spyOn(Linking, "openURL").mockReturnValueOnce(opening.promise);
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("button", { name: "Aperçu" }));
+  await user.press(
+    screen.getByRole("button", { name: "Mettre à jour l’application" }),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer l’aperçu" }));
+  await user.press(screen.getByRole("button", { name: "Aperçu" }));
+  await act(() => opening.reject(new Error("Late native failure")));
+
+  // Then
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Mettre à jour l’application" }),
+  ).toBeEnabled();
+});
+
+it("keeps a delayed acknowledged write and older reread behind the latest public revision", async () => {
+  // Given
+  await renderSettings();
+  await screen.findByLabelText("Message commun");
+  const user = await editField("Message commun", "Mon brouillon");
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation(async (_url, options) =>
+    options?.method === "PATCH" ? response.promise : json(stored),
+  );
+  await user.press(
+    screen.getByRole("button", { name: "Appliquer les modifications" }),
+  );
+  await act(async () => nativeAction("Appliquer").onPress?.());
+
+  // When
+  mockAccessResponse = {
+    ...mockAccessResponse,
+    versions: { ...mockAccessResponse.versions, revision: 4 },
+  };
+  await act(async () => {
+    await client.refetchQueries({
+      queryKey: getGetApplicationAccessQueryKey(),
+      exact: true,
+    });
+  });
+  await act(async () =>
+    response.resolve(
+      json({ ...stored, revision: 3, message: "Mon brouillon" }),
+    ),
+  );
+
+  // Then
+  expect(
+    screen.getByRole("button", { name: "Appliquer les modifications" }),
+  ).toBeDisabled();
+  expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Relire les réglages" }));
+
+  // Then
+  expect(
+    await screen.findByText(
+      "La relecture a échoué. Votre brouillon est conservé.",
+    ),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Appliquer les modifications" }),
+  ).toBeDisabled();
+
+  // When
+  stored = { ...stored, revision: 4 };
+  await user.press(screen.getByRole("button", { name: "Relire les réglages" }));
+
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("button", { name: "Relire les réglages" }),
+    ).not.toBeOnTheScreen(),
+  );
+  await editField("Message commun", "Nouveau choix");
+  expect(
+    screen.getByRole("button", { name: "Appliquer les modifications" }),
+  ).toBeEnabled();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
 });

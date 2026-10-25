@@ -425,7 +425,7 @@ it("keeps a newer local sign-out pending when an older hosted login completes", 
   const hook = await renderHook(useAccountSession, {
     wrapper: AccountSessionProvider,
   });
-  let signingIn: Promise<void>;
+  let signingIn: ReturnType<ReturnType<typeof useAccountSession>["signIn"]>;
   let signingOut: Promise<void>;
   await act(async () => {
     signingIn = hook.result.current.signIn("https://api.example.invalid");
@@ -448,4 +448,74 @@ it("keeps a newer local sign-out pending when an older hosted login completes", 
     await signingOut;
   });
   expect(hook.result.current.status).toBe("guest");
+});
+
+it("suppresses same-turn native login duplicates and captures the successful business generation", async () => {
+  // Given
+  const login = Promise.withResolvers<Credentials>();
+  mockAuth0.webAuth.mockReturnValueOnce(login.promise);
+  const hook = await renderHook(useAccountSession, {
+    wrapper: AccountSessionProvider,
+  });
+  const original = hook.result.current.generation;
+  const action = hook.result.current.signIn;
+  let first: ReturnType<typeof action> | undefined;
+  let duplicate: ReturnType<typeof action> | undefined;
+
+  // When
+  await act(() => {
+    first = action("https://api.example.invalid");
+    duplicate = action("https://api.example.invalid");
+  });
+
+  // Then
+  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
+  await expect(duplicate).resolves.toBeUndefined();
+  expect(hook.result.current.status).toBe("authenticating");
+  expect(hook.result.current.isCurrent(original)).toBe(false);
+
+  // When
+  await act(async () => {
+    login.resolve(credentialsFor("auth0|a"));
+    const established = await first;
+    if (!established)
+      throw new Error("Successful login must supply its captured generation");
+    established.setAccount(established.generation, "account-a");
+  });
+
+  // Then
+  expect(hook.result.current.status).toBe("authenticated");
+  expect(hook.result.current.accountId).toBe("account-a");
+});
+
+it("suppresses same-turn local logout duplicates without releasing the pending operation", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  const clearing = Promise.withResolvers<void>();
+  mockAuth0.clearCredentials.mockReturnValueOnce(clearing.promise);
+  const hook = await renderHook(useAccountSession, {
+    wrapper: AccountSessionProvider,
+  });
+  const action = hook.result.current.clearCredentials;
+  let first: Promise<void> | undefined;
+
+  // When
+  await act(() => {
+    first = action();
+    void action();
+  });
+
+  // Then
+  expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
+  expect(hook.result.current.status).toBe("signing-out");
+
+  // When
+  await act(async () => {
+    clearing.resolve();
+    await first;
+  });
+
+  // Then
+  expect(hook.result.current.status).toBe("guest");
+  expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
 });

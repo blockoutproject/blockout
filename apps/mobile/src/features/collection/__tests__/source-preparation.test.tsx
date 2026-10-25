@@ -1,3 +1,5 @@
+import type { PropsWithChildren } from "react";
+import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -182,7 +184,9 @@ async function renderPreparation(
       <QueryClientProvider client={client}>
         <ThemeProvider>
           <ApplicationAccessProvider>
-            <AccountSessionProvider>{children}</AccountSessionProvider>
+            <AccountSessionProvider>
+              <ActionFeedbackScope>{children}</ActionFeedbackScope>
+            </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
       </QueryClientProvider>
@@ -394,7 +398,9 @@ it.each(["unchanged", "trimmed"])(
     );
 
     // Then
-    expect(await screen.findByText("Lien enregistré.")).toBeOnTheScreen();
+    expect(
+      await screen.findByRole("button", { name: "Modifier le lien" }),
+    ).toBeEnabled();
     expect(screen.getByText("Prête")).toBeOnTheScreen();
     expect(
       screen.queryByRole("button", { name: "Valider la source" }),
@@ -445,12 +451,15 @@ it.each([400, 403, 422])(
     );
 
     // Then
-    expect(
-      await screen.findByText(
-        "L’action a été refusée. Votre saisie est conservée.",
-      ),
-    ).toBeOnTheScreen();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "L’action a été refusée. Votre saisie est conservée.",
+    );
     expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Enregistrer le lien" }),
+      ).toBeEnabled(),
+    );
   },
 );
 
@@ -594,6 +603,7 @@ it("confirms only missing seasonal attribution with the exact canonical season",
     "Confirmer 2026/2027 ?",
     "Confirmez uniquement si cette page correspond bien à la saison préparée.",
     expect.any(Array),
+    expect.objectContaining({ cancelable: true }),
   );
   await confirm("Confirmer la saison");
 
@@ -1112,4 +1122,131 @@ it("rejects a source mutation arriving after the original F05 session ended", as
   expect(
     client.getQueryData<SourceBindingResponse>(originalQueryKey)?.candidateUrl,
   ).not.toBe(draftUrl);
+});
+
+it("preserves a newer source read when an older accepted candidate response arrives later", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  await renderPreparation();
+  const user = await editCandidate();
+  const accepted = binding({ revision: 3, candidateUrl: draftUrl });
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PUT" ? response.promise : reads(url),
+  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer le lien" }));
+  await screen.findByRole("button", {
+    name: "Enregistrer le lien",
+    busy: true,
+  });
+
+  // When — a later server revision is admitted while the command acknowledgement is delayed.
+  source = binding({ revision: 4, candidateUrl: `${candidateUrl}&PID=194` });
+  await act(async () =>
+    client.refetchQueries({
+      predicate: ({ queryKey }) =>
+        queryKey.some(
+          (part) =>
+            typeof part === "string" &&
+            part.endsWith(`/source-bindings/${sourceId}`),
+        ),
+    }),
+  );
+  await act(async () => response.resolve(json(accepted)));
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Modifier le lien" }),
+    ).toBeEnabled(),
+  );
+  await user.press(screen.getByRole("button", { name: "Modifier le lien" }));
+
+  // Then — acceptance is retained, but its older baseline cannot authorize another write.
+  expect(
+    client.getQueryCache().findAll({
+      predicate: ({ queryKey }) =>
+        queryKey.some(
+          (part) =>
+            typeof part === "string" &&
+            part.endsWith(`/source-bindings/${sourceId}`),
+        ),
+    })[0]?.state.data,
+  ).toMatchObject({ revision: 4, candidateUrl: source.candidateUrl });
+  expect(
+    screen.getByRole("button", { name: "Enregistrer le lien" }),
+  ).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+  ).toHaveLength(1);
+});
+
+/** Uses the real F05 generation so a previous session cannot retain action feedback in this fixture. */
+function ActionFeedbackScope({ children }: PropsWithChildren) {
+  const { generation } = useAccountSession();
+  return (
+    <ActionFeedbackProvider scopeKey={generation}>
+      {children}
+    </ActionFeedbackProvider>
+  );
+}
+
+it("keeps every provider blocked when an acknowledged source invalidates a season whose refresh fails", async () => {
+  // Given
+  const user = userEvent.setup();
+  const view = await renderPreparation(
+    <ProviderSourcesScreen seasonId={seasonId} provider="lnv" />,
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Ajouter une source" }),
+  );
+  await user.type(
+    screen.getByLabelText("Référence de l’organisateur ou du championnat"),
+    "139",
+  );
+  await user.type(screen.getByLabelText("URL officielle"), draftUrl);
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "POST")
+      return Promise.resolve(json(binding({ organizerReference: "139" }), 201));
+    if (
+      new URL(String(url)).pathname.endsWith(`/collection-seasons/${seasonId}`)
+    )
+      return Promise.resolve(refused(503));
+    return reads(url);
+  });
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Enregistrer la source" }),
+  );
+  await screen.findByText(
+    "Source ajoutée. Relisez l’état avant une nouvelle action.",
+  );
+  await waitFor(() =>
+    expect(
+      client
+        .getQueryCache()
+        .getAll()
+        .some(
+          (query) =>
+            query.state.isInvalidated && query.state.status === "error",
+        ),
+    ).toBe(true),
+  );
+  await view.rerender(
+    <ProviderSourcesScreen seasonId={seasonId} provider="ffvb" />,
+  );
+
+  // Then
+  await user.press(
+    await screen.findByRole("button", { name: "Ajouter une source" }),
+  );
+  expect(
+    screen.getByRole("button", { name: "Enregistrer la source" }),
+  ).toBeDisabled();
+  expect(
+    screen.getByText(
+      "L’état de la saison doit être relu avant une nouvelle action.",
+    ),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+  ).toHaveLength(1);
 });

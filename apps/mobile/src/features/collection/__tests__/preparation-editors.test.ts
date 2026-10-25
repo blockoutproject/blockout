@@ -67,7 +67,6 @@ it.each(["explicit discard", "new session", "other account"])(
     providerDraft.update({
       ...providerDraft.getSnapshot(),
       selected: [source.id],
-      needsRead: true,
     });
 
     // When
@@ -90,7 +89,6 @@ it.each(["explicit discard", "new session", "other account"])(
     expect(nextSource.form.getValues("candidateUrl")).toBe(candidateUrl);
     expect(nextProvider.form.getValues("organizerReference")).toBe("");
     expect(nextProvider.getSnapshot().selected).toBeNull();
-    expect(nextProvider.getSnapshot().needsRead).toBe(false);
     stopSource();
     stopProvider();
     session.invalidate();

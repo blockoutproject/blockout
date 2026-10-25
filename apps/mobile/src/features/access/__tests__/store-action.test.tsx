@@ -1,21 +1,24 @@
+import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { render, screen, userEvent } from "@testing-library/react-native";
-import * as Linking from "expo-linking";
+import { Linking } from "react-native";
 import { StoreAction } from "../components/store-action";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 
-jest.mock("expo-linking", () => ({ openURL: jest.fn() }));
-afterEach(() => jest.resetAllMocks());
+beforeEach(() => jest.spyOn(Linking, "openURL"));
+afterEach(() => jest.restoreAllMocks());
 
 it("keeps the action available after a failed native open and retries explicitly", async () => {
   // Given
   jest
     .mocked(Linking.openURL)
     .mockRejectedValueOnce(new Error("Store unavailable"))
-    .mockResolvedValueOnce(true);
+    .mockResolvedValueOnce(undefined);
   const user = userEvent.setup();
   await render(
     <ThemeProvider>
-      <StoreAction url="https://apps.apple.com/app/id123" />
+      <ActionFeedbackProvider scopeKey="test">
+        <StoreAction url="https://apps.apple.com/app/id123" />
+      </ActionFeedbackProvider>
     </ThemeProvider>,
   );
 

@@ -1,3 +1,7 @@
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { useNativeHandoff } from "../../../shared/native/use-native-handoff";
+import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
+import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { formatCollectionTimestamp } from "../model/collection-time";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -5,14 +9,7 @@ import { useRouter } from "expo-router";
 import { ChevronRight, Globe } from "lucide-react-native";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Controller, useForm, useFormState } from "react-hook-form";
-import {
-  Alert,
-  Linking,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import type {
   CollectionSeasonResponse,
   SourceBindingResponse,
@@ -22,10 +19,7 @@ import { RequestError } from "../../../shared/components/request-feedback";
 import { TextField } from "../../../shared/components/text-field";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
-import {
-  requiresPreparationReread,
-  type useSourcePreparation,
-} from "../api/use-source-preparation";
+import { type useSourcePreparation } from "../api/use-source-preparation";
 import {
   PreparationCard,
   SeasonIdentity,
@@ -58,16 +52,25 @@ export function SourceCandidateForm({
   const { authority } = editing;
   const { session } = authority;
   const { colors } = useTheme();
+  const actionFeedback = useActionFeedback();
+  const confirmAction = useActionConfirmation();
   const router = useRouter();
   const mounted = useRef(false);
   const [editor] = useState(() => sourcePreparationEditor(session, source));
   const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
-  const { baseline, editingUrl, needsRead, feedback } = state;
+  const { baseline, editingUrl } = state;
+  const feedback =
+    state.feedback ??
+    (editing.candidate.needsRead
+      ? "Le résultat doit être vérifié avant une nouvelle action."
+      : editing.seasonInvalidated
+        ? "L’état de la saison doit être relu avant une nouvelle action."
+        : undefined);
   const { control, handleSubmit, reset } = useForm<SourceCandidateValues>({
     resolver: zodResolver(sourceCandidateSchema),
     formControl: editor.form.formControl,
   });
-  const { isDirty, isSubmitting, errors, dirtyFields } = useFormState({
+  const { isDirty, errors, dirtyFields } = useFormState({
     control,
   });
   useDiscardChanges(isDirty, () => {
@@ -82,15 +85,21 @@ export function SourceCandidateForm({
     savedUrl && candidateUrlSchema.safeParse(savedUrl).success
       ? new URL(savedUrl)
       : undefined;
+  const handoff = useNativeHandoff(
+    officialUrl ? (savedUrl ?? undefined) : undefined,
+  );
   const closed = (editing.season.data ?? season).state === "closed";
   const readOnly = closed || current.locked || current.launched;
   const busy =
     !authority.enabled ||
-    editing.saving ||
-    isSubmitting ||
+    editing.candidate.pending ||
     editing.source.isFetching ||
     editing.season.isFetching;
-  const rereadRequired = needsRead || current.revision > baseline.revision;
+  const rereadRequired =
+    editing.candidate.needsRead ||
+    editing.seasonInvalidated ||
+    editing.season.isError ||
+    current.revision > baseline.revision;
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -101,36 +110,39 @@ export function SourceCandidateForm({
   /** A refusal retains input; ambiguous acknowledgements additionally prevent any new command until reread. */
   function failed(error: unknown) {
     if (!session.isCurrent(session.generation)) return;
-    if (requiresPreparationReread(error)) {
+    if (requiresRevisionRead(error)) {
       editor.update({
         ...editor.getSnapshot(),
-        needsRead: true,
         feedback: "Le résultat doit être vérifié avant une nouvelle action.",
       });
-    } else
-      editor.update({
-        ...editor.getSnapshot(),
-        feedback: "L’action a été refusée. Votre saisie est conservée.",
-      });
+    } else {
+      editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      actionFeedback.error(
+        "L’action a été refusée. Votre saisie est conservée.",
+      );
+    }
   }
   /** Replaces only the candidate against its editing revision; a successful response invalidates old evidence. */
   async function save(values: SourceCandidateValues) {
     if (busy || readOnly || rereadRequired) return;
     try {
-      const accepted = await editing.candidate.mutateAsync({
+      const attempt = editing.candidate.start({
         revision: baseline.revision,
         candidateUrl: values.candidateUrl,
       });
+      if (!attempt) return;
+      editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      actionFeedback.clear();
+      const accepted = await attempt;
       if (!session.isCurrent(session.generation)) return;
       reset({ candidateUrl: accepted.candidateUrl ?? "" });
       editor.update({
         baseline: accepted,
         editingUrl: false,
-        needsRead: false,
         feedback:
           accepted.validation === "unvalidated"
             ? "Lien enregistré. La source doit être validée à nouveau."
-            : "Lien enregistré.",
+            : undefined,
       });
     } catch (error) {
       failed(error);
@@ -140,9 +152,13 @@ export function SourceCandidateForm({
   async function validate() {
     if (busy || readOnly || rereadRequired || isDirty) return;
     try {
-      const accepted = await editing.validation.mutateAsync({
+      const attempt = editing.validation.start({
         revision: baseline.revision,
       });
+      if (!attempt) return;
+      editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      actionFeedback.clear();
+      const accepted = await attempt;
       if (!session.isCurrent(session.generation)) return;
       editor.update({
         ...editor.getSnapshot(),
@@ -154,7 +170,7 @@ export function SourceCandidateForm({
     }
   }
   /** Confirms only missing seasonal attribution, retaining the exact canonical season label. */
-  function confirmSeason() {
+  async function confirmSeason() {
     if (
       busy ||
       readOnly ||
@@ -163,19 +179,16 @@ export function SourceCandidateForm({
       current.validation !== "confirmation-required"
     )
       return;
-    Alert.alert(
-      `Confirmer ${season.label} ?`,
-      "Confirmez uniquement si cette page correspond bien à la saison préparée.",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Confirmer la saison",
-          onPress: () => {
-            if (mounted.current) void acceptSeason();
-          },
-        },
-      ],
-    );
+    if (
+      !(await confirmAction({
+        title: `Confirmer ${season.label} ?`,
+        message:
+          "Confirmez uniquement si cette page correspond bien à la saison préparée.",
+        confirmLabel: "Confirmer la saison",
+      }))
+    )
+      return;
+    await acceptSeason();
   }
   /** The request boundary rechecks live grants/session even when a native alert callback was held. */
   async function acceptSeason() {
@@ -188,10 +201,14 @@ export function SourceCandidateForm({
     )
       return;
     try {
-      const accepted = await editing.confirmation.mutateAsync({
+      const attempt = editing.confirmation.start({
         revision: baseline.revision,
         seasonLabel: season.label,
       });
+      if (!attempt) return;
+      editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      actionFeedback.clear();
+      const accepted = await attempt;
       if (!session.isCurrent(session.generation)) return;
       editor.update({
         ...editor.getSnapshot(),
@@ -204,12 +221,22 @@ export function SourceCandidateForm({
   }
   /** Reads source and season together; neither a failed read nor retained cache can unlock resubmission. */
   async function reread() {
-    const [sourceResult, seasonResult] = await Promise.all([
-      editing.source.refetch(),
-      editing.season.refetch(),
-    ]);
+    const {
+      result: [sourceResult, seasonResult],
+      reconciled,
+    } = await editing.candidate.reconcile(
+      [editing.sourceKey, editing.seasonKey],
+      () => Promise.all([editing.source.refetch(), editing.season.refetch()]),
+      ([sourceRead, seasonRead]) =>
+        !sourceRead.isError &&
+        !!sourceRead.data &&
+        sourceRead.data.revision >= baseline.revision &&
+        !seasonRead.isError &&
+        !!seasonRead.data,
+    );
     if (!mounted.current || !session.isCurrent(session.generation)) return;
     if (
+      !reconciled ||
       sourceResult.isError ||
       seasonResult.isError ||
       !sourceResult.data ||
@@ -218,7 +245,6 @@ export function SourceCandidateForm({
     ) {
       editor.update({
         ...editor.getSnapshot(),
-        needsRead: true,
         feedback: "La relecture a échoué. Votre saisie est conservée.",
       });
       return;
@@ -230,22 +256,8 @@ export function SourceCandidateForm({
     editor.update({
       ...editor.getSnapshot(),
       baseline: sourceResult.data,
-      needsRead: false,
       feedback: "État relu. Vérifiez votre saisie avant une nouvelle action.",
     });
-  }
-  /** Opens only the saved candidate/accepted URL; native linking failure leaves all preparation controls usable. */
-  async function openOfficialSource() {
-    if (!officialUrl || !savedUrl) return;
-    try {
-      await Linking.openURL(savedUrl);
-    } catch {
-      if (session.isCurrent(session.generation))
-        editor.update({
-          ...editor.getSnapshot(),
-          feedback: "Le lien ne peut pas être ouvert.",
-        });
-    }
   }
   return (
     <View style={preparationStyles.form}>
@@ -266,7 +278,12 @@ export function SourceCandidateForm({
           <Pressable
             accessibilityRole="link"
             accessibilityLabel={`Ouvrir la source officielle : ${officialUrl.host}`}
-            onPress={() => void openOfficialSource()}
+            onPress={handoff.open}
+            disabled={handoff.pending}
+            accessibilityState={{
+              disabled: handoff.pending,
+              busy: handoff.pending,
+            }}
             style={styles.sourceLink}
           >
             <Globe
@@ -354,7 +371,7 @@ export function SourceCandidateForm({
                   fullWidth
                   onPress={() => void handleSubmit(save)()}
                   disabled={busy || readOnly || rereadRequired}
-                  loading={editing.saving}
+                  loading={editing.candidate.executing}
                 />
               </>
             ) : (
@@ -375,7 +392,7 @@ export function SourceCandidateForm({
                   fullWidth
                   onPress={() => void validate()}
                   disabled={busy || rereadRequired || isDirty}
-                  loading={editing.validation.isPending}
+                  loading={editing.validation.executing}
                 />
               )}
             {current.validation === "confirmation-required" && (
@@ -384,7 +401,7 @@ export function SourceCandidateForm({
                 fullWidth
                 onPress={confirmSeason}
                 disabled={busy || rereadRequired || isDirty}
-                loading={editing.confirmation.isPending}
+                loading={editing.confirmation.executing}
               />
             )}
           </>

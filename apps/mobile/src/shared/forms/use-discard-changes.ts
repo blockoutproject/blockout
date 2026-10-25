@@ -1,32 +1,24 @@
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { usePreventRemove } from "expo-router";
-import { Alert } from "react-native";
+import { useActionConfirmation } from "./use-action-confirmation";
 
-/** Confirms navigation against actual form dirtiness; the owner resets/releases its draft, and unmount invalidates the native confirmation. */
+/** Confirms dirty-form navigation once; an unchanged live draft owns disposal and continuation. */
 export function useDiscardChanges(dirty: boolean, discard: () => void) {
-  const mounted = useRef(false);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-  usePreventRemove(dirty, ({ repeat }) =>
-    Alert.alert(
-      "Abandonner les modifications ?",
-      "Votre brouillon n’a pas été enregistré.",
-      [
-        { text: "Continuer la saisie", style: "cancel" },
-        {
-          text: "Abandonner",
-          style: "destructive",
-          onPress: () => {
-            if (!mounted.current) return;
-            discard();
-            repeat();
-          },
-        },
-      ],
-    ),
-  );
+  const confirm = useActionConfirmation();
+  const currentDirty = useRef(dirty);
+  useLayoutEffect(() => {
+    currentDirty.current = dirty;
+  }, [dirty]);
+  usePreventRemove(dirty, async ({ repeat }) => {
+    const accepted = await confirm({
+      title: "Abandonner les modifications ?",
+      message: "Votre brouillon n’a pas été enregistré.",
+      confirmLabel: "Abandonner",
+      cancelLabel: "Continuer la saisie",
+      destructive: true,
+    });
+    if (!accepted || !currentDirty.current) return;
+    discard();
+    repeat();
+  });
 }

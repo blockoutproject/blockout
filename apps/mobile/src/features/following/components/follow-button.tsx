@@ -3,6 +3,7 @@ import { Check, Plus } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
 import type { SportingSeasonResponse } from "../../../../.generated/schemas/index.zod";
 import { isUncertainMutationFailure } from "../../../shared/api/api-fetch";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { RequestError } from "../../../shared/components/request-feedback";
 import { tokens } from "../../../shared/theme/tokens";
@@ -30,6 +31,7 @@ export function FollowButton({
   const context = useFollowStateQuery(target);
   const action = useFollowMutation(target, context);
   const router = useRouter();
+  const feedback = useActionFeedback();
   const { query, profile, usable, sessionStatus } = context;
   const latest = action.latest;
   const failed = latest?.status === "error";
@@ -78,18 +80,29 @@ export function FollowButton({
             following === undefined ||
             (query.isError && !canRepeatUncertain))
         }
-        onPress={() => {
+        onPress={async () => {
           if (guest)
             router.push({
               pathname: "/sign-in-invitation",
               params: { reason: "follow" },
             });
-          else
-            action.replace(
-              failed && typeof latest.variables === "boolean"
-                ? latest.variables
-                : !following,
-            );
+          else {
+            feedback.clear();
+            try {
+              await action.start(
+                failed && typeof latest.variables === "boolean"
+                  ? latest.variables
+                  : !following,
+              );
+            } catch (error) {
+              if (
+                context.owner?.isCurrent(context.owner.generation) &&
+                !isUncertainMutationFailure(error) &&
+                !isFollowRestriction(error)
+              )
+                feedback.error();
+            }
+          }
         }}
       />
       {profile.isError ? (
@@ -104,14 +117,8 @@ export function FollowButton({
           onRetry={() => void query.refetch()}
           retrying={query.isFetching}
         />
-      ) : failed ? (
-        <RequestError
-          message={
-            uncertain
-              ? "Le résultat du suivi n’a pas pu être confirmé. Vous pouvez réessayer la même demande."
-              : "La demande de suivi a échoué. Vous pouvez réessayer."
-          }
-        />
+      ) : uncertain ? (
+        <RequestError message="Le résultat du suivi n’a pas pu être confirmé. Vous pouvez réessayer la même demande." />
       ) : null}
     </View>
   );

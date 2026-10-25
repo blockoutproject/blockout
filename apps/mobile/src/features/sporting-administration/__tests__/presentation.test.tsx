@@ -1,3 +1,4 @@
+import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, screen, userEvent, waitFor } from "@testing-library/react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -5,7 +6,7 @@ import { File } from "expo-file-system";
 import { Alert, Pressable, Text } from "react-native";
 import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType, ReactNode, PropsWithChildren } from "react";
 import { useDivisions } from "../api/classification";
 import { getListDivisionsQueryKey } from "../../../../.generated/mobile";
 import RootLayout from "../../../app/_layout";
@@ -204,15 +205,17 @@ async function renderEditor(
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              {peers}
-              <PresentationScreen
-                target={
-                  kind === "division-creation"
-                    ? { kind }
-                    : { kind, id: resourceId }
-                }
-              />
-              <SessionAction />
+              <ActionFeedbackScope>
+                {peers}
+                <PresentationScreen
+                  target={
+                    kind === "division-creation"
+                      ? { kind }
+                      : { kind, id: resourceId }
+                  }
+                />
+                <SessionAction />
+              </ActionFeedbackScope>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
@@ -281,7 +284,11 @@ it("saves independent names and a nonsquare logo in one generated multipart PATC
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
-  await screen.findByText("Présentation enregistrée.");
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
   const writes = mockFetch.mock.calls.filter(
     ([, options]) => options?.method === "PATCH",
   );
@@ -349,7 +356,11 @@ it("edits pool names with complete JSON and no logo or contacts", async () => {
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
-  await screen.findByText("Présentation enregistrée.");
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
   const write = mockFetch.mock.calls.find(([, o]) => o?.method === "PUT");
   expect(JSON.parse(String(write?.[1]?.body))).toEqual({
     revision: "r1",
@@ -371,7 +382,11 @@ it("saves club presentation without a short-name field", async () => {
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
-  await screen.findByText("Présentation enregistrée.");
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
   const body = mockFetch.mock.calls.find(([, o]) => o?.method === "PATCH")?.[1]
     ?.body as FormData;
   expect(JSON.parse(await (body.get("metadata") as Blob).text())).toEqual({
@@ -416,7 +431,11 @@ it("validates and saves division colors, gradient and name without touching acti
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
-  await screen.findByText("Présentation enregistrée.");
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
   const body = mockFetch.mock.calls.find(([, o]) => o?.method === "PATCH")?.[1]
     ?.body as FormData;
   expect(JSON.parse(await (body.get("metadata") as Blob).text())).toEqual({
@@ -493,7 +512,11 @@ it.each(["conflict", "network", "schema"])(
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
     // Then
-    await screen.findByText("Présentation enregistrée.");
+    await waitFor(() =>
+      expect(
+        screen.queryByText("Modifications non enregistrées"),
+      ).not.toBeOnTheScreen(),
+    );
     const writes = mockFetch.mock.calls.filter(
       ([, o]) => o?.method === "PATCH",
     );
@@ -795,6 +818,10 @@ it("enters the real protected route with only the presentation grant and confirm
     "Abandonner les modifications ?",
     expect.any(String),
     expect.any(Array),
+    expect.objectContaining({
+      cancelable: true,
+      onDismiss: expect.any(Function),
+    }),
   );
   expect(screen.getByLabelText("Nom complet personnalisé")).toHaveDisplayValue(
     "Unsaved",
@@ -1235,7 +1262,11 @@ it("preserves unsaved presentation values while an independent activity response
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
-  await screen.findByText("Présentation enregistrée.");
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
   const body = mockFetch.mock.calls.find(
     ([, options]) => options?.method === "PATCH",
   )?.[1]?.body as FormData;
@@ -1269,7 +1300,11 @@ it("restores automatic division paint without sending a separate color or lifecy
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
-  await screen.findByText("Présentation enregistrée.");
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
   const body = mockFetch.mock.calls.find(
     ([, options]) => options?.method === "PATCH",
   )?.[1]?.body as FormData;
@@ -1670,4 +1705,271 @@ it("keeps the shared division read authorized when creation loses its separate l
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
   ).toHaveLength(0);
+});
+
+it("keeps an uncertain save blocked after explicitly discarding its draft and opening a fresh editor", async () => {
+  // Given
+  const user = userEvent.setup();
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PATCH" ? response.promise : respond(url, options),
+  );
+  jest.spyOn(Alert, "alert");
+  await openRoutes();
+  await user.press(await screen.findByText("Modifier la présentation"));
+  await screen.findByDisplayValue("Current name");
+  await edit("Nom complet personnalisé", "Discarded pending draft");
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await screen.findByRole("button", { name: "Enregistrer", busy: true });
+
+  // When
+  await act(async () => router.back());
+  const discard = jest
+    .mocked(Alert.alert)
+    .mock.lastCall?.[2]?.find((choice) => choice.text === "Abandonner");
+  if (!discard?.onPress) throw new Error("Missing native discard confirmation");
+  await act(async () => discard.onPress?.());
+  await user.press(await screen.findByText("Modifier la présentation"));
+  await screen.findByRole("button", { name: "Enregistrer", busy: true });
+  await act(async () => response.reject(new TypeError("Lost acknowledgement")));
+
+  // Then
+  await screen.findByRole("button", { name: "Relire la présentation" });
+  expect(
+    screen.getByText(
+      "Le résultat doit être vérifié. Relisez la présentation avant de réessayer.",
+    ),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Nom complet personnalisé")).toHaveDisplayValue(
+    "Current name",
+  );
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
+});
+
+it("executes a confirmed division activity once when the native callback is delivered twice", async () => {
+  // Given
+  permissions = { manageDivisionLifecycle: true };
+  const division = {
+    id: resourceId,
+    revision: "d1",
+    name: "Division",
+    color: "#123456",
+    gradient: null,
+    logo,
+    active: true,
+  };
+  stored = division;
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PUT" ? response.promise : respond(url, options),
+  );
+  jest.spyOn(Alert, "alert");
+  const user = await renderEditor("division");
+  await user.press(
+    await screen.findByRole("button", { name: "Désactiver la division" }),
+  );
+  const confirmation = jest
+    .mocked(Alert.alert)
+    .mock.lastCall?.[2]?.find((choice) => choice.text === "Confirmer");
+  if (!confirmation?.onPress)
+    throw new Error("Missing native activity confirmation");
+
+  // When
+  await act(async () => {
+    confirmation.onPress?.();
+    confirmation.onPress?.();
+  });
+
+  // Then
+  await screen.findByRole("button", {
+    name: "Désactiver la division",
+    busy: true,
+  });
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+  ).toHaveLength(1);
+  await act(async () =>
+    response.resolve(json({ ...division, revision: "d2", active: false })),
+  );
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Réactiver la division" }),
+    ).toBeEnabled(),
+  );
+});
+
+it("preserves a different opaque revision read during a delayed accepted presentation save", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  const user = await renderEditor();
+  await screen.findByDisplayValue("Current name");
+  await edit("Nom complet personnalisé", "Accepted draft");
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PATCH" ? response.promise : respond(url, options),
+  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await screen.findByRole("button", { name: "Enregistrer", busy: true });
+
+  // When — revisions are opaque; the distinct accepted read must not be ordered lexically.
+  stored = {
+    ...initial,
+    revision: "a-concurrent",
+    names: { ...names, manualName: "Concurrent", effectiveName: "Concurrent" },
+  };
+  await act(async () =>
+    client.refetchQueries({
+      predicate: ({ queryKey }) =>
+        queryKey.some(
+          (part) => typeof part === "string" && part.endsWith("/presentation"),
+        ),
+    }),
+  );
+  await act(async () =>
+    response.resolve(
+      json({
+        ...initial,
+        revision: "z-accepted",
+        names: {
+          ...names,
+          manualName: "Accepted draft",
+          effectiveName: "Accepted draft",
+        },
+      }),
+    ),
+  );
+
+  // Then
+  await screen.findByRole("button", { name: "Relire la présentation" });
+  expect(
+    client.getQueryCache().findAll({
+      predicate: ({ queryKey }) =>
+        queryKey.some(
+          (part) => typeof part === "string" && part.endsWith("/presentation"),
+        ),
+    })[0]?.state.data,
+  ).toMatchObject({ revision: "a-concurrent" });
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Relire la présentation" }),
+    ).toBeEnabled(),
+  );
+  await user.press(
+    screen.getByRole("button", { name: "Relire la présentation" }),
+  );
+  expect(await screen.findByDisplayValue("Concurrent")).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
+});
+
+/** Uses the real F05 generation so a previous session cannot retain action feedback in this fixture. */
+function ActionFeedbackScope({ children }: PropsWithChildren) {
+  const { generation } = useAccountSession();
+  return (
+    <ActionFeedbackProvider scopeKey={generation}>
+      {children}
+    </ActionFeedbackProvider>
+  );
+}
+
+it("retains a replacement division draft when the abandoned creation succeeds later", async () => {
+  // Given
+  permissions = { manageDivisionLifecycle: true };
+  stored = { items: [] };
+  const user = userEvent.setup();
+  const creation = Promise.withResolvers<Response>();
+  const permissionRead = Promise.withResolvers<Response>();
+  const created = {
+    id: resourceId,
+    revision: "d1",
+    name: "Original division",
+    color: "#123456",
+    gradient: null,
+    logo,
+    active: true,
+  };
+  jest.spyOn(Alert, "alert");
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "POST" ? creation.promise : respond(url, options),
+  );
+  await openRoutes();
+  await screen.findByRole("button", { name: "Relire les permissions" });
+  await act(async () => router.push("/administration/divisions/new"));
+  await screen.findByLabelText("Nom de la division");
+  await edit("Nom de la division", "Original division");
+  await edit("Couleur HEX", "#123456");
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  const confirm = jest
+    .mocked(Alert.alert)
+    .mock.lastCall?.[2]?.find((choice) => choice.text === "Confirmer");
+  if (!confirm?.onPress) throw new Error("Missing creation confirmation");
+  await act(async () => confirm.onPress?.());
+  await screen.findByRole("button", { name: "Enregistrer", busy: true });
+  await act(async () => router.back());
+  const discard = jest
+    .mocked(Alert.alert)
+    .mock.lastCall?.[2]?.find((choice) => choice.text === "Abandonner");
+  if (!discard?.onPress) throw new Error("Missing discard confirmation");
+  await act(async () => discard.onPress?.());
+  mockFetch.mockImplementation((url, options) =>
+    String(url).endsWith("/accounts/me")
+      ? permissionRead.promise
+      : options?.method === "POST"
+        ? creation.promise
+        : respond(url, options),
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Relire les permissions" }),
+  );
+  await act(async () => router.push("/administration/divisions/new"));
+  await screen.findByRole("button", { name: "Enregistrer", busy: true });
+
+  // When
+  stored = { items: [created] };
+  await act(async () => creation.resolve(json(created, 201)));
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+  );
+  await edit("Nom de la division", "Replacement division");
+  await edit("Couleur HEX", "#654321");
+  await act(async () =>
+    permissionRead.resolve(
+      json(
+        {
+          type: "urn:blockout:problem:unavailable",
+          title: "Unavailable",
+          status: 503,
+        },
+        503,
+      ),
+    ),
+  );
+  await waitFor(() =>
+    expect(screen.queryByLabelText("Nom de la division")).not.toBeOnTheScreen(),
+  );
+  mockFetch.mockImplementation(respond);
+  await user.press(
+    await screen.findByRole("button", { name: "Relire les permissions" }),
+  );
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        String(url).endsWith("/accounts/me"),
+      ),
+    ).toHaveLength(3),
+  );
+  await act(async () => router.push("/administration/divisions/new"));
+
+  // Then
+  expect(await screen.findByLabelText("Nom de la division")).toHaveDisplayValue(
+    "Replacement division",
+  );
+  expect(screen.getByLabelText("Couleur HEX")).toHaveDisplayValue("#654321");
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+  ).toHaveLength(1);
 });

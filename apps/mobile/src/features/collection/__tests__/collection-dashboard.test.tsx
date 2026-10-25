@@ -419,9 +419,9 @@ it.each(["club-sheets", "geocoding"] as const)(
     await confirm("Reprendre");
 
     // Then
-    expect(
-      await screen.findByRole("button", { name: "Relancer" }),
-    ).toBeEnabled();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Relancer" })).toBeEnabled(),
+    );
     expect(
       mockFetch.mock.calls.some(
         ([url]) =>

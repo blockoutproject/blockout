@@ -7,6 +7,7 @@ import {
 } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ApiError } from "../../../shared/api/api-fetch";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import {
   RequestError,
@@ -116,9 +117,6 @@ function ProfileContent({ admitted, proEntry }: ProfileScreenProps) {
               </>
             )}
             <AdministrationEntry />
-            {guest.failed && (
-              <RequestError message="La déconnexion locale a échoué. Réessayez." />
-            )}
             <Button
               label="Continuer en tant qu’invité"
               onPress={() => void guest.continueAsGuest()}
@@ -133,24 +131,22 @@ function ProfileContent({ admitted, proEntry }: ProfileScreenProps) {
   );
 }
 
-/** Explicit missing-evidence read; its pending/error state belongs only to this account generation. */
+/** Explicit evidence-refresh command; pending/error belongs only to this account generation. */
 function AccountAgeRetry() {
   const session = useAccountSession();
   const establishment = useEstablishAccount();
+  const feedback = useActionFeedback();
   return (
     <>
-      <RequestError
-        message={
-          establishment.isError
-            ? "La lecture de l’ancienneté a échoué. Réessayez."
-            : "L’ancienneté de votre compte est indisponible. Seules les actions qui en dépendent restent en attente."
-        }
-      />
+      <RequestError message="L’ancienneté de votre compte est indisponible." />
       <Button
         label="Réessayer la lecture de l’ancienneté"
-        loading={establishment.isPending}
+        loading={establishment.pending}
         onPress={() => {
-          if (!establishment.isPending) establishment.mutate(session);
+          feedback.clear();
+          void establishment.start(session)?.catch(() => {
+            if (session.isCurrent(session.generation)) feedback.error();
+          });
         }}
       />
     </>

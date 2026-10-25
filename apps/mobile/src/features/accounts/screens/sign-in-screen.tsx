@@ -1,9 +1,10 @@
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebAuthError, WebAuthErrorCodes } from "react-native-auth0";
 import { ApiError } from "../../../shared/api/api-fetch";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { RequestError } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -37,28 +38,13 @@ function SignInJourney() {
   const session = useAccountSession();
   const { colors, membership } = useTheme();
   const establishment = useEstablishAccount();
+  const feedback = useActionFeedback();
   const guest = useGuestNavigation();
-  const { mutate } = establishment;
-  const [establishGeneration, setEstablishGeneration] = useState<string>();
   const mounted = useRef(false);
-  const [loginFailure, setLoginFailure] = useState<{
-    generation: string;
-    message: string;
-  }>();
-  const loginError =
-    loginFailure?.generation === session.generation
-      ? loginFailure.message
-      : undefined;
-  if (
-    establishGeneration !== undefined &&
-    establishGeneration !== session.generation
-  )
-    setEstablishGeneration(undefined);
   const busy =
     session.status === "authenticating" ||
     session.status === "signing-out" ||
-    establishGeneration !== undefined ||
-    establishment.isPending ||
+    establishment.pending ||
     session.status === "restoring";
 
   useEffect(() => {
@@ -68,68 +54,57 @@ function SignInJourney() {
     };
   }, []);
 
-  // Query's request lifecycle consumes the explicit generation-bound intent once.
-  useEffect(() => {
-    if (
-      establishGeneration === undefined ||
-      !session.isCurrent(establishGeneration) ||
-      session.status !== "authenticated" ||
-      establishment.status !== "idle"
-    )
-      return;
-    mutate(session, {
-      onSettled: () => setEstablishGeneration(undefined),
-      onSuccess: () => {
-        if (session.isCurrent(session.generation)) router.replace("/profile");
-      },
-    });
-  }, [establishGeneration, establishment.status, session, mutate, router]);
-
   /** Starts either hosted authentication or a targeted retry using still-valid SDK credentials. */
   async function signIn() {
-    if (busy) return;
-    setLoginFailure(undefined);
-    establishment.reset();
-    if (session.status === "authenticated") {
-      mutate(session, {
-        onSuccess: () => {
-          if (session.isCurrent(session.generation)) router.replace("/profile");
-        },
-      });
-      return;
-    }
+    if (busy || session.getSnapshot().operation) return;
+    feedback.clear();
     const audience = process.env.EXPO_PUBLIC_AUTH0_AUDIENCE;
-    if (!audience) {
-      setLoginFailure({
-        generation: session.generation,
-        message: "La connexion est indisponible. Réessayez.",
-      });
+    if (session.status !== "authenticated" && !audience) {
+      feedback.error();
       return;
     }
     let generation = session.generation;
+    let authenticating = session.status !== "authenticated";
     try {
-      const login = session.signIn(audience);
-      generation = session.getSnapshot().generation;
-      await login;
+      let authenticated;
+      if (session.status === "authenticated") authenticated = session;
+      else {
+        const login = session.signIn(audience ?? "");
+        generation = session.getSnapshot().generation;
+        authenticated = await login;
+      }
+      if (!authenticated || !mounted.current || !session.isCurrent(generation))
+        return;
+      authenticating = false;
+      const attempt = establishment.start(authenticated);
+      if (!attempt) return;
+      await attempt;
       if (mounted.current && session.isCurrent(generation))
-        setEstablishGeneration(generation);
+        router.replace("/profile");
     } catch (error) {
-      let message = "La connexion est indisponible. Réessayez.";
+      if (!mounted.current || !session.isCurrent(generation)) return;
+      if (!authenticating) {
+        feedback.error(
+          error instanceof ApiError &&
+            error.problem?.type ===
+              "urn:blockout:problem:provider-email-unavailable"
+            ? "L’adresse e-mail du compte est indisponible."
+            : undefined,
+          generation,
+        );
+        return;
+      }
+      let message: string | undefined;
       if (error instanceof WebAuthError) {
         if (error.type === WebAuthErrorCodes.USER_CANCELLED)
           message = "Connexion annulée.";
         else if (error.type === WebAuthErrorCodes.ACCESS_DENIED)
           message = "Connexion refusée.";
       }
-      if (mounted.current && session.isCurrent(generation))
-        setLoginFailure({ generation, message });
+      feedback.error(message, generation);
     }
   }
 
-  const missingEmail =
-    establishment.error instanceof ApiError &&
-    establishment.error.problem?.type ===
-      "urn:blockout:problem:provider-email-unavailable";
   return (
     <ScrollView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <SignInArtwork />
@@ -182,23 +157,15 @@ function SignInJourney() {
             </View>
           ))}
         </View>
-        {loginError && <RequestError message={loginError} />}
-        {guest.failed && (
-          <RequestError message="La déconnexion locale a échoué. Réessayez." />
-        )}
-        {establishment.isError &&
+        {establishment.status === "error" &&
           !(
             establishment.error instanceof ApiError &&
             establishment.error.kind === "cancelled"
           ) && (
-            <RequestError
-              message={
-                missingEmail
-                  ? "Votre profil attend une adresse e-mail disponible auprès du fournisseur."
-                  : "Votre identité est connectée, mais votre profil Blockout est indisponible."
-              }
-              onRetry={() => void signIn()}
-              retrying={busy}
+            <Button
+              label="Réessayer"
+              onPress={() => void signIn()}
+              loading={busy}
             />
           )}
         {session.status === "initialization-error" ? (
@@ -214,12 +181,13 @@ function SignInJourney() {
             fullWidth
           />
         )}
-        {session.status === "authentication-error" && !loginError && (
-          <RequestError
-            message="La restauration de la connexion a échoué."
-            onRetry={session.retryAuthentication}
-          />
-        )}
+        {session.status === "authentication-error" &&
+          !(session.error instanceof WebAuthError) && (
+            <RequestError
+              message="La restauration de la connexion a échoué."
+              onRetry={session.retryAuthentication}
+            />
+          )}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Continuer en tant qu’invité"

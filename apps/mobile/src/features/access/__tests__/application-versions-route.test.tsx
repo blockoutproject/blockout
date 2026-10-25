@@ -232,6 +232,10 @@ it("preserves a dirty draft when departure is cancelled, and leaves only after e
       "Abandonner les modifications ?",
       expect.any(String),
       expect.any(Array),
+      expect.objectContaining({
+        cancelable: true,
+        onDismiss: expect.any(Function),
+      }),
     ),
   );
 
@@ -424,7 +428,11 @@ it("keeps a resumed draft locked until its earlier pending save settles", async 
   }
 
   // Then
-  await screen.findByText("Réglages de versions enregistrés.");
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
   expect(screen.getByLabelText("Message commun")).toBeEnabled();
 });
 

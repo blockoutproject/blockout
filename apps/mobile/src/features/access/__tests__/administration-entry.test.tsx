@@ -1,3 +1,4 @@
+import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { ApplicationAccessProvider } from "../queries/use-application-access";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -104,9 +105,11 @@ async function renderAdministration(
     wrapper: ({ children }) => (
       <QueryClientProvider client={client}>
         <ThemeProvider>
-          <ApplicationAccessProvider>
-            <AccountSessionProvider>{children}</AccountSessionProvider>
-          </ApplicationAccessProvider>
+          <ActionFeedbackProvider scopeKey="test">
+            <ApplicationAccessProvider>
+              <AccountSessionProvider>{children}</AccountSessionProvider>
+            </ApplicationAccessProvider>
+          </ActionFeedbackProvider>
         </ThemeProvider>
       </QueryClientProvider>
     ),

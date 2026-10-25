@@ -18,7 +18,7 @@ import {
 export interface CreateSourceFormProps {
   formControl: UseFormProps<CreateSourceValues>["formControl"];
   disabled: boolean;
-  saving: boolean;
+  executing: boolean;
   onSubmit: (values: CreateSourceValues) => Promise<void>;
 }
 
@@ -26,14 +26,14 @@ export interface CreateSourceFormProps {
 export function CreateSourceForm({
   formControl,
   disabled,
-  saving,
+  executing,
   onSubmit,
 }: CreateSourceFormProps) {
   const { control, handleSubmit } = useForm<CreateSourceValues>({
     formControl,
     resolver: zodResolver(createSourceSchema),
   });
-  const { errors, isSubmitting } = useFormState({ control });
+  const { errors } = useFormState({ control });
   return (
     <View style={preparationStyles.form}>
       <Controller
@@ -48,7 +48,7 @@ export function CreateSourceForm({
             onBlur={onBlur}
             autoCapitalize="none"
             autoCorrect={false}
-            editable={!disabled && !saving}
+            editable={!disabled && !executing}
             error={errors.organizerReference?.message}
             helper="La référence officielle attendue sera vérifiée par le collecteur."
           />
@@ -64,7 +64,7 @@ export function CreateSourceForm({
             value={value}
             onChangeText={onChange}
             onBlur={onBlur}
-            editable={!disabled && !saving}
+            editable={!disabled && !executing}
             autoCapitalize="none"
             autoCorrect={false}
             inputMode="url"
@@ -77,8 +77,8 @@ export function CreateSourceForm({
         label="Enregistrer la source"
         fullWidth
         onPress={() => void handleSubmit(onSubmit)()}
-        disabled={disabled || saving || isSubmitting}
-        loading={saving}
+        disabled={disabled || executing}
+        loading={executing}
       />
     </View>
   );

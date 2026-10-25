@@ -1,3 +1,8 @@
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { requiresPresentationReread } from "../api/presentation-recovery";
+import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
+import { useImageSelection } from "../../../shared/images/use-image-selection";
+import { ImageValidationError } from "../../../shared/images/image-validation-error";
 import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,13 +13,9 @@ import { DivisionColorFields } from "../components/division-color-fields";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
-import { Alert, StyleSheet, Text, View } from "react-native";
-import {
-  ApiError,
-  isUncertainMutationFailure,
-} from "../../../shared/api/api-fetch";
+import { StyleSheet, Text, View } from "react-native";
+import { ApiError } from "../../../shared/api/api-fetch";
 import { DivisionActivityAction } from "../components/division-activity-action";
-import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
 import { Button } from "../../../shared/components/button";
 import { ImageField } from "../../../shared/components/image-field";
 import {
@@ -37,10 +38,7 @@ import {
   presentationValues,
   type PresentationValues,
 } from "./presentation-values";
-import {
-  discardPresentationEditor,
-  presentationEditor,
-} from "./presentation-editor";
+import { presentationEditor } from "./presentation-editor";
 
 /** One original resource and session; background reads never replace this form's editable snapshot. */
 export interface PresentationFormProps {
@@ -59,28 +57,54 @@ export function PresentationForm({
 }: PresentationFormProps) {
   const session = useAccountSession();
   const router = useRouter();
+  const confirmAction = useActionConfirmation();
   const activity = useDivisionActivity(target.id ?? "");
   const creating = target.kind === "division-creation";
   const isDivision = target.kind === "division" || creating;
   const { colors } = useTheme();
+  const actionFeedback = useActionFeedback();
   const mounted = useRef(false);
   const [editor] = useState(() =>
     presentationEditor(session, target, presentation),
   );
   const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
-  const { baseline, needsRead, feedback } = state;
-  const [preparing, setPreparing] = useState(false);
+  const { baseline } = state;
+  const feedback =
+    state.feedback ??
+    (editing.save.needsRead || activity.save.needsRead
+      ? "Le résultat doit être vérifié. Relisez la présentation avant de réessayer."
+      : undefined);
   const { control, handleSubmit, setError, setValue } =
     useForm<PresentationValues>({
       resolver: zodResolver(presentationSchema),
       formControl: editor.form.formControl,
     });
+  const imageSelection = useImageSelection({
+    canSelect: () => !editing.save.isPending(),
+    onSelect: async (assets) => {
+      const asset = assets[0];
+      if (!asset || !session.isCurrent(session.generation)) return;
+      try {
+        const prepared = await prepareSportingLogo(asset, session);
+        if (mounted.current && session.isCurrent(session.generation))
+          editor.replaceLogo({ action: "replace", prepared });
+        else deleteOwnedImage(prepared);
+      } catch (error) {
+        if (!(error instanceof ImageValidationError)) throw error;
+        if (mounted.current && session.isCurrent(session.generation))
+          setError("logo", {
+            message:
+              "Impossible de préparer le logo. Votre choix précédent est conservé.",
+          });
+      }
+    },
+  });
   // Read the retained control's current state on remount; RHF remains the sole submission owner.
-  const { errors, isSubmitting, isDirty, dirtyFields } = useFormState({
+  const { errors, isDirty, dirtyFields } = useFormState({
     control,
   });
   useDiscardChanges(isDirty, () => {
-    discardPresentationEditor(session.generation, target);
+    editor.discard();
   });
   const draft = useWatch({ control, name: "logo" });
   const draftName = useWatch({ control, name: "name" });
@@ -95,15 +119,15 @@ export function PresentationForm({
     presentation.kind !== "division-creation" &&
     baseline.kind !== "division-creation" &&
     presentation.data.revision !== baseline.data.revision;
-  const rereadRequired = needsRead || changed;
+  const rereadRequired =
+    editing.save.needsRead || activity.save.needsRead || changed;
   const created = creating && baseline.kind === "division";
   const busy =
     disabled ||
     created ||
-    preparing ||
-    isSubmitting ||
-    editing.saving ||
-    activity.saving ||
+    imageSelection.pending ||
+    editing.save.pending ||
+    activity.save.pending ||
     editing.query.isFetching;
   const currentLogo =
     baseline.kind !== "pool" && baseline.kind !== "division-creation"
@@ -152,6 +176,7 @@ export function PresentationForm({
   async function submit(values: PresentationValues) {
     if (
       !mounted.current ||
+      imageSelection.isPending() ||
       busy ||
       rereadRequired ||
       !session.isCurrent(session.generation)
@@ -171,44 +196,56 @@ export function PresentationForm({
       });
       return;
     }
+    if (
+      creating &&
+      !(await confirmAction({
+        title: "Créer la division ?",
+        message:
+          "La nouvelle division sera active. Sa présentation ne changera jamais implicitement son activité.",
+        confirmLabel: "Confirmer",
+      }))
+    )
+      return;
+    if (
+      !mounted.current ||
+      imageSelection.isPending() ||
+      !session.isCurrent(session.generation)
+    )
+      return;
     editor.update({ ...state, feedback: undefined });
     const file =
       values.logo.action === "replace" ? values.logo.prepared : undefined;
+    const attempt = editing.save.start({
+      revision:
+        baseline.kind === "division-creation" ? "" : baseline.data.revision,
+      values,
+    });
+    if (!attempt) return;
+    actionFeedback.clear();
     editor.beginUpload(file);
     try {
-      const accepted = await editing.save.mutateAsync({
-        revision:
-          baseline.kind === "division-creation" ? "" : baseline.data.revision,
-        values,
-      });
+      const accepted = await attempt;
       if (!session.isCurrent(session.generation)) return;
       editor.update({
         baseline: accepted,
-        needsRead: false,
-        feedback: "Présentation enregistrée.",
+        feedback: undefined,
       });
       editor.reset(presentationValues(accepted));
       if (creating) {
-        discardPresentationEditor(session.generation, target);
+        editor.discard();
       }
     } catch (error) {
       if (!session.isCurrent(session.generation)) return;
-      if (
-        isUncertainMutationFailure(error) ||
-        (error instanceof ApiError &&
-          error.problem?.type === "urn:blockout:problem:stale-revision")
-      ) {
+      if (requiresPresentationReread(error)) {
         editor.update({
           ...editor.getSnapshot(),
-          needsRead: true,
           feedback:
             "Le résultat doit être vérifié. Relisez la présentation avant de réessayer.",
         });
       } else {
         editor.update({
           ...editor.getSnapshot(),
-          feedback:
-            "L’enregistrement a été refusé. Votre brouillon est conservé.",
+          feedback: undefined,
         });
         if (
           error instanceof ApiError &&
@@ -219,12 +256,16 @@ export function PresentationForm({
             message:
               "Ce logo ne peut pas être enregistré. Choisissez une autre image.",
           });
-        if (
+        else if (
           isDivision &&
           error instanceof ApiError &&
           error.problem?.type === "urn:blockout:problem:conflict"
         )
           setError("name", { message: "Ce nom de division est déjà utilisé." });
+        else
+          actionFeedback.error(
+            "L’enregistrement a été refusé. Votre brouillon est conservé.",
+          );
       }
     } finally {
       editor.finishUpload(file);
@@ -232,49 +273,93 @@ export function PresentationForm({
   }
   /** Refreshes non-dirty fields and the revision only after a successful explicit read; no write is replayed. */
   async function reread() {
-    const result = await editing.query.refetch();
-    if (!mounted.current || !session.isCurrent(session.generation)) return;
-    if (result.isError || !result.data) {
+    const { result, reconciled } = await editing.save.reconcile(
+      [editing.queryKey],
+      () => editing.query.refetch(),
+      (result) => !result.isError && !!result.data,
+    );
+    if (
+      !mounted.current ||
+      imageSelection.isPending() ||
+      !session.isCurrent(session.generation)
+    )
+      return;
+    if (!reconciled || result.isError || !result.data) {
       editor.update({
         ...state,
-        needsRead: true,
         feedback: "La relecture a échoué. Votre brouillon est conservé.",
       });
       return;
     }
     editor.update({
       baseline: result.data,
-      needsRead: false,
       feedback:
         "Présentation relue. Vérifiez votre brouillon avant de l’enregistrer à nouveau.",
     });
     editor.reset(presentationValues(result.data), true);
   }
-  /** A lifecycle response advances this same revision while preserving all edited presentation values. */
-  function activityAccepted(division: DivisionResponse) {
-    if (!session.isCurrent(session.generation)) return;
-    const accepted: Presentation = { kind: "division", data: division };
-    editor.update({
-      baseline: accepted,
-      needsRead: false,
-      feedback: division.active
-        ? "Division réactivée. Les autres restrictions restent applicables."
-        : "Division désactivée. L’historique est conservé.",
-    });
-    editor.reset(presentationValues(accepted), true);
-  }
-  /** Uncertainty or revision conflict blocks both revision-dependent commands until this division is reread. */
-  function activityFailed(error: unknown) {
-    const requiresRead =
-      isUncertainMutationFailure(error) ||
-      (error instanceof ApiError && error.status === 409);
-    editor.update({
-      ...editor.getSnapshot(),
-      needsRead: requiresRead,
-      feedback: requiresRead
-        ? "L’action n’a pas abouti. Relisez l’état courant avant de réessayer."
-        : "L’action a été refusée. Votre présentation est conservée.",
-    });
+  /** Confirms and executes the separate lifecycle command against this editor's original revision. */
+  async function changeActivity() {
+    if (
+      baseline.kind !== "division" ||
+      imageSelection.isPending() ||
+      editing.save.pending ||
+      activity.save.pending ||
+      editing.query.isFetching ||
+      !activity.authority.enabled ||
+      rereadRequired
+    )
+      return;
+    const division = baseline.data;
+    if (
+      !(await confirmAction({
+        title: `${division.active ? "Désactiver" : "Réactiver"} la division ?`,
+        message: division.active
+          ? "Les poules, équipes et matchs seront masqués sans effacer leur historique. La collecte s’arrêtera selon ses règles habituelles."
+          : "Seule l’inactivité sera levée. Les autres restrictions de visibilité et de collecte restent applicables.",
+        confirmLabel: "Confirmer",
+      }))
+    )
+      return;
+    if (
+      !mounted.current ||
+      imageSelection.isPending() ||
+      !session.isCurrent(session.generation)
+    )
+      return;
+    try {
+      const attempt = activity.save.start({
+        revision: division.revision,
+        active: !division.active,
+      });
+      if (!attempt) return;
+      editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      actionFeedback.clear();
+      const response = await attempt;
+      if (!session.isCurrent(session.generation)) return;
+      const accepted: Presentation = { kind: "division", data: response };
+      editor.update({
+        baseline: accepted,
+        feedback: response.active
+          ? "Division réactivée. Les autres restrictions restent applicables."
+          : "Division désactivée. L’historique est conservé.",
+      });
+      editor.reset(presentationValues(accepted), true);
+    } catch (error) {
+      if (!session.isCurrent(session.generation)) return;
+      if (requiresPresentationReread(error))
+        editor.update({
+          ...editor.getSnapshot(),
+          feedback:
+            "L’action n’a pas abouti. Relisez l’état courant avant de réessayer.",
+        });
+      else {
+        editor.update({ ...editor.getSnapshot(), feedback: undefined });
+        actionFeedback.error(
+          "L’action a été refusée. Votre présentation est conservée.",
+        );
+      }
+    }
   }
   /** Restoring is draft intent; source/LNV/club fallback is resolved by the existing binary read. */
   function restoreLogo() {
@@ -383,26 +468,7 @@ export function PresentationForm({
                   ? restoreLogo
                   : undefined
               }
-              onSelect={async (assets) => {
-                const asset = assets[0];
-                if (!asset || !session.isCurrent(session.generation)) return;
-                setPreparing(true);
-                try {
-                  const prepared = await prepareSportingLogo(asset, session);
-                  if (mounted.current && session.isCurrent(session.generation))
-                    editor.replaceLogo({ action: "replace", prepared });
-                  else deleteOwnedImage(prepared);
-                } catch {
-                  if (mounted.current && session.isCurrent(session.generation))
-                    setError("logo", {
-                      message:
-                        "Impossible de préparer le logo. Votre choix précédent est conservé.",
-                    });
-                } finally {
-                  if (mounted.current && session.isCurrent(session.generation))
-                    setPreparing(false);
-                }
-              }}
+              selection={imageSelection}
             />
             {!uri && (currentLogo?.manualUrl != null || dirtyLogo) && (
               <Button
@@ -491,10 +557,9 @@ export function PresentationForm({
           variant="secondary"
           onPress={() => void reread()}
           disabled={
-            preparing ||
-            isSubmitting ||
-            editing.saving ||
-            activity.saving ||
+            imageSelection.pending ||
+            editing.save.pending ||
+            activity.save.pending ||
             editing.query.isFetching
           }
           loading={editing.query.isFetching}
@@ -512,38 +577,25 @@ export function PresentationForm({
           label="Enregistrer"
           fullWidth
           disabled={busy || rereadRequired}
-          loading={isSubmitting || preparing}
-          onPress={() =>
-            void handleSubmit((values) => {
-              if (creating)
-                Alert.alert(
-                  "Créer la division ?",
-                  "La nouvelle division sera active. Sa présentation ne changera jamais implicitement son activité.",
-                  [
-                    { text: "Annuler", style: "cancel" },
-                    { text: "Confirmer", onPress: () => void submit(values) },
-                  ],
-                );
-              else return submit(values);
-            })()
-          }
+          loading={editing.save.executing}
+          onPress={() => void handleSubmit(submit)()}
         />
       )}
-      {baseline.kind === "division" && !creating && (
-        <DivisionActivityAction
-          division={baseline.data}
-          editing={activity}
-          disabled={
-            preparing ||
-            isSubmitting ||
-            editing.saving ||
-            editing.query.isFetching ||
-            rereadRequired
-          }
-          onAccepted={activityAccepted}
-          onFailure={activityFailed}
-        />
-      )}
+      {baseline.kind === "division" &&
+        !creating &&
+        activity.authority.permissions?.manageDivisionLifecycle === true && (
+          <DivisionActivityAction
+            division={baseline.data}
+            executing={activity.save.executing}
+            disabled={
+              imageSelection.pending ||
+              editing.save.pending ||
+              editing.query.isFetching ||
+              rereadRequired
+            }
+            onPress={() => void changeActivity()}
+          />
+        )}
     </View>
   );
 }

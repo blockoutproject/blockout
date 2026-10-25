@@ -1,6 +1,7 @@
+import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { act, render, screen, userEvent } from "@testing-library/react-native";
-import type { ReactElement } from "react";
+import type { ReactElement, PropsWithChildren } from "react";
 import { Alert, Pressable, Text } from "react-native";
 import type {
   CollectionControlResponse,
@@ -156,7 +157,9 @@ export function renderCollection(
       <QueryClientProvider client={client}>
         <ThemeProvider>
           <ApplicationAccessProvider>
-            <AccountSessionProvider>{children}</AccountSessionProvider>
+            <AccountSessionProvider>
+              <ActionFeedbackScope>{children}</ActionFeedbackScope>
+            </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
       </QueryClientProvider>
@@ -203,4 +206,14 @@ export async function pressAction(label: string) {
   await userEvent
     .setup()
     .press(await screen.findByRole("button", { name: label }));
+}
+
+/** Uses the real F05 generation so a previous session cannot retain action feedback in this fixture. */
+function ActionFeedbackScope({ children }: PropsWithChildren) {
+  const { generation } = useAccountSession();
+  return (
+    <ActionFeedbackProvider scopeKey={generation}>
+      {children}
+    </ActionFeedbackProvider>
+  );
 }

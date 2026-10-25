@@ -54,6 +54,8 @@ export const appearanceColors = {
     info: "#52697A",
     onInfo: reference.white,
     errorSubtle: "#B4234014",
+    // UI Library Error Toast 3326:321 layers this semantic fill over the ordinary surface.
+    errorToastSubtle: "#B4234010",
   },
   dark: {
     canvas: "#0D0D0E",
@@ -89,6 +91,7 @@ export const appearanceColors = {
     info: "#A9BBC7",
     onInfo: reference.neutral900,
     errorSubtle: "#FFB3C314",
+    errorToastSubtle: "#FFB3C314",
   },
 };
 

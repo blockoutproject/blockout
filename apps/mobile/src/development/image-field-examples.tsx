@@ -1,3 +1,4 @@
+import { useImageSelection } from "../shared/images/use-image-selection";
 import { useState } from "react";
 import { File } from "expo-file-system";
 import {
@@ -27,6 +28,44 @@ export function ImageFieldExamplesScreen() {
   const [disabled, setDisabled] = useState(false);
   const [fail, setFail] = useState(false);
   const [error, setError] = useState<string>();
+  const selection = useImageSelection({
+    multiple,
+    selectionLimit: 5,
+    onSelect: async (assets, replaceId) => {
+      if (fail) throw new Error("Demonstration preparation failure");
+      // This preview-only host checks picker metadata, not authoritative upload contents.
+      if (
+        assets.some(
+          (asset) =>
+            !["image/png", "image/jpeg"].includes(asset.mimeType ?? "") ||
+            asset.fileSize === undefined ||
+            asset.fileSize > 5 * 1024 * 1024,
+        )
+      ) {
+        setError("Choisissez une image PNG/JPEG de 5 Mio maximum.");
+        return;
+      }
+      setError(undefined);
+      // Read borrowed cache bytes before the selection owner releases them; no filesystem resource outlives this callback.
+      const selected: ImageFieldImage[] = [];
+      for (const [index, asset] of assets.entries()) {
+        selected.push({
+          id: asset.uri,
+          uri: `data:${asset.mimeType};base64,${await new File(asset.uri).base64()}`,
+          label: `Image ${images.length + index + 1}`,
+        });
+      }
+      setImages((current) =>
+        replaceId
+          ? current.flatMap((image) =>
+              image.id === replaceId ? selected : [image],
+            )
+          : multiple
+            ? [...current, ...selected]
+            : selected,
+      );
+    },
+  });
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -77,44 +116,10 @@ export function ImageFieldExamplesScreen() {
           helper="PNG/JPEG, 5 Mio maximum. Aucun envoi."
           images={images}
           multiple={multiple}
-          selectionLimit={5}
           size={compact ? "compact" : "standard"}
           disabled={disabled}
           error={error}
-          onSelect={async (assets, replaceId) => {
-            if (fail) throw new Error("Demonstration preparation failure");
-            // This preview-only host checks picker metadata, not authoritative upload contents.
-            if (
-              assets.some(
-                (asset) =>
-                  !["image/png", "image/jpeg"].includes(asset.mimeType ?? "") ||
-                  asset.fileSize === undefined ||
-                  asset.fileSize > 5 * 1024 * 1024,
-              )
-            ) {
-              setError("Choisissez une image PNG/JPEG de 5 Mio maximum.");
-              return;
-            }
-            setError(undefined);
-            // Read borrowed cache bytes before ImageField releases them; no filesystem resource outlives this callback.
-            const selected: ImageFieldImage[] = [];
-            for (const [index, asset] of assets.entries()) {
-              selected.push({
-                id: asset.uri,
-                uri: `data:${asset.mimeType};base64,${await new File(asset.uri).base64()}`,
-                label: `Image ${images.length + index + 1}`,
-              });
-            }
-            setImages((current) =>
-              replaceId
-                ? current.flatMap((image) =>
-                    image.id === replaceId ? selected : [image],
-                  )
-                : multiple
-                  ? [...current, ...selected]
-                  : selected,
-            );
-          }}
+          selection={selection}
           onRemove={(id) => {
             setError(undefined);
             setImages((current) => current.filter((image) => image.id !== id));

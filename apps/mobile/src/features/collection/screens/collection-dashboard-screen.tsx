@@ -289,7 +289,7 @@ function ControlDashboard({
           <Button
             label="Actualiser"
             variant="secondary"
-            disabled={refreshing || editing.saving}
+            disabled={refreshing || editing.activity.pending}
             loading={refreshing}
             onPress={() => void refresh()}
           />

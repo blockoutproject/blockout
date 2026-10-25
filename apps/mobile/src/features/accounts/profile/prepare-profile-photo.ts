@@ -1,3 +1,4 @@
+import { ImageValidationError } from "../../../shared/images/image-validation-error";
 import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
 import type { ImagePickerAsset } from "expo-image-picker";
 import { File } from "expo-file-system";
@@ -25,7 +26,7 @@ export async function prepareProfilePhoto(
     asset.width < 1 ||
     asset.width !== asset.height
   )
-    throw new Error("La photo doit être carrée.");
+    throw new ImageValidationError("La photo doit être carrée.");
   const dimension = Math.min(asset.width, 1024);
   const context = ImageManipulator.manipulate(asset.uri);
   let rendered: ImageRef | undefined;
@@ -37,7 +38,9 @@ export async function prepareProfilePhoto(
     file = new File(output.uri);
     if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
     if (file.size < 1 || file.size > 5 * 1024 * 1024)
-      throw new Error("La photo préparée doit être un PNG de 5 Mio maximum.");
+      throw new ImageValidationError(
+        "La photo préparée doit être un PNG de 5 Mio maximum.",
+      );
     return file;
   } catch (error) {
     deleteOwnedImage(file);

@@ -280,9 +280,10 @@ it("rejects a profile command when bypass is cleared during native credential pr
   mockAuth0.getCredentials.mockReturnValueOnce(credentials.promise);
   let completion = Promise.resolve<unknown>(undefined);
   await act(() => {
-    completion = result.current.profile.save
-      .mutateAsync({ metadata: { username: "Updated" } })
-      .catch((error: unknown) => error);
+    completion =
+      result.current.profile.save
+        .start({ metadata: { username: "Updated" } })
+        ?.catch((error: unknown) => error) ?? Promise.resolve(undefined);
   });
   await waitFor(() =>
     expect(mockAuth0.getCredentials).toHaveBeenCalledTimes(credentialReads + 1),
@@ -388,9 +389,10 @@ it("rechecks the minimum version after native credential preparation", async () 
   mockAuth0.getCredentials.mockReturnValueOnce(credentials.promise);
   let completion = Promise.resolve<unknown>(undefined);
   await act(() => {
-    completion = result.current.profile.save
-      .mutateAsync({ metadata: { username: "Updated" } })
-      .catch((error: unknown) => error);
+    completion =
+      result.current.profile.save
+        .start({ metadata: { username: "Updated" } })
+        ?.catch((error: unknown) => error) ?? Promise.resolve(undefined);
   });
   await waitFor(() =>
     expect(mockAuth0.getCredentials).toHaveBeenCalledTimes(credentialReads + 1),
