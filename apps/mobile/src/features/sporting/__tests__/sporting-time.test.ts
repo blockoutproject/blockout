@@ -112,11 +112,11 @@ it("compares calendar days across a 23-hour DST day and a year boundary", () => 
   const afterDst = new Date("2026-03-29T22:30:00Z");
   const newYear = new Date("2026-12-31T23:30:00Z");
 
-  // When / Then
-  expect(formatSportingDay("2026-03-29", "Europe/Paris", afterDst)).toBe(
-    "Hier · 29 mars 2026",
-  );
-  expect(formatSportingDay("2026-12-31", "Europe/Paris", newYear)).toBe(
-    "Hier · 31 déc. 2026",
-  );
+  // When
+  const dstLabel = formatSportingDay("2026-03-29", "Europe/Paris", afterDst);
+  const yearLabel = formatSportingDay("2026-12-31", "Europe/Paris", newYear);
+
+  // Then
+  expect(dstLabel).toBe("Hier · 29 mars 2026");
+  expect(yearLabel).toBe("Hier · 31 déc. 2026");
 });
