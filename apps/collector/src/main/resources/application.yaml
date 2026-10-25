@@ -65,6 +65,7 @@ logging:
         - error.type
         - operation
         - cycleId
+        - collection_control
         - stage
         - scope
         - phase

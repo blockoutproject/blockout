@@ -10,6 +10,7 @@ import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.sporting.application.service.SportingReadService;
@@ -18,6 +19,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +32,7 @@ public class CollectionResultService {
   private final CollectionCycleService cycles;
   private final SportingReadService sporting;
   private final CurrentPermissions permissions;
+  private final ApplicationEventPublisher events;
 
   /**
    * Accepts only newer evidence for this scope/stage/phase without replaying any sporting write.
@@ -44,6 +47,7 @@ public class CollectionResultService {
     CollectionState.Cycle cycle = cycles.lockControlPassage(cycleId);
     if (cycle.state() != CollectionCycleStateEnum.RUNNING
         || !contains(cycleId, command.scopeId(), command.stage())) throw invalidContext();
+    store.lockControl(cycle.controlId());
     CollectionResult previous =
         store
             .result(cycle.controlId(), command.scopeId(), command.stage(), command.phase())
@@ -76,6 +80,16 @@ public class CollectionResultService {
             command.reason(),
             command.obtainedCount(),
             command.rejectedCount()));
+    if (command.outcome() != CollectionOutcomeEnum.SUCCESS
+        || (previous != null && previous.firstFailureAt() != null))
+      events.publishEvent(
+          new CollectionOperationalDiagnostics.EvidenceChanged(
+              cycle.controlId(), command.scopeId(), command.stage(), command.phase()));
+    if (command.stage() == CollectionStageEnum.DISCOVERY
+        && command.phase() == CollectionPhaseEnum.INTEGRATION
+        && (command.outcome() == CollectionOutcomeEnum.SUCCESS
+            || command.outcome() == CollectionOutcomeEnum.PARTIAL))
+      events.publishEvent(new CollectionOperationalDiagnostics.CatalogObserved(cycle.controlId()));
     return cycle;
   }
 

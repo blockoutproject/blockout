@@ -248,6 +248,8 @@ This is the T024 preparation consumed by T049 **immediately before authorized re
 
 ## Collection inspection and explicit recovery
 
+Use the [F01 native conditions](../observability/README.md#collection-evidence-and-native-conditions-f01) to distinguish actionable failures, grouped administration needs and uncertain terminal operations. Compare the exact control/scope/stage/phase current result and its own last success/first failure. Native resolved notifications, log expiry, pause, closure and success elsewhere supply no affected-scope repair evidence. A new usable acquisition result leaves failed integration independent; qualified empty or ambiguous municipal acquisition is not a provider outage. Keep elapsed 24-hour club/geocoding failure age anchored to the first actual failed observation.
+
 F01 retains current intent, cycles and scope results, not an execution history. The backend is the sole database writer. A lost response is not proof that the write failed. Keep the original control/cycle/source identity in the private operational case; never paste credentials, provider documents, locality or private diagnostics into this repository or a public issue. [F01's ordered cases](../../specs/001-source-acquisition/quickstart.md#ordered-uncertainty-cases-t044-preparation) distinguish response loss before and after acceptance.
 
 Use the authorized environment's existing private token process. With `BACKEND_URL`, `COLLECTION_CYCLE_ID`, `COLLECTION_CONTROL_ID` and `SOURCE_BINDING_ID` explicitly set to the affected environment/scope, the actual read routes are:
