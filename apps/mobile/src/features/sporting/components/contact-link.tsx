@@ -10,7 +10,6 @@ import {
 import { ChevronRight, type LucideIcon } from "lucide-react-native";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
-import { ResourceText } from "./resource-page";
 
 /** Accepts only published HTTP(S) destinations without credentials; malformed values remain plain text. */
 export function safeWebsite(value?: string): string | undefined {
@@ -64,7 +63,9 @@ export function ContactLink({
         <Icon accessible={false} size={20} color={colors.icon} />
       </View>
       <View style={styles.value}>
-        <ResourceText>{label}</ResourceText>
+        <Text style={[styles.label, { color: colors.secondaryText }]}>
+          {label}
+        </Text>
         <Text
           style={[
             value ? styles.known : styles.unknown,
@@ -129,5 +130,6 @@ const styles = StyleSheet.create({
   },
   value: { flex: 1, gap: tokens.spacing.xs },
   known: { ...tokens.typography.strong },
+  label: { ...tokens.typography.metadata },
   unknown: { ...tokens.typography.body },
 });

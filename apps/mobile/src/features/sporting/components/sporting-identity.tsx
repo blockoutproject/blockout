@@ -170,7 +170,9 @@ export function SportingIdentity({
       ]}
     >
       <View style={[styles.rail, { backgroundColor: colors.subtle }]}>
-        <DivisionPaint division={classification?.division} />
+        {classification?.division && (
+          <DivisionPaint division={classification.division} />
+        )}
         <SportingLogo
           identity={
             kind === "pool"
@@ -185,21 +187,28 @@ export function SportingIdentity({
         />
       </View>
       <View style={styles.identity}>
-        <ResourceText>
+        <Text style={[styles.eyebrow, { color: colors.secondaryText }]}>
           {classification?.division?.name ??
             (kind === "club"
               ? "Le club"
               : kind === "team"
                 ? "L’équipe"
                 : "La poule")}
-        </ResourceText>
+        </Text>
         <Text
           accessibilityRole="header"
-          style={[styles.name, { color: colors.text }]}
+          style={[
+            kind === "club" ? styles.clubName : styles.name,
+            { color: colors.text },
+          ]}
         >
           {identity.name}
         </Text>
-        {subtitle && <ResourceText>{subtitle}</ResourceText>}
+        {subtitle && (
+          <Text style={[styles.eyebrow, { color: colors.secondaryText }]}>
+            {subtitle}
+          </Text>
+        )}
         <View style={styles.metadata}>
           {[season?.label, classification?.format?.replace("x", " × "), gender]
             .filter(Boolean)
@@ -286,6 +295,8 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   name: { ...tokens.typography.heading },
+  clubName: { ...tokens.typography.navigation },
+  eyebrow: { ...tokens.typography.metadata },
   logo: {
     alignItems: "center",
     justifyContent: "center",
