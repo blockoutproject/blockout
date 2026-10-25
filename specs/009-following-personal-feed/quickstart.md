@@ -33,7 +33,7 @@ relations, identity corrections, rollback and competing original-account writes.
 fixtures remove the account row under F05's lock; they do not invoke the future F05 erasure
 orchestrator or F06 participant. Those integrated races remain T011/T016 and F05 T035.
 
-`FollowEligibilityTest` and the relation integration suite exercise immutable current
+`ReadFollowEligibilityTest` and the relation integration suite exercise immutable current
 account/target/relation values, overlapping origins without duplicate recipients and the difference
 between an unchanged relation and a removed/recreated UUID. The consumer supplies exact sporting
 origins, with no display-season preference. F07 retains account/sporting lock coordination and
@@ -42,7 +42,7 @@ notification selection, cancellation and delivery; these checks establish none o
 The focused command is:
 
 ```sh
-./mvnw -B -ntp -pl apps/backend verify -Dtest=FollowStateWebMvcTest,FollowEligibilityTest,FollowingContractTest,FollowAccessTest -Dit.test=FollowRelationsIntegrationTest
+./mvnw -B -ntp -pl apps/backend verify -Dtest=FollowStateWebMvcTest,ReadFollowEligibilityTest,FollowingContractTest,FollowAccessTest -Dit.test=FollowRelationsIntegrationTest
 ```
 
 ## Relationships and calendar

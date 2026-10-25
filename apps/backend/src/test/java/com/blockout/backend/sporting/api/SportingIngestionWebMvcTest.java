@@ -21,13 +21,14 @@ import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.StandingsObservation;
-import com.blockout.backend.sporting.application.service.CalendarAcceptanceService;
-import com.blockout.backend.sporting.application.service.CatalogAcceptanceService;
-import com.blockout.backend.sporting.application.service.ClubDetailsService;
-import com.blockout.backend.sporting.application.service.ClubLocalityService;
-import com.blockout.backend.sporting.application.service.MatchAcceptanceService;
-import com.blockout.backend.sporting.application.service.SportingImageService;
-import com.blockout.backend.sporting.application.service.StandingsService;
+import com.blockout.backend.sporting.application.service.AcceptCalendar;
+import com.blockout.backend.sporting.application.service.AcceptCatalog;
+import com.blockout.backend.sporting.application.service.AcceptClubDetails;
+import com.blockout.backend.sporting.application.service.AcceptClubLocality;
+import com.blockout.backend.sporting.application.service.AcceptMatchObservation;
+import com.blockout.backend.sporting.application.service.AcceptSourceImage;
+import com.blockout.backend.sporting.application.service.AcceptStandings;
+import com.blockout.backend.sporting.application.service.ValidateSportingImage;
 import com.blockout.backend.sporting.support.SportingImageFixture;
 import java.util.Arrays;
 import java.util.Collections;
@@ -48,12 +49,14 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 /** Actual generated request binding; acceptance collaborators are isolated in the MVC slice. */
 @WebMvcTest(SportingIngestionController.class)
 @AutoConfigureMockMvc
 @Import({
+  com.blockout.backend.sporting.application.service.ValidateSportingImage.class,
   HttpConfiguration.class,
   SecurityConfiguration.class,
   ApiExceptionHandler.class,
@@ -68,15 +71,15 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 @MockitoBean(types = com.blockout.backend.access.application.MaintenanceAdmission.class)
 class SportingIngestionWebMvcTest {
   @Autowired private MockMvc mvc;
-  @MockitoBean private MatchAcceptanceService matches;
-  @MockitoBean private CalendarAcceptanceService calendars;
-  @MockitoBean private CatalogAcceptanceService catalogs;
-  @MockitoBean private StandingsService standings;
-  @MockitoBean private ClubDetailsService clubs;
+  @MockitoBean private AcceptMatchObservation matches;
+  @MockitoBean private AcceptCalendar calendars;
+  @MockitoBean private AcceptCatalog catalogs;
+  @MockitoBean private AcceptStandings standings;
+  @MockitoBean private AcceptClubDetails clubObservations;
 
-  @MockitoBean private ClubLocalityService localities;
+  @MockitoBean private AcceptClubLocality localities;
 
-  @MockitoBean private SportingImageService images;
+  @MockitoBean private AcceptSourceImage images;
 
   @Test
   @DisplayName("Refuses a calendar whose combined collections exceed 1000 entries")
@@ -123,7 +126,7 @@ class SportingIngestionWebMvcTest {
     response
         .andExpect(status().isPayloadTooLarge())
         .andExpect(header().string("Cache-Control", "no-store"));
-    verifyNoInteractions(calendars, catalogs, matches, standings);
+    verifyNoInteractions(calendars, catalogs, matches, standings, clubObservations, localities);
   }
 
   @ParameterizedTest
@@ -138,39 +141,39 @@ class SportingIngestionWebMvcTest {
       })
   @DisplayName("Every JSON ingestion envelope requires its generated mandatory context")
   void validatesEnvelope(String path) throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request =
+        post("/ingestion/" + path).with(collector()).contentType("application/json").content("{}");
 
     // When
-    ResultActions response =
-        mvc.perform(
-            post("/ingestion/" + path)
-                .with(collector())
-                .contentType("application/json")
-                .content("{}"));
+    ResultActions response = mvc.perform(request);
 
     // Then
     response.andExpect(status().isBadRequest());
-    verifyNoInteractions(calendars, catalogs, matches, standings);
+    verifyNoInteractions(calendars, catalogs, matches, standings, clubObservations, localities);
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"mobile-test", "collector-other-environment"})
   @DisplayName("A mobile or another environment's client cannot invoke sporting ingestion")
   void refusesWrongClient(String client) throws Exception {
+    // Given
+    RequestPostProcessor wrongClient =
+        jwt()
+            .jwt(token -> token.claim("azp", client))
+            .authorities(new SimpleGrantedAuthority("SCOPE_sporting:ingest"));
 
     // When
     ResultActions response =
         mvc.perform(
             post("/ingestion/pools/00000000-0000-4000-8000-000000000002/calendar-observations")
-                .with(
-                    jwt()
-                        .jwt(token -> token.claim("azp", client))
-                        .authorities(new SimpleGrantedAuthority("SCOPE_sporting:ingest")))
+                .with(wrongClient)
                 .contentType("application/json")
                 .content("{}"));
 
     // Then
     response.andExpect(status().isForbidden());
-    verifyNoInteractions(calendars, catalogs, matches, standings);
+    verifyNoInteractions(calendars, catalogs, matches, standings, clubObservations, localities);
   }
 
   @Test
@@ -317,7 +320,7 @@ class SportingIngestionWebMvcTest {
   void bindsClubDetailPresence() throws Exception {
     // Given
     UUID club = UUID.fromString("00000000-0000-4000-8000-000000000193");
-    when(clubs.accept(eq(club), any()))
+    when(clubObservations.accept(eq(club), any()))
         .thenReturn(
             new ObservationOutcome(
                 "00193", ObservationOutcomeEnum.ACCEPTED, club, null, null, null));
@@ -336,7 +339,7 @@ class SportingIngestionWebMvcTest {
     // Then
     ArgumentCaptor<SportingPresentation.ClubObservation> observation =
         ArgumentCaptor.forClass(SportingPresentation.ClubObservation.class);
-    Mockito.verify(clubs).accept(eq(club), observation.capture());
+    Mockito.verify(clubObservations).accept(eq(club), observation.capture());
     Assertions.assertThat(
             observation
                 .getValue()
@@ -447,7 +450,7 @@ class SportingIngestionWebMvcTest {
   void boundsSourceImageBeforeConversion() throws Exception {
     // Given
     UUID team = UUID.fromString("00000000-0000-4000-8000-000000000193");
-    byte[] oversized = new byte[SportingImageService.MAX_BYTES + 1];
+    byte[] oversized = new byte[ValidateSportingImage.MAX_BYTES + 1];
 
     // When
     ResultActions response =
@@ -479,12 +482,16 @@ class SportingIngestionWebMvcTest {
         "observedAt":"2026-10-24T12:00:00Z"},"facts":{}}
         """;
 
-    // When / Then
-    mvc.perform(
+    // When
+    ResultActions response =
+        mvc.perform(
             post("/ingestion/matches/00000000-0000-4000-8000-000000000002/detail-observations")
                 .with(collector())
                 .contentType("application/json")
-                .content(body))
+                .content(body));
+
+    // Then
+    response
         .andExpect(status().isConflict())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:conflict"));

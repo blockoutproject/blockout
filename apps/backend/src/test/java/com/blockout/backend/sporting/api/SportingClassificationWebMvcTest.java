@@ -22,7 +22,8 @@ import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingViews.ClassificationView;
-import com.blockout.backend.sporting.application.service.ClassificationService;
+import com.blockout.backend.sporting.application.service.ChangeSportingClassification;
+import com.blockout.backend.sporting.application.service.ReadSportingConfiguration;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -54,7 +55,8 @@ class SportingClassificationWebMvcTest {
   private static final UUID ID = UUID.fromString("00000000-0000-4000-8000-000000000001");
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000002");
   @Autowired private MockMvc mvc;
-  @MockitoBean private ClassificationService classifications;
+  @MockitoBean private ChangeSportingClassification classifications;
+  @MockitoBean private ReadSportingConfiguration configurationReads;
   @MockitoBean private AccountAccess accounts;
 
   @ParameterizedTest
@@ -162,7 +164,7 @@ class SportingClassificationWebMvcTest {
   void refusesPermission() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(classifications.pool(ACCOUNT, ID))
+    when(configurationReads.pool(ACCOUNT, ID))
         .thenThrow(new AccessDeniedException("Private diagnostic"));
     // When
     ResultActions response =
@@ -208,8 +210,8 @@ class SportingClassificationWebMvcTest {
     SportingClassification value =
         new SportingClassification(ID, SportFormatEnum._4X4, SportGenderEnum.MIXED);
     ClassificationView current = new ClassificationView(ID, "2", value, value);
-    if (resource.equals("packs")) when(classifications.pack(ACCOUNT, ID)).thenReturn(current);
-    else when(classifications.pool(ACCOUNT, ID)).thenReturn(current);
+    if (resource.equals("packs")) when(configurationReads.pack(ACCOUNT, ID)).thenReturn(current);
+    else when(configurationReads.pool(ACCOUNT, ID)).thenReturn(current);
     // When
     ResultActions response =
         mvc.perform(

@@ -1,6 +1,7 @@
 package com.blockout.backend.notifications.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import com.blockout.backend.contributions.support.ContributionScenario;
@@ -10,12 +11,38 @@ import java.net.URI;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /** Real minute-pass entry point, sporting reads, publication and current confirmed F06 audience. */
 @DisplayName("Actual link publication and minute eligibility pass")
 class LinkAnnouncementIntegrationTest extends ContributionScenario {
+  @Test
+  @DisplayName("Rejects an enclosing transaction before a due candidate can be processed")
+  void rejectsEnclosingTransaction() {
+    // Given
+    moderator(AUTHOR);
+    sql.update(
+        "UPDATE sporting_match SET reliable_start=? WHERE id=?",
+        Timestamp.from(NOW.plusSeconds(60)),
+        matchId);
+    submit(AUTHOR, "0", "https://youtube.com/advance", true);
+    follow(FOLLOWER);
+    when(clock.instant()).thenReturn(NOW.plusSeconds(90));
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+
+    // When
+    ThrowingCallable invoke = () -> transaction.executeWithoutResult(status -> due.run());
+
+    // Then
+    assertThatThrownBy(invoke).isInstanceOf(IllegalTransactionStateException.class);
+    assertThat(count("notification")).isZero();
+    assertThat(count("match_announcement")).isZero();
+  }
+
   @Test
   @DisplayName("Advance publication uses the audience present at actual minute processing")
   void selectsAtProcessing() {

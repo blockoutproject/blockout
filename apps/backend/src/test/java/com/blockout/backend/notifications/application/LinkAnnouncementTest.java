@@ -29,7 +29,8 @@ class LinkAnnouncementTest {
     // Given
     NotificationStore store = mock(NotificationStore.class);
     when(store.facts(MATCH)).thenReturn(MatchAnnouncementFacts.empty(MATCH));
-    ProcessLinkAnnouncement processor = new ProcessLinkAnnouncement(store);
+    ProcessLinkAnnouncement processor =
+        new ProcessLinkAnnouncement(store, new AllocateAnnouncements(store));
 
     // When
     processor.process(
@@ -58,7 +59,8 @@ class LinkAnnouncementTest {
     MatchAnnouncementFacts facts = MatchAnnouncementFacts.empty(MATCH).consumeResult(null);
     if (consumed) facts = facts.consumePostResultLink();
     when(store.facts(MATCH)).thenReturn(facts);
-    ProcessLinkAnnouncement processor = new ProcessLinkAnnouncement(store);
+    ProcessLinkAnnouncement processor =
+        new ProcessLinkAnnouncement(store, new AllocateAnnouncements(store));
 
     // When
     processor.process(
@@ -88,7 +90,8 @@ class LinkAnnouncementTest {
     MatchAnnouncementFacts facts = MatchAnnouncementFacts.empty(MATCH);
     if (consumed) facts = facts.consumeLive();
     when(store.facts(MATCH)).thenReturn(facts);
-    ProcessLinkAnnouncement processor = new ProcessLinkAnnouncement(store);
+    ProcessLinkAnnouncement processor =
+        new ProcessLinkAnnouncement(store, new AllocateAnnouncements(store));
 
     // When
     processor.process(
@@ -122,7 +125,8 @@ class LinkAnnouncementTest {
     Instant now = OffsetDateTime.parse(newYorkTime).toInstant();
     NotificationStore store = mock(NotificationStore.class);
     when(store.facts(MATCH)).thenReturn(MatchAnnouncementFacts.empty(MATCH));
-    ProcessLinkAnnouncement processor = new ProcessLinkAnnouncement(store);
+    ProcessLinkAnnouncement processor =
+        new ProcessLinkAnnouncement(store, new AllocateAnnouncements(store));
 
     // When
     processor.process(

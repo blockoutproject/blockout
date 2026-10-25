@@ -10,8 +10,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.accounts.application.AccountAccess;
+import com.blockout.backend.collection.application.service.ChangeCollectionControls;
 import com.blockout.backend.collection.application.service.CloseCollectionSeason;
-import com.blockout.backend.collection.application.service.CollectionControlService;
+import com.blockout.backend.collection.application.service.ReadCollectionConfiguration;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import java.util.Optional;
@@ -40,7 +41,8 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 class CollectionControlWebMvcTest {
   @Autowired private MockMvc mvc;
   @MockitoBean private AccountAccess accounts;
-  @MockitoBean private CollectionControlService controls;
+  @MockitoBean private ChangeCollectionControls controls;
+  @MockitoBean private ReadCollectionConfiguration configurationReads;
   @MockitoBean private CloseCollectionSeason closure;
 
   @ParameterizedTest

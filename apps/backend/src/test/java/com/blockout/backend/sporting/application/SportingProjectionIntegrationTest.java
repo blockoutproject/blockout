@@ -4,10 +4,11 @@ import static com.blockout.backend.sporting.support.SportingIngestionFixture.DIV
 import static com.blockout.backend.sporting.support.SportingIngestionFixture.SOURCE;
 import static com.blockout.backend.sporting.support.SportingIngestionFixture.candidate;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.backend.collection.application.model.CollectionState;
-import com.blockout.backend.collection.application.service.CollectionCycleService;
-import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
+import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
@@ -24,12 +25,13 @@ import com.blockout.backend.sporting.application.model.SportingPublicInput;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Reason;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
-import com.blockout.backend.sporting.application.service.CalendarAcceptanceService;
-import com.blockout.backend.sporting.application.service.CatalogAcceptanceService;
-import com.blockout.backend.sporting.application.service.MatchAcceptanceService;
-import com.blockout.backend.sporting.application.service.SeasonService;
-import com.blockout.backend.sporting.application.service.SportingIdentityService;
-import com.blockout.backend.sporting.application.service.SportingReadService;
+import com.blockout.backend.sporting.application.service.AcceptCalendar;
+import com.blockout.backend.sporting.application.service.AcceptCatalog;
+import com.blockout.backend.sporting.application.service.AcceptMatchObservation;
+import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
+import com.blockout.backend.sporting.application.service.ReadSportingData;
+import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.time.LocalDate;
@@ -44,11 +46,13 @@ import org.junit.jupiter.api.Test;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
+import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
@@ -58,6 +62,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 /**
  * Real admitted F01 cycles and committed F02 transactions against the migrated PostgreSQL schema.
  */
+@Import(SportingIdentityFixture.class)
 @SpringBootTest
 @RecordApplicationEvents
 @Testcontainers
@@ -67,15 +72,17 @@ class SportingProjectionIntegrationTest {
   private static final OffsetDateTime NOW = OffsetDateTime.parse("2026-10-19T12:00:00Z");
   @Autowired private JdbcTemplate sql;
   @Autowired private PlatformTransactionManager transactions;
-  @Autowired private SeasonService seasons;
-  @Autowired private SportingIdentityService identities;
-  @Autowired private CollectionCycleService cycles;
-  @Autowired private CollectorRuntimeService runtimes;
-  @Autowired private CalendarAcceptanceService calendars;
-  @Autowired private MatchAcceptanceService matches;
-  @Autowired private CatalogAcceptanceService catalogs;
-  @Autowired private SportingReadService reads;
+  @Autowired private ChangeCollectionSeasons seasons;
+  @Autowired private SportingIdentityFixture identities;
+  @Autowired private AdmitCollectionCycle cycles;
+  @Autowired private RegisterCollectorRuntime runtimes;
+  @Autowired private AcceptCalendar calendars;
+  @Autowired private AcceptMatchObservation matches;
+  @Autowired private AcceptCatalog catalogs;
+  @Autowired private ReadSportingData reads;
+  @Autowired private ReadSportingAcquisition acquisitionReads;
   @Autowired private ApplicationEvents events;
+  @Autowired private SportingProjectionChanges projectionChanges;
   private CollectionState.Cycle cycle;
   private UUID pool;
   private UUID season;
@@ -105,6 +112,21 @@ class SportingProjectionIntegrationTest {
     season = scope.season();
     pool = scope.pool();
     cycle = scope.cycle();
+  }
+
+  @Test
+  @DisplayName("Projection handoff requires the transaction that owns the sporting mutation")
+  void refusesHandoffOutsideTransaction() {
+    // Given
+    events.clear();
+
+    // When
+    Throwable thrown =
+        catchThrowable(() -> projectionChanges.submit(SportingProjectionChanges.Kind.POOL, pool));
+
+    // Then
+    assertThat(thrown).isInstanceOf(IllegalTransactionStateException.class);
+    assertThat(events.stream(Changed.class)).isEmpty();
   }
 
   @Test
@@ -206,7 +228,7 @@ class SportingProjectionIntegrationTest {
             .accept(pool, calendar(1, List.of(candidate("M1", "Home", null))))
             .outcomes()
             .getFirst();
-    UUID club = reads.team(first.homeTeamId()).orElseThrow().clubId();
+    UUID club = acquisitionReads.team(first.homeTeamId()).orElseThrow().clubId();
     sql.update("UPDATE sporting_club SET municipality='Synthetic city' WHERE id=?", club);
     sql.update(
         "INSERT INTO sporting_division_term(division_id,term) VALUES (?,'N2'),(?,'National 2')",
@@ -254,7 +276,7 @@ class SportingProjectionIntegrationTest {
     // Given
     UUID professional =
         identities
-            .establishPool(
+            .createPool(
                 new PoolKey(
                     CollectionProviderEnum.LNV, season, "LNV", "CHAMP", null, null, "PHASE"),
                 "LNV_PACK",

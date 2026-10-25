@@ -6,9 +6,10 @@ import static org.mockito.Mockito.when;
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.RecordCollectionResult;
-import com.blockout.backend.collection.application.service.CollectionCycleService;
-import com.blockout.backend.collection.application.service.CollectionResultService;
-import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
+import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.RecordCollectionResults;
+import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
@@ -20,11 +21,14 @@ import com.blockout.backend.sporting.application.model.ObservationOutcome;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactEdit;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
-import com.blockout.backend.sporting.application.service.ClubDetailsService;
-import com.blockout.backend.sporting.application.service.ClubLocalityService;
-import com.blockout.backend.sporting.application.service.SeasonService;
-import com.blockout.backend.sporting.application.service.SportingIdentityService;
-import com.blockout.backend.sporting.application.service.SportingReadService;
+import com.blockout.backend.sporting.application.service.AcceptClubDetails;
+import com.blockout.backend.sporting.application.service.AcceptClubLocality;
+import com.blockout.backend.sporting.application.service.ChangeClubContacts;
+import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import com.blockout.backend.sporting.application.service.ReadSportingConfiguration;
+import com.blockout.backend.sporting.application.service.ReadSportingData;
+import com.blockout.backend.sporting.application.service.RestrictClubContacts;
+import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.time.Clock;
@@ -42,6 +46,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -53,6 +58,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Controlled-clock F01 admission/results use actual migrated F02 corrections and restrictions. */
+@Import(SportingIdentityFixture.class)
 @SpringBootTest
 @Testcontainers
 @DisplayName("Current seasonless club acquisition")
@@ -64,16 +70,21 @@ class ClubAcquisitionIntegrationTest {
   private static final Instant START = Instant.parse("2026-10-25T10:00:00Z");
   @MockitoBean private Clock clock;
   @Autowired private JdbcTemplate sql;
-  @Autowired private CollectionCycleService cycles;
-  @Autowired private CollectionResultService results;
-  @Autowired private CollectorRuntimeService runtimes;
-  @Autowired private ClubDetailsService details;
-  @Autowired private ClubLocalityService localities;
-  @Autowired private SportingReadService reads;
+  @Autowired private AdmitCollectionCycle cycles;
+  @Autowired private ReadCollectionWork collectionWork;
+  @Autowired private RecordCollectionResults results;
+  @Autowired private RegisterCollectorRuntime runtimes;
+
+  @Autowired private ChangeClubContacts details;
+  @Autowired private RestrictClubContacts contactRestrictions;
+  @Autowired private AcceptClubDetails clubObservations;
+  @Autowired private ReadSportingConfiguration configurationReads;
+  @Autowired private AcceptClubLocality localities;
+  @Autowired private ReadSportingData reads;
   @Autowired private AccountStore accounts;
   @Autowired private PlatformTransactionManager transactions;
-  @Autowired private SeasonService seasons;
-  @Autowired private SportingIdentityService identities;
+  @Autowired private ChangeCollectionSeasons seasons;
+  @Autowired private SportingIdentityFixture identities;
   private UUID account;
   private Instant now;
 
@@ -205,7 +216,7 @@ class ClubAcquisitionIntegrationTest {
   void reportsInvalidSecondaryField() {
     // Given
     CollectionState.Cycle sheets = admit(SHEETS, false);
-    details.accept(
+    clubObservations.accept(
         CLUB,
         new SportingPresentation.ClubObservation(
             context(sheets),
@@ -214,7 +225,7 @@ class ClubAcquisitionIntegrationTest {
 
     // When
     ObservationOutcome outcome =
-        details.accept(
+        clubObservations.accept(
             CLUB,
             new SportingPresentation.ClubObservation(
                 new MatchObservation.Context(sheets.id(), 2, now, null),
@@ -224,7 +235,12 @@ class ClubAcquisitionIntegrationTest {
     // Then
     assertThat(outcome.outcome()).isEqualTo(ObservationOutcomeEnum.ACCEPTED);
     assertThat(outcome.reasonType()).hasToString("urn:blockout:problem:unprocessable-content");
-    assertThat(details.get(account, CLUB).fields().get(ContactField.EMAIL).sourceValue())
+    assertThat(
+            configurationReads
+                .clubContacts(account, CLUB)
+                .fields()
+                .get(ContactField.EMAIL)
+                .sourceValue())
         .isEqualTo("valid@example.invalid");
     assertThat(reads.club(CLUB).orElseThrow().sourceName()).isEqualTo("Updated synthetic name");
   }
@@ -384,7 +400,7 @@ class ClubAcquisitionIntegrationTest {
                 new SportingPresentation.LocalityObservation(
                     context(first), revision, GeocodingOutcomeEnum.LOCATED, 48.86, 2.34))
             .outcome();
-    details.restrict(CLUB, Set.of(ContactField.CITY));
+    contactRestrictions.restrict(CLUB, Set.of(ContactField.CITY));
 
     // Then
     assertThat(late).isEqualTo(ObservationOutcomeEnum.STALE);
@@ -434,7 +450,7 @@ class ClubAcquisitionIntegrationTest {
         .admit(
             new CollectionState.StartCycle(
                 UUID.randomUUID(),
-                runtimes.current().incarnationId(),
+                collectionWork.current().incarnationId(),
                 control,
                 null,
                 revision,
@@ -449,7 +465,7 @@ class ClubAcquisitionIntegrationTest {
    * @return first bounded page of current context-qualified targets
    */
   private List<CollectionState.ServedTarget> targets(CollectionState.Cycle cycle) {
-    return cycles.targets(cycle.id(), 0, 50).items();
+    return collectionWork.targets(cycle.id(), 0, 50).items();
   }
 
   /**
@@ -458,7 +474,11 @@ class ClubAcquisitionIntegrationTest {
    * @param fields scenario-owned desired independent modes and values
    */
   private void correct(Map<ContactField, ContactEdit> fields) {
-    details.correct(account, CLUB, Long.toString(details.get(account, CLUB).revision()), fields);
+    details.correct(
+        account,
+        CLUB,
+        Long.toString(configurationReads.clubContacts(account, CLUB).revision()),
+        fields);
   }
 
   /**

@@ -32,7 +32,7 @@ class ResultAnnouncementTest {
   private final NotificationStore store = mock(NotificationStore.class);
   private final AnnouncementRecipients recipients = mock(AnnouncementRecipients.class);
   private final ProcessResultAnnouncement processor =
-      new ProcessResultAnnouncement(store, recipients);
+      new ProcessResultAnnouncement(store, recipients, new AllocateAnnouncements(store));
 
   @ParameterizedTest
   @CsvSource({"false,PLAIN_RESULT,false", "true,ENRICHED_RESULT,true"})

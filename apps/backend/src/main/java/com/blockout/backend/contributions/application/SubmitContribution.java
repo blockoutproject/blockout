@@ -2,11 +2,9 @@ package com.blockout.backend.contributions.application;
 
 import com.blockout.backend.access.application.CurrentPermissions;
 import com.blockout.backend.access.domain.Permission;
-import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.accounts.application.exception.AccountNotFoundException;
 import com.blockout.backend.contributions.domain.ContributionEligibility;
 import com.blockout.backend.contributions.domain.ContributionEligibility.Status;
-import com.blockout.backend.contributions.domain.ContributionQuota;
 import com.blockout.backend.contributions.domain.ContributionState;
 import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.domain.StreamAddress;
@@ -31,11 +29,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class SubmitContribution {
   private final MatchContributionAccess sporting;
   private final AnnouncementRecipients recipients;
-  private final AccountAccess accounts;
   private final CurrentPermissions permissions;
   private final ContributionStore store;
-  private final ContributionTransitions transitions;
+  private final AnnounceContribution transitions;
   private final Clock clock;
+  private final AssessContribution eligibility;
 
   /**
    * Locks sporting roots, then the complete actor/audience union before any contribution effect.
@@ -46,6 +44,10 @@ public class SubmitContribution {
    * @param address explicit literal URI, never fetched
    * @param administrative requires the current complete stream moderation grant
    * @return committed version outcome; internal failures roll back the entire command
+   * @throws AccountNotFoundException when the original actor disappeared before account locking
+   * @throws AccessDeniedException when the administrative command lacks the current exact grant
+   * @throws ContributionRejectedException for an invalid address, stale revision or eligibility
+   *     refusal
    */
   @Transactional
   public Outcome submit(
@@ -69,23 +71,7 @@ public class SubmitContribution {
       throw new ContributionRejectedException(Status.STALE_REVISION);
     Instant now = clock.instant();
     ContributionEligibility.Decision decision =
-        ContributionEligibility.evaluate(
-            new ContributionEligibility.Actor(
-                accountId, true, moderator, accounts.principalCreatedAt(accountId)),
-            new ContributionEligibility.Match(
-                facts.viewable(),
-                facts.professional(),
-                facts.schedule().localDate(),
-                facts.schedule().reliableStart(),
-                facts.definitiveResult()),
-            new ContributionEligibility.Current(
-                state,
-                store.active(matchId).orElse(null),
-                store.pending(matchId, accountId).orElse(null)),
-            state.revision(),
-            proposed,
-            store.usage(accountId, matchId, ContributionQuota.dayAt(now)),
-            now);
+        eligibility.evaluate(accountId, facts, state, moderator, proposed, now).decision();
     if (decision.status() == Status.UNCHANGED)
       return new Outcome(
           store.version(decision.existingVersionId()).orElseThrow(), revision, false);

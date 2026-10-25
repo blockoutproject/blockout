@@ -8,12 +8,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import com.blockout.backend.search.application.ProjectSearch;
 import com.blockout.backend.search.application.SearchDocuments;
-import com.blockout.backend.search.application.SearchProjection;
 import com.blockout.backend.search.application.SearchUnavailableException;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
-import com.blockout.backend.sporting.application.service.SportingReadService;
+import com.blockout.backend.sporting.application.service.ReadSportingData;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.IOException;
@@ -64,8 +64,8 @@ class SearchProjectionIntegrationTest {
   @Autowired JdbcTemplate sql;
   @Autowired PlatformTransactionManager transactions;
   @Autowired SportingProjectionChanges changes;
-  @Autowired SportingReadService sporting;
-  @Autowired SearchProjection projection;
+  @Autowired ReadSportingData sporting;
+  @Autowired ProjectSearch projection;
   @Autowired OpenSearchProjectionWriter writer;
   @Autowired ThreadPoolTaskScheduler tasks;
 
@@ -291,7 +291,7 @@ class SearchProjectionIntegrationTest {
                                 "city", property -> property.integer(integer -> integer))));
     OpenSearchProjectionWriter failedWriter = spy(writer);
     org.mockito.Mockito.doReturn(candidate).when(failedWriter).createGeneration();
-    SearchProjection failedProjection = new SearchProjection(sporting, failedWriter);
+    ProjectSearch failedProjection = new ProjectSearch(sporting, failedWriter);
 
     // When
     Throwable failure =
@@ -418,7 +418,7 @@ class SearchProjectionIntegrationTest {
             })
         .when(delayed)
         .publish(any());
-    SearchProjection delayedProjection = new SearchProjection(sporting, delayed);
+    ProjectSearch delayedProjection = new ProjectSearch(sporting, delayed);
 
     // When
     Throwable failure =
@@ -597,8 +597,8 @@ class SearchProjectionIntegrationTest {
      * @return actual projection use cases
      */
     @Bean
-    SearchProjection projection(SportingReadService sporting, OpenSearchProjectionWriter writer) {
-      return new SearchProjection(sporting, writer);
+    ProjectSearch projection(ReadSportingData sporting, OpenSearchProjectionWriter writer) {
+      return new ProjectSearch(sporting, writer);
     }
 
     /**
@@ -618,8 +618,7 @@ class SearchProjectionIntegrationTest {
      * @return startup and after-commit listener using the production cadence
      */
     @Bean
-    SearchProjectionScheduler scheduler(
-        SearchProjection projection, ThreadPoolTaskScheduler tasks) {
+    SearchProjectionScheduler scheduler(ProjectSearch projection, ThreadPoolTaskScheduler tasks) {
       return new SearchProjectionScheduler(
           projection,
           tasks,

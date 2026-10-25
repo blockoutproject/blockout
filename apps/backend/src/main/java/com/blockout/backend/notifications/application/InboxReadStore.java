@@ -1,19 +1,19 @@
 package com.blockout.backend.notifications.application;
 
+import com.blockout.backend.notifications.application.InboxViews.Continuation;
+import com.blockout.backend.notifications.application.InboxViews.Summary;
 import com.blockout.backend.notifications.domain.NotificationFamily;
 import com.blockout.backend.notifications.domain.NotificationVariant;
-import com.blockout.backend.sporting.application.ConsultationViews.MatchSummary;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Current personal selection and detached owner projections in the caller's transaction. */
+/**
+ * Current personal database selection; application reads own cross-feature hydration and
+ * composition.
+ */
 public interface InboxReadStore {
-  /** Consultation ends at this elapsed age, independently of physical cleanup. */
-  Duration RETENTION = Duration.ofDays(29);
-
   /**
    * Reads one current bounded inbox page.
    *
@@ -22,7 +22,7 @@ public interface InboxReadStore {
    * @param now evaluation instant
    * @return at most twenty current entries
    */
-  Page page(NotificationContext owner, Continuation after, Instant now);
+  Selection page(NotificationContext owner, Continuation after, Instant now);
 
   /**
    * Reads the exact current retained entry.
@@ -32,7 +32,7 @@ public interface InboxReadStore {
    * @param now evaluation instant
    * @return current retained entry, empty for any unavailable target
    */
-  Optional<Entry> member(NotificationContext owner, UUID id, Instant now);
+  Optional<Snapshot> member(NotificationContext owner, UUID id, Instant now);
 
   /**
    * Returns the current whole-inbox aggregate.
@@ -53,56 +53,38 @@ public interface InboxReadStore {
   Optional<UUID> matchId(NotificationContext owner, UUID id);
 
   /**
-   * Original persisted exclusive sort keys, independent of the continued row's existence.
-   *
-   * @param createdAt original persisted microsecond-precision creation instant
-   * @param id original UUID tie-breaker
-   */
-  record Continuation(Instant createdAt, UUID id) {}
-
-  /**
-   * Detached current presentation with fixed personal allocation and editorial choice.
+   * Scalar personal values selected with current owner, age and sporting predicates.
    *
    * @param id original personal identity
-   * @param createdAt original retention and ordering origin
+   * @param matchId retained sporting identity
+   * @param createdAt original ordering and retention origin
    * @param family fixed announcement composition
-   * @param variant stable French editorial choice
-   * @param read confirmed monotone read state
-   * @param match currently permitted F03 match summary
-   * @param publicLink current F08 active-link presence, without a video address
+   * @param variant stable editorial choice
+   * @param read persisted monotone read state
    */
-  record Entry(
+  record Snapshot(
       UUID id,
+      UUID matchId,
       Instant createdAt,
       NotificationFamily family,
       NotificationVariant variant,
-      boolean read,
-      MatchSummary match,
-      boolean publicLink) {}
+      boolean read) {}
 
   /**
-   * Bounded selection with no count or cross-request snapshot.
+   * Bounded database selection before application-owned current presentation hydration.
    *
-   * @param entries current authorized entries
+   * @param entries at most twenty authorized personal rows
    * @param next exclusive continuation, or null at exhaustion
    */
-  record Page(List<Entry> entries, Continuation next) {
+  record Selection(List<Snapshot> entries, Continuation next) {
     /**
-     * Detaches the bounded selection from its persistence context.
+     * Detaches the selected rows from mutable adapter collections.
      *
-     * @param entries current authorized entries
-     * @param next exclusive keys, or null
+     * @param entries current authorized rows
+     * @param next original exclusive keys, or null
      */
-    public Page {
+    public Selection {
       entries = List.copyOf(entries);
     }
   }
-
-  /**
-   * Count across all pages with its next age-driven invalidation point.
-   *
-   * @param unreadCount all currently consultable unread entries
-   * @param nextExpiryAt earliest counted expiry, absent exactly at zero
-   */
-  record Summary(long unreadCount, Instant nextExpiryAt) {}
 }

@@ -3,6 +3,7 @@ package com.blockout.backend.sporting.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
@@ -14,6 +15,7 @@ import com.blockout.backend.sporting.application.model.SportingViews.Classificat
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.infrastructure.DivisionEntity;
+import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.persistence.EntityManagerFactory;
 import java.awt.image.BufferedImage;
@@ -39,6 +41,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -50,16 +53,20 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Exercises persisted lifecycle, name uniqueness and division/classification ordering. */
+@Import(SportingIdentityFixture.class)
 @SpringBootTest
 @Testcontainers
 @DisplayName("Division lifecycle transactions")
 class DivisionIntegrationTest {
+  @Autowired private com.blockout.backend.access.application.CurrentPermissions permissions;
   @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
-  @Autowired private DivisionService divisions;
-  @Autowired private ClassificationService classifications;
-  @Autowired private SportingIdentityService identities;
-  @Autowired private SportingReadService reads;
-  @Autowired private SeasonService seasons;
+  @Autowired private ChangeDivisionLifecycle divisions;
+  @Autowired private ReadSportingConfiguration configurationReads;
+  @Autowired private ChangeSportingClassification classifications;
+
+  @Autowired private SportingIdentityFixture identities;
+  @Autowired private ReadSportingAcquisition acquisitionReads;
+  @Autowired private ChangeCollectionSeasons seasons;
   @Autowired private AccountStore accounts;
   @Autowired private JdbcTemplate sql;
   @Autowired private EntityManagerFactory entityManagerFactory;
@@ -133,7 +140,7 @@ class DivisionIntegrationTest {
       long loaded = statistics.getEntityStatistics(DivisionEntity.class.getName()).getLoadCount();
 
       // When
-      DivisionDetail result = divisions.get(account, original.id());
+      DivisionDetail result = configurationReads.division(account, original.id());
 
       // Then
       assertThat(result).isEqualTo(original);
@@ -161,7 +168,7 @@ class DivisionIntegrationTest {
         () -> divisions.create(account, "national 2", "#445566", null, null, null);
     // Then
     assertThatThrownBy(duplicate).isInstanceOf(SportingConflictException.class);
-    assertThat(divisions.list(account, true)).containsExactly(original);
+    assertThat(configurationReads.divisions(account, true)).containsExactly(original);
     assertThat(original.hasLogo()).isTrue();
     assertThat(
             sql.queryForObject(
@@ -185,8 +192,8 @@ class DivisionIntegrationTest {
     assertThat(inactive.gradient()).isEqualTo(gradient);
     assertThat(inactive.color()).isEqualTo(original.color());
     assertThat(unchanged).isEqualTo(inactive);
-    assertThat(divisions.list(account, false)).isEmpty();
-    assertThat(divisions.list(account, true)).containsExactly(inactive);
+    assertThat(configurationReads.divisions(account, false)).isEmpty();
+    assertThat(configurationReads.divisions(account, true)).containsExactly(inactive);
     assertThatThrownBy(() -> divisions.setActive(account, original.id(), "0", false))
         .isInstanceOf(SportingConflictException.class);
     assertThat(
@@ -206,11 +213,12 @@ class DivisionIntegrationTest {
     sql.update(
         "INSERT INTO account_permission(account_id, permission) VALUES (?, ?)", account, grant);
     // When
-    DivisionDetail read = divisions.get(account, division.id());
+    DivisionDetail read = configurationReads.division(account, division.id());
     // Then
     assertThat(read).isEqualTo(division);
-    assertThat(divisions.list(account, true)).containsExactly(division);
-    assertThatThrownBy(() -> divisions.requireLifecycle(account))
+    assertThat(configurationReads.divisions(account, true)).containsExactly(division);
+    assertThatThrownBy(
+            () -> permissions.requireForRead(account, Permission.MANAGE_DIVISION_LIFECYCLE))
         .isInstanceOf(AccessDeniedException.class);
     assertThatThrownBy(() -> divisions.setActive(account, division.id(), "0", false))
         .isInstanceOf(AccessDeniedException.class);
@@ -222,7 +230,7 @@ class DivisionIntegrationTest {
   @DisplayName("A successful upload preflight does not authorize creation after grant withdrawal")
   void rechecksGrantAfterUploadPreflight() {
     // Given
-    divisions.requireLifecycle(account);
+    permissions.requireForRead(account, Permission.MANAGE_DIVISION_LIFECYCLE);
     sql.update(
         "DELETE FROM account_permission WHERE account_id = ? AND permission = 'division-lifecycle.manage'",
         account);
@@ -233,7 +241,7 @@ class DivisionIntegrationTest {
 
     // Then
     assertThatThrownBy(create).isInstanceOf(AccessDeniedException.class);
-    assertThat(divisions.list(account, true)).isEmpty();
+    assertThat(configurationReads.divisions(account, true)).isEmpty();
   }
 
   @Test
@@ -254,8 +262,8 @@ class DivisionIntegrationTest {
     DivisionDetail inactive = divisions.setActive(account, gamma.id(), "0", false);
 
     // When
-    List<DivisionDetail> active = divisions.list(account, false);
-    List<DivisionDetail> all = divisions.list(account, true);
+    List<DivisionDetail> active = configurationReads.divisions(account, false);
+    List<DivisionDetail> all = configurationReads.divisions(account, true);
 
     // Then
     assertThat(active).containsExactly(alpha, beta);
@@ -275,13 +283,13 @@ class DivisionIntegrationTest {
     SportingClassification classification =
         new SportingClassification(original.id(), SportFormatEnum._6X6, SportGenderEnum.FEMALE);
     PoolView pool =
-        identities.establishPool(
+        identities.createPool(
             new PoolKey(
                 CollectionProviderEnum.FFVB, season, "organizer", "competition", null, null, "A"),
             "pack",
             "Pool",
             classification);
-    ClassificationView before = classifications.pool(account, pool.id());
+    ClassificationView before = configurationReads.pool(account, pool.id());
     CompletableFuture<Integer> pid = new CompletableFuture<>();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
@@ -312,8 +320,9 @@ class DivisionIntegrationTest {
       // Then
       assertThatThrownBy(() -> correction.get(15, TimeUnit.SECONDS))
           .hasCauseInstanceOf(SportingConflictException.class);
-      assertThat(classifications.pool(account, pool.id())).isEqualTo(before);
-      assertThat(reads.pool(pool.id()).orElseThrow().classification()).isEqualTo(classification);
+      assertThat(configurationReads.pool(account, pool.id())).isEqualTo(before);
+      assertThat(acquisitionReads.pool(pool.id()).orElseThrow().classification())
+          .isEqualTo(classification);
     }
   }
 }

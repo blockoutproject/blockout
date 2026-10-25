@@ -3,6 +3,7 @@ package com.blockout.backend.accounts.application;
 import com.blockout.backend.accounts.application.exception.AccountNotFoundException;
 import com.blockout.backend.accounts.application.exception.InvalidProfileChangeException;
 import com.blockout.backend.accounts.application.exception.UsernameUnavailableException;
+import com.blockout.backend.accounts.domain.AccountUsername;
 import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
 import com.blockout.backend.shared.validation.TextTrimming;
 import java.util.UUID;
@@ -42,12 +43,12 @@ public class ChangeAccountProfile {
       ProfilePhoto photo) {
     String normalized = TextTrimming.trim(username);
     if ((normalized == null && photoAction == null)
-        || (normalized != null && !normalized.matches("[A-Za-z0-9._-]{3,32}"))
-        || ((photoAction == ProfilePhotoActionEnum.REPLACE) != (photo != null)))
+        || (normalized != null && !normalized.matches(AccountUsername.FORMAT)))
       throw new InvalidProfileChangeException();
+    ProfilePhoto.requireConsistentIntent(photoAction, photo != null);
     accounts
         .lockById(id)
-        .filter(account -> issuer.equals(account.issuer()) && subject.equals(account.subject()))
+        .filter(account -> account.belongsTo(issuer, subject))
         .orElseThrow(AccountNotFoundException::new);
     accounts.changeProfile(id, normalized, photoAction, photo);
     return reads.original(issuer, subject, id);

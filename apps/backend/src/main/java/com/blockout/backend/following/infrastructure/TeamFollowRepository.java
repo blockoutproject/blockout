@@ -1,6 +1,6 @@
 package com.blockout.backend.following.infrastructure;
 
-import com.blockout.backend.following.application.FollowStore.Relation;
+import com.blockout.backend.following.application.FollowContext.Relation;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -37,12 +37,12 @@ interface TeamFollowRepository extends JpaRepository<TeamFollowEntity, UUID> {
    */
   @Query(
       """
-      SELECT NEW com.blockout.backend.following.application.FollowStore$Relation(
+      SELECT NEW com.blockout.backend.following.application.FollowContext$Relation(
         t.id, t.accountId, NEW com.blockout.backend.following.application.FollowContext$Target(
           com.blockout.backend.following.application.FollowContext$TargetType.TEAM, t.teamId))
       FROM TeamFollowEntity t WHERE t.teamId IN :teamIds
       UNION ALL
-      SELECT NEW com.blockout.backend.following.application.FollowStore$Relation(
+      SELECT NEW com.blockout.backend.following.application.FollowContext$Relation(
         p.id, p.accountId, NEW com.blockout.backend.following.application.FollowContext$Target(
           com.blockout.backend.following.application.FollowContext$TargetType.POOL, p.poolId))
       FROM PoolFollowEntity p WHERE p.poolId IN :poolIds

@@ -1,10 +1,10 @@
 package com.blockout.backend.notifications.application;
 
 import com.blockout.backend.accounts.application.AccountAccess;
+import com.blockout.backend.following.application.FollowContext.Relation;
 import com.blockout.backend.following.application.FollowContext.Target;
 import com.blockout.backend.following.application.FollowContext.TargetType;
-import com.blockout.backend.following.application.FollowEligibility;
-import com.blockout.backend.following.application.FollowStore.Relation;
+import com.blockout.backend.following.application.ReadFollowEligibility;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class AnnouncementRecipients {
-  private final FollowEligibility follows;
+  private final ReadFollowEligibility follows;
   private final AccountAccess accounts;
 
   /**

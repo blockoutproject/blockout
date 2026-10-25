@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -44,12 +46,13 @@ public class SportingProjectionChanges {
   private record Pending(Changed change) {}
 
   /**
-   * Registers one scope for delivery only if the current local transaction commits. Calls outside a
-   * transaction produce no handoff; no durable queue or replay is retained.
+   * Registers one scope within the mutation transaction for delivery only after commit. No durable
+   * queue or replay is retained; callers without a transaction are rejected before registration.
    *
    * @param kind affected sporting owner kind
    * @param id existing or newly persisted stable identity
    */
+  @Transactional(propagation = Propagation.MANDATORY)
   public void submit(Kind kind, UUID id) {
     events.publishEvent(new Pending(new Changed(Set.of(new Scope(kind, id)))));
   }

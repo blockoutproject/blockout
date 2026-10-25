@@ -24,7 +24,8 @@ class PurgeNotificationsTest {
     Instant cutoff = now.minus(Duration.ofDays(29));
     Clock clock = mock(Clock.class);
     when(clock.instant()).thenReturn(now, now.plusSeconds(60));
-    PurgeNotifications.ExpiredEntries batches = mock(PurgeNotifications.ExpiredEntries.class);
+    PurgeNotifications.DeleteExpiredEntries batches =
+        mock(PurgeNotifications.DeleteExpiredEntries.class);
     when(batches.delete(cutoff))
         .thenReturn(
             new NotificationStore.PurgeBatch(100, true),
@@ -45,7 +46,8 @@ class PurgeNotificationsTest {
     // Given
     Instant now = Instant.parse("2026-10-25T12:00:00Z");
     Instant cutoff = now.minus(Duration.ofDays(29));
-    PurgeNotifications.ExpiredEntries batches = mock(PurgeNotifications.ExpiredEntries.class);
+    PurgeNotifications.DeleteExpiredEntries batches =
+        mock(PurgeNotifications.DeleteExpiredEntries.class);
     when(batches.delete(cutoff)).thenThrow(new IllegalStateException("controlled failure"));
     PurgeNotifications purge = new PurgeNotifications(batches, Clock.fixed(now, ZoneOffset.UTC));
 
@@ -63,7 +65,8 @@ class PurgeNotificationsTest {
     // Given
     Instant now = Instant.parse("2026-10-25T12:00:00Z");
     Instant cutoff = now.minus(Duration.ofDays(29));
-    PurgeNotifications.ExpiredEntries batches = mock(PurgeNotifications.ExpiredEntries.class);
+    PurgeNotifications.DeleteExpiredEntries batches =
+        mock(PurgeNotifications.DeleteExpiredEntries.class);
     when(batches.delete(cutoff))
         .thenReturn(
             new NotificationStore.PurgeBatch(0, true), new NotificationStore.PurgeBatch(1, false));

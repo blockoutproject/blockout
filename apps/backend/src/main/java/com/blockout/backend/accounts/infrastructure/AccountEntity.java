@@ -1,5 +1,6 @@
 package com.blockout.backend.accounts.infrastructure;
 
+import com.blockout.backend.accounts.domain.AccountUsername;
 import com.blockout.backend.shared.validation.TextTrimming;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -36,7 +37,7 @@ public class AccountEntity {
   private String subject;
 
   @NotBlank
-  @Pattern(regexp = "[A-Za-z0-9._-]{3,32}")
+  @Pattern(regexp = AccountUsername.FORMAT)
   @Column(nullable = false, length = 32)
   @Setter(AccessLevel.PACKAGE)
   private String username;

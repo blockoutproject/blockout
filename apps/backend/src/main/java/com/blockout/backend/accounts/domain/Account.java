@@ -22,6 +22,17 @@ public record Account(
     Instant principalCreatedAt) {
 
   /**
+   * Matches the validated principal exactly, without email matching or replacement resolution.
+   *
+   * @param callerIssuer validated issuer
+   * @param callerSubject validated subject
+   * @return whether this lifecycle belongs to that exact principal
+   */
+  public boolean belongsTo(String callerIssuer, String callerSubject) {
+    return issuer.equals(callerIssuer) && subject.equals(callerSubject);
+  }
+
+  /**
    * Incorporates available principal evidence without clearing known data or changing the profile.
    *
    * @param availableEmail usable provider email, or null/blank when unavailable

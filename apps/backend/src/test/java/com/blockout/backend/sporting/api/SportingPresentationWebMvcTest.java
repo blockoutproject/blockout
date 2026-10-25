@@ -17,6 +17,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.blockout.backend.access.application.CurrentPermissions;
+import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.config.HttpConfiguration;
@@ -28,8 +30,9 @@ import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactValue;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
-import com.blockout.backend.sporting.application.service.ClubDetailsService;
-import com.blockout.backend.sporting.application.service.SportingPresentationService;
+import com.blockout.backend.sporting.application.service.ChangeClubContacts;
+import com.blockout.backend.sporting.application.service.ChangeSportingPresentation;
+import com.blockout.backend.sporting.application.service.ReadSportingConfiguration;
 import com.blockout.backend.sporting.support.SportingImageFixture;
 import java.nio.charset.StandardCharsets;
 import java.util.EnumMap;
@@ -59,6 +62,8 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
  */
 @WebMvcTest(SportingPresentationController.class)
 @Import({
+  SportingPresentationValidator.class,
+  com.blockout.backend.sporting.application.service.ValidateSportingImage.class,
   HttpConfiguration.class,
   SecurityConfiguration.class,
   CurrentAccount.class,
@@ -70,12 +75,14 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 @MockitoBean(types = com.blockout.backend.access.application.MaintenanceAdmission.class)
 @DisplayName("Sporting presentation HTTP boundary")
 class SportingPresentationWebMvcTest {
+  @MockitoBean private CurrentPermissions permissions;
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000193");
   private static final UUID RESOURCE = UUID.fromString("00000000-0000-4000-8000-000000000194");
   @Autowired private MockMvc mvc;
   @MockitoBean private AccountAccess accounts;
-  @MockitoBean private SportingPresentationService presentation;
-  @MockitoBean private ClubDetailsService contacts;
+  @MockitoBean private ChangeSportingPresentation presentation;
+  @MockitoBean private ReadSportingConfiguration configurationReads;
+  @MockitoBean private ChangeClubContacts contacts;
 
   @Test
   @DisplayName("Accepts complete names-only pool replacement with independent explicit nulls")
@@ -111,7 +118,7 @@ class SportingPresentationWebMvcTest {
     // Given
     Kind kind = path.equals("clubs") ? Kind.CLUB : path.equals("teams") ? Kind.TEAM : Kind.POOL;
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(presentation.get(ACCOUNT, kind, RESOURCE)).thenReturn(view(kind));
+    when(configurationReads.presentation(ACCOUNT, kind, RESOURCE)).thenReturn(view(kind));
 
     // When
     ResultActions response =
@@ -256,7 +263,7 @@ class SportingPresentationWebMvcTest {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     when(contacts.correct(eq(ACCOUNT), eq(RESOURCE), eq("0"), any())).thenReturn(contactState());
-    when(contacts.get(ACCOUNT, RESOURCE)).thenReturn(contactState());
+    when(configurationReads.clubContacts(ACCOUNT, RESOURCE)).thenReturn(contactState());
 
     // When
     mvc.perform(
@@ -310,7 +317,9 @@ class SportingPresentationWebMvcTest {
   void checksGrantBeforeDecoding() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    doThrow(new AccessDeniedException("Not permitted")).when(presentation).requireGrant(ACCOUNT);
+    doThrow(new AccessDeniedException("Not permitted"))
+        .when(permissions)
+        .requireForRead(ACCOUNT, Permission.MANAGE_SPORTING_PRESENTATION);
 
     // When
     ResultActions response =

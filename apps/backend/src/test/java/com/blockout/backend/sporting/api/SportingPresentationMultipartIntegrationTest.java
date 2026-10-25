@@ -11,8 +11,8 @@ import com.blockout.backend.generated.mobile.model.LogoActionEnum;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
-import com.blockout.backend.sporting.application.service.ClubDetailsService;
-import com.blockout.backend.sporting.application.service.SportingPresentationService;
+import com.blockout.backend.sporting.application.service.ChangeClubContacts;
+import com.blockout.backend.sporting.application.service.ChangeSportingPresentation;
 import com.blockout.backend.sporting.support.SportingImageFixture;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -57,9 +57,15 @@ import org.springframework.util.MultiValueMap;
 class SportingPresentationMultipartIntegrationTest {
   private static final UUID CLUB = UUID.fromString("00000000-0000-4000-8000-000000000193");
   @LocalServerPort private int port;
+  @MockitoBean private com.blockout.backend.access.application.CurrentPermissions permissions;
   @MockitoBean private CurrentAccount account;
-  @MockitoBean private SportingPresentationService presentation;
-  @MockitoBean private ClubDetailsService contacts;
+
+  @MockitoBean
+  private com.blockout.backend.sporting.application.service.ReadSportingConfiguration
+      configurationReads;
+
+  @MockitoBean private ChangeSportingPresentation presentation;
+  @MockitoBean private ChangeClubContacts contacts;
 
   @Test
   @DisplayName("Parses explicit null metadata and replacement bytes on a real multipart PATCH")
@@ -188,6 +194,8 @@ class SportingPresentationMultipartIntegrationTest {
   @Configuration(proxyBeanMethods = false)
   @EnableAutoConfiguration(exclude = DataSourceAutoConfiguration.class)
   @Import({
+    SportingPresentationValidator.class,
+    com.blockout.backend.sporting.application.service.ValidateSportingImage.class,
     SportingPresentationController.class,
     SportingPresentationMapperImpl.class,
     SportingObservationMapperImpl.class,

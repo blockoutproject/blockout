@@ -1,6 +1,5 @@
 package com.blockout.backend.notifications.application;
 
-import com.blockout.backend.contributions.application.ContributionStore;
 import com.blockout.backend.contributions.application.ReadPublicContribution;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts;
@@ -10,6 +9,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Ordinary bounded eligibility pass; each candidate commits independently in a proxied method. */
@@ -17,18 +17,19 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class ProcessDueLinkAnnouncements {
-  private final ContributionStore store;
-  private final DueMatch transaction;
+  private final ReadPublicContribution links;
+  private final ProcessDueMatch transaction;
 
   /**
    * Visits active links in bounded identity pages; failure leaves a match for the next normal pass.
    * No exact-H audience, timer per match or durable retry is retained.
    */
+  @Transactional(propagation = Propagation.NEVER)
   public void run() {
     UUID after = null;
     List<UUID> candidates;
     do {
-      candidates = store.activeMatches(after);
+      candidates = links.activeMatches(after);
       for (UUID id : candidates) {
         try {
           transaction.process(id);
@@ -42,7 +43,7 @@ public class ProcessDueLinkAnnouncements {
           log.atError()
               .addKeyValue("operation", "link_announcement_pass")
               .addKeyValue("scope", id)
-              .setCause(failure)
+              .addKeyValue("reason", failure.getClass().getSimpleName())
               .log("Link announcement candidate failed");
         }
       }
@@ -53,7 +54,7 @@ public class ProcessDueLinkAnnouncements {
   /** Required independent transaction owner, separate from the nontransactional scheduled loop. */
   @Service
   @RequiredArgsConstructor
-  public static class DueMatch {
+  public static class ProcessDueMatch {
     private final MatchContributionAccess sporting;
     private final ReadPublicContribution links;
     private final AnnouncementRecipients recipients;

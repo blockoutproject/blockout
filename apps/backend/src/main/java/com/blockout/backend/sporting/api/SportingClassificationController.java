@@ -4,7 +4,8 @@ import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.generated.mobile.api.SportingClassificationApi;
 import com.blockout.backend.generated.mobile.model.ClassificationDetailResponse;
 import com.blockout.backend.generated.mobile.model.SetClassificationRequest;
-import com.blockout.backend.sporting.application.service.ClassificationService;
+import com.blockout.backend.sporting.application.service.ChangeSportingClassification;
+import com.blockout.backend.sporting.application.service.ReadSportingConfiguration;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
@@ -15,7 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 public class SportingClassificationController implements SportingClassificationApi {
-  private final ClassificationService classifications;
+  private final ChangeSportingClassification classifications;
+  private final ReadSportingConfiguration configurationReads;
   private final CurrentAccount account;
   private final SportingAdministrationMapper mapper;
 
@@ -24,7 +26,7 @@ public class SportingClassificationController implements SportingClassificationA
   public ResponseEntity<ClassificationDetailResponse> getPackClassification(UUID packId) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(classifications.pack(account.id(), packId)));
+        .body(mapper.toDto(configurationReads.pack(account.id(), packId)));
   }
 
   /** {@inheritDoc} */
@@ -32,7 +34,7 @@ public class SportingClassificationController implements SportingClassificationA
   public ResponseEntity<ClassificationDetailResponse> getPoolClassification(UUID poolId) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(classifications.pool(account.id(), poolId)));
+        .body(mapper.toDto(configurationReads.pool(account.id(), poolId)));
   }
 
   /** {@inheritDoc} */

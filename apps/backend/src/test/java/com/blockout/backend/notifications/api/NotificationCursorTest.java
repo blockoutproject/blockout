@@ -3,11 +3,12 @@ package com.blockout.backend.notifications.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.blockout.backend.notifications.application.InboxReadStore.Continuation;
+import com.blockout.backend.notifications.application.InboxViews.Continuation;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.UUID;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -45,9 +46,13 @@ class NotificationCursorTest {
   @ValueSource(strings = {"", "?", "a===", "bm90LWtleXM"})
   @DisplayName("Rejects malformed URL-safe tokens")
   void rejectsToken(String token) {
-    // Given / When / Then
-    assertThatThrownBy(() -> NotificationCursor.decode(token))
-        .isInstanceOf(ResponseStatusException.class);
+    // Given: the parameter supplies one malformed token.
+
+    // When
+    ThrowingCallable decode = () -> NotificationCursor.decode(token);
+
+    // Then
+    assertThatThrownBy(decode).isInstanceOf(ResponseStatusException.class);
   }
 
   @ParameterizedTest
@@ -67,8 +72,10 @@ class NotificationCursorTest {
             .withoutPadding()
             .encodeToString(text.getBytes(StandardCharsets.US_ASCII));
 
-    // When / Then
-    assertThatThrownBy(() -> NotificationCursor.decode(cursor))
-        .isInstanceOf(ResponseStatusException.class);
+    // When
+    ThrowingCallable decode = () -> NotificationCursor.decode(cursor);
+
+    // Then
+    assertThatThrownBy(decode).isInstanceOf(ResponseStatusException.class);
   }
 }

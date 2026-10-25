@@ -1,13 +1,12 @@
 package com.blockout.backend.notifications.infrastructure;
 
 import com.blockout.backend.config.MappingConfiguration;
-import com.blockout.backend.notifications.application.InboxReadStore.Entry;
+import com.blockout.backend.notifications.application.InboxReadStore.Snapshot;
 import com.blockout.backend.notifications.domain.MatchAnnouncementFacts;
-import com.blockout.backend.sporting.application.ConsultationViews.MatchSummary;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-/** Detaches notification facts after their stores have selected and hydrated current owners. */
+/** Detaches notification allowances and selected personal rows without application decisions. */
 @Mapper(config = MappingConfiguration.class)
 interface NotificationPersistenceMapper {
   /**
@@ -20,13 +19,10 @@ interface NotificationPersistenceMapper {
   MatchAnnouncementFacts toDomain(MatchAnnouncementEntity source);
 
   /**
-   * Combines the selected personal row with already resolved current public facts.
+   * Detaches the selected personal row without performing sporting or contribution reads.
    *
-   * @param source current authorized row
-   * @param match current sporting summary
-   * @param publicLink whether an eligible public contribution currently exists
-   * @return detached inbox presentation facts
+   * @param source current authorized database row
+   * @return scalar application input before current presentation hydration
    */
-  @Mapping(target = "id", source = "source.id")
-  Entry toView(NotificationRow source, MatchSummary match, boolean publicLink);
+  Snapshot toSnapshot(NotificationRow source);
 }

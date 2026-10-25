@@ -3,6 +3,7 @@ package com.blockout.backend.sporting.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
@@ -19,11 +20,13 @@ import com.blockout.backend.sporting.application.model.SportingPresentation.View
 import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.port.SportingStore;
-import com.blockout.backend.sporting.application.service.SeasonService;
-import com.blockout.backend.sporting.application.service.SportingIdentityService;
-import com.blockout.backend.sporting.application.service.SportingImageService;
-import com.blockout.backend.sporting.application.service.SportingPresentationService;
-import com.blockout.backend.sporting.application.service.SportingReadService;
+import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import com.blockout.backend.sporting.application.service.ChangeSportingPresentation;
+import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
+import com.blockout.backend.sporting.application.service.ReadSportingConfiguration;
+import com.blockout.backend.sporting.application.service.ReadSportingData;
+import com.blockout.backend.sporting.application.service.ValidateSportingImage;
+import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingImageFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.nio.charset.StandardCharsets;
@@ -41,6 +44,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
@@ -57,16 +61,20 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * Rehearses manual F14 logo reassociation through real F02 owners and migrated PostgreSQL. All
  * identities, files and accounts are synthetic; no V1 source or external image host is accessed.
  */
+@Import(SportingIdentityFixture.class)
 @SpringBootTest
 @Testcontainers
 @DisplayName("Protected transition club logos")
 class TransitionLogoIntegrationTest {
+  @Autowired private com.blockout.backend.access.application.CurrentPermissions permissions;
   @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   @Autowired private SportingStore store;
-  @Autowired private SportingIdentityService identities;
-  @Autowired private SportingPresentationService presentation;
-  @Autowired private SportingReadService reads;
-  @Autowired private SeasonService seasons;
+  @Autowired private SportingIdentityFixture identities;
+  @Autowired private ChangeSportingPresentation presentation;
+  @Autowired private ReadSportingConfiguration configurationReads;
+  @Autowired private ReadSportingData reads;
+  @Autowired private ReadSportingAcquisition acquisitionReads;
+  @Autowired private ChangeCollectionSeasons seasons;
   @Autowired private AccountStore accounts;
   @Autowired private PlatformTransactionManager transactions;
   @Autowired private JdbcTemplate sql;
@@ -103,7 +111,7 @@ class TransitionLogoIntegrationTest {
         division);
     pool =
         identities
-            .establishPool(
+            .createPool(
                 new PoolKey(
                     CollectionProviderEnum.FFVB,
                     seasons.getOrCreate(2026).id(),
@@ -139,7 +147,7 @@ class TransitionLogoIntegrationTest {
                 new TeamCandidate(null, "Home", "000339", "Same synthetic club name"),
                 new TeamCandidate(null, "Away", "339", "Same synthetic club name"))
             .homeTeamId();
-    club = reads.team(team).orElseThrow().clubId();
+    club = acquisitionReads.team(team).orElseThrow().clubId();
   }
 
   @ParameterizedTest
@@ -160,8 +168,8 @@ class TransitionLogoIntegrationTest {
             new Edit("0", "Current V2 club name", null, LogoActionEnum.KEEP, null));
 
     // When
-    presentation.requireGrant(account);
-    Image validated = SportingImageService.validate(Files.readAllBytes(preserved));
+    permissions.requireForRead(account, Permission.MANAGE_SPORTING_PRESENTATION);
+    Image validated = new ValidateSportingImage().validate(Files.readAllBytes(preserved));
     View saved =
         presentation.set(
             account,
@@ -244,13 +252,13 @@ class TransitionLogoIntegrationTest {
   void refusesMissingFile() {
     // Given
     Path missing = preservedFiles.resolve("missing-logo.png");
-    View current = presentation.get(account, Kind.CLUB, club);
+    View current = configurationReads.presentation(account, Kind.CLUB, club);
 
     // When
     ThrowingCallable apply =
         () -> {
-          presentation.requireGrant(account);
-          Image validated = SportingImageService.validate(Files.readAllBytes(missing));
+          permissions.requireForRead(account, Permission.MANAGE_SPORTING_PRESENTATION);
+          Image validated = new ValidateSportingImage().validate(Files.readAllBytes(missing));
           presentation.set(
               account,
               Kind.CLUB,
@@ -260,7 +268,7 @@ class TransitionLogoIntegrationTest {
 
     // Then
     assertThatThrownBy(apply).isInstanceOf(NoSuchFileException.class);
-    assertThat(presentation.get(account, Kind.CLUB, club)).isEqualTo(current);
+    assertThat(configurationReads.presentation(account, Kind.CLUB, club)).isEqualTo(current);
     assertThat(reads.publicLogo(Kind.CLUB, club)).isEmpty();
   }
 
@@ -269,7 +277,8 @@ class TransitionLogoIntegrationTest {
   @DisplayName("Stops empty or corrupt preserved content before replacing a protected logo")
   void refusesCorruptBytes(String corrupt) throws Exception {
     // Given
-    Image original = SportingImageService.validate(SportingImageFixture.image("PNG", 0x112233));
+    Image original =
+        new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
     View current =
         presentation.set(
             account, Kind.CLUB, club, new Edit("0", null, null, LogoActionEnum.REPLACE, original));
@@ -280,8 +289,8 @@ class TransitionLogoIntegrationTest {
     // When
     ThrowingCallable apply =
         () -> {
-          presentation.requireGrant(account);
-          Image validated = SportingImageService.validate(Files.readAllBytes(preserved));
+          permissions.requireForRead(account, Permission.MANAGE_SPORTING_PRESENTATION);
+          Image validated = new ValidateSportingImage().validate(Files.readAllBytes(preserved));
           presentation.set(
               account,
               Kind.CLUB,
@@ -291,7 +300,7 @@ class TransitionLogoIntegrationTest {
 
     // Then
     assertThatThrownBy(apply).isInstanceOf(SportingValidationException.class);
-    assertThat(presentation.get(account, Kind.CLUB, club)).isEqualTo(current);
+    assertThat(configurationReads.presentation(account, Kind.CLUB, club)).isEqualTo(current);
     assertThat(reads.publicLogo(Kind.CLUB, club).orElseThrow().bytes()).isEqualTo(original.bytes());
   }
 
@@ -299,8 +308,9 @@ class TransitionLogoIntegrationTest {
   @DisplayName("Refuses reassociation after the current operator grant is withdrawn")
   void refusesRevokedGrant() throws Exception {
     // Given
-    View current = presentation.get(account, Kind.CLUB, club);
-    Image original = SportingImageService.validate(SportingImageFixture.image("PNG", 0x112233));
+    View current = configurationReads.presentation(account, Kind.CLUB, club);
+    Image original =
+        new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
     sql.update("DELETE FROM account_permission WHERE account_id=?", account);
 
     // When
@@ -321,15 +331,16 @@ class TransitionLogoIntegrationTest {
   @DisplayName("Preserves a newer manual logo when an earlier revision is resubmitted")
   void refusesStaleReplacement() throws Exception {
     // Given
-    View earlier = presentation.get(account, Kind.CLUB, club);
-    Image newer = SportingImageService.validate(SportingImageFixture.image("PNG", 0x445566));
+    View earlier = configurationReads.presentation(account, Kind.CLUB, club);
+    Image newer = new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x445566));
     View current =
         presentation.set(
             account,
             Kind.CLUB,
             club,
             new Edit(earlier.revision(), null, null, LogoActionEnum.REPLACE, newer));
-    Image oldCopy = SportingImageService.validate(SportingImageFixture.image("PNG", 0x112233));
+    Image oldCopy =
+        new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
 
     // When
     ThrowingCallable apply =
@@ -342,7 +353,7 @@ class TransitionLogoIntegrationTest {
 
     // Then
     assertThatThrownBy(apply).isInstanceOf(SportingConflictException.class);
-    assertThat(presentation.get(account, Kind.CLUB, club)).isEqualTo(current);
+    assertThat(configurationReads.presentation(account, Kind.CLUB, club)).isEqualTo(current);
     assertThat(reads.publicLogo(Kind.CLUB, club).orElseThrow().bytes()).isEqualTo(newer.bytes());
   }
 
@@ -352,10 +363,10 @@ class TransitionLogoIntegrationTest {
   void inheritsOnlyEstablishedClub() throws Exception {
     // Given
     UUID season = seasons.getOrCreate(2027).id();
-    PoolKey currentKey = reads.pool(pool).orElseThrow().key();
+    PoolKey currentKey = acquisitionReads.pool(pool).orElseThrow().key();
     UUID nextPool =
         identities
-            .establishPool(
+            .createPool(
                 new PoolKey(
                     CollectionProviderEnum.FFVB,
                     season,
@@ -366,7 +377,7 @@ class TransitionLogoIntegrationTest {
                     "NEXT"),
                 "PACK",
                 "Next synthetic season",
-                reads.pool(pool).orElseThrow().classification())
+                acquisitionReads.pool(pool).orElseThrow().classification())
             .id();
     UUID nextTeam =
         identities
@@ -378,7 +389,7 @@ class TransitionLogoIntegrationTest {
             .homeTeamId();
     UUID professionalPool =
         identities
-            .establishPool(
+            .createPool(
                 new PoolKey(
                     CollectionProviderEnum.LNV,
                     season,
@@ -389,7 +400,7 @@ class TransitionLogoIntegrationTest {
                     "PHASE"),
                 "PACK",
                 "Synthetic professional pool",
-                reads.pool(pool).orElseThrow().classification())
+                acquisitionReads.pool(pool).orElseThrow().classification())
             .id();
     UUID professional =
         identities
@@ -399,7 +410,8 @@ class TransitionLogoIntegrationTest {
                 new TeamCandidate("000339", "Home", null, null),
                 new TeamCandidate("339", "Away", null, null))
             .homeTeamId();
-    Image original = SportingImageService.validate(SportingImageFixture.image("PNG", 0x112233));
+    Image original =
+        new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
 
     // When
     presentation.set(
@@ -407,10 +419,10 @@ class TransitionLogoIntegrationTest {
 
     // Then
     assertThat(reads.publicLogo(Kind.TEAM, team).orElseThrow().bytes()).isEqualTo(original.bytes());
-    assertThat(reads.team(nextTeam).orElseThrow().clubId()).isEqualTo(club);
+    assertThat(acquisitionReads.team(nextTeam).orElseThrow().clubId()).isEqualTo(club);
     assertThat(reads.publicLogo(Kind.TEAM, nextTeam).orElseThrow().bytes())
         .isEqualTo(original.bytes());
-    assertThat(reads.team(professional).orElseThrow().clubId()).isNull();
+    assertThat(acquisitionReads.team(professional).orElseThrow().clubId()).isNull();
     assertThat(reads.publicLogo(Kind.TEAM, professional)).isEmpty();
     assertThat(
             sql.queryForObject(

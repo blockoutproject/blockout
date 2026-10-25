@@ -1,6 +1,6 @@
 package com.blockout.backend.search.infrastructure;
 
-import com.blockout.backend.search.application.SearchProjection;
+import com.blockout.backend.search.application.ProjectSearch;
 import com.blockout.backend.search.application.SearchProjectionBulkException;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Changed;
 import io.micrometer.core.instrument.Gauge;
@@ -15,7 +15,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 /** In-memory handoff and ordinary catch-up; every task executes on the same scheduler thread. */
 @Slf4j
 public class SearchProjectionScheduler {
-  private final SearchProjection projection;
+  private final ProjectSearch projection;
   private final ThreadPoolTaskScheduler tasks;
   private final SearchProjectionProperties properties;
   private final MeterRegistry registry;
@@ -30,7 +30,7 @@ public class SearchProjectionScheduler {
    * @param registry existing F13 metric registry
    */
   public SearchProjectionScheduler(
-      SearchProjection projection,
+      ProjectSearch projection,
       ThreadPoolTaskScheduler tasks,
       SearchProjectionProperties properties,
       MeterRegistry registry) {

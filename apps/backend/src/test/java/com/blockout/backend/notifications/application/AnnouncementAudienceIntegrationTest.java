@@ -25,7 +25,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @DisplayName("Announcement audience turnover under account locks")
 class AnnouncementAudienceIntegrationTest extends ContributionScenario {
-  @Autowired private ProcessDueLinkAnnouncements.DueMatch dueMatch;
+  @Autowired private ProcessDueLinkAnnouncements.ProcessDueMatch dueMatch;
 
   @Test
   @DisplayName("An audience turnover aborts processing without consuming the category")

@@ -13,13 +13,13 @@ import com.blockout.backend.generated.ingestion.model.StandingsObservationIntern
 import com.blockout.backend.sporting.application.exception.SportingValidationException;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
-import com.blockout.backend.sporting.application.service.CalendarAcceptanceService;
-import com.blockout.backend.sporting.application.service.CatalogAcceptanceService;
-import com.blockout.backend.sporting.application.service.ClubDetailsService;
-import com.blockout.backend.sporting.application.service.ClubLocalityService;
-import com.blockout.backend.sporting.application.service.MatchAcceptanceService;
-import com.blockout.backend.sporting.application.service.SportingImageService;
-import com.blockout.backend.sporting.application.service.StandingsService;
+import com.blockout.backend.sporting.application.service.AcceptCalendar;
+import com.blockout.backend.sporting.application.service.AcceptCatalog;
+import com.blockout.backend.sporting.application.service.AcceptClubDetails;
+import com.blockout.backend.sporting.application.service.AcceptClubLocality;
+import com.blockout.backend.sporting.application.service.AcceptMatchObservation;
+import com.blockout.backend.sporting.application.service.AcceptSourceImage;
+import com.blockout.backend.sporting.application.service.AcceptStandings;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -33,15 +33,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 public class SportingIngestionController implements SportingApi {
-  private final MatchAcceptanceService matches;
-  private final CalendarAcceptanceService calendars;
-  private final CatalogAcceptanceService catalogs;
-  private final StandingsService standings;
+  private final AcceptMatchObservation matches;
+  private final AcceptCalendar calendars;
+  private final AcceptCatalog catalogs;
+  private final AcceptStandings standings;
   private final SportingObservationMapper mapper;
   private final SportingObservationValidator validator;
-  private final ClubDetailsService clubs;
-  private final ClubLocalityService localities;
-  private final SportingImageService images;
+  private final AcceptClubDetails clubObservations;
+  private final AcceptClubLocality localities;
+  private final AcceptSourceImage images;
+  private final com.blockout.backend.sporting.application.service.ValidateSportingImage
+      imageContent;
   private final SportingPresentationMapper presentationMapper;
 
   /** {@inheritDoc} */
@@ -50,7 +52,9 @@ public class SportingIngestionController implements SportingApi {
       UUID clubId, ClubDetailsInternalRequest request) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(clubs.accept(clubId, presentationMapper.toObservation(request))));
+        .body(
+            mapper.toDto(
+                clubObservations.accept(clubId, presentationMapper.toObservation(request))));
   }
 
   /** {@inheritDoc} */
@@ -105,7 +109,7 @@ public class SportingIngestionController implements SportingApi {
     images.requireSource(teamId, context);
     Image validated;
     try {
-      validated = SportingImageService.validate(body.getContentAsByteArray());
+      validated = imageContent.validate(body.getContentAsByteArray());
     } catch (IOException invalid) {
       throw new SportingValidationException();
     }

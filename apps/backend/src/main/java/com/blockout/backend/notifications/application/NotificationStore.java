@@ -1,8 +1,7 @@
 package com.blockout.backend.notifications.application;
 
+import com.blockout.backend.notifications.application.AllocateAnnouncements.Entry;
 import com.blockout.backend.notifications.domain.MatchAnnouncementFacts;
-import com.blockout.backend.notifications.domain.NotificationFamily;
-import com.blockout.backend.notifications.domain.NotificationVariant;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -59,23 +58,4 @@ public interface NotificationStore {
    * @param entry immutable allocation with no copied sporting text
    */
   void create(Entry entry);
-
-  /**
-   * Immutable personal allocation for persistence and later ephemeral handoff, without read
-   * mutation.
-   *
-   * @param id personal UUID
-   * @param accountId locked original owner
-   * @param matchId locked original match
-   * @param family fixed family
-   * @param variant fixed editorial choice
-   * @param createdAt original processing instant in UTC
-   */
-  record Entry(
-      UUID id,
-      UUID accountId,
-      UUID matchId,
-      NotificationFamily family,
-      NotificationVariant variant,
-      Instant createdAt) {}
 }

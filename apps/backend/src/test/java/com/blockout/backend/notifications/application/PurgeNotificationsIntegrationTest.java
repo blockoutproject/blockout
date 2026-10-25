@@ -52,7 +52,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @DisplayName("Daily notification retention on PostgreSQL")
 class PurgeNotificationsIntegrationTest {
   @Autowired private NotificationRetentionConfiguration daily;
-  @Autowired private PurgeNotifications.ExpiredEntries batch;
+  @Autowired private PurgeNotifications.DeleteExpiredEntries batch;
   @Autowired private ReadInbox reads;
   @Autowired private MarkNotificationRead marks;
   @Autowired private NotificationStore store;
@@ -177,7 +177,7 @@ class PurgeNotificationsIntegrationTest {
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM notification", Long.class)).isEqualTo(6);
     NotificationContext owner = new NotificationContext(ACCOUNT);
     assertThat(reads.page(owner, null).entries())
-        .extracting(InboxReadStore.Entry::id)
+        .extracting(InboxViews.Entry::id)
         .containsExactly(survivor);
     assertThat(reads.summary(owner).unreadCount()).isEqualTo(1);
     UUID expired = UUID.fromString("10000000-0000-4000-8000-000000000105");
@@ -240,7 +240,7 @@ class PurgeNotificationsIntegrationTest {
                         });
                 PostgresTestDatabase.awaitBlocked(sql, purgePid);
                 store.create(
-                    new NotificationStore.Entry(
+                    new AllocateAnnouncements.Entry(
                         newMatch,
                         ACCOUNT,
                         newMatch,

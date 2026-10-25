@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class MarkNotificationRead {
   private final InboxReadStore reads;
+  private final ReadInbox inbox;
   private final NotificationStore writes;
   private final MatchContributionAccess sporting;
   private final AccountAccess accounts;
@@ -30,16 +31,15 @@ public class MarkNotificationRead {
    * @throws NotificationNotFoundException for a missing, hidden, expired or foreign entry/owner
    */
   @Transactional
-  public InboxReadStore.Entry mark(NotificationContext owner, UUID id) {
+  public InboxViews.Entry mark(NotificationContext owner, UUID id) {
     UUID matchId = reads.matchId(owner, id).orElseThrow(NotificationNotFoundException::new);
     sporting.lock(matchId);
     if (!accounts.lock(owner.accountId())) throw new NotificationNotFoundException();
     Instant now = clock.instant();
-    InboxReadStore.Entry current =
-        reads.member(owner, id, now).orElseThrow(NotificationNotFoundException::new);
+    InboxViews.Entry current = inbox.member(owner, id, now);
     if (current.read()) return current;
     if (!writes.markRead(owner, id, now)) throw new NotificationNotFoundException();
-    return new InboxReadStore.Entry(
+    return new InboxViews.Entry(
         current.id(),
         current.createdAt(),
         current.family(),

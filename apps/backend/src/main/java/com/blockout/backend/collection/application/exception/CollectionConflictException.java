@@ -16,4 +16,13 @@ public class CollectionConflictException extends RuntimeException {
     super("Collection operation conflicts with current state");
     this.type = type;
   }
+
+  /**
+   * Creates the existing safe context failure without provider data.
+   *
+   * @return refusal of an incompatible admitted context
+   */
+  public static CollectionConflictException invalidContext() {
+    return new CollectionConflictException("invalid-cycle-context");
+  }
 }

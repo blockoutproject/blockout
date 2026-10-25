@@ -18,12 +18,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.blockout.backend.access.application.CurrentPermissions;
+import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
-import com.blockout.backend.sporting.application.service.DivisionService;
+import com.blockout.backend.sporting.application.service.ChangeDivisionLifecycle;
+import com.blockout.backend.sporting.application.service.ReadSportingConfiguration;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -47,6 +50,8 @@ import org.springframework.test.web.servlet.ResultActions;
 /** Qualifies actual multipart metadata binding and atomic image validation before effects. */
 @WebMvcTest(controllers = DivisionAdministrationController.class)
 @Import({
+  SportingPresentationValidator.class,
+  com.blockout.backend.sporting.application.service.ValidateSportingImage.class,
   HttpConfiguration.class,
   SecurityConfiguration.class,
   CurrentAccount.class,
@@ -56,10 +61,12 @@ import org.springframework.test.web.servlet.ResultActions;
 @DisplayName("Division administration HTTP boundary")
 @MockitoBean(types = com.blockout.backend.access.application.MaintenanceAdmission.class)
 class DivisionAdministrationWebMvcTest {
+  @MockitoBean private CurrentPermissions permissions;
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000001");
   private static final UUID DIVISION = UUID.fromString("00000000-0000-4000-8000-000000000002");
   @Autowired private MockMvc mvc;
-  @MockitoBean private DivisionService divisions;
+  @MockitoBean private ChangeDivisionLifecycle divisions;
+  @MockitoBean private ReadSportingConfiguration configurationReads;
   @MockitoBean private AccountAccess accounts;
 
   @Test
@@ -123,8 +130,8 @@ class DivisionAdministrationWebMvcTest {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     doThrow(new AccessDeniedException("Division lifecycle is not permitted"))
-        .when(divisions)
-        .requireLifecycle(ACCOUNT);
+        .when(permissions)
+        .requireForRead(ACCOUNT, Permission.MANAGE_DIVISION_LIFECYCLE);
     MockMultipartFile image =
         new MockMultipartFile("image", "synthetic.png", "image/png", new byte[] {1, 2, 3});
 
@@ -247,8 +254,8 @@ class DivisionAdministrationWebMvcTest {
             false,
             false);
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(divisions.list(ACCOUNT, true)).thenReturn(List.of(division));
-    when(divisions.get(ACCOUNT, DIVISION)).thenReturn(division);
+    when(configurationReads.divisions(ACCOUNT, true)).thenReturn(List.of(division));
+    when(configurationReads.division(ACCOUNT, DIVISION)).thenReturn(division);
     // When
     ResultActions list =
         mvc.perform(

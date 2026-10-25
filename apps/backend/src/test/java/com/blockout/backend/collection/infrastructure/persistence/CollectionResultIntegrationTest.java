@@ -2,6 +2,7 @@ package com.blockout.backend.collection.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.when;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
@@ -9,9 +10,10 @@ import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.collection.application.port.CollectionStore;
-import com.blockout.backend.collection.application.service.CollectionCycleService;
-import com.blockout.backend.collection.application.service.CollectionResultService;
-import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
+import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.RecordCollectionResults;
+import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
@@ -23,8 +25,8 @@ import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
-import com.blockout.backend.sporting.application.service.SeasonService;
-import com.blockout.backend.sporting.application.service.SportingIdentityService;
+import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.persistence.EntityManagerFactory;
 import java.time.Clock;
@@ -42,6 +44,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -54,6 +57,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Exercises retained evidence and completion against the real PostgreSQL ownership boundaries. */
+@Import(SportingIdentityFixture.class)
 @SpringBootTest
 @Testcontainers
 @DisplayName("Current collection evidence and control completion")
@@ -63,14 +67,16 @@ class CollectionResultIntegrationTest {
   private static final UUID CONTROL = UUID.fromString("00000000-0000-4000-8000-000000000001");
   private static final UUID SCOPE = UUID.fromString("00000000-0000-4000-8000-000000000153");
   @MockitoBean private Clock clock;
-  @Autowired private CollectorRuntimeService runtimes;
-  @Autowired private CollectionCycleService cycles;
-  @Autowired private CollectionResultService results;
+  @Autowired private RegisterCollectorRuntime runtimes;
+  @Autowired private ReadCollectionWork collectionWork;
+  @Autowired private AdmitCollectionCycle cycles;
+
+  @Autowired private RecordCollectionResults results;
   @Autowired private CollectionStore store;
   @Autowired private JdbcTemplate sql;
   @Autowired private PlatformTransactionManager transactions;
-  @Autowired private SportingIdentityService identities;
-  @Autowired private SeasonService seasons;
+  @Autowired private SportingIdentityFixture identities;
+  @Autowired private ChangeCollectionSeasons seasons;
   @Autowired private EntityManagerFactory entityManagerFactory;
   private CollectionState.Cycle cycle;
 
@@ -78,14 +84,14 @@ class CollectionResultIntegrationTest {
   @DisplayName("Refuses a runtime lock without an application transaction")
   void rejectsLockOutsideTransaction() {
     // Given
-    CollectionState.Runtime before = runtimes.current();
+    CollectionState.Runtime before = collectionWork.current();
 
     // When
     ThrowingCallable lock = () -> store.lockRuntimeForReplacement();
 
     // Then
     assertThatThrownBy(lock).isInstanceOf(IllegalTransactionStateException.class);
-    assertThat(runtimes.current()).isEqualTo(before);
+    assertThat(collectionWork.current()).isEqualTo(before);
   }
 
   @Test
@@ -153,10 +159,13 @@ class CollectionResultIntegrationTest {
         SCOPE,
         cycle.id());
 
-    // When / Then
-    assertThatThrownBy(() -> results.complete(cycle.id(), cycle.startedAt().plusSeconds(1)))
-        .isInstanceOf(CollectionConflictException.class);
-    assertThat(cycles.get(cycle.id()).completedAt()).isNull();
+    // When
+    Throwable thrown =
+        catchThrowable(() -> results.complete(cycle.id(), cycle.startedAt().plusSeconds(1)));
+
+    // Then
+    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+    assertThat(collectionWork.get(cycle.id()).completedAt()).isNull();
   }
 
   /**
@@ -181,7 +190,7 @@ class CollectionResultIntegrationTest {
         "UPDATE collection_control SET enabled = TRUE, current_cycle_id = NULL, last_success_at = NULL, last_attempt_at = NULL WHERE id = ?",
         CONTROL);
     UUID startup = UUID.randomUUID();
-    runtimes.register(runtimes.current().revision(), startup);
+    runtimes.register(collectionWork.current().revision(), startup);
     cycle =
         cycles
             .admit(
@@ -391,7 +400,7 @@ class CollectionResultIntegrationTest {
             store.result(
                 CONTROL, SCOPE, CollectionStageEnum.CLUB_SHEET, CollectionPhaseEnum.INTEGRATION))
         .isEmpty();
-    assertThat(cycles.get(cycle.id()).completedAt()).isNull();
+    assertThat(collectionWork.get(cycle.id()).completedAt()).isNull();
     assertThat(control().lastAttemptAt()).isEqualTo(controlBefore.lastAttemptAt());
     assertThat(control().lastSuccessAt()).isEqualTo(controlBefore.lastSuccessAt());
     assertThat(control().revision()).isEqualTo(controlBefore.revision());
@@ -499,9 +508,11 @@ class CollectionResultIntegrationTest {
             null,
             null);
 
-    // When / Then
-    assertThatThrownBy(() -> results.record(cycle.id(), unselected))
-        .isInstanceOf(CollectionConflictException.class);
+    // When
+    Throwable thrown = catchThrowable(() -> results.record(cycle.id(), unselected));
+
+    // Then
+    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_result", Integer.class))
         .isZero();
   }
@@ -672,7 +683,7 @@ class CollectionResultIntegrationTest {
         reference);
     UUID pool =
         identities
-            .establishPool(
+            .createPool(
                 new PoolKey(
                     CollectionProviderEnum.FFVB,
                     seasons.getOrCreate(2026).id(),

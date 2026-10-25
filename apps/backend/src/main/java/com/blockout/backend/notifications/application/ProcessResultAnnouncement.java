@@ -1,31 +1,28 @@
 package com.blockout.backend.notifications.application;
 
-import com.blockout.backend.following.application.FollowStore.Relation;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
-import com.blockout.backend.notifications.application.AnnouncementRecipients.Recipient;
-import com.blockout.backend.notifications.application.NotificationStore.Entry;
+import com.blockout.backend.notifications.application.AllocateAnnouncements.Created;
 import com.blockout.backend.notifications.domain.MatchAnnouncementFacts;
 import com.blockout.backend.notifications.domain.NotificationFamily;
-import com.blockout.backend.notifications.domain.NotificationVariant;
 import com.blockout.backend.sporting.application.model.MatchObservation.Result;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Required local announcement participant; the F02/F08 producer binding is a separate lot. */
+/**
+ * Consumes result allowances and allocates inbox entries inside the sporting producer transaction.
+ */
 @Service
 @RequiredArgsConstructor
 public class ProcessResultAnnouncement {
   private final NotificationStore store;
   private final AnnouncementRecipients recipients;
+  private final AllocateAnnouncements allocations;
 
   /**
    * Records the accepted transition and inbox atomically in the producer's existing transaction.
@@ -35,6 +32,7 @@ public class ProcessResultAnnouncement {
    *
    * @param transition trusted accepted owner facts, never raw client proposals
    * @return newly allocated entries and original relation identities for later transient handoff
+   * @throws AnnouncementAudienceChangedException when the complete audience cannot be safely locked
    */
   @Transactional(propagation = Propagation.MANDATORY)
   public List<Created> process(Transition transition) {
@@ -55,21 +53,11 @@ public class ProcessResultAnnouncement {
             : NotificationFamily.PLAIN_RESULT;
     store.saveFacts(previous.consumeResult(eligible ? family : null));
     if (!eligible) return List.of();
-    List<Created> created = new ArrayList<>();
-    for (Recipient recipient : recipients.select(transition.match())) {
-      UUID id = UUID.randomUUID();
-      Entry entry =
-          new Entry(
-              id,
-              recipient.accountId(),
-              transition.match().id(),
-              family,
-              NotificationVariant.choose(id),
-              transition.occurredAt());
-      store.create(entry);
-      created.add(new Created(entry, recipient.relations()));
-    }
-    return List.copyOf(created);
+    return allocations.create(
+        transition.match().id(),
+        family,
+        recipients.select(transition.match()),
+        transition.occurredAt());
   }
 
   /**
@@ -118,24 +106,6 @@ public class ProcessResultAnnouncement {
     public Transition {
       Objects.requireNonNull(match);
       Objects.requireNonNull(occurredAt);
-    }
-  }
-
-  /**
-   * Newly created personal allocation and original follow incarnations; never a durable send job.
-   *
-   * @param entry persisted unread personal entry
-   * @param relations trigger-time origins for later continuity checks
-   */
-  public record Created(NotificationStore.Entry entry, Set<Relation> relations) {
-    /**
-     * Makes the eventual handoff independent of mutable selection collections.
-     *
-     * @param entry newly created immutable allocation
-     * @param relations original current follows
-     */
-    public Created {
-      relations = Set.copyOf(relations);
     }
   }
 }

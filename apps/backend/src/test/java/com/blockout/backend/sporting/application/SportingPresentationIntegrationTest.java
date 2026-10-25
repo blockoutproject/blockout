@@ -9,11 +9,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionState;
-import com.blockout.backend.collection.application.service.CollectionCycleService;
-import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
+import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.GeocodingOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
@@ -42,14 +44,19 @@ import com.blockout.backend.sporting.application.model.SportingPresentation.Loca
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
-import com.blockout.backend.sporting.application.service.ClubDetailsService;
-import com.blockout.backend.sporting.application.service.ClubLocalityService;
-import com.blockout.backend.sporting.application.service.DivisionService;
-import com.blockout.backend.sporting.application.service.SeasonService;
-import com.blockout.backend.sporting.application.service.SportingIdentityService;
-import com.blockout.backend.sporting.application.service.SportingImageService;
-import com.blockout.backend.sporting.application.service.SportingPresentationService;
-import com.blockout.backend.sporting.application.service.SportingReadService;
+import com.blockout.backend.sporting.application.service.AcceptClubDetails;
+import com.blockout.backend.sporting.application.service.AcceptClubLocality;
+import com.blockout.backend.sporting.application.service.AcceptSourceImage;
+import com.blockout.backend.sporting.application.service.ChangeClubContacts;
+import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import com.blockout.backend.sporting.application.service.ChangeDivisionLifecycle;
+import com.blockout.backend.sporting.application.service.ChangeSportingPresentation;
+import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
+import com.blockout.backend.sporting.application.service.ReadSportingConfiguration;
+import com.blockout.backend.sporting.application.service.ReadSportingData;
+import com.blockout.backend.sporting.application.service.RestrictClubContacts;
+import com.blockout.backend.sporting.application.service.ValidateSportingImage;
+import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingImageFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture.Scope;
@@ -76,6 +83,7 @@ import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor;
@@ -92,29 +100,38 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Proves presentation transactions and current reads against explicitly migrated PostgreSQL. */
+@Import(SportingIdentityFixture.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @RecordApplicationEvents
 @Testcontainers
 @DisplayName("Atomic sporting presentation")
 class SportingPresentationIntegrationTest {
+  @Autowired private com.blockout.backend.access.application.CurrentPermissions permissions;
   @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   @Autowired private MockMvc mvc;
   @Autowired private JsonMapper json;
-  @Autowired private SportingReadService reads;
-  @Autowired private SportingIdentityService identities;
-  @Autowired private SeasonService seasons;
-  @Autowired private CollectionCycleService cycles;
-  @Autowired private CollectorRuntimeService runtimes;
+  @Autowired private ReadSportingData reads;
+  @Autowired private ReadSportingAcquisition acquisitionReads;
+  @Autowired private SportingIdentityFixture identities;
+  @Autowired private ChangeCollectionSeasons seasons;
+  @Autowired private AdmitCollectionCycle cycles;
+  @Autowired private RegisterCollectorRuntime runtimes;
+  @Autowired private ReadCollectionWork collectionWork;
   @Autowired private AccountStore accounts;
   @Autowired private JdbcTemplate sql;
   @Autowired private PlatformTransactionManager transactions;
-  @Autowired private DivisionService divisions;
-  @Autowired private SportingImageService images;
+  @Autowired private ChangeDivisionLifecycle divisions;
+  @Autowired private ReadSportingConfiguration configurationReads;
+  @Autowired private AcceptSourceImage images;
   @Autowired private ApplicationEvents events;
-  @Autowired private ClubDetailsService details;
-  @Autowired private ClubLocalityService localities;
-  @Autowired private SportingPresentationService presentation;
+  @Autowired private ChangeClubContacts details;
+  @Autowired private RestrictClubContacts contactRestrictions;
+  @Autowired private AcceptClubDetails clubObservations;
+
+  @Autowired private AcceptClubLocality localities;
+  @Autowired private ChangeSportingPresentation presentation;
+
   private Scope scope;
   private UUID account;
   private UUID club;
@@ -166,7 +183,7 @@ class SportingPresentationIntegrationTest {
                 new TeamCandidate(null, "Home", "00193", "Club"),
                 new TeamCandidate(null, "Away", "00194", "Other"))
             .homeTeamId();
-    club = reads.team(team).orElseThrow().clubId();
+    club = acquisitionReads.team(team).orElseThrow().clubId();
   }
 
   @Test
@@ -199,7 +216,7 @@ class SportingPresentationIntegrationTest {
   void preservesIndependentNames() {
     // Given
     SportingPresentation.View before =
-        presentation.get(account, SportingProjectionChanges.Kind.TEAM, team);
+        configurationReads.presentation(account, SportingProjectionChanges.Kind.TEAM, team);
     presentation.set(
         account,
         SportingProjectionChanges.Kind.TEAM,
@@ -213,7 +230,7 @@ class SportingPresentationIntegrationTest {
         new TeamCandidate(null, "HOME", "00193", "Club"),
         new TeamCandidate(null, "Away", "00194", "Other"));
     SportingPresentation.View refreshed =
-        presentation.get(account, SportingProjectionChanges.Kind.TEAM, team);
+        configurationReads.presentation(account, SportingProjectionChanges.Kind.TEAM, team);
     SportingPresentation.View restored =
         presentation.set(
             account,
@@ -240,7 +257,7 @@ class SportingPresentationIntegrationTest {
   void rejectsStaleNoOp() {
     // Given
     SportingPresentation.View current =
-        presentation.get(account, SportingProjectionChanges.Kind.CLUB, club);
+        configurationReads.presentation(account, SportingProjectionChanges.Kind.CLUB, club);
     Edit unchanged = new Edit(current.revision(), null, null, LogoActionEnum.KEEP, null);
     SportingPresentation.View noOp =
         presentation.set(account, SportingProjectionChanges.Kind.CLUB, club, unchanged);
@@ -263,7 +280,7 @@ class SportingPresentationIntegrationTest {
     // Then
     assertThat(noOp.revision()).isEqualTo(current.revision());
     assertThatThrownBy(stale).isInstanceOf(SportingConflictException.class);
-    assertThat(presentation.get(account, SportingProjectionChanges.Kind.CLUB, club))
+    assertThat(configurationReads.presentation(account, SportingProjectionChanges.Kind.CLUB, club))
         .isEqualTo(changed);
   }
 
@@ -273,7 +290,7 @@ class SportingPresentationIntegrationTest {
   void preservesContactModes() {
     // Given
     CollectionState.Cycle sheets = admitFamily("CLUB_SHEETS");
-    details.accept(
+    clubObservations.accept(
         club,
         new ClubObservation(
             context(sheets, 1),
@@ -289,13 +306,13 @@ class SportingPresentationIntegrationTest {
         details.correct(
             account,
             club,
-            Long.toString(details.get(account, club).revision()),
+            Long.toString(configurationReads.clubContacts(account, club).revision()),
             Map.of(
                 ContactField.PHONE, new ContactEdit(ContactModeEnum.MANUAL, "0100000099"),
                 ContactField.EMAIL, new ContactEdit(ContactModeEnum.HIDDEN, null)));
 
     // When
-    details.accept(
+    clubObservations.accept(
         club,
         new ClubObservation(
             context(sheets, 2),
@@ -307,7 +324,7 @@ class SportingPresentationIntegrationTest {
                 JsonNullable.of("new@example.invalid"),
                 ContactField.WEBSITE,
                 JsonNullable.of("https://example.invalid/new"))));
-    Contacts refreshed = details.get(account, club);
+    Contacts refreshed = configurationReads.clubContacts(account, club);
     Contacts restored =
         details.correct(
             account,
@@ -332,7 +349,7 @@ class SportingPresentationIntegrationTest {
   void preservesValidSourceValues() {
     // Given
     CollectionState.Cycle sheets = admitFamily("CLUB_SHEETS");
-    details.accept(
+    clubObservations.accept(
         club,
         new ClubObservation(
             context(sheets, 1),
@@ -342,10 +359,10 @@ class SportingPresentationIntegrationTest {
                 JsonNullable.of("source@example.invalid"),
                 ContactField.PHONE,
                 JsonNullable.of("0100000001"))));
-    long revision = details.get(account, club).revision();
+    long revision = configurationReads.clubContacts(account, club).revision();
 
     // When
-    details.accept(
+    clubObservations.accept(
         club,
         new ClubObservation(
             context(sheets, 2),
@@ -355,13 +372,13 @@ class SportingPresentationIntegrationTest {
                 JsonNullable.of("invalid email"),
                 ContactField.PHONE,
                 JsonNullable.undefined())));
-    Contacts retained = details.get(account, club);
-    details.accept(
+    Contacts retained = configurationReads.clubContacts(account, club);
+    clubObservations.accept(
         club,
         new ClubObservation(
             context(sheets, 3), null, Map.of(ContactField.EMAIL, JsonNullable.of(null))));
     ObservationOutcome stale =
-        details.accept(
+        clubObservations.accept(
             club,
             new ClubObservation(
                 context(sheets, 2),
@@ -372,12 +389,27 @@ class SportingPresentationIntegrationTest {
     assertThat(retained.revision()).isEqualTo(revision);
     assertThat(retained.fields().get(ContactField.EMAIL).effectiveValue())
         .isEqualTo("source@example.invalid");
-    assertThat(details.get(account, club).fields().get(ContactField.EMAIL).effectiveValue())
+    assertThat(
+            configurationReads
+                .clubContacts(account, club)
+                .fields()
+                .get(ContactField.EMAIL)
+                .effectiveValue())
         .isNull();
-    assertThat(details.get(account, club).fields().get(ContactField.PHONE).effectiveValue())
+    assertThat(
+            configurationReads
+                .clubContacts(account, club)
+                .fields()
+                .get(ContactField.PHONE)
+                .effectiveValue())
         .isEqualTo("0100000001");
     assertThat(stale.outcome()).isEqualTo(ObservationOutcomeEnum.STALE);
-    assertThat(details.get(account, club).fields().get(ContactField.WEBSITE).effectiveValue())
+    assertThat(
+            configurationReads
+                .clubContacts(account, club)
+                .fields()
+                .get(ContactField.WEBSITE)
+                .effectiveValue())
         .isNull();
   }
 
@@ -385,8 +417,8 @@ class SportingPresentationIntegrationTest {
   @DisplayName("Refuses a whole contact correction if one field is invalid or restricted")
   void refusesWholeContactCorrection() {
     // Given
-    details.restrict(club, Set.of(ContactField.EMAIL));
-    Contacts current = details.get(account, club);
+    contactRestrictions.restrict(club, Set.of(ContactField.EMAIL));
+    Contacts current = configurationReads.clubContacts(account, club);
 
     // When
     ThrowingCallable change =
@@ -402,7 +434,7 @@ class SportingPresentationIntegrationTest {
 
     // Then
     assertThatThrownBy(change).isInstanceOf(SportingConflictException.class);
-    assertThat(details.get(account, club)).isEqualTo(current);
+    assertThat(configurationReads.clubContacts(account, club)).isEqualTo(current);
     assertThatThrownBy(
             () ->
                 details.correct(
@@ -415,7 +447,7 @@ class SportingPresentationIntegrationTest {
                             new ContactEdit(
                                 ContactModeEnum.MANUAL, "https://user:secret@example.invalid/"))))
         .isInstanceOf(SportingValidationException.class);
-    assertThat(details.get(account, club)).isEqualTo(current);
+    assertThat(configurationReads.clubContacts(account, club)).isEqualTo(current);
   }
 
   @ParameterizedTest
@@ -447,7 +479,7 @@ class SportingPresentationIntegrationTest {
             + "_manual,"
             + column
             + "_restricted FROM sporting_club WHERE id=?";
-    details.accept(
+    clubObservations.accept(
         club,
         new ClubObservation(
             context(sheets, 1),
@@ -456,15 +488,15 @@ class SportingPresentationIntegrationTest {
                 field, JsonNullable.of(sourceValue), unrelated, JsonNullable.of(unrelatedValue))));
     details.correct(
         account, club, "1", Map.of(field, new ContactEdit(ContactModeEnum.MANUAL, manualValue)));
-    long editingRevision = details.get(account, club).revision();
+    long editingRevision = configurationReads.clubContacts(account, club).revision();
     UUID match =
         sql.queryForObject("SELECT id FROM sporting_match WHERE home_team_id=?", UUID.class, team);
-    details.restrict(club, Set.of(field));
-    Contacts restricted = details.get(account, club);
+    contactRestrictions.restrict(club, Set.of(field));
+    Contacts restricted = configurationReads.clubContacts(account, club);
     Map<String, Object> cleared = sql.queryForMap(inspect, club);
 
     // When
-    details.accept(
+    clubObservations.accept(
         club,
         new ClubObservation(context(sheets, 2), null, Map.of(field, JsonNullable.of(sourceValue))));
     details.correct(
@@ -486,8 +518,8 @@ class SportingPresentationIntegrationTest {
         sourceValue,
         manualValue,
         club);
-    Contacts restored = details.get(account, club);
-    details.restrict(club, Set.of(field));
+    Contacts restored = configurationReads.clubContacts(account, club);
+    contactRestrictions.restrict(club, Set.of(field));
 
     // Then
     assertThat(restricted.revision()).isEqualTo(editingRevision + 1);
@@ -504,8 +536,8 @@ class SportingPresentationIntegrationTest {
         .containsEntry(column + "_restricted", true);
     assertThat(reads.publicClubContacts(club).get(unrelated)).isEqualTo(unrelatedValue);
     assertThat(reconstructedTeam).isEqualTo(team);
-    assertThat(reads.team(team).orElseThrow().clubId()).isEqualTo(club);
-    assertThat(reads.match(match).orElseThrow().homeTeamId()).isEqualTo(team);
+    assertThat(acquisitionReads.team(team).orElseThrow().clubId()).isEqualTo(club);
+    assertThat(acquisitionReads.match(match).orElseThrow().homeTeamId()).isEqualTo(team);
   }
 
   @ParameterizedTest
@@ -513,8 +545,8 @@ class SportingPresentationIntegrationTest {
   @DisplayName("Rejects a contact editor opened before a restriction through the generated route")
   void rejectsEditorsPredatingRestriction(ContactModeEnum mode) throws Exception {
     // Given
-    String revision = Long.toString(details.get(account, club).revision());
-    details.restrict(club, Set.of(ContactField.EMAIL));
+    String revision = Long.toString(configurationReads.clubContacts(account, club).revision());
+    contactRestrictions.restrict(club, Set.of(ContactField.EMAIL));
     SetClubContactsRequest request =
         new SetClubContactsRequest(revision)
             .email(
@@ -549,7 +581,7 @@ class SportingPresentationIntegrationTest {
   void preservesRestrictionAcrossReactivation() {
     // Given
     CollectionState.Cycle sheets = admitFamily("CLUB_SHEETS");
-    details.restrict(club, Set.of(ContactField.EMAIL));
+    contactRestrictions.restrict(club, Set.of(ContactField.EMAIL));
     sql.update(
         "INSERT INTO account_permission(account_id,permission) VALUES (?, 'division-lifecycle.manage')",
         account);
@@ -559,7 +591,7 @@ class SportingPresentationIntegrationTest {
     // When
     divisions.setActive(
         account, SportingIngestionFixture.DIVISION, Long.toString(inactive.revision()), true);
-    details.accept(
+    clubObservations.accept(
         club,
         new ClubObservation(
             context(sheets, 1),
@@ -567,7 +599,7 @@ class SportingPresentationIntegrationTest {
             Map.of(ContactField.EMAIL, JsonNullable.of("source@example.invalid"))));
 
     // Then
-    assertThat(details.get(account, club).fields().get(ContactField.EMAIL))
+    assertThat(configurationReads.clubContacts(account, club).fields().get(ContactField.EMAIL))
         .isEqualTo(new ContactValue(null, null, ContactModeEnum.SOURCE, true));
     assertThat(
             sql.queryForMap(
@@ -576,15 +608,15 @@ class SportingPresentationIntegrationTest {
         .containsEntry("email_manual", null)
         .containsEntry("email_restricted", true);
     assertThat(reads.publicClubContacts(club).get(ContactField.EMAIL)).isNull();
-    assertThat(reads.team(team).orElseThrow().clubId()).isEqualTo(club);
+    assertThat(acquisitionReads.team(team).orElseThrow().clubId()).isEqualTo(club);
   }
 
   @Test
   @DisplayName("A current restricted manual write returns 409 without changing another contact")
   void rejectsRestrictedContactRouteAtomically() throws Exception {
     // Given
-    details.restrict(club, Set.of(ContactField.EMAIL));
-    Contacts current = details.get(account, club);
+    contactRestrictions.restrict(club, Set.of(ContactField.EMAIL));
+    Contacts current = configurationReads.clubContacts(account, club);
 
     // When
     mvc.perform(
@@ -600,7 +632,7 @@ class SportingPresentationIntegrationTest {
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:conflict"));
 
     // Then
-    assertThat(details.get(account, club)).isEqualTo(current);
+    assertThat(configurationReads.clubContacts(account, club)).isEqualTo(current);
     mvc.perform(get("/clubs/{id}", club))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.contacts.email").doesNotExist())
@@ -619,7 +651,7 @@ class SportingPresentationIntegrationTest {
       Future<?> pending =
           transaction.execute(
               status -> {
-                details.accept(
+                clubObservations.accept(
                     club,
                     new ClubObservation(
                         context(sheets, 1),
@@ -634,7 +666,7 @@ class SportingPresentationIntegrationTest {
                                 other -> {
                                   pid.complete(
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
-                                  details.restrict(club, Set.of(ContactField.EMAIL));
+                                  contactRestrictions.restrict(club, Set.of(ContactField.EMAIL));
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, pid);
                 return restriction;
@@ -660,7 +692,7 @@ class SportingPresentationIntegrationTest {
       "A contact edit waiting on a restriction rejects its obsolete revision without partial writes")
   void rejectsEditWaitingOnRestriction() throws Exception {
     // Given
-    String revision = Long.toString(details.get(account, club).revision());
+    String revision = Long.toString(configurationReads.clubContacts(account, club).revision());
     CompletableFuture<Integer> pid = new CompletableFuture<>();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
@@ -668,7 +700,7 @@ class SportingPresentationIntegrationTest {
       Future<Contacts> pending =
           transaction.execute(
               status -> {
-                details.restrict(club, Set.of(ContactField.EMAIL));
+                contactRestrictions.restrict(club, Set.of(ContactField.EMAIL));
                 Future<Contacts> correction =
                     worker.submit(
                         () ->
@@ -697,7 +729,7 @@ class SportingPresentationIntegrationTest {
       assertThatThrownBy(() -> pending.get(15, TimeUnit.SECONDS))
           .isInstanceOf(ExecutionException.class)
           .hasCauseInstanceOf(SportingConflictException.class);
-      assertThat(details.get(account, club).fields().get(ContactField.EMAIL))
+      assertThat(configurationReads.clubContacts(account, club).fields().get(ContactField.EMAIL))
           .isEqualTo(new ContactValue(null, null, ContactModeEnum.SOURCE, true));
       assertThat(reads.publicClubContacts(club).get(ContactField.PHONE)).isNull();
     }
@@ -708,7 +740,7 @@ class SportingPresentationIntegrationTest {
   void reconcilesEffectiveLocality() {
     // Given
     CollectionState.Cycle sheets = admitFamily("CLUB_SHEETS");
-    details.accept(
+    clubObservations.accept(
         club,
         new ClubObservation(
             context(sheets, 1),
@@ -727,7 +759,7 @@ class SportingPresentationIntegrationTest {
     details.correct(
         account,
         club,
-        Long.toString(details.get(account, club).revision()),
+        Long.toString(configurationReads.clubContacts(account, club).revision()),
         Map.of(
             ContactField.CITY,
             new ContactEdit(ContactModeEnum.MANUAL, "Paris"),
@@ -735,7 +767,7 @@ class SportingPresentationIntegrationTest {
             new ContactEdit(ContactModeEnum.MANUAL, "Synthetic street")));
 
     // When
-    details.accept(
+    clubObservations.accept(
         club,
         new ClubObservation(
             context(sheets, 2), null, Map.of(ContactField.CITY, JsonNullable.of("Lyon"))));
@@ -743,7 +775,7 @@ class SportingPresentationIntegrationTest {
     details.correct(
         account,
         club,
-        Long.toString(details.get(account, club).revision()),
+        Long.toString(configurationReads.clubContacts(account, club).revision()),
         Map.of(ContactField.CITY, new ContactEdit(ContactModeEnum.SOURCE, null)));
     SportingPresentation.Locality changed = reads.publicLocality(club).orElseThrow();
     ObservationOutcome late =
@@ -763,7 +795,7 @@ class SportingPresentationIntegrationTest {
     assertThat(changed.latitude()).isNull();
     assertThat(late.outcome()).isEqualTo(ObservationOutcomeEnum.STALE);
     assertThat(reads.publicLocality(club).orElseThrow().latitude()).isNull();
-    assertThat(reads.acquisitionClubs(true, null))
+    assertThat(acquisitionReads.acquisitionClubs(true, null))
         .filteredOn(reference -> reference.clubId().equals(club))
         .singleElement()
         .satisfies(reference -> assertThat(reference.normalLocalityResult()).isFalse());
@@ -788,7 +820,7 @@ class SportingPresentationIntegrationTest {
             context(geocoding, 1), revision, GeocodingOutcomeEnum.LOCATED, 48.86, 2.34));
 
     // Then
-    assertThat(reads.acquisitionClubs(true, null))
+    assertThat(acquisitionReads.acquisitionClubs(true, null))
         .extracting(ClubAcquisitionReference::clubId)
         .doesNotContain(club);
   }
@@ -818,7 +850,7 @@ class SportingPresentationIntegrationTest {
 
     // Then
     assertThat(reads.publicLocality(club).orElseThrow().latitude()).isNull();
-    assertThat(reads.acquisitionClubs(true, null))
+    assertThat(acquisitionReads.acquisitionClubs(true, null))
         .filteredOn(reference -> reference.clubId().equals(club))
         .singleElement()
         .satisfies(
@@ -868,7 +900,7 @@ class SportingPresentationIntegrationTest {
                         context(geocoding, 3), revision, GeocodingOutcomeEnum.LOCATED, 91.0, 2.34)))
         .isInstanceOf(SportingValidationException.class);
     assertThat(reads.publicLocality(club).orElseThrow().latitude()).isEqualTo(48.86);
-    details.restrict(club, Set.of(ContactField.CITY));
+    contactRestrictions.restrict(club, Set.of(ContactField.CITY));
     assertThat(reads.publicLocality(club).orElseThrow().latitude()).isNull();
     assertThat(reads.publicLocality(club).orElseThrow().revision()).isNotEqualTo(revision);
   }
@@ -877,8 +909,9 @@ class SportingPresentationIntegrationTest {
   @DisplayName("Rolls back image bytes, names and metadata together while preserving repeat no-ops")
   void commitsImageAndMetadataTogether() throws Exception {
     // Given
-    Image first = SportingImageService.validate(SportingImageFixture.image("PNG", 0x112233));
-    Image second = SportingImageService.validate(SportingImageFixture.image("JPEG", 0x445566));
+    Image first = new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
+    Image second =
+        new ValidateSportingImage().validate(SportingImageFixture.image("JPEG", 0x445566));
     SportingPresentation.View saved =
         presentation.set(
             account,
@@ -920,9 +953,9 @@ class SportingPresentationIntegrationTest {
   @DisplayName("A grant revoked while a prepared save waits cannot authorize a write")
   void serializesGrantRevocation() throws Exception {
     // Given
-    presentation.requireGrant(account);
+    permissions.requireForRead(account, Permission.MANAGE_SPORTING_PRESENTATION);
     SportingPresentation.View before =
-        presentation.get(account, SportingProjectionChanges.Kind.CLUB, club);
+        configurationReads.presentation(account, SportingProjectionChanges.Kind.CLUB, club);
     CompletableFuture<Integer> pid = new CompletableFuture<>();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
@@ -974,7 +1007,7 @@ class SportingPresentationIntegrationTest {
       Future<?> pending =
           transaction.execute(
               status -> {
-                details.restrict(club, Set.of(ContactField.EMAIL));
+                contactRestrictions.restrict(club, Set.of(ContactField.EMAIL));
                 Future<?> collection =
                     worker.submit(
                         () ->
@@ -982,7 +1015,7 @@ class SportingPresentationIntegrationTest {
                                 other -> {
                                   pid.complete(
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
-                                  details.accept(
+                                  clubObservations.accept(
                                       club,
                                       new ClubObservation(
                                           context(sheets, 1),
@@ -997,7 +1030,7 @@ class SportingPresentationIntegrationTest {
       pending.get(15, TimeUnit.SECONDS);
 
       // Then
-      assertThat(details.get(account, club).fields().get(ContactField.EMAIL))
+      assertThat(configurationReads.clubContacts(account, club).fields().get(ContactField.EMAIL))
           .isEqualTo(new ContactValue(null, null, ContactModeEnum.SOURCE, true));
       assertThat(
               sql.queryForObject("SELECT email FROM sporting_club WHERE id=?", String.class, club))
@@ -1009,8 +1042,9 @@ class SportingPresentationIntegrationTest {
   @DisplayName("Resolves current club artwork across seasons without copying it into teams")
   void inheritsCurrentClubArtwork() throws Exception {
     // Given
-    Image first = SportingImageService.validate(SportingImageFixture.image("PNG", 0x112233));
-    Image second = SportingImageService.validate(SportingImageFixture.image("PNG", 0x445566));
+    Image first = new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
+    Image second =
+        new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x445566));
     SportingPresentation.View saved =
         presentation.set(
             account,
@@ -1020,7 +1054,7 @@ class SportingPresentationIntegrationTest {
     UUID nextSeason = seasons.getOrCreate(2027).id();
     UUID nextPool =
         identities
-            .establishPool(
+            .createPool(
                 new PoolKey(
                     CollectionProviderEnum.FFVB,
                     nextSeason,
@@ -1031,7 +1065,7 @@ class SportingPresentationIntegrationTest {
                     "NEXT"),
                 "PACK",
                 "Next season",
-                reads.pool(scope.pool()).orElseThrow().classification())
+                acquisitionReads.pool(scope.pool()).orElseThrow().classification())
             .id();
     UUID nextTeam =
         identities
@@ -1042,7 +1076,7 @@ class SportingPresentationIntegrationTest {
                 new TeamCandidate(null, "Away", "00194", "Other"))
             .homeTeamId();
     SportingPresentation.View teamBefore =
-        presentation.get(account, SportingProjectionChanges.Kind.TEAM, team);
+        configurationReads.presentation(account, SportingProjectionChanges.Kind.TEAM, team);
 
     // When
     presentation.set(
@@ -1078,9 +1112,12 @@ class SportingPresentationIntegrationTest {
   void resolvesProfessionalArtwork() throws Exception {
     // Given
     Professional professional = professional();
-    Image clubImage = SportingImageService.validate(SportingImageFixture.image("PNG", 0x112233));
-    Image lnvImage = SportingImageService.validate(SportingImageFixture.image("JPEG", 0x445566));
-    Image manualImage = SportingImageService.validate(SportingImageFixture.image("PNG", 0x778899));
+    Image clubImage =
+        new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
+    Image lnvImage =
+        new ValidateSportingImage().validate(SportingImageFixture.image("JPEG", 0x445566));
+    Image manualImage =
+        new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x778899));
     assertThat(reads.publicLogo(SportingProjectionChanges.Kind.TEAM, professional.team()))
         .isEmpty();
     presentation.set(
@@ -1097,7 +1134,8 @@ class SportingPresentationIntegrationTest {
                 .bytes())
         .isEqualTo(clubImage.bytes());
     SportingPresentation.View initial =
-        presentation.get(account, SportingProjectionChanges.Kind.TEAM, professional.team());
+        configurationReads.presentation(
+            account, SportingProjectionChanges.Kind.TEAM, professional.team());
     presentation.set(
         account,
         SportingProjectionChanges.Kind.TEAM,
@@ -1110,7 +1148,8 @@ class SportingPresentationIntegrationTest {
     Image stillManual =
         reads.publicLogo(SportingProjectionChanges.Kind.TEAM, professional.team()).orElseThrow();
     SportingPresentation.View current =
-        presentation.get(account, SportingProjectionChanges.Kind.TEAM, professional.team());
+        configurationReads.presentation(
+            account, SportingProjectionChanges.Kind.TEAM, professional.team());
     assertThat(
             reads
                 .publicTeamLogo(professional.team(), TeamLogoSelectionEnum.AUTOMATIC)
@@ -1141,7 +1180,7 @@ class SportingPresentationIntegrationTest {
                 .orElseThrow()
                 .bytes())
         .isEqualTo(lnvImage.bytes());
-    assertThat(reads.team(professional.team()).orElseThrow().clubId()).isEqualTo(club);
+    assertThat(acquisitionReads.team(professional.team()).orElseThrow().clubId()).isEqualTo(club);
     assertThat(
             images
                 .acceptSource(professional.team(), context(professional.cycle(), 1), clubImage)
@@ -1153,7 +1192,7 @@ class SportingPresentationIntegrationTest {
                 .orElseThrow()
                 .bytes())
         .isEqualTo(lnvImage.bytes());
-    assertThatThrownBy(() -> SportingImageService.validate(new byte[] {1, 2, 3}))
+    assertThatThrownBy(() -> new ValidateSportingImage().validate(new byte[] {1, 2, 3}))
         .isInstanceOf(SportingValidationException.class);
     assertThat(
             reads
@@ -1169,11 +1208,13 @@ class SportingPresentationIntegrationTest {
   void isolatesSourceArtworkFailure() throws Exception {
     // Given
     Professional professional = professional();
-    Image original = SportingImageService.validate(SportingImageFixture.image("PNG", 0x112233));
-    Image older = SportingImageService.validate(SportingImageFixture.image("PNG", 0x445566));
+    Image original =
+        new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
+    Image older = new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x445566));
     images.acceptSource(professional.team(), context(professional.cycle(), 3), original);
     SportingPresentation.View before =
-        presentation.get(account, SportingProjectionChanges.Kind.TEAM, professional.team());
+        configurationReads.presentation(
+            account, SportingProjectionChanges.Kind.TEAM, professional.team());
 
     // When
     ObservationOutcome stale =
@@ -1185,11 +1226,11 @@ class SportingPresentationIntegrationTest {
     assertThat(stale.outcome()).isEqualTo(ObservationOutcomeEnum.STALE);
     assertThat(refreshed.outcome()).isEqualTo(ObservationOutcomeEnum.UNCHANGED);
     assertThat(
-            presentation
-                .get(account, SportingProjectionChanges.Kind.TEAM, professional.team())
+            configurationReads
+                .presentation(account, SportingProjectionChanges.Kind.TEAM, professional.team())
                 .revision())
         .isEqualTo(before.revision());
-    assertThat(reads.match(professional.match())).isPresent();
+    assertThat(acquisitionReads.match(professional.match())).isPresent();
     assertThat(
             reads
                 .publicLogo(SportingProjectionChanges.Kind.TEAM, professional.team())
@@ -1203,10 +1244,10 @@ class SportingPresentationIntegrationTest {
   void holdsSourceImageFenceThroughCommit() throws Exception {
     // Given
     Professional professional = professional();
-    Image image = SportingImageService.validate(SportingImageFixture.image("PNG", 0x112233));
+    Image image = new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
     CompletableFuture<Integer> pid = new CompletableFuture<>();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
-    long revision = runtimes.current().revision();
+    long revision = collectionWork.current().revision();
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
       // When
       Future<?> startup =
@@ -1249,7 +1290,7 @@ class SportingPresentationIntegrationTest {
   void submitsCurrentPresentationScopes() throws Exception {
     // Given
     events.clear();
-    Image image = SportingImageService.validate(SportingImageFixture.image("PNG", 0x112233));
+    Image image = new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
     new TransactionTemplate(transactions)
         .executeWithoutResult(
             status -> {
@@ -1298,7 +1339,7 @@ class SportingPresentationIntegrationTest {
   private Professional professional() {
     UUID pool =
         identities
-            .establishPool(
+            .createPool(
                 new PoolKey(
                     CollectionProviderEnum.LNV,
                     scope.season(),
@@ -1309,7 +1350,7 @@ class SportingPresentationIntegrationTest {
                     "LNV"),
                 "LNV-PACK",
                 "Professional",
-                reads.pool(scope.pool()).orElseThrow().classification())
+                acquisitionReads.pool(scope.pool()).orElseThrow().classification())
             .id();
     sql.update(
         "UPDATE sporting_pool SET calendar_url='https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=193',setting_division_id=?,setting_format='_6X6',setting_gender='MALE' WHERE id=?",
@@ -1329,7 +1370,12 @@ class SportingPresentationIntegrationTest {
         cycles
             .admit(
                 new CollectionState.StartCycle(
-                    UUID.randomUUID(), runtimes.current().incarnationId(), control, null, 0, null))
+                    UUID.randomUUID(),
+                    collectionWork.current().incarnationId(),
+                    control,
+                    null,
+                    0,
+                    null))
             .cycle();
     com.blockout.backend.sporting.application.model.SportingViews.MatchView match =
         identities.identifyMatch(
@@ -1383,7 +1429,7 @@ class SportingPresentationIntegrationTest {
     sql.update(
         "INSERT INTO sporting_division(id,name,active,color) VALUES (?,'Original',FALSE,'#112233')",
         division);
-    DivisionDetail before = divisions.get(account, division);
+    DivisionDetail before = configurationReads.division(account, division);
 
     // When
     ThrowingCallable rename =
@@ -1396,7 +1442,7 @@ class SportingPresentationIntegrationTest {
 
     // Then
     assertThatThrownBy(rename).isInstanceOf(SportingConflictException.class);
-    assertThat(divisions.get(account, division)).isEqualTo(before);
+    assertThat(configurationReads.division(account, division)).isEqualTo(before);
   }
 
   /**
@@ -1427,7 +1473,12 @@ class SportingPresentationIntegrationTest {
     return cycles
         .admit(
             new CollectionState.StartCycle(
-                UUID.randomUUID(), runtimes.current().incarnationId(), control, null, 0, null))
+                UUID.randomUUID(),
+                collectionWork.current().incarnationId(),
+                control,
+                null,
+                0,
+                null))
         .cycle();
   }
 

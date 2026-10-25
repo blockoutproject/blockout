@@ -137,7 +137,35 @@ public final class SportingViews {
    * @param effective inherited acquisition classification, or null
    */
   public record ClassificationView(
-      UUID id, String revision, SportingClassification setting, SportingClassification effective) {}
+      UUID id, String revision, SportingClassification setting, SportingClassification effective) {
+    /**
+     * Projects the pack's own complete setting.
+     *
+     * @param pack current default owner
+     * @return local and effective settings with its managed version
+     */
+    public static ClassificationView from(PackView pack) {
+      return new ClassificationView(
+          pack.id(), Long.toString(pack.revision()), pack.setting(), pack.setting());
+    }
+
+    /**
+     * Includes the inherited owner's version only while this pool actually inherits.
+     *
+     * @param pool current local editor state
+     * @param pack owning inheritance source
+     * @return a revision invalidated by any relevant local or inherited change
+     */
+    public static ClassificationView from(PoolClassificationView pool, PackView pack) {
+      String revision = Long.toString(pool.revision());
+      if (pool.setting() == null) revision += ":" + pack.revision();
+      return new ClassificationView(
+          pool.pool().id(),
+          revision,
+          pool.setting(),
+          pool.setting() == null ? pack.setting() : pool.setting());
+    }
+  }
 
   /**
    * Pack state read under its season's transaction.

@@ -3,23 +3,24 @@ package com.blockout.backend.sporting.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.blockout.backend.collection.application.service.CollectionCycleService;
-import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
+import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
-import com.blockout.backend.sporting.application.ConsultationStore.ClubSeasonRequest;
+import com.blockout.backend.sporting.application.ConsultationRequest.ClubSeasonRequest;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
-import com.blockout.backend.sporting.application.service.ClubDetailsService;
-import com.blockout.backend.sporting.application.service.SeasonService;
-import com.blockout.backend.sporting.application.service.SportingIdentityService;
-import com.blockout.backend.sporting.application.service.SportingReadService;
+import com.blockout.backend.sporting.application.service.ChangeClubContacts;
+import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
+import com.blockout.backend.sporting.application.service.RestrictClubContacts;
+import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingImageFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture.Scope;
@@ -37,6 +38,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -45,6 +47,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Real F02 identities/effective values and migrated PostgreSQL; no provider or native evidence. */
+@Import(SportingIdentityFixture.class)
 @SpringBootTest
 @Testcontainers
 @DisplayName("Current public sporting projections")
@@ -53,12 +56,13 @@ class SportingResourcesIntegrationTest {
   @Autowired private JdbcTemplate sql;
   @Autowired private EntityManagerFactory entityManagerFactory;
   @Autowired private ReadSportingResources resources;
-  @Autowired private SportingReadService owners;
-  @Autowired private SportingIdentityService identities;
-  @Autowired private SeasonService seasons;
-  @Autowired private ClubDetailsService contacts;
-  @Autowired private CollectionCycleService cycles;
-  @Autowired private CollectorRuntimeService runtimes;
+  @Autowired private ReadSportingAcquisition acquisitionReads;
+  @Autowired private SportingIdentityFixture identities;
+  @Autowired private ChangeCollectionSeasons seasons;
+  @Autowired private ChangeClubContacts contacts;
+  @Autowired private RestrictClubContacts contactRestrictions;
+  @Autowired private AdmitCollectionCycle cycles;
+  @Autowired private RegisterCollectorRuntime runtimes;
   private Scope scope;
   private MatchView match;
   private UUID club;
@@ -91,7 +95,7 @@ class SportingResourcesIntegrationTest {
             "READ",
             new TeamCandidate(null, "Zulu", "00203", "Club"),
             new TeamCandidate(null, "Away", "00204", "Other"));
-    club = owners.team(match.homeTeamId()).orElseThrow().clubId();
+    club = acquisitionReads.team(match.homeTeamId()).orElseThrow().clubId();
     sql.update(
         "UPDATE sporting_match SET local_date='2026-10-24', schedule_observed_at='2026-10-20T12:00:00Z' WHERE id=?",
         match.id());
@@ -107,7 +111,7 @@ class SportingResourcesIntegrationTest {
 
     // When
     ConsultationViews.ClubDetail corrected = resources.club(club);
-    contacts.restrict(club, Set.of(ContactField.EMAIL));
+    contactRestrictions.restrict(club, Set.of(ContactField.EMAIL));
     sql.update("UPDATE sporting_club SET email='reappeared@example.invalid' WHERE id=?", club);
     ConsultationViews.ClubDetail restricted = resources.club(club);
 
@@ -127,7 +131,7 @@ class SportingResourcesIntegrationTest {
     ConsultationViews.ClubDetail known = resources.club(club);
 
     // When
-    contacts.restrict(club, Set.of(ContactField.CITY));
+    contactRestrictions.restrict(club, Set.of(ContactField.CITY));
     ConsultationViews.ClubDetail restricted = resources.club(club);
 
     // Then
@@ -423,7 +427,7 @@ class SportingResourcesIntegrationTest {
    */
   private UUID pool(UUID season, CollectionProviderEnum provider, String reference) {
     return identities
-        .establishPool(
+        .createPool(
             new PoolKey(provider, season, "SYNTHETIC", "COMP", null, null, reference),
             "PACK",
             reference,

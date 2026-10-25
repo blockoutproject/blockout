@@ -2,6 +2,7 @@ package com.blockout.backend.collection.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
@@ -11,10 +12,13 @@ import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.collection.application.model.CollectionState.SourceValidation;
 import com.blockout.backend.collection.application.model.CollectionState.StartCycle;
 import com.blockout.backend.collection.application.port.CollectionStore;
-import com.blockout.backend.collection.application.service.CollectionCycleService;
-import com.blockout.backend.collection.application.service.CollectionSourceService;
-import com.blockout.backend.collection.application.service.CollectorRuntimeService;
-import com.blockout.backend.collection.application.service.SourcePreparationService;
+import com.blockout.backend.collection.application.service.AcceptSourceValidation;
+import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
+import com.blockout.backend.collection.application.service.ObserveCollectionSource;
+import com.blockout.backend.collection.application.service.PrepareCollectionSources;
+import com.blockout.backend.collection.application.service.ReadCollectionConfiguration;
+import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
@@ -22,7 +26,8 @@ import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.generated.mobile.model.CollectionResourceKindEnum;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionResourcePage;
-import com.blockout.backend.sporting.application.service.SeasonService;
+import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import com.blockout.backend.sporting.application.service.ReadCollectionSeasons;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.persistence.EntityManagerFactory;
 import java.net.URI;
@@ -75,13 +80,18 @@ class SourcePreparationIntegrationTest {
   private static final String URL =
       "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=ABCCS";
   private static final Instant NOW = Instant.parse("2026-10-20T09:00:00Z");
-  @Autowired private SourcePreparationService preparation;
+  @Autowired private PrepareCollectionSources preparation;
+  @Autowired private AcceptSourceValidation sourceValidation;
+  @Autowired private ReadCollectionConfiguration configurationReads;
 
-  @Autowired private CollectionSourceService discovery;
+  @Autowired private ObserveCollectionSource discovery;
 
-  @Autowired private SeasonService seasons;
-  @Autowired private CollectorRuntimeService runtimes;
-  @Autowired private CollectionCycleService cycles;
+  @Autowired private ChangeCollectionSeasons seasons;
+  @Autowired private ReadCollectionSeasons seasonReads;
+  @Autowired private RegisterCollectorRuntime runtimes;
+  @Autowired private ReadCollectionWork collectionWork;
+  @Autowired private AdmitCollectionCycle cycles;
+
   @Autowired private JdbcTemplate sql;
   @Autowired private PlatformTransactionManager transactions;
   @Autowired private EntityManagerFactory entityManagerFactory;
@@ -95,9 +105,9 @@ class SourcePreparationIntegrationTest {
   void retainsSourcePreparationOnDiscovery() {
     // Given
     Source before = store.source(SOURCE).orElseThrow();
-    long revision = seasons.collectionState(season).collectionRevision();
-    CollectionSourceService.Proposal proposal =
-        new CollectionSourceService.Proposal(
+    long revision = seasonReads.collectionState(season).collectionRevision();
+    ObserveCollectionSource.Proposal proposal =
+        new ObserveCollectionSource.Proposal(
             STARTUP,
             2026,
             CollectionProviderEnum.FFVB,
@@ -107,13 +117,13 @@ class SourcePreparationIntegrationTest {
             NOW);
 
     // When
-    CollectionSourceService.Resolved resolved = discovery.observe(proposal);
+    ObserveCollectionSource.Resolved resolved = discovery.observe(proposal);
 
     // Then
     assertThat(resolved.seasonId()).isEqualTo(season);
     assertThat(resolved.sourceBindingId()).isEqualTo(SOURCE);
     assertThat(store.source(SOURCE).orElseThrow()).isEqualTo(before);
-    assertThat(seasons.collectionState(season).collectionRevision()).isEqualTo(revision);
+    assertThat(seasonReads.collectionState(season).collectionRevision()).isEqualTo(revision);
   }
 
   @Test
@@ -125,8 +135,8 @@ class SourcePreparationIntegrationTest {
         OTHER,
         season,
         URL);
-    CollectionSourceService.Proposal proposal =
-        new CollectionSourceService.Proposal(
+    ObserveCollectionSource.Proposal proposal =
+        new ObserveCollectionSource.Proposal(
             STARTUP,
             2026,
             CollectionProviderEnum.FFVB,
@@ -142,7 +152,7 @@ class SourcePreparationIntegrationTest {
           statistics.getEntityStatistics(SourceBindingEntity.class.getName()).getLoadCount();
 
       // When
-      CollectionSourceService.Resolved resolved = discovery.observe(proposal);
+      ObserveCollectionSource.Resolved resolved = discovery.observe(proposal);
       long loaded =
           statistics.getEntityStatistics(SourceBindingEntity.class.getName()).getLoadCount()
               - before;
@@ -178,7 +188,7 @@ class SourcePreparationIntegrationTest {
     statistics.setStatisticsEnabled(true);
     try {
       long before = statistics.getPrepareStatementCount();
-      preparation.list(ACCOUNT, season);
+      configurationReads.sources(ACCOUNT, season);
       long singleCycleReads = statistics.getPrepareStatementCount() - before;
       sql.update(
           "INSERT INTO collection_source_binding(id, season_id, provider, organizer_reference, candidate_url, locked, launched, validation_state, current_cycle_id) VALUES (?, ?, 'FFVB', 'LIRA', ?, FALSE, FALSE, 'PENDING', ?), (?, ?, 'FFVB', 'LIRB', ?, FALSE, FALSE, 'PENDING', ?)",
@@ -198,7 +208,7 @@ class SourcePreparationIntegrationTest {
       before = statistics.getPrepareStatementCount();
 
       // When
-      List<Source> sources = preparation.list(ACCOUNT, season);
+      List<Source> sources = configurationReads.sources(ACCOUNT, season);
       long listReads = statistics.getPrepareStatementCount() - before;
 
       // Then
@@ -220,8 +230,8 @@ class SourcePreparationIntegrationTest {
   void fencesNewSeasonProposal() {
     // Given
     UUID obsolete = UUID.fromString("00000000-0000-4000-8000-000000000999");
-    CollectionSourceService.Proposal proposal =
-        new CollectionSourceService.Proposal(
+    ObserveCollectionSource.Proposal proposal =
+        new ObserveCollectionSource.Proposal(
             obsolete,
             2027,
             CollectionProviderEnum.FFVB,
@@ -230,9 +240,11 @@ class SourcePreparationIntegrationTest {
             URI.create(URL),
             NOW);
 
-    // When / Then
-    assertThatThrownBy(() -> discovery.observe(proposal))
-        .isInstanceOf(CollectionConflictException.class);
+    // When
+    Throwable thrown = catchThrowable(() -> discovery.observe(proposal));
+
+    // Then
+    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
     assertThat(
             sql.queryForObject(
                 "SELECT count(*) FROM sporting_season WHERE start_year=2027", Integer.class))
@@ -288,7 +300,7 @@ class SourcePreparationIntegrationTest {
   void clearsPreviousEvidence() {
     // Given
     Source qualified = validate(SourceValidationStateEnum.QUALIFIED, "2026/2027", null);
-    long revision = seasons.collectionState(season).collectionRevision();
+    long revision = seasonReads.collectionState(season).collectionRevision();
 
     // When
     Source edited =
@@ -301,7 +313,7 @@ class SourcePreparationIntegrationTest {
     assertThat(edited.seasonEvidence()).isNull();
     assertThat(edited.seasonConfirmed()).isFalse();
     assertThat(edited.acceptedUrl()).isNull();
-    assertThat(seasons.collectionState(season).collectionRevision()).isGreaterThan(revision);
+    assertThat(seasonReads.collectionState(season).collectionRevision()).isGreaterThan(revision);
   }
 
   @Test
@@ -313,13 +325,16 @@ class SourcePreparationIntegrationTest {
     preparation.setCandidate(
         ACCOUNT, SOURCE, pending.revision(), URI.create(URL + "&saison=2026/2027"));
 
-    // When / Then
-    assertThatThrownBy(
+    // When
+    Throwable thrown =
+        catchThrowable(
             () ->
-                preparation.submitValidation(
-                    SOURCE, result(SourceValidationStateEnum.QUALIFIED, "2026/2027", null)))
-        .isInstanceOf(CollectionConflictException.class);
-    assertThat(preparation.get(ACCOUNT, SOURCE).validationState())
+                sourceValidation.submitValidation(
+                    SOURCE, result(SourceValidationStateEnum.QUALIFIED, "2026/2027", null)));
+
+    // Then
+    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+    assertThat(configurationReads.source(ACCOUNT, SOURCE).validationState())
         .isEqualTo(SourceValidationStateEnum.UNVALIDATED);
   }
 
@@ -331,13 +346,16 @@ class SourcePreparationIntegrationTest {
     cycles.admit(new StartCycle(CYCLE, STARTUP, null, SOURCE, pending.revision(), null));
     sql.update("UPDATE sporting_season SET collection_state = 'CLOSED' WHERE id = ?", season);
 
-    // When / Then
-    assertThatThrownBy(
+    // When
+    Throwable thrown =
+        catchThrowable(
             () ->
-                preparation.submitValidation(
-                    SOURCE, result(SourceValidationStateEnum.QUALIFIED, "2026/2027", null)))
-        .isInstanceOf(CollectionConflictException.class);
-    assertThat(cycles.get(CYCLE).completedAt()).isNull();
+                sourceValidation.submitValidation(
+                    SOURCE, result(SourceValidationStateEnum.QUALIFIED, "2026/2027", null)));
+
+    // Then
+    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+    assertThat(collectionWork.get(CYCLE).completedAt()).isNull();
   }
 
   @Test
@@ -348,16 +366,16 @@ class SourcePreparationIntegrationTest {
 
     // When
     Source repeated =
-        preparation.submitValidation(
+        sourceValidation.submitValidation(
             SOURCE, result(SourceValidationStateEnum.QUALIFIED, "2026/2027", null));
 
     // Then
     assertThat(repeated).isEqualTo(qualified);
-    assertThat(cycles.get(CYCLE).state()).isEqualTo(CollectionCycleStateEnum.COMPLETED);
-    assertThat(cycles.get(CYCLE).completedAt()).isEqualTo(qualified.validatedAt());
+    assertThat(collectionWork.get(CYCLE).state()).isEqualTo(CollectionCycleStateEnum.COMPLETED);
+    assertThat(collectionWork.get(CYCLE).completedAt()).isEqualTo(qualified.validatedAt());
     assertThatThrownBy(
             () ->
-                preparation.submitValidation(
+                sourceValidation.submitValidation(
                     SOURCE, result(SourceValidationStateEnum.INVALID, null, "Wrong organizer")))
         .isInstanceOf(CollectionConflictException.class);
   }
@@ -369,11 +387,14 @@ class SourcePreparationIntegrationTest {
     Source invalid =
         validate(SourceValidationStateEnum.INVALID, null, "Wrong organizer or championship");
 
-    // When / Then
-    assertThatThrownBy(
-            () -> preparation.confirmSeason(ACCOUNT, SOURCE, invalid.revision(), "2026/2027"))
-        .isInstanceOf(CollectionConflictException.class);
-    assertThat(preparation.get(ACCOUNT, SOURCE).validationState())
+    // When
+    Throwable thrown =
+        catchThrowable(
+            () -> preparation.confirmSeason(ACCOUNT, SOURCE, invalid.revision(), "2026/2027"));
+
+    // Then
+    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+    assertThat(configurationReads.source(ACCOUNT, SOURCE).validationState())
         .isEqualTo(SourceValidationStateEnum.INVALID);
   }
 
@@ -403,10 +424,10 @@ class SourcePreparationIntegrationTest {
     Source pending = preparation.requestValidation(ACCOUNT, SOURCE, 0);
     cycles.admit(new StartCycle(CYCLE, STARTUP, null, SOURCE, pending.revision(), null));
     UUID replacement = UUID.fromString("00000000-0000-4000-8000-000000000171");
-    runtimes.register(runtimes.current().revision(), replacement);
+    runtimes.register(collectionWork.current().revision(), replacement);
 
     // When
-    Source projected = preparation.get(ACCOUNT, SOURCE);
+    Source projected = configurationReads.source(ACCOUNT, SOURCE);
 
     // Then
     assertThat(projected.validationState()).isEqualTo(SourceValidationStateEnum.UNVALIDATED);
@@ -417,10 +438,10 @@ class SourcePreparationIntegrationTest {
                 String.class,
                 SOURCE))
         .isEqualTo("PENDING");
-    assertThat(cycles.work(replacement).validations()).isEmpty();
+    assertThat(collectionWork.work(replacement).validations()).isEmpty();
     Source renewed = preparation.requestValidation(ACCOUNT, SOURCE, projected.revision());
     assertThat(renewed.revision()).isGreaterThan(pending.revision());
-    assertThat(cycles.work(replacement).validations()).hasSize(1);
+    assertThat(collectionWork.work(replacement).validations()).hasSize(1);
   }
 
   @Test
@@ -430,7 +451,7 @@ class SourcePreparationIntegrationTest {
     Source pending = preparation.requestValidation(ACCOUNT, SOURCE, 0);
     cycles.admit(new StartCycle(CYCLE, STARTUP, null, SOURCE, pending.revision(), null));
     UUID replacement = UUID.fromString("00000000-0000-4000-8000-000000000171");
-    runtimes.register(runtimes.current().revision(), replacement);
+    runtimes.register(collectionWork.current().revision(), replacement);
     TransactionTemplate renewal = new TransactionTemplate(transactions);
     renewal.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     // Configure Mockito without entering transaction advice; application actions retain their
@@ -448,14 +469,14 @@ class SourcePreparationIntegrationTest {
         .source(SOURCE);
 
     // When
-    Source projected = preparation.get(ACCOUNT, SOURCE);
+    Source projected = configurationReads.source(ACCOUNT, SOURCE);
 
     // Then
     assertThat(projected.id()).isEqualTo(SOURCE);
     assertThat(projected.validationState()).isEqualTo(SourceValidationStateEnum.UNVALIDATED);
     assertThat(projected.revision()).isEqualTo(pending.revision());
     assertThat(store.cycle(CYCLE)).isEmpty();
-    assertThat(cycles.work(replacement).validations())
+    assertThat(collectionWork.work(replacement).validations())
         .singleElement()
         .satisfies(
             candidate -> assertThat(candidate.revision()).isGreaterThan(projected.revision()));
@@ -472,7 +493,7 @@ class SourcePreparationIntegrationTest {
 
     // Then
     assertThat(repeated).isEqualTo(pending);
-    assertThat(cycles.work(STARTUP).validations()).hasSize(1);
+    assertThat(collectionWork.work(STARTUP).validations()).hasSize(1);
   }
 
   @Test
@@ -483,17 +504,17 @@ class SourcePreparationIntegrationTest {
 
     // When
     preparation.launch(
-        ACCOUNT, season, seasons.collectionState(season).collectionRevision(), Set.of(SOURCE));
+        ACCOUNT, season, seasonReads.collectionState(season).collectionRevision(), Set.of(SOURCE));
 
     // Then
-    Source launched = preparation.get(ACCOUNT, SOURCE);
+    Source launched = configurationReads.source(ACCOUNT, SOURCE);
     assertThat(launched.acceptedUrl()).isEqualTo(URL);
     assertThat(launched.locked()).isTrue();
     assertThat(launched.launched()).isTrue();
-    assertThat(seasons.collectionState(season).collectionState())
+    assertThat(seasonReads.collectionState(season).collectionState())
         .isEqualTo(CollectionSeasonStateEnum.ACTIVE);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_pool", Integer.class)).isZero();
-    assertThat(cycles.work(STARTUP).controls())
+    assertThat(collectionWork.work(STARTUP).controls())
         .anySatisfy(control -> assertThat(control.seasonId()).isEqualTo(season));
   }
 
@@ -507,15 +528,18 @@ class SourcePreparationIntegrationTest {
         OTHER,
         season,
         URL);
-    long revision = seasons.collectionState(season).collectionRevision();
+    long revision = seasonReads.collectionState(season).collectionRevision();
 
-    // When / Then
-    assertThatThrownBy(() -> preparation.launch(ACCOUNT, season, revision, Set.of(SOURCE, OTHER)))
-        .isInstanceOf(CollectionConflictException.class);
-    assertThat(preparation.get(ACCOUNT, SOURCE).locked()).isFalse();
-    assertThat(seasons.collectionState(season).collectionState())
+    // When
+    Throwable thrown =
+        catchThrowable(() -> preparation.launch(ACCOUNT, season, revision, Set.of(SOURCE, OTHER)));
+
+    // Then
+    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+    assertThat(configurationReads.source(ACCOUNT, SOURCE).locked()).isFalse();
+    assertThat(seasonReads.collectionState(season).collectionState())
         .isEqualTo(CollectionSeasonStateEnum.PREPARING);
-    assertThat(seasons.collectionState(season).collectionRevision()).isEqualTo(revision);
+    assertThat(seasonReads.collectionState(season).collectionRevision()).isEqualTo(revision);
   }
 
   @Test
@@ -524,7 +548,7 @@ class SourcePreparationIntegrationTest {
     // Given
     validate(SourceValidationStateEnum.QUALIFIED, "2026/2027", null);
     preparation.launch(
-        ACCOUNT, season, seasons.collectionState(season).collectionRevision(), Set.of(SOURCE));
+        ACCOUNT, season, seasonReads.collectionState(season).collectionRevision(), Set.of(SOURCE));
     sql.update("UPDATE collection_control SET enabled = FALSE WHERE season_id = ?", season);
     sql.update(
         "INSERT INTO collection_source_binding(id, season_id, provider, organizer_reference, candidate_url, locked, launched, validation_state) VALUES (?, ?, 'FFVB', 'LIRA', ?, FALSE, FALSE, 'UNVALIDATED')",
@@ -532,16 +556,20 @@ class SourcePreparationIntegrationTest {
         season,
         URL);
 
-    // When / Then
-    Source locked = preparation.get(ACCOUNT, SOURCE);
-    assertThatThrownBy(
+    Source locked = configurationReads.source(ACCOUNT, SOURCE);
+
+    // When
+    Throwable editFailure =
+        catchThrowable(
             () ->
                 preparation.setCandidate(
-                    ACCOUNT, SOURCE, locked.revision(), URI.create(URL + "&saison=2027/2028")))
-        .isInstanceOf(CollectionConflictException.class);
-    assertThat(preparation.requestValidation(ACCOUNT, OTHER, 0).validationState())
-        .isEqualTo(SourceValidationStateEnum.PENDING);
-    assertThat(preparation.get(ACCOUNT, SOURCE).acceptedUrl()).isEqualTo(URL);
+                    ACCOUNT, SOURCE, locked.revision(), URI.create(URL + "&saison=2027/2028")));
+    Source pending = preparation.requestValidation(ACCOUNT, OTHER, 0);
+
+    // Then
+    assertThat(editFailure).isInstanceOf(CollectionConflictException.class);
+    assertThat(pending.validationState()).isEqualTo(SourceValidationStateEnum.PENDING);
+    assertThat(configurationReads.source(ACCOUNT, SOURCE).acceptedUrl()).isEqualTo(URL);
   }
 
   @ParameterizedTest
@@ -555,9 +583,11 @@ class SourcePreparationIntegrationTest {
         ACCOUNT,
         permission);
 
-    // When / Then
-    assertThatThrownBy(() -> preparation.requestValidation(ACCOUNT, SOURCE, 0))
-        .isInstanceOf(AccessDeniedException.class);
+    // When
+    Throwable thrown = catchThrowable(() -> preparation.requestValidation(ACCOUNT, SOURCE, 0));
+
+    // Then
+    assertThat(thrown).isInstanceOf(AccessDeniedException.class);
     assertThat(
             sql.queryForObject(
                 "SELECT validation_state FROM collection_source_binding WHERE id = ?",
@@ -570,35 +600,38 @@ class SourcePreparationIntegrationTest {
   @DisplayName(
       "Manual creation stores an unqualified candidate instead of a second organizer registry")
   void createsUnqualifiedCandidate() {
+    // Given
+    URI candidate = URI.create(URL);
+
     // When
     Source created =
-        preparation.create(
-            ACCOUNT, season, 0, CollectionProviderEnum.FFVB, "LIRA", URI.create(URL));
+        preparation.create(ACCOUNT, season, 0, CollectionProviderEnum.FFVB, "LIRA", candidate);
 
     // Then
     assertThat(created.validationState()).isEqualTo(SourceValidationStateEnum.UNVALIDATED);
     assertThat(created.acceptedUrl()).isNull();
     assertThat(created.locked()).isFalse();
-    assertThat(seasons.collectionState(season).collectionRevision()).isGreaterThan(0);
+    assertThat(seasonReads.collectionState(season).collectionRevision()).isGreaterThan(0);
   }
 
   @Test
   @DisplayName("An existing source root cannot be replaced by creation")
   void refusesDuplicateBinding() {
-    // When / Then
-    assertThatThrownBy(
+    // Given
+    URI replacement = URI.create(URL + "&saison=2027/2028");
+
+    // When
+    Throwable thrown =
+        catchThrowable(
             () ->
                 preparation.create(
-                    ACCOUNT,
-                    season,
-                    0,
-                    CollectionProviderEnum.FFVB,
-                    "ABCCS",
-                    URI.create(URL + "&saison=2027/2028")))
-        .isInstanceOf(CollectionConflictException.class);
-    assertThat(preparation.list(ACCOUNT, season)).hasSize(1);
-    assertThat(preparation.get(ACCOUNT, SOURCE).candidateUrl()).isEqualTo(URL);
-    assertThat(seasons.collectionState(season).collectionRevision()).isZero();
+                    ACCOUNT, season, 0, CollectionProviderEnum.FFVB, "ABCCS", replacement));
+
+    // Then
+    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+    assertThat(configurationReads.sources(ACCOUNT, season)).hasSize(1);
+    assertThat(configurationReads.source(ACCOUNT, SOURCE).candidateUrl()).isEqualTo(URL);
+    assertThat(seasonReads.collectionState(season).collectionRevision()).isZero();
   }
 
   @Test
@@ -606,16 +639,20 @@ class SourcePreparationIntegrationTest {
   void refusesStaleSeasonSelection() {
     // Given
     validate(SourceValidationStateEnum.QUALIFIED, "2026/2027", null);
-    long revision = seasons.collectionState(season).collectionRevision();
+    long revision = seasonReads.collectionState(season).collectionRevision();
     preparation.create(
         ACCOUNT, season, revision, CollectionProviderEnum.FFVB, "LIRA", URI.create(URL));
 
-    // When / Then
-    assertThatThrownBy(() -> preparation.launch(ACCOUNT, season, revision, Set.of(SOURCE)))
+    // When
+    Throwable thrown =
+        catchThrowable(() -> preparation.launch(ACCOUNT, season, revision, Set.of(SOURCE)));
+
+    // Then
+    assertThat(thrown)
         .isInstanceOfSatisfying(
             CollectionConflictException.class,
             failure -> assertThat(failure.getType()).isEqualTo("stale-revision"));
-    assertThat(preparation.get(ACCOUNT, SOURCE).launched()).isFalse();
+    assertThat(configurationReads.source(ACCOUNT, SOURCE).launched()).isFalse();
   }
 
   @ParameterizedTest
@@ -627,13 +664,19 @@ class SourcePreparationIntegrationTest {
       })
   @DisplayName("Candidate creation refuses credentials and non-HTTP addresses")
   void refusesUnusableCandidate(String url) {
-    // When / Then
-    assertThatThrownBy(
+    // Given
+    URI candidate = URI.create(url);
+
+    // When
+    Throwable thrown =
+        catchThrowable(
             () ->
                 preparation.create(
-                    ACCOUNT, season, 0, CollectionProviderEnum.FFVB, "LIRA", URI.create(url)))
-        .isInstanceOf(InvalidSourceException.class);
-    assertThat(preparation.list(ACCOUNT, season)).hasSize(1);
+                    ACCOUNT, season, 0, CollectionProviderEnum.FFVB, "LIRA", candidate));
+
+    // Then
+    assertThat(thrown).isInstanceOf(InvalidSourceException.class);
+    assertThat(configurationReads.sources(ACCOUNT, season)).hasSize(1);
   }
 
   @Test
@@ -643,7 +686,7 @@ class SourcePreparationIntegrationTest {
     // Given
     validate(SourceValidationStateEnum.QUALIFIED, "2026/2027", null);
     preparation.launch(
-        ACCOUNT, season, seasons.collectionState(season).collectionRevision(), Set.of(SOURCE));
+        ACCOUNT, season, seasonReads.collectionState(season).collectionRevision(), Set.of(SOURCE));
     sql.update("UPDATE sporting_season SET collection_state = 'CLOSED' WHERE id = ?", season);
     UUID nextSeason = seasons.getOrCreate(2027).id();
 
@@ -657,18 +700,18 @@ class SourcePreparationIntegrationTest {
         URI.create(URL + "&saison=2027/2028"));
 
     // Then
-    assertThat(preparation.get(ACCOUNT, SOURCE).acceptedUrl()).isEqualTo(URL);
+    assertThat(configurationReads.source(ACCOUNT, SOURCE).acceptedUrl()).isEqualTo(URL);
     assertThat(seasons.getOrCreate(2026).id()).isEqualTo(season);
-    assertThat(seasons.collectionState(season).collectionState())
+    assertThat(seasonReads.collectionState(season).collectionState())
         .isEqualTo(CollectionSeasonStateEnum.CLOSED);
-    assertThat(seasons.collectionState(nextSeason).collectionState())
+    assertThat(seasonReads.collectionState(nextSeason).collectionState())
         .isEqualTo(CollectionSeasonStateEnum.PREPARING);
     assertThatThrownBy(
             () ->
                 preparation.create(
                     ACCOUNT,
                     season,
-                    seasons.collectionState(season).collectionRevision(),
+                    seasonReads.collectionState(season).collectionRevision(),
                     CollectionProviderEnum.FFVB,
                     "LIRA",
                     URI.create(URL)))
@@ -693,25 +736,26 @@ class SourcePreparationIntegrationTest {
         control,
         SOURCE);
     cycles.admit(new StartCycle(initialCycle, STARTUP, control, null, 0, request));
-    Source imported = preparation.get(ACCOUNT, SOURCE);
+    Source imported = configurationReads.source(ACCOUNT, SOURCE);
     assertThat(imported.locked()).isTrue();
     assertThat(imported.launched()).isFalse();
     assertThat(imported.acceptedUrl()).isEqualTo(URL);
-    assertThat(seasons.collectionState(season).collectionState())
+    assertThat(seasonReads.collectionState(season).collectionState())
         .isEqualTo(CollectionSeasonStateEnum.PREPARING);
 
     // When
     preparation.launch(
-        ACCOUNT, season, seasons.collectionState(season).collectionRevision(), Set.of(SOURCE));
+        ACCOUNT, season, seasonReads.collectionState(season).collectionRevision(), Set.of(SOURCE));
 
     // Then
-    assertThat(preparation.get(ACCOUNT, SOURCE).acceptedUrl()).isEqualTo(imported.acceptedUrl());
-    assertThat(preparation.get(ACCOUNT, SOURCE).launched()).isTrue();
+    assertThat(configurationReads.source(ACCOUNT, SOURCE).acceptedUrl())
+        .isEqualTo(imported.acceptedUrl());
+    assertThat(configurationReads.source(ACCOUNT, SOURCE).launched()).isTrue();
     assertThat(
             sql.queryForObject(
                 "SELECT enabled FROM collection_control WHERE id = ?", Boolean.class, control))
         .isFalse();
-    assertThat(cycles.targets(initialCycle, 0, 50).items())
+    assertThat(collectionWork.targets(initialCycle, 0, 50).items())
         .singleElement()
         .satisfies(target -> assertThat(target.target().url()).isEqualTo(URL));
   }
@@ -739,7 +783,7 @@ class SourcePreparationIntegrationTest {
         pack);
 
     // When
-    CollectionResourcePage children = preparation.children(ACCOUNT, SOURCE, pack, 0, 1);
+    CollectionResourcePage children = configurationReads.children(ACCOUNT, SOURCE, pack, 0, 1);
 
     // Then
     assertThat(children.hasNext()).isTrue();
@@ -752,10 +796,10 @@ class SourcePreparationIntegrationTest {
               assertThat(child.kind()).isEqualTo(CollectionResourceKindEnum.POOL);
               assertThat(child.parentId()).isEqualTo(pack);
             });
-    assertThat(preparation.children(ACCOUNT, SOURCE, null, 0, 50).items())
+    assertThat(configurationReads.children(ACCOUNT, SOURCE, null, 0, 50).items())
         .singleElement()
         .satisfies(child -> assertThat(child.id()).isEqualTo(pack));
-    assertThatThrownBy(() -> preparation.children(ACCOUNT, SOURCE, foreignPack, 0, 50))
+    assertThatThrownBy(() -> configurationReads.children(ACCOUNT, SOURCE, foreignPack, 0, 50))
         .isInstanceOf(SportingResourceNotFoundException.class);
   }
 
@@ -770,7 +814,7 @@ class SourcePreparationIntegrationTest {
   private Source validate(SourceValidationStateEnum state, String evidence, String reason) {
     Source pending = preparation.requestValidation(ACCOUNT, SOURCE, 0);
     cycles.admit(new StartCycle(CYCLE, STARTUP, null, SOURCE, pending.revision(), null));
-    return preparation.submitValidation(SOURCE, result(state, evidence, reason));
+    return sourceValidation.submitValidation(SOURCE, result(state, evidence, reason));
   }
 
   /**

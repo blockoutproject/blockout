@@ -1,9 +1,10 @@
 package com.blockout.backend.notifications.infrastructure;
 
-import com.blockout.backend.notifications.application.InboxReadStore;
+import com.blockout.backend.notifications.application.AllocateAnnouncements.Entry;
 import com.blockout.backend.notifications.application.NotificationContext;
 import com.blockout.backend.notifications.application.NotificationStore;
 import com.blockout.backend.notifications.domain.MatchAnnouncementFacts;
+import com.blockout.backend.notifications.domain.NotificationRetention;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.List;
@@ -37,7 +38,8 @@ public class JpaNotificationStore implements NotificationStore {
   /** {@inheritDoc} */
   @Override
   public boolean markRead(NotificationContext owner, UUID id, Instant now) {
-    return notifications.markRead(owner.accountId(), id, now.minus(InboxReadStore.RETENTION)) == 1;
+    return notifications.markRead(owner.accountId(), id, now.minus(NotificationRetention.RETENTION))
+        == 1;
   }
 
   /** {@inheritDoc} */

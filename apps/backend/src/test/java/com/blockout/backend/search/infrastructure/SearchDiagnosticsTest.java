@@ -9,8 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.blockout.backend.search.application.ProjectSearch;
 import com.blockout.backend.search.application.SearchDocuments;
-import com.blockout.backend.search.application.SearchProjection;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Changed;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.IOException;
@@ -44,7 +44,7 @@ class SearchDiagnosticsTest {
       "Keeps last success truthful across failed full runs without logging private messages")
   void preservesLatestSuccess(CapturedOutput output) {
     // Given
-    SearchProjection projection = mock(SearchProjection.class);
+    ProjectSearch projection = mock(ProjectSearch.class);
     SimpleMeterRegistry registry = new SimpleMeterRegistry();
     SearchProjectionScheduler scheduler =
         new SearchProjectionScheduler(
@@ -96,7 +96,7 @@ class SearchDiagnosticsTest {
     SimpleMeterRegistry registry = new SimpleMeterRegistry();
     SearchProjectionScheduler scheduler =
         new SearchProjectionScheduler(
-            mock(SearchProjection.class),
+            mock(ProjectSearch.class),
             tasks,
             new SearchProjectionProperties(Duration.ofHours(1)),
             registry);
@@ -143,7 +143,7 @@ class SearchDiagnosticsTest {
     OpenSearchProjectionWriter writer =
         new OpenSearchProjectionWriter(
             client, new SearchIndexProperties("blockout-local-search-diag"));
-    SearchProjection projection = mock(SearchProjection.class);
+    ProjectSearch projection = mock(ProjectSearch.class);
     org.mockito.Mockito.doAnswer(
             invocation -> {
               writer.write(

@@ -7,6 +7,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.blockout.backend.access.application.CurrentPermissions;
+import com.blockout.backend.access.application.PermissionStore;
 import com.blockout.backend.accounts.application.exception.AccountUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
 import java.time.Instant;
@@ -44,6 +46,7 @@ class AccountAgeTest {
     when(accounts.findIdByPrincipal(ISSUER, SUBJECT)).thenReturn(Optional.of(original.id()));
     when(accounts.synchronize(ORIGINAL, null, null))
         .thenReturn(Optional.of(original.withPrincipalEvidence(null, null)));
+    when(accounts.findById(ORIGINAL)).thenReturn(Optional.of(original));
     if (outage) when(provider.read(ISSUER, SUBJECT)).thenThrow(new AccountUnavailableException());
     else
       when(provider.read(ISSUER, SUBJECT))
@@ -55,7 +58,7 @@ class AccountAgeTest {
 
     // Then
     assertThat(result.created()).isFalse();
-    assertThat(result.account().principalCreatedAt()).isEqualTo(HISTORICAL);
+    assertThat(result.view().account().principalCreatedAt()).isEqualTo(HISTORICAL);
     verify(accounts).synchronize(ORIGINAL, null, null);
   }
 
@@ -70,6 +73,7 @@ class AccountAgeTest {
         .thenReturn(new PrincipalReader.Evidence("owner@example.invalid", null, List.of()));
     when(accounts.create(eq(ISSUER), eq(SUBJECT), any(), eq("owner@example.invalid"), eq(null)))
         .thenReturn(account(ORIGINAL, null));
+    when(accounts.findById(ORIGINAL)).thenReturn(Optional.of(account(ORIGINAL, null)));
     EstablishAccount establishment = establishment(accounts, provider);
 
     // When
@@ -77,7 +81,7 @@ class AccountAgeTest {
 
     // Then
     assertThat(result.created()).isTrue();
-    assertThat(result.account().principalCreatedAt()).isNull();
+    assertThat(result.view().account().principalCreatedAt()).isNull();
     verify(accounts).create(eq(ISSUER), eq(SUBJECT), any(), eq("owner@example.invalid"), eq(null));
   }
 
@@ -95,11 +99,14 @@ class AccountAgeTest {
     when(accounts.synchronize(ORIGINAL, null, null)).thenReturn(Optional.of(original));
     when(accounts.synchronize(ORIGINAL, null, HISTORICAL))
         .thenReturn(Optional.of(original.withPrincipalEvidence(null, HISTORICAL)));
+    when(accounts.findById(ORIGINAL))
+        .thenReturn(Optional.of(original))
+        .thenReturn(Optional.of(original.withPrincipalEvidence(null, HISTORICAL)));
     EstablishAccount establishment = establishment(accounts, provider);
 
     // When
-    Account unavailable = establishment.establish(ISSUER, SUBJECT).account();
-    Account recovered = establishment.establish(ISSUER, SUBJECT).account();
+    Account unavailable = establishment.establish(ISSUER, SUBJECT).view().account();
+    Account recovered = establishment.establish(ISSUER, SUBJECT).view().account();
 
     // Then
     assertThat(unavailable.principalCreatedAt()).isNull();
@@ -143,6 +150,7 @@ class AccountAgeTest {
             eq("owner@example.invalid"),
             eq(currentPrincipalDate)))
         .thenReturn(replacement);
+    when(accounts.findById(REPLACEMENT)).thenReturn(Optional.of(replacement));
     EstablishAccount establishment = establishment(accounts, provider);
 
     // When
@@ -150,8 +158,8 @@ class AccountAgeTest {
 
     // Then
     assertThat(result.created()).isTrue();
-    assertThat(result.account().id()).isNotEqualTo(ORIGINAL);
-    assertThat(result.account().principalCreatedAt()).isEqualTo(currentPrincipalDate);
+    assertThat(result.view().account().id()).isNotEqualTo(ORIGINAL);
+    assertThat(result.view().account().principalCreatedAt()).isEqualTo(currentPrincipalDate);
     verify(accounts)
         .create(
             eq(ISSUER),
@@ -184,6 +192,8 @@ class AccountAgeTest {
     PlatformTransactionManager transactions = mock(PlatformTransactionManager.class);
     when(transactions.getTransaction(any(TransactionDefinition.class)))
         .thenAnswer(call -> new SimpleTransactionStatus());
-    return new EstablishAccount(accounts, provider, transactions);
+    ReadAccount reads =
+        new ReadAccount(accounts, new CurrentPermissions(mock(PermissionStore.class)));
+    return new EstablishAccount(accounts, provider, reads, transactions);
   }
 }

@@ -17,11 +17,13 @@ import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionState;
-import com.blockout.backend.collection.application.service.CollectionCycleService;
-import com.blockout.backend.collection.application.service.CollectionResultService;
-import com.blockout.backend.collection.application.service.CollectionSourceService;
-import com.blockout.backend.collection.application.service.CollectorRuntimeService;
-import com.blockout.backend.collection.application.service.SourcePreparationService;
+import com.blockout.backend.collection.application.service.AcceptSourceValidation;
+import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
+import com.blockout.backend.collection.application.service.ObserveCollectionSource;
+import com.blockout.backend.collection.application.service.ReadCollectionConfiguration;
+import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.RecordCollectionResults;
+import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
@@ -44,6 +46,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 /**
@@ -64,12 +67,14 @@ class CollectionResultsWebMvcTest {
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000154");
   @Autowired private MockMvc mvc;
 
-  @MockitoBean private CollectionSourceService sources;
+  @MockitoBean private ObserveCollectionSource sources;
 
-  @MockitoBean private CollectionResultService results;
-  @MockitoBean private CollectionCycleService cycles;
-  @MockitoBean private CollectorRuntimeService runtimes;
-  @MockitoBean private SourcePreparationService preparation;
+  @MockitoBean private RecordCollectionResults results;
+  @MockitoBean private ReadCollectionConfiguration configurationReads;
+  @MockitoBean private AdmitCollectionCycle cycles;
+  @MockitoBean private RegisterCollectorRuntime runtimes;
+  @MockitoBean private ReadCollectionWork collectionWork;
+  @MockitoBean private AcceptSourceValidation sourceValidation;
   @MockitoBean private AccountAccess accounts;
 
   @Test
@@ -94,7 +99,7 @@ class CollectionResultsWebMvcTest {
             null,
             null,
             null);
-    when(results.list(ACCOUNT, ID, 0, 50))
+    when(configurationReads.results(ACCOUNT, ID, 0, 50))
         .thenReturn(new CollectionState.ResultPage(List.of(result), 0, false));
 
     // When
@@ -116,16 +121,18 @@ class CollectionResultsWebMvcTest {
   @ValueSource(strings = {"size=201", "size=0", "page=-1"})
   @DisplayName("Rejects pagination outside the generated bounded contract")
   void rejectsInvalidPagination(String query) throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request =
+        get("/administration/collection-controls/" + ID + "/results?" + query).with(mobile());
+
     // When
-    ResultActions response =
-        mvc.perform(
-            get("/administration/collection-controls/" + ID + "/results?" + query).with(mobile()));
+    ResultActions response = mvc.perform(request);
 
     // Then
     response
         .andExpect(status().isBadRequest())
         .andExpect(header().string("Cache-Control", "no-store"));
-    verifyNoInteractions(results);
+    verifyNoInteractions(configurationReads);
   }
 
   @Test
@@ -133,7 +140,7 @@ class CollectionResultsWebMvcTest {
   void refusesRevokedPermission() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(results.list(ACCOUNT, ID, 0, 50))
+    when(configurationReads.results(ACCOUNT, ID, 0, 50))
         .thenThrow(new AccessDeniedException("Collection management is not permitted"));
 
     // When

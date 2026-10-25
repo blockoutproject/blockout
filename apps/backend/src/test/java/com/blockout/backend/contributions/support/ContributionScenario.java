@@ -3,13 +3,13 @@ package com.blockout.backend.contributions.support;
 import static com.blockout.backend.sporting.support.SportingIngestionFixture.candidate;
 import static org.mockito.Mockito.when;
 
-import com.blockout.backend.collection.application.service.CollectionCycleService;
-import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
+import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.contributions.application.ContributionStore;
 import com.blockout.backend.contributions.application.ReadOwnContributions;
 import com.blockout.backend.contributions.application.SubmitContribution;
 import com.blockout.backend.following.application.FollowContext;
-import com.blockout.backend.following.application.FollowService;
+import com.blockout.backend.following.application.ReplaceFollowState;
 import com.blockout.backend.generated.ingestion.model.MatchFactsInternalRequest;
 import com.blockout.backend.generated.ingestion.model.MatchResultInternalRequest;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
@@ -17,10 +17,10 @@ import com.blockout.backend.notifications.application.ProcessDueLinkAnnouncement
 import com.blockout.backend.sporting.api.SportingObservationMapper;
 import com.blockout.backend.sporting.application.model.CalendarObservation;
 import com.blockout.backend.sporting.application.model.MatchObservation;
-import com.blockout.backend.sporting.application.service.CalendarAcceptanceService;
-import com.blockout.backend.sporting.application.service.MatchAcceptanceService;
-import com.blockout.backend.sporting.application.service.SeasonService;
-import com.blockout.backend.sporting.application.service.SportingIdentityService;
+import com.blockout.backend.sporting.application.service.AcceptCalendar;
+import com.blockout.backend.sporting.application.service.AcceptMatchObservation;
+import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.net.URI;
@@ -32,6 +32,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -44,6 +45,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * Testcontainers' native manual-lifecycle pattern; Ryuk removes it at JVM exit. No other suite's
  * services or database are used. Each test explicitly resets this disposable migrated database.
  */
+@Import(SportingIdentityFixture.class)
 @SpringBootTest
 public abstract class ContributionScenario {
   protected static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
@@ -52,17 +54,17 @@ public abstract class ContributionScenario {
   protected static final UUID FOLLOWER = UUID.fromString("00000000-0000-4000-8000-000000000001");
   protected static final UUID OTHER = UUID.fromString("00000000-0000-4000-8000-000000000002");
   @Autowired protected JdbcTemplate sql;
-  @Autowired protected SeasonService seasons;
-  @Autowired protected SportingIdentityService identities;
-  @Autowired protected CollectionCycleService cycles;
-  @Autowired protected CollectorRuntimeService runtimes;
-  @Autowired protected CalendarAcceptanceService calendars;
-  @Autowired protected MatchAcceptanceService matches;
+  @Autowired protected ChangeCollectionSeasons seasons;
+  @Autowired protected SportingIdentityFixture identities;
+  @Autowired protected AdmitCollectionCycle cycles;
+  @Autowired protected RegisterCollectorRuntime runtimes;
+  @Autowired protected AcceptCalendar calendars;
+  @Autowired protected AcceptMatchObservation matches;
   @Autowired protected SportingObservationMapper mapper;
   @Autowired protected SubmitContribution submissions;
   @Autowired protected ReadOwnContributions reads;
   @Autowired protected ContributionStore contributions;
-  @Autowired protected FollowService follows;
+  @Autowired protected ReplaceFollowState follows;
   @Autowired protected ProcessDueLinkAnnouncements due;
   @Autowired protected PlatformTransactionManager transactions;
   @MockitoBean protected Clock clock;

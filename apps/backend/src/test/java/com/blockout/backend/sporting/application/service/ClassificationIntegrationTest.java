@@ -15,6 +15,7 @@ import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.port.SportingStore;
+import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -33,6 +34,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -44,6 +46,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Exercises complete correction commits against the migrated PostgreSQL schema. */
+@Import(SportingIdentityFixture.class)
 @SpringBootTest
 @Testcontainers
 @DisplayName("Atomic sporting classification")
@@ -51,10 +54,11 @@ class ClassificationIntegrationTest {
   @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   private static final UUID ORIGINAL = UUID.fromString("00000000-0000-4000-8000-000000000010");
   private static final UUID TARGET = UUID.fromString("00000000-0000-4000-8000-000000000011");
-  @Autowired private ClassificationService classifications;
-  @Autowired private SportingIdentityService identities;
-  @Autowired private SportingReadService reads;
-  @Autowired private SeasonService seasons;
+  @Autowired private ChangeSportingClassification classifications;
+  @Autowired private ReadSportingConfiguration configurationReads;
+  @Autowired private SportingIdentityFixture identities;
+  @Autowired private ReadSportingAcquisition acquisitionReads;
+  @Autowired private ChangeCollectionSeasons seasons;
   @Autowired private AccountStore accounts;
   @Autowired private JdbcTemplate sql;
   @Autowired private SportingStore store;
@@ -119,7 +123,7 @@ class ClassificationIntegrationTest {
     // Given
     PoolView pool = pool("A", "pack", ORIGINAL);
     MatchView match = match(pool, "Home", "Away");
-    ClassificationView first = classifications.pool(account, pool.id());
+    ClassificationView first = configurationReads.pool(account, pool.id());
     ClassificationView configured =
         classifications.setPool(account, pool.id(), first.revision(), classification(TARGET));
 
@@ -130,11 +134,11 @@ class ClassificationIntegrationTest {
     // Then
     assertThat(removed.setting()).isNull();
     assertThat(removed.effective()).isNull();
-    assertThat(reads.pool(pool.id()).orElseThrow().classification())
+    assertThat(acquisitionReads.pool(pool.id()).orElseThrow().classification())
         .isEqualTo(classification(TARGET));
-    assertThat(reads.team(match.homeTeamId()).orElseThrow().classification())
+    assertThat(acquisitionReads.team(match.homeTeamId()).orElseThrow().classification())
         .isEqualTo(classification(TARGET));
-    assertThat(reads.match(match.id())).contains(match);
+    assertThat(acquisitionReads.match(match.id())).contains(match);
     assertThat(
             classifications
                 .setPool(account, pool.id(), removed.revision(), classification(TARGET))
@@ -153,7 +157,7 @@ class ClassificationIntegrationTest {
     MatchView shared = match(first, "Shared", "First away");
     match(outside, "Shared", "Outside away");
     match(second, "Independent", "Second away");
-    ClassificationView before = classifications.pack(account, first.packId());
+    ClassificationView before = configurationReads.pack(account, first.packId());
 
     // When
     ThrowingCallable correction =
@@ -167,10 +171,10 @@ class ClassificationIntegrationTest {
             SportingConflictException.class,
             error ->
                 assertThat(error.getResourceIds()).contains(outside.id(), shared.homeTeamId()));
-    assertThat(classifications.pack(account, first.packId())).isEqualTo(before);
-    assertThat(reads.pool(first.id()).orElseThrow().classification())
+    assertThat(configurationReads.pack(account, first.packId())).isEqualTo(before);
+    assertThat(acquisitionReads.pool(first.id()).orElseThrow().classification())
         .isEqualTo(classification(ORIGINAL));
-    assertThat(reads.pool(second.id()).orElseThrow().classification())
+    assertThat(acquisitionReads.pool(second.id()).orElseThrow().classification())
         .isEqualTo(classification(ORIGINAL));
   }
 
@@ -182,7 +186,7 @@ class ClassificationIntegrationTest {
     PoolView target = pool("B", "other-pack", TARGET);
     MatchView existing = match(target, "Home", "Away");
     match(first, "Home", "Away");
-    ClassificationView before = classifications.pool(account, first.id());
+    ClassificationView before = configurationReads.pool(account, first.id());
 
     // When
     ThrowingCallable correction =
@@ -194,7 +198,7 @@ class ClassificationIntegrationTest {
         .isInstanceOfSatisfying(
             SportingConflictException.class,
             error -> assertThat(error.getResourceIds()).contains(existing.homeTeamId()));
-    assertThat(classifications.pool(account, first.id())).isEqualTo(before);
+    assertThat(configurationReads.pool(account, first.id())).isEqualTo(before);
   }
 
   @ParameterizedTest
@@ -214,7 +218,7 @@ class ClassificationIntegrationTest {
         existing.homeTeamId(),
         season,
         targetAlias);
-    ClassificationView before = classifications.pool(account, first.id());
+    ClassificationView before = configurationReads.pool(account, first.id());
 
     // When
     ThrowingCallable correction =
@@ -227,11 +231,11 @@ class ClassificationIntegrationTest {
             SportingConflictException.class,
             error ->
                 assertThat(error.getResourceIds()).contains(existing.homeTeamId(), first.id()));
-    assertThat(classifications.pool(account, first.id())).isEqualTo(before);
-    assertThat(reads.team(original.homeTeamId()).orElseThrow().classification())
+    assertThat(configurationReads.pool(account, first.id())).isEqualTo(before);
+    assertThat(acquisitionReads.team(original.homeTeamId()).orElseThrow().classification())
         .isEqualTo(classification(ORIGINAL));
-    assertThat(reads.match(original.id())).contains(original);
-    assertThat(reads.match(existing.id())).contains(existing);
+    assertThat(acquisitionReads.match(original.id())).contains(original);
+    assertThat(acquisitionReads.match(existing.id())).contains(existing);
   }
 
   @Test
@@ -248,7 +252,7 @@ class ClassificationIntegrationTest {
         season,
         existing.homeTeamId(),
         season);
-    ClassificationView before = classifications.pack(account, first.packId());
+    ClassificationView before = configurationReads.pack(account, first.packId());
 
     // When
     ThrowingCallable correction =
@@ -264,11 +268,11 @@ class ClassificationIntegrationTest {
                 assertThat(error.getResourceIds())
                     .contains(
                         original.homeTeamId(), existing.homeTeamId(), first.id(), second.id()));
-    assertThat(classifications.pack(account, first.packId())).isEqualTo(before);
-    assertThat(reads.pool(second.id()).orElseThrow().classification())
+    assertThat(configurationReads.pack(account, first.packId())).isEqualTo(before);
+    assertThat(acquisitionReads.pool(second.id()).orElseThrow().classification())
         .isEqualTo(classification(TARGET));
-    assertThat(reads.match(original.id())).contains(original);
-    assertThat(reads.match(existing.id())).contains(existing);
+    assertThat(acquisitionReads.match(original.id())).contains(original);
+    assertThat(acquisitionReads.match(existing.id())).contains(existing);
   }
 
   @ParameterizedTest
@@ -288,7 +292,7 @@ class ClassificationIntegrationTest {
         season,
         organizer,
         competition);
-    ClassificationView before = classifications.pool(account, first.id());
+    ClassificationView before = configurationReads.pool(account, first.id());
 
     // When
     classifications.setPool(account, first.id(), before.revision(), classification(TARGET));
@@ -296,9 +300,9 @@ class ClassificationIntegrationTest {
 
     // Then
     assertThat(observed).isEqualTo(original);
-    assertThat(reads.team(original.homeTeamId()).orElseThrow().classification())
+    assertThat(acquisitionReads.team(original.homeTeamId()).orElseThrow().classification())
         .isEqualTo(classification(TARGET));
-    assertThat(reads.match(existing.id())).contains(existing);
+    assertThat(acquisitionReads.match(existing.id())).contains(existing);
   }
 
   @ParameterizedTest
@@ -310,7 +314,7 @@ class ClassificationIntegrationTest {
     MatchView original = match(first, "Alpha", "First away");
     UUID otherSeason = seasons.getOrCreate(otherStartYear).id();
     PoolView other =
-        identities.establishPool(
+        identities.createPool(
             new PoolKey(
                 CollectionProviderEnum.FFVB,
                 otherSeason,
@@ -334,7 +338,7 @@ class ClassificationIntegrationTest {
         season,
         existing.homeTeamId(),
         otherSeason);
-    ClassificationView before = classifications.pool(account, first.id());
+    ClassificationView before = configurationReads.pool(account, first.id());
 
     // When
     classifications.setPool(account, first.id(), before.revision(), classification(TARGET));
@@ -342,9 +346,9 @@ class ClassificationIntegrationTest {
 
     // Then
     assertThat(observed).isEqualTo(original);
-    assertThat(reads.team(original.homeTeamId()).orElseThrow().classification())
+    assertThat(acquisitionReads.team(original.homeTeamId()).orElseThrow().classification())
         .isEqualTo(classification(TARGET));
-    assertThat(reads.match(existing.id())).contains(existing);
+    assertThat(acquisitionReads.match(existing.id())).contains(existing);
   }
 
   @Test
@@ -352,8 +356,8 @@ class ClassificationIntegrationTest {
   void rejectsStaleNoOp() {
     // Given
     PoolView pool = pool("A", "pack", ORIGINAL);
-    ClassificationView before = classifications.pool(account, pool.id());
-    ClassificationView pack = classifications.pack(account, pool.packId());
+    ClassificationView before = configurationReads.pool(account, pool.id());
+    ClassificationView pack = configurationReads.pack(account, pool.packId());
     assertThat(classifications.setPool(account, pool.id(), before.revision(), null))
         .isEqualTo(before);
     classifications.setPack(account, pool.packId(), pack.revision(), classification(TARGET));
@@ -378,11 +382,11 @@ class ClassificationIntegrationTest {
     PoolView override = pool("C", "pack", ORIGINAL);
     MatchView shared = match(first, "Shared", "First away");
     match(second, "Shared", "Second away");
-    ClassificationView initial = classifications.pool(account, override.id());
+    ClassificationView initial = configurationReads.pool(account, override.id());
     ClassificationView overridden =
         classifications.setPool(
             account, override.id(), initial.revision(), classification(ORIGINAL));
-    ClassificationView pack = classifications.pack(account, first.packId());
+    ClassificationView pack = configurationReads.pack(account, first.packId());
 
     // When
     ClassificationView corrected =
@@ -390,13 +394,13 @@ class ClassificationIntegrationTest {
 
     // Then
     assertThat(corrected.effective()).isEqualTo(classification(TARGET));
-    assertThat(reads.pool(first.id()).orElseThrow().classification())
+    assertThat(acquisitionReads.pool(first.id()).orElseThrow().classification())
         .isEqualTo(classification(TARGET));
-    assertThat(reads.pool(second.id()).orElseThrow().classification())
+    assertThat(acquisitionReads.pool(second.id()).orElseThrow().classification())
         .isEqualTo(classification(TARGET));
-    assertThat(reads.team(shared.homeTeamId()).orElseThrow().classification())
+    assertThat(acquisitionReads.team(shared.homeTeamId()).orElseThrow().classification())
         .isEqualTo(classification(TARGET));
-    assertThat(classifications.pool(account, override.id())).isEqualTo(overridden);
+    assertThat(configurationReads.pool(account, override.id())).isEqualTo(overridden);
     assertThat(
             classifications
                 .setPool(account, override.id(), overridden.revision(), null)
@@ -412,7 +416,7 @@ class ClassificationIntegrationTest {
     PoolView second = pool("B", "pack", TARGET);
     match(first, "Same name", "First away");
     match(second, "Same name", "Second away");
-    ClassificationView pack = classifications.pack(account, first.packId());
+    ClassificationView pack = configurationReads.pack(account, first.packId());
     SportingClassification changed =
         new SportingClassification(TARGET, SportFormatEnum._4X4, SportGenderEnum.MIXED);
 
@@ -422,7 +426,7 @@ class ClassificationIntegrationTest {
 
     // Then
     assertThatThrownBy(correction).isInstanceOf(SportingConflictException.class);
-    assertThat(classifications.pack(account, first.packId())).isEqualTo(pack);
+    assertThat(configurationReads.pack(account, first.packId())).isEqualTo(pack);
   }
 
   @Test
@@ -433,7 +437,7 @@ class ClassificationIntegrationTest {
     PoolView first = pool("A", "pack", ORIGINAL);
     PoolView outside = pool("B", "other-pack", ORIGINAL);
     match(first, "Shared", "First away");
-    ClassificationView before = classifications.pool(account, first.id());
+    ClassificationView before = configurationReads.pool(account, first.id());
     CompletableFuture<Integer> pid = new CompletableFuture<>();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
@@ -463,7 +467,7 @@ class ClassificationIntegrationTest {
       // Then
       assertThatThrownBy(() -> correction.get(15, TimeUnit.SECONDS))
           .hasCauseInstanceOf(SportingConflictException.class);
-      assertThat(classifications.pool(account, first.id())).isEqualTo(before);
+      assertThat(configurationReads.pool(account, first.id())).isEqualTo(before);
     }
   }
 
@@ -474,7 +478,7 @@ class ClassificationIntegrationTest {
     // Given
     PoolView pool = pool("A", "pack", ORIGINAL);
     MatchView match = match(pool, "Home", "Away");
-    ClassificationView before = classifications.pool(account, pool.id());
+    ClassificationView before = configurationReads.pool(account, pool.id());
     CompletableFuture<Integer> pid = new CompletableFuture<>();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
@@ -499,7 +503,7 @@ class ClassificationIntegrationTest {
 
       // Then
       assertThat(collection.get(15, TimeUnit.SECONDS)).isEqualTo(match);
-      assertThat(reads.team(match.homeTeamId()).orElseThrow().classification())
+      assertThat(acquisitionReads.team(match.homeTeamId()).orElseThrow().classification())
           .isEqualTo(classification(TARGET));
     }
   }
@@ -509,7 +513,7 @@ class ClassificationIntegrationTest {
   void refusesWithdrawnGrant() throws Exception {
     // Given
     PoolView pool = pool("A", "pack", ORIGINAL);
-    ClassificationView before = classifications.pool(account, pool.id());
+    ClassificationView before = configurationReads.pool(account, pool.id());
     CompletableFuture<Integer> pid = new CompletableFuture<>();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
@@ -540,7 +544,7 @@ class ClassificationIntegrationTest {
       // Then
       assertThatThrownBy(() -> correction.get(15, TimeUnit.SECONDS))
           .hasCauseInstanceOf(AccessDeniedException.class);
-      assertThat(reads.pool(pool.id()).orElseThrow().classification())
+      assertThat(acquisitionReads.pool(pool.id()).orElseThrow().classification())
           .isEqualTo(classification(ORIGINAL));
       assertThat(
               sql.queryForObject(
@@ -558,7 +562,7 @@ class ClassificationIntegrationTest {
    * @return persisted pool with the scenario's initial classification
    */
   private PoolView pool(String reference, String pack, UUID division) {
-    return identities.establishPool(
+    return identities.createPool(
         new PoolKey(
             CollectionProviderEnum.FFVB, season, "organizer", "competition", null, null, reference),
         pack,

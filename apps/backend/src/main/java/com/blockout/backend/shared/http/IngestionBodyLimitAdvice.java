@@ -3,7 +3,7 @@ package com.blockout.backend.shared.http;
 import com.blockout.backend.collection.api.CollectionSourcesController;
 import com.blockout.backend.collection.api.CollectorOperationsController;
 import com.blockout.backend.sporting.api.SportingIngestionController;
-import com.blockout.backend.sporting.application.service.SportingImageService;
+import com.blockout.backend.sporting.application.service.ValidateSportingImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,7 +45,7 @@ public class IngestionBodyLimitAdvice extends RequestBodyAdviceAdapter {
       throws IOException {
     int limit =
         Resource.class.isAssignableFrom(parameter.getParameterType())
-            ? SportingImageService.MAX_BYTES
+            ? ValidateSportingImage.MAX_BYTES
             : MAX_JSON_BYTES;
     if (input.getHeaders().getContentLength() > limit)
       throw new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE);

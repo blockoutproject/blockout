@@ -1,9 +1,9 @@
 package com.blockout.backend.following.application;
 
+import com.blockout.backend.following.application.FollowContext.Relation;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
 /** Relation persistence; writes participate in the caller's original-account lock/transaction. */
 public interface FollowStore {
@@ -38,13 +38,4 @@ public interface FollowStore {
    * @return detached identities of currently present relations
    */
   List<Relation> relations(Set<FollowContext.Target> targets);
-
-  /**
-   * Immutable original account, sporting target and relation lifecycle for in-process consumers.
-   *
-   * @param id unique relation incarnation, replaced after unfollow/re-follow
-   * @param accountId original account protected by the relation's FK
-   * @param target exact typed sporting identity
-   */
-  record Relation(UUID id, UUID accountId, FollowContext.Target target) {}
 }

@@ -26,8 +26,9 @@ import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.following.application.FollowContext;
 import com.blockout.backend.following.application.FollowContext.Target;
 import com.blockout.backend.following.application.FollowContext.TargetType;
-import com.blockout.backend.following.application.FollowService;
 import com.blockout.backend.following.application.FollowUnavailableTargetException;
+import com.blockout.backend.following.application.ReadFollowState;
+import com.blockout.backend.following.application.ReplaceFollowState;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import java.util.Optional;
 import java.util.Set;
@@ -45,6 +46,8 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -69,7 +72,8 @@ class FollowStateWebMvcTest {
   private static final UUID TARGET = UUID.fromString(FollowingContractTest.TARGET);
   private static final String ISSUER = "https://identity.example.invalid/";
   @Autowired private MockMvc mvc;
-  @MockitoBean private FollowService follows;
+  @MockitoBean private ReadFollowState reads;
+  @MockitoBean private ReplaceFollowState changes;
   @MockitoBean private AccountAccess accounts;
   @MockitoBean private AccessSettingsStore settings;
   @MockitoBean private PermissionStore permissions;
@@ -89,10 +93,13 @@ class FollowStateWebMvcTest {
   void readsConfirmedState(String kind, boolean confirmed) throws Exception {
     // Given
     when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ACCOUNT));
-    when(follows.state(context(kind))).thenReturn(confirmed);
+    when(reads.read(context(kind))).thenReturn(confirmed);
 
-    // When / Then
-    mvc.perform(get(path(kind)).with(mobile()))
+    // When
+    ResultActions response = mvc.perform(get(path(kind)).with(mobile()));
+
+    // Then
+    response
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.following").value(confirmed));
@@ -104,18 +111,22 @@ class FollowStateWebMvcTest {
   void replacesState(String kind, boolean requested, boolean confirmed) throws Exception {
     // Given
     when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ACCOUNT));
-    when(follows.replace(context(kind), requested)).thenReturn(confirmed);
+    when(changes.replace(context(kind), requested)).thenReturn(confirmed);
 
-    // When / Then
-    mvc.perform(
+    // When
+    ResultActions response =
+        mvc.perform(
             put(path(kind))
                 .with(mobile())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"following\":" + requested + "}"))
+                .content("{\"following\":" + requested + "}"));
+
+    // Then
+    response
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.following").value(confirmed));
-    verify(follows).replace(context(kind), requested);
+    verify(changes).replace(context(kind), requested);
   }
 
   @ParameterizedTest
@@ -130,57 +141,92 @@ class FollowStateWebMvcTest {
       })
   @DisplayName("Rejects incomplete or coerced bodies before mutation")
   void rejectsBody(String body) throws Exception {
-    // Given / When / Then
-    mvc.perform(
-            put(path("team")).with(mobile()).contentType(MediaType.APPLICATION_JSON).content(body))
+    // Given
+    MockHttpServletRequestBuilder request =
+        put(path("team")).with(mobile()).contentType(MediaType.APPLICATION_JSON).content(body);
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response
         .andExpect(status().isBadRequest())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:invalid-request"));
-    verifyNoInteractions(follows);
+    verifyNoInteractions(reads, changes);
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"team", "pool"})
   @DisplayName("Rejects all member query properties for both GET and PUT")
   void rejectsQuery(String kind) throws Exception {
-    // Given / When / Then
-    mvc.perform(get(path(kind)).with(mobile()).param("seasonId", TARGET.toString()))
-        .andExpect(status().isBadRequest());
-    mvc.perform(
+    // Given
+    MockHttpServletRequestBuilder request =
+        get(path(kind)).with(mobile()).param("seasonId", TARGET.toString());
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isBadRequest());
+
+    // When
+    ResultActions secondResponse =
+        mvc.perform(
             put(path(kind))
                 .with(mobile())
                 .param("following", "true", "false")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"following\":true}"))
-        .andExpect(status().isBadRequest());
-    verifyNoInteractions(follows);
+                .content("{\"following\":true}"));
+
+    // Then
+    secondResponse.andExpect(status().isBadRequest());
+    verifyNoInteractions(reads, changes);
   }
 
   @Test
   @DisplayName("Rejects unsupported media before mutation")
   void rejectsMedia() throws Exception {
-    // Given / When / Then
-    mvc.perform(put(path("pool")).with(mobile()).contentType(MediaType.TEXT_PLAIN).content("true"))
+    // Given
+    MockHttpServletRequestBuilder request =
+        put(path("pool")).with(mobile()).contentType(MediaType.TEXT_PLAIN).content("true");
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response
         .andExpect(status().isUnsupportedMediaType())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:unsupported-media-type"))
         .andExpect(header().string("Cache-Control", "no-store"));
-    verifyNoInteractions(follows);
+    verifyNoInteractions(reads, changes);
   }
 
   @Test
   @DisplayName("Rejects guests and collector credentials without accessing personal state")
   void rejectsCredentials() throws Exception {
-    // Given / When / Then
-    mvc.perform(
-            put(path("team"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"following\":true}"))
+    // Given
+    MockHttpServletRequestBuilder request =
+        put(path("team")).contentType(MediaType.APPLICATION_JSON).content("{\"following\":true}");
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response
         .andExpect(status().isUnauthorized())
         .andExpect(header().string("Cache-Control", "no-store"));
-    mvc.perform(get(path("team")).with(jwt().jwt(token -> token.claim("azp", "collector-test"))))
+
+    // When
+    ResultActions secondResponse =
+        mvc.perform(
+            get(path("team")).with(jwt().jwt(token -> token.claim("azp", "collector-test"))));
+
+    // Then
+    secondResponse
         .andExpect(status().isForbidden())
         .andExpect(header().string("Cache-Control", "no-store"));
-    verifyNoInteractions(follows, accounts);
+    verifyNoInteractions(reads, changes, accounts);
   }
 
   @ParameterizedTest
@@ -191,15 +237,17 @@ class FollowStateWebMvcTest {
     when(accounts.currentId(ISSUER, "subject"))
         .thenReturn(lifecycle.equals("erased") ? Optional.empty() : Optional.of(TARGET));
 
-    // When / Then
-    mvc.perform(
+    // When
+    ResultActions response =
+        mvc.perform(
             put(path("pool"))
                 .with(mobile())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"following\":true}"))
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.detail").doesNotExist());
-    verifyNoInteractions(follows);
+                .content("{\"following\":true}"));
+
+    // Then
+    response.andExpect(status().isNotFound()).andExpect(jsonPath("$.detail").doesNotExist());
+    verifyNoInteractions(reads, changes);
   }
 
   @ParameterizedTest
@@ -208,14 +256,18 @@ class FollowStateWebMvcTest {
   void rejectsTarget(String kind) throws Exception {
     // Given
     when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ACCOUNT));
-    when(follows.replace(context(kind), true)).thenThrow(new FollowUnavailableTargetException());
+    when(changes.replace(context(kind), true)).thenThrow(new FollowUnavailableTargetException());
 
-    // When / Then
-    mvc.perform(
+    // When
+    ResultActions response =
+        mvc.perform(
             put(path(kind))
                 .with(mobile())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"following\":true}"))
+                .content("{\"following\":true}"));
+
+    // Then
+    response
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:not-found"))
         .andExpect(jsonPath("$.detail").doesNotExist())
@@ -227,10 +279,13 @@ class FollowStateWebMvcTest {
   void rejectsUnavailableStorage() throws Exception {
     // Given
     when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ACCOUNT));
-    when(follows.state(any())).thenThrow(new DataAccessResourceFailureException("Private fixture"));
+    when(reads.read(any())).thenThrow(new DataAccessResourceFailureException("Private fixture"));
 
-    // When / Then
-    mvc.perform(get(path("team")).with(mobile()))
+    // When
+    ResultActions response = mvc.perform(get(path("team")).with(mobile()));
+
+    // Then
+    response
         .andExpect(status().isServiceUnavailable())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:unavailable"))
         .andExpect(jsonPath("$.detail").doesNotExist())
@@ -248,20 +303,34 @@ class FollowStateWebMvcTest {
     when(transactions.getTransaction(any(TransactionDefinition.class)))
         .thenReturn(new SimpleTransactionStatus());
 
-    // When / Then
-    mvc.perform(get(path("pool")).with(mobile())).andExpect(status().isServiceUnavailable());
-    verifyNoInteractions(follows);
-    mvc.perform(get(path("pool")).with(mobile()).header("Blockout-Maintenance-Bypass", "true"))
-        .andExpect(status().isOk());
-    verify(follows).state(context("pool"));
+    // When
+    ResultActions response = mvc.perform(get(path("pool")).with(mobile()));
+
+    // Then
+    response.andExpect(status().isServiceUnavailable());
+    verifyNoInteractions(reads, changes);
+
+    // When
+    ResultActions secondResponse =
+        mvc.perform(get(path("pool")).with(mobile()).header("Blockout-Maintenance-Bypass", "true"));
+
+    // Then
+    secondResponse.andExpect(status().isOk());
+    verify(reads).read(context("pool"));
   }
 
   @Test
   @DisplayName("Rejects DELETE instead of exposing a toggle or alternate removal protocol")
   void rejectsDelete() throws Exception {
-    // Given / When / Then
-    mvc.perform(delete(path("team")).with(mobile())).andExpect(status().isMethodNotAllowed());
-    verifyNoInteractions(follows);
+    // Given
+    MockHttpServletRequestBuilder request = delete(path("team")).with(mobile());
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isMethodNotAllowed());
+    verifyNoInteractions(reads, changes);
   }
 
   /** Supplies a validated mobile principal without granting another account's access. */

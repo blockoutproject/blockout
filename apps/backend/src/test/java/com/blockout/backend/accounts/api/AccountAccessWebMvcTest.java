@@ -38,6 +38,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.CannotCreateTransactionException;
 
@@ -73,13 +75,13 @@ class AccountAccessWebMvcTest {
   void establishesExplicitly(boolean created) throws Exception {
     // Given
     when(establishment.establish(ISSUER, "auth0|one"))
-        .thenReturn(new EstablishAccount.Outcome(ACCOUNT, created));
-    when(store.findById(ID)).thenReturn(Optional.of(ACCOUNT));
-    when(permissions.forAccount(ID)).thenReturn(Set.of(Permission.MANAGE_MAINTENANCE));
+        .thenReturn(
+            new EstablishAccount.Outcome(
+                new ReadAccount.View(ACCOUNT, false, Set.of(Permission.MANAGE_MAINTENANCE)),
+                created));
 
     // When
-    org.springframework.test.web.servlet.ResultActions response =
-        mvc.perform(post("/accounts").with(principal("mobile-test")));
+    ResultActions response = mvc.perform(post("/accounts").with(principal("mobile-test")));
 
     // Then
     response
@@ -94,6 +96,7 @@ class AccountAccessWebMvcTest {
     if (created) response.andExpect(header().string("Location", "/accounts/" + ID));
     else response.andExpect(header().doesNotExist("Location"));
     verify(admission).requireOrdinaryAccess(ISSUER, "auth0|one", false);
+    verifyNoInteractions(store, permissions);
   }
 
   @Test
@@ -205,23 +208,45 @@ class AccountAccessWebMvcTest {
   @ValueSource(strings = {"collector-test", "foreign-mobile"})
   @DisplayName("Refuses collector or wrong-client credentials before account effects")
   void rejectsWrongClient(String client) throws Exception {
-    // Given / When
-    mvc.perform(post("/accounts").with(principal(client)))
-        // Then
+    // Given
+    RequestPostProcessor credentials = principal(client);
+
+    // When
+    ResultActions response = mvc.perform(post("/accounts").with(credentials));
+
+    // Then
+    response
         .andExpect(status().isForbidden())
         .andExpect(header().string("Cache-Control", "no-store"));
     verifyNoInteractions(store, establishment, admission);
   }
 
   @Test
-  @DisplayName("Refuses visitors and invalid bearers before account effects")
-  void rejectsUnauthenticated() throws Exception {
-    // Given / When
-    mvc.perform(post("/accounts"))
-        // Then
-        .andExpect(status().isUnauthorized())
-        .andExpect(header().exists("WWW-Authenticate"));
-    mvc.perform(get("/accounts/me").header("Authorization", "Bearer invalid"))
+  @DisplayName("Refuses visitors before account effects")
+  void rejectsVisitors() throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request = post("/accounts");
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isUnauthorized()).andExpect(header().exists("WWW-Authenticate"));
+    verifyNoInteractions(store, establishment, admission);
+  }
+
+  @Test
+  @DisplayName("Refuses invalid bearers before account effects")
+  void rejectsInvalidBearer() throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request =
+        get("/accounts/me").header("Authorization", "Bearer invalid");
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response
         .andExpect(status().isUnauthorized())
         .andExpect(header().string("Cache-Control", "no-store"));
     verifyNoInteractions(store, establishment, admission);
@@ -246,18 +271,17 @@ class AccountAccessWebMvcTest {
   }
 
   @Test
-  @DisplayName("Does not announce an account erased before the response read")
-  void refusesLostEstablishmentTarget() throws Exception {
+  @DisplayName("Reports an unavailable establishment without announcing a usable account")
+  void reportsUnavailableEstablishment() throws Exception {
     // Given
-    when(establishment.establish(ISSUER, "auth0|one"))
-        .thenReturn(new EstablishAccount.Outcome(ACCOUNT, false));
-    when(store.findById(ID)).thenReturn(Optional.empty());
+    when(establishment.establish(ISSUER, "auth0|one")).thenThrow(new AccountUnavailableException());
 
     // When
     mvc.perform(post("/accounts").with(principal("mobile-test")))
         // Then
         .andExpect(status().isServiceUnavailable())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:unavailable"));
+    verifyNoInteractions(store, permissions);
   }
 
   @Test
@@ -298,9 +322,14 @@ class AccountAccessWebMvcTest {
   @Test
   @DisplayName("Rejects a malformed original identifier with canonical non-cacheable validation")
   void rejectsMalformedOriginal() throws Exception {
-    // Given / When
-    mvc.perform(get("/accounts/invalid").with(principal("mobile-test")))
-        // Then
+    // Given
+    MockHttpServletRequestBuilder request = get("/accounts/invalid").with(principal("mobile-test"));
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:invalid-request"))
         .andExpect(header().string("Cache-Control", "no-store"));

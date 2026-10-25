@@ -1,8 +1,8 @@
 package com.blockout.backend.sporting.support;
 
 import com.blockout.backend.collection.application.model.CollectionState;
-import com.blockout.backend.collection.application.service.CollectionCycleService;
-import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
+import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
@@ -11,8 +11,7 @@ import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
-import com.blockout.backend.sporting.application.service.SeasonService;
-import com.blockout.backend.sporting.application.service.SportingIdentityService;
+import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -54,17 +53,17 @@ public final class SportingIngestionFixture {
    *
    * @param sql fixture database access
    * @param seasons real season owner
-   * @param identities real sporting identity owner
+   * @param identities explicit persisted sporting-identity fixture
    * @param cycles real cycle admission owner
    * @param runtimes real incarnation owner
    * @return exact admitted synthetic scope
    */
   public static Scope admit(
       JdbcTemplate sql,
-      SeasonService seasons,
-      SportingIdentityService identities,
-      CollectionCycleService cycles,
-      CollectorRuntimeService runtimes) {
+      ChangeCollectionSeasons seasons,
+      SportingIdentityFixture identities,
+      AdmitCollectionCycle cycles,
+      RegisterCollectorRuntime runtimes) {
     UUID season = seasons.getOrCreate(2026).id();
     sql.update("UPDATE sporting_season SET collection_state='ACTIVE' WHERE id=?", season);
     sql.update(
@@ -72,7 +71,7 @@ public final class SportingIngestionFixture {
         DIVISION);
     UUID pool =
         identities
-            .establishPool(
+            .createPool(
                 new PoolKey(
                     CollectionProviderEnum.FFVB, season, "SYNTHETIC", "COMP", null, null, "POOL"),
                 "PACK",
@@ -92,7 +91,9 @@ public final class SportingIngestionFixture {
         CONTROL,
         season);
     UUID startup = UUID.randomUUID();
-    runtimes.register(runtimes.current().revision(), startup);
+    runtimes.register(
+        sql.queryForObject("SELECT revision FROM collector_runtime WHERE id = 1", Long.class),
+        startup);
     CollectionState.Cycle cycle =
         cycles
             .admit(

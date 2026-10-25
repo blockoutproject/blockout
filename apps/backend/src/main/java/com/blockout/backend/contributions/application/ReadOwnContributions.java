@@ -4,6 +4,7 @@ import com.blockout.backend.access.application.CurrentPermissions;
 import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.accounts.application.exception.AccountNotFoundException;
+import com.blockout.backend.contributions.application.AssessContribution.Assessment;
 import com.blockout.backend.contributions.domain.ContributionEligibility;
 import com.blockout.backend.contributions.domain.ContributionQuota;
 import com.blockout.backend.contributions.domain.ContributionState;
@@ -12,7 +13,6 @@ import com.blockout.backend.sporting.application.exception.SportingResourceNotFo
 import com.blockout.backend.sporting.application.service.MatchContributionAccess;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +30,7 @@ public class ReadOwnContributions {
   private final AccountAccess accounts;
   private final CurrentPermissions permissions;
   private final Clock clock;
+  private final AssessContribution eligibility;
 
   /**
    * Reads current eligibility, derived usage and one twenty-item personal page in one snapshot.
@@ -38,47 +39,34 @@ public class ReadOwnContributions {
    * @param matchId currently viewable match
    * @param page zero-based bounded page index
    * @return one coherent detached response
+   * @throws IllegalArgumentException when the page exceeds the supported database offset range
+   * @throws AccountNotFoundException when the original owner no longer exists
+   * @throws SportingResourceNotFoundException when the exact match is unknown or hidden
    */
   public Page read(UUID owner, UUID matchId, long page) {
     if (page < 0 || page > 107374182) throw new IllegalArgumentException("Invalid page");
     Facts facts = require(owner, matchId);
     ContributionState state = store.state(matchId);
     Instant now = clock.instant();
-    ContributionQuota.Day day = ContributionQuota.dayAt(now);
-    ContributionQuota.Usage usage = store.usage(owner, matchId, day);
     boolean moderator = permissions.forAccount(owner).contains(Permission.MODERATE_STREAM_LINKS);
-    Instant createdAt = accounts.principalCreatedAt(owner);
-    ContributionEligibility.Decision decision =
-        ContributionEligibility.evaluate(
-            new ContributionEligibility.Actor(owner, true, moderator, createdAt),
-            new ContributionEligibility.Match(
-                facts.viewable(),
-                facts.professional(),
-                facts.schedule().localDate(),
-                facts.schedule().reliableStart(),
-                facts.definitiveResult()),
-            new ContributionEligibility.Current(
-                state,
-                store.active(matchId).orElse(null),
-                store.pending(matchId, owner).orElse(null)),
-            state.revision(),
-            null,
-            usage,
-            now);
+    Assessment assessment = eligibility.evaluate(owner, facts, state, moderator, null, now);
+    ContributionEligibility.Decision decision = assessment.decision();
     Instant eligibleAt =
         switch (decision.status()) {
-          case ACCOUNT_TOO_YOUNG -> createdAt.plus(Duration.ofDays(7));
-          case WINDOW_NOT_OPEN -> facts.schedule().reliableStart().minus(Duration.ofHours(1));
-          case DAILY_MATCH_LIMIT -> day.endsAt();
+          case ACCOUNT_TOO_YOUNG ->
+              ContributionEligibility.accountEligibleAt(assessment.principalCreatedAt());
+          case WINDOW_NOT_OPEN ->
+              ContributionEligibility.windowOpensAt(facts.schedule().reliableStart());
+          case DAILY_MATCH_LIMIT -> assessment.day().endsAt();
           default -> null;
         };
     return new Page(
         Long.toString(state.revision()),
         decision.status(),
-        ContributionEligibility.requiresApproval(moderator, facts.definitiveResult(), state),
+        assessment.requiresApproval(),
         eligibleAt,
-        usage,
-        day.endsAt(),
+        assessment.usage(),
+        assessment.day().endsAt(),
         store.own(matchId, owner, (int) page),
         page);
   }
@@ -90,6 +78,7 @@ public class ReadOwnContributions {
    * @param matchId currently viewable match
    * @param id exact requested version
    * @return authorized member and its current match revision
+   * @throws AccountNotFoundException when the original owner no longer exists
    * @throws SportingResourceNotFoundException for a missing, hidden or foreign member
    */
   public Detail member(UUID owner, UUID matchId, UUID id) {

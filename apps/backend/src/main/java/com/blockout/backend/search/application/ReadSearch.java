@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class ReadSearch {
   private final SearchEngine engine;
-  private final SearchHydration hydration;
+  private final HydrateSearch hydration;
 
   /**
    * Reads current results after a consumed position without retaining a result set.
