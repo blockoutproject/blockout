@@ -1,99 +1,226 @@
-import { StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { MatchSummaryResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
-import { ResourceCard, ResourceText } from "./resource-page";
-import { DivisionPaint, SportingLink } from "./sporting-identity";
+import { formatSportingSchedule } from "../model/sporting-time";
+import { MatchSurface } from "./match-surface";
+import {
+  DivisionPaint,
+  SportingArtwork,
+  SportingLogo,
+} from "./sporting-identity";
 
-/** Accepted result facts only; missing totals and provisional/special finality remain explicit. */
+/** Accepted identity/result facts; display zone changes text without changing calendar groups. */
 export interface MatchSummaryProps {
   match: MatchSummaryResponse;
+  displayTimeZone?: string;
 }
 
-/** Shared match identity/result surface without winner, live-state or zero-score inference. */
-export function MatchSummary({ match }: MatchSummaryProps) {
-  const { colors } = useTheme();
+/** Maps accepted result precision to approved summary statuses without inventing a live state. */
+function statusLabel(match: MatchSummaryResponse): string {
+  if (match.result?.state === "final") return "Terminé";
+  if (match.result?.state === "provisional") return "Score provisoire";
+  if (match.result?.state === "unconfirmed") return "Résultat non confirmé";
+  return match.category === "completed" ? "Résultat indisponible" : "À venir";
+}
+
+/** Figma Match Summary: informational pool heading, metadata strip and exact team destinations. */
+export function MatchSummary({ match, displayTimeZone }: MatchSummaryProps) {
+  const router = useRouter();
+  const { colors, context } = useTheme();
+  const division = match.pool.classification.division;
+  const accent = division?.color ?? context.primary;
   const result = match.result;
+  const schedule = formatSportingSchedule(match.schedule, displayTimeZone);
   return (
-    <ResourceCard>
-      <View style={styles.pool}>
-        <DivisionPaint division={match.pool.classification.division} />
-        <View style={[styles.poolSurface, { backgroundColor: colors.surface }]}>
-          <SportingLink
-            kind="pool"
-            id={match.pool.pool.id}
-            label={match.pool.pool.name}
-            identity={match.pool.classification.division}
+    <MatchSurface division={division}>
+      <View style={[styles.pool, { backgroundColor: accent }]}>
+        {division?.gradient && <DivisionPaint division={division} />}
+        {division?.logoUrl && (
+          <View
+            pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={styles.artwork}
+          >
+            <View style={styles.cover}>
+              <SportingArtwork identity={division} kind="division" />
+            </View>
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                {
+                  backgroundColor: accent,
+                  opacity: tokens.sporting.coverVeilOpacity,
+                },
+              ]}
+            />
+          </View>
+        )}
+        {division && <SportingLogo kind="division" identity={division} />}
+        <Text
+          accessibilityRole="header"
+          style={[
+            styles.poolName,
+            { color: division ? colors.onSporting : context.onAction },
+          ]}
+        >
+          {match.pool.pool.name}
+        </Text>
+      </View>
+      <View style={[styles.metadata, { backgroundColor: colors.subtle }]}>
+        <View style={styles.status}>
+          <View
+            accessible={false}
+            style={[styles.dot, { backgroundColor: accent }]}
           />
+          <Text style={[styles.metadataText, { color: colors.text }]}>
+            {statusLabel(match)}
+          </Text>
+        </View>
+        <View style={styles.date}>
+          <Text style={[styles.metadataText, { color: colors.secondaryText }]}>
+            {schedule.date}
+            {match.schedule.instant ? ` à ${schedule.time}` : ""}
+          </Text>
+          {!match.schedule.instant && (
+            <Text
+              style={[styles.metadataText, { color: colors.secondaryText }]}
+            >
+              {schedule.time}
+            </Text>
+          )}
         </View>
       </View>
-      <ResourceText>{match.pool.season.label}</ResourceText>
-      {match.pool.competitionName && (
-        <ResourceText>{match.pool.competitionName}</ResourceText>
-      )}
-      {match.pool.classification.division && (
-        <ResourceText>{match.pool.classification.division.name}</ResourceText>
-      )}
-      <ResourceText>{match.pool.phaseName}</ResourceText>
-      <ResourceText>
-        {match.schedule.instant
-          ? new Date(match.schedule.instant).toLocaleString("fr-FR", {
-              dateStyle: "medium",
-              timeStyle: "short",
-            })
-          : match.schedule.localDate}
-      </ResourceText>
-      {!match.schedule.instant && (
-        <ResourceText>Horaire à confirmer</ResourceText>
-      )}
       {[
         { team: match.home, score: result?.homeSets, side: "domicile" },
         { team: match.away, score: result?.awaySets, side: "extérieur" },
-      ].map(({ team, score, side }) => (
-        <View key={side} style={styles.team}>
-          <View style={styles.identity}>
-            <SportingLink
-              kind="team"
-              id={team.id}
-              identity={team}
-              label={team.name}
+      ].map(({ team, score, side }, index) => (
+        <View key={side}>
+          {index > 0 && (
+            <View
+              style={[styles.separator, { backgroundColor: colors.border }]}
             />
-          </View>
-          <Text
-            accessibilityLabel={`Score ${side} : ${score ?? "indisponible"}`}
-            style={[styles.score, { color: colors.text }]}
+          )}
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={`${team.name} · Score ${side} : ${score ?? "indisponible"}`}
+            onPress={() =>
+              router.push({
+                pathname: "/teams/[teamId]",
+                params: { teamId: team.id },
+              })
+            }
+            style={styles.team}
           >
-            {score ?? "—"}
-          </Text>
+            <SportingLogo kind="team" identity={team} />
+            <Text style={[styles.teamName, { color: colors.text }]}>
+              {team.name}
+            </Text>
+            <View style={[styles.scoreCell, { borderColor: accent }]}>
+              <Text
+                accessibilityLabel={`Score ${side} : ${score ?? "indisponible"}`}
+                style={[styles.score, { color: colors.text }]}
+              >
+                {score ?? "—"}
+              </Text>
+            </View>
+          </Pressable>
         </View>
       ))}
-      <ResourceText>
-        {!result
-          ? "Résultat indisponible"
-          : result.state === "provisional"
+      {result && result.state !== "final" && (
+        <Text style={[styles.note, { color: colors.secondaryText }]}>
+          {result.state === "provisional"
             ? "Résultat provisoire · Résultat définitif indisponible"
-            : result.state === "unconfirmed"
-              ? "Résultat non confirmé · Résultat définitif indisponible"
-              : "Résultat définitif"}
-      </ResourceText>
-      {result?.specialLabel && (
-        <ResourceText>{result.specialLabel}</ResourceText>
+            : "Résultat non confirmé · Résultat définitif indisponible"}
+        </Text>
       )}
-    </ResourceCard>
+      {result?.specialLabel && (
+        <Text style={[styles.note, { color: colors.secondaryText }]}>
+          {result.specialLabel}
+        </Text>
+      )}
+    </MatchSurface>
   );
 }
 
 const styles = StyleSheet.create({
   pool: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: tokens.sporting.headerMinHeight,
+    padding: tokens.spacing.md,
+    gap: tokens.spacing.md,
     overflow: "hidden",
-    borderRadius: tokens.radius.control,
-    padding: tokens.spacing.xs,
+    borderTopLeftRadius: tokens.radius.panelInset,
+    borderTopRightRadius: tokens.radius.panelInset,
   },
-  poolSurface: {
+  poolName: { ...tokens.typography.strong, flex: 1, minWidth: 0 },
+  artwork: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  cover: {
+    width: tokens.sporting.coverSize,
+    aspectRatio: 1,
+    opacity: tokens.sporting.coverOpacity,
+    transform: [
+      { translateX: tokens.sporting.coverOffsetX },
+      { translateY: tokens.sporting.coverOffsetY },
+    ],
+  },
+  metadata: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "space-between",
+    columnGap: tokens.spacing.sm,
+    rowGap: tokens.spacing.xs,
+    paddingHorizontal: tokens.spacing.lg,
+    paddingVertical: tokens.spacing.sm,
+  },
+  status: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.label,
+  },
+  dot: {
+    width: tokens.sporting.statusDot,
+    height: tokens.sporting.statusDot,
+    borderRadius: tokens.radius.full,
+  },
+  metadataText: { ...tokens.typography.metadata },
+  date: {
+    alignItems: "flex-end",
+    minWidth: tokens.sporting.dateMinWidth,
+    flexShrink: 1,
+  },
+  team: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.md,
+    minHeight: tokens.sporting.teamMinHeight,
+    paddingHorizontal: tokens.spacing.lg,
+    paddingVertical: tokens.spacing.md,
+  },
+  teamName: { ...tokens.typography.navigation, flex: 1, minWidth: 0 },
+  scoreCell: {
+    minWidth: tokens.size.mediaRow,
+    minHeight: tokens.size.mediaRow,
     paddingHorizontal: tokens.spacing.sm,
+    paddingVertical: tokens.spacing.label,
     borderRadius: tokens.radius.control,
+    borderWidth: tokens.borderWidth,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  team: { flexDirection: "row", alignItems: "center", gap: tokens.spacing.md },
-  identity: { flex: 1 },
-  score: { ...tokens.typography.heading, minWidth: 40, textAlign: "center" },
+  score: { ...tokens.typography.heading, textAlign: "center" },
+  separator: {
+    height: tokens.borderWidth,
+    opacity: tokens.sporting.separatorOpacity,
+  },
+  note: { ...tokens.typography.metadata, padding: tokens.spacing.md },
 });

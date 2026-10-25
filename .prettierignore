@@ -18,6 +18,7 @@ apps/mobile/assets/fonts/
 # Preserve source-owned Figma artwork byte-for-byte.
 apps/mobile/assets/collection/
 apps/mobile/assets/onboarding/community-backdrop-*.svg
+apps/mobile/assets/sporting/
 mvnw
 mvnw.cmd
 *.java

@@ -22,8 +22,11 @@ export interface SportingLogoProps {
   size?: number;
 }
 
-/** Retains authorized artwork after refresh failure; missing/refused artwork keeps a readable identity. */
-export function SportingLogo({ identity, kind, size = 40 }: SportingLogoProps) {
+/** Shares the canonical image query between the visible crest and its optional decorative cover. */
+function useSportingLogo(
+  identity: SportingIdentityResponse,
+  kind: SportingLogoProps["kind"],
+) {
   const queries = useConsultationQueries();
   const options =
     kind === "club"
@@ -31,27 +34,54 @@ export function SportingLogo({ identity, kind, size = 40 }: SportingLogoProps) {
       : kind === "team"
         ? queries.teamLogo(identity.id)
         : queries.divisionLogo(identity.id);
-  const logo = useQuery({
+  const query = useQuery({
     ...options,
     enabled: !!identity.logoUrl,
     refetchOnMount: "always",
     retryOnMount: true,
   });
+  return { query, queryKey: options.queryKey };
+}
+
+/** Retains authorized artwork after refresh failure; missing/refused artwork keeps a readable identity. */
+export function SportingLogo({
+  identity,
+  kind,
+  size = tokens.size.mediaRow,
+}: SportingLogoProps) {
+  const { query: logo, queryKey } = useSportingLogo(identity, kind);
   const { colors } = useTheme();
   const data = identity.logoUrl ? logo.data : undefined;
+  const radius =
+    size === tokens.size.mediaRow ? tokens.radius.control : tokens.radius.media;
+  // Source artwork keeps an 8.33% white plate inset for team/club crests; division art fills its slot.
+  const imageSize = kind === "division" ? size : size * (5 / 6);
   return (
     <View
       style={[
         styles.logo,
-        { width: size, backgroundColor: colors.mediaPlaceholder },
+        {
+          width: size,
+          borderRadius: radius,
+          backgroundColor: data
+            ? kind === "division"
+              ? "transparent"
+              : colors.logoSurface
+            : colors.mediaPlaceholder,
+        },
       ]}
     >
-      <View style={[styles.logo, { width: size, height: size }]}>
+      <View
+        style={[
+          styles.logo,
+          { width: size, height: size, borderRadius: radius },
+        ]}
+      >
         {data ? (
           <LogoImage
-            key={JSON.stringify(options.queryKey)}
+            key={JSON.stringify(queryKey)}
             blob={data}
-            size={size}
+            size={imageSize}
           />
         ) : (
           <Text
@@ -77,8 +107,27 @@ export function SportingLogo({ identity, kind, size = 40 }: SportingLogoProps) {
   );
 }
 
+/** An optional, noninteractive competition-logo cover; absence/loading/failure adds no fake artwork. */
+export function SportingArtwork({
+  identity,
+  kind,
+}: Pick<SportingLogoProps, "identity" | "kind">) {
+  const { query: logo, queryKey } = useSportingLogo(identity, kind);
+  return identity.logoUrl && logo.data ? (
+    <LogoImage key={JSON.stringify(queryKey)} blob={logo.data} blurred />
+  ) : null;
+}
+
 /** Converts a received Blob, clears a prior failure on success and aborts the local read on unmount. */
-function LogoImage({ blob, size }: { blob: Blob; size: number }) {
+function LogoImage({
+  blob,
+  size,
+  blurred = false,
+}: {
+  blob: Blob;
+  size?: number;
+  blurred?: boolean;
+}) {
   const [uri, setUri] = useState<string>();
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -97,16 +146,21 @@ function LogoImage({ blob, size }: { blob: Blob; size: number }) {
       if (reader.readyState === FileReader.LOADING) reader.abort();
     };
   }, [blob]);
-  return failed ? (
+  return failed && !blurred ? (
     <ResourceText>Logo indisponible</ResourceText>
-  ) : uri ? (
+  ) : !failed && uri ? (
     <Image
       accessible={false}
       source={{ uri }}
       cachePolicy="none"
       contentFit="contain"
+      blurRadius={blurred ? tokens.sporting.coverBlur : 0}
       onError={() => setFailed(true)}
-      style={{ width: size, height: size }}
+      style={
+        size === undefined
+          ? StyleSheet.absoluteFill
+          : { width: size, height: size }
+      }
     />
   ) : null;
 }

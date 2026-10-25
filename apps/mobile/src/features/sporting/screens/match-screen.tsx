@@ -1,21 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { Globe, MapPin } from "lucide-react-native";
-import { StyleSheet, Text, View } from "react-native";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { useEffect, useState } from "react";
+import { AppState } from "react-native";
 import { useConsultationQueries } from "../api/use-consultation-queries";
-import {
-  ResourceCard,
-  ResourceFeedback,
-  ResourcePage,
-  ResourceText,
-} from "../components/resource-page";
-import {
-  ContactLink,
-  mapDestination,
-  safeWebsite,
-} from "../components/contact-link";
+import { ResourceFeedback, ResourcePage } from "../components/resource-page";
 import { MatchSummary } from "../components/match-summary";
+import { MatchSetScores } from "../components/match-set-scores";
+import { MatchInformation } from "../components/match-information";
+import { currentSportingTimeZone } from "../model/sporting-time";
 
 /** Exact dated public match identity; document/contribution/support integrations remain owner work. */
 export interface MatchScreenProps {
@@ -24,103 +15,43 @@ export interface MatchScreenProps {
 
 /** Presents independent accepted match facts; a missing secondary section never replaces another. */
 export function MatchScreen({ matchId }: MatchScreenProps) {
+  const [presentation, setPresentation] = useState(() => ({
+    timeZone: currentSportingTimeZone(),
+  }));
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        // A fresh context also rerenders relative dates when the phone zone is unchanged.
+        setPresentation({
+          timeZone: currentSportingTimeZone(),
+        });
+      }
+    });
+    return () => subscription.remove();
+  }, []);
   const queries = useConsultationQueries();
   const match = useQuery({
     ...queries.match(matchId),
     refetchOnMount: "always",
     retryOnMount: true,
   });
-  const { colors } = useTheme();
   const data = match.data;
   return (
-    <ResourcePage title="Match">
+    <ResourcePage>
       <ResourceFeedback query={match} />
       {data && (
         <>
-          <MatchSummary match={data.match} />
-          <ResourceCard>
-            <Text
-              accessibilityRole="header"
-              style={[styles.heading, { color: colors.text }]}
-            >
-              Score
-            </Text>
-            {data.sets ? (
-              data.sets.items.length ? (
-                data.sets.items.map((set, index) => (
-                  <View
-                    key={index}
-                    accessible
-                    accessibilityLabel={`Set ${index + 1} : ${set.home} à ${set.away}`}
-                    style={styles.set}
-                  >
-                    <Text style={[styles.points, { color: colors.text }]}>
-                      {set.home}
-                    </Text>
-                    <ResourceText>SET {index + 1}</ResourceText>
-                    <Text style={[styles.points, { color: colors.text }]}>
-                      {set.away}
-                    </Text>
-                  </View>
-                ))
-              ) : (
-                <ResourceText>Aucun set joué</ResourceText>
-              )
-            ) : (
-              <ResourceText>Détail des sets indisponible</ResourceText>
-            )}
-          </ResourceCard>
-          <ResourceCard>
-            <Text
-              accessibilityRole="header"
-              style={[styles.heading, { color: colors.text }]}
-            >
-              Informations
-            </Text>
-            {data.venueName || data.venueAddress ? (
-              <ContactLink
-                label="Lieu du match"
-                value={[data.venueName, data.venueAddress]
-                  .filter(Boolean)
-                  .join(" · ")}
-                destination={
-                  data.venueAddress
-                    ? mapDestination(data.venueAddress)
-                    : undefined
-                }
-                icon={MapPin}
-              />
-            ) : (
-              <ResourceText>Lieu non renseigné</ResourceText>
-            )}
-            <ResourceText>
-              {data.referees?.length
-                ? `Arbitres : ${data.referees.join(", ")}`
-                : "Arbitres non renseignés"}
-            </ResourceText>
-            {data.officialCalendarUrl && (
-              <ContactLink
-                label="Calendrier officiel FFVB"
-                value={data.officialCalendarUrl}
-                destination={safeWebsite(data.officialCalendarUrl)}
-                icon={Globe}
-              />
-            )}
-          </ResourceCard>
+          <MatchSummary
+            match={data.match}
+            displayTimeZone={presentation.timeZone}
+          />
+          <MatchSetScores match={data.match} sets={data.sets} />
+          <MatchInformation
+            detail={data}
+            displayTimeZone={presentation.timeZone}
+          />
         </>
       )}
     </ResourcePage>
   );
 }
-
-const styles = StyleSheet.create({
-  heading: { ...tokens.typography.heading },
-  set: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: tokens.spacing.md,
-    paddingVertical: tokens.spacing.md,
-  },
-  points: { ...tokens.typography.heading },
-});
