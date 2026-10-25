@@ -77,14 +77,17 @@ export function SportingLogo({ identity, kind, size = 40 }: SportingLogoProps) {
   );
 }
 
-/** Converts a received Blob through the standard native FileReader; unmount aborts local decoding. */
+/** Converts a received Blob, clears a prior failure on success and aborts the local read on unmount. */
 function LogoImage({ blob, size }: { blob: Blob; size: number }) {
   const [uri, setUri] = useState<string>();
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     const reader = new FileReader();
     reader.onload = () => {
-      if (typeof reader.result === "string") setUri(reader.result);
+      if (typeof reader.result === "string") {
+        setUri(reader.result);
+        setFailed(false);
+      }
     };
     reader.onerror = () => setFailed(true);
     reader.readAsDataURL(blob);
