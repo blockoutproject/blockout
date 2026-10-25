@@ -520,6 +520,17 @@ class CollectionOperationalEvidenceIntegrationTest {
         pack,
         division);
     UUID cycle = running(COMPETITIONS, SCOPE, CollectionStageEnum.DISCOVERY);
+    sql.update(
+        "INSERT INTO sporting_pool(id,season_id,pack_id,provider,organizer_reference,competition_reference,reference,source_name,setting_division_id,setting_format,setting_gender) VALUES (?,?,?,'FFVB','SYNTHETIC','C','OVERRIDE','Synthetic',?,'_6X6','MALE')",
+        OTHER,
+        season,
+        pack,
+        division);
+    sql.update(
+        "INSERT INTO sporting_pool(id,season_id,pack_id,provider,organizer_reference,competition_reference,reference,source_name,catalog_eligible) VALUES (?,?,?,'FFVB','SYNTHETIC','C','ABSENT','Synthetic',FALSE)",
+        UUID.fromString("00000000-0000-4000-8000-000000000212"),
+        season,
+        pack);
     assertThat(sporting.countUnclassifiedPools(season, CollectionProviderEnum.FFVB)).isEqualTo(1);
 
     // When
@@ -557,6 +568,204 @@ class CollectionOperationalEvidenceIntegrationTest {
         .allSatisfy(
             log -> assertThat(log.path("collection_subject").asText()).isEqualTo("classification"));
     assertThat(sporting.countUnclassifiedPools(season, CollectionProviderEnum.FFVB)).isZero();
+  }
+
+  @Test
+  @DisplayName("Current evidence pages use stable scope, stage and phase ordering")
+  void ordersCurrentEvidenceByStableKey() {
+    // Given
+    UUID cycle = running(COMPETITIONS, SCOPE, CollectionStageEnum.CALENDAR);
+    target(cycle, SCOPE, CollectionStageEnum.STANDINGS);
+    target(cycle, OTHER, CollectionStageEnum.CALENDAR);
+    results.record(
+        cycle,
+        attempt(
+            OTHER,
+            CollectionStageEnum.CALENDAR,
+            CollectionPhaseEnum.INTEGRATION,
+            1,
+            FIRST,
+            CollectionOutcomeEnum.FAILED,
+            TECHNICAL));
+    results.record(
+        cycle,
+        attempt(
+            SCOPE,
+            CollectionStageEnum.STANDINGS,
+            CollectionPhaseEnum.ACQUISITION,
+            1,
+            FIRST,
+            CollectionOutcomeEnum.FAILED,
+            TECHNICAL));
+    results.record(
+        cycle,
+        attempt(
+            SCOPE,
+            CollectionStageEnum.CALENDAR,
+            CollectionPhaseEnum.INTEGRATION,
+            1,
+            FIRST,
+            CollectionOutcomeEnum.FAILED,
+            TECHNICAL));
+    results.record(
+        cycle,
+        attempt(
+            SCOPE,
+            CollectionStageEnum.CALENDAR,
+            CollectionPhaseEnum.ACQUISITION,
+            1,
+            FIRST,
+            CollectionOutcomeEnum.SUCCESS,
+            null));
+
+    // When
+    List<CollectionResult> page =
+        new TransactionTemplate(transactions)
+            .execute(status -> store.results(COMPETITIONS, 0, 10).items());
+    List<CollectionResult> unrelated =
+        new TransactionTemplate(transactions)
+            .execute(status -> store.results(CLUBS, 0, 10).items());
+
+    // Then
+    assertThat(page)
+        .extracting(CollectionResult::scopeId, CollectionResult::stage, CollectionResult::phase)
+        .containsExactly(
+            org.assertj.core.groups.Tuple.tuple(
+                SCOPE, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.ACQUISITION),
+            org.assertj.core.groups.Tuple.tuple(
+                SCOPE, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.INTEGRATION),
+            org.assertj.core.groups.Tuple.tuple(
+                SCOPE, CollectionStageEnum.STANDINGS, CollectionPhaseEnum.ACQUISITION),
+            org.assertj.core.groups.Tuple.tuple(
+                OTHER, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.INTEGRATION));
+    assertThat(unrelated).isEmpty();
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = CollectionStageEnum.class,
+      names = {"CLUB_SHEET", "GEOCODING"})
+  @DisplayName("Later transport failures cannot postpone retained structural evidence")
+  void retainsStructuralEvidence(CollectionStageEnum stage, CapturedOutput output) {
+    // Given
+    UUID control = stage == CollectionStageEnum.CLUB_SHEET ? CLUBS : GEO;
+    UUID cycle = running(control, SCOPE, stage);
+    results.record(
+        cycle,
+        attempt(
+            SCOPE,
+            stage,
+            CollectionPhaseEnum.ACQUISITION,
+            1,
+            FIRST,
+            CollectionOutcomeEnum.FAILED,
+            URI.create("urn:blockout:acquisition:structure")));
+
+    // When
+    results.record(
+        cycle,
+        attempt(
+            SCOPE,
+            stage,
+            CollectionPhaseEnum.ACQUISITION,
+            2,
+            FIRST.plusSeconds(3600),
+            CollectionOutcomeEnum.FAILED,
+            TECHNICAL));
+
+    // Then
+    assertThat(
+            current(control, SCOPE, stage, CollectionPhaseEnum.ACQUISITION)
+                .firstStructuralFailureAt())
+        .isEqualTo(FIRST);
+    assertThat(evidence(output).getLast().path("collection_alert_at").asDouble())
+        .isEqualTo((double) FIRST.getEpochSecond());
+    assertThat(evidence(output).getLast().path("reason").asText()).isEqualTo("failed-observation");
+  }
+
+  @Test
+  @DisplayName("Structural evidence discovered during an outage survives until usable evidence")
+  void clearsStructureOnlyWithUsableEvidence(CapturedOutput output) {
+    // Given
+    UUID cycle = running(GEO, SCOPE, CollectionStageEnum.GEOCODING);
+    results.record(
+        cycle,
+        attempt(
+            SCOPE,
+            CollectionStageEnum.GEOCODING,
+            CollectionPhaseEnum.ACQUISITION,
+            1,
+            FIRST,
+            CollectionOutcomeEnum.FAILED,
+            TECHNICAL));
+    results.record(
+        cycle,
+        attempt(
+            SCOPE,
+            CollectionStageEnum.GEOCODING,
+            CollectionPhaseEnum.ACQUISITION,
+            2,
+            FIRST.plusSeconds(3600),
+            CollectionOutcomeEnum.FAILED,
+            URI.create("urn:blockout:acquisition:structure")));
+    results.record(
+        cycle,
+        attempt(
+            SCOPE,
+            CollectionStageEnum.GEOCODING,
+            CollectionPhaseEnum.ACQUISITION,
+            3,
+            FIRST.plusSeconds(7200),
+            CollectionOutcomeEnum.FAILED,
+            TECHNICAL));
+    assertThat(evidence(output).getLast().path("collection_alert_at").asDouble())
+        .isEqualTo((double) FIRST.plusSeconds(3600).getEpochSecond());
+
+    // When
+    results.record(
+        cycle,
+        attempt(
+            SCOPE,
+            CollectionStageEnum.GEOCODING,
+            CollectionPhaseEnum.ACQUISITION,
+            4,
+            FIRST.plusSeconds(8000),
+            CollectionOutcomeEnum.SUCCESS,
+            null));
+
+    // Then
+    assertThat(
+            current(GEO, SCOPE, CollectionStageEnum.GEOCODING, CollectionPhaseEnum.ACQUISITION)
+                .firstStructuralFailureAt())
+        .isNull();
+    assertThat(evidence(output).getLast().path("collection_alert_at").asDouble()).isZero();
+  }
+
+  @Test
+  @DisplayName(
+      "Unavailable committed diagnostics retain a safe exception type without failing the caller")
+  void reportsUnavailableDiagnostics(CapturedOutput output) {
+    // Given
+    UUID missing = UUID.fromString("00000000-0000-4000-8000-000000000299");
+
+    // When
+    new TransactionTemplate(transactions)
+        .executeWithoutResult(
+            status ->
+                events.publishEvent(
+                    new CollectionOperationalDiagnostics.EvidenceChanged(
+                        COMPETITIONS,
+                        missing,
+                        CollectionStageEnum.CALENDAR,
+                        CollectionPhaseEnum.ACQUISITION)));
+
+    // Then
+    JsonNode log = logs(output, "collection_diagnostics").getLast();
+    assertThat(log.path("outcome").asText()).isEqualTo("unavailable");
+    assertThat(log.path("error").path("type").asText())
+        .isEqualTo(java.util.NoSuchElementException.class.getName());
+    assertThat(log.has("message")).isFalse();
+    assertThat(log.path("error").has("stack_trace")).isFalse();
   }
 
   /**

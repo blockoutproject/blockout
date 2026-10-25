@@ -25,6 +25,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -136,6 +137,63 @@ class CollectionOperationalEvidenceTest {
     assertThat(results.getAllValues().getLast().phase()).isEqualTo(CollectionPhaseEnum.INTEGRATION);
     assertThat(results.getAllValues().getLast().outcome()).isEqualTo(CollectionOutcomeEnum.FAILED);
     verify(sporting).locality(eq(CLUB), any(), eq(point));
+  }
+
+  @Test
+  @DisplayName("A wrapped FFVB HTTP failure remains a transport problem")
+  void reportsWrappedTransportFailure(CapturedOutput output) {
+    // Given
+    CollectorLifecycle.AdmittedCycle cycle = admitted();
+    URI source =
+        URI.create("https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?calend=COMPLET");
+    com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient http =
+        mock(com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient.class);
+    FfvbAcquisition reader =
+        new com.blockout.collector.acquisition.ffvb.FfvbObservationReader(
+            http,
+            new com.blockout.collector.acquisition.ffvb.FfvbCalendarParser(),
+            new com.blockout.collector.acquisition.ffvb.FfvbStandingsParser(),
+            Clock.fixed(NOW, ZoneOffset.UTC));
+    CollectPassage actual =
+        new CollectPassage(
+            backend,
+            sporting,
+            reader,
+            mock(LnvAcquisition.class),
+            clubs,
+            geocoder,
+            mock(DiscoverSeasonSources.class),
+            lifecycle,
+            Clock.fixed(NOW, ZoneOffset.UTC));
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .scopeId(CLUB)
+            .poolId(CLUB)
+            .provider(com.blockout.collector.generated.ingestion.model.CollectionProviderEnum.FFVB)
+            .kind(CollectionTargetKindEnum.CALENDAR)
+            .url(source)
+            .build();
+    when(backend.targets(cycle.getCycle().id(), 0))
+        .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
+    when(http.page(source))
+        .thenReturn(
+            java.util.concurrent.CompletableFuture.failedFuture(
+                new org.apache.hc.client5.http.HttpResponseException(
+                    503, "private-provider-body")));
+
+    // When
+    actual.execute(cycle);
+
+    // Then
+    ArgumentCaptor<CollectionBackend.Result> result =
+        ArgumentCaptor.forClass(CollectionBackend.Result.class);
+    verify(backend).record(eq(cycle.getCycle().id()), result.capture());
+    assertThat(result.getValue().reasonType())
+        .isEqualTo(URI.create("urn:blockout:acquisition:technical"));
+    assertThat(result.getValue().reason()).isEqualTo("Provider HTTP 503");
+    verify(http).page(source);
+    verifyNoInteractions(sporting);
+    assertThat(output.getAll()).doesNotContain("private-provider-body");
   }
 
   /**

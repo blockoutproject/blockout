@@ -88,12 +88,12 @@ These are the concrete F01 rule inputs to configure in the existing authorized G
 | Current evidence                                                                 | `collection_alert_at` (epoch seconds)   | Interpretation                                                                                                                                  |
 | -------------------------------------------------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | Competition `failed`, `partial` or `unconfirmed`, including manual passages      | Retained first failure                  | Actionable at the first failed observation; no consecutive-cycle counter.                                                                       |
-| Recognized structural/context acquisition failure, including a seasonless family | Retained first failure                  | Immediate, independently of the ordinary family cadence.                                                                                        |
+| Recognized structural/context acquisition failure, including a seasonless family | Retained first structural failure       | Immediate, independently of the ordinary family cadence.                                                                                        |
 | Technical club-sheet/geocoding acquisition failure                               | Retained first failure + 86,400 seconds | Becomes actionable after 24 elapsed hours, including across cycles or a pause. No failure is inferred for a family never attempted.             |
 | Failed or unconfirmed integration                                                | Retained first failure                  | Its own phase remains actionable even after acquisition succeeds.                                                                               |
 | New usable observation at the exact affected key                                 | `0`                                     | Recovery evidence for that scope/stage/phase only. Valid empty calendars and qualified no-candidate/ambiguous geocoding are usable acquisition. |
 
-The result keeps its own last success, first failure, actual observation time and logical `(collection_cycle_order, collection_read_ordinal)`. Partial results retain the old useful success and first failure. Missing counts remain unmeasured; logged measured counts are capped at 10,000. Safe `reason` values are fixed categories; raw reason text, URLs, provider documents and contacts are excluded. Pause, closure, completion and empty admitted selections emit no invented result or recovery.
+The result keeps its own last success, first failure, actual observation time and logical `(collection_cycle_order, collection_read_ordinal)`. Partial results retain the old useful success and first failure. `collection_first_structural_failure_at` also survives later technical failures until a usable observation at the same key, so an already actionable anomaly cannot return to the 24-hour waiting interval. Missing counts remain unmeasured; logged measured counts are capped at 10,000. Safe `reason` values are fixed categories; raw reason text, URLs, provider documents and contacts are excluded. Pause, closure, completion and empty admitted selections emit no invented result or recovery.
 
 Create a **Grafana-managed** Loki rule named `F01 scoped collection evidence`, evaluated every minute with pending period **0s**. Use this instant metric query as A, replacing the environment selector with the single target environment. Reduce A with **Last** and use a threshold **greater than or equal to 0**. Do not filter failed outcomes or positive deadlines before `last_over_time`: the later usable observation must participate in the same series.
 
@@ -144,4 +144,18 @@ sum by (environment, service_name, operation, cycleId) (
 
 The existing `cycleId` is the originally attempted capability, retained for private current-state inspection. A live process with an unconfirmed terminal write must be covered; external API availability alone cannot detect it. Alert expiry supplies no confirmation. Inspect current state and follow [explicit collection recovery](../operations/README.md#collection-inspection-and-explicit-recovery); no mutation replay, instantaneous crash detector or background repair is introduced. Separately alert on backend `operation=collection_diagnostics, outcome=unavailable` with `count_over_time` over the same window, grouped only by environment/service, so diagnostic failure is not silent business recovery.
 
-Route both actionable rules and the informational rule to F13's existing private native contact point. Group actionable result instances by alert name/environment/service/control/stage/phase, keeping each scope identifiable inside the group; group operator needs by alert name/environment/provider/season/subject. Use **group interval 5m**, **repeat interval 5d** and native firing/resolved delivery. Put only fixed interpretation and the administration destination in annotations; never interpolate a raw log line, reason text or private target. Notification timing and stale-series closure are Grafana-owned, with no exact delivery or business-transition guarantee. Confirm the actual settings and output under T063 before activation.
+Current-entry discovery precedes a season/control: its existing `operation=source_discovery, outcome=failed` signal therefore has no `CollectionResult`. Add the native actionable rule `F01 current-entry discovery` with the same one-minute evaluation, pending **0s**, A below and threshold **greater than 0**. Group by environment/service/provider. No raw entry URL is needed, and count-window expiry does not establish source recovery.
+
+```logql
+sum by (environment, service_name, provider) (
+  count_over_time(
+    {environment="preproduction", service_name="blockout-collector"}
+    | json
+    | operation="source_discovery"
+    | outcome="failed"
+    [14d]
+  )
+)
+```
+
+Route the actionable rules and the informational rule to F13's existing private native contact point. Group actionable result instances by alert name/environment/service/control/stage/phase, keeping each scope identifiable inside the group; group operator needs by alert name/environment/provider/season/subject. Use **group interval 5m**, **repeat interval 5d** and native firing/resolved delivery. Put only fixed interpretation and the administration destination in annotations; never interpolate a raw log line, reason text or private target. Notification timing and stale-series closure are Grafana-owned, with no exact delivery or business-transition guarantee. Confirm the actual settings and output under T063 before activation.

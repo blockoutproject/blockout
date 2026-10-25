@@ -985,7 +985,8 @@ public class CollectPassage {
     String reason = failureReason(failure);
     URI reasonType =
         URI.create(
-            failure instanceof FfvbAcquisitionException
+            (failure instanceof FfvbAcquisitionException ffvbFailure
+                        && ffvbFailure.getKind() == FfvbAcquisitionException.Kind.STRUCTURE)
                     || failure instanceof IllegalArgumentException
                 ? "urn:blockout:acquisition:structure"
                 : "urn:blockout:acquisition:technical");

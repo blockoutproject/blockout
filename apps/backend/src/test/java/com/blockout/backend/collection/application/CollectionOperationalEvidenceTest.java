@@ -100,6 +100,7 @@ class CollectionOperationalEvidenceTest {
     ArgumentCaptor<CollectionResult> written = ArgumentCaptor.forClass(CollectionResult.class);
     verify(store).saveResult(org.mockito.ArgumentMatchers.eq(CONTROL), written.capture());
     assertThat(written.getValue().firstFailureAt()).isEqualTo(FIRST);
+    assertThat(written.getValue().firstStructuralFailureAt()).isEqualTo(FIRST);
     assertThat(written.getValue().lastSuccessAt()).isEqualTo(FIRST.minusSeconds(100));
     assertThat(written.getValue().obtainedCount()).isNull();
   }
@@ -155,6 +156,7 @@ class CollectionOperationalEvidenceTest {
     verify(store).saveResult(org.mockito.ArgumentMatchers.eq(CONTROL), written.capture());
     assertThat(written.getValue().phase()).isEqualTo(phase);
     assertThat(written.getValue().firstFailureAt()).isNull();
+    assertThat(written.getValue().firstStructuralFailureAt()).isNull();
     assertThat(written.getValue().lastSuccessAt()).isEqualTo(empty.observedAt());
     verify(events).publishEvent(any(Object.class));
   }
@@ -252,6 +254,7 @@ class CollectionOperationalEvidenceTest {
         FIRST,
         CollectionOutcomeEnum.FAILED,
         FIRST.minusSeconds(100),
+        FIRST,
         FIRST,
         null,
         null,

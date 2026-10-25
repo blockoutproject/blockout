@@ -14,6 +14,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.sporting.application.service.SportingReadService;
+import java.net.URI;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -58,11 +59,15 @@ public class CollectionResultService {
                 && previous.readOrdinal() >= command.readOrdinal()))) return cycle;
     Instant lastSuccessAt = command.observedAt();
     Instant firstFailureAt = null;
+    Instant firstStructuralFailureAt = null;
     if (command.outcome() != CollectionOutcomeEnum.SUCCESS) {
       lastSuccessAt = previous == null ? null : previous.lastSuccessAt();
       firstFailureAt = command.observedAt();
       if (previous != null && previous.firstFailureAt() != null)
         firstFailureAt = previous.firstFailureAt();
+      if (previous != null) firstStructuralFailureAt = previous.firstStructuralFailureAt();
+      if (firstStructuralFailureAt == null && isStructuralReason(command.reasonType()))
+        firstStructuralFailureAt = command.observedAt();
     }
     store.saveResult(
         cycle.controlId(),
@@ -76,6 +81,7 @@ public class CollectionResultService {
             command.outcome(),
             lastSuccessAt,
             firstFailureAt,
+            firstStructuralFailureAt,
             command.reasonType(),
             command.reason(),
             command.obtainedCount(),
@@ -153,6 +159,17 @@ public class CollectionResultService {
             .matchPoolId(scopeId)
             .map(pool -> store.containsTarget(cycleId, pool, CollectionTargetKindEnum.CALENDAR))
             .orElse(false);
+  }
+
+  /**
+   * Recognizes only the collector's explicit structural/context categories, never free-form text.
+   *
+   * @param reasonType original machine-readable failure category, or null
+   * @return whether this actual failure establishes unresolved structural evidence
+   */
+  static boolean isStructuralReason(URI reasonType) {
+    return URI.create("urn:blockout:acquisition:structure").equals(reasonType)
+        || URI.create("urn:blockout:acquisition:context").equals(reasonType);
   }
 
   /**

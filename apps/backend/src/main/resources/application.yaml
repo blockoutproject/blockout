@@ -122,6 +122,7 @@ logging:
         - collection_read_ordinal
         - collection_observed_at
         - collection_first_failure_at
+        - collection_first_structural_failure_at
         - collection_alert_at
         - collection_subject
         - collection_destination

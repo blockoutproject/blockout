@@ -10,7 +10,6 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.sporting.application.service.SeasonService;
 import com.blockout.backend.sporting.application.service.SportingReadService;
-import java.net.URI;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -80,16 +79,18 @@ public class CollectionOperationalDiagnostics {
                   .result(control.id(), event.scopeId(), event.stage(), event.phase())
                   .orElseThrow();
           boolean success = result.outcome() == CollectionOutcomeEnum.SUCCESS;
-          boolean structural =
-              URI.create("urn:blockout:acquisition:structure").equals(result.reasonType())
-                  || URI.create("urn:blockout:acquisition:context").equals(result.reasonType());
+          boolean structural = result.firstStructuralFailureAt() != null;
           boolean delayed =
               !structural
                   && result.phase() == CollectionPhaseEnum.ACQUISITION
                   && (control.family() == CollectionFamilyEnum.CLUB_SHEETS
                       || control.family() == CollectionFamilyEnum.GEOCODING);
           Instant alertAt =
-              success ? null : result.firstFailureAt().plusSeconds(delayed ? 86_400 : 0);
+              success
+                  ? null
+                  : structural
+                      ? result.firstStructuralFailureAt()
+                      : result.firstFailureAt().plusSeconds(delayed ? 86_400 : 0);
           log.atLevel(success ? Level.INFO : Level.WARN)
               .addKeyValue("operation", "collection_evidence")
               .addKeyValue("collection_control", control.id())
@@ -103,11 +104,15 @@ public class CollectionOperationalDiagnostics {
                   "reason",
                   success
                       ? "usable-observation"
-                      : structural ? "structure-or-context" : "failed-observation")
+                      : CollectionResultService.isStructuralReason(result.reasonType())
+                          ? "structure-or-context"
+                          : "failed-observation")
               .addKeyValue("collection_cycle_order", result.cycleOrder())
               .addKeyValue("collection_read_ordinal", result.readOrdinal())
               .addKeyValue("collection_observed_at", result.observedAt())
               .addKeyValue("collection_first_failure_at", result.firstFailureAt())
+              .addKeyValue(
+                  "collection_first_structural_failure_at", result.firstStructuralFailureAt())
               .addKeyValue("collection_alert_at", epoch(alertAt))
               .addKeyValue("last_success_at", result.lastSuccessAt())
               .addKeyValue("affected_count", bounded(result.obtainedCount()))
@@ -201,6 +206,7 @@ public class CollectionOperationalDiagnostics {
     } catch (RuntimeException failure) {
       log.atError()
           .addKeyValue("operation", "collection_diagnostics")
+          .addKeyValue("error.type", failure.getClass().getName())
           .addKeyValue("outcome", "unavailable")
           .log("Committed collection diagnostics are unavailable; inspect current state");
     }
