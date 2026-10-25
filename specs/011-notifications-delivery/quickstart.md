@@ -114,6 +114,31 @@ scheduled purge or F05 erasure qualification. T052/#267 owns those races; T051/#
 and #253 owns native inbox behavior. No device, push/provider or production evidence is claimed.
 Revision-specific commands and outcomes remain in the delivery PR.
 
+## Retention construction and isolated restore cases — #255
+
+T047/T049 use the existing 29-elapsed-day cutoff, independent of physical deletion.
+The dedicated [PostgreSQL cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/PurgeNotificationsIntegrationTest.java)
+exercise all four families, read/hidden states, the microsecond before age 29, exact age 29,
+overdue age 31, Paris/New York spring/autumn transitions, read/create overlap and interruption
+after a committed batch. The next ordinary daily invocation must remove remaining due rows
+without changing surviving creation dates or nonpersonal consumed match facts.
+Revision-specific commands and results belong in the delivery PR; these cases establish no
+actual F05 erasure, mobile expiry, sender/provider or operational restoration evidence.
+
+T048 prepares the following cases for [F13's initial isolated restore](../003-shared-quality/quickstart.md#initial-restore-and-activation-condition)
+and the existing [pre-reopen reconciliation](../../infra/operations/README.md#reconcile-before-access-or-sends).
+T051/#360 executes them only with its separately authorized source/destination, qualified backup
+and masking prerequisites. Preparation does not block ordinary local purge construction.
+
+| Restored case                                                                                 | Required observation before affected access/sends reopen                                                                                                                                                                                                                                        |
+| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Inbox just below/exactly 29 days and beyond 30 days, including read/hidden entries            | Keep original UTC creation instants. Remove every due personal row; younger rows keep only their remaining lifetime. A failed/partial purge keeps reopening pending.                                                                                                                            |
+| Account erased since the backup, including its original installation associations             | Reconcile current F05/F11 erasure against private current evidence; remove old inbox/destinations through the authorized owner procedure. A replacement UUID inherits nothing. Actual erase/purge races remain T052/#267 after #280.                                                            |
+| Privacy restriction or current right unknown since backup                                     | Apply current F11/F09 restrictions and F12 admission. Unknown obligations keep affected access and sends closed; a usable SQL restore or old maintenance setting is insufficient.                                                                                                               |
+| Match facts preserved versus genuinely lost in the restored copy                              | Preserve available category/composition facts independently of inbox purge. Inspect no permanent recipient history. Lost facts may exceptionally repeat a sporting announcement, but permit no expired/erased personal data or renewed creation date.                                           |
+| Partial active/offline inbox, seven unread but two loaded, earliest expiry on an unloaded row | Execute T018/T023 with the actual native inbox: at age 29 remove loaded expired content before display/resume and while active, invalidate an unprovable whole count/badge, then reconcile through ordinary refresh. Fixtures/server-only checks do not qualify this mobile boundary.           |
+| Evidence and cleanup                                                                          | Keep source backup time, original timestamps, isolated target, current-obligation decisions, per-case outcomes and remaining gaps in the existing private F13 operational evidence. No private attachments/diagnostics enter this public repository; restoration never renews backup retention. |
+
 ## Essential scenarios
 
 | Boundary        | Exercise                                                                                                                                                                                                                     | Expected result                                                                                                                                                                                                                                                                                                                                       |

@@ -69,6 +69,30 @@ Use ordinary Grafana rules and a private native Discord contact point:
 
 Use the provider's native rule/check identifiers and configuration as their source of truth. Record the selected probe, environment and observed settings with the authorized qualification evidence; do not copy credentials or diagnostic payloads into this public repository. No provider setting or Discord delivery is established by local validation. Test actual firing/group changes/resolution and inspect the five-day repeat setting under T032; a recurring five-day test job is unnecessary.
 
+## F07 notification retention
+
+The backend's ordinary daily purge uses `blockout.notifications.retention-cron`
+(`BLOCKOUT_NOTIFICATIONS_RETENTION_CRON`), default `0 0 3 * * *` in UTC. Keep one pass per
+24-hour day so normal cleanup occurs before age 30 days; an invalid expression fails native
+Spring startup validation. Spring's `-` disables the trigger for isolated tests only. Maintenance
+does not suspend retention. Read/count access excludes age 29 independently of deletion;
+the sender's same cutoff remains its owning F07 qualification.
+
+Use the existing ECS/Loki stream with `operation=notification_retention`. `started` identifies
+the ordinary pass. `completed` carries `affected_count` and `last_success_at`; `incomplete`
+carries `partial_count` for already committed removals and a safe exception class in `reason`.
+The failing transaction contributes no confirmed count. No account/notification/match identity,
+content, destination, SQL or raw exception message is emitted. No separate metric, log sink,
+incident stream or per-row success event is added.
+
+In the existing authorized Grafana rule/contact-point process, treat `incomplete` as a retention
+failure. Check the latest completed pass against the configured daily schedule and service/
+telemetry freshness: missing completion, disabled scheduling or a stopped process is unresolved
+retention evidence, never successful cleanup. A healthy API or `started` event alone cannot clear
+the condition. Activation/delivery of these provider rules is not established by local tests.
+Use the [F07 manual response](../operations/README.md#notification-retention-failure)
+and [prepared isolated cases](../../specs/011-notifications-delivery/quickstart.md#retention-construction-and-isolated-restore-cases--255).
+
 ## Investigate and intervene
 
 1. Identify the environment, affected service/scope and time of detection. Confirm current external health and telemetry freshness. No data means unavailable evidence, not a healthy execution.
