@@ -40,6 +40,15 @@ import java.util.UUID;
 /** Application-owned identity operations; managed entities never cross this port. */
 public interface SportingStore {
   /**
+   * Counts current catalog pools lacking both a local and inherited acquisition setting.
+   *
+   * @param seasonId canonical accepted catalog season
+   * @param provider designated authority
+   * @return scalar count; retained published classification is deliberately irrelevant
+   */
+  long countUnclassifiedPools(UUID seasonId, CollectionProviderEnum provider);
+
+  /**
    * Reads one page of direct children within an exact source-season context.
    *
    * @param seasonId canonical season

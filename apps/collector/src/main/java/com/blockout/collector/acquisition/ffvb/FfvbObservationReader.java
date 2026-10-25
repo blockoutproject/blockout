@@ -122,7 +122,7 @@ public class FfvbObservationReader implements FfvbAcquisition {
         cause instanceof HttpResponseException response
             ? "Provider HTTP " + response.getStatusCode()
             : cause.getClass().getSimpleName();
-    return new FfvbAcquisitionException(reason, failure);
+    return new FfvbAcquisitionException(reason, failure, FfvbAcquisitionException.Kind.TRANSPORT);
   }
 
   /**
