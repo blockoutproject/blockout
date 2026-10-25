@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { Globe, MapPin } from "lucide-react-native";
-import { StyleSheet, Text, View } from "react-native";
+import { AppState, StyleSheet, Text, View } from "react-native";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { useConsultationQueries } from "../api/use-consultation-queries";
@@ -16,6 +17,7 @@ import {
   safeWebsite,
 } from "../components/contact-link";
 import { MatchSummary } from "../components/match-summary";
+import { currentSportingTimeZone } from "../model/sporting-time";
 
 /** Exact dated public match identity; document/contribution/support integrations remain owner work. */
 export interface MatchScreenProps {
@@ -24,6 +26,21 @@ export interface MatchScreenProps {
 
 /** Presents independent accepted match facts; a missing secondary section never replaces another. */
 export function MatchScreen({ matchId }: MatchScreenProps) {
+  const [presentation, setPresentation] = useState(() => ({
+    timeZone: currentSportingTimeZone(),
+    now: new Date(),
+  }));
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        setPresentation({
+          timeZone: currentSportingTimeZone(),
+          now: new Date(),
+        });
+      }
+    });
+    return () => subscription.remove();
+  }, []);
   const queries = useConsultationQueries();
   const match = useQuery({
     ...queries.match(matchId),
@@ -37,7 +54,11 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
       <ResourceFeedback query={match} />
       {data && (
         <>
-          <MatchSummary match={data.match} />
+          <MatchSummary
+            match={data.match}
+            displayTimeZone={presentation.timeZone}
+            now={presentation.now}
+          />
           <ResourceCard>
             <Text
               accessibilityRole="header"

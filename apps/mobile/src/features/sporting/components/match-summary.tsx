@@ -4,16 +4,26 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { ResourceCard, ResourceText } from "./resource-page";
 import { DivisionPaint, SportingLink } from "./sporting-identity";
+import { formatSportingSchedule } from "../model/sporting-time";
 
 /** Accepted result facts only; missing totals and provisional/special finality remain explicit. */
 export interface MatchSummaryProps {
   match: MatchSummaryResponse;
+  /** Current phone zone for text only; a calendar retains its separate loading-zone day groups. */
+  displayTimeZone?: string;
+  /** Shared presentation clock, reevaluated on detail foreground return. */
+  now?: Date;
 }
 
 /** Shared match identity/result surface without winner, live-state or zero-score inference. */
-export function MatchSummary({ match }: MatchSummaryProps) {
+export function MatchSummary({
+  match,
+  displayTimeZone,
+  now,
+}: MatchSummaryProps) {
   const { colors } = useTheme();
   const result = match.result;
+  const schedule = formatSportingSchedule(match.schedule, displayTimeZone, now);
   return (
     <ResourceCard>
       <View style={styles.pool}>
@@ -37,15 +47,10 @@ export function MatchSummary({ match }: MatchSummaryProps) {
       <ResourceText>{match.pool.phaseName}</ResourceText>
       <ResourceText>
         {match.schedule.instant
-          ? new Date(match.schedule.instant).toLocaleString("fr-FR", {
-              dateStyle: "medium",
-              timeStyle: "short",
-            })
-          : match.schedule.localDate}
+          ? `${schedule.date} · ${schedule.time}`
+          : schedule.date}
       </ResourceText>
-      {!match.schedule.instant && (
-        <ResourceText>Horaire à confirmer</ResourceText>
-      )}
+      {!match.schedule.instant && <ResourceText>{schedule.time}</ResourceText>}
       {[
         { team: match.home, score: result?.homeSets, side: "domicile" },
         { team: match.away, score: result?.awaySets, side: "extérieur" },

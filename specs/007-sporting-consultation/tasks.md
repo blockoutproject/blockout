@@ -87,7 +87,7 @@ description: "Implementation tasks for F03 sporting consultation and navigation"
 
 ### Tests for User Story 2
 
-- [ ] T019 [P] [US2] Write failing time-presentation tests in `apps/mobile/src/features/sporting/__tests__/sporting-time.test.ts` for the exact A07 example, date-specific offsets, DST changes, date-only/unknown FFVB 00:00 and genuine confirmed midnight. Cover relative labels, current-zone match detail and retained calendar grouping/continuation after travel without automatic fetch, reorder or scroll reset; use controlled clocks/zones, not fixed Paris–New York offsets.
+- [x] T019 [P] [US2] Write failing time-presentation tests in `apps/mobile/src/features/sporting/__tests__/sporting-time.test.ts` for the exact A07 example, date-specific offsets, DST changes, date-only/unknown FFVB 00:00 and genuine confirmed midnight. Cover relative labels, current-zone match detail and retained calendar grouping/continuation after travel without automatic fetch, reorder or scroll reset; use controlled clocks/zones, not fixed Paris–New York offsets.
 - [ ] T020 [P] [US2] Write failing PostgreSQL grouping tests in `apps/backend/src/test/java/com/blockout/backend/sporting/application/CalendarDayIntegrationTest.java` for requested IANA zones, date-only unchanged sporting dates, invalid zones and absent/withdrawn dates. Use real F02 precision/visibility and Hibernate/PostgreSQL conversion; the complete seven-day query is implemented in US3 T028, so no second query or fabricated instant is introduced just for this test.
 
 ### Implementation and qualification for User Story 2
