@@ -69,11 +69,5 @@ export function createDiscoveryQueryOptions(
       return listPools(params, options);
     },
     getNextPageParam: (page) => page.nextCursor,
-    networkMode: "always",
-    retry: false,
-    retryOnMount: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
-    refetchOnWindowFocus: false,
   });
 }

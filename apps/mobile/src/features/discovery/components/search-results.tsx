@@ -1,34 +1,27 @@
-import { useQuery } from "@tanstack/react-query";
-import { Image } from "expo-image";
-import { useEffect, useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
-import type {
-  SportingIdentityResponse,
-  SportingClassificationResponse,
-  SportingSeasonResponse,
-} from "../../../../.generated/schemas/index.zod";
+import {
+  FlatList,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import type { ReactNode } from "react";
 import type { DiscoveryPage } from "../api/discovery-queries";
-import { useConsultationQueries } from "../../sporting/api/use-consultation-queries";
-import { binaryImagePreview } from "../../../shared/api/binary-image-preview";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import {
+  SearchResultCard,
+  type SearchResultCardProps,
+} from "./search-result-card";
 
-/** Presentation derived from generated summaries; it is never stored beside the Query cache. */
-interface SearchResult {
-  kind: "club" | "team" | "pool";
-  identity: SportingIdentityResponse;
-  subtitle?: string;
-  classification?: SportingClassificationResponse;
-  season?: SportingSeasonResponse;
-}
-
-/** Available public context stays absent when the generated summary supplies no corresponding value. */
-function results(page: DiscoveryPage): SearchResult[] {
+/** Maps current generated summaries to available presentation slots without storing a second result collection. */
+function results(page: DiscoveryPage): SearchResultCardProps[] {
   if ("clubs" in page)
     return page.clubs.map(({ club, city }) => ({
       kind: "club",
       identity: club,
-      subtitle: city,
+      city,
     }));
   if ("teams" in page)
     return page.teams.map(({ team, club, season, classification }) => ({
@@ -50,210 +43,100 @@ function results(page: DiscoveryPage): SearchResult[] {
   );
 }
 
-/** Initial text-result presentation; complete continuation and activation belong to US4. */
+/** Initial text results; complete continuation and destination activation remain with US4. */
 export interface SearchResultsProps {
   pages: readonly DiscoveryPage[];
+  onClear: () => void;
+  feedback?: ReactNode;
 }
 
-/** Virtualizes public summaries without claiming a loaded count is a total or activating destinations. */
-export function SearchResults({ pages }: SearchResultsProps) {
-  const { colors } = useTheme();
+/** Virtualizes current summaries with stable UUIDs and a loaded count that never claims a total. */
+export function SearchResults({
+  pages,
+  onClear,
+  feedback,
+}: SearchResultsProps) {
+  const items = pages.flatMap(results);
   return (
     <FlatList
-      data={pages.flatMap(results)}
+      data={items}
       keyExtractor={(item) => item.identity.id}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       contentContainerStyle={styles.content}
       ListHeaderComponent={
-        <Text
-          accessibilityRole="header"
-          style={[styles.heading, { color: colors.text }]}
-        >
-          Résultats
-        </Text>
+        <>
+          <SearchResultsHeading count={items.length} onClear={onClear} />
+          {feedback && <View style={styles.feedback}>{feedback}</View>}
+        </>
       }
       ItemSeparatorComponent={() => <View style={styles.separator} />}
-      renderItem={({ item }) => <ResultSummary result={item} />}
+      renderItem={({ item }) => <SearchResultCard {...item} />}
     />
   );
 }
 
-/** Search summaries retain current public context; F03's full-page mount refresh does not apply here. */
-function ResultSummary({ result }: { result: SearchResult }) {
-  const { colors } = useTheme();
-  const { identity, kind, subtitle, classification, season } = result;
-  const metadata = [
-    classification?.division?.name,
-    season?.label,
-    classification?.format?.replace("x", " × "),
-    classification?.gender === "female"
-      ? "Féminin"
-      : classification?.gender === "male"
-        ? "Masculin"
-        : classification?.gender === "mixed"
-          ? "Mixte"
-          : undefined,
-  ].filter((value) => value !== undefined);
-  return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: colors.surface,
-          borderColor: classification?.division?.color ?? colors.border,
-        },
-      ]}
-    >
-      <View style={[styles.identity, { backgroundColor: colors.subtle }]}>
-        {identity.logoUrl && kind !== "pool" && (
-          <ResultLogo identity={identity} kind={kind} />
-        )}
-        {kind === "pool" && classification?.division?.logoUrl && (
-          <ResultLogo identity={classification.division} kind="division" />
-        )}
-        <View style={styles.name}>
-          <Text
-            accessibilityRole="header"
-            style={[styles.heading, { color: colors.text }]}
-          >
-            {identity.name}
-          </Text>
-          {subtitle && (
-            <Text style={[styles.secondary, { color: colors.secondaryText }]}>
-              {subtitle}
-            </Text>
-          )}
-        </View>
-      </View>
-      {metadata.length > 0 && (
-        <View style={styles.metadata}>
-          {metadata.map((label) => (
-            <Text
-              key={label}
-              style={[
-                styles.badge,
-                { color: colors.secondaryText, borderColor: colors.border },
-              ]}
-            >
-              {label}
-            </Text>
-          ))}
-        </View>
-      )}
-    </View>
-  );
+/** The collection toolbar labels loaded results; an absent count represents a pending or failed initial read. */
+export interface SearchResultsHeadingProps {
+  count?: number;
+  onClear: () => void;
 }
 
-/** Uses F03's generated artwork/admission options with F13's ordinary no-replay lifecycle. */
-function ResultLogo({
-  identity,
-  kind,
-}: {
-  identity: SportingIdentityResponse;
-  kind: "club" | "team" | "division";
-}) {
-  const queries = useConsultationQueries();
-  const options =
-    kind === "club"
-      ? queries.clubLogo(identity.id)
-      : kind === "team"
-        ? queries.teamLogo(identity.id)
-        : queries.divisionLogo(identity.id);
-  const query = useQuery(options);
+/** Product Design collection toolbar 6294:170665; clearing is explicit and preserves the selected resource tab. */
+export function SearchResultsHeading({
+  count,
+  onClear,
+}: SearchResultsHeadingProps) {
   const { colors } = useTheme();
   return (
-    <View style={styles.logo}>
-      {query.data ? (
-        <LogoPreview key={JSON.stringify(options.queryKey)} blob={query.data} />
-      ) : (
-        <Text style={[styles.secondary, { color: colors.secondaryText }]}>
-          {query.isError ? "Logo indisponible" : "Chargement du logo"}
+    <View style={styles.toolbar}>
+      <Text
+        accessibilityRole="header"
+        accessibilityLiveRegion="polite"
+        style={[styles.heading, { color: colors.text }]}
+      >
+        {count === undefined
+          ? "Résultats"
+          : `${count} résultat${count === 1 ? "" : "s"} chargé${count === 1 ? "" : "s"}`}
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={onClear}
+        style={styles.clear}
+      >
+        <Text style={[tokens.typography.strong, { color: colors.text }]}>
+          Effacer
         </Text>
-      )}
+      </Pressable>
     </View>
   );
-}
-
-/** Retains a decoded same-identity image during conversion; obsolete completions cannot replace it. */
-function LogoPreview({ blob }: { blob: Blob }) {
-  const [uri, setUri] = useState<string>();
-  const [failed, setFailed] = useState(false);
-  const { colors } = useTheme();
-  useEffect(() => {
-    let current = true;
-    void binaryImagePreview(blob).then(
-      (value) => {
-        if (current) {
-          setUri(value);
-          setFailed(false);
-        }
-      },
-      () => {
-        if (current) setFailed(true);
-      },
-    );
-    return () => {
-      current = false;
-    };
-  }, [blob]);
-  return failed ? (
-    <Text style={[styles.secondary, { color: colors.secondaryText }]}>
-      Logo indisponible
-    </Text>
-  ) : uri ? (
-    <Image
-      source={{ uri }}
-      accessible={false}
-      cachePolicy="none"
-      contentFit="contain"
-      onError={() => setFailed(true)}
-      style={styles.logoImage}
-    />
-  ) : null;
 }
 
 const styles = StyleSheet.create({
   content: {
-    padding: tokens.spacing.lg,
-    paddingTop: 0,
+    paddingHorizontal: tokens.spacing.lg,
     paddingBottom: tokens.spacing.section,
   },
-  heading: {
-    ...tokens.typography.navigation,
-    paddingVertical: tokens.spacing.md,
-  },
   separator: { height: tokens.spacing.md },
-  card: {
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
-    overflow: "hidden",
-  },
-  identity: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: tokens.spacing.lg,
-    gap: tokens.spacing.md,
-  },
-  name: { flex: 1, minWidth: 0, gap: tokens.spacing.xs },
-  secondary: { ...tokens.typography.metadata },
-  metadata: {
+  feedback: { paddingVertical: tokens.spacing.xl },
+  toolbar: {
     flexDirection: "row",
     flexWrap: "wrap",
-    padding: tokens.spacing.md,
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: tokens.size.collectionToolbar,
     gap: tokens.spacing.sm,
   },
-  badge: {
-    ...tokens.typography.metadata,
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.badge,
-    padding: tokens.spacing.xs,
-    paddingHorizontal: tokens.spacing.sm,
-  },
-  logo: {
-    width: tokens.size.control,
-    minHeight: tokens.size.control,
+  heading: { ...tokens.typography.navigation, flexShrink: 1 },
+  clear: {
+    minHeight:
+      Platform.OS === "android"
+        ? tokens.touchTarget.android
+        : tokens.touchTarget.ios,
+    minWidth:
+      Platform.OS === "android"
+        ? tokens.touchTarget.android
+        : tokens.touchTarget.ios,
     justifyContent: "center",
   },
-  logoImage: { width: tokens.size.control, height: tokens.size.control },
 });

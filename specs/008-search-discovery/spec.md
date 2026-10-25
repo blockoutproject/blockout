@@ -12,6 +12,8 @@
 
 Design input: [Discovery journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=916-2826) and its [October 10 approval](https://github.com/blockoutproject/blockout/issues/34#issuecomment-6102118765), prototype `2177c354254031ea3d7e5e98e201ea66ec7e6f1e`. This approval covers the affected design, without establishing technical or runtime qualification.
 
+The scoped [2026-10-25 owner correction #506](https://github.com/blockoutproject/blockout/issues/506) retains explicit recovery required by FR-022 and aligns the shared error card across the [prototype `56820e2`](https://github.com/blockoutproject/product-prototype/commit/56820e2e83233c757026ffe47e007bfec709a053), [UI Library Error State](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=290-226) and [received Discovery instance 946:3807](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=946-3807): “Une erreur est survenue”, one “Veuillez réessayer plus tard.” description and “Réessayer” underneath. This replaces the missing action/duplicated title only; unchanged journey approvals and runtime qualification limits remain applicable.
+
 The actors are the visitor and the signed-in person, with or without Pro. All have public search access. F04 grants no editing permission. FR, A and SC identifiers are local to this specification. Scenarios describe expected V2 behavior without attesting to implementation or tests already performed.
 
 ### User Story 1 — Discover resources without entering text (Priority: P2)

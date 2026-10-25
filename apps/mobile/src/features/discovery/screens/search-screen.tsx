@@ -1,20 +1,21 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { Search } from "lucide-react-native";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ListClubsParams } from "../../../../.generated/schemas/index.zod";
-import {
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { EmptyState, ErrorState } from "../../../shared/components/state-card";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import { SearchField } from "../../../shared/components/search-field";
 import { ResourceTabs } from "../../sporting/components/resource-page";
 import type { DiscoveryResource } from "../api/discovery-context";
 import { useDiscoveryQuery } from "../api/use-discovery-query";
-import { SearchResults } from "../components/search-results";
+import {
+  SearchResults,
+  SearchResultsHeading,
+} from "../components/search-results";
+import { SearchLoading } from "../components/search-loading";
 
 const searchSchema = ListClubsParams.pick({ q: true });
 
@@ -26,8 +27,7 @@ const searchSchema = ListClubsParams.pick({ q: true });
 export function SearchScreen() {
   const { colors } = useTheme();
   const [resource, setResource] = useState<DiscoveryResource>("team");
-  const [focused, setFocused] = useState(false);
-  const { control } = useForm<ListClubsParams>({
+  const { control, setValue } = useForm<ListClubsParams>({
     defaultValues: { q: "" },
     resolver: zodResolver(searchSchema),
     mode: "onChange",
@@ -35,6 +35,7 @@ export function SearchScreen() {
   const text = useWatch({ control, name: "q" }) ?? "";
   const valid = searchSchema.safeParse({ q: text }).success;
   const textual = /[^\p{White_Space}]/u.test(text);
+  const clearSearch = () => setValue("q", "", { shouldValidate: true });
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <View style={styles.controls}>
@@ -56,69 +57,39 @@ export function SearchScreen() {
           control={control}
           name="q"
           render={({ field, fieldState }) => (
-            <View style={styles.field}>
-              <View
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: fieldState.invalid
-                      ? colors.error
-                      : focused
-                        ? colors.focus
-                        : colors.border,
-                  },
-                ]}
-              >
-                <Search
-                  accessible={false}
-                  color={colors.icon}
-                  size={tokens.size.controlIcon}
-                />
-                <TextInput
-                  ref={field.ref}
-                  accessibilityLabel="Rechercher"
-                  value={field.value ?? ""}
-                  onChangeText={field.onChange}
-                  onFocus={() => setFocused(true)}
-                  onBlur={() => {
-                    setFocused(false);
-                    field.onBlur();
-                  }}
-                  placeholder={
-                    resource === "club"
-                      ? "Rechercher un club…"
-                      : resource === "team"
-                        ? "Rechercher une équipe…"
-                        : "Rechercher une poule…"
-                  }
-                  returnKeyType="search"
-                  autoCorrect={false}
-                  placeholderTextColor={colors.secondaryText}
-                  style={[styles.inputText, { color: colors.text }]}
-                />
-              </View>
-              {fieldState.invalid && (
-                <Text
-                  accessibilityRole="alert"
-                  accessibilityLiveRegion="polite"
-                  style={[styles.validation, { color: colors.error }]}
-                >
-                  La recherche est limitée à 200 caractères.
-                </Text>
-              )}
-            </View>
+            <SearchField
+              ref={field.ref}
+              label="Rechercher"
+              value={field.value ?? ""}
+              onChangeText={field.onChange}
+              onBlur={field.onBlur}
+              onClear={clearSearch}
+              placeholder={
+                resource === "club"
+                  ? "Rechercher un club…"
+                  : resource === "team"
+                    ? "Rechercher une équipe…"
+                    : "Rechercher une poule…"
+              }
+              error={
+                fieldState.invalid
+                  ? "La recherche est limitée à 200 caractères."
+                  : undefined
+              }
+              returnKeyType="search"
+              autoCorrect={false}
+            />
           )}
         />
       </View>
-      {valid &&
-        (!textual ? (
-          <Text style={[styles.message, { color: colors.secondaryText }]}>
-            Saisissez une recherche.
-          </Text>
-        ) : (
-          <TextSearchResults key={resource} resource={resource} text={text} />
-        ))}
+      {valid && textual && (
+        <TextSearchResults
+          key={resource}
+          resource={resource}
+          text={text}
+          onClear={clearSearch}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -127,77 +98,66 @@ export function SearchScreen() {
 function TextSearchResults({
   resource,
   text,
+  onClear,
 }: {
   resource: DiscoveryResource;
   text: string;
+  onClear: () => void;
 }) {
-  const { colors } = useTheme();
   const query = useDiscoveryQuery(resource, { q: text });
-  return query.isPending ? (
-    <View style={styles.feedback}>
-      <RequestLoading />
-    </View>
-  ) : (
-    <>
-      {query.isError && (
+  const error = query.isError ? (
+    <ErrorState
+      onRetry={() => void query.refetch()}
+      retrying={query.isFetching}
+    />
+  ) : undefined;
+  if (
+    query.data?.pages.some((page) =>
+      "clubs" in page
+        ? page.clubs.length > 0
+        : "teams" in page
+          ? page.teams.length > 0
+          : page.pools.length > 0,
+    )
+  )
+    return (
+      <SearchResults
+        pages={query.data.pages}
+        onClear={onClear}
+        feedback={error}
+      />
+    );
+  return (
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={styles.content}
+    >
+      <SearchResultsHeading
+        count={query.data && !query.isError ? 0 : undefined}
+        onClear={onClear}
+      />
+      {query.isPending ? (
+        <SearchLoading />
+      ) : (
         <View style={styles.feedback}>
-          <RequestError
-            message={
-              query.data
-                ? "La recherche n’a pas pu être actualisée. Les résultats précédents restent affichés."
-                : "La recherche est indisponible."
-            }
-            onRetry={() => void query.refetch()}
-            retrying={query.isFetching}
-          />
+          {error ?? (
+            <EmptyState
+              title="Aucun résultat pour ces critères"
+              description="Essayez un autre nom."
+            />
+          )}
         </View>
       )}
-      {query.data &&
-        (query.data.pages.some((page) =>
-          "clubs" in page
-            ? page.clubs.length > 0
-            : "teams" in page
-              ? page.teams.length > 0
-              : page.pools.length > 0,
-        ) ? (
-          <SearchResults pages={query.data.pages} />
-        ) : (
-          !query.isError && (
-            <Text
-              accessibilityLiveRegion="polite"
-              style={[styles.message, { color: colors.secondaryText }]}
-            >
-              Aucun résultat pour cette recherche.
-            </Text>
-          )
-        ))}
-    </>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   controls: { padding: tokens.spacing.lg, gap: tokens.spacing.sm },
-  field: { gap: tokens.spacing.label },
-  input: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.control,
-    minHeight: tokens.size.control,
-    paddingHorizontal: tokens.spacing.md,
-  },
-  inputText: {
-    ...tokens.typography.body,
-    flex: 1,
-    minWidth: 0,
-    paddingVertical: tokens.spacing.md,
-  },
-  validation: { ...tokens.typography.metadata },
-  feedback: {
+  content: {
     paddingHorizontal: tokens.spacing.lg,
-    paddingBottom: tokens.spacing.md,
+    paddingBottom: tokens.spacing.section,
   },
-  message: { ...tokens.typography.body, padding: tokens.spacing.lg },
+  feedback: { paddingTop: tokens.spacing.xl },
 });

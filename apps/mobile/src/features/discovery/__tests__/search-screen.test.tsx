@@ -179,11 +179,37 @@ it("keeps distinct namesakes and presents only available public context without 
   expect(screen.getByText("Féminin")).toBeOnTheScreen();
   expect(screen.getByText("6 × 6")).toBeOnTheScreen();
   expect(
+    screen.getByRole("image", { name: "Logo absent : Volley professionnel" }),
+  ).toBeOnTheScreen();
+  expect(
     screen.queryByText(/Club inconnu|Sans club|Logo indisponible/),
   ).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.some(([url]) => String(url).includes("/logo")),
   ).toBe(false);
+});
+
+it("clears the shared query through the approved search action without fetching empty text", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.paste(await screen.findByLabelText("Rechercher"), "Volley");
+  await screen.findByText("Volley professionnel");
+  mockFetch.mockClear();
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Effacer la recherche" }),
+  );
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+
+  // Then
+  expect(screen.getByLabelText("Rechercher")).toHaveDisplayValue("");
+  expect(
+    screen.queryByRole("button", { name: "Effacer la recherche" }),
+  ).not.toBeOnTheScreen();
+  expect(mockFetch).not.toHaveBeenCalled();
+  expect(screen.queryByText("Volley professionnel")).not.toBeOnTheScreen();
 });
 
 it("accepts 200 Unicode code points and rejects longer input without truncation, counter or limit hint", async () => {
@@ -228,12 +254,15 @@ it("distinguishes initial waiting, retryable failure and established no matches 
     await screen.findByRole("progressbar", { name: "Chargement en cours" }),
   ).toBeOnTheScreen();
   expect(
-    screen.queryByText("Aucun résultat pour cette recherche."),
+    screen.queryByText("Aucun résultat pour ces critères"),
   ).not.toBeOnTheScreen();
   await act(async () => pending.reject(new TypeError("private diagnostic")));
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "La recherche est indisponible.",
+    "Une erreur est survenue",
   );
+  expect(
+    screen.queryByText(/recherche est indisponible/),
+  ).not.toBeOnTheScreen();
   expect(screen.queryByText("private diagnostic")).not.toBeOnTheScreen();
   expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
   mockFetch.mockImplementation((url: string) =>
@@ -243,7 +272,7 @@ it("distinguishes initial waiting, retryable failure and established no matches 
   );
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
   expect(
-    await screen.findByText("Aucun résultat pour cette recherche."),
+    await screen.findByText("Aucun résultat pour ces critères"),
   ).toBeOnTheScreen();
 });
 
@@ -331,7 +360,7 @@ it("leaves empty and whitespace-only text unqueried until the examples owner is 
   await user.paste(await screen.findByLabelText("Rechercher"), "\u2003  ");
 
   // Then
-  expect(screen.getByText("Saisissez une recherche.")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Rechercher")).toHaveDisplayValue("\u2003  ");
   expect(
     mockFetch.mock.calls.some(([url]) =>
       /\/(clubs|teams|pools)(\?|$)/.test(String(url)),
@@ -383,7 +412,8 @@ it.each([200, 503])(
         ),
       ).toHaveLength(1),
     );
-    if (status === 503) await screen.findByText("Logo indisponible");
+    if (status === 503)
+      await screen.findByRole("image", { name: "Logo indisponible : Volley" });
 
     // When
     await user.press(screen.getByRole("tab", { name: "Clubs" }));
@@ -398,6 +428,8 @@ it.each([200, 503])(
       ),
     ).toHaveLength(1);
     if (status === 503)
-      expect(screen.getByText("Logo indisponible")).toBeOnTheScreen();
+      expect(
+        screen.getByRole("image", { name: "Logo indisponible : Volley" }),
+      ).toBeOnTheScreen();
   },
 );

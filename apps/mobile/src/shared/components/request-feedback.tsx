@@ -3,6 +3,7 @@ import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
 import { Button } from "./button";
 import { LoadingIndicator } from "./loading-indicator";
+import { TECHNICAL_ERROR } from "./error-copy";
 
 // UI Library content slots: Spinner 212:11, Error State 216:25–27 and Button 156:5.
 // These are inline feedback, not a projection of the complete elevated Error State card.
@@ -40,7 +41,7 @@ export interface RequestErrorProps {
 
 /** Keeps the error before its optional action in native reading order, without moving focus or executing work. */
 export function RequestError({
-  message = "Une erreur est survenue. Veuillez réessayer plus tard.",
+  message = TECHNICAL_ERROR,
   onRetry,
   retrying = false,
 }: RequestErrorProps) {
