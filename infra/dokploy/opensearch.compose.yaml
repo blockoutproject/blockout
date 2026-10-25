@@ -7,6 +7,8 @@ services:
       BLOCKOUT_SEARCH_INDEX_PREFIX: blockout-${BLOCKOUT_ENVIRONMENT:?Select environment}-search
       BLOCKOUT_SEARCH_USERNAME: blockout_search
       BLOCKOUT_SEARCH_PASSWORD: ${BLOCKOUT_SEARCH_PASSWORD:?Supply this environment's private backend password}
+      # Native passthrough omits an unset value; application.yaml owns the default cadence.
+      BLOCKOUT_SEARCH_PROJECTION_FULL_REBUILD_DELAY:
       SPRING_SSL_BUNDLE_PEM_OPENSEARCH_TRUSTSTORE_CERTIFICATE: file:/run/opensearch/ca.pem
     volumes:
       - ${BLOCKOUT_SEARCH_TLS_DIRECTORY:?Supply the environment TLS directory}/ca.pem:/run/opensearch/ca.pem:ro
