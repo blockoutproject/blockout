@@ -545,12 +545,260 @@ class CollectorSportingBoundaryIntegrationTest {
     }
   }
 
+  @ParameterizedTest
+  @ValueSource(ints = {1, 2, 3})
+  @DisplayName("Every calendar item retains its runtime fence through its independent commit")
+  void fencesEachCalendarCommit(int blockedItem) throws Exception {
+    // Given
+    CollectorLifecycle.AdmittedCycle context = lifecycle.admit(CONTROL, null, 0, null);
+    List<SportingObservation.Match> initial =
+        java.util.stream.IntStream.rangeClosed(1, 3)
+            .mapToObj(
+                index -> calendar("M" + index, LocalDate.of(2026, 10, 24)).matches().getFirst())
+            .toList();
+    sporting.calendar(
+        POOL,
+        context(context, 1),
+        new SportingObservation.Calendar(true, initial, List.of(), List.of()));
+    List<SportingObservation.Match> updated =
+        java.util.stream.IntStream.rangeClosed(1, 3)
+            .mapToObj(
+                index -> calendar("M" + index, LocalDate.of(2026, 10, 25)).matches().getFirst())
+            .toList();
+    UUID blocked =
+        runtime.sql.queryForObject(
+            "SELECT id FROM sporting_match WHERE reference=?", UUID.class, "M" + blockedItem);
+    long revision = backend.current().revision();
+    try (Connection blocker = runtime.sql.getDataSource().getConnection();
+        ExecutorService workers = Executors.newFixedThreadPool(2)) {
+      blocker.setAutoCommit(false);
+      int blockerPid = lockMatch(blocker, blocked);
+      try {
+        Future<SportingObservation.CalendarOutcome> accepting =
+            workers.submit(
+                () ->
+                    sporting.calendar(
+                        POOL,
+                        context(context, 2),
+                        new SportingObservation.Calendar(true, updated, List.of(), List.of())));
+        int acceptingPid = awaitBlockedBy(blockerPid);
+        assertThat(
+                runtime.sql.queryForObject(
+                    "SELECT COUNT(*) FROM sporting_match WHERE local_date=?",
+                    Integer.class,
+                    LocalDate.of(2026, 10, 25)))
+            .isEqualTo(blockedItem - 1);
+        UUID next = UUID.fromString("00000000-0000-4000-8000-000000000199");
+        Future<CollectionBackend.Runtime> replacing =
+            workers.submit(() -> backend.register(revision, next));
+
+        // When
+        try {
+          awaitBlockedBy(acceptingPid);
+        } finally {
+          blocker.commit();
+        }
+        SportingObservation.CalendarOutcome outcome = accepting.get(10, TimeUnit.SECONDS);
+        assertThat(replacing.get(10, TimeUnit.SECONDS).incarnationId()).isEqualTo(next);
+
+        // Then
+        assertThat(outcome.acceptedCount()).isEqualTo(blockedItem);
+        assertThat(outcome.rejectedCount()).isEqualTo(3 - blockedItem);
+        assertThat(outcome.absenceReconciled()).isFalse();
+        assertThat(
+                runtime.sql.queryForObject(
+                    "SELECT COUNT(*) FROM sporting_match WHERE local_date=?",
+                    Integer.class,
+                    LocalDate.of(2026, 10, 25)))
+            .isEqualTo(blockedItem);
+        assertThat(
+                runtime.sql.queryForObject(
+                    "SELECT completed_read_ordinal FROM sporting_pool WHERE id=?",
+                    Long.class,
+                    POOL))
+            .isEqualTo(1);
+        assertThat(
+                runtime.sql.queryForObject(
+                    "SELECT COUNT(*) FROM sporting_match WHERE present=TRUE", Integer.class))
+            .isEqualTo(3);
+      } finally {
+        blocker.rollback();
+      }
+    }
+  }
+
+  @Test
+  @DisplayName("Final empty-calendar reconciliation retains the runtime fence through commit")
+  void fencesFinalAbsenceCommit() throws Exception {
+    // Given
+    CollectorLifecycle.AdmittedCycle context = lifecycle.admit(CONTROL, null, 0, null);
+    UUID match =
+        sporting
+            .calendar(POOL, context(context, 1), calendar("RETAINED", LocalDate.of(2026, 10, 24)))
+            .outcomes()
+            .getFirst()
+            .resourceId();
+    long revision = backend.current().revision();
+    try (Connection blocker = runtime.sql.getDataSource().getConnection();
+        ExecutorService workers = Executors.newFixedThreadPool(2)) {
+      blocker.setAutoCommit(false);
+      int blockerPid = lockMatch(blocker, match);
+      try {
+        Future<SportingObservation.CalendarOutcome> finalizing =
+            workers.submit(
+                () ->
+                    sporting.calendar(
+                        POOL,
+                        context(context, 2),
+                        new SportingObservation.Calendar(true, List.of(), List.of(), List.of())));
+        int finalizingPid = awaitBlockedBy(blockerPid);
+        assertThat(runtime.sql.queryForObject("SELECT present FROM sporting_match", Boolean.class))
+            .isTrue();
+        UUID next = UUID.fromString("00000000-0000-4000-8000-000000000199");
+        Future<CollectionBackend.Runtime> replacing =
+            workers.submit(() -> backend.register(revision, next));
+
+        // When
+        try {
+          awaitBlockedBy(finalizingPid);
+        } finally {
+          blocker.commit();
+        }
+        assertThat(finalizing.get(10, TimeUnit.SECONDS).absenceReconciled()).isTrue();
+        assertThat(replacing.get(10, TimeUnit.SECONDS).incarnationId()).isEqualTo(next);
+
+        // Then
+        assertThat(runtime.sql.queryForObject("SELECT present FROM sporting_match", Boolean.class))
+            .isFalse();
+        assertThat(
+                runtime.sql.queryForObject(
+                    "SELECT COUNT(*) FROM sporting_participation WHERE current=TRUE",
+                    Integer.class))
+            .isZero();
+        assertThat(
+                runtime.sql.queryForObject(
+                    "SELECT completed_read_ordinal FROM sporting_pool WHERE id=?",
+                    Long.class,
+                    POOL))
+            .isEqualTo(2);
+        assertThatThrownBy(
+                () ->
+                    sporting.calendar(
+                        POOL, context(context, 3), calendar("LATE", LocalDate.of(2026, 10, 26))))
+            .isInstanceOf(CollectionBackendFailure.class);
+        assertThat(runtime.sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Integer.class))
+            .isEqualTo(1);
+      } finally {
+        blocker.rollback();
+      }
+    }
+  }
+
+  @Test
+  @DisplayName("A newer calendar admitted between item commits prevents old absence finalization")
+  void supersedesCalendarBeforeFinalization() throws Exception {
+    // Given
+    CollectorLifecycle.AdmittedCycle context = lifecycle.admit(CONTROL, null, 0, null);
+    SportingObservation.Match retained =
+        calendar("M2", LocalDate.of(2026, 10, 24)).matches().getFirst();
+    SportingObservation.Match first =
+        calendar("M1", LocalDate.of(2026, 10, 24)).matches().getFirst();
+    UUID match =
+        sporting
+            .calendar(
+                POOL,
+                context(context, 1),
+                new SportingObservation.Calendar(
+                    true, List.of(first, retained), List.of(), List.of()))
+            .outcomes()
+            .getFirst()
+            .resourceId();
+    try (Connection blocker = runtime.sql.getDataSource().getConnection();
+        ExecutorService workers = Executors.newFixedThreadPool(2)) {
+      blocker.setAutoCommit(false);
+      int blockerPid = lockMatch(blocker, match);
+      try {
+        Future<SportingObservation.CalendarOutcome> older =
+            workers.submit(
+                () ->
+                    sporting.calendar(
+                        POOL, context(context, 2), calendar("M1", LocalDate.of(2026, 10, 25))));
+        int olderPid = awaitBlockedBy(blockerPid);
+        Future<SportingObservation.CalendarOutcome> newer =
+            workers.submit(
+                () ->
+                    sporting.calendar(
+                        POOL,
+                        context(context, 3),
+                        new SportingObservation.Calendar(
+                            true,
+                            List.of(
+                                calendar("M1", LocalDate.of(2026, 10, 26)).matches().getFirst(),
+                                retained),
+                            List.of(),
+                            List.of())));
+
+        // When
+        try {
+          awaitBlockedBy(olderPid);
+        } finally {
+          blocker.commit();
+        }
+        SportingObservation.CalendarOutcome oldOutcome = older.get(10, TimeUnit.SECONDS);
+        SportingObservation.CalendarOutcome newOutcome = newer.get(10, TimeUnit.SECONDS);
+
+        // Then
+        assertThat(oldOutcome.acceptedCount()).isEqualTo(1);
+        assertThat(oldOutcome.absenceReconciled()).isFalse();
+        assertThat(newOutcome.absenceReconciled()).isTrue();
+        assertThat(
+                runtime.sql.queryForObject(
+                    "SELECT local_date FROM sporting_match WHERE id=?", LocalDate.class, match))
+            .isEqualTo(LocalDate.of(2026, 10, 26));
+        assertThat(
+                runtime.sql.queryForObject(
+                    "SELECT COUNT(*) FROM sporting_match WHERE present=TRUE", Integer.class))
+            .isEqualTo(2);
+        assertThat(
+                runtime.sql.queryForObject(
+                    "SELECT completed_read_ordinal FROM sporting_pool WHERE id=?",
+                    Long.class,
+                    POOL))
+            .isEqualTo(3);
+      } finally {
+        blocker.rollback();
+      }
+    }
+  }
+
   /**
-   * Observes a real blocked PostgreSQL statement, avoiding scheduler sleeps or future timing
-   * claims.
+   * Holds only the selected sporting row so an actual owner transaction waits after its fence.
+   *
+   * @param connection caller-owned manual transaction, released by commit or rollback
+   * @param match retained match to block
+   * @return exact blocker connection PID
+   * @throws java.sql.SQLException when the disposable database cannot acquire the row lock
+   */
+  private int lockMatch(Connection connection, UUID match) throws java.sql.SQLException {
+    int pid;
+    try (java.sql.Statement statement = connection.createStatement();
+        java.sql.ResultSet result = statement.executeQuery("SELECT pg_backend_pid()")) {
+      assertThat(result.next()).isTrue();
+      pid = result.getInt(1);
+    }
+    try (java.sql.PreparedStatement lock =
+        connection.prepareStatement("SELECT id FROM sporting_match WHERE id=? FOR UPDATE")) {
+      lock.setObject(1, match);
+      lock.executeQuery().close();
+    }
+    return pid;
+  }
+
+  /**
+   * Observes an actual PostgreSQL blocking edge rather than inferring ordering from elapsed time.
    *
    * @param blockerPid exact connection holding the conflicting root
-   * @return connection whose real lock wait has been observed
+   * @return connection whose lock wait has been observed
    */
   private int awaitBlockedBy(int blockerPid) {
     List<Integer> blocked =
