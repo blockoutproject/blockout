@@ -25,6 +25,8 @@ import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.collector.ingestion.IngestionTestClient;
 import com.sun.net.httpserver.HttpServer;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -38,6 +40,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.imageio.ImageIO;
@@ -246,10 +249,12 @@ class CollectorPresentationBoundaryIntegrationTest {
     byte[] retained = image("jpeg");
     assertThat(sporting.logo(home, context(cycle), retained).outcome())
         .isEqualTo(ObservationOutcomeEnum.ACCEPTED);
+    byte[] manual = image("png");
+    presentation(home, "replace", "Manual team", manual);
     switch (failure) {
       case "unavailable" -> imageStatus = 404;
       case "corrupt" -> imageBody = "not an image".getBytes(StandardCharsets.UTF_8);
-      case "oversized" -> imageBody = new byte[5_242_881];
+      case "oversized" -> imageBody = oversizedImage();
       default -> throw new IllegalArgumentException(failure);
     }
 
@@ -269,6 +274,11 @@ class CollectorPresentationBoundaryIntegrationTest {
             runtime.sql.queryForObject(
                 "SELECT source_logo_media_type FROM sporting_team WHERE id=?", String.class, home))
         .isEqualTo("image/jpeg");
+    assertThat(
+            runtime.sql.queryForObject(
+                "SELECT logo FROM sporting_team WHERE id=?", byte[].class, home))
+        .isEqualTo(manual);
+    assertThat(presentation(home).at("/names/effectiveName").asString()).isEqualTo("Manual team");
     assertThat(runtime.sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Integer.class))
         .isEqualTo(4);
     assertThat(
@@ -371,6 +381,7 @@ class CollectorPresentationBoundaryIntegrationTest {
         CLUB,
         context(cycle),
         new SportingObservation.Locality("1", GeocodingOutcomeEnum.LOCATED, 48.86, 2.34));
+    int preparedSubmissions = submissions.size();
     MunicipalGeocoder geocoder = mock(MunicipalGeocoder.class);
     when(geocoder.read(anyString(), anyString(), anyString()))
         .thenThrow(new IllegalStateException("Synthetic transport failure"));
@@ -389,7 +400,7 @@ class CollectorPresentationBoundaryIntegrationTest {
             runtime.sql.queryForObject(
                 "SELECT longitude FROM sporting_club WHERE id=?", Double.class, CLUB))
         .isEqualTo(2.34);
-    assertThat(submissions).isEmpty();
+    assertThat(submissions).hasSize(preparedSubmissions);
     assertThat(
             runtime.sql.queryForObject(
                 "SELECT outcome FROM collection_result WHERE scope_id=? AND stage='GEOCODING' AND phase='ACQUISITION'",
@@ -740,6 +751,26 @@ class CollectorPresentationBoundaryIntegrationTest {
         .body(parts)
         .retrieve()
         .toBodilessEntity();
+  }
+
+  /**
+   * Encodes a deterministic noisy PNG below the decoded-pixel and transport limits, isolating the
+   * 5-MiB upload bound from corrupt-content or decompression-budget refusal.
+   *
+   * @return decodable PNG exceeding only the compressed image upload bound
+   * @throws Exception if the standard image codec cannot encode or decode the fixture
+   */
+  private byte[] oversizedImage() throws Exception {
+    BufferedImage image = new BufferedImage(1600, 1200, BufferedImage.TYPE_3BYTE_BGR);
+    new Random(200L).nextBytes(((DataBufferByte) image.getRaster().getDataBuffer()).getData());
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    assertThat(ImageIO.write(image, "png", bytes)).isTrue();
+    byte[] encoded = bytes.toByteArray();
+    assertThat(encoded.length).isBetween(5_242_881, 8 * 1024 * 1024);
+    BufferedImage decoded = ImageIO.read(new ByteArrayInputStream(encoded));
+    assertThat(decoded.getWidth()).isEqualTo(1600);
+    assertThat(decoded.getHeight()).isEqualTo(1200);
+    return encoded;
   }
 
   /**

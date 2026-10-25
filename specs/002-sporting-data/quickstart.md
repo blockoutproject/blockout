@@ -100,6 +100,57 @@ Change effective municipality/postal context while a geocoding response is in fl
 
 Exercise standings with and without a retained usable table: `published` with empty rows remains an available table; `not-published` with empty arrays is qualified absence, and a failed/unreadable read is neither. Preserve a still-usable retained table and its own freshness on failure or non-publication; without one, F03 distinguishes qualified absence from unavailable acquisition. Reject non-publication with nonempty arrays and stale absence observations without effects. A successful table containing an unlinked row preserves official order without a fabricated team. Close a season and verify history remains while new cycles are refused. F14 logo preservation and controlled initial reconstruction remain prerequisites for any separately authorized transition, not actions of this quickstart.
 
+### Collector logo and locality acceptance — #200
+
+T054 uses [CollectorPresentationBoundaryIntegrationTest](../../apps/collector/src/test/java/com/blockout/collector/acquisition/application/CollectorPresentationBoundaryIntegrationTest.java)
+with the [disposable-runtime procedure](../../README.md#collector-to-sporting-qualification).
+Package and migrate the backend as documented, then select
+`-Dit.test=CollectorPresentationBoundaryIntegrationTest,CollectorSportingBoundaryIntegrationTest`
+with `-Dblockout.qualify-collector-sporting=true`. Both suites run serially against the
+explicit database/backend properties. Ordinary CI compiles them and skips execution
+without these opt-in inputs. The dedicated `collector-presentation.sql` supplements
+the existing reset fixture only in that disposable database.
+
+On 2026-10-25, the issue-200 worktree qualified the production collector lifecycle,
+passage, generated ingestion clients/mappers, backend security/controllers and
+F01/F02 commits on PostgreSQL 18.6, explicitly migrated with Liquibase. The isolated
+Compose project was `blockout-issue-200`, PostgreSQL port 5500 and backend port 8200;
+the backend used the restricted application role. Collector `verify` passed 284
+ordinary tests plus 12 presentation/locality and 10 existing cross-owner runtime
+cases. Backend packaging, contract lint/bundling, Checkstyle, Spotless and repository
+Prettier passed.
+
+The 12 cases establish:
+
+- One image acquisition per distinct resolved team across repeated matches and
+  pools in a passage, including failed attempts. Two teams sharing one URL still
+  receive their independent acquisition. PNG content served under a JPEG name/type
+  is retained as PNG.
+- HTTP 404, corrupt bytes and a decodable PNG above 5,242,880 bytes preserve the last
+  accepted source image, manual logo and name while every usable match commits.
+  The oversized PNG remains below the decoded-pixel and 8-MiB transport bounds.
+- Target reads resolve a correction made after admission. The generated locality
+  request carries that current revision; a correction while acquisition is in flight
+  or an explicit return to source rejects the earlier point. Technical acquisition
+  failure sends no further locality proposal and preserves a valid current point.
+- Current restrictions prevent municipal acquisition and source-field republication.
+  Manual locality and deliberate absence survive club recollection; source changes
+  masked by corrections and street-only edits preserve the point and locality revision.
+- Real Servlet multipart PATCH binds JSON metadata with explicit nulls and image
+  bytes. Invalid replacement preserves the whole previous form/revision; automatic
+  restoration serves the accepted source bytes through the real image read.
+
+Calendar, club-page and municipal interpretation are controlled inputs. Image GETs
+use the production LNV image/Apache transport against a loopback HTTP server;
+locally signed credentials exercise real security without Auth0 access. Contact
+corrections use the real administrative HTTP API. The no-public-endpoint F11
+restriction is seeded as current SQL state, so these cases do not qualify the manual
+rights procedure itself. Administrative multipart uses Spring RestClient, not the
+native mobile networking stack. No live FFVB/IGN/LNV reads, provider coverage,
+native design/accessibility, production or protected-logo recovery are certified;
+those remain with their owning tasks, including T055/T056 and F01 T058/#201. The
+retained #433 live Dynamic Type and #449 iOS 17 input limits are unchanged.
+
 ### Current visibility and projection boundary
 
 F02 T035–T040 are exercised by `SportingVisibilityIntegrationTest`, `SportingProjectionIntegrationTest` and `SportingReadServiceTest`, alongside the existing calendar/identity/classification suites. The integration suites use the real F01 admission, closure and completion services with explicitly migrated disposable PostgreSQL 18.6 and the restricted application role.
