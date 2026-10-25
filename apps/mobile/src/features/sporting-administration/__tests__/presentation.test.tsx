@@ -12,6 +12,7 @@ import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType } from "react";
 import RootLayout from "../../../app/_layout";
+import OnboardingRoute from "../../../app/onboarding";
 import OperationsLayout from "../../../app/(operations)/_layout";
 import PresentationRoute from "../../../app/(operations)/administration/presentation/[kind]/[id]";
 import { PresentationEntry } from "../entry";
@@ -26,6 +27,7 @@ import {
   useAccountSession,
 } from "../../accounts/session/account-session-provider";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+import { completeDiscovery } from "../../onboarding/discovery-state";
 import {
   credentialsFor,
   mockAuth0,
@@ -84,6 +86,11 @@ jest.mock("expo-image-manipulator", () => ({
   SaveFormat: { PNG: "png" },
 }));
 jest.mock("expo-file-system", () => ({ File: jest.fn(() => mockFile) }));
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
 
 const mockContext = {
   resize: jest.fn(),
@@ -123,7 +130,9 @@ let permissions: unknown = account.permissions;
 let mockMaintenance = false;
 const environment = { ...process.env };
 
-beforeEach(() => {
+// Presentation routes start after common discovery has been explicitly completed.
+beforeEach(async () => {
+  await completeDiscovery();
   client = createQueryClient();
   stored = initial;
   permissions = account.permissions;
@@ -610,6 +619,7 @@ async function openRoutes(initialUrl = "/") {
   return renderRouter(
     {
       _layout: () => <RootLayout />,
+      onboarding: OnboardingRoute,
       access: AccessProbe,
       "(ordinary)/_layout": () => (
         <Stack screenOptions={{ headerShown: false }} />
