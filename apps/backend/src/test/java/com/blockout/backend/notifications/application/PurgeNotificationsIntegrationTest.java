@@ -186,7 +186,11 @@ class PurgeNotificationsIntegrationTest {
     assertThatThrownBy(() -> marks.mark(owner, expired))
         .isInstanceOf(NotificationNotFoundException.class);
     assertThat(output.getAll())
-        .contains("notification_retention", "incomplete", "partial_count", "100");
+        .contains(
+            "\"operation\":\"notification_retention\"",
+            "\"outcome\":\"incomplete\"",
+            "\"partial_count\":100")
+        .doesNotContain("\"outcome\":\"completed\"");
     assertThat(output.getAll())
         .doesNotContain(
             "synthetic-private-notification-content", ACCOUNT.toString(), expired.toString());
