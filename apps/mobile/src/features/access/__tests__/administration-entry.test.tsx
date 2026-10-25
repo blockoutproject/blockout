@@ -153,7 +153,6 @@ it.each([
   },
   { bypassMaintenance: true },
   {
-    manageSportingPresentation: true,
     manageSportingClassification: false,
     manageDivisionLifecycle: false,
     moderateStreamLinks: true,
@@ -513,29 +512,33 @@ function json(body: unknown, status = 200) {
   });
 }
 
-it.each(["manageSportingClassification", "manageDivisionLifecycle"])(
-  "offers only the delivered division destination for %s",
-  async (grant) => {
-    // Given
-    mockFetch.mockImplementation(async () =>
-      json({ ...account, permissions: { [grant]: true } }),
-    );
+it.each([
+  "manageSportingClassification",
+  "manageDivisionLifecycle",
+  "manageSportingPresentation",
+])("offers only the delivered division destination for %s", async (grant) => {
+  // Given
+  mockFetch.mockImplementation(async () =>
+    json({ ...account, permissions: { [grant]: true } }),
+  );
 
-    // When
-    await renderAdministration();
+  // When
+  await renderAdministration();
 
-    // Then
-    expect(
-      await screen.findByRole("link", { name: "Divisions" }),
-    ).toBeOnTheScreen();
-    expect(
-      screen.queryByRole("link", { name: "Collectes" }),
-    ).not.toBeOnTheScreen();
-    expect(
-      screen.queryByRole("link", { name: "Maintenance" }),
-    ).not.toBeOnTheScreen();
-    expect(
-      screen.queryByRole("link", { name: "Versions minimales" }),
-    ).not.toBeOnTheScreen();
-  },
-);
+  // Then
+  expect(
+    await screen.findByRole("link", { name: "Administration technique" }),
+  ).toBeOnTheScreen();
+  expect(
+    await screen.findByRole("link", { name: "Divisions" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: "Collectes" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: "Maintenance" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: "Versions minimales" }),
+  ).not.toBeOnTheScreen();
+});

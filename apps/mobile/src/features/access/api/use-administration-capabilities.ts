@@ -22,6 +22,7 @@ export function useAdministrationCapabilities() {
     permissions?.manageApplicationVersions === true ||
     permissions?.manageCollection === true ||
     permissions?.manageSportingClassification === true ||
+    permissions?.manageSportingPresentation === true ||
     permissions?.manageDivisionLifecycle === true;
   return { permissions, hasCommands, account, sessionStatus: session.status };
 }
