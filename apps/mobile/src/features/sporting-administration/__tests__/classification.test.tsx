@@ -811,3 +811,23 @@ it("filters division names within the selected activity catalogue without exposi
     mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
   ).toBe(false);
 });
+
+it("opens division creation from the catalogue for a lifecycle-only operator", async () => {
+  // Given
+  permissions = { manageDivisionLifecycle: true };
+  const user = userEvent.setup();
+  await openRoutes();
+  await screen.findByText("Permissions connues");
+  await act(async () => router.push("/administration/divisions"));
+
+  // When
+  await user.press(
+    await screen.findByRole("button", { name: "Créer une division" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("header", { name: "Créer une division" }),
+  ).toBeOnTheScreen();
+  expect(await screen.findByLabelText("Nom de la division")).toBeOnTheScreen();
+});
