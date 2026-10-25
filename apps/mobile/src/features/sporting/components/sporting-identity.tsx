@@ -306,7 +306,11 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   initials: { ...tokens.typography.navigation },
-  logoState: { ...tokens.typography.metadata, textAlign: "center" },
+  logoState: {
+    ...tokens.typography.metadata,
+    alignSelf: "stretch",
+    textAlign: "center",
+  },
   metadata: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },
   badge: {
     ...tokens.typography.metadata,
