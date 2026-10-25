@@ -778,9 +778,9 @@ class CollectorPresentationBoundaryIntegrationTest {
   }
 
   /**
-   * Creates synthetic PNG/JPEG bytes with the standard JDK encoder, without external artwork.
+   * Creates tiny PNG/JPEG fixtures and the intentional GIF rejection input with the JDK encoder.
    *
-   * @param format native PNG or JPEG writer name
+   * @param format native PNG, JPEG or GIF writer name selected by the scenario
    * @return complete valid two-by-three-pixel image bytes
    * @throws Exception if the native encoder cannot write the requested image
    */
