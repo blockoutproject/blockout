@@ -2,7 +2,6 @@ package com.blockout.backend.following.infrastructure;
 
 import com.blockout.backend.following.application.FollowContext;
 import com.blockout.backend.following.application.FollowContext.Target;
-import com.blockout.backend.following.application.FollowContext.TargetType;
 import com.blockout.backend.following.application.FollowStore;
 import java.util.HashSet;
 import java.util.List;
@@ -21,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class JpaFollowStore implements FollowStore {
   private final TeamFollowRepository teams;
   private final PoolFollowRepository pools;
+  private final FollowPersistenceMapper mapper;
 
   /** {@inheritDoc} */
   @Override
@@ -29,11 +29,11 @@ public class JpaFollowStore implements FollowStore {
       case TEAM ->
           teams
               .findByAccountIdAndTeamId(context.accountId(), context.target().id())
-              .map(this::toRelation);
+              .map(mapper::toView);
       case POOL ->
           pools
               .findByAccountIdAndPoolId(context.accountId(), context.target().id())
-              .map(this::toRelation);
+              .map(mapper::toView);
     };
   }
 
@@ -70,27 +70,5 @@ public class JpaFollowStore implements FollowStore {
     }
     if (targets.isEmpty()) return List.of();
     return List.copyOf(teams.findRelations(teamIds, poolIds));
-  }
-
-  /**
-   * Detaches the team relation without loading its account or sporting target.
-   *
-   * @param row persisted association
-   * @return immutable original identities
-   */
-  private Relation toRelation(TeamFollowEntity row) {
-    return new Relation(
-        row.getId(), row.getAccountId(), new Target(TargetType.TEAM, row.getTeamId()));
-  }
-
-  /**
-   * Detaches the pool relation without loading its account or sporting target.
-   *
-   * @param row persisted association
-   * @return immutable original identities
-   */
-  private Relation toRelation(PoolFollowEntity row) {
-    return new Relation(
-        row.getId(), row.getAccountId(), new Target(TargetType.POOL, row.getPoolId()));
   }
 }

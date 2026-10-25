@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { hashKey, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { Globe, Mail, MapPin, Phone } from "lucide-react-native";
 import { FlatList, StyleSheet, View } from "react-native";
@@ -34,10 +34,7 @@ export interface ClubScreenProps {
 export function ClubScreen(props: ClubScreenProps) {
   const queries = useConsultationQueries();
   return (
-    <ClubPage
-      key={JSON.stringify(queries.club(props.clubId).queryKey)}
-      {...props}
-    />
+    <ClubPage key={hashKey(queries.club(props.clubId).queryKey)} {...props} />
   );
 }
 

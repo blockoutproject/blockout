@@ -3,8 +3,8 @@ package com.blockout.backend.sporting.application.model;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.sporting.domain.MatchFacts.SetScore;
 import java.net.URI;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.openapitools.jackson.nullable.JsonNullable;
@@ -27,10 +27,7 @@ public record MatchObservation(UUID matchId, Context context, Facts facts) {
    * @param providerPublishedAt supplied publication instant, or null when unknown
    */
   public record Context(
-      UUID cycleId,
-      long readOrdinal,
-      OffsetDateTime observedAt,
-      OffsetDateTime providerPublishedAt) {}
+      UUID cycleId, long readOrdinal, Instant observedAt, Instant providerPublishedAt) {}
 
   /**
    * Independent proposals rather than a replacement of accepted facts. Undefined preserves a fact;

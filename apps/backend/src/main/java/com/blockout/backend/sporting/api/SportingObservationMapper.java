@@ -14,6 +14,7 @@ import com.blockout.backend.generated.ingestion.model.ObservationContextInternal
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeInternalResponse;
 import com.blockout.backend.generated.ingestion.model.StandingsObservationInternalRequest;
 import com.blockout.backend.generated.ingestion.model.TeamCandidateInternalRequest;
+import com.blockout.backend.shared.mapping.TemporalMapping;
 import com.blockout.backend.sporting.application.model.CalendarObservation;
 import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.MatchObservation;
@@ -21,6 +22,7 @@ import com.blockout.backend.sporting.application.model.ObservationOutcome;
 import com.blockout.backend.sporting.application.model.StandingsObservation;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.domain.MatchFacts;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.mapstruct.Mapper;
@@ -28,7 +30,7 @@ import org.mapstruct.Mapping;
 import org.openapitools.jackson.nullable.JsonNullable;
 
 /** Maps structurally validated generated observations without deciding accepted sporting state. */
-@Mapper(config = MappingConfiguration.class)
+@Mapper(config = MappingConfiguration.class, uses = TemporalMapping.class)
 public interface SportingObservationMapper {
   /**
    * Maps an existing match's submitted context and independent facts without losing presence.
@@ -46,6 +48,21 @@ public interface SportingObservationMapper {
    * @return application attribution, or null for a null source
    */
   MatchObservation.Context toContext(ObservationContextInternalRequest source);
+
+  /**
+   * Maps multipart attribution once at the same boundary as JSON observation dates.
+   *
+   * @param cycleId admitted cycle identity
+   * @param readOrdinal logical provider read position
+   * @param observedAt actual transport read-completion timestamp
+   * @param providerPublishedAt optional provider publication timestamp
+   * @return absolute attribution with no inferred publication time
+   */
+  MatchObservation.Context toContext(
+      UUID cycleId,
+      long readOrdinal,
+      OffsetDateTime observedAt,
+      OffsetDateTime providerPublishedAt);
 
   /**
    * Maps independent facts without unwrapping away their presence.

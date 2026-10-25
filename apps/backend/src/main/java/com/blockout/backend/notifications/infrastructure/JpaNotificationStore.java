@@ -23,6 +23,7 @@ public class JpaNotificationStore implements NotificationStore {
   private static final int PURGE_BATCH_SIZE = 100;
   private final EntityManager entities;
   private final NotificationRepository notifications;
+  private final NotificationPersistenceMapper mapper;
 
   /** {@inheritDoc} */
   @Override
@@ -43,7 +44,7 @@ public class JpaNotificationStore implements NotificationStore {
   @Override
   public MatchAnnouncementFacts facts(UUID matchId) {
     MatchAnnouncementEntity entity = entities.find(MatchAnnouncementEntity.class, matchId);
-    return entity == null ? MatchAnnouncementFacts.empty(matchId) : entity.facts();
+    return entity == null ? MatchAnnouncementFacts.empty(matchId) : mapper.toDomain(entity);
   }
 
   /** {@inheritDoc} */

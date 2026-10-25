@@ -42,7 +42,12 @@ class SportingReadServiceTest {
     SportingReadStore current = mock(SportingReadStore.class);
     when(current.visibility(Kind.MATCH, MATCH))
         .thenReturn(Optional.of(new SportingVisibility(MATCH, Kind.MATCH, Set.of(reason))));
-    SportingReadService reads = new SportingReadService(store, current);
+    SportingReadService reads =
+        new SportingReadService(
+            store,
+            org.mapstruct.factory.Mappers.getMapper(
+                com.blockout.backend.sporting.application.model.SportingModelMapper.class),
+            current);
 
     // When
     Optional<MatchView> result = reads.publicMatch(MATCH);
@@ -68,7 +73,12 @@ class SportingReadServiceTest {
     when(current.visibility(Kind.MATCH, MATCH))
         .thenReturn(Optional.of(new SportingVisibility(MATCH, Kind.MATCH, Set.of())));
     when(store.match(MATCH)).thenReturn(Optional.of(match));
-    SportingReadService reads = new SportingReadService(store, current);
+    SportingReadService reads =
+        new SportingReadService(
+            store,
+            org.mapstruct.factory.Mappers.getMapper(
+                com.blockout.backend.sporting.application.model.SportingModelMapper.class),
+            current);
 
     // When
     Optional<MatchView> result = reads.publicMatch(MATCH);
@@ -117,7 +127,12 @@ class SportingReadServiceTest {
     // Given
     SportingStore store = mock(SportingStore.class);
     SportingReadStore current = mock(SportingReadStore.class);
-    SportingReadService reads = new SportingReadService(store, current);
+    SportingReadService reads =
+        new SportingReadService(
+            store,
+            org.mapstruct.factory.Mappers.getMapper(
+                com.blockout.backend.sporting.application.model.SportingModelMapper.class),
+            current);
 
     // When
     ThrowingCallable invalidPage = () -> reads.projectionInputs(Kind.TEAM, -1, 20);

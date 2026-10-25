@@ -1,4 +1,11 @@
 import {
+  toCreateDivisionBody,
+  toClubPresentationBody,
+  toTeamPresentationBody,
+  toPoolPresentationBody,
+  toDivisionPresentationBody,
+} from "./presentation-request";
+import {
   hashKey,
   useIsMutating,
   useMutation,
@@ -157,31 +164,12 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
       values: PresentationValues;
     }): Promise<Presentation> => {
       const options = await request(undefined, true);
-      const image =
-        values.logo.action === "replace" ? { image: values.logo.prepared } : {};
-      const common = { revision, logoAction: values.logo.action };
-      const manualName = values.name === "" ? null : values.name.trim();
-      const manualShortName =
-        values.shortName === "" ? null : values.shortName.trim();
       let accepted: Presentation;
       switch (target.kind) {
         case "division-creation":
           accepted = {
             kind: "division",
-            data: await createDivision(
-              {
-                metadata: {
-                  name: values.name.trim(),
-                  color: values.color,
-                  gradient: values.gradient.every((v) => v === "")
-                    ? null
-                    : values.gradient,
-                  logoAction: values.logo.action,
-                },
-                ...image,
-              },
-              options,
-            ),
+            data: await createDivision(toCreateDivisionBody(values), options),
           };
           break;
         case "club":
@@ -189,7 +177,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
             kind: "club",
             data: await setClubPresentation(
               target.id,
-              { metadata: { ...common, manualName }, ...image },
+              toClubPresentationBody(revision, values),
               options,
             ),
           };
@@ -199,10 +187,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
             kind: "team",
             data: await setTeamPresentation(
               target.id,
-              {
-                metadata: { ...common, manualName, manualShortName },
-                ...image,
-              },
+              toTeamPresentationBody(revision, values),
               options,
             ),
           };
@@ -212,7 +197,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
             kind: "pool",
             data: await setPoolPresentation(
               target.id,
-              { revision, manualName, manualShortName },
+              toPoolPresentationBody(revision, values),
               options,
             ),
           };
@@ -222,17 +207,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
             kind: "division",
             data: await setDivisionPresentation(
               target.id,
-              {
-                metadata: {
-                  ...common,
-                  name: values.name.trim(),
-                  color: values.color,
-                  gradient: values.gradient.every((v) => v === "")
-                    ? null
-                    : values.gradient,
-                },
-                ...image,
-              },
+              toDivisionPresentationBody(revision, values),
               options,
             ),
           };

@@ -36,22 +36,20 @@ public class SportingPresentationController implements SportingPresentationApi {
   @Override
   public ResponseEntity<SportingPresentationResponse> getClubPresentation(UUID clubId) {
     return response(
-        mapper.toResponse(presentation.get(account.id(), Kind.CLUB, clubId)),
-        "multipart/form-data");
+        mapper.toDto(presentation.get(account.id(), Kind.CLUB, clubId)), "multipart/form-data");
   }
 
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<SportingPresentationResponse> getTeamPresentation(UUID teamId) {
     return response(
-        mapper.toResponse(presentation.get(account.id(), Kind.TEAM, teamId)),
-        "multipart/form-data");
+        mapper.toDto(presentation.get(account.id(), Kind.TEAM, teamId)), "multipart/form-data");
   }
 
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<PoolPresentationResponse> getPoolPresentation(UUID poolId) {
-    return response(mapper.toPoolResponse(presentation.get(account.id(), Kind.POOL, poolId)), null);
+    return response(mapper.toPoolDto(presentation.get(account.id(), Kind.POOL, poolId)), null);
   }
 
   /** {@inheritDoc} */
@@ -62,8 +60,8 @@ public class SportingPresentationController implements SportingPresentationApi {
     presentation.requireGrant(accountId);
     Image validated = SportingPresentationValidator.validateImage(metadata.getLogoAction(), image);
     return response(
-        mapper.toResponse(
-            presentation.set(accountId, Kind.CLUB, clubId, mapper.toEdit(metadata, validated))),
+        mapper.toDto(
+            presentation.set(accountId, Kind.CLUB, clubId, mapper.toCommand(metadata, validated))),
         "multipart/form-data");
   }
 
@@ -75,8 +73,8 @@ public class SportingPresentationController implements SportingPresentationApi {
     presentation.requireGrant(accountId);
     Image validated = SportingPresentationValidator.validateImage(metadata.getLogoAction(), image);
     return response(
-        mapper.toResponse(
-            presentation.set(accountId, Kind.TEAM, teamId, mapper.toEdit(metadata, validated))),
+        mapper.toDto(
+            presentation.set(accountId, Kind.TEAM, teamId, mapper.toCommand(metadata, validated))),
         "multipart/form-data");
   }
 
@@ -85,8 +83,8 @@ public class SportingPresentationController implements SportingPresentationApi {
   public ResponseEntity<PoolPresentationResponse> setPoolPresentation(
       UUID poolId, SetPoolPresentationRequest request) {
     return response(
-        mapper.toPoolResponse(
-            presentation.set(account.id(), Kind.POOL, poolId, mapper.toEdit(request))),
+        mapper.toPoolDto(
+            presentation.set(account.id(), Kind.POOL, poolId, mapper.toCommand(request))),
         null);
   }
 
@@ -98,15 +96,15 @@ public class SportingPresentationController implements SportingPresentationApi {
     presentation.requireGrant(accountId);
     Image validated = SportingPresentationValidator.validateImage(metadata.getLogoAction(), image);
     return response(
-        administrationMapper.toResponse(
-            presentation.setDivision(accountId, divisionId, mapper.toEdit(metadata, validated))),
+        administrationMapper.toDto(
+            presentation.setDivision(accountId, divisionId, mapper.toCommand(metadata, validated))),
         "multipart/form-data");
   }
 
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<ClubContactsResponse> getClubContacts(UUID clubId) {
-    return response(mapper.toResponse(contacts.get(account.id(), clubId)), "application/json");
+    return response(mapper.toDto(contacts.get(account.id(), clubId)), "application/json");
   }
 
   /** {@inheritDoc} */
@@ -114,8 +112,9 @@ public class SportingPresentationController implements SportingPresentationApi {
   public ResponseEntity<ClubContactsResponse> setClubContacts(
       UUID clubId, SetClubContactsRequest request) {
     return response(
-        mapper.toResponse(
-            contacts.correct(account.id(), clubId, request.getRevision(), mapper.toEdits(request))),
+        mapper.toDto(
+            contacts.correct(
+                account.id(), clubId, request.getRevision(), mapper.toContactCommands(request))),
         "application/json");
   }
 

@@ -7,6 +7,7 @@ import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.StandingsPublicationStateEnum;
 import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
+import com.blockout.backend.sporting.application.model.SportingModelMapper;
 import com.blockout.backend.sporting.application.model.SportingViews;
 import com.blockout.backend.sporting.application.model.StandingsObservation;
 import com.blockout.backend.sporting.application.model.StandingsView;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class StandingsService {
   private final SportingStore store;
+  private final SportingModelMapper mapper;
   private final CollectionCycleService cycles;
   private final ClassificationService classifications;
 
@@ -53,11 +55,8 @@ public class StandingsService {
     }
     if (!classifications.acceptsObservation(poolId, target))
       return ObservationOutcome.refused(pool.key().reference(), false);
-    Instant observed = observation.context().observedAt().toInstant();
-    Instant published =
-        observation.context().providerPublishedAt() == null
-            ? null
-            : observation.context().providerPublishedAt().toInstant();
+    Instant observed = observation.context().observedAt();
+    Instant published = observation.context().providerPublishedAt();
     StandingsView.StandingsViewBuilder next =
         previous == null
             ? StandingsView.builder().poolId(poolId).columns(List.of()).rows(List.of())
@@ -73,14 +72,7 @@ public class StandingsService {
       List<SportingViews.TeamView> participants = store.currentPoolTeams(poolId);
       List<StandingsView.Row> rows =
           observation.rows().stream()
-              .map(
-                  row ->
-                      new StandingsView.Row(
-                          row.sourceName(),
-                          row.nativeTeamReference(),
-                          row.position(),
-                          row.statistics(),
-                          associate(row, participants)))
+              .map(row -> mapper.toRow(row, associate(row, participants)))
               .toList();
       changed |=
           previous == null

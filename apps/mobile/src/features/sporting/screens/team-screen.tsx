@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { hashKey, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import type {
   SportingIdentityResponse,
@@ -38,10 +38,7 @@ export interface TeamScreenProps {
 export function TeamScreen(props: TeamScreenProps) {
   const queries = useConsultationQueries();
   return (
-    <TeamPage
-      key={JSON.stringify(queries.team(props.teamId).queryKey)}
-      {...props}
-    />
+    <TeamPage key={hashKey(queries.team(props.teamId).queryKey)} {...props} />
   );
 }
 

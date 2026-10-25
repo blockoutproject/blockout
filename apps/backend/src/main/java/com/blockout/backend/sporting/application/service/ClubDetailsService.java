@@ -152,10 +152,8 @@ public class ClubDetailsService {
             current.revision(),
             fields,
             order,
-            observation.context().observedAt().toInstant(),
-            observation.context().providerPublishedAt() == null
-                ? null
-                : observation.context().providerPublishedAt().toInstant()),
+            observation.context().observedAt(),
+            observation.context().providerPublishedAt()),
         name);
     boolean changed =
         !fields.equals(current.fields()) || name != null && !name.equals(previousName);

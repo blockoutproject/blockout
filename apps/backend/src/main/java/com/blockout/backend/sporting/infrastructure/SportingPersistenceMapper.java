@@ -1,11 +1,19 @@
 package com.blockout.backend.sporting.infrastructure;
 
 import com.blockout.backend.config.MappingConfiguration;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
+import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
+import com.blockout.backend.sporting.application.model.ClubAcquisitionReference;
+import com.blockout.backend.sporting.application.model.ClubLocalityView;
 import com.blockout.backend.sporting.application.model.MatchDetails;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.MatchSchedule;
+import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingPresentation;
+import com.blockout.backend.sporting.application.model.SportingPublicInput;
 import com.blockout.backend.sporting.application.model.SportingViews;
 import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
@@ -17,19 +25,25 @@ import com.blockout.backend.sporting.application.model.SportingViews.PoolClassif
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
+import com.blockout.backend.sporting.application.model.SportingVisibility;
 import com.blockout.backend.sporting.application.model.StandingsView;
 import com.blockout.backend.sporting.domain.MatchFacts;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.IterableMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.Named;
 import org.mapstruct.NullValueMappingStrategy;
 
 /** Maps persistence values inside their transaction without exporting managed relationships. */
 @Mapper(config = MappingConfiguration.class)
-interface SportingIdentityMapper {
+interface SportingPersistenceMapper {
   /**
    * Exposes native grouping identity without any mapping state.
    *
@@ -413,4 +427,232 @@ interface SportingIdentityMapper {
    * @return new owned rows without an observation history
    */
   List<StandingRowEntity> toRows(List<StandingsView.Row> source);
+
+  /**
+   * Detaches one qualified alias from the persistence query projection.
+   *
+   * @param source existing scoped alias
+   * @return the same matching facts without persistence ownership
+   */
+  @Mapping(target = "name", source = "comparisonName")
+  SportingPublicInput.Alias toView(SportingAliasRow source);
+
+  /**
+   * Combines scalar query values with already batched owner associations.
+   *
+   * @param source current permitted scalar projection
+   * @param kind owning resource kind
+   * @param aliases qualified aliases for this resource
+   * @param divisionTerms current terms for its division
+   * @param visiblePoolIds already authorized current memberships
+   * @return detached permitted search input with no additional reads
+   */
+  @Mapping(target = "classification", source = "source")
+  @Mapping(target = "poolIds", source = "visiblePoolIds")
+  SportingPublicInput toPublicInput(
+      SportingSearchRow source,
+      SportingVisibility.Kind kind,
+      Set<SportingPublicInput.Alias> aliases,
+      Set<String> divisionTerms,
+      List<UUID> visiblePoolIds);
+
+  /**
+   * Retains unknown classification instead of constructing an empty setting.
+   *
+   * @param source current scalar projection
+   * @return accepted classification, or null without a division
+   */
+  default SportingClassification toClassification(SportingSearchRow source) {
+    return source.divisionId() == null
+        ? null
+        : new SportingClassification(source.divisionId(), source.format(), source.gender());
+  }
+
+  /**
+   * Restores contact state through the value constructor that discards restricted content.
+   *
+   * @param source current relational field, including any restored restricted columns
+   * @return permitted immutable field state
+   */
+  SportingPresentation.ContactValue toContactValue(ClubContactValue source);
+
+  /**
+   * Stores current already-decided contact values without retaining history.
+   *
+   * @param source permitted owner value
+   * @return relational field value
+   */
+  ClubContactValue toContactEntity(SportingPresentation.ContactValue source);
+
+  /**
+   * Detaches all independently owned contact fields, preserving their exact keys.
+   *
+   * @param source relational current fields
+   * @return immutable values whose constructors apply privacy restrictions
+   */
+  Map<SportingPresentation.ContactField, SportingPresentation.ContactValue> toContactValues(
+      Map<SportingPresentation.ContactField, ClubContactValue> source);
+
+  /**
+   * Converts a complete owner-approved replacement into relational values.
+   *
+   * @param source all current independently decided fields
+   * @return replacement values without prior content
+   */
+  Map<SportingPresentation.ContactField, ClubContactValue> toContactEntities(
+      Map<SportingPresentation.ContactField, SportingPresentation.ContactValue> source);
+
+  /**
+   * Detaches current contacts and their separate source attribution inside the transaction.
+   *
+   * @param source loaded club owner
+   * @return complete contact snapshot without managed values
+   */
+  @Mapping(target = "clubId", source = "id")
+  @Mapping(target = "revision", source = "contactsRevision")
+  @Mapping(target = "fields", source = "source", qualifiedByName = "contactFields")
+  @Mapping(target = "order", source = "source", qualifiedByName = "contactOrder")
+  @Mapping(target = "observedAt", source = "detailObservedAt")
+  @Mapping(target = "providerPublishedAt", source = "detailPublishedAt")
+  SportingPresentation.Contacts toContacts(ClubEntity source);
+
+  /**
+   * Selects all current relational contact values before their privacy-aware conversion.
+   *
+   * @param source loaded club owner
+   * @return detached permitted fields
+   */
+  @Named("contactFields")
+  default Map<SportingPresentation.ContactField, SportingPresentation.ContactValue> contactFields(
+      ClubEntity source) {
+    return toContactValues(source.contactValues());
+  }
+
+  /**
+   * Preserves absence of source-page attribution before the first accepted observation.
+   *
+   * @param source loaded club owner
+   * @return accepted logical order, or null
+   */
+  @Named("contactOrder")
+  default ObservationOrder contactOrder(ClubEntity source) {
+    return toOrder(source.getDetailCycleOrder(), source.getDetailReadOrdinal());
+  }
+
+  /**
+   * Preserves absence before first acceptance without a sentinel order.
+   *
+   * @param cycle backend cycle order, null before acceptance
+   * @param ordinal pre-read ordinal paired with that cycle
+   * @return logical token, or null before acceptance
+   */
+  default ObservationOrder toOrder(Long cycle, Long ordinal) {
+    return cycle == null ? null : new ObservationOrder(cycle, ordinal);
+  }
+
+  /**
+   * Detaches club presentation with its current manual artwork route.
+   *
+   * @param source loaded club inside the owning transaction
+   * @return current editor state with independent name and image choices
+   */
+  default SportingPresentation.View toPresentation(ClubEntity source) {
+    String manual = source.getLogo() == null ? null : "/clubs/" + source.getId() + "/logo";
+    return new SportingPresentation.View(
+        source.getId(),
+        Kind.CLUB,
+        Long.toString(source.getPresentationRevision()),
+        SportingPresentation.Names.resolve(
+            source.getSourceName(), source.getManualName(), null, false),
+        new SportingPresentation.Logo(manual, manual, null));
+  }
+
+  /**
+   * Detaches the current team and inherited artwork while retaining its composite revision.
+   *
+   * @param source loaded team with its optional club in the same transaction
+   * @return effective/manual/automatic choices without image bytes
+   */
+  default SportingPresentation.View toPresentation(TeamEntity source) {
+    ClubEntity club = source.getClub();
+    String manual = source.getLogo() == null ? null : "/teams/" + source.getId() + "/logo";
+    String automatic =
+        source.getProvider() == CollectionProviderEnum.LNV && source.getSourceLogo() != null
+            ? "/teams/"
+                + source.getId()
+                + "/logo?selection="
+                + TeamLogoSelectionEnum.AUTOMATIC.getValue()
+            : club != null && club.getLogo() != null ? "/clubs/" + club.getId() + "/logo" : null;
+    String revision =
+        source.getPresentationRevision() + "." + (club == null ? 0 : club.getLogoRevision());
+    return new SportingPresentation.View(
+        source.getId(),
+        Kind.TEAM,
+        revision,
+        SportingPresentation.Names.resolve(
+            source.getSourceName(), source.getManualName(), source.getManualShortName(), true),
+        new SportingPresentation.Logo(manual == null ? automatic : manual, manual, automatic));
+  }
+
+  /**
+   * Detaches names-only pool presentation without inventing a pool artwork concept.
+   *
+   * @param source loaded pool inside the owning transaction
+   * @return current independent name choices
+   */
+  default SportingPresentation.View toPresentation(PoolEntity source) {
+    return new SportingPresentation.View(
+        source.getId(),
+        Kind.POOL,
+        Long.toString(source.getPresentationRevision()),
+        SportingPresentation.Names.resolve(
+            source.getSourceName(), source.getManualName(), source.getManualShortName(), true),
+        null);
+  }
+
+  /**
+   * Projects native club acquisition evidence and the exact current geocoding revision.
+   *
+   * @param source loaded acquisition owner
+   * @return detached original reference and prior locality attribution
+   */
+  default ClubAcquisitionReference toAcquisitionReference(ClubEntity source) {
+    return new ClubAcquisitionReference(
+        source.getId(),
+        source.getReference(),
+        source.getProvider(),
+        Objects.equals(source.getGeocodedRevision(), source.getLocalityRevision()),
+        toOrder(source.getLocalityCycleOrder(), source.getLocalityReadOrdinal()));
+  }
+
+  /**
+   * Prevents a postal code from supplying a geocoding target without a permitted city.
+   *
+   * @param source loaded club owner
+   * @return current municipal acquisition context
+   */
+  default ClubLocalityView toLocalityView(ClubEntity source) {
+    String city = toContactValue(source.getCity()).effectiveValue();
+    return new ClubLocalityView(
+        Long.toString(source.getLocalityRevision()),
+        city,
+        city == null ? null : toContactValue(source.getPostalCode()).effectiveValue());
+  }
+
+  /**
+   * Preserves location absence whenever the current city is hidden or restricted.
+   *
+   * @param source loaded club owner
+   * @return permitted current locality with its independent logical order
+   */
+  default SportingPresentation.Locality toLocality(ClubEntity source) {
+    String city = toContactValue(source.getCity()).effectiveValue();
+    return new SportingPresentation.Locality(
+        Long.toString(source.getLocalityRevision()),
+        city,
+        toContactValue(source.getPostalCode()).effectiveValue(),
+        city == null ? null : source.getLatitude(),
+        city == null ? null : source.getLongitude(),
+        toOrder(source.getLocalityCycleOrder(), source.getLocalityReadOrdinal()));
+  }
 }

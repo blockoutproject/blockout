@@ -3,8 +3,6 @@ package com.blockout.collector.acquisition.infrastructure.backend;
 import com.blockout.collector.acquisition.application.CollectionBackend;
 import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
-import com.blockout.collector.generated.ingestion.model.CompleteCollectionCycleInternalRequest;
-import com.blockout.collector.generated.ingestion.model.RegisterCollectorRuntimeInternalRequest;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +26,7 @@ public class CollectionBackendClient implements CollectionBackend {
   /** {@inheritDoc} */
   @Override
   public void observeSource(SourceProposal proposal) {
-    BackendExchange.once(() -> sources.observeCollectionSeasonSource(mapper.toRequest(proposal)));
+    BackendExchange.once(() -> sources.observeCollectionSeasonSource(mapper.toDto(proposal)));
   }
 
   private final CollectionBackendMapper mapper;
@@ -50,19 +48,14 @@ public class CollectionBackendClient implements CollectionBackend {
   @Override
   public Runtime register(long revision, UUID incarnationId) {
     return BackendExchange.once(
-        () ->
-            mapper.toView(
-                api.registerCollectorRuntime(
-                    new RegisterCollectorRuntimeInternalRequest()
-                        .revision(revision)
-                        .incarnationId(incarnationId))));
+        () -> mapper.toView(api.registerCollectorRuntime(mapper.toDto(revision, incarnationId))));
   }
 
   /** {@inheritDoc} */
   @Override
   public Cycle admit(StartCycle command) {
     return BackendExchange.once(
-        () -> mapper.toView(api.startCollectionCycle(mapper.toRequest(command))));
+        () -> mapper.toView(api.startCollectionCycle(mapper.toDto(command))));
   }
 
   /** {@inheritDoc} */
@@ -82,25 +75,20 @@ public class CollectionBackendClient implements CollectionBackend {
   @Override
   public Cycle record(UUID cycleId, Result result) {
     return BackendExchange.once(
-        () -> mapper.toView(api.recordCollectionResult(cycleId, mapper.toRequest(result))));
+        () -> mapper.toView(api.recordCollectionResult(cycleId, mapper.toDto(result))));
   }
 
   /** {@inheritDoc} */
   @Override
   public Cycle complete(UUID cycleId, Instant completedAt) {
     return BackendExchange.once(
-        () ->
-            mapper.toView(
-                api.completeCollectionCycle(
-                    cycleId,
-                    new CompleteCollectionCycleInternalRequest()
-                        .completedAt(mapper.toDate(completedAt)))));
+        () -> mapper.toView(api.completeCollectionCycle(cycleId, mapper.toDto(completedAt))));
   }
 
   /** {@inheritDoc} */
   @Override
   public void validate(UUID sourceBindingId, Validation result) {
     BackendExchange.once(
-        () -> api.submitCollectionSourceValidation(sourceBindingId, mapper.toRequest(result)));
+        () -> api.submitCollectionSourceValidation(sourceBindingId, mapper.toDto(result)));
   }
 }

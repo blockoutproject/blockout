@@ -5,17 +5,14 @@ import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.generated.mobile.model.AccountPermissionsResponse;
 import com.blockout.backend.generated.mobile.model.AccountResponse;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import com.blockout.backend.shared.api.RequiredNullableMapping;
 import java.util.Set;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.NullValueCheckStrategy;
-import org.openapitools.jackson.nullable.JsonNullable;
 
 /** Common generated account representation for reads, establishment and profile changes. */
-@Mapper(config = MappingConfiguration.class)
+@Mapper(config = MappingConfiguration.class, uses = RequiredNullableMapping.class)
 public interface AccountApiMapper {
   /**
    * Maps already-loaded account data and the current in-process grant projection without I/O.
@@ -50,15 +47,5 @@ public interface AccountApiMapper {
         .manageDivisionLifecycle(permissions.contains(Permission.MANAGE_DIVISION_LIFECYCLE))
         .manageCollection(permissions.contains(Permission.MANAGE_COLLECTION))
         .moderateStreamLinks(permissions.contains(Permission.MODERATE_STREAM_LINKS));
-  }
-
-  /**
-   * Preserves the required nullable principal date; unknown is explicit null, not omission.
-   *
-   * @param instant trustworthy provider instant or null
-   * @return the corresponding UTC date, including a present null when unknown
-   */
-  default JsonNullable<OffsetDateTime> toNullableDate(Instant instant) {
-    return JsonNullable.of(instant == null ? null : instant.atOffset(ZoneOffset.UTC));
   }
 }

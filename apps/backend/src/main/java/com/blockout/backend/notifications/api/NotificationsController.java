@@ -33,7 +33,7 @@ public class NotificationsController implements NotificationsApi {
     request.validateQuery(http, true);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.page(reads.page(owner, NotificationCursor.decode(cursor))));
+        .body(mapper.toDto(reads.page(owner, NotificationCursor.decode(cursor))));
   }
 
   /** {@inheritDoc} */
@@ -42,7 +42,7 @@ public class NotificationsController implements NotificationsApi {
       UUID accountId, UUID notificationId, Boolean bypass) {
     NotificationContext owner = request.owner(accountId);
     request.validateQuery(http, false);
-    return member(mapper.toResponse(reads.member(owner, notificationId)));
+    return member(mapper.toDto(reads.member(owner, notificationId)));
   }
 
   /** {@inheritDoc} */
@@ -53,7 +53,7 @@ public class NotificationsController implements NotificationsApi {
     request.validateQuery(http, false);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.summary(reads.summary(owner)));
+        .body(mapper.toDto(reads.summary(owner)));
   }
 
   /** {@inheritDoc} */
@@ -63,7 +63,7 @@ public class NotificationsController implements NotificationsApi {
     NotificationContext owner = request.owner(accountId);
     request.validateQuery(http, false);
     request.requireRead(body);
-    return member(mapper.toResponse(marks.mark(owner, notificationId)));
+    return member(mapper.toDto(marks.mark(owner, notificationId)));
   }
 
   /**

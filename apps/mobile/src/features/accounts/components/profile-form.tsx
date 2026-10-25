@@ -3,11 +3,7 @@ import { UserRound } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
-import { z } from "zod";
-import type {
-  AccountResponse,
-  ChangeAccountProfileBody,
-} from "../../../../.generated/schemas/index.zod";
+import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import {
   ApiError,
   isUncertainMutationFailure,
@@ -22,30 +18,10 @@ import { TextField } from "../../../shared/components/text-field";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useProfileEditing, useProfilePhoto } from "../api/use-profile-editing";
-import {
-  prepareProfilePhoto,
-  type PreparedProfilePhoto,
-} from "../profile/prepare-profile-photo";
+import { prepareProfilePhoto } from "../profile/prepare-profile-photo";
+import { profileSchema, type ProfileValues } from "../forms/profile-values";
+import { toProfileBody } from "../api/profile-request";
 import { useAccountSession } from "../session/account-session-provider";
-
-const profileSchema = z.object({
-  username: z
-    .string()
-    .trim()
-    .regex(
-      /^[A-Za-z0-9._-]{3,32}$/,
-      "Utilisez 3 à 32 lettres, chiffres, points, tirets ou tirets bas.",
-    ),
-  photo: z.discriminatedUnion("action", [
-    z.object({ action: z.literal("keep") }),
-    z.object({ action: z.literal("remove") }),
-    z.object({
-      action: z.literal("replace"),
-      prepared: z.custom<PreparedProfilePhoto>(),
-    }),
-  ]),
-});
-type ProfileValues = z.infer<typeof profileSchema>;
 
 /** An editable snapshot of this original account; parent identity/generation changes remount it. */
 export interface ProfileFormProps {
@@ -94,18 +70,10 @@ export function ProfileForm({ account }: ProfileFormProps) {
   /** Sends only supplied editing intent; an uncertain failure performs one read without replaying the write. */
   async function submit(values: ProfileValues) {
     if (needsRead || preparing) return;
-    const metadata: ChangeAccountProfileBody["metadata"] = {};
-    if (dirtyFields.username || values.photo.action === "keep")
-      metadata.username = values.username;
-    if (values.photo.action !== "keep")
-      metadata.photoAction = values.photo.action;
     try {
-      const accepted = await save.mutateAsync({
-        metadata,
-        ...(values.photo.action === "replace"
-          ? { image: values.photo.prepared.file }
-          : {}),
-      });
+      const accepted = await save.mutateAsync(
+        toProfileBody(values, dirtyFields),
+      );
       if (active.current && session.isCurrent(session.generation))
         reset({ username: accepted.username, photo: { action: "keep" } });
     } catch (error) {

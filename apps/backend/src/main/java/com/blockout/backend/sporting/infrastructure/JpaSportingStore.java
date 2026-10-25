@@ -78,7 +78,7 @@ public class JpaSportingStore implements SportingStore {
   private final TeamRepository teams;
   private final ParticipationRepository participations;
   private final MatchRepository matches;
-  private final SportingIdentityMapper mapper;
+  private final SportingPersistenceMapper mapper;
   private final SportingProjectionChanges changes;
 
   /** {@inheritDoc} */
@@ -193,14 +193,7 @@ public class JpaSportingStore implements SportingStore {
   @Override
   public List<ClubAcquisitionReference> acquisitionClubs(boolean geocoding, UUID afterId) {
     return clubs.acquisitionClubs(geocoding, afterId, PageRequest.of(0, 200)).stream()
-        .map(
-            club ->
-                new ClubAcquisitionReference(
-                    club.getId(),
-                    club.getReference(),
-                    club.getProvider(),
-                    Objects.equals(club.getGeocodedRevision(), club.getLocalityRevision()),
-                    order(club.getLocalityCycleOrder(), club.getLocalityReadOrdinal())))
+        .map(mapper::toAcquisitionReference)
         .toList();
   }
 
@@ -208,16 +201,7 @@ public class JpaSportingStore implements SportingStore {
   @Override
   public Map<UUID, ClubLocalityView> clubLocalities(List<UUID> clubIds) {
     return clubs.findAllById(clubIds).stream()
-        .collect(
-            Collectors.toMap(
-                ClubEntity::getId,
-                club ->
-                    new ClubLocalityView(
-                        Long.toString(club.getLocalityRevision()),
-                        club.getCity().toValue().effectiveValue(),
-                        club.getCity().toValue().effectiveValue() == null
-                            ? null
-                            : club.getPostalCode().toValue().effectiveValue())));
+        .collect(Collectors.toMap(ClubEntity::getId, mapper::toLocalityView));
   }
 
   /**
@@ -680,8 +664,8 @@ public class JpaSportingStore implements SportingStore {
   public CalendarState calendarState(UUID poolId) {
     PoolEntity pool = pools.findById(poolId).orElseThrow();
     return new CalendarState(
-        order(pool.getCalendarCycleOrder(), pool.getCalendarReadOrdinal()),
-        order(pool.getCompletedCycleOrder(), pool.getCompletedReadOrdinal()));
+        mapper.toOrder(pool.getCalendarCycleOrder(), pool.getCalendarReadOrdinal()),
+        mapper.toOrder(pool.getCompletedCycleOrder(), pool.getCompletedReadOrdinal()));
   }
 
   /** {@inheritDoc} */
@@ -739,7 +723,7 @@ public class JpaSportingStore implements SportingStore {
   public ObservationOrder matchOrder(UUID poolId, String reference) {
     return matches
         .findByPoolIdAndReference(poolId, reference)
-        .map(match -> order(match.getAcceptedCycleOrder(), match.getAcceptedReadOrdinal()))
+        .map(match -> mapper.toOrder(match.getAcceptedCycleOrder(), match.getAcceptedReadOrdinal()))
         .orElse(null);
   }
 
@@ -770,7 +754,7 @@ public class JpaSportingStore implements SportingStore {
   public ObservationOrder catalogOrder(UUID sourceId) {
     return catalogs
         .findById(sourceId)
-        .map(value -> order(value.getCycleOrder(), value.getReadOrdinal()))
+        .map(value -> mapper.toOrder(value.getCycleOrder(), value.getReadOrdinal()))
         .orElse(null);
   }
 
@@ -821,22 +805,10 @@ public class JpaSportingStore implements SportingStore {
     if (created) catalog = new CatalogEntity(sourceId);
     catalog.setCycleOrder(order.cycleOrder());
     catalog.setReadOrdinal(order.readOrdinal());
-    catalog.setObservedAt(context.observedAt().toInstant());
-    catalog.setProviderPublishedAt(
-        context.providerPublishedAt() == null ? null : context.providerPublishedAt().toInstant());
+    catalog.setObservedAt(context.observedAt());
+    catalog.setProviderPublishedAt(context.providerPublishedAt());
     // The caller holds the season lock; assigned IDs identify new rows, never merge targets.
     if (created) entityManager.persist(catalog);
-  }
-
-  /**
-   * Preserves absence before first acceptance without a sentinel order.
-   *
-   * @param cycle backend cycle order, null before acceptance
-   * @param ordinal pre-read ordinal paired with that cycle
-   * @return logical token, or null before acceptance
-   */
-  private ObservationOrder order(Long cycle, Long ordinal) {
-    return cycle == null ? null : new ObservationOrder(cycle, ordinal);
   }
 
   /** {@inheritDoc} */
@@ -907,88 +879,11 @@ public class JpaSportingStore implements SportingStore {
   @Override
   public Optional<SportingPresentation.View> presentation(Kind kind, UUID id) {
     return switch (kind) {
-      case CLUB ->
-          clubs
-              .findById(id)
-              .map(
-                  club -> {
-                    String manual = club.getLogo() == null ? null : "/clubs/" + id + "/logo";
-                    return new SportingPresentation.View(
-                        id,
-                        kind,
-                        Long.toString(club.getPresentationRevision()),
-                        names(club.getSourceName(), club.getManualName(), null, false),
-                        new SportingPresentation.Logo(manual, manual, null));
-                  });
-      case TEAM ->
-          teams
-              .findById(id)
-              .map(
-                  team -> {
-                    ClubEntity club = team.getClub();
-                    String manual = team.getLogo() == null ? null : "/teams/" + id + "/logo";
-                    String automatic =
-                        team.getProvider() == CollectionProviderEnum.LNV
-                                && team.getSourceLogo() != null
-                            ? "/teams/"
-                                + id
-                                + "/logo?selection="
-                                + TeamLogoSelectionEnum.AUTOMATIC.getValue()
-                            : club != null && club.getLogo() != null
-                                ? "/clubs/" + club.getId() + "/logo"
-                                : null;
-                    String revision =
-                        team.getPresentationRevision()
-                            + "."
-                            + (club == null ? 0 : club.getLogoRevision());
-                    return new SportingPresentation.View(
-                        id,
-                        kind,
-                        revision,
-                        names(
-                            team.getSourceName(),
-                            team.getManualName(),
-                            team.getManualShortName(),
-                            true),
-                        new SportingPresentation.Logo(
-                            manual == null ? automatic : manual, manual, automatic));
-                  });
-      case POOL ->
-          pools
-              .findById(id)
-              .map(
-                  pool ->
-                      new SportingPresentation.View(
-                          id,
-                          kind,
-                          Long.toString(pool.getPresentationRevision()),
-                          names(
-                              pool.getSourceName(),
-                              pool.getManualName(),
-                              pool.getManualShortName(),
-                              true),
-                          null));
+      case CLUB -> clubs.findById(id).map(mapper::toPresentation);
+      case TEAM -> teams.findById(id).map(mapper::toPresentation);
+      case POOL -> pools.findById(id).map(mapper::toPresentation);
       default -> throw new IllegalArgumentException("Unsupported presentation kind");
     };
-  }
-
-  /**
-   * Resolves independent manual names without altering the original identity/comparison labels.
-   *
-   * @param source current attributable name, possibly unknown for a club
-   * @param manual independent full-name override
-   * @param shortName independent short override
-   * @param hasShortName whether this owner exposes a short name
-   * @return detached current names
-   */
-  private SportingPresentation.Names names(
-      String source, String manual, String shortName, boolean hasShortName) {
-    return new SportingPresentation.Names(
-        source,
-        manual == null ? source == null ? "" : source : manual,
-        manual,
-        hasShortName ? shortName == null ? source : shortName : null,
-        shortName);
   }
 
   /** {@inheritDoc} */
@@ -1132,13 +1027,7 @@ public class JpaSportingStore implements SportingStore {
   @Override
   public SportingPresentation.Contacts clubContacts(UUID id) {
     ClubEntity club = clubs.findById(id).orElseThrow(SportingResourceNotFoundException::new);
-    return new SportingPresentation.Contacts(
-        id,
-        club.getContactsRevision(),
-        club.contactValues(),
-        order(club.getDetailCycleOrder(), club.getDetailReadOrdinal()),
-        club.getDetailObservedAt(),
-        club.getDetailPublishedAt());
+    return mapper.toContacts(club);
   }
 
   /** {@inheritDoc} */
@@ -1147,12 +1036,12 @@ public class JpaSportingStore implements SportingStore {
   public void saveClubContacts(SportingPresentation.Contacts contacts, String sourceName) {
     ClubEntity club = clubs.findById(contacts.clubId()).orElseThrow();
     Map<SportingPresentation.ContactField, SportingPresentation.ContactValue> before =
-        club.contactValues();
+        mapper.toContactValues(club.contactValues());
     boolean contactChanged = !before.equals(contacts.fields());
     String cityBefore = before.get(SportingPresentation.ContactField.CITY).effectiveValue();
     String postalBefore =
         before.get(SportingPresentation.ContactField.POSTAL_CODE).effectiveValue();
-    club.replaceContacts(contacts.fields());
+    club.replaceContacts(mapper.toContactEntities(contacts.fields()));
     boolean nameChanged = sourceName != null && !Objects.equals(sourceName, club.getSourceName());
     if (nameChanged) {
       club.setSourceName(sourceName);
@@ -1184,13 +1073,7 @@ public class JpaSportingStore implements SportingStore {
   @Override
   public SportingPresentation.Locality locality(UUID id) {
     ClubEntity club = clubs.findById(id).orElseThrow(SportingResourceNotFoundException::new);
-    return new SportingPresentation.Locality(
-        Long.toString(club.getLocalityRevision()),
-        club.getCity().toValue().effectiveValue(),
-        club.getPostalCode().toValue().effectiveValue(),
-        club.getCity().toValue().effectiveValue() == null ? null : club.getLatitude(),
-        club.getCity().toValue().effectiveValue() == null ? null : club.getLongitude(),
-        order(club.getLocalityCycleOrder(), club.getLocalityReadOrdinal()));
+    return mapper.toLocality(club);
   }
 
   /** {@inheritDoc} */
@@ -1214,7 +1097,7 @@ public class JpaSportingStore implements SportingStore {
   @Override
   public ObservationOrder sourceLogoOrder(UUID id) {
     TeamEntity team = teams.findById(id).orElseThrow(SportingResourceNotFoundException::new);
-    return order(team.getLogoCycleOrder(), team.getLogoReadOrdinal());
+    return mapper.toOrder(team.getLogoCycleOrder(), team.getLogoReadOrdinal());
   }
 
   /** {@inheritDoc} */
@@ -1235,9 +1118,8 @@ public class JpaSportingStore implements SportingStore {
     }
     team.setLogoCycleOrder(order.cycleOrder());
     team.setLogoReadOrdinal(order.readOrdinal());
-    team.setLogoObservedAt(context.observedAt().toInstant());
-    team.setLogoPublishedAt(
-        context.providerPublishedAt() == null ? null : context.providerPublishedAt().toInstant());
+    team.setLogoObservedAt(context.observedAt());
+    team.setLogoPublishedAt(context.providerPublishedAt());
     return changed;
   }
 

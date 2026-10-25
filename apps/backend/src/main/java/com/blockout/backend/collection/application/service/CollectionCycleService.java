@@ -15,6 +15,7 @@ import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.collection.application.model.CollectionState.StartCycle;
 import com.blockout.backend.collection.application.model.CollectionState.TargetPage;
 import com.blockout.backend.collection.application.model.CollectionState.Work;
+import com.blockout.backend.collection.application.model.CollectionWorkMapper;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
@@ -44,6 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CollectionCycleService {
   private final CollectionStore store;
+  private final CollectionWorkMapper mapper;
   private final CollectorRuntimeService runtimes;
   private final SeasonService seasons;
   private final CollectionTargetSelector selection;
@@ -80,6 +82,7 @@ public class CollectionCycleService {
    *
    * @param id retained cycle identity
    * @return current state, including interrupted old work; this read admits nothing
+   * @throws CollectionNotFoundException when no retained cycle has this identity
    */
   @Transactional(readOnly = true)
   public Cycle get(UUID id) {
@@ -154,18 +157,7 @@ public class CollectionCycleService {
           context != null && context.state() == CollectionCycleStateEnum.RUNNING
               ? context.id()
               : null;
-      controls.add(
-          new ControlWork(
-              control.id(),
-              control.family(),
-              control.seasonId(),
-              control.revision(),
-              control.enabled(),
-              state,
-              control.requestId(),
-              control.requestedMode(),
-              running,
-              control.lastStartedAt()));
+      controls.add(mapper.toView(control, state, running));
     }
     List<Candidate> candidates =
         pending.stream()
@@ -173,7 +165,7 @@ public class CollectionCycleService {
                 source ->
                     seasonStates.get(source.seasonId()).collectionState()
                         != CollectionSeasonStateEnum.CLOSED)
-            .map(source -> candidate(source, seasonStates.get(source.seasonId())))
+            .map(source -> mapper.toCandidate(source, seasonStates.get(source.seasonId())))
             .toList();
     return new Work(controls, candidates);
   }
@@ -212,7 +204,8 @@ public class CollectionCycleService {
         || source.validationState() != SourceValidationStateEnum.PENDING
         || source.candidateUrl() == null
         || source.currentCycleId() != null) throw invalidContext();
-    Cycle cycle = store.createCycle(command, null, candidate(source, season), clock.instant());
+    Cycle cycle =
+        store.createCycle(command, null, mapper.toCandidate(source, season), clock.instant());
     store.startValidation(source, cycle);
     return new Admission(cycle, true);
   }
@@ -271,7 +264,7 @@ public class CollectionCycleService {
    * Checks whether the retained cycle still owns current work.
    *
    * @param id previous current cycle, or null
-   * @return whether it is still running in the current incarnation
+   * @return whether its retained state is still running
    */
   private boolean isRunning(UUID id) {
     return id != null
@@ -282,27 +275,11 @@ public class CollectionCycleService {
   }
 
   /**
-   * Freezes the exact source and expected season.
-   *
-   * @param source current unchanged candidate
-   * @param season canonical expected season
-   * @return exact validation-only snapshot
-   */
-  private Candidate candidate(Source source, CollectionSeasonView season) {
-    return new Candidate(
-        source.id(),
-        source.revision(),
-        source.candidateUrl(),
-        season.label(),
-        source.provider(),
-        source.organizerReference());
-  }
-
-  /**
    * Rejects stale mutation state without effects.
    *
    * @param expected supplied editing revision
    * @param actual current aggregate revision
+   * @throws CollectionConflictException when the supplied revision is stale
    */
   private void requireRevision(long expected, long actual) {
     if (expected != actual) throw new CollectionConflictException("stale-revision");

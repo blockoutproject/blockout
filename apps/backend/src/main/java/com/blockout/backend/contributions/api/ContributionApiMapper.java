@@ -14,17 +14,53 @@ import com.blockout.backend.generated.mobile.model.StreamDecisionResponse;
 import com.blockout.backend.generated.mobile.model.StreamPlatformEnum;
 import com.blockout.backend.generated.mobile.model.StreamQuotaResponse;
 import com.blockout.backend.generated.mobile.model.StreamSubmissionEligibilityResponse;
+import com.blockout.backend.shared.mapping.TemporalMapping;
 import java.net.URI;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 /** Mechanical transport mapping and explicit current-action/eligibility presentation. */
-@Mapper(config = MappingConfiguration.class)
+@Mapper(config = MappingConfiguration.class, uses = TemporalMapping.class)
 public interface ContributionApiMapper {
+  /**
+   * Maps an acknowledged submission using the canonical private item representation.
+   *
+   * @param source completed submission outcome
+   * @return current revision and caller-owned contribution
+   */
+  @Mapping(target = "additionalProperties", ignore = true)
+  @Mapping(target = "contribution", source = "version")
+  com.blockout.backend.generated.mobile.model.OwnStreamContributionDetailResponse toDto(
+      com.blockout.backend.contributions.application.SubmitContribution.Outcome source);
+
+  /**
+   * Maps one authorized member and its current revision.
+   *
+   * @param source current private detail
+   * @return the canonical member response
+   */
+  @Mapping(target = "additionalProperties", ignore = true)
+  @Mapping(target = "contribution", source = "version")
+  com.blockout.backend.generated.mobile.model.OwnStreamContributionDetailResponse toDto(
+      ReadOwnContributions.Detail source);
+
+  /**
+   * Wraps a moderation result with the current permitted attribution.
+   *
+   * @param source acknowledged result
+   * @param authorName current visible attribution or null
+   * @return revision and authorized moderation presentation
+   */
+  default com.blockout.backend.generated.mobile.model.ModeratedStreamContributionDetailResponse
+      toDto(
+          com.blockout.backend.contributions.application.SubmitContribution.Outcome source,
+          String authorName) {
+    return new com.blockout.backend.generated.mobile.model
+        .ModeratedStreamContributionDetailResponse(
+        source.revision(), toDto(source.version(), authorName));
+  }
+
   /**
    * Maps only a caller-owned version; no foreign history or private reports cross this boundary.
    *
@@ -33,7 +69,7 @@ public interface ContributionApiMapper {
    */
   @Mapping(target = "additionalProperties", ignore = true)
   @Mapping(target = "url", source = "address")
-  @Mapping(target = "platform", expression = "java(platform(version.address().platform()))")
+  @Mapping(target = "platform", source = "address")
   @Mapping(target = "submittedAt", source = "createdAt")
   @Mapping(
       target = "canCancel",
@@ -41,7 +77,7 @@ public interface ContributionApiMapper {
   @Mapping(
       target = "canWithdraw",
       expression = "java(version.state() == ContributionVersion.State.ACTIVE)")
-  OwnStreamContributionResponse own(ContributionVersion version);
+  OwnStreamContributionResponse toDto(ContributionVersion version);
 
   /**
    * Maps the exact domain literal without URI equivalence or provider lookup.
@@ -51,6 +87,16 @@ public interface ContributionApiMapper {
    */
   default URI address(StreamAddress address) {
     return URI.create(address.value());
+  }
+
+  /**
+   * Reads the already recognized platform without treating the address value as a bean.
+   *
+   * @param source locally validated stream address
+   * @return the platform's canonical representation
+   */
+  default StreamPlatformEnum toDto(StreamAddress source) {
+    return platform(source.platform());
   }
 
   /**
@@ -70,39 +116,30 @@ public interface ContributionApiMapper {
   StreamPlatformEnum platform(StreamAddress.Platform platform);
 
   /**
-   * Preserves the UTC instant without choosing a user's display time zone.
-   *
-   * @param instant original instant, possibly absent
-   * @return UTC representation, or null for absence
-   */
-  default OffsetDateTime instant(Instant instant) {
-    return instant == null ? null : instant.atOffset(ZoneOffset.UTC);
-  }
-
-  /**
    * Composes current private eligibility, ordinary usage and the bounded version page.
    *
    * @param page one coherent authorized application snapshot
    * @return private context with optional next page and known eligibility deadline
    */
-  default OwnStreamContributionsResponse page(ReadOwnContributions.Page page) {
+  default OwnStreamContributionsResponse toDto(ReadOwnContributions.Page page) {
     boolean allowed = page.eligibility() == Status.ACTIVE || page.eligibility() == Status.PENDING;
     StreamSubmissionEligibilityResponse eligibility =
         new StreamSubmissionEligibilityResponse(allowed, page.requiresApproval());
     if (!allowed) eligibility.reason(reason(page.eligibility()));
-    if (page.eligibleAt() != null) eligibility.eligibleAt(instant(page.eligibleAt()));
+    if (page.eligibleAt() != null)
+      eligibility.eligibleAt(TemporalMapping.toDate(page.eligibleAt()));
     StreamQuotaResponse quota =
         new StreamQuotaResponse(
-            (int) page.usage().versionsUsed(),
-            (int) page.usage().dailyMatchesUsed(),
+            Math.toIntExact(page.usage().versionsUsed()),
+            Math.toIntExact(page.usage().dailyMatchesUsed()),
             page.usage().matchCountedToday(),
-            instant(page.dayEndsAt()));
+            TemporalMapping.toDate(page.dayEndsAt()));
     OwnStreamContributionsResponse response =
         new OwnStreamContributionsResponse(
             page.revision(),
             eligibility,
             quota,
-            page.versions().items().stream().map(this::own).toList());
+            page.versions().items().stream().map(this::toDto).toList());
     if (page.versions().hasNext()) response.nextPage(page.page() + 1);
     return response;
   }
@@ -114,16 +151,17 @@ public interface ContributionApiMapper {
    * @param authorName current permitted attribution, absent after erasure
    * @return private response whose actions match the actual version state
    */
-  default ModeratedStreamContributionResponse moderated(
+  default ModeratedStreamContributionResponse toDto(
       ContributionVersion version, String authorName) {
-    OwnStreamContributionResponse own = own(version);
+    OwnStreamContributionResponse own = toDto(version);
     boolean pending = version.state() == ContributionVersion.State.PENDING;
     List<StreamDecisionResponse> decisions =
         version.publication() == null
             ? List.of()
             : List.of(
                 new StreamDecisionResponse(
-                        StreamDecisionEnum.PUBLISH, instant(version.publication().at()))
+                        StreamDecisionEnum.PUBLISH,
+                        TemporalMapping.toDate(version.publication().at()))
                     .actorName(authorName));
     return new ModeratedStreamContributionResponse(
             version.id(),

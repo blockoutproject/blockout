@@ -4,16 +4,17 @@ import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
-import java.net.URI;
+import com.blockout.backend.shared.mapping.UriMapping;
 import java.util.Objects;
 import java.util.UUID;
 import org.mapstruct.Context;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.Named;
 
 /** Mechanical persistence projections; interrupted state derives from the current runtime only. */
-@Mapper(config = MappingConfiguration.class)
+@Mapper(config = MappingConfiguration.class, uses = UriMapping.class)
 interface CollectionPersistenceMapper {
   /**
    * Detaches one current result.
@@ -46,26 +47,6 @@ interface CollectionPersistenceMapper {
   @Mapping(target = "phase", ignore = true)
   @Mapping(target = "lastAttemptAt", source = "observedAt")
   void update(CollectionResult source, @MappingTarget CollectionResultEntity target);
-
-  /**
-   * Restores the persisted machine-readable reason type.
-   *
-   * @param value persisted safe type
-   * @return native URI for the contract
-   */
-  default URI toUri(String value) {
-    return URI.create(value);
-  }
-
-  /**
-   * Persists the machine-readable reason without a provider payload.
-   *
-   * @param value safe machine type
-   * @return its persisted URI representation
-   */
-  default String toText(URI value) {
-    return value.toString();
-  }
 
   /**
    * Detaches current registration.
@@ -106,8 +87,8 @@ interface CollectionPersistenceMapper {
    * @param current current incarnation, read under the runtime fence for writes
    * @return detached context with honest interrupted/completed state
    */
-  @Mapping(target = "state", expression = "java(state(source, current))")
-  @Mapping(target = "candidate", expression = "java(candidate(source))")
+  @Mapping(target = "state", source = "source", qualifiedByName = "cycleState")
+  @Mapping(target = "candidate", source = "source", qualifiedByName = "candidate")
   CollectionState.Cycle toView(CollectionCycleEntity source, @Context UUID current);
 
   /**
@@ -134,7 +115,8 @@ interface CollectionPersistenceMapper {
    * @param current current startup
    * @return accepted completion survives replacement; unfinished old work is interrupted
    */
-  default CollectionCycleStateEnum state(CollectionCycleEntity source, UUID current) {
+  @Named("cycleState")
+  default CollectionCycleStateEnum state(CollectionCycleEntity source, @Context UUID current) {
     if (source.getCompletedAt() != null) return CollectionCycleStateEnum.COMPLETED;
     return Objects.equals(source.getIncarnationId(), current)
         ? CollectionCycleStateEnum.RUNNING
@@ -147,6 +129,7 @@ interface CollectionPersistenceMapper {
    * @param source admitted context
    * @return validation-only candidate; control passages have none
    */
+  @Named("candidate")
   default CollectionState.Candidate candidate(CollectionCycleEntity source) {
     return source.getSourceBindingId() == null
         ? null

@@ -108,7 +108,26 @@ public final class SportingPresentation {
       String effectiveName,
       String manualName,
       String effectiveShortName,
-      String manualShortName) {}
+      String manualShortName) {
+    /**
+     * Resolves independent overrides without changing source identity or comparison labels.
+     *
+     * @param sourceName current attributable name, possibly unknown for a club
+     * @param manualName independent full-name override, or null
+     * @param manualShortName independent short-name override, or null
+     * @param hasShortName whether this resource exposes short names
+     * @return current effective names retaining independent automatic choices
+     */
+    public static Names resolve(
+        String sourceName, String manualName, String manualShortName, boolean hasShortName) {
+      return new Names(
+          sourceName,
+          manualName == null ? sourceName == null ? "" : sourceName : manualName,
+          manualName,
+          hasShortName ? manualShortName == null ? sourceName : manualShortName : null,
+          manualShortName);
+    }
+  }
 
   /** Effective and candidate artwork references; the image's owner retains the actual bytes. */
   public record Logo(String effectiveUrl, String manualUrl, String automaticUrl) {}

@@ -307,7 +307,8 @@ class CalendarAcceptanceIntegrationTest {
         pool, calendar(2, List.of(candidate("M1", "Home", LocalDate.of(2026, 10, 1)))));
     CalendarObservation old =
         new CalendarObservation(
-            new MatchObservation.Context(cycle.id(), 1, NOW, NOW.plusDays(20)),
+            new MatchObservation.Context(
+                cycle.id(), 1, NOW.toInstant(), NOW.plusDays(20).toInstant()),
             true,
             List.of(candidate("M1", "Home", LocalDate.of(2026, 12, 1))),
             List.of(),
@@ -484,7 +485,8 @@ class CalendarAcceptanceIntegrationTest {
     calendars.accept(
         pool,
         new CalendarObservation(
-            new MatchObservation.Context(cycle.id(), 1, NOW, NOW.minusDays(1)),
+            new MatchObservation.Context(
+                cycle.id(), 1, NOW.toInstant(), NOW.minusDays(1).toInstant()),
             true,
             List.of(
                 new CalendarObservation.Match(
@@ -500,7 +502,7 @@ class CalendarAcceptanceIntegrationTest {
     calendars.accept(
         pool,
         new CalendarObservation(
-            new MatchObservation.Context(cycle.id(), 2, NOW.plusHours(1), null),
+            new MatchObservation.Context(cycle.id(), 2, NOW.plusHours(1).toInstant(), null),
             true,
             List.of(candidate("M1", "Home", LocalDate.of(2026, 10, 2))),
             List.of(),
@@ -643,7 +645,7 @@ class CalendarAcceptanceIntegrationTest {
    * @return real cycle attribution
    */
   private MatchObservation.Context context(long ordinal) {
-    return new MatchObservation.Context(cycle.id(), ordinal, NOW, null);
+    return new MatchObservation.Context(cycle.id(), ordinal, NOW.toInstant(), null);
   }
 
   /**

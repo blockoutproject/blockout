@@ -7,6 +7,7 @@ import com.blockout.backend.contributions.domain.ContributionVersion.Decision;
 import com.blockout.backend.contributions.domain.StreamAddress;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
 /** Detaches persistent facts without exposing entities through the application port. */
 @Mapper(config = MappingConfiguration.class)
@@ -17,7 +18,7 @@ public interface ContributionPersistenceMapper {
    * @param entity existing match-local state
    * @return detached revision and hold
    */
-  ContributionState toState(MatchContributionStateEntity entity);
+  ContributionState toDomain(MatchContributionStateEntity entity);
 
   /**
    * Maps immutable facts, nullable ownership and distinct publication/lifecycle decisions.
@@ -25,9 +26,9 @@ public interface ContributionPersistenceMapper {
    * @param entity loaded version
    * @return detached literal version with no invented attribution or decision
    */
-  @Mapping(target = "publication", expression = "java(publication(entity))")
-  @Mapping(target = "decision", expression = "java(decision(entity))")
-  ContributionVersion toVersion(ContributionVersionEntity entity);
+  @Mapping(target = "publication", source = "entity", qualifiedByName = "publication")
+  @Mapping(target = "decision", source = "entity", qualifiedByName = "decision")
+  ContributionVersion toDomain(ContributionVersionEntity entity);
 
   /**
    * Restores the locally validated literal rather than URI's component equality.
@@ -45,6 +46,7 @@ public interface ContributionPersistenceMapper {
    * @param entity persistent version
    * @return initial publication decision or null
    */
+  @Named("publication")
   default Decision publication(ContributionVersionEntity entity) {
     return entity.getPublicationKind() == null
         ? null
@@ -58,6 +60,7 @@ public interface ContributionPersistenceMapper {
    * @param entity persistent version
    * @return later decision or null
    */
+  @Named("decision")
   default Decision decision(ContributionVersionEntity entity) {
     return entity.getDecisionKind() == null
         ? null

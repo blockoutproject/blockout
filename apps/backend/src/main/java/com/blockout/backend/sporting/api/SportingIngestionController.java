@@ -101,7 +101,7 @@ public class SportingIngestionController implements SportingApi {
       Resource body,
       OffsetDateTime providerPublishedAt) {
     MatchObservation.Context context =
-        new MatchObservation.Context(cycleId, readOrdinal, observedAt, providerPublishedAt);
+        mapper.toContext(cycleId, readOrdinal, observedAt, providerPublishedAt);
     images.requireSource(teamId, context);
     Image validated;
     try {

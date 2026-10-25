@@ -11,15 +11,34 @@ import com.blockout.collector.generated.ingestion.model.RecordCollectionResultIn
 import com.blockout.collector.generated.ingestion.model.SourceValidationWorkInternalResponse;
 import com.blockout.collector.generated.ingestion.model.StartCollectionCycleInternalRequest;
 import com.blockout.collector.generated.ingestion.model.SubmitSourceValidationInternalRequest;
+import com.blockout.collector.shared.mapping.TemporalMapping;
 import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 /** Maps generated transport objects immediately to immutable application capabilities. */
-@Mapper(config = MappingConfiguration.class)
+@Mapper(config = MappingConfiguration.class, uses = TemporalMapping.class)
 public interface CollectionBackendMapper {
+  /**
+   * Maps one identified registration to its generated request.
+   *
+   * @param revision observed backend revision
+   * @param incarnationId current collector startup identity
+   * @return exact registration proposal
+   */
+  com.blockout.collector.generated.ingestion.model.RegisterCollectorRuntimeInternalRequest toDto(
+      long revision, java.util.UUID incarnationId);
+
+  /**
+   * Maps actual completion time without manufacturing a timestamp.
+   *
+   * @param completedAt actual passage completion instant
+   * @return generated completion request
+   */
+  @Mapping(target = "completedAt", source = "completedAt")
+  com.blockout.collector.generated.ingestion.model.CompleteCollectionCycleInternalRequest toDto(
+      Instant completedAt);
+
   /**
    * Maps current intent only, with no admission or retained fallback.
    *
@@ -52,7 +71,7 @@ public interface CollectionBackendMapper {
    * @param source source-entry evidence
    * @return strict generated proposal
    */
-  ObserveSeasonSourceInternalRequest toRequest(CollectionBackend.SourceProposal source);
+  ObserveSeasonSourceInternalRequest toDto(CollectionBackend.SourceProposal source);
 
   /**
    * Preserves the admitted candidate's provider, root and seasonal scope.
@@ -85,7 +104,7 @@ public interface CollectionBackendMapper {
    * @param source one identified application admission
    * @return strict generated request with absent inapplicable fields
    */
-  StartCollectionCycleInternalRequest toRequest(CollectionBackend.StartCycle source);
+  StartCollectionCycleInternalRequest toDto(CollectionBackend.StartCycle source);
 
   /**
    * Preserves frozen provider references in the application target.
@@ -109,7 +128,7 @@ public interface CollectionBackendMapper {
    * @param source actual independent phase evidence
    * @return generated current-result submission
    */
-  RecordCollectionResultInternalRequest toRequest(CollectionBackend.Result source);
+  RecordCollectionResultInternalRequest toDto(CollectionBackend.Result source);
 
   /**
    * Maps candidate evidence without inferring source qualification.
@@ -117,25 +136,5 @@ public interface CollectionBackendMapper {
    * @param source terminal candidate evidence
    * @return exact generated submission without inferred qualification
    */
-  SubmitSourceValidationInternalRequest toRequest(CollectionBackend.Validation source);
-
-  /**
-   * Preserves a decoded backend timestamp.
-   *
-   * @param source known timestamp
-   * @return identical instant
-   */
-  default Instant toInstant(OffsetDateTime source) {
-    return source.toInstant();
-  }
-
-  /**
-   * Represents an actual instant in UTC.
-   *
-   * @param source actual instant
-   * @return UTC wire representation
-   */
-  default OffsetDateTime toDate(Instant source) {
-    return source.atOffset(ZoneOffset.UTC);
-  }
+  SubmitSourceValidationInternalRequest toDto(CollectionBackend.Validation source);
 }

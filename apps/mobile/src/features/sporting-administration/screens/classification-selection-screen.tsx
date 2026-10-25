@@ -1,3 +1,7 @@
+import {
+  sportingGenderLabels,
+  formatLabel,
+} from "../../sporting/classification-presentation";
 import { useRouter } from "expo-router";
 import { useWatch } from "react-hook-form";
 import { Check } from "lucide-react-native";
@@ -54,14 +58,14 @@ function Selection({
           .map((item) => ({ value: item.id, label: item.name })) ?? [])
       : field === "gender"
         ? [
-            { value: "female", label: "Féminin" },
-            { value: "male", label: "Masculin" },
-            { value: "mixed", label: "Mixte" },
+            { value: "female", label: sportingGenderLabels.female },
+            { value: "male", label: sportingGenderLabels.male },
+            { value: "mixed", label: sportingGenderLabels.mixed },
           ]
         : [
-            { value: "6x6", label: "6 × 6" },
-            { value: "4x4", label: "4 × 4" },
-            { value: "2x2", label: "2 × 2" },
+            { value: "6x6", label: formatLabel("6x6") },
+            { value: "4x4", label: formatLabel("4x4") },
+            { value: "2x2", label: formatLabel("2x2") },
           ];
   const disabled =
     divisions.authority.permissions?.manageSportingClassification !== true;

@@ -2,21 +2,20 @@ package com.blockout.backend.collection.application.service;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionAttempt;
-import com.blockout.backend.collection.application.model.CollectionState;
+import com.blockout.backend.collection.application.model.CollectionStageMapper;
 import com.blockout.backend.collection.application.model.CollectionState.Control;
 import com.blockout.backend.collection.application.model.CollectionState.Cycle;
 import com.blockout.backend.collection.application.model.CollectionState.ServedTarget;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.collection.application.model.CollectionState.Target;
+import com.blockout.backend.collection.application.model.CollectionWorkMapper;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
-import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
-import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.service.SeasonService;
 import com.blockout.backend.sporting.application.service.SportingReadService;
@@ -38,9 +37,11 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class CollectionTargetSelector {
   private final CollectionStore store;
+  private final CollectionWorkMapper mapper;
   private final SportingReadService sporting;
   private final SeasonService seasons;
   private final ClubAcquisitionService clubs;
+  private final CollectionStageMapper stages;
 
   /**
    * Persists the due or explicitly requested scope inside the admission transaction. Mutable club
@@ -50,6 +51,7 @@ public class CollectionTargetSelector {
    * @param cycle current admitted context, not yet returned to the collector
    * @param control locked family and exact pending selections
    * @param season locked canonical season, absent for the two seasonless families
+   * @throws CollectionConflictException when the selected family or source configuration is invalid
    */
   public void freeze(Cycle cycle, Control control, CollectionSeasonView season) {
     if (season == null) {
@@ -100,19 +102,7 @@ public class CollectionTargetSelector {
       } else {
         source = candidate;
       }
-      retainDue(
-          cycle,
-          control,
-          List.of(
-              Target.builder()
-                  .scopeId(source.id())
-                  .kind(CollectionTargetKindEnum.DISCOVERY)
-                  .sourceBindingId(source.id())
-                  .url(source.acceptedUrl())
-                  .seasonLabel(season.label())
-                  .provider(source.provider())
-                  .organizerReference(source.organizerReference())
-                  .build()));
+      retainDue(cycle, control, List.of(mapper.toDiscoveryTarget(source, season)));
       UUID afterPool = null;
       while (true) {
         List<AcquisitionReference> references =
@@ -127,7 +117,9 @@ public class CollectionTargetSelector {
         retainDue(
             cycle,
             control,
-            references.stream().map(reference -> target(reference, source, season)).toList());
+            references.stream()
+                .map(reference -> mapper.toTarget(reference, source, season))
+                .toList());
         if (provider == CollectionProviderEnum.LNV) {
           for (UUID poolId :
               references.stream().map(AcquisitionReference::poolId).distinct().toList()) {
@@ -138,7 +130,9 @@ public class CollectionTargetSelector {
               retainDue(
                   cycle,
                   control,
-                  details.stream().map(reference -> target(reference, source, season)).toList());
+                  details.stream()
+                      .map(reference -> mapper.toTarget(reference, source, season))
+                      .toList());
             }
           }
         }
@@ -159,45 +153,6 @@ public class CollectionTargetSelector {
    */
   public List<ServedTarget> serve(List<Target> targets) {
     return clubs.serve(targets);
-  }
-
-  /**
-   * Combines qualified owner context without copying personal locality.
-   *
-   * @param reference eligible F02-owned identity/current configuration
-   * @param source qualified competition source binding
-   * @param season owning canonical competition season
-   * @return frozen nonpersonal acquisition context
-   */
-  private Target target(
-      AcquisitionReference reference, Source source, CollectionSeasonView season) {
-    CollectionState.Target.TargetBuilder result =
-        Target.builder()
-            .scopeId(reference.scopeId())
-            .kind(reference.kind())
-            .url(reference.url())
-            .poolId(reference.poolId())
-            .matchId(reference.matchId())
-            .packReference(reference.packReference())
-            .provider(reference.provider())
-            .nativeMatchReference(reference.nativeMatchReference())
-            .fastWindowEndsAt(reference.fastWindowEndsAt())
-            .sourceBindingId(source.id())
-            .organizerReference(source.organizerReference())
-            .seasonLabel(season.label());
-    PoolKey key = reference.poolKey();
-    if (key != null)
-      result
-          .competitionReference(key.competitionReference())
-          .poolReference(key.reference())
-          .tourReference(key.tourReference())
-          .groupReference(key.groupReference());
-    if (reference.classification() != null)
-      result
-          .divisionId(reference.classification().divisionId())
-          .format(reference.classification().format())
-          .gender(reference.classification().gender());
-    return result.build();
   }
 
   /**
@@ -224,10 +179,7 @@ public class CollectionTargetSelector {
             .map(
                 target -> {
                   CollectionAttempt attempt =
-                      attempts.get(
-                          new AttemptKey(
-                              target.scopeId(),
-                              CollectionStageEnum.fromValue(target.kind().getValue())));
+                      attempts.get(new AttemptKey(target.scopeId(), stages.toStage(target.kind())));
                   return attempt == null
                       ? target
                       : target.toBuilder()

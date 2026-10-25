@@ -1,3 +1,13 @@
+import {
+  genderLabel,
+  formatLabel,
+} from "../../sporting/classification-presentation";
+import {
+  classificationSchema,
+  classificationValues,
+  type ClassificationValues,
+} from "./classification-values";
+import { toClassificationRequest } from "../api/classification-request";
 import { ClassificationSelect } from "../components/classification-select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState, useSyncExternalStore } from "react";
@@ -17,12 +27,7 @@ import type {
   useClassification,
   useDivisions,
 } from "../api/classification";
-import {
-  classificationEditor,
-  classificationSchema,
-  classificationValues,
-  type ClassificationValues,
-} from "./classification-editor";
+import { classificationEditor } from "./classification-editor";
 
 /** One current resource, its generated operations and original-session draft. */
 export interface ClassificationFormProps {
@@ -78,16 +83,9 @@ export function ClassificationForm({
     if (busy || rereadRequired || !session.isCurrent(session.generation))
       return;
     try {
-      const accepted = await editing.save.mutateAsync({
-        revision: baseline.revision,
-        classification: values.custom
-          ? {
-              divisionId: values.divisionId,
-              format: values.format,
-              gender: values.gender,
-            }
-          : null,
-      });
+      const accepted = await editing.save.mutateAsync(
+        toClassificationRequest(baseline.revision, values),
+      );
       if (!session.isCurrent(session.generation)) return;
       editor.update({
         baseline: accepted,
@@ -169,7 +167,7 @@ export function ClassificationForm({
     <View style={styles.form}>
       <Text style={[tokens.typography.body, { color: colors.text }]}>
         {effective
-          ? `Collecte : ${divisions.query.data?.items.find((item) => item.id === effective.divisionId)?.name ?? effective.divisionId}, ${effective.format}, ${effective.gender === "female" ? "Féminin" : effective.gender === "male" ? "Masculin" : "Mixte"}.`
+          ? `Collecte : ${divisions.query.data?.items.find((item) => item.id === effective.divisionId)?.name ?? effective.divisionId}, ${effective.format}, ${genderLabel(effective.gender)}.`
           : "Aucune classification de collecte. La dernière classification publiée et les identités sont conservées."}
       </Text>
       <Controller
@@ -242,13 +240,7 @@ export function ClassificationForm({
                   target={target}
                   field="gender"
                   label="Genre"
-                  value={
-                    field.value === "female"
-                      ? "Féminin"
-                      : field.value === "male"
-                        ? "Masculin"
-                        : "Mixte"
-                  }
+                  value={genderLabel(field.value)}
                   disabled={busy}
                 />
               )}
@@ -261,7 +253,7 @@ export function ClassificationForm({
                   target={target}
                   field="format"
                   label="Format"
-                  value={field.value.replace("x", " × ")}
+                  value={formatLabel(field.value)}
                   disabled={busy}
                 />
               )}

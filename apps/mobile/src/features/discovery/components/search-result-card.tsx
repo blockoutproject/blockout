@@ -1,28 +1,20 @@
-import { useQuery } from "@tanstack/react-query";
+import {
+  genderLabel,
+  formatLabel,
+} from "../../sporting/classification-presentation";
+import type { SearchResult } from "../model/search-result";
+import { relativeLuminance } from "../../../shared/theme/color-luminance";
+import { hashKey, useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { ImageOff } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import type {
-  SportingIdentityResponse,
-  SportingClassificationResponse,
-  SportingSeasonResponse,
-} from "../../../../.generated/schemas/index.zod";
+import type { SportingIdentityResponse } from "../../../../.generated/schemas/index.zod";
 import { useConsultationQueries } from "../../sporting/api/use-consultation-queries";
 import { binaryImagePreview } from "../../../shared/api/binary-image-preview";
 import { LoadingIndicator } from "../../../shared/components/loading-indicator";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
-
-/** Available public summary slots; missing context never produces invented identity or classification. */
-export interface SearchResultCardProps {
-  kind: "club" | "team" | "pool";
-  identity: SportingIdentityResponse;
-  city?: string;
-  subtitle?: string;
-  classification?: SportingClassificationResponse;
-  season?: SportingSeasonResponse;
-}
 
 /** Product Design Entity Card 354:565; activation and its disclosure remain with US4. */
 export function SearchResultCard({
@@ -32,7 +24,7 @@ export function SearchResultCard({
   subtitle,
   classification,
   season,
-}: SearchResultCardProps) {
+}: SearchResult) {
   const { colors } = useTheme();
   const division = classification?.division;
   const foreground = division
@@ -44,17 +36,10 @@ export function SearchResultCard({
     { id: "city", label: city },
     { id: "division", label: division?.name },
     { id: "season", label: season?.label },
-    { id: "format", label: classification?.format?.replace("x", " × ") },
+    { id: "format", label: formatLabel(classification?.format) },
     {
       id: "gender",
-      label:
-        classification?.gender === "female"
-          ? "Féminin"
-          : classification?.gender === "male"
-            ? "Masculin"
-            : classification?.gender === "mixed"
-              ? "Mixte"
-              : undefined,
+      label: genderLabel(classification?.gender),
     },
   ].filter(({ label }) => label !== undefined);
   return (
@@ -154,12 +139,7 @@ export function SearchResultCard({
 
 /** Approved prototype 2177c35 chooses white only when its WCAG contrast against valid sRGB meets 4.5:1. */
 function whiteOnPrimary(primary: string): boolean {
-  const channels = [1, 3, 5].map((start) => {
-    const value = Number.parseInt(primary.slice(start, start + 2), 16) / 255;
-    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-  });
-  const luminance =
-    0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+  const luminance = relativeLuminance(primary);
   return 1.05 / (luminance + 0.05) >= 4.5;
 }
 
@@ -184,7 +164,7 @@ function ResultArtwork({
   if (identity.logoUrl && query.data)
     return (
       <ArtworkImage
-        key={JSON.stringify(options.queryKey)}
+        key={hashKey(options.queryKey)}
         blob={query.data}
         identity={identity}
         backgroundColor={backgroundColor}

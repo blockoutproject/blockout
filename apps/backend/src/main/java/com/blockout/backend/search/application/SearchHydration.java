@@ -36,7 +36,13 @@ public class SearchHydration {
       cities.put(candidate.position().id(), candidate.city());
     Map<UUID, SearchPage.Summary> result = new HashMap<>();
     for (SportingPublicInput input :
-        owners.publicInputs(Kind.valueOf(context.resource().name()), cities.keySet())) {
+        owners.publicInputs(
+            switch (context.resource()) {
+              case CLUB -> Kind.CLUB;
+              case TEAM -> Kind.TEAM;
+              case POOL -> Kind.POOL;
+            },
+            cities.keySet())) {
       if (!Objects.equals(cities.get(input.id()), input.city()) || !matches(context, input))
         continue;
       SearchPage.Summary summary =

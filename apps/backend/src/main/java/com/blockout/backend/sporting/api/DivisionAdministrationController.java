@@ -32,11 +32,7 @@ public class DivisionAdministrationController implements DivisionAdministrationA
   public ResponseEntity<DivisionListResponse> listDivisions(Boolean includeInactive) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(
-            new DivisionListResponse(
-                divisions.list(account.id(), Boolean.TRUE.equals(includeInactive)).stream()
-                    .map(mapper::toResponse)
-                    .toList()));
+        .body(mapper.toDto(divisions.list(account.id(), Boolean.TRUE.equals(includeInactive))));
   }
 
   /** {@inheritDoc} */
@@ -44,7 +40,7 @@ public class DivisionAdministrationController implements DivisionAdministrationA
   public ResponseEntity<DivisionResponse> getDivision(UUID divisionId) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toResponse(divisions.get(account.id(), divisionId)));
+        .body(mapper.toDto(divisions.get(account.id(), divisionId)));
   }
 
   /** {@inheritDoc} */
@@ -66,7 +62,7 @@ public class DivisionAdministrationController implements DivisionAdministrationA
             validated == null ? null : validated.mediaType());
     return ResponseEntity.created(URI.create("/administration/divisions/" + created.id()))
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toResponse(created));
+        .body(mapper.toDto(created));
   }
 
   /** {@inheritDoc} */
@@ -76,7 +72,7 @@ public class DivisionAdministrationController implements DivisionAdministrationA
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(
-            mapper.toResponse(
+            mapper.toDto(
                 divisions.setActive(
                     account.id(), divisionId, request.getRevision(), request.getActive())));
   }

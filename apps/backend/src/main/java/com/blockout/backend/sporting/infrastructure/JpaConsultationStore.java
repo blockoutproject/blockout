@@ -1,18 +1,16 @@
 package com.blockout.backend.sporting.infrastructure;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
-import com.blockout.backend.generated.mobile.model.ResultStateEnum;
-import com.blockout.backend.generated.mobile.model.SportFormatEnum;
-import com.blockout.backend.generated.mobile.model.SportGenderEnum;
+import com.blockout.backend.shared.mapping.TemporalMapping;
 import com.blockout.backend.sporting.application.ConsultationMatchSelection;
 import com.blockout.backend.sporting.application.ConsultationStore;
+import com.blockout.backend.sporting.application.ConsultationViewMapper;
 import com.blockout.backend.sporting.application.ConsultationViews;
 import com.blockout.backend.sporting.application.MatchPresentation;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.model.MatchDetails;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.SportingClassification;
-import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
@@ -24,11 +22,8 @@ import jakarta.persistence.criteria.CommonAbstractCriteria;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
-import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +43,8 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
   private final SportingStore facts;
   private final Clock clock;
   private final DivisionRepository divisions;
-  private final SportingIdentityMapper persistenceMapper;
+  private final SportingPersistenceMapper persistenceMapper;
+  private final ConsultationViewMapper viewMapper;
 
   /** {@inheritDoc} */
   @Override
@@ -96,7 +92,7 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
   /** {@inheritDoc} */
   @Override
   public Optional<ConsultationViews.Identity> clubIdentity(UUID clubId) {
-    return owners.publicPresentation(Kind.CLUB, clubId).map(this::identity);
+    return owners.publicPresentation(Kind.CLUB, clubId).map(viewMapper::toView);
   }
 
   /** {@inheritDoc} */
@@ -109,20 +105,11 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
               List<SeasonView> seasons = owners.publicClubSeasons(clubId);
               return new ConsultationViews.ClubDetail(
                   club,
-                  new ConsultationViews.Contacts(
-                      contacts.get(ContactField.ADDRESS),
-                      contacts.get(ContactField.CITY),
-                      contacts.get(ContactField.POSTAL_CODE),
-                      contacts.get(ContactField.EMAIL),
-                      contacts.get(ContactField.PHONE),
-                      uri(contacts.get(ContactField.WEBSITE))),
+                  viewMapper.toView(contacts),
                   owners
                       .publicLocality(clubId)
                       .filter(value -> value.latitude() != null && value.longitude() != null)
-                      .map(
-                          value ->
-                              new ConsultationViews.Location(
-                                  value.latitude(), value.longitude(), value.city()))
+                      .map(viewMapper::toView)
                       .orElse(null),
                   seasons);
             });
@@ -213,7 +200,7 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
                   details.sets() == null
                       ? null
                       : new ConsultationViews.Sets(
-                          offset(details.setsObservedAt()), details.sets()),
+                          TemporalMapping.toDate(details.setsObservedAt()), details.sets()),
                   details.venueName(),
                   details.venueAddress(),
                   details.referees(),
@@ -237,27 +224,19 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
     ConsultationViews.Schedule schedule =
         new ConsultationViews.Schedule(
             match.getLocalDate(),
-            offset(match.getReliableStart()),
+            TemporalMapping.toDate(match.getReliableStart()),
             match.getTimeZone(),
-            offset(match.getScheduleObservedAt()));
+            TemporalMapping.toDate(match.getScheduleObservedAt()));
     MatchObservation.Result accepted = persistenceMapper.toResult(match);
-    ConsultationViews.Result result =
-        accepted == null
-            ? null
-            : new ConsultationViews.Result(
-                ResultStateEnum.fromValue(accepted.state().getValue()),
-                accepted.homeSets(),
-                accepted.awaySets(),
-                accepted.specialLabel(),
-                offset(match.getResultObservedAt()));
+    ConsultationViews.Result result = viewMapper.toView(accepted, match.getResultObservedAt());
     ConsultationViews.PoolSummary context =
         new ConsultationViews.PoolSummary(
-            identity(
+            viewMapper.toView(
                 facts
                     .presentation(SportingProjectionChanges.Kind.POOL, pool.getId())
                     .orElseThrow()),
             persistenceMapper.toView(pool.getSeason()),
-            classification(
+            viewMapper.toView(
                 new SportingClassification(
                     pool.getDivision().getId(), pool.getFormat(), pool.getGender()),
                 persistenceMapper.toDetail(pool.getDivision())),
@@ -266,11 +245,11 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
     return new ConsultationViews.MatchSummary(
         match.getId(),
         context,
-        identity(
+        viewMapper.toView(
             facts
                 .presentation(SportingProjectionChanges.Kind.TEAM, match.getHomeTeam().getId())
                 .orElseThrow()),
-        identity(
+        viewMapper.toView(
             facts
                 .presentation(SportingProjectionChanges.Kind.TEAM, match.getAwayTeam().getId())
                 .orElseThrow()),
@@ -291,12 +270,13 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
    */
   private ConsultationViews.TeamSummary teamSummary(TeamView team, DivisionDetail division) {
     return new ConsultationViews.TeamSummary(
-        identity(facts.presentation(SportingProjectionChanges.Kind.TEAM, team.id()).orElseThrow()),
+        viewMapper.toView(
+            facts.presentation(SportingProjectionChanges.Kind.TEAM, team.id()).orElseThrow()),
         owners.season(team.seasonId()).orElseThrow(),
-        classification(team.classification(), division),
+        viewMapper.toView(team.classification(), division),
         team.clubId() == null
             ? null
-            : identity(
+            : viewMapper.toView(
                 facts
                     .presentation(SportingProjectionChanges.Kind.CLUB, team.clubId())
                     .orElseThrow()),
@@ -317,26 +297,12 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
               com.blockout.backend.sporting.application.model.SportingViews.PoolView pool =
                   owners.pool(id).orElseThrow();
               return new ConsultationViews.PoolSummary(
-                  identity(presentation),
+                  viewMapper.toView(presentation),
                   owners.season(pool.key().seasonId()).orElseThrow(),
                   classification(pool.classification()),
                   null,
                   null);
             });
-  }
-
-  /**
-   * Removes private source/manual state from an already admitted presentation.
-   *
-   * @param view current effective owner presentation
-   * @return permitted identity and backend image resource
-   */
-  private ConsultationViews.Identity identity(SportingPresentation.View view) {
-    return new ConsultationViews.Identity(
-        view.id(),
-        view.names().effectiveName(),
-        view.names().effectiveShortName(),
-        view.logo() == null ? null : view.logo().effectiveUrl());
   }
 
   /**
@@ -347,46 +313,6 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
    */
   private ConsultationViews.Classification classification(SportingClassification value) {
     if (value == null) return new ConsultationViews.Classification(null, null, null);
-    return classification(value, facts.divisionDetail(value.divisionId()).orElseThrow());
-  }
-
-  /**
-   * Combines accepted classification with already selected F02 division metadata.
-   *
-   * @param value accepted classification, possibly without format or gender
-   * @param division current owner presentation from the same read transaction
-   * @return public classification without an additional persistence lookup
-   */
-  private ConsultationViews.Classification classification(
-      SportingClassification value, DivisionDetail division) {
-    return new ConsultationViews.Classification(
-        new ConsultationViews.Division(
-            division.id(),
-            division.name(),
-            division.hasLogo() ? "/divisions/" + division.id() + "/logo" : null,
-            division.color(),
-            division.gradient()),
-        value.format() == null ? null : SportFormatEnum.fromValue(value.format().getValue()),
-        value.gender() == null ? null : SportGenderEnum.fromValue(value.gender().getValue()));
-  }
-
-  /**
-   * Converts a permitted known URI without introducing source fallback.
-   *
-   * @param value current effective URI text, or null
-   * @return the same URI or absence
-   */
-  private URI uri(String value) {
-    return value == null ? null : URI.create(value);
-  }
-
-  /**
-   * Preserves an accepted instant and independent freshness without inventing a time.
-   *
-   * @param value current accepted instant, or null
-   * @return equivalent UTC offset time, or null
-   */
-  private OffsetDateTime offset(Instant value) {
-    return value == null ? null : value.atOffset(ZoneOffset.UTC);
+    return viewMapper.toView(value, facts.divisionDetail(value.divisionId()).orElseThrow());
   }
 }

@@ -4,6 +4,7 @@ import com.blockout.backend.collection.application.exception.CollectionNotFoundE
 import com.blockout.backend.collection.application.model.CollectionAttempt;
 import com.blockout.backend.collection.application.model.CollectionState.ServedTarget;
 import com.blockout.backend.collection.application.model.CollectionState.Target;
+import com.blockout.backend.collection.application.model.CollectionWorkMapper;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Service;
 public class ClubAcquisitionService {
   private final SportingReadService sporting;
   private final CollectionStore store;
+  private final CollectionWorkMapper mapper;
 
   /**
    * Reads current unresolved identities and lets a newer technical acquisition failure retry after
@@ -59,16 +61,11 @@ public class ClubAcquisitionService {
                         || needsGeocoding(reference, attempts.get(reference.clubId())))
             .map(
                 reference ->
-                    Target.builder()
-                        .scopeId(reference.clubId())
-                        .kind(
-                            geocoding
-                                ? CollectionTargetKindEnum.GEOCODING
-                                : CollectionTargetKindEnum.CLUB_SHEET)
-                        .clubId(reference.clubId())
-                        .clubReference(reference.clubReference())
-                        .provider(reference.provider())
-                        .build())
+                    mapper.toTarget(
+                        reference,
+                        geocoding
+                            ? CollectionTargetKindEnum.GEOCODING
+                            : CollectionTargetKindEnum.CLUB_SHEET))
             .toList();
     return new TargetBatch(targets, references.getLast().clubId());
   }
@@ -97,7 +94,12 @@ public class ClubAcquisitionService {
    * @param lastClubId last scanned identity, null only when the owner page is exhausted
    */
   public record TargetBatch(List<Target> items, UUID lastClubId) {
-    /** Detaches the eligible identity list from the current scan. */
+    /**
+     * Detaches the eligible identity list from the current scan.
+     *
+     * @param items currently eligible nonpersonal references
+     * @param lastClubId last scanned identity, null at exhaustion
+     */
     public TargetBatch {
       items = List.copyOf(items);
     }
@@ -108,6 +110,7 @@ public class ClubAcquisitionService {
    *
    * @param targets bounded frozen identity page in its original order
    * @return current revisions and permitted values; null municipality forbids a provider call
+   * @throws CollectionNotFoundException when a geocoding target has no current owner locality
    */
   public List<ServedTarget> serve(List<Target> targets) {
     List<UUID> clubIds =
@@ -120,14 +123,10 @@ public class ClubAcquisitionService {
         .map(
             target -> {
               if (target.kind() != CollectionTargetKindEnum.GEOCODING)
-                return new ServedTarget(target, null, null, null);
+                return mapper.toServedTarget(target, null);
               ClubLocalityView locality = localities.get(target.clubId());
               if (locality == null) throw new CollectionNotFoundException();
-              return new ServedTarget(
-                  target,
-                  locality.localityRevision(),
-                  locality.municipality(),
-                  locality.postalCode());
+              return mapper.toServedTarget(target, locality);
             })
         .toList();
   }

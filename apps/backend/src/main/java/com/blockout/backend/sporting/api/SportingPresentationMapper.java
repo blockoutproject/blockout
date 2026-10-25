@@ -16,17 +16,23 @@ import com.blockout.backend.generated.mobile.model.SetPoolPresentationRequest;
 import com.blockout.backend.generated.mobile.model.SetTeamPresentationRequest;
 import com.blockout.backend.generated.mobile.model.SportingPresentationResponse;
 import com.blockout.backend.generated.mobile.model.SportingResourceKindEnum;
+import com.blockout.backend.shared.api.RequiredNullableMapping;
+import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
 import java.util.EnumMap;
 import java.util.Map;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingConstants;
 import org.mapstruct.NullValueCheckStrategy;
+import org.mapstruct.ValueMapping;
 import org.openapitools.jackson.nullable.JsonNullable;
 
 /** Generated presentation adaptation with native nullable presence preserved before decisions. */
-@Mapper(config = MappingConfiguration.class, uses = SportingObservationMapper.class)
+@Mapper(
+    config = MappingConfiguration.class,
+    uses = {SportingObservationMapper.class, RequiredNullableMapping.class})
 public interface SportingPresentationMapper {
   /**
    * Maps complete club metadata and independently validated image content.
@@ -37,7 +43,7 @@ public interface SportingPresentationMapper {
    */
   @Mapping(target = "manualShortName", ignore = true)
   @Mapping(target = "image", source = "image")
-  SportingPresentation.Edit toEdit(
+  SportingPresentation.Edit toCommand(
       SetClubPresentationRequest metadata, SportingPresentation.Image image);
 
   /**
@@ -48,7 +54,7 @@ public interface SportingPresentationMapper {
    * @return complete desired state
    */
   @Mapping(target = "image", source = "image")
-  SportingPresentation.Edit toEdit(
+  SportingPresentation.Edit toCommand(
       SetTeamPresentationRequest metadata, SportingPresentation.Image image);
 
   /**
@@ -59,7 +65,7 @@ public interface SportingPresentationMapper {
    */
   @Mapping(target = "logoAction", ignore = true)
   @Mapping(target = "image", ignore = true)
-  SportingPresentation.Edit toEdit(SetPoolPresentationRequest metadata);
+  SportingPresentation.Edit toCommand(SetPoolPresentationRequest metadata);
 
   /**
    * Maps division presentation independently from its activity.
@@ -69,7 +75,7 @@ public interface SportingPresentationMapper {
    * @return complete desired presentation
    */
   @Mapping(target = "image", source = "image")
-  SportingPresentation.DivisionEdit toEdit(
+  SportingPresentation.DivisionEdit toCommand(
       SetDivisionPresentationRequest metadata, SportingPresentation.Image image);
 
   /**
@@ -88,7 +94,7 @@ public interface SportingPresentationMapper {
    * @param names detached current values
    * @return generated response with no omitted required nullable field
    */
-  default NamePresentationResponse toResponse(SportingPresentation.Names names) {
+  default NamePresentationResponse toDto(SportingPresentation.Names names) {
     NamePresentationResponse response =
         new NamePresentationResponse(names.sourceName(), names.effectiveName(), names.manualName());
     if (names.effectiveShortName() != null)
@@ -117,17 +123,7 @@ public interface SportingPresentationMapper {
       target = "automaticUrl",
       source = "automaticUrl",
       nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  LogoPresentationResponse toResponse(SportingPresentation.Logo source);
-
-  /**
-   * Wraps response nulls as explicit present values.
-   *
-   * @param value current nullable scalar
-   * @return native generated nullable representation
-   */
-  default JsonNullable<String> nullable(String value) {
-    return JsonNullable.of(value);
-  }
+  LogoPresentationResponse toDto(SportingPresentation.Logo source);
 
   /**
    * Maps current club/team editor values with the resource's exact generated kind.
@@ -135,14 +131,19 @@ public interface SportingPresentationMapper {
    * @param source current detached view
    * @return generated administrative representation
    */
-  default SportingPresentationResponse toResponse(SportingPresentation.View source) {
-    return new SportingPresentationResponse(
-        source.id(),
-        SportingResourceKindEnum.fromValue(source.kind().name().toLowerCase(java.util.Locale.ROOT)),
-        source.revision(),
-        toResponse(source.names()),
-        toResponse(source.logo()));
-  }
+  @Mapping(target = "additionalProperties", ignore = true)
+  SportingPresentationResponse toDto(SportingPresentation.View source);
+
+  /**
+   * Maps the exact kind through typed constants; unsupported model kinds are rejected.
+   *
+   * @param source current owner kind
+   * @return the matching generated resource kind
+   */
+  @ValueMapping(source = "SEASON", target = MappingConstants.THROW_EXCEPTION)
+  @ValueMapping(source = "POOL", target = MappingConstants.THROW_EXCEPTION)
+  @ValueMapping(source = "DIVISION", target = MappingConstants.THROW_EXCEPTION)
+  SportingResourceKindEnum toResourceKind(SportingProjectionChanges.Kind source);
 
   /**
    * Maps the names-only pool projection using its canonical distinct shape.
@@ -150,9 +151,8 @@ public interface SportingPresentationMapper {
    * @param source current pool view
    * @return generated pool editor state
    */
-  default PoolPresentationResponse toPoolResponse(SportingPresentation.View source) {
-    return new PoolPresentationResponse(source.id(), source.revision(), toResponse(source.names()));
-  }
+  @Mapping(target = "additionalProperties", ignore = true)
+  PoolPresentationResponse toPoolDto(SportingPresentation.View source);
 
   /**
    * Maps one supplied mode; field-dependent meaning is decided by the application owner.
@@ -160,7 +160,7 @@ public interface SportingPresentationMapper {
    * @param source one non-null supplied field object
    * @return independent desired mode and value
    */
-  SportingPresentation.ContactEdit toEdit(ContactFieldRequest source);
+  SportingPresentation.ContactEdit toCommand(ContactFieldRequest source);
 
   /**
    * Preserves omission rather than filling absent contact fields with a default mode.
@@ -168,7 +168,7 @@ public interface SportingPresentationMapper {
    * @param request generated JSON patch
    * @return supplied field changes only
    */
-  default Map<ContactField, SportingPresentation.ContactEdit> toEdits(
+  default Map<ContactField, SportingPresentation.ContactEdit> toContactCommands(
       SetClubContactsRequest request) {
     Map<ContactField, SportingPresentation.ContactEdit> result = new EnumMap<>(ContactField.class);
     add(result, ContactField.ADDRESS, request.getAddress());
@@ -191,7 +191,7 @@ public interface SportingPresentationMapper {
       Map<ContactField, SportingPresentation.ContactEdit> target,
       ContactField field,
       ContactFieldRequest request) {
-    if (request != null) target.put(field, toEdit(request));
+    if (request != null) target.put(field, toCommand(request));
   }
 
   /**
@@ -200,7 +200,7 @@ public interface SportingPresentationMapper {
    * @param field current owner state, already stripped of forbidden stored values
    * @return generated current mode and permitted values
    */
-  default ContactFieldResponse toResponse(SportingPresentation.ContactValue field) {
+  default ContactFieldResponse toDto(SportingPresentation.ContactValue field) {
     return new ContactFieldResponse(
         field.mode(), field.effectiveValue(), field.sourceValue(), field.manualValue());
   }
@@ -211,16 +211,16 @@ public interface SportingPresentationMapper {
    * @param source current club contacts
    * @return complete required-null representation without contact history
    */
-  default ClubContactsResponse toResponse(SportingPresentation.Contacts source) {
+  default ClubContactsResponse toDto(SportingPresentation.Contacts source) {
     return new ClubContactsResponse(
         source.clubId(),
         Long.toString(source.revision()),
-        toResponse(source.fields().get(ContactField.ADDRESS)),
-        toResponse(source.fields().get(ContactField.CITY)),
-        toResponse(source.fields().get(ContactField.POSTAL_CODE)),
-        toResponse(source.fields().get(ContactField.EMAIL)),
-        toResponse(source.fields().get(ContactField.PHONE)),
-        toResponse(source.fields().get(ContactField.WEBSITE)));
+        toDto(source.fields().get(ContactField.ADDRESS)),
+        toDto(source.fields().get(ContactField.CITY)),
+        toDto(source.fields().get(ContactField.POSTAL_CODE)),
+        toDto(source.fields().get(ContactField.EMAIL)),
+        toDto(source.fields().get(ContactField.PHONE)),
+        toDto(source.fields().get(ContactField.WEBSITE)));
   }
 
   /**
@@ -229,7 +229,7 @@ public interface SportingPresentationMapper {
    * @param source generated source page request
    * @return immutable proposal without generated transport objects
    */
-  @Mapping(target = "fields", expression = "java(contactProposals(source))")
+  @Mapping(target = "fields", source = "source")
   SportingPresentation.ClubObservation toObservation(ClubDetailsInternalRequest source);
 
   /**

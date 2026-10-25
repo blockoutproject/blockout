@@ -71,19 +71,31 @@ class CollectorPartialSuccessIntegrationTest {
   private SportingBackend sporting;
   private CollectorLifecycle lifecycle;
 
-  /** Starts the supplied backend JAR and the suite-owned local signing endpoint. */
+  /**
+   * Starts the supplied backend JAR and the suite-owned local signing endpoint.
+   *
+   * @throws Exception if the selected local runtime cannot start
+   */
   @BeforeAll
   static void startBackend() throws Exception {
     runtime = new CollectorSportingRuntime();
   }
 
-  /** Stops only this suite's backend process and signing endpoint. */
+  /**
+   * Stops only this suite's backend process and signing endpoint.
+   *
+   * @throws Exception if owned runtime shutdown fails
+   */
   @AfterAll
   static void stopBackend() throws Exception {
     if (runtime != null) runtime.close();
   }
 
-  /** Resets the disposable database and composes real generated collector consumers. */
+  /**
+   * Resets the disposable database and composes real generated collector consumers.
+   *
+   * @throws Exception if fixture initialization or client setup fails
+   */
   @BeforeEach
   void connect() throws Exception {
     try (Connection connection = migrationConnection()) {
@@ -107,7 +119,11 @@ class CollectorPartialSuccessIntegrationTest {
     lifecycle.start();
   }
 
-  /** Releases the test-owned native HTTP connection pool. */
+  /**
+   * Releases the test-owned native HTTP connection pool.
+   *
+   * @throws Exception if the owned connection pool cannot close
+   */
   @AfterEach
   void closeTransport() throws Exception {
     if (transport != null) transport.close();
@@ -708,7 +724,8 @@ class CollectorPartialSuccessIntegrationTest {
         mock(MunicipalGeocoder.class),
         discovery,
         lifecycle,
-        Clock.systemUTC());
+        Clock.systemUTC(),
+        new CollectionStageMapperImpl());
   }
 
   /**

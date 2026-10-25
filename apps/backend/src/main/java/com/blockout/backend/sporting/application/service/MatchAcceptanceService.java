@@ -209,8 +209,7 @@ public class MatchAcceptanceService {
         previous.toBuilder()
             .acceptedCycleOrder(order.cycleOrder())
             .acceptedReadOrdinal(order.readOrdinal());
-    Instant published =
-        context.providerPublishedAt() == null ? null : context.providerPublishedAt().toInstant();
+    Instant published = context.providerPublishedAt();
     boolean changed = false;
     if (facts.localDate().isPresent()
         || facts.localTime().isPresent()
@@ -227,13 +226,13 @@ public class MatchAcceptanceService {
           .localTime(time)
           .timeZone(zone)
           .reliableStart(MatchFacts.resolveStart(date, time, zone))
-          .scheduleObservedAt(context.observedAt().toInstant())
+          .scheduleObservedAt(context.observedAt())
           .schedulePublishedAt(published);
     }
     if (detailUrl != null) {
       changed |= !detailUrl.toString().equals(previous.detailUrl());
       next.detailUrl(detailUrl.toString())
-          .referenceObservedAt(context.observedAt().toInstant())
+          .referenceObservedAt(context.observedAt())
           .referencePublishedAt(published);
     }
     store.saveMatchSchedule(next.build());
@@ -295,9 +294,8 @@ public class MatchAcceptanceService {
       boolean firstObservation) {
     MatchDetails previous = store.matchDetails(matchId);
     MatchDetails.MatchDetailsBuilder next = previous.toBuilder();
-    Instant observed = context.observedAt().toInstant();
-    Instant published =
-        context.providerPublishedAt() == null ? null : context.providerPublishedAt().toInstant();
+    Instant observed = context.observedAt();
+    Instant published = context.providerPublishedAt();
     MatchObservation.Result result = previous.result();
     boolean changed = false;
     if (facts.result().isPresent()) {

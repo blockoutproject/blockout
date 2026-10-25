@@ -27,8 +27,6 @@ import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -178,8 +176,7 @@ public abstract class ContributionScenario {
    * @return attributable synthetic observation context
    */
   protected MatchObservation.Context context(long ordinal) {
-    return new MatchObservation.Context(
-        scope.cycle().id(), ordinal, OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC), null);
+    return new MatchObservation.Context(scope.cycle().id(), ordinal, NOW, null);
   }
 
   /**

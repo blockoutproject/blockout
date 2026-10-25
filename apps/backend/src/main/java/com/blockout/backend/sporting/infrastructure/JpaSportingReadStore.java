@@ -2,7 +2,6 @@ package com.blockout.backend.sporting.infrastructure;
 
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
-import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingPublicInput;
 import com.blockout.backend.sporting.application.model.SportingPublicInput.Alias;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
@@ -35,7 +34,7 @@ public class JpaSportingReadStore implements SportingReadStore {
   private final MatchRepository matches;
   private final DivisionRepository divisions;
   private final ParticipationRepository participations;
-  private final SportingIdentityMapper mapper;
+  private final SportingPersistenceMapper mapper;
 
   /** {@inheritDoc} */
   @Override
@@ -160,22 +159,11 @@ public class JpaSportingReadStore implements SportingReadStore {
     return rows.stream()
         .map(
             row ->
-                new SportingPublicInput(
-                    row.id(),
+                mapper.toPublicInput(
+                    row,
                     kind,
-                    row.seasonId(),
-                    row.sourceName(),
-                    row.effectiveName(),
-                    row.effectiveShortName(),
                     aliases.getOrDefault(row.id(), Set.of()),
-                    row.divisionId() == null
-                        ? null
-                        : new SportingClassification(row.divisionId(), row.format(), row.gender()),
-                    row.divisionName(),
                     terms.getOrDefault(row.divisionId(), Set.of()),
-                    row.clubId(),
-                    row.clubName(),
-                    row.city(),
                     memberships.getOrDefault(row.id(), List.of())))
         .toList();
   }
@@ -213,14 +201,7 @@ public class JpaSportingReadStore implements SportingReadStore {
         };
     Map<UUID, Set<Alias>> result = new HashMap<>();
     for (SportingAliasRow row : rows)
-      result
-          .computeIfAbsent(row.ownerId(), ignored -> new HashSet<>())
-          .add(
-              new Alias(
-                  row.seasonId(),
-                  row.organizerReference(),
-                  row.competitionReference(),
-                  row.comparisonName()));
+      result.computeIfAbsent(row.ownerId(), ignored -> new HashSet<>()).add(mapper.toView(row));
     return result;
   }
 

@@ -263,9 +263,8 @@ public class SecurityConfiguration {
   private RequestMatcher methods(HttpMethod method, String... paths) {
     return new OrRequestMatcher(
         java.util.Arrays.stream(paths)
-            .map(
-                path ->
-                    (RequestMatcher) PathPatternRequestMatcher.withDefaults().matcher(method, path))
+            .<RequestMatcher>map(
+                path -> PathPatternRequestMatcher.withDefaults().matcher(method, path))
             .toList());
   }
 

@@ -819,7 +819,8 @@ class CollectorSportingBoundaryIntegrationTest {
         mock(MunicipalGeocoder.class),
         discovery,
         lifecycle,
-        Clock.systemUTC());
+        Clock.systemUTC(),
+        new CollectionStageMapperImpl());
   }
 
   /**

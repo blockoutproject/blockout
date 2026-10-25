@@ -4,8 +4,10 @@ import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.generated.mobile.model.AcquisitionClassificationRequest;
 import com.blockout.backend.generated.mobile.model.AcquisitionClassificationResponse;
 import com.blockout.backend.generated.mobile.model.ClassificationDetailResponse;
+import com.blockout.backend.generated.mobile.model.DivisionListResponse;
 import com.blockout.backend.generated.mobile.model.DivisionResponse;
 import com.blockout.backend.generated.mobile.model.LogoPresentationResponse;
+import com.blockout.backend.shared.api.RequiredNullableMapping;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingViews.ClassificationView;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
@@ -16,7 +18,7 @@ import org.mapstruct.NullValueCheckStrategy;
 import org.openapitools.jackson.nullable.JsonNullable;
 
 /** Mechanical generated-contract mappings, preserving required explicit nulls. */
-@Mapper(config = MappingConfiguration.class)
+@Mapper(config = MappingConfiguration.class, uses = RequiredNullableMapping.class)
 public interface SportingAdministrationMapper {
   /**
    * Maps the complete classification using the generated contract enums.
@@ -24,7 +26,7 @@ public interface SportingAdministrationMapper {
    * @param source validated complete request, or null for removal
    * @return immutable complete value, or null
    */
-  SportingClassification toClassification(AcquisitionClassificationRequest source);
+  SportingClassification toCommand(AcquisitionClassificationRequest source);
 
   /**
    * Maps a present complete acquisition classification.
@@ -33,7 +35,7 @@ public interface SportingAdministrationMapper {
    * @return generated response value, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  AcquisitionClassificationResponse toResponse(SportingClassification source);
+  AcquisitionClassificationResponse toDto(SportingClassification source);
 
   /**
    * Emits both nullable properties even when acquisition is unavailable.
@@ -50,7 +52,7 @@ public interface SportingAdministrationMapper {
       source = "effective",
       nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   @Mapping(target = "additionalProperties", ignore = true)
-  ClassificationDetailResponse toResponse(ClassificationView source);
+  ClassificationDetailResponse toDto(ClassificationView source);
 
   /**
    * Maps presentation and activity without exposing persisted image bytes.
@@ -64,7 +66,7 @@ public interface SportingAdministrationMapper {
       nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   @Mapping(target = "logo", source = "source")
   @Mapping(target = "additionalProperties", ignore = true)
-  DivisionResponse toResponse(DivisionDetail source);
+  DivisionResponse toDto(DivisionDetail source);
 
   /**
    * Required nullable response fields are present even when their complete value is null.
@@ -74,7 +76,7 @@ public interface SportingAdministrationMapper {
    */
   default JsonNullable<AcquisitionClassificationResponse> nullableClassification(
       SportingClassification source) {
-    return JsonNullable.of(toResponse(source));
+    return JsonNullable.of(toDto(source));
   }
 
   /**
@@ -84,17 +86,17 @@ public interface SportingAdministrationMapper {
    * @return manual/effective resource reference, with explicit null for no artwork
    */
   default LogoPresentationResponse logo(DivisionDetail source) {
-    String url = source.hasLogo() ? "/divisions/" + source.id() + "/logo" : null;
+    String url = com.blockout.backend.sporting.application.ConsultationViewMapper.toLogoUrl(source);
     return new LogoPresentationResponse(url, url, null);
   }
 
   /**
-   * Preserves a required null gradient rather than omitting its field.
+   * Preserves the owner's selected division order in its collection envelope.
    *
-   * @param source three colors, or null
-   * @return present nullable color list
+   * @param divisions current authorized divisions
+   * @return generated administrative collection
    */
-  default JsonNullable<List<String>> nullableGradient(List<String> source) {
-    return JsonNullable.of(source);
+  default DivisionListResponse toDto(List<DivisionDetail> divisions) {
+    return new DivisionListResponse(divisions.stream().map(this::toDto).toList());
   }
 }

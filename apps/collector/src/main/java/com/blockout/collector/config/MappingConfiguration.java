@@ -6,10 +6,11 @@ import org.mapstruct.MappingConstants;
 import org.mapstruct.NullValueCheckStrategy;
 import org.mapstruct.ReportingPolicy;
 
-/** Shared mechanical mapping policy for collector transport boundaries. */
+/** Shared mechanical mapping policy for collector application and transport boundaries. */
 @MapperConfig(
     componentModel = MappingConstants.ComponentModel.SPRING,
     injectionStrategy = InjectionStrategy.CONSTRUCTOR,
     nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS,
+    typeConversionPolicy = ReportingPolicy.ERROR,
     unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface MappingConfiguration {}

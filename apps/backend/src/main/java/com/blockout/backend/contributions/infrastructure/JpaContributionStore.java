@@ -42,13 +42,13 @@ public class JpaContributionStore implements ContributionStore {
   @Override
   public ContributionState state(UUID matchId) {
     MatchContributionStateEntity state = entities.find(MatchContributionStateEntity.class, matchId);
-    return state == null ? ContributionState.initial(matchId) : mapper.toState(state);
+    return state == null ? ContributionState.initial(matchId) : mapper.toDomain(state);
   }
 
   /** {@inheritDoc} */
   @Override
   public Optional<ContributionVersion> active(UUID matchId) {
-    return versions.findByMatchIdAndState(matchId, State.ACTIVE).map(mapper::toVersion);
+    return versions.findByMatchIdAndState(matchId, State.ACTIVE).map(mapper::toDomain);
   }
 
   /** {@inheritDoc} */
@@ -56,7 +56,7 @@ public class JpaContributionStore implements ContributionStore {
   public Optional<ContributionVersion> pending(UUID matchId, UUID ownerId) {
     return versions
         .findByMatchIdAndOwnerIdAndState(matchId, ownerId, State.PENDING)
-        .map(mapper::toVersion);
+        .map(mapper::toDomain);
   }
 
   /** {@inheritDoc} */
@@ -81,7 +81,7 @@ public class JpaContributionStore implements ContributionStore {
   /** {@inheritDoc} */
   @Override
   public Optional<ContributionVersion> version(UUID id) {
-    return versions.findById(id).map(mapper::toVersion);
+    return versions.findById(id).map(mapper::toDomain);
   }
 
   /** {@inheritDoc} */
@@ -91,7 +91,7 @@ public class JpaContributionStore implements ContributionStore {
         versions.findByMatchIdAndOwnerIdOrderByCreatedAtDescIdAsc(
             matchId, ownerId, PageRequest.of(page, 20));
     return new VersionPage(
-        found.getContent().stream().map(mapper::toVersion).toList(), found.hasNext());
+        found.getContent().stream().map(mapper::toDomain).toList(), found.hasNext());
   }
 
   /** {@inheritDoc} */
@@ -132,7 +132,7 @@ public class JpaContributionStore implements ContributionStore {
     }
     versions.save(created);
     for (ContributionVersionEntity old : replaced) old.setReplacedByVersionId(created.getId());
-    return mapper.toVersion(created);
+    return mapper.toDomain(created);
   }
 
   /**
@@ -164,7 +164,7 @@ public class JpaContributionStore implements ContributionStore {
     }
     state.setRevision(state.getRevision() + 1);
     if (clearHold) state.setReportHoldVersionId(null);
-    return mapper.toState(state);
+    return mapper.toDomain(state);
   }
 
   /** {@inheritDoc} */

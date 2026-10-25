@@ -1,3 +1,4 @@
+import { formatCollectionTimestamp } from "../model/collection-time";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import type {
@@ -239,7 +240,7 @@ export function CollectionControl({
       >
         Dernière tentative :{" "}
         {control.lastAttemptAt
-          ? new Date(control.lastAttemptAt).toLocaleString("fr-FR")
+          ? formatCollectionTimestamp(control.lastAttemptAt)
           : "jamais"}
       </Text>
       <Text
@@ -247,7 +248,7 @@ export function CollectionControl({
       >
         Dernier succès complet :{" "}
         {control.lastSuccessAt
-          ? new Date(control.lastSuccessAt).toLocaleString("fr-FR")
+          ? formatCollectionTimestamp(control.lastSuccessAt)
           : "aucun"}
       </Text>
       {feedback && (

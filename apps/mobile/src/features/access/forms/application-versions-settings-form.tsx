@@ -1,9 +1,8 @@
+import { applicationVersionsValues as values } from "./application-versions-values";
+import { toApplicationVersionsRequest } from "../api/application-versions-request";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  applicationVersionsEditor,
-  applicationVersionsValues as values,
-} from "./application-versions-editor";
+import { applicationVersionsEditor } from "./application-versions-editor";
 import { applicationUpdateMessage } from "../application-update-message";
 import { ChevronDown, ChevronRight, Check } from "lucide-react-native";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -18,10 +17,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import type {
-  ApplicationVersionsResponse,
-  ChangeApplicationVersionsRequest,
-} from "../../../../.generated/schemas/index.zod";
+import type { ApplicationVersionsResponse } from "../../../../.generated/schemas/index.zod";
 import { Button } from "../../../shared/components/button";
 import { TextField } from "../../../shared/components/text-field";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -126,21 +122,10 @@ export function ApplicationVersionsSettingsForm({
   async function submit(draft: ApplicationVersionsValues) {
     if (!session.isCurrent(session.generation) || busy || rereadRequired)
       return;
-    const body: ChangeApplicationVersionsRequest = {
-      revision: baseline.revision,
-    };
-    for (const platform of ["ios", "android"] as const) {
-      const dirty = dirtyFields[platform];
-      if (!dirty?.minimumVersion && !dirty?.storeUrl) continue;
-      body[platform] = {};
-      if (dirty.minimumVersion)
-        body[platform].minimumVersion = draft[platform].minimumVersion || null;
-      if (dirty.storeUrl)
-        body[platform].storeUrl = draft[platform].storeUrl || null;
-    }
-    if (dirtyFields.message) body.message = draft.message || null;
     try {
-      const accepted = await editing.content.mutateAsync(body);
+      const accepted = await editing.content.mutateAsync(
+        toApplicationVersionsRequest(baseline.revision, draft, dirtyFields),
+      );
       if (!session.isCurrent(session.generation)) return;
       editor.update({
         baseline: accepted,

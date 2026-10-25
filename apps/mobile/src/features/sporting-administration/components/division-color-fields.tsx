@@ -30,9 +30,9 @@ export function DivisionColorFields({
   const gradient = useWatch({ control, name: "gradient" });
   const primary = /^#[0-9a-fA-F]{6}$/.test(color) ? color : colors.subtle;
   const custom = gradient.some((value) => value !== "");
-  const stops = (
-    custom ? gradient : [color, color, color]
-  ) as PresentationValues["gradient"];
+  const stops: PresentationValues["gradient"] = custom
+    ? gradient
+    : [color, color, color];
   const validStops = stops.every((value) => /^#[0-9a-fA-F]{6}$/.test(value));
   const card = [
     styles.card,
@@ -126,7 +126,13 @@ export function DivisionColorFields({
           </View>
         </View>
         <View style={styles.stops}>
-          {(["Départ", "Milieu", "Fin"] as const).map((label, index) => (
+          {(
+            [
+              { label: "Départ", index: 0 },
+              { label: "Milieu", index: 1 },
+              { label: "Fin", index: 2 },
+            ] as const
+          ).map(({ label, index }) => (
             <View key={label} style={styles.field}>
               <View
                 style={[
@@ -141,7 +147,7 @@ export function DivisionColorFields({
               />
               <Controller
                 control={control}
-                name={`gradient.${index as 0 | 1 | 2}`}
+                name={`gradient.${index}`}
                 render={({ field, fieldState }) => (
                   <TextField
                     ref={field.ref}
@@ -152,9 +158,9 @@ export function DivisionColorFields({
                     ]}
                     value={custom ? field.value : color}
                     onChangeText={(value) => {
-                      const next = (
-                        custom ? [...gradient] : [color, color, color]
-                      ) as PresentationValues["gradient"];
+                      const next: PresentationValues["gradient"] = custom
+                        ? [...gradient]
+                        : [color, color, color];
                       next[index] = value;
                       setValue("gradient", next, {
                         shouldDirty: true,

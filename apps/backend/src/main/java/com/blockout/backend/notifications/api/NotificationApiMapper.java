@@ -11,16 +11,18 @@ import com.blockout.backend.notifications.application.InboxReadStore.Page;
 import com.blockout.backend.notifications.application.InboxReadStore.Summary;
 import com.blockout.backend.notifications.domain.NotificationFamily;
 import com.blockout.backend.notifications.domain.NotificationMessage;
+import com.blockout.backend.shared.mapping.TemporalMapping;
 import com.blockout.backend.sporting.api.ConsultationApiMapper;
 import com.blockout.backend.sporting.application.ConsultationViews.Result;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
+import org.mapstruct.ValueMapping;
 
 /** Canonical transport mapping reuses F03 sporting DTOs and the stable F07 editorial choice. */
-@Mapper(config = MappingConfiguration.class, uses = ConsultationApiMapper.class)
+@Mapper(
+    config = MappingConfiguration.class,
+    uses = {ConsultationApiMapper.class, TemporalMapping.class})
 public interface NotificationApiMapper {
   /**
    * Maps current authorized facts into the generated notification representation.
@@ -29,9 +31,9 @@ public interface NotificationApiMapper {
    * @return current canonical notification with no video or private fields
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  @Mapping(target = "title", expression = "java(text(source))")
+  @Mapping(target = "title", source = "source", qualifiedByName = "notificationText")
   @Mapping(target = "division", source = "match.pool.classification.division")
-  NotificationResponse toResponse(Entry source);
+  NotificationResponse toDto(Entry source);
 
   /**
    * Maps the fixed announcement composition to its canonical wire value.
@@ -39,24 +41,9 @@ public interface NotificationApiMapper {
    * @param family fixed personal composition
    * @return canonical wire family
    */
-  default NotificationFamilyEnum family(NotificationFamily family) {
-    return switch (family) {
-      case PLAIN_RESULT -> NotificationFamilyEnum.RESULT;
-      case ENRICHED_RESULT -> NotificationFamilyEnum.RESULT_WITH_LINK;
-      case LIVE_LINK -> NotificationFamilyEnum.LIVE_LINK;
-      case POST_RESULT_LINK -> NotificationFamilyEnum.POST_RESULT_LINK;
-    };
-  }
-
-  /**
-   * Preserves a known instant in UTC without inventing absent values.
-   *
-   * @param value retained UTC instant, or absent
-   * @return equivalent UTC timestamp, or null
-   */
-  default OffsetDateTime instant(Instant value) {
-    return value == null ? null : value.atOffset(ZoneOffset.UTC);
-  }
+  @ValueMapping(source = "PLAIN_RESULT", target = "RESULT")
+  @ValueMapping(source = "ENRICHED_RESULT", target = "RESULT_WITH_LINK")
+  NotificationFamilyEnum toDto(NotificationFamily family);
 
   /**
    * Reads one current bounded inbox page.
@@ -64,8 +51,8 @@ public interface NotificationApiMapper {
    * @param page bounded owner page
    * @return collection with continuation omitted at exhaustion
    */
-  default NotificationsResponse page(Page page) {
-    return new NotificationsResponse(page.entries().stream().map(this::toResponse).toList())
+  default NotificationsResponse toDto(Page page) {
+    return new NotificationsResponse(page.entries().stream().map(this::toDto).toList())
         .nextCursor(NotificationCursor.encode(page.next()));
   }
 
@@ -75,10 +62,8 @@ public interface NotificationApiMapper {
    * @param summary aggregate from one current selection
    * @return count and optional next expiry
    */
-  default NotificationSummaryResponse summary(Summary summary) {
-    return new NotificationSummaryResponse(summary.unreadCount())
-        .nextExpiryAt(instant(summary.nextExpiryAt()));
-  }
+  @Mapping(target = "additionalProperties", ignore = true)
+  NotificationSummaryResponse toDto(Summary summary);
 
   /**
    * Renders factual French card text using the persisted editorial choice.
@@ -86,6 +71,7 @@ public interface NotificationApiMapper {
    * @param entry current authorized sporting facts with fixed family/variant
    * @return factual French card text including corrected/absent result or link
    */
+  @Named("notificationText")
   default String text(Entry entry) {
     Result result = entry.match().result();
     return NotificationMessage.render(
