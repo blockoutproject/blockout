@@ -79,7 +79,10 @@ jest.mock("expo-image-manipulator", () => ({
 }));
 jest.mock("expo-file-system", () => ({
   File: jest.fn(),
-  Paths: { cache: "file:///cache" },
+  Paths: {
+    cache: { uri: "file:///cache/" },
+    normalize: jest.requireActual("expo-file-system").Paths.normalize,
+  },
 }));
 jest.mock("@react-native-async-storage/async-storage", () =>
   jest.requireActual(
@@ -97,7 +100,8 @@ const mockFile = Object.assign(
   new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" }),
   { uri: "file:///prepared.png", exists: true, delete: jest.fn() },
 );
-const mockOriginal = {
+const mockPickedFile = {
+  exists: true,
   size: mockFile.size,
   type: "image/png",
   copy: jest.fn(),
@@ -149,11 +153,11 @@ beforeEach(async () => {
       (...parts) =>
         (parts.length === 2 || parts[0] === "file:///prepared.png"
           ? mockFile
-          : mockOriginal) as unknown as File,
+          : mockPickedFile) as unknown as File,
     );
   mockFile.delete.mockReset();
-  mockOriginal.copy.mockReset();
-  mockOriginal.delete.mockReset();
+  mockPickedFile.copy.mockReset();
+  mockPickedFile.delete.mockReset();
   await completeDiscovery();
   client = createQueryClient();
   stored = initial;
@@ -251,7 +255,12 @@ it("saves independent names and a nonsquare logo in one generated multipart PATC
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
     assets: [
-      { uri: "file:///selected.png", width: 120, height: 60, type: "image" },
+      {
+        uri: "file:///cache/ImagePicker/selected.png",
+        width: 120,
+        height: 60,
+        type: "image",
+      },
     ],
   });
   await user.press(screen.getByRole("button", { name: "Choisir un logo" }));
@@ -623,7 +632,12 @@ it("ignores a held native selection after the session is invalidated", async () 
     selection.resolve({
       canceled: false,
       assets: [
-        { uri: "file:///old.png", width: 120, height: 60, type: "image" },
+        {
+          uri: "file:///cache/ImagePicker/old.png",
+          width: 120,
+          height: 60,
+          type: "image",
+        },
       ],
     }),
   );
@@ -764,7 +778,9 @@ it("enters the real protected route with only the presentation grant and confirm
   await edit("Nom complet personnalisé", "Unsaved");
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
-    assets: [{ uri: "file:///source.png", width: 120, height: 60 }],
+    assets: [
+      { uri: "file:///cache/ImagePicker/source.png", width: 120, height: 60 },
+    ],
   });
   await user.press(screen.getByRole("button", { name: "Choisir un logo" }));
   await screen.findByRole("button", { name: "Aperçu : Logo" });
@@ -789,7 +805,7 @@ it("enters the real protected route with only the presentation grant and confirm
   // Then
   await screen.findByText("Modifier la présentation");
   expect(mockFile.delete).toHaveBeenCalledTimes(1);
-  expect(mockOriginal.delete).not.toHaveBeenCalled();
+  expect(mockPickedFile.delete).toHaveBeenCalled();
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
   ).toBe(false);
@@ -815,7 +831,9 @@ it("retains the draft and uncertain outcome when a failed permission refresh rem
   await edit("Nom complet personnalisé", "Retained draft");
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
-    assets: [{ uri: "file:///source.png", width: 120, height: 60 }],
+    assets: [
+      { uri: "file:///cache/ImagePicker/source.png", width: 120, height: 60 },
+    ],
   });
   await user.press(screen.getByRole("button", { name: "Choisir un logo" }));
   await screen.findByRole("button", { name: "Aperçu : Logo" });
@@ -1290,13 +1308,15 @@ it("preserves an empty invalid gradient stop when another stop changes", async (
   ).toBe(false);
 });
 
-it("deletes a removed logo copy while leaving the picker original untouched", async () => {
+it("deletes a removed logo copy after the picker loan was released", async () => {
   // Given
   const user = await renderEditor();
   await screen.findByDisplayValue("Current name");
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
-    assets: [{ uri: "file:///source.png", width: 120, height: 60 }],
+    assets: [
+      { uri: "file:///cache/ImagePicker/source.png", width: 120, height: 60 },
+    ],
   });
   await user.press(screen.getByRole("button", { name: "Choisir un logo" }));
   await screen.findByRole("button", { name: "Aperçu : Logo" });
@@ -1308,7 +1328,7 @@ it("deletes a removed logo copy while leaving the picker original untouched", as
 
   // Then
   expect(mockFile.delete).toHaveBeenCalledTimes(1);
-  expect(mockOriginal.delete).not.toHaveBeenCalled();
+  expect(mockPickedFile.delete).toHaveBeenCalled();
   expect(
     screen.queryByRole("button", { name: "Aperçu : Logo" }),
   ).not.toBeOnTheScreen();
@@ -1320,7 +1340,9 @@ it("keeps a sent logo until upload settlement after session invalidation", async
   await screen.findByDisplayValue("Current name");
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
-    assets: [{ uri: "file:///source.png", width: 120, height: 60 }],
+    assets: [
+      { uri: "file:///cache/ImagePicker/source.png", width: 120, height: 60 },
+    ],
   });
   await user.press(screen.getByRole("button", { name: "Choisir un logo" }));
   await screen.findByRole("button", { name: "Aperçu : Logo" });
@@ -1346,7 +1368,7 @@ it("keeps a sent logo until upload settlement after session invalidation", async
 
   // Then
   await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
-  expect(mockOriginal.delete).not.toHaveBeenCalled();
+  expect(mockPickedFile.delete).toHaveBeenCalled();
 });
 
 it("deletes a prepared logo completed after its form unmounts", async () => {
@@ -1357,7 +1379,7 @@ it("deletes a prepared logo completed after its form unmounts", async () => {
     canceled: false,
     assets: [
       {
-        uri: "file:///source.heic",
+        uri: "file:///cache/ImagePicker/source.heic",
         mimeType: "image/heic",
         width: 120,
         height: 60,
@@ -1381,7 +1403,7 @@ it("deletes a prepared logo completed after its form unmounts", async () => {
 
   // Then
   expect(mockFile.delete).toHaveBeenCalledTimes(1);
-  expect(mockOriginal.delete).not.toHaveBeenCalled();
+  expect(mockPickedFile.delete).toHaveBeenCalled();
 });
 
 it.each(["division-creation", "division"] as const)(
@@ -1484,15 +1506,21 @@ it("releases only the replaced logo copy while the new draft remains usable", as
     new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" }),
     { uri: "file:///replacement.png", exists: true, delete: jest.fn() },
   );
-  jest
-    .mocked(File)
-    .mockReturnValueOnce(mockOriginal as unknown as File)
-    .mockReturnValueOnce(mockFile as unknown as File)
-    .mockReturnValueOnce(mockOriginal as unknown as File)
-    .mockReturnValueOnce(replacement as unknown as File);
+  jest.mocked(File).mockImplementation((...parts) => {
+    if (
+      parts.length === 1 &&
+      String(parts[0]).startsWith("file:///cache/ImagePicker/")
+    )
+      return mockPickedFile as unknown as File;
+    return (mockPickedFile.copy.mock.calls.length === 0
+      ? mockFile
+      : replacement) as unknown as File;
+  });
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
-    assets: [{ uri: "file:///source.png", width: 120, height: 60 }],
+    assets: [
+      { uri: "file:///cache/ImagePicker/source.png", width: 120, height: 60 },
+    ],
   });
   await user.press(screen.getByRole("button", { name: "Choisir un logo" }));
   await screen.findByRole("button", { name: "Aperçu : Logo" });
@@ -1505,7 +1533,7 @@ it("releases only the replaced logo copy while the new draft remains usable", as
   // Then
   await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
   expect(replacement.delete).not.toHaveBeenCalled();
-  expect(mockOriginal.delete).not.toHaveBeenCalled();
+  expect(mockPickedFile.delete).toHaveBeenCalled();
   expect(
     screen.getByRole("button", { name: "Aperçu : Logo" }),
   ).toBeOnTheScreen();

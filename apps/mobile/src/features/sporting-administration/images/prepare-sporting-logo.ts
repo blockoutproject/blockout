@@ -1,7 +1,7 @@
 import type { ImagePickerAsset } from "expo-image-picker";
 import { File, Paths } from "expo-file-system";
 import { randomUUID } from "expo-crypto";
-import { deletePreparedImage } from "../../../shared/images/delete-prepared-image";
+import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
 import {
   ImageManipulator,
   SaveFormat,
@@ -9,7 +9,7 @@ import {
 } from "expo-image-manipulator";
 import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
 
-/** Returns an app-owned cache File for upload/preview, copying admissible PNG/JPEG bytes or preparing one bounded PNG; rejected output is deleted and picker originals remain untouched. */
+/** Returns an app-owned cache File by copying admissible PNG/JPEG bytes or preparing one bounded PNG; rejected output is deleted. Borrowed input remains with ImageField until preparation settles; the library original is untouched. */
 export async function prepareSportingLogo(
   asset: ImagePickerAsset,
   session: NonNullable<ApiFetchOptions["session"]>,
@@ -40,7 +40,7 @@ export async function prepareSportingLogo(
         throw new ApiError("cancelled");
       return file;
     } catch (error) {
-      deletePreparedImage(file);
+      deleteOwnedImage(file);
       throw error;
     }
   }
@@ -66,7 +66,7 @@ export async function prepareSportingLogo(
       throw new Error("Prepared image exceeds the upload limit");
     return file;
   } catch (error) {
-    deletePreparedImage(file);
+    deleteOwnedImage(file);
     throw error;
   } finally {
     rendered?.release();

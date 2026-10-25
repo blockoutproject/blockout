@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { File } from "expo-file-system";
 import {
   Image,
   ScrollView,
@@ -16,7 +17,7 @@ import { useTheme } from "../shared/theme/theme-provider";
 import { Button } from "../shared/components/button";
 import { tokens } from "../shared/theme/tokens";
 
-/** Isolated native qualification host; mount temporarily, never as a production/business route. */
+/** Isolated native qualification host; accepted previews contain memory data URIs, never retained picker files or uploads. */
 export function ImageFieldExamplesScreen() {
   const { colors } = useTheme();
   const [images, setImages] = useState<ImageFieldImage[]>([]);
@@ -95,11 +96,15 @@ export function ImageFieldExamplesScreen() {
               return;
             }
             setError(undefined);
-            const selected = assets.map((asset, index) => ({
-              id: asset.uri,
-              uri: asset.uri,
-              label: `Image ${images.length + index + 1}`,
-            }));
+            // Read borrowed cache bytes before ImageField releases them; no filesystem resource outlives this callback.
+            const selected: ImageFieldImage[] = [];
+            for (const [index, asset] of assets.entries()) {
+              selected.push({
+                id: asset.uri,
+                uri: `data:${asset.mimeType};base64,${await new File(asset.uri).base64()}`,
+                label: `Image ${images.length + index + 1}`,
+              });
+            }
             setImages((current) =>
               replaceId
                 ? current.flatMap((image) =>

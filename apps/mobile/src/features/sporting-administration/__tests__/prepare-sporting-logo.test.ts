@@ -70,7 +70,7 @@ beforeEach(() => {
   image.saveAsync.mockResolvedValue({ uri: output.uri });
 });
 
-it("copies an admissible JPEG without encoding or taking ownership of the picker original", async () => {
+it("copies an admissible JPEG without encoding or taking ownership of the borrowed picker input", async () => {
   // Given / When
   const prepared = await prepareSportingLogo(asset, session);
 

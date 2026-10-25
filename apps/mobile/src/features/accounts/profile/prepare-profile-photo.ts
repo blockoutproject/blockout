@@ -1,4 +1,4 @@
-import { deletePreparedImage } from "../../../shared/images/delete-prepared-image";
+import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
 import type { ImagePickerAsset } from "expo-image-picker";
 import { File } from "expo-file-system";
 import {
@@ -40,7 +40,7 @@ export async function prepareProfilePhoto(
       throw new Error("La photo préparée doit être un PNG de 5 Mio maximum.");
     return file;
   } catch (error) {
-    deletePreparedImage(file);
+    deleteOwnedImage(file);
     throw error;
   } finally {
     rendered?.release();

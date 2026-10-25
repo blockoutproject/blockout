@@ -1,4 +1,4 @@
-import { deletePreparedImage } from "../../../shared/images/delete-prepared-image";
+import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
@@ -391,7 +391,7 @@ export function PresentationForm({
                   const prepared = await prepareSportingLogo(asset, session);
                   if (mounted.current && session.isCurrent(session.generation))
                     editor.replaceLogo({ action: "replace", prepared });
-                  else deletePreparedImage(prepared);
+                  else deleteOwnedImage(prepared);
                 } catch {
                   if (mounted.current && session.isCurrent(session.generation))
                     setError("logo", {

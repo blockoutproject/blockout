@@ -1,5 +1,5 @@
 import type { File } from "expo-file-system";
-import { deletePreparedImage } from "../../../shared/images/delete-prepared-image";
+import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
 import { createFormControl } from "react-hook-form";
 import type { Presentation, PresentationTarget } from "../api/presentation";
 import type {
@@ -75,7 +75,7 @@ export function presentationEditor(
       file !== uploading &&
       (released || logo.action !== "replace" || logo.prepared !== file)
     )
-      deletePreparedImage(file);
+      deleteOwnedImage(file);
   }
   const stopSession = session.subscribe(() => {
     if (!session.isCurrent(session.generation))

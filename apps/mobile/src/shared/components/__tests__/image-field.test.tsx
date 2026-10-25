@@ -9,8 +9,24 @@ import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import { ThemeProvider } from "../../theme/theme-provider";
 import { ImageField, type ImageFieldProps } from "../image-field";
+import { ImageFieldExamplesScreen } from "../../../development/image-field-examples";
 
 jest.mock("expo-image-picker", () => ({ launchImageLibraryAsync: jest.fn() }));
+jest.mock("expo-file-system", () => ({
+  File: jest.fn((uri: string) => ({
+    uri,
+    exists: true,
+    delete: () => mockDeleteFile(uri),
+    base64: () => mockReadBase64(uri),
+  })),
+  Paths: {
+    cache: { uri: "file:///cache/" },
+    normalize: jest.requireActual("expo-file-system").Paths.normalize,
+  },
+}));
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+const mockDeleteFile = jest.fn<void, [string]>();
+const mockReadBase64 = jest.fn<Promise<string>, [string]>();
 const launch = jest.mocked(ImagePicker.launchImageLibraryAsync);
 const logo = {
   id: "club-logo",
@@ -18,14 +34,14 @@ const logo = {
   label: "Logo du club",
 };
 const photo: ImagePicker.ImagePickerAsset = {
-  uri: "file:///selection.jpg",
+  uri: "file:///cache/ImagePicker/selection.jpg",
   width: 1200,
   height: 800,
   mimeType: "image/jpeg",
   fileSize: 2048,
 };
 
-/** Renders the real control and appearance provider; only the native picker is doubled. */
+/** Renders real control/appearance owners with native picker and filesystem I/O doubled. */
 async function renderField(props: Partial<ImageFieldProps> = {}) {
   const onSelect = jest.fn();
   const onRemove = jest.fn();
@@ -45,9 +61,11 @@ async function renderField(props: Partial<ImageFieldProps> = {}) {
 
 beforeEach(() => {
   launch.mockReset();
+  mockDeleteFile.mockReset();
+  mockReadBase64.mockReset().mockResolvedValue("cHJldmlldw==");
 });
 
-it("selects original native images without imposing cropping or persistence", async () => {
+it("loans native image copies without imposing cropping and releases them after acceptance", async () => {
   // Given
   launch.mockResolvedValue({ canceled: false, assets: [photo] });
   const { user, onSelect } = await renderField();
@@ -64,6 +82,7 @@ it("selects original native images without imposing cropping or persistence", as
     }),
   );
   expect(onSelect).toHaveBeenCalledWith([photo], undefined);
+  expect(mockDeleteFile).toHaveBeenCalledWith(photo.uri);
   expect(
     screen.queryByRole("button", { name: "Aperçu : Logo du club" }),
   ).not.toBeOnTheScreen();
@@ -127,6 +146,7 @@ it("preserves the existing image when native selection is cancelled", async () =
   // Then
   expect(onSelect).not.toHaveBeenCalled();
   expect(onRemove).not.toHaveBeenCalled();
+  expect(mockDeleteFile).not.toHaveBeenCalled();
   expect(
     screen.getByRole("button", { name: "Aperçu : Logo du club" }),
   ).toBeOnTheScreen();
@@ -338,6 +358,7 @@ it("blocks reselection during owner preparation and recovers safely from rejecti
   // Then
   expect(launch).toHaveBeenCalledTimes(1);
   expect(onSelect).toHaveBeenCalledTimes(1);
+  expect(mockDeleteFile).not.toHaveBeenCalled();
 
   // When
   await act(async () => {
@@ -348,6 +369,7 @@ it("blocks reselection during owner preparation and recovers safely from rejecti
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "Impossible de sélectionner l’image. Réessayez.",
   );
+  expect(mockDeleteFile).toHaveBeenCalledWith(photo.uri);
   expect(
     screen.getByRole("button", {
       name: "Changer l’image : Logo du club",
@@ -402,6 +424,7 @@ it("ignores a native selection returned after the field unmounts", async () => {
 
   // Then
   expect(onSelect).not.toHaveBeenCalled();
+  expect(mockDeleteFile).toHaveBeenCalledWith(photo.uri);
 });
 
 it("shows accepted caller values and removes them only when the owner updates", async () => {
@@ -415,14 +438,14 @@ it("shows accepted caller values and removes them only when the owner updates", 
         <ImageField
           label="Logo"
           images={images}
-          onSelect={(assets) =>
-            setImages(
-              assets.map((asset) => ({
+          onSelect={() =>
+            setImages([
+              {
                 id: "replacement",
-                uri: asset.uri,
+                uri: "data:image/jpeg;base64,cHJldmlldw==",
                 label: "Nouveau logo",
-              })),
-            )
+              },
+            ])
           }
           onRemove={(id) =>
             setImages((current) => current.filter((image) => image.id !== id))
@@ -556,4 +579,109 @@ it("offers the caller's retry meaning after an empty-field validation error", as
   expect(screen.getByRole("alert")).toHaveTextContent(
     "Cette capture ne peut pas être utilisée.",
   );
+});
+
+it.each([
+  "content://media/external/images/37",
+  "ph://original-library-asset",
+  "file:///library/original.jpg",
+  "file:///cache-neighbor/original.jpg",
+  "file:///cache/../library/original.jpg",
+  "file:///cache/%2e%2e/library/original.jpg",
+  "file:///cache/nested%2f..%2f../library/original.jpg",
+  "file://another-host/cache/original.jpg",
+  "file:///cache",
+  "not a local URI",
+])("preserves a borrowed or non-cache picker source: %s", async (uri) => {
+  // Given
+  const borrowed = { ...photo, uri };
+  launch.mockResolvedValue({ canceled: false, assets: [borrowed] });
+  const { user, onSelect } = await renderField();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Choisir une image" }));
+
+  // Then
+  expect(onSelect).toHaveBeenCalledWith([borrowed], undefined);
+  expect(mockDeleteFile).not.toHaveBeenCalled();
+});
+
+it("releases every delivered cache copy after preparation settles even if the field unmounted", async () => {
+  // Given
+  const second = {
+    ...photo,
+    uri: "file:///cache/ImagePicker/second.jpg",
+    assetId: "file:///library/original.jpg",
+  };
+  launch.mockResolvedValue({ canceled: false, assets: [photo, second] });
+  const preparation = Promise.withResolvers<void>();
+  const onSelect = jest.fn(() => preparation.promise);
+  const { user } = await renderField({
+    onSelect,
+    multiple: true,
+    selectionLimit: 2,
+  });
+  await user.press(screen.getByRole("button", { name: "Choisir une image" }));
+  expect(onSelect).toHaveBeenCalledWith([photo, second], undefined);
+
+  // When
+  await screen.unmount();
+
+  // Then
+  expect(mockDeleteFile).not.toHaveBeenCalled();
+
+  // When
+  await act(async () => preparation.resolve());
+
+  // Then
+  expect(mockDeleteFile.mock.calls).toEqual([[photo.uri], [second.uri]]);
+});
+
+it("keeps the demonstration preview in memory after its picker cache copy is released", async () => {
+  // Given
+  launch.mockResolvedValue({ canceled: false, assets: [photo] });
+  const bytes = Promise.withResolvers<string>();
+  mockReadBase64.mockReturnValue(bytes.promise);
+  const user = userEvent.setup();
+  await render(
+    <ThemeProvider>
+      <ImageFieldExamplesScreen />
+    </ThemeProvider>,
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Choisir une image" }));
+
+  // Then
+  expect(mockReadBase64).toHaveBeenCalledWith(photo.uri);
+  expect(mockDeleteFile).not.toHaveBeenCalled();
+
+  // When
+  await act(async () => bytes.resolve("cHJldmlldw=="));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Aperçu : Image 1" }),
+  ).toBeOnTheScreen();
+  expect(mockDeleteFile).toHaveBeenCalledWith(photo.uri);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Aperçu : Image 1" }));
+
+  // Then
+  expect(screen.getByRole("image", { name: "Image 1" })).toHaveProp("source", [
+    expect.objectContaining({ uri: "data:image/jpeg;base64,cHJldmlldw==" }),
+  ]);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer l’aperçu" }));
+  await user.press(
+    screen.getByRole("button", { name: "Supprimer l’image : Image 1" }),
+  );
+
+  // Then
+  expect(
+    screen.queryByRole("button", { name: "Aperçu : Image 1" }),
+  ).not.toBeOnTheScreen();
+  expect(mockDeleteFile).toHaveBeenCalledTimes(1);
 });

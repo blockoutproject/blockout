@@ -1,5 +1,5 @@
 import type { File } from "expo-file-system";
-import { deletePreparedImage } from "../../../shared/images/delete-prepared-image";
+import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { UserRound } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
@@ -71,7 +71,7 @@ export function ProfileForm({ account }: ProfileFormProps) {
     function releasePhoto() {
       const photo = getValues("photo");
       if (photo.action === "replace" && photo.prepared !== uploading.current)
-        deletePreparedImage(photo.prepared);
+        deleteOwnedImage(photo.prepared);
     }
     const stop = subscribe(() => {
       if (!isCurrent(generation)) releasePhoto();
@@ -92,7 +92,7 @@ export function ProfileForm({ account }: ProfileFormProps) {
       (next.action !== "replace" || next.prepared !== previous.prepared) &&
       previous.prepared !== uploading.current
     )
-      deletePreparedImage(previous.prepared);
+      deleteOwnedImage(previous.prepared);
   }
 
   /** Sends only supplied editing intent; an uncertain failure performs one read without replaying the write. */
@@ -138,7 +138,7 @@ export function ProfileForm({ account }: ProfileFormProps) {
         current.action !== "replace" ||
         current.prepared !== file
       )
-        deletePreparedImage(file);
+        deleteOwnedImage(file);
     }
   }
 
@@ -179,7 +179,7 @@ export function ProfileForm({ account }: ProfileFormProps) {
               const prepared = await prepareProfilePhoto(selected, session);
               if (active.current && session.isCurrent(session.generation))
                 replacePhoto({ action: "replace", prepared });
-              else deletePreparedImage(prepared);
+              else deleteOwnedImage(prepared);
             } catch {
               if (active.current && session.isCurrent(session.generation))
                 setError("photo", {
