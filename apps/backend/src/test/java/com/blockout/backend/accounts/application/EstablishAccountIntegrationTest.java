@@ -12,7 +12,7 @@ import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.application.exception.AccountUnavailableException;
 import com.blockout.backend.accounts.application.exception.ProviderEmailUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
@@ -31,9 +31,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.util.AopTestUtils;
@@ -41,16 +41,13 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Real service/transaction/JPA evidence with a controlled provider, not an Auth0 qualification. */
 @SpringBootTest
-@Testcontainers
 @DisplayName("Explicit account establishment transactions")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class EstablishAccountIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   private static final String ISSUER = "https://identity.example.invalid/";
   private static final Instant CREATED = Instant.parse("2020-01-02T03:04:05Z");
   @Autowired private EstablishAccount establishment;
@@ -60,18 +57,6 @@ class EstablishAccountIntegrationTest {
   @Autowired private PlatformTransactionManager transactions;
   @MockitoBean private PrincipalReader provider;
   private TransactionTemplate transaction;
-
-  /**
-   * Migrates the real disposable schema before validation-only application startup.
-   *
-   * @param properties native test settings
-   * @throws Exception if migration fails
-   */
-  @DynamicPropertySource
-  static void properties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
 
   /** Clears only disposable test accounts; provider behavior is configured by each scenario. */
   @BeforeEach

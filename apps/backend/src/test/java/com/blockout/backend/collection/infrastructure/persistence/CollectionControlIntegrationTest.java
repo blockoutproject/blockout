@@ -26,6 +26,7 @@ import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons
 import com.blockout.backend.sporting.application.service.ReadCollectionSeasons;
 import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.persistence.EntityManagerFactory;
 import java.sql.Connection;
@@ -51,25 +52,24 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Real generated HTTP, F12 admission, account grants and committed PostgreSQL command effects. */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Testcontainers
 @DisplayName("Collection control commands on PostgreSQL")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class CollectionControlIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000183");
   private static final UUID CONTROL = UUID.fromString("00000000-0000-4000-8000-000000000184");
   private static final UUID SOURCE = UUID.fromString("00000000-0000-4000-8000-000000000185");
@@ -97,24 +97,12 @@ class CollectionControlIntegrationTest {
   @Autowired private EntityManagerFactory entityManagerFactory;
   private UUID season;
 
-  /**
-   * Uses the real role setup and migrations in a suite-owned dynamic-port database.
-   *
-   * @param properties application bindings for this disposable database
-   * @throws Exception if the disposable baseline cannot be migrated
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
   /** Prepares only this disposable database, with maintenance active and no bypass grant. */
   @BeforeEach
   void prepare() throws Exception {
     try (Connection connection =
             DriverManager.getConnection(
-                DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
         Statement cleanup = connection.createStatement()) {

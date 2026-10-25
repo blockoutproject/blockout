@@ -2,7 +2,7 @@ package com.blockout.backend.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -10,33 +10,21 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.annotation.DirtiesContext;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Qualifies the real main-port Actuator probe and bounded PostgreSQL failure over HTTP. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
 @DisplayName("Native readiness with PostgreSQL")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class HealthIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   @LocalServerPort private int port;
-
-  /**
-   * Migrates the disposable baseline, then supplies application-role credentials for startup.
-   *
-   * @param properties test context's native external configuration registry
-   * @throws Exception if the explicit migration fails
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
 
   @Test
   @DisplayName("Reports aggregate readiness from the actual application port")
@@ -61,7 +49,7 @@ class HealthIntegrationTest {
         HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build()) {
       assertThat(client.send(probe(), HttpResponse.BodyHandlers.ofString()).statusCode())
           .isEqualTo(200);
-      DATABASE.getDockerClient().pauseContainerCmd(DATABASE.getContainerId()).exec();
+      database.getDockerClient().pauseContainerCmd(database.getContainerId()).exec();
       try {
         // When
         HttpResponse<String> response = client.send(probe(), HttpResponse.BodyHandlers.ofString());
@@ -70,7 +58,7 @@ class HealthIntegrationTest {
         assertThat(response.statusCode()).isEqualTo(503);
         assertThat(response.body()).isEqualTo("{\"status\":\"DOWN\"}");
       } finally {
-        DATABASE.getDockerClient().unpauseContainerCmd(DATABASE.getContainerId()).exec();
+        database.getDockerClient().unpauseContainerCmd(database.getContainerId()).exec();
       }
     }
   }

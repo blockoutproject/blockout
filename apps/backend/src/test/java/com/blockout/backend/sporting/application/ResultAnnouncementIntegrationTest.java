@@ -16,7 +16,7 @@ import com.blockout.backend.sporting.application.service.AcceptMatchObservation;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -28,19 +28,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.test.annotation.DirtiesContext;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Real calendar/result producer, F06 recipients and F07 persistence on migrated PostgreSQL. */
-@Import(SportingIdentityFixture.class)
+@Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
 @SpringBootTest
-@Testcontainers
 @DisplayName("Result producer announcement integration")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class ResultAnnouncementIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   @Autowired private JdbcTemplate sql;
   @Autowired private ChangeCollectionSeasons seasons;
   @Autowired private SportingIdentityFixture identities;
@@ -52,22 +49,10 @@ class ResultAnnouncementIntegrationTest {
   private SportingIngestionFixture.Scope scope;
   private UUID matchId;
 
-  /**
-   * Migrates this disposable database before Hibernate validation.
-   *
-   * @param properties isolated native datasource settings
-   * @throws Exception if explicit migration fails
-   */
-  @DynamicPropertySource
-  static void database(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
   /** Establishes an actual admitted sporting encounter with no final result. */
   @BeforeEach
   void establishMatch() throws Exception {
-    SportingIngestionFixture.reset(DATABASE);
+    SportingIngestionFixture.reset(database);
     scope = SportingIngestionFixture.admit(sql, seasons, identities, cycles, runtimes);
     calendars.accept(
         scope.pool(),

@@ -20,38 +20,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Actual division lifecycle racing the three real announcement producers on migrated PostgreSQL.
  */
 @DisplayName("Sporting root order during division deactivation")
-@Testcontainers
 class ContributionSportingLocksIntegrationTest extends ContributionScenario {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
-
-  /**
-   * Migrates this suite's disposable database before wiring its real application services.
-   *
-   * @param properties native Spring datasource properties for this container
-   * @throws Exception if role initialization or the production migration fails
-   */
-  @DynamicPropertySource
-  static void database(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  protected PostgreSQLContainer databaseContainer() {
-    return DATABASE;
-  }
 
   @Autowired private ChangeDivisionLifecycle divisions;
   @Autowired private ProcessDueLinkAnnouncements.ProcessDueMatch dueMatch;

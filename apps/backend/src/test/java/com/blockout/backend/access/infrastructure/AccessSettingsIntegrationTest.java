@@ -15,6 +15,7 @@ import com.blockout.backend.access.domain.InvalidAccessSettingsException;
 import com.blockout.backend.access.domain.MaintenanceSettings;
 import com.blockout.backend.access.domain.StaleSettingsRevisionException;
 import com.blockout.backend.accounts.application.AccountStore;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.persistence.EntityManagerFactory;
 import java.util.UUID;
@@ -35,24 +36,21 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Migrated PostgreSQL, actual JPA versions, account locks and proxied application transactions. */
 @SpringBootTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
-@Testcontainers
 @DisplayName("Atomic access settings PostgreSQL persistence")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class AccessSettingsIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   @Autowired private JdbcTemplate sql;
   @Autowired private UpdateAccessSettings updates;
   @Autowired private ReadAccessConfiguration reads;
@@ -63,17 +61,6 @@ class AccessSettingsIntegrationTest {
   private TransactionTemplate transaction;
   private UUID first;
   private UUID second;
-
-  /**
-   * Applies the actual baseline before validation-only application startup.
-   *
-   * @param properties isolated database inputs for this suite's context
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
 
   /** Restores only this container's fixture rows without resetting a database or schema. */
   @BeforeEach

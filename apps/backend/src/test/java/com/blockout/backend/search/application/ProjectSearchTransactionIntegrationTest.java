@@ -5,7 +5,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.util.Set;
 import java.util.UUID;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
@@ -17,40 +17,26 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Real Spring proxies and PostgreSQL transactions with the external projection writer controlled.
  */
 @SpringBootTest
-@Testcontainers
-@Import(ProjectSearchTransactionIntegrationTest.ProjectionConfiguration.class)
+@Import({
+  PostgresTestConfiguration.class,
+  ProjectSearchTransactionIntegrationTest.ProjectionConfiguration.class
+})
 @DisplayName("Projection external-work transaction boundary")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class ProjectSearchTransactionIntegrationTest {
-  @Container static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   @Autowired private PlatformTransactionManager transactions;
   @Autowired private ProjectSearch projection;
   @MockitoBean private SearchProjectionWriter writer;
-
-  /**
-   * Initializes the maintained migrated database with its restricted application connection.
-   *
-   * @param properties disposable database configuration
-   * @throws Exception when migration or role initialization fails
-   */
-  @DynamicPropertySource
-  static void database(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})

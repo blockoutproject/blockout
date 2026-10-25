@@ -24,7 +24,7 @@ import com.blockout.backend.sporting.application.service.EstablishMatchIdentity;
 import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
 import com.blockout.backend.sporting.support.SportingIdentityFixture;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -52,25 +52,22 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.util.AopTestUtils;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Exercises committed identity decisions through the real services and migrated PostgreSQL. */
-@Import(SportingIdentityFixture.class)
+@Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
 @SpringBootTest
-@Testcontainers
 @DisplayName("Persistent sporting identities")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class SportingIdentityIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   private static final UUID DIVISION = UUID.fromString("00000000-0000-4000-8000-000000000010");
   @Autowired private ChangeCollectionSeasons seasons;
   @Autowired private SportingIdentityFixture identities;
@@ -82,18 +79,6 @@ class SportingIdentityIntegrationTest {
   @MockitoSpyBean private JpaSportingStore store;
 
   /**
-   * Migrates explicitly before Hibernate validates the application-role connection.
-   *
-   * @param properties native test configuration registry
-   * @throws Exception if the disposable baseline cannot be created
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
-  /**
    * Clears disposable data as its migration owner, then creates only the required division fixture.
    *
    * @throws Exception if isolated fixture cleanup fails
@@ -102,7 +87,7 @@ class SportingIdentityIntegrationTest {
   void prepareOwners() throws Exception {
     try (Connection connection =
             DriverManager.getConnection(
-                DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
         Statement fixture = connection.createStatement()) {

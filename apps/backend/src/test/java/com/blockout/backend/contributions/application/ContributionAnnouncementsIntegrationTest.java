@@ -33,41 +33,16 @@ import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Real producers/recipient union/SQL and after-commit handoff; no provider or actual moderation.
  */
 @Import(ContributionAnnouncementsIntegrationTest.ProbeConfiguration.class)
 @DisplayName("Atomic contribution, result and announcement composition")
-@Testcontainers
 class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
-
-  /**
-   * Migrates this suite's disposable database before wiring its real application services.
-   *
-   * @param properties native Spring datasource properties for this container
-   * @throws Exception if role initialization or the production migration fails
-   */
-  @DynamicPropertySource
-  static void database(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  protected PostgreSQLContainer databaseContainer() {
-    return DATABASE;
-  }
 
   @Autowired private Probe probe;
   @Autowired private SportingProjectionChanges projectionChanges;

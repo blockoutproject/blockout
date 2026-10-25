@@ -9,7 +9,7 @@ import com.blockout.backend.search.infrastructure.SearchIndexProperties;
 import com.blockout.backend.search.infrastructure.SearchTestEngine;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -29,11 +29,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -43,12 +39,11 @@ import tools.jackson.databind.json.JsonMapper;
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Testcontainers
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-@Import(SearchTraversalIntegrationTest.NativeEngine.class)
+@Import({PostgresTestConfiguration.class, SearchTraversalIntegrationTest.NativeEngine.class})
 @DisplayName("Complete current search traversal")
 class SearchTraversalIntegrationTest {
-  @Container static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   private static final String PREFIX = "blockout-local-search-" + UUID.randomUUID();
   @Autowired SearchTestEngine nativeEngine;
   @Autowired MockMvc mvc;
@@ -56,23 +51,12 @@ class SearchTraversalIntegrationTest {
   @Autowired JdbcTemplate sql;
   @Autowired ReadSportingData owners;
 
-  /**
-   * Migrates the real owner schema before restricted-role startup.
-   *
-   * @param properties native registry for this suite's disposable database settings
-   */
-  @DynamicPropertySource
-  static void database(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
   /** Resets SQL owners and the native generation so parameterized runs never share documents. */
   @BeforeEach
   void resetOwnersAndIndex() throws Exception {
     try (java.sql.Connection connection =
             java.sql.DriverManager.getConnection(
-                DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
         java.sql.Statement statement = connection.createStatement()) {

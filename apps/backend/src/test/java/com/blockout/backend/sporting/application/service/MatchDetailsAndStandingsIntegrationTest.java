@@ -34,7 +34,7 @@ import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import java.net.URI;
@@ -55,21 +55,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Real admission, generated mappings, application transactions and migrated PostgreSQL state. */
-@Import(SportingIdentityFixture.class)
+@Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
 @SpringBootTest
-@Testcontainers
 @DisplayName("Independent match facts and official tables")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class MatchDetailsAndStandingsIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   private static final OffsetDateTime FIRST = OffsetDateTime.parse("2026-10-19T12:00:00Z");
   @Autowired private JdbcTemplate sql;
   @Autowired private EntityManager entityManager;
@@ -111,22 +108,10 @@ class MatchDetailsAndStandingsIntegrationTest {
         .containsExactly(false, true);
   }
 
-  /**
-   * Migrates the disposable database with the shared role separation.
-   *
-   * @param properties application properties
-   * @throws Exception when migration fails
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
   /** Explicitly admits a known source and establishes one encounter through the calendar owner. */
   @BeforeEach
   void admitMatch() throws Exception {
-    SportingIngestionFixture.reset(DATABASE);
+    SportingIngestionFixture.reset(database);
     scope = SportingIngestionFixture.admit(sql, seasons, identities, cycles, runtimes);
     calendars.accept(
         scope.pool(),

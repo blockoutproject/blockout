@@ -16,7 +16,7 @@ import com.blockout.backend.notifications.application.InboxViews.Entry;
 import com.blockout.backend.notifications.application.InboxViews.Page;
 import com.blockout.backend.notifications.application.InboxViews.Summary;
 import com.blockout.backend.sporting.application.ReadSportingResources;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import jakarta.persistence.EntityManagerFactory;
 import java.sql.Timestamp;
 import java.time.Clock;
@@ -37,23 +37,24 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Real owner/sporting/link data with a controlled clock; no purge or provider execution. */
 @SpringBootTest
 @DisplayName("Current inbox selection on PostgreSQL")
-@Testcontainers
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class ReadInboxIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   private ProjectionInspector inspector;
   @Autowired private ReadInbox reads;
   @Autowired private JdbcTemplate sql;
@@ -63,15 +64,12 @@ class ReadInboxIntegrationTest {
   @MockitoBean private Clock clock;
 
   /**
-   * Binds the suite to its isolated, explicitly migrated PostgreSQL database.
+   * Configures only this suite's SQL observations; Spring owns database startup and teardown.
    *
-   * @param properties isolated database properties
-   * @throws Exception on migration failure
+   * @param properties native registry for the suite-specific non-database settings
    */
   @DynamicPropertySource
-  static void database(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
+  static void sqlObservations(DynamicPropertyRegistry properties) {
     properties.add("spring.jpa.properties.hibernate.generate_statistics", () -> true);
     properties.add(
         "spring.jpa.properties.hibernate.session_factory.statement_inspector",
@@ -91,7 +89,7 @@ class ReadInboxIntegrationTest {
                 .unwrap(SessionFactory.class)
                 .getSessionFactoryOptions()
                 .getStatementInspector();
-    reset(DATABASE, sql);
+    reset(database, sql);
     when(clock.instant()).thenReturn(NOW);
   }
 

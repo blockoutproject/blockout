@@ -10,7 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,17 +20,14 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.json.JsonCompareMode;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Qualifies the frozen legacy read against real F12 HTTP commands, admission and migrated SQL. JWT
@@ -44,10 +41,10 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
       "blockout.legacy.store-url-android=https://play.google.com/store/apps/details?id=com.blockoutproject.blockout"
     })
 @AutoConfigureMockMvc
-@Testcontainers
 @DisplayName("Legacy retirement independent of current F12 settings")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class LegacyApplicationStatusIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   private static final UUID EDITOR = UUID.fromString("00000000-0000-4000-8000-000000000159");
   private static final String LEGACY_PATH = "/api/v1/mobile/public/config/app-status";
   private static final String LEGACY_RESPONSE =
@@ -66,18 +63,6 @@ class LegacyApplicationStatusIntegrationTest {
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate sql;
-
-  /**
-   * Runs the committed migrations before opening the restricted application connection.
-   *
-   * @param properties native registry receiving this suite's disposable database coordinates
-   * @throws Exception if the real migration boundary fails
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
 
   /** Restores this suite's committed settings and an editor with only the two required grants. */
   @BeforeEach

@@ -14,7 +14,7 @@ import com.blockout.backend.search.application.SearchUnavailableException;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.IOException;
 import java.time.Duration;
@@ -40,28 +40,26 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Migrated PostgreSQL, F02 event/read owners and real TLS engine; all indexes are synthetic. */
 @SpringBootTest
-@Testcontainers
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-@Import(SearchProjectionIntegrationTest.ProjectionConfiguration.class)
+@Import({
+  PostgresTestConfiguration.class,
+  SearchProjectionIntegrationTest.ProjectionConfiguration.class
+})
 @DisplayName("Native search projection lifecycle")
 class SearchProjectionIntegrationTest {
+  @Autowired private PostgreSQLContainer database;
   private static final String PREFIX = "blockout-local-search-issue220";
   private static final UUID CLUB = UUID.fromString("00000000-0000-4000-8000-000000000001");
   private static final UUID TEAM = UUID.fromString("00000000-0000-4000-8000-000000000050");
   private static final UUID POOL = UUID.fromString("00000000-0000-4000-8000-000000000040");
   private static final UUID DIVISION = UUID.fromString("00000000-0000-4000-8000-000000000020");
-  @Container static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   @Autowired SearchTestEngine nativeEngine;
   @Autowired JdbcTemplate sql;
   @Autowired PlatformTransactionManager transactions;
@@ -72,25 +70,13 @@ class SearchProjectionIntegrationTest {
   @Autowired ThreadPoolTaskScheduler tasks;
 
   /**
-   * Stops background work before JUnit's container extension removes PostgreSQL.
+   * Stops background work before the owned Spring context closes its infrastructure.
    *
    * @param scheduler this class's single projection worker, also closed by its Spring context
    */
   @org.junit.jupiter.api.AfterAll
   static void stopProjectionTasks(@Autowired ThreadPoolTaskScheduler scheduler) {
     scheduler.shutdown();
-  }
-
-  /**
-   * Starts only disposable migrated PostgreSQL and the maintained TLS engine fixture.
-   *
-   * @param properties current restricted database connection
-   * @throws Exception on native setup failure
-   */
-  @DynamicPropertySource
-  static void infrastructure(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
   }
 
   /** Resets only this suite's disposable SQL state and publishes a clean empty generation. */
@@ -100,7 +86,7 @@ class SearchProjectionIntegrationTest {
     assertThat(aliases()).hasSize(3);
     try (java.sql.Connection connection =
             java.sql.DriverManager.getConnection(
-                DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
         java.sql.Statement statement = connection.createStatement()) {

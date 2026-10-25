@@ -24,7 +24,7 @@ import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingImageFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture.Scope;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import jakarta.persistence.EntityManagerFactory;
 import java.util.List;
 import java.util.Set;
@@ -40,19 +40,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.test.annotation.DirtiesContext;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Real F02 identities/effective values and migrated PostgreSQL; no provider or native evidence. */
-@Import(SportingIdentityFixture.class)
+@Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
 @SpringBootTest
-@Testcontainers
 @DisplayName("Current public sporting projections")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class SportingResourcesIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   @Autowired private JdbcTemplate sql;
   @Autowired private EntityManagerFactory entityManagerFactory;
   @Autowired private ReadSportingResources resources;
@@ -68,25 +65,13 @@ class SportingResourcesIntegrationTest {
   private UUID club;
 
   /**
-   * Migrates the disposable suite database before Hibernate validation.
-   *
-   * @param properties isolated datasource registration
-   * @throws Exception if the migrated baseline fails
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
-  /**
    * Creates exact current participants through F02, with explicit synthetic accepted schedule.
    *
    * @throws Exception if disposable fixture reset fails
    */
   @BeforeEach
   void prepareOwners() throws Exception {
-    SportingIngestionFixture.reset(DATABASE);
+    SportingIngestionFixture.reset(database);
     sql.update("DELETE FROM collection_control");
     scope = SportingIngestionFixture.admit(sql, seasons, identities, cycles, runtimes);
     match =

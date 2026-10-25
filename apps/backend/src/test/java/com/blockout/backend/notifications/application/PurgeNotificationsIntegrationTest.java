@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.blockout.backend.notifications.domain.NotificationFamily;
 import com.blockout.backend.notifications.infrastructure.NotificationRetentionConfiguration;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.persistence.EntityManagerFactory;
 import java.time.Clock;
@@ -40,23 +41,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Actual migrated purge/read/create boundaries; clock and SQL interruption are test controlled. */
 @SpringBootTest
 @ExtendWith(OutputCaptureExtension.class)
 @DisplayName("Daily notification retention on PostgreSQL")
-@Testcontainers
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class PurgeNotificationsIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   private PurgeInspector inspector;
   @Autowired private EntityManagerFactory entityManagerFactory;
   @Autowired private NotificationRetentionConfiguration daily;
@@ -69,15 +71,12 @@ class PurgeNotificationsIntegrationTest {
   @MockitoBean private Clock clock;
 
   /**
-   * Uses the existing disposable database and a test-only statement failure boundary.
+   * Configures only this suite's SQL observations; Spring owns database startup and teardown.
    *
-   * @param properties native isolated configuration
-   * @throws Exception on migration failure
+   * @param properties native registry for the suite-specific non-database settings
    */
   @DynamicPropertySource
-  static void database(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
+  static void sqlObservations(DynamicPropertyRegistry properties) {
     properties.add(
         "spring.jpa.properties.hibernate.session_factory.statement_inspector",
         () -> PurgeInspector.class.getName());
@@ -96,7 +95,7 @@ class PurgeNotificationsIntegrationTest {
                 .unwrap(SessionFactory.class)
                 .getSessionFactoryOptions()
                 .getStatementInspector();
-    reset(DATABASE, sql);
+    reset(database, sql);
     when(clock.instant()).thenReturn(NOW);
   }
 

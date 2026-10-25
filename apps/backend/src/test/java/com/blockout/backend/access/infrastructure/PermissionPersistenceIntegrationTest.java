@@ -11,6 +11,7 @@ import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.port.SportingStore;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.util.Set;
 import java.util.UUID;
@@ -28,26 +29,23 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Uses migrated PostgreSQL and the real account lock; domain effects and manual SQL are test-owned.
  */
 @SpringBootTest
-@Testcontainers
 @DisplayName("Current permission persistence and withdrawal")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class PermissionPersistenceIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   private static final String ISSUER = "https://identity.example.invalid/";
   @Autowired private JdbcTemplate sql;
   @Autowired private AccountStore accounts;
@@ -58,18 +56,6 @@ class PermissionPersistenceIntegrationTest {
   @Autowired private PlatformTransactionManager transactions;
   private TransactionTemplate transaction;
   private Account account;
-
-  /**
-   * Applies the actual disposable baseline before native Hibernate validation.
-   *
-   * @param properties isolated application connection settings
-   * @throws Exception if migrations fail
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
 
   /** Recreates only disposable fixture state; new accounts start with no permission rows. */
   @BeforeEach

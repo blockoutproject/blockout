@@ -1021,6 +1021,8 @@ The [canonical patterns](README.md) own setup, naming and lifecycle conventions.
 
 ## PostgreSQL, JPA, transactions and concurrency
 
+All 48 Spring/PostgreSQL suites use the context-owned container and native property registrar in `PostgresTestConfiguration`, directly or through `ContributionScenario`. Each class closes its context with `@DirtiesContext(AFTER_CLASS)`, so datasource pools and application consumers close before PostgreSQL. Scenario fixtures reset the class's disposable data; explicit transactions, lock observations and failure hooks retain their local cleanup. `DatabaseConfigurationIntegrationTest` is the direct startup/role runner exception: JUnit owns its container, and every manually started application context closes explicitly before that container.
+
 The inventory includes unchanged suites to distinguish retained SQL evidence from reclassified tests. `SearchTraversalIntegrationTest` and `SearchProjectionIntegrationTest` integrate both PostgreSQL and the disposable TLS OpenSearch engine; they are inventoried with external clients because that owner maintains their engine lifecycle. Pure HTTP/MVC/JSON suites belong to the HTTP inventory.
 
 ### AccountMaintenanceAdmissionIntegrationTest

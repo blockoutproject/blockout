@@ -18,6 +18,7 @@ import com.blockout.backend.sporting.application.model.SportingViews.DivisionDet
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.infrastructure.DivisionEntity;
 import com.blockout.backend.sporting.support.SportingIdentityFixture;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.persistence.EntityManagerFactory;
 import java.awt.image.BufferedImage;
@@ -46,22 +47,19 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Exercises persisted lifecycle, name uniqueness and division/classification ordering. */
-@Import(SportingIdentityFixture.class)
+@Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
 @SpringBootTest
-@Testcontainers
 @DisplayName("Division lifecycle transactions")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class DivisionIntegrationTest {
+  @Autowired private PostgreSQLContainer database;
   @Autowired private com.blockout.backend.access.application.CurrentPermissions permissions;
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   @Autowired private ChangeDivisionLifecycle divisions;
   @Autowired private ReadSportingConfiguration configurationReads;
   @Autowired private ChangeSportingClassification classifications;
@@ -76,18 +74,6 @@ class DivisionIntegrationTest {
   private UUID account;
 
   /**
-   * Migrates a disposable PostgreSQL database before application-role validation.
-   *
-   * @param properties native test configuration registry
-   * @throws Exception if the disposable baseline cannot be migrated
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
-  /**
    * Isolates synthetic division, sporting and account fixtures.
    *
    * @throws Exception if isolated fixture cleanup fails
@@ -96,7 +82,7 @@ class DivisionIntegrationTest {
   void prepareOwners() throws Exception {
     try (Connection connection =
             DriverManager.getConnection(
-                DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
         Statement fixture = connection.createStatement()) {

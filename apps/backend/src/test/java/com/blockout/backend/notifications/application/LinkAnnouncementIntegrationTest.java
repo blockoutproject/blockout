@@ -7,7 +7,6 @@ import static org.mockito.Mockito.when;
 import com.blockout.backend.contributions.support.ContributionScenario;
 import com.blockout.backend.generated.ingestion.model.MatchFactsInternalRequest;
 import com.blockout.backend.sporting.application.model.MatchObservation;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.net.URI;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -15,37 +14,12 @@ import java.util.UUID;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Real minute-pass entry point, sporting reads, publication and current confirmed F06 audience. */
 @DisplayName("Actual link publication and minute eligibility pass")
-@Testcontainers
 class LinkAnnouncementIntegrationTest extends ContributionScenario {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
-
-  /**
-   * Migrates this suite's disposable database before wiring its real application services.
-   *
-   * @param properties native Spring datasource properties for this container
-   * @throws Exception if role initialization or the production migration fails
-   */
-  @DynamicPropertySource
-  static void database(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  protected PostgreSQLContainer databaseContainer() {
-    return DATABASE;
-  }
 
   @Test
   @DisplayName("Rejects an enclosing transaction before a due candidate can be processed")

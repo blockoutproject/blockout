@@ -26,6 +26,7 @@ import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import com.blockout.backend.sporting.support.SportingIdentityFixture;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.persistence.EntityManagerFactory;
 import java.sql.Connection;
@@ -58,25 +59,22 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.util.AopTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Real PostgreSQL admission, frozen-target and transaction-fence contracts. */
-@Import(SportingIdentityFixture.class)
+@Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
 @SpringBootTest
-@Testcontainers
 @DisplayName("Collector admission and transaction-held incarnation fence")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class CollectionAdmissionIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   private static final UUID STARTUP = UUID.fromString("00000000-0000-4000-8000-000000000149");
   private static final UUID REPLACEMENT = UUID.fromString("00000000-0000-4000-8000-000000000150");
   private static final UUID CONTROL = UUID.fromString("00000000-0000-4000-8000-000000000151");
@@ -99,25 +97,13 @@ class CollectionAdmissionIntegrationTest {
   @MockitoSpyBean private CollectionStore store;
   private UUID season;
 
-  /**
-   * Applies the real disposable baseline before the application checks its mappings.
-   *
-   * @param properties isolated application connection settings
-   * @throws Exception if the disposable baseline cannot be migrated
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
   /** Recreates a qualified active source; no provider data or operator endpoint is involved. */
   @BeforeEach
   void prepareScope() {
     Mockito.when(clock.instant()).thenReturn(NOW);
     try (Connection connection =
             DriverManager.getConnection(
-                DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
         Statement cleanup = connection.createStatement()) {

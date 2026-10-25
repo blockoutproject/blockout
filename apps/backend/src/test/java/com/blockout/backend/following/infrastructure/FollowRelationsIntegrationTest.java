@@ -16,6 +16,7 @@ import com.blockout.backend.following.application.FollowUnavailableTargetExcepti
 import com.blockout.backend.following.application.ReadFollowEligibility;
 import com.blockout.backend.following.application.ReadFollowState;
 import com.blockout.backend.following.application.ReplaceFollowState;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -38,25 +39,24 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Real relation commits/locks with controlled account-row removal, not F05 erasure orchestration.
  */
 @SpringBootTest
-@Testcontainers
 @DisplayName("Durable team and pool follows on PostgreSQL")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class FollowRelationsIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000001");
   private static final UUID OTHER = UUID.fromString("00000000-0000-4000-8000-000000000002");
   private static final UUID SEASON = UUID.fromString("00000000-0000-4000-8000-000000000010");
@@ -74,20 +74,6 @@ class FollowRelationsIntegrationTest {
   @MockitoBean private PrincipalReader provider;
 
   /**
-   * Migrates the task-owned disposable database before validation-only application startup.
-   *
-   * @param properties native test properties
-   * @throws Exception when explicit baseline migration fails
-   */
-  @DynamicPropertySource
-  static void database(DynamicPropertyRegistry properties) throws Exception {
-    System.out.println(
-        "#211 database " + DATABASE.getContainerId() + " port " + DATABASE.getMappedPort(5432));
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
-  /**
    * Resets only this container and creates synthetic, currently viewable F02/F05 identities.
    *
    * @throws Exception when fixture setup fails
@@ -96,7 +82,7 @@ class FollowRelationsIntegrationTest {
   void owners() throws Exception {
     try (Connection connection =
             DriverManager.getConnection(
-                DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
         Statement fixture = connection.createStatement()) {

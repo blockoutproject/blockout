@@ -10,7 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.blockout.backend.access.application.MaintenanceAdmission;
 import com.blockout.backend.access.domain.AccessSettingsUnavailableException;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,8 +25,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -35,9 +34,6 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Actual Spring security, grants, settings, operations and migrated PostgreSQL. A test-owned
@@ -51,25 +47,15 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
       "blockout.legacy.store-url-android=https://play.google.com/store/apps/details?id=com.blockout.app"
     })
 @AutoConfigureMockMvc
-@Testcontainers
-@Import(MaintenanceAdmissionIntegrationTest.OrdinaryRead.class)
+@Import({PostgresTestConfiguration.class, MaintenanceAdmissionIntegrationTest.OrdinaryRead.class})
 @DisplayName("Current SQL maintenance across shared HTTP admission")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class MaintenanceAdmissionIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000177");
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate sql;
   @Autowired private MaintenanceAdmission admission;
   @Autowired private PlatformTransactionManager transactions;
-
-  /**
-   * Migrates this suite's disposable database before the restricted application connection opens.
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
 
   /** Restores only the disposable account and settings used by this suite. */
   @BeforeEach

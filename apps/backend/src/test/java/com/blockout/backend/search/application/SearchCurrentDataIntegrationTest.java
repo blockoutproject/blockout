@@ -7,7 +7,7 @@ import static org.mockito.Mockito.verify;
 import com.blockout.backend.search.application.SearchEngine.Candidate;
 import com.blockout.backend.search.application.SearchEngine.Position;
 import com.blockout.backend.sporting.application.ReadSportingResources;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -16,12 +16,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
@@ -29,31 +27,21 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * spy records forbidden detail reads while executing the real owner projections.
  */
 @SpringBootTest
-@Testcontainers
 @DisplayName("Current search hydration")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class SearchCurrentDataIntegrationTest {
-  @Container static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   @Autowired JdbcTemplate sql;
   @Autowired HydrateSearch hydration;
   @MockitoSpyBean ReadSportingResources consultation;
-
-  /**
-   * Applies the actual baseline before Hibernate validation with the restricted application role.
-   *
-   * @param properties native registry for this suite's disposable database settings
-   */
-  @DynamicPropertySource
-  static void database(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
 
   /** Clears only this suite's disposable database before each independent fixture. */
   @org.junit.jupiter.api.BeforeEach
   void clearFixtures() throws Exception {
     try (java.sql.Connection connection =
             java.sql.DriverManager.getConnection(
-                DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
         java.sql.Statement statement = connection.createStatement()) {

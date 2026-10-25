@@ -41,7 +41,7 @@ import com.blockout.backend.sporting.application.service.ReadSportingAcquisition
 import com.blockout.backend.sporting.application.service.ReadSportingData;
 import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import jakarta.persistence.EntityManagerFactory;
 import java.net.URI;
 import java.time.LocalDate;
@@ -62,22 +62,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Real admitted F01 cycles and committed F02 transactions against the migrated PostgreSQL schema.
  */
-@Import(SportingIdentityFixture.class)
+@Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
 @SpringBootTest
-@Testcontainers
 @DisplayName("Independent visibility reasons and retained sporting history")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class SportingVisibilityIntegrationTest {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  @Autowired private PostgreSQLContainer database;
   private static final OffsetDateTime NOW = OffsetDateTime.parse("2026-10-19T12:00:00Z");
   @Autowired private JdbcTemplate sql;
   @Autowired private EntityManagerFactory entityManagerFactory;
@@ -104,25 +101,13 @@ class SportingVisibilityIntegrationTest {
   private UUID season;
 
   /**
-   * Uses the same maintained database roles and Liquibase initialization as other backend suites.
-   *
-   * @param properties native application test properties
-   * @throws Exception if migration or initialization fails
-   */
-  @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
-  /**
    * Creates real qualified source/classification state, then admits through the production owner.
    *
    * @throws Exception if the disposable fixture cannot be reset
    */
   @BeforeEach
   void admit() throws Exception {
-    SportingIngestionFixture.reset(DATABASE);
+    SportingIngestionFixture.reset(database);
     SportingIngestionFixture.Scope scope =
         SportingIngestionFixture.admit(sql, seasons, identities, cycles, runtimes);
     season = scope.season();

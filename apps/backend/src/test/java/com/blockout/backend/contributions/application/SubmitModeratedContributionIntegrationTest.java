@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.backend.contributions.support.ContributionScenario;
 import com.blockout.backend.notifications.application.AfterCommitAnnouncements;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.net.URI;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
@@ -18,40 +17,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Real command commit and current F05 attribution with a controlled post-commit account change. */
 @Import(SubmitModeratedContributionIntegrationTest.AttributionConfiguration.class)
 @DisplayName("Moderator publication result ownership")
-@Testcontainers
 class SubmitModeratedContributionIntegrationTest extends ContributionScenario {
-  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
-
-  /**
-   * Migrates this suite's disposable database before wiring its real application services.
-   *
-   * @param properties native Spring datasource properties for this container
-   * @throws Exception if role initialization or the production migration fails
-   */
-  @DynamicPropertySource
-  static void database(DynamicPropertyRegistry properties) throws Exception {
-    PostgresTestDatabase.migrate(DATABASE);
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  protected PostgreSQLContainer databaseContainer() {
-    return DATABASE;
-  }
 
   @Autowired private SubmitModeratedContribution moderated;
   @Autowired private ChangeAttributionAfterCommit attribution;
