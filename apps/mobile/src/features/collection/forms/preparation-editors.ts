@@ -13,11 +13,10 @@ import type {
   SourceCandidateValues,
 } from "../schemas/source-candidate";
 
-/** Candidate revision, reconciliation and presentation state survive protected-route removal with RHF. */
+/** Candidate revision and presentation state survive protected-route removal with RHF. */
 interface SourceEditingState {
   baseline: SourceBindingResponse;
   editingUrl: boolean;
-  needsRead: boolean;
   feedback?: string;
 }
 /** The bounded source editor retains the actual RHF control, never a second copy of field values. */
@@ -25,11 +24,11 @@ interface SourceEditor {
   generation: string;
   sourceId: string;
   form: ReturnType<typeof createFormControl<SourceCandidateValues>>;
-  /** Returns immutable revision/recovery metadata; RHF owns the fields separately. */
+  /** Returns immutable revision/presentation metadata; RHF owns the fields separately. */
   getSnapshot(): SourceEditingState;
   /** Observes metadata changes while the source form is mounted. */
   subscribe(listener: () => void): () => void;
-  /** Publishes a confirmed outcome or recovery requirement without submitting work. */
+  /** Publishes an outcome for this draft without owning command status. */
   update(state: SourceEditingState): void;
   /** Detaches the F05 lifetime observer after this draft is discarded. */
   release(): void;
@@ -56,7 +55,6 @@ export function sourcePreparationEditor(
   let state: SourceEditingState = {
     baseline: source,
     editingUrl: false,
-    needsRead: false,
   };
   const listeners = new Set<() => void>();
   const editor: SourceEditor = {
@@ -66,7 +64,7 @@ export function sourcePreparationEditor(
       defaultValues: { candidateUrl: source.candidateUrl ?? "" },
     }),
     getSnapshot: () => state,
-    /** Observes recovery/presentation metadata; RHF separately owns field subscriptions. */
+    /** Observes revision/presentation metadata; RHF separately owns field subscriptions. */
     subscribe(listener) {
       listeners.add(listener);
       return () => {
@@ -94,7 +92,6 @@ interface ProviderEditingState {
   baseline: CollectionSeasonResponse;
   selected: string[] | null;
   adding: boolean;
-  needsRead: boolean;
   feedback?: string;
 }
 /** One current provider workspace survives admission removal without persistence or a draft registry. */
@@ -105,7 +102,7 @@ interface ProviderEditor {
   form: ReturnType<typeof createFormControl<CreateSourceValues>>;
   /** Returns immutable selection/revision metadata, without copying RHF fields. */
   getSnapshot(): ProviderEditingState;
-  /** Observes selection/recovery changes for mounted provider screens. */
+  /** Observes selection/revision changes for mounted provider screens. */
   subscribe(listener: () => void): () => void;
   /** Publishes this provider's explicit editing outcome. */
   update(state: ProviderEditingState): void;
@@ -137,7 +134,6 @@ export function providerPreparationEditor(
     baseline: season,
     selected: null,
     adding: false,
-    needsRead: false,
   };
   const listeners = new Set<() => void>();
   const editor: ProviderEditor = {
@@ -148,7 +144,7 @@ export function providerPreparationEditor(
       defaultValues: { organizerReference: "", candidateUrl: "" },
     }),
     getSnapshot: () => state,
-    /** Observes selection/recovery changes independently from RHF's field lifecycle. */
+    /** Observes selection/revision changes independently from RHF's field lifecycle. */
     subscribe(listener) {
       listeners.add(listener);
       return () => {

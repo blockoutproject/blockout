@@ -23,8 +23,11 @@ interface InstallationAge {
   renewal: boolean;
   loading: boolean;
   readFailed: boolean;
+  pending: boolean;
+  /** Retries only the installation read after an explicit failure. */
   retryRead(): void;
-  confirm(age: number): Promise<void>;
+  /** Starts one acknowledged write; an already active or disposed owner suppresses the action without success. */
+  confirm(age: number): Promise<void> | undefined;
 }
 
 const AgeContext = createContext<InstallationAge | null>(null);
@@ -45,6 +48,8 @@ export function AgeDeclarationProvider({
     evaluatedAt: new Date(),
   }));
   const mounted = useRef(false);
+  const submission = useRef<Promise<void> | undefined>(undefined);
+  const [pending, setPending] = useState(false);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -85,12 +90,24 @@ export function AgeDeclarationProvider({
       setState({ status: "loading", evaluatedAt: state.evaluatedAt });
   }
 
-  /** Persistence success alone replaces the installation declaration; F05 transitions do not cancel it. */
-  async function confirm(age: number) {
+  /** One installation operation owns admission and busy state across form mounts; F05 neither cancels nor replays it. */
+  function confirm(age: number): Promise<void> | undefined {
+    if (!mounted.current || submission.current) return;
+    setPending(true);
     const now = new Date();
-    const saved = await submitAgeDeclaration(age, now);
-    if (mounted.current)
-      setState({ status: "ready", evaluatedAt: now, declaration: saved });
+    const operation = submitAgeDeclaration(age, now)
+      .then((saved) => {
+        if (mounted.current)
+          setState({ status: "ready", evaluatedAt: now, declaration: saved });
+      })
+      .finally(() => {
+        if (submission.current === operation) {
+          submission.current = undefined;
+          if (mounted.current) setPending(false);
+        }
+      });
+    submission.current = operation;
+    return operation;
   }
 
   const declaration = state.status === "ready" ? state.declaration : null;
@@ -104,6 +121,7 @@ export function AgeDeclarationProvider({
         renewal: status === "expired",
         loading: state.status === "loading",
         readFailed: state.status === "read-error",
+        pending,
         retryRead,
         confirm,
       }}

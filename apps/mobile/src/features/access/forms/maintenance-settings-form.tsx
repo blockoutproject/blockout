@@ -1,10 +1,13 @@
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
+import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
+import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
 import { FileText, Wrench } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import type { MaintenanceSettingsResponse } from "../../../../.generated/schemas/index.zod";
 import {
   maintenanceImageSchema,
@@ -19,10 +22,7 @@ import { TextField } from "../../../shared/components/text-field";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useAccountSession } from "../../accounts/current-account";
-import {
-  requiresSettingsReread,
-  useMaintenanceSettings,
-} from "../api/use-maintenance-settings";
+import { useMaintenanceSettings } from "../api/use-maintenance-settings";
 
 /** One editable snapshot; newer remote data cannot silently replace dirty input or its revision. */
 export interface MaintenanceSettingsFormProps {
@@ -39,18 +39,24 @@ export function MaintenanceSettingsForm({
 }: MaintenanceSettingsFormProps) {
   const session = useAccountSession();
   const { colors } = useTheme();
+  const confirmAction = useActionConfirmation();
+  const actionFeedback = useActionFeedback();
   const [state, setState] = useState<{
     baseline: MaintenanceSettingsResponse;
-    needsRead: boolean;
     feedback?: string;
-  }>({ baseline: settings, needsRead: false });
-  const { baseline, needsRead, feedback } = state;
+  }>({ baseline: settings });
+  const { baseline } = state;
+  const feedback = editing.content.needsRead
+    ? "Le résultat doit être vérifié. Relisez les réglages avant une nouvelle soumission."
+    : Math.max(settings.revision, editing.observedRevision) > baseline.revision
+      ? "Les réglages ont changé. Relisez-les avant une nouvelle soumission."
+      : state.feedback;
   const mounted = useRef(false);
   const {
     control,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting, isDirty, dirtyFields },
+    formState: { errors, isDirty, dirtyFields },
   } = useForm<MaintenanceValues>({
     resolver: zodResolver(maintenanceSchema),
     defaultValues: maintenanceValues(settings),
@@ -63,79 +69,44 @@ export function MaintenanceSettingsForm({
     };
   }, []);
   const imageUrl = useWatch({ control, name: "imageUrl" });
-  const busy =
-    disabled ||
-    isSubmitting ||
-    editing.content.isPending ||
-    editing.activation.isPending ||
-    editing.query.isFetching;
-  const rereadRequired = needsRead || settings.revision > baseline.revision;
+  const busy = disabled || editing.content.pending || editing.query.isFetching;
+  const rereadRequired =
+    editing.content.needsRead ||
+    Math.max(settings.revision, editing.observedRevision) > baseline.revision;
   const validPreview =
     imageUrl !== "" && maintenanceImageSchema.safeParse(imageUrl).success;
-
-  /** Confirms content preparation with the native F13 confirmation, independently of activation. */
-  function confirmContent(draft: MaintenanceValues) {
-    if (busy || rereadRequired) return;
-    Alert.alert("Enregistrer le contenu ?", "L’activation reste inchangée.", [
-      { text: "Annuler", style: "cancel" },
-      {
-        text: "Enregistrer",
-        onPress: () => {
-          if (mounted.current) void submit(draft);
-        },
-      },
-    ]);
-  }
-  /** Confirms the desired global state using saved content, preserving the editing draft. */
-  function confirmActivation() {
-    if (busy || rereadRequired) return;
-    Alert.alert(
-      baseline.active
-        ? "Désactiver la maintenance ?"
-        : "Activer la maintenance ?",
-      "Cette action utilise le contenu enregistré. Votre brouillon est conservé.",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: baseline.active ? "Désactiver" : "Activer",
-          onPress: () => {
-            if (mounted.current) void activate();
-          },
-        },
-      ],
-    );
-  }
 
   /** Keeps a failed draft intact; only ambiguous outcomes and conflicts block further writes. */
   function failed(error: unknown) {
     if (!mounted.current || !session.isCurrent(session.generation)) return;
-    if (requiresSettingsReread(error)) {
-      setState({
-        ...state,
-        needsRead: true,
-        feedback:
-          "Le résultat doit être vérifié. Relisez les réglages avant une nouvelle soumission.",
-      });
-    } else
-      setState({
-        ...state,
-        feedback:
-          "L’enregistrement a été refusé. Vérifiez les valeurs et vos permissions.",
-      });
+    if (!requiresRevisionRead(error))
+      actionFeedback.error(
+        "L’enregistrement a été refusé. Vérifiez les valeurs et vos permissions.",
+      );
   }
   /** Submits supplied dirty content against its accepted editing revision, without activation. */
   async function submit(draft: MaintenanceValues) {
     if (!session.isCurrent(session.generation) || rereadRequired || busy)
       return;
+    if (
+      !(await confirmAction({
+        title: "Enregistrer le contenu ?",
+        message: "L’activation reste inchangée.",
+        confirmLabel: "Enregistrer",
+      })) ||
+      !session.isCurrent(session.generation)
+    )
+      return;
+    actionFeedback.clear();
     try {
-      const accepted = await editing.content.mutateAsync(
+      const command = editing.content.start(
         toMaintenanceRequest(baseline.revision, draft, dirtyFields),
       );
+      if (!command) return;
+      const accepted = await command;
       if (!mounted.current || !session.isCurrent(session.generation)) return;
       setState({
         baseline: accepted,
-        needsRead: false,
-        feedback: "Contenu enregistré.",
       });
       reset(maintenanceValues(accepted));
     } catch (error) {
@@ -146,16 +117,29 @@ export function MaintenanceSettingsForm({
   async function activate() {
     if (!session.isCurrent(session.generation) || rereadRequired || busy)
       return;
+    if (
+      !(await confirmAction({
+        title: baseline.active
+          ? "Désactiver la maintenance ?"
+          : "Activer la maintenance ?",
+        message:
+          "Cette action utilise le contenu enregistré. Votre brouillon est conservé.",
+        confirmLabel: baseline.active ? "Désactiver" : "Activer",
+      })) ||
+      !session.isCurrent(session.generation)
+    )
+      return;
+    actionFeedback.clear();
     try {
-      const accepted = await editing.activation.mutateAsync({
+      const command = editing.activation.start({
         revision: baseline.revision,
         active: !baseline.active,
       });
+      if (!command) return;
+      const accepted = await command;
       if (!mounted.current || !session.isCurrent(session.generation)) return;
       setState({
         baseline: accepted,
-        needsRead: false,
-        feedback: "Activation enregistrée.",
       });
     } catch (error) {
       failed(error);
@@ -163,19 +147,25 @@ export function MaintenanceSettingsForm({
   }
   /** Rereads the actual outcome without replay; dirty fields remain until an explicit new submit. */
   async function reread() {
-    const result = await editing.query.refetch();
+    const { result, reconciled } = await editing.content.reconcile(
+      [editing.queryKey],
+      () => editing.query.refetch(),
+      (result) =>
+        !result.isError &&
+        !!result.data &&
+        result.data.revision >= baseline.revision,
+    );
     if (!mounted.current || !session.isCurrent(session.generation)) return;
     if (
+      !reconciled ||
       !result.data ||
       result.isError ||
       result.data.revision < baseline.revision
     ) {
-      setState({ ...state, needsRead: true, feedback: undefined });
       return;
     }
     setState({
       baseline: result.data,
-      needsRead: false,
       feedback:
         "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
     });
@@ -239,9 +229,9 @@ export function MaintenanceSettingsForm({
               ? "Désactiver la maintenance"
               : "Activer la maintenance"
           }
-          onPress={confirmActivation}
+          onPress={() => void activate()}
           disabled={busy || rereadRequired}
-          loading={editing.activation.isPending}
+          loading={editing.activation.executing}
         />
       </View>
       <View
@@ -311,9 +301,9 @@ export function MaintenanceSettingsForm({
         <Button
           fullWidth
           label="Enregistrer le contenu"
-          onPress={() => void handleSubmit(confirmContent)()}
+          onPress={() => void handleSubmit(submit)()}
           disabled={busy || rereadRequired}
-          loading={isSubmitting || editing.content.isPending}
+          loading={editing.content.executing}
         />
       </View>
       {feedback && (

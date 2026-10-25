@@ -1,3 +1,4 @@
+import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { act, render, screen, userEvent } from "@testing-library/react-native";
 import { Linking } from "react-native";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
@@ -16,7 +17,15 @@ it("does not carry a late opening failure across destination changes, including 
       value="Club A"
       destination="https://a.example.invalid"
     />,
-    { wrapper: ThemeProvider },
+    {
+      wrapper: ({ children }) => (
+        <ThemeProvider>
+          <ActionFeedbackProvider scopeKey="test">
+            {children}
+          </ActionFeedbackProvider>
+        </ThemeProvider>
+      ),
+    },
   );
   await user.press(screen.getByRole("link", { name: "Site : Club A" }));
 

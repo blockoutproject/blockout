@@ -1,3 +1,5 @@
+import { getGetApplicationAccessQueryKey } from "../../../../.generated/mobile";
+import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../queries/use-application-access";
 import { Alert, type AlertButton } from "react-native";
@@ -43,13 +45,14 @@ jest.mock("expo-router", () => ({
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, options?: RequestInit) =>
     String(url).endsWith("/application-access")
-      ? Promise.resolve(Response.json(mockApplicationAccessResponse()))
+      ? Promise.resolve(Response.json(mockAccessResponse))
       : mockFetch(url, options),
 }));
 const mockFetch = jest.fn<
   Promise<Response>,
   [RequestInfo | URL, RequestInit?]
 >();
+let mockAccessResponse = mockApplicationAccessResponse();
 let client = createQueryClient();
 const environment = { ...process.env };
 const initial = {
@@ -71,6 +74,7 @@ let stored: import("../../../../.generated/schemas/index.zod").MaintenanceSettin
 beforeEach(() => {
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
   client = createQueryClient();
+  mockAccessResponse = mockApplicationAccessResponse();
   stored = { ...initial };
   Object.assign(process.env, {
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
@@ -101,9 +105,11 @@ async function renderSettings(content = <MaintenanceSettingsScreen />) {
     wrapper: ({ children }) => (
       <QueryClientProvider client={client}>
         <ThemeProvider>
-          <ApplicationAccessProvider>
-            <AccountSessionProvider>{children}</AccountSessionProvider>
-          </ApplicationAccessProvider>
+          <ActionFeedbackProvider scopeKey="test">
+            <ApplicationAccessProvider>
+              <AccountSessionProvider>{children}</AccountSessionProvider>
+            </ApplicationAccessProvider>
+          </ActionFeedbackProvider>
         </ThemeProvider>
       </QueryClientProvider>
     ),
@@ -227,7 +233,11 @@ it("separates content preparation from explicit activation", async () => {
   }
 
   // Then
-  await screen.findByText("Contenu enregistré.");
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
   expect(
     screen.getByRole("button", {
       name: "Enregistrer le contenu",
@@ -352,7 +362,11 @@ it("clears the optional image using explicit null", async () => {
   await act(async () => nativeAction("Enregistrer").onPress?.());
 
   // Then
-  await screen.findByText("Contenu enregistré.");
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
   const write = mockFetch.mock.calls.find(([, o]) => o?.method === "PATCH");
   expect(JSON.parse(String(write?.[1]?.body))).toEqual({
     revision: 2,
@@ -519,7 +533,11 @@ it.each(["conflict", "lost"])(
     await act(async () => nativeAction("Enregistrer").onPress?.());
 
     // Then
-    await screen.findByText("Contenu enregistré.");
+    await waitFor(() =>
+      expect(
+        screen.queryByText("Modifications non enregistrées"),
+      ).not.toBeOnTheScreen(),
+    );
     expect(
       screen.queryByText("Modifications non enregistrées"),
     ).not.toBeOnTheScreen();
@@ -560,12 +578,66 @@ it("cancels content confirmation without sending a mutation", async () => {
       "Enregistrer le contenu ?",
       expect.any(String),
       expect.any(Array),
+      expect.objectContaining({ cancelable: true }),
     ),
   );
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
   ).toBe(false);
   expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+});
+
+it("retains an uncertain command after its route-local draft is discarded", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  const view = await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  const user = await editMessage();
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PATCH") return response.promise;
+    return json(String(url).endsWith("/accounts/me") ? account : stored);
+  });
+  await user.press(
+    screen.getByRole("button", { name: "Enregistrer le contenu" }),
+  );
+  const confirm = nativeAction("Enregistrer");
+  await act(async () => {
+    confirm.onPress?.();
+    confirm.onPress?.();
+  });
+
+  // When
+  await view.rerender(<></>);
+  await act(async () => response.reject(new Error("Response lost")));
+  await view.rerender(<MaintenanceSettingsScreen />);
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Relire les réglages" }),
+  ).toBeEnabled();
+  expect(
+    screen.getByRole("button", { name: "Enregistrer le contenu" }),
+  ).toBeDisabled();
+  expect(screen.getByDisplayValue(initial.message)).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Relire les réglages" }));
+
+  // Then
+  expect(
+    await screen.findByText(
+      "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
+    ),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Enregistrer le contenu" }),
+  ).toBeEnabled();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
 });
 it("cancels activation confirmation without changing the saved state", async () => {
   // Given
@@ -584,6 +656,7 @@ it("cancels activation confirmation without changing the saved state", async () 
     "Activer la maintenance ?",
     expect.any(String),
     expect.any(Array),
+    expect.objectContaining({ cancelable: true }),
   );
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
@@ -746,6 +819,115 @@ it("keeps a conflicting draft blocked through a failed settings reread", async (
     "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
   );
   expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
+});
+
+it.each([
+  ["Enregistrer le contenu", "Enregistrer"],
+  ["Activer la maintenance", "Activer"],
+])(
+  "rechecks live authority after delayed credentials for %s before React renders",
+  async (action, confirmation) => {
+    // Given
+    await renderSettings();
+    await screen.findByDisplayValue(initial.message);
+    const user = await editMessage();
+    const credentials =
+      Promise.withResolvers<ReturnType<typeof credentialsFor>>();
+    mockAuth0.getCredentials.mockReturnValueOnce(credentials.promise);
+    await user.press(screen.getByRole("button", { name: action }));
+    await act(async () => nativeAction(confirmation).onPress?.());
+    const accountQuery = client
+      .getQueryCache()
+      .findAll()
+      .find((query) => query.queryKey.includes("/accounts/me"));
+    if (!accountQuery)
+      throw new Error("The real current-account query is missing");
+
+    // When
+    await act(async () => {
+      client.setQueryData(accountQuery.queryKey, {
+        ...account,
+        permissions: { manageMaintenance: false },
+      });
+      credentials.resolve(credentialsFor("auth0|operator"));
+    });
+
+    // Then
+    expect(
+      await screen.findByText("Cette action nécessite une permission dédiée."),
+    ).toBeOnTheScreen();
+    expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.some(([, options]) =>
+        ["PATCH", "PUT"].includes(options?.method ?? ""),
+      ),
+    ).toBe(false);
+  },
+);
+
+it("keeps a delayed acknowledged write and older reread behind the latest public revision", async () => {
+  // Given
+  await renderSettings();
+  await screen.findByLabelText("Message de maintenance");
+  const user = await editMessage();
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation(async (_url, options) =>
+    options?.method === "PATCH" ? response.promise : json(stored),
+  );
+  await user.press(
+    screen.getByRole("button", { name: "Enregistrer le contenu" }),
+  );
+  await act(async () => nativeAction("Enregistrer").onPress?.());
+
+  // When
+  mockAccessResponse = {
+    ...mockAccessResponse,
+    maintenance: { ...mockAccessResponse.maintenance, revision: 4 },
+  };
+  await act(async () => {
+    await client.refetchQueries({
+      queryKey: getGetApplicationAccessQueryKey(),
+      exact: true,
+    });
+  });
+  await act(async () =>
+    response.resolve(
+      json({ ...stored, revision: 3, message: "Mon brouillon" }),
+    ),
+  );
+
+  // Then
+  expect(
+    screen.getByRole("button", { name: "Enregistrer le contenu" }),
+  ).toBeDisabled();
+  expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Relire les réglages" }));
+
+  // Then
+  expect(
+    await screen.findByText(
+      "La relecture a échoué. Votre brouillon est conservé.",
+    ),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Enregistrer le contenu" }),
+  ).toBeDisabled();
+
+  // When
+  stored = { ...stored, revision: 4 };
+  await user.press(screen.getByRole("button", { name: "Relire les réglages" }));
+
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Enregistrer le contenu" }),
+    ).toBeEnabled(),
+  );
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
   ).toHaveLength(1);

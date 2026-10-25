@@ -1,3 +1,4 @@
+import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import type { PropsWithChildren } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, waitFor } from "@testing-library/react-native";
@@ -67,9 +68,11 @@ function Providers({ children }: PropsWithChildren) {
   return (
     <QueryClientProvider client={client}>
       <ThemeProvider>
-        <ApplicationAccessProvider>
-          <AccountSessionProvider>{children}</AccountSessionProvider>
-        </ApplicationAccessProvider>
+        <ActionFeedbackProvider scopeKey="test">
+          <ApplicationAccessProvider>
+            <AccountSessionProvider>{children}</AccountSessionProvider>
+          </ApplicationAccessProvider>
+        </ActionFeedbackProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

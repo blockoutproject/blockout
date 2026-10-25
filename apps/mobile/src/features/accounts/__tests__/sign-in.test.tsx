@@ -1,3 +1,5 @@
+import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
+import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -123,7 +125,9 @@ async function renderJourney(content = <SignInScreen admitted />) {
       <QueryClientProvider client={client}>
         <ThemeProvider>
           <ApplicationAccessProvider>
-            <AccountSessionProvider>{children}</AccountSessionProvider>
+            <AccountSessionProvider>
+              <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+            </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
       </QueryClientProvider>
@@ -132,13 +136,16 @@ async function renderJourney(content = <SignInScreen admitted />) {
 }
 
 /** Local lifecycle action for delayed-response tests; the sole real session owner handles invalidation. */
-function EndSession() {
+function EndSession({ invalidateOnly = false }: { invalidateOnly?: boolean }) {
   const session = useAccountSession();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="Quitter la session"
-      onPress={() => void session.clearCredentials()}
+      onPress={() => {
+        if (invalidateOnly) session.invalidate();
+        else void session.clearCredentials();
+      }}
     >
       <Text>Quitter</Text>
     </Pressable>
@@ -240,7 +247,7 @@ it("offers explicit login when stored DPoP credentials cannot serve the Bearer c
 it.each([
   ["a0.session.user_cancelled", "Connexion annulée."],
   ["access_denied", "Connexion refusée."],
-  ["a0.network_error", "La connexion est indisponible. Réessayez."],
+  ["a0.network_error", TECHNICAL_ERROR],
 ])(
   "keeps guest access after native login outcome %s",
   async (code, message) => {
@@ -279,9 +286,7 @@ it("retries missing initial email explicitly without asking for another valid lo
   await renderJourney();
   await user.press(screen.getByRole("button", { name: "Se connecter" }));
   expect(
-    await screen.findByText(
-      "Votre profil attend une adresse e-mail disponible auprès du fournisseur.",
-    ),
+    await screen.findByText("L’adresse e-mail du compte est indisponible."),
   ).toBeOnTheScreen();
   expect(mockNavigate).not.toHaveBeenCalled();
   mockFetch.mockImplementation(async () => json(account));
@@ -408,9 +413,7 @@ it.each(["sign-in", "profile"])(
     );
 
     // Then
-    expect(
-      await screen.findByText("La déconnexion locale a échoué. Réessayez."),
-    ).toBeOnTheScreen();
+    expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
     expect(mockNavigate).not.toHaveBeenCalled();
   },
 );
@@ -433,7 +436,7 @@ it.each(["sign-in", "profile"])(
         ) : (
           <SignInScreen admitted />
         )}
-        <EndSession />
+        <EndSession invalidateOnly />
       </>,
     );
     await user.press(
@@ -450,9 +453,7 @@ it.each(["sign-in", "profile"])(
 
     // Then
     expect(mockNavigate).not.toHaveBeenCalled();
-    expect(
-      screen.queryByText("La déconnexion locale a échoué. Réessayez."),
-    ).not.toBeOnTheScreen();
+    expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
   },
 );
 
@@ -635,11 +636,7 @@ it("discards a credential failure from an obsolete establishment session", async
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled(),
   );
-  expect(
-    screen.queryByText(
-      "Votre identité est connectée, mais votre profil Blockout est indisponible.",
-    ),
-  ).not.toBeOnTheScreen();
+  expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
   expect(mockFetch).not.toHaveBeenCalled();
   expect(mockNavigate).not.toHaveBeenCalledWith("/profile");
 });

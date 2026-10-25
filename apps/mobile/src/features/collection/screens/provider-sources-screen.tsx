@@ -1,9 +1,12 @@
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
+import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { useFormState } from "react-hook-form";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useRouter } from "expo-router";
 import { ChevronRight, Globe, Trophy } from "lucide-react-native";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import type {
   CollectionProviderEnum,
   CollectionSeasonResponse,
@@ -15,10 +18,7 @@ import {
 } from "../../../shared/components/request-feedback";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
-import {
-  requiresPreparationReread,
-  useSeasonPreparation,
-} from "../api/use-source-preparation";
+import { useSeasonPreparation } from "../api/use-source-preparation";
 import {
   CollectionAccessFeedback,
   EmptySources,
@@ -93,12 +93,21 @@ function ProviderPreparation({
   const { session } = authority;
   const router = useRouter();
   const { colors } = useTheme();
+  const actionFeedback = useActionFeedback();
+  const confirmAction = useActionConfirmation();
   const mounted = useRef(false);
   const [editor] = useState(() =>
     providerPreparationEditor(session, season, provider),
   );
   const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
-  const { baseline, selected, adding, needsRead, feedback } = state;
+  const { baseline, selected, adding } = state;
+  const feedback =
+    state.feedback ??
+    (editing.create.needsRead
+      ? "Le résultat doit être vérifié avant une nouvelle action."
+      : editing.seasonInvalidated
+        ? "L’état de la saison doit être relu avant une nouvelle action."
+        : undefined);
   const { isDirty } = useFormState({ control: editor.form.control });
   useDiscardChanges(isDirty, () => {
     editor.form.reset();
@@ -117,10 +126,14 @@ function ProviderPreparation({
   const closed = season.state === "closed";
   const busy =
     !authority.enabled ||
-    editing.saving ||
+    editing.create.pending ||
     editing.season.isFetching ||
     editing.sources.isFetching;
-  const rereadRequired = needsRead || season.revision > baseline.revision;
+  const rereadRequired =
+    editing.create.needsRead ||
+    editing.seasonInvalidated ||
+    editing.season.isError ||
+    season.revision > baseline.revision;
   const ready = sources
     .filter(
       (source) =>
@@ -139,33 +152,36 @@ function ProviderPreparation({
   /** Leaves selection and manual values intact; only uncertain/conflicting commands require reconciliation. */
   function failed(error: unknown) {
     if (!session.isCurrent(session.generation)) return;
-    if (requiresPreparationReread(error)) {
+    if (requiresRevisionRead(error)) {
       editor.update({
         ...editor.getSnapshot(),
-        needsRead: true,
         feedback: "Le résultat doit être vérifié avant une nouvelle action.",
       });
-    } else
-      editor.update({
-        ...editor.getSnapshot(),
-        feedback: "L’action a été refusée. Votre saisie est conservée.",
-      });
+    } else {
+      editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      actionFeedback.error(
+        "L’action a été refusée. Votre saisie est conservée.",
+      );
+    }
   }
   /** Adds a candidate and resets its retained fields only on acceptance, without qualification or periodic launch. */
   async function create(values: CreateSourceValues) {
     if (busy || closed || rereadRequired) return;
     try {
-      await editing.create.mutateAsync({
+      const attempt = editing.create.start({
         seasonRevision: baseline.revision,
         provider,
         ...values,
       });
+      if (!attempt) return;
+      editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      actionFeedback.clear();
+      await attempt;
       if (!session.isCurrent(session.generation)) return;
       editor.form.reset();
       editor.update({
         ...editor.getSnapshot(),
         adding: false,
-        needsRead: true,
         feedback: "Source ajoutée. Relisez l’état avant une nouvelle action.",
       });
     } catch (error) {
@@ -173,27 +189,23 @@ function ProviderPreparation({
     }
   }
   /** Presents the actual selected labels; a native confirmation never broadens the atomic launch scope. */
-  function confirmLaunch() {
+  async function confirmLaunch() {
     if (busy || rereadRequired || !canLaunch) return;
     editor.update({ ...state, selected: selection });
-    Alert.alert(
-      "Lancer les sources prêtes ?",
-      `${sources
-        .filter((source) => selection.includes(source.id))
-        .map((source) => source.label)
-        .join(
-          ", ",
-        )}\nLes liens sélectionnés seront verrouillés. Ce lancement ne garantit pas que toutes les sources ont publié une saison complète.`,
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Lancer",
-          onPress: () => {
-            if (mounted.current) void launch(selection);
-          },
-        },
-      ],
-    );
+    if (
+      !(await confirmAction({
+        title: "Lancer les sources prêtes ?",
+        message: `${sources
+          .filter((source) => selection.includes(source.id))
+          .map((source) => source.label)
+          .join(
+            ", ",
+          )}\nLes liens sélectionnés seront verrouillés. Ce lancement ne garantit pas que toutes les sources ont publié une saison complète.`,
+        confirmLabel: "Lancer",
+      }))
+    )
+      return;
+    await launch(selection);
   }
   /** Sends exactly the selection against its read revision and clears it only after confirmed acceptance. */
   async function launch(confirmed: string[]) {
@@ -205,10 +217,14 @@ function ProviderPreparation({
     )
       return;
     try {
-      const accepted = await editing.launch.mutateAsync({
+      const attempt = editing.launch.start({
         revision: baseline.revision,
         sourceBindingIds: confirmed,
       });
+      if (!attempt) return;
+      editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      actionFeedback.clear();
+      const accepted = await attempt;
       if (!session.isCurrent(session.generation)) return;
       editor.update({
         ...editor.getSnapshot(),
@@ -222,12 +238,22 @@ function ProviderPreparation({
   }
   /** Reads the entire launch context; a failed half-read cannot unlock an old selection or replay its command. */
   async function reread() {
-    const [seasonResult, sourcesResult] = await Promise.all([
-      editing.season.refetch(),
-      editing.sources.refetch(),
-    ]);
+    const {
+      result: [seasonResult, sourcesResult],
+      reconciled,
+    } = await editing.create.reconcile(
+      [editing.seasonKey, editing.sourcesKey],
+      () => Promise.all([editing.season.refetch(), editing.sources.refetch()]),
+      ([seasonRead, sourcesRead]) =>
+        !seasonRead.isError &&
+        !!seasonRead.data &&
+        seasonRead.data.revision >= baseline.revision &&
+        !sourcesRead.isError &&
+        !!sourcesRead.data,
+    );
     if (!mounted.current || !session.isCurrent(session.generation)) return;
     if (
+      !reconciled ||
       seasonResult.isError ||
       sourcesResult.isError ||
       !seasonResult.data ||
@@ -236,7 +262,6 @@ function ProviderPreparation({
     ) {
       editor.update({
         ...editor.getSnapshot(),
-        needsRead: true,
         feedback: "La relecture a échoué. Votre saisie est conservée.",
       });
       return;
@@ -244,7 +269,6 @@ function ProviderPreparation({
     editor.update({
       ...editor.getSnapshot(),
       baseline: seasonResult.data,
-      needsRead: false,
       feedback: "État relu. Vérifiez votre saisie avant une nouvelle action.",
     });
   }
@@ -304,7 +328,7 @@ function ProviderPreparation({
             fullWidth
             onPress={confirmLaunch}
             disabled={busy || rereadRequired || !canLaunch}
-            loading={editing.launch.isPending}
+            loading={editing.launch.executing}
           />
           {selected !== null && !canLaunch && (
             <Button
@@ -329,7 +353,7 @@ function ProviderPreparation({
           <CreateSourceForm
             formControl={editor.form.formControl}
             disabled={busy || closed || rereadRequired}
-            saving={editing.saving}
+            executing={editing.create.executing}
             onSubmit={create}
           />
         </PreparationCard>

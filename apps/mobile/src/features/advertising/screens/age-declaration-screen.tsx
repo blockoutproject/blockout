@@ -93,7 +93,7 @@ export function AgeDeclarationScreen() {
               onRetry={age.retryRead}
             />
           ) : (
-            <AgeForm onSubmit={age.confirm} />
+            <AgeForm pending={age.pending} onSubmit={age.confirm} />
           )}
         </View>
       </ScrollView>

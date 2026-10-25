@@ -7,14 +7,13 @@ import type {
 } from "../../accounts/session/session-generation";
 import type { ApplicationVersionsValues } from "../schemas/application-versions-settings";
 
-/** Revision and recovery feedback belonging to the retained editing snapshot. */
+/** Original revision and explanatory feedback; sent-command recovery belongs to Query. */
 interface VersionsEditingState {
   baseline: ApplicationVersionsResponse;
-  needsRead: boolean;
   feedback?: string;
 }
 
-/** One session's RHF owner survives protected-route removal; revisions and uncertainty stay with that draft. */
+/** One session's RHF owner survives protected-route removal independently of pending command recovery. */
 interface ApplicationVersionsEditor {
   generation: string;
   accountId: string | null;
@@ -47,7 +46,7 @@ export function applicationVersionsEditor(
   )
     return current;
   discardApplicationVersionsEditor();
-  let state: VersionsEditingState = { baseline: settings, needsRead: false };
+  let state: VersionsEditingState = { baseline: settings };
   const listeners = new Set<() => void>();
   const editor: ApplicationVersionsEditor = {
     generation: session.generation,
@@ -63,7 +62,7 @@ export function applicationVersionsEditor(
         listeners.delete(listener);
       };
     },
-    /** Replaces recovery metadata atomically; no field merging or submission occurs. */
+    /** Replaces workflow metadata atomically; no field merging or submission occurs. */
     update(next) {
       state = next;
       listeners.forEach((listener) => listener());

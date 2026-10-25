@@ -1,3 +1,6 @@
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
+import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import {
   genderLabel,
@@ -13,12 +16,9 @@ import { ClassificationSelect } from "../components/classification-select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useForm, useFormState, useWatch, Controller } from "react-hook-form";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ClassificationDetailResponse } from "../../../../.generated/schemas/index.zod";
-import {
-  ApiError,
-  isUncertainMutationFailure,
-} from "../../../shared/api/api-fetch";
+import { ApiError } from "../../../shared/api/api-fetch";
 import { Button } from "../../../shared/components/button";
 import { RequestError } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -28,10 +28,7 @@ import type {
   useClassification,
   useDivisions,
 } from "../api/classification";
-import {
-  classificationEditor,
-  discardClassificationEditor,
-} from "./classification-editor";
+import { classificationEditor } from "./classification-editor";
 
 /** One current resource, its generated operations and original-session draft. */
 export interface ClassificationFormProps {
@@ -49,6 +46,8 @@ export function ClassificationForm({
 }: ClassificationFormProps) {
   const { session } = editing.authority;
   const { colors } = useTheme();
+  const actionFeedback = useActionFeedback();
+  const confirmAction = useActionConfirmation();
   const mounted = useRef(false);
   useEffect(() => {
     mounted.current = true;
@@ -60,29 +59,34 @@ export function ClassificationForm({
     classificationEditor(session, target, current),
   );
   const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
-  const { baseline, needsRead, feedback } = state;
+  const { baseline } = state;
+  const feedback =
+    state.feedback ??
+    (editing.save.needsRead
+      ? "Le résultat doit être vérifié. Relisez l’état courant avant de réessayer. Votre brouillon est conservé."
+      : undefined);
   const { control, handleSubmit, reset, setError } =
     useForm<ClassificationValues>({
       resolver: zodResolver(classificationSchema),
       formControl: editor.form.formControl,
     });
-  const { isDirty, isSubmitting, errors, dirtyFields } = useFormState({
+  const { isDirty, errors, dirtyFields } = useFormState({
     control,
   });
   useDiscardChanges(isDirty, () => {
     reset();
-    discardClassificationEditor(session.generation, target);
+    editor.discard();
   });
   void dirtyFields;
   const custom = useWatch({ control, name: "custom" });
   const divisionId = useWatch({ control, name: "divisionId" });
   const busy =
     !editing.authority.enabled ||
-    isSubmitting ||
-    editing.saving ||
+    editing.save.pending ||
     editing.query.isFetching ||
     divisions.query.isFetching;
-  const rereadRequired = needsRead || current.revision !== baseline.revision;
+  const rereadRequired =
+    editing.save.needsRead || current.revision !== baseline.revision;
   const choices =
     divisions.query.data?.items.filter((item) => item.active) ?? [];
   /** Sends the complete confirmed state once; every 409 or uncertain acknowledgement requires an explicit read. */
@@ -90,18 +94,28 @@ export function ClassificationForm({
     if (busy || rereadRequired || !session.isCurrent(session.generation))
       return;
     try {
-      const accepted = await editing.save.mutateAsync(
+      const attempt = editing.save.start(
         toClassificationRequest(baseline.revision, values),
       );
+      if (!attempt) return;
+      editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      actionFeedback.clear();
+      const accepted = await attempt;
       if (!session.isCurrent(session.generation)) return;
       editor.update({
         baseline: accepted,
-        needsRead: false,
-        feedback: "Classification enregistrée.",
+        feedback: undefined,
       });
       reset(classificationValues(accepted));
     } catch (error) {
       if (!session.isCurrent(session.generation)) return;
+      if (!requiresRevisionRead(error)) {
+        editor.update({ ...editor.getSnapshot(), feedback: undefined });
+        actionFeedback.error(
+          "L’enregistrement a été refusé. Votre brouillon est conservé.",
+        );
+        return;
+      }
       const conflictIds =
         error instanceof ApiError &&
         error.problem &&
@@ -114,18 +128,15 @@ export function ClassificationForm({
           ? "Correction entièrement refusée : division inactive, participations partagées ou identité d’équipe incompatible. Réduisez le périmètre ou demandez une intervention technique."
           : type === "urn:blockout:problem:stale-revision"
             ? "La classification a changé depuis votre lecture. Relisez l’état courant avant de confirmer votre brouillon."
-            : "L’enregistrement n’a pas abouti. Relisez l’état courant avant de réessayer.";
+            : "Le résultat doit être vérifié. Relisez l’état courant avant de réessayer.";
       editor.update({
         ...editor.getSnapshot(),
-        needsRead:
-          isUncertainMutationFailure(error) ||
-          (error instanceof ApiError && error.status === 409),
         feedback: `${reason}${Array.isArray(conflictIds) && conflictIds.length > 0 ? ` Périmètres en conflit : ${conflictIds.join(", ")}.` : ""} Votre brouillon est conservé.`,
       });
     }
   }
   /** Validates all three fields and active choices before asking for a bounded native confirmation. */
-  function confirm(values: ClassificationValues) {
+  async function confirm(values: ClassificationValues) {
     if (busy || rereadRequired) return;
     if (
       values.custom &&
@@ -137,31 +148,32 @@ export function ClassificationForm({
       });
       return;
     }
-    Alert.alert(
-      "Confirmer la classification ?",
-      "La correction est appliquée entièrement ou refusée. Retirer le réglage conserve les identités et la dernière classification publiée ; cela peut arrêter la collecte.",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Confirmer",
-          onPress: () => {
-            if (mounted.current) void save(values);
-          },
-        },
-      ],
-    );
+    if (
+      !(await confirmAction({
+        title: "Confirmer la classification ?",
+        message:
+          "La correction est appliquée entièrement ou refusée. Retirer le réglage conserve les identités et la dernière classification publiée ; cela peut arrêter la collecte.",
+        confirmLabel: "Confirmer",
+      }))
+    )
+      return;
+    await save(values);
   }
   /** Updates the revision and non-dirty values only after successful reads, without sending a write. */
   async function reread() {
-    const [result, available] = await Promise.all([
-      editing.query.refetch(),
-      divisions.query.refetch(),
-    ]);
+    const {
+      result: [result, available],
+      reconciled,
+    } = await editing.save.reconcile(
+      [editing.queryKey, divisions.queryKey],
+      () => Promise.all([editing.query.refetch(), divisions.query.refetch()]),
+      ([result, available]) =>
+        !result.isError && !!result.data && !available.isError,
+    );
     if (!mounted.current || !session.isCurrent(session.generation)) return;
-    if (result.isError || !result.data || available.isError) {
+    if (!reconciled || result.isError || !result.data || available.isError) {
       editor.update({
         ...editor.getSnapshot(),
-        needsRead: true,
         feedback: "La relecture a échoué. Votre brouillon est conservé.",
       });
       return;
@@ -172,7 +184,6 @@ export function ClassificationForm({
     });
     editor.update({
       baseline: result.data,
-      needsRead: false,
       feedback:
         "État relu. Vérifiez le brouillon puis confirmez explicitement l’enregistrement.",
     });
@@ -303,7 +314,7 @@ export function ClassificationForm({
         label="Enregistrer"
         fullWidth
         disabled={busy || rereadRequired}
-        loading={editing.saving}
+        loading={editing.save.pending}
         onPress={() => void handleSubmit(confirm)()}
       />
     </View>

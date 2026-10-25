@@ -1,12 +1,5 @@
-import { useState } from "react";
-import {
-  Linking,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { useNativeHandoff } from "../../../shared/native/use-native-handoff";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { ChevronRight, type LucideIcon } from "lucide-react-native";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -57,6 +50,7 @@ export interface InformationRowProps {
   supporting?: string;
   icon?: LucideIcon;
   onPress?: () => void;
+  pending?: boolean;
   separated?: boolean;
 }
 
@@ -67,6 +61,7 @@ export function InformationRow({
   supporting,
   icon: Icon,
   onPress,
+  pending = false,
   separated = true,
 }: InformationRowProps) {
   const { colors } = useTheme();
@@ -118,6 +113,8 @@ export function InformationRow({
           accessibilityRole="link"
           accessibilityLabel={name}
           onPress={onPress}
+          disabled={pending}
+          accessibilityState={{ disabled: pending, busy: pending }}
           style={styles.informationRow}
         >
           {content}
@@ -149,7 +146,7 @@ function ContactHandoff({
   presentation = "contact",
 }: ContactLinkProps) {
   const { colors } = useTheme();
-  const [failed, setFailed] = useState(false);
+  const handoff = useNativeHandoff(destination);
   const content = (
     <>
       {Icon && (
@@ -183,16 +180,6 @@ function ContactHandoff({
       )}
     </>
   );
-  /** Opens only the caller-qualified destination; rejection retains the row for an explicit retry. */
-  async function openDestination() {
-    if (!destination) return;
-    setFailed(false);
-    try {
-      await Linking.openURL(destination);
-    } catch {
-      setFailed(true);
-    }
-  }
   return (
     <View>
       {presentation === "information" ? (
@@ -200,27 +187,25 @@ function ContactHandoff({
           label={label}
           value={value ?? "Non renseigné"}
           icon={Icon}
-          onPress={destination ? () => void openDestination() : undefined}
+          onPress={destination ? handoff.open : undefined}
+          pending={handoff.pending}
         />
       ) : destination ? (
         <Pressable
           accessibilityRole="link"
           accessibilityLabel={`${label} : ${value}`}
-          onPress={() => void openDestination()}
+          onPress={handoff.open}
+          disabled={handoff.pending}
+          accessibilityState={{
+            disabled: handoff.pending,
+            busy: handoff.pending,
+          }}
           style={styles.row}
         >
           {content}
         </Pressable>
       ) : (
         <View style={styles.row}>{content}</View>
-      )}
-      {failed && (
-        <Text
-          accessibilityRole="alert"
-          style={[styles.unknown, { color: colors.error }]}
-        >
-          Impossible d’ouvrir ce lien. Vous pouvez réessayer.
-        </Text>
       )}
     </View>
   );

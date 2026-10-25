@@ -1,6 +1,9 @@
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
+import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { formatCollectionTimestamp } from "../model/collection-time";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import type {
   CollectionControlResponse,
   CollectionSeasonResponse,
@@ -9,8 +12,6 @@ import { Button } from "../../../shared/components/button";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import type { useCollectionControl } from "../api/use-collection-controls";
-import { requiresPreparationReread as requiresCollectionReread } from "../api/use-source-preparation";
-import { collectionCommandContext } from "../forms/collection-command-context";
 import { PreparationCard } from "./preparation-layout";
 
 /** A selected control retains its own command boundary; season rereads are required only for competition controls. */
@@ -33,19 +34,21 @@ export function CollectionControl({
   stateUnavailable = false,
 }: CollectionControlProps) {
   const { colors } = useTheme();
+  const actionFeedback = useActionFeedback();
+  const confirmAction = useActionConfirmation();
   const { authority } = editing;
   const { session } = authority;
-  const [context] = useState(() =>
-    collectionCommandContext(session, control.id),
-  );
-  const { needsRead, feedback } = useSyncExternalStore(
-    context.subscribe,
-    context.getSnapshot,
-  );
+  const [notice, setNotice] = useState<string>();
+  const needsRead = editing.activity.needsRead;
+  const feedback =
+    notice ??
+    (needsRead
+      ? "Le résultat doit être vérifié avant une nouvelle action."
+      : undefined);
   const mounted = useRef(false);
   const reading = editing.query.isFetching || seasonFetching;
   const closed = season?.state === "closed";
-  const busy = !authority.enabled || editing.saving || reading;
+  const busy = !authority.enabled || editing.activity.pending || reading;
   const running = control.cycle?.state === "running";
   useEffect(() => {
     mounted.current = true;
@@ -60,38 +63,38 @@ export function CollectionControl({
       !mounted.current ||
       busy ||
       closed ||
-      context.getSnapshot().needsRead ||
+      editing.activity.needsRead ||
       stateUnavailable ||
       editing.query.isError ||
       !session.isCurrent(session.generation) ||
       (command === "request" && !control.enabled)
     )
       return;
-    context.update({ needsRead: true });
+    setNotice(undefined);
     try {
-      if (command === "activity")
-        await editing.activity.mutateAsync({
-          revision: control.revision,
-          enabled: !control.enabled,
-        });
-      else {
-        await editing.request.mutateAsync({ revision: control.revision });
-      }
-      if (session.isCurrent(session.generation))
-        context.update({ needsRead: false });
+      const attempt =
+        command === "activity"
+          ? editing.activity.start({
+              revision: control.revision,
+              enabled: !control.enabled,
+            })
+          : editing.request.start({ revision: control.revision });
+      if (!attempt) return;
+      actionFeedback.clear();
+      await attempt;
     } catch (error) {
       if (!session.isCurrent(session.generation)) return;
-      context.update({
-        needsRead: requiresCollectionReread(error),
-        feedback: requiresCollectionReread(error)
-          ? "Le résultat doit être vérifié avant une nouvelle action."
-          : "L’action a été refusée. Le périmètre est conservé.",
-      });
+      if (requiresRevisionRead(error))
+        setNotice("Le résultat doit être vérifié avant une nouvelle action.");
+      else
+        actionFeedback.error(
+          "L’action a été refusée. Le périmètre est conservé.",
+        );
     }
   }
 
   /** Native confirmations describe pause/drain or normal eligibility; acceptance still rechecks current F05/F12 authority. */
-  function confirm(command: "activity" | "request") {
+  async function confirm(command: "activity" | "request") {
     if (
       busy ||
       closed ||
@@ -112,36 +115,37 @@ export function CollectionControl({
         : control.enabled
           ? "La demande en attente sera annulée. Une collecte déjà en cours pourra se terminer."
           : "La collecte reprendra aux prochaines échéances éligibles, sans rejouer les passages manqués.";
-    Alert.alert(`${label} ?`, detail, [
-      { text: "Annuler", style: "cancel" },
-      {
-        text: label,
-        onPress: () => {
-          void send(command);
-        },
-      },
-    ]);
+    if (
+      !(await confirmAction({
+        title: `${label} ?`,
+        message: detail,
+        confirmLabel: label,
+      }))
+    )
+      return;
+    await send(command);
   }
 
   /** Only an explicit successful control/season read releases uncertainty; cache refresh alone never does. */
   async function reread() {
     if (busy) return;
-    const [current, seasonRead] = await Promise.all([
-      editing.query.refetch(),
-      rereadSeason?.() ?? true,
-    ]);
+    const {
+      result: [current, seasonRead],
+      reconciled,
+    } = await editing.activity.reconcile(
+      editing.seasonKey
+        ? [editing.queryKey, editing.seasonKey]
+        : [editing.queryKey],
+      () => Promise.all([editing.query.refetch(), rereadSeason?.() ?? true]),
+      ([current, seasonRead]) =>
+        !current.isError && !!current.data && seasonRead,
+    );
     if (!mounted.current || !session.isCurrent(session.generation)) return;
-    if (current.isError || !current.data || !seasonRead) {
-      context.update({
-        needsRead: true,
-        feedback: "La relecture a échoué. Le périmètre est conservé.",
-      });
+    if (!reconciled || current.isError || !current.data || !seasonRead) {
+      setNotice("La relecture a échoué. Le périmètre est conservé.");
       return;
     }
-    context.update({
-      needsRead: false,
-      feedback: "État relu. Vérifiez le périmètre avant une nouvelle action.",
-    });
+    setNotice("État relu. Vérifiez le périmètre avant une nouvelle action.");
   }
 
   return (
@@ -182,7 +186,7 @@ export function CollectionControl({
               disabled={
                 busy || needsRead || stateUnavailable || editing.query.isError
               }
-              loading={editing.activity.isPending}
+              loading={editing.activity.executing}
               onPress={() => confirm("activity")}
             />
           </View>
@@ -205,7 +209,7 @@ export function CollectionControl({
                 !!control.pendingRequestId ||
                 running
               }
-              loading={editing.request.isPending}
+              loading={editing.request.executing}
               onPress={() => confirm("request")}
             />
           </View>

@@ -1,22 +1,29 @@
-import {
-  hashKey,
-  useIsMutating,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { publishSportingRevision } from "./publish-sporting-revision";
+import { requiresPresentationReread } from "./presentation-recovery";
+import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
+import { useCommand } from "../../../shared/query/use-command";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createSportingAdministrationQueries } from "./sporting-administration-queries";
-import { invalidateSportingReads } from "./invalidate-sporting-reads";
+import {
+  invalidateSportingReads,
+  invalidateClassificationReads,
+  invalidateDivisionReads,
+} from "./invalidate-sporting-reads";
 import { useAuth0 } from "react-native-auth0";
 import {
   setPackClassification,
   setPoolClassification,
   setDivisionActivity,
   getGetDivisionQueryKey,
+  getSetPackClassificationMutationKey,
+  getSetPoolClassificationMutationKey,
+  getSetDivisionActivityMutationKey,
   getGetMyAccountQueryKey,
 } from "../../../../.generated/mobile";
 import type {
   AccountResponse,
+  ClassificationDetailResponse,
+  DivisionResponse,
   AccountPermissionsResponse,
   SetClassificationRequest,
   SetDivisionActivityRequest,
@@ -106,42 +113,44 @@ export function useClassification(target: ClassificationTarget) {
       ? queries.packClassification(target.id)
       : queries.poolClassification(target.id);
   const queryKey = options.queryKey;
-  const saving = useIsMutating({ mutationKey: queryKey }) > 0;
   const query = useQuery(options);
-  const save = useMutation({
-    mutationKey: queryKey,
-    gcTime: 0,
-    mutationFn: async (body: SetClassificationRequest) => {
-      const options = await authority.request();
-      const accepted = await (target.kind === "pack"
-        ? setPackClassification(target.id, body, options)
-        : setPoolClassification(target.id, body, options));
-      await client.cancelQueries({ queryKey, exact: true });
-      if (!authority.session.isCurrent(authority.session.generation))
-        throw new ApiError("cancelled");
-      client.setQueryData(queryKey, accepted);
-      // Pack changes can affect inherited pool revisions; preserve the confirmed target while invalidating other settings.
-      void client.invalidateQueries({
-        predicate: ({ queryKey: key }) =>
-          hashKey(key) !== hashKey(queryKey) &&
-          key.some(
-            (part) =>
-              typeof part === "string" && part.includes("/classification"),
-          ),
-      });
-      invalidateSportingReads(client);
-      return accepted;
+  /** Publishes the accepted correction without replacing a distinct revision observed during its request. */
+  async function accept(
+    accepted: ClassificationDetailResponse,
+    body: SetClassificationRequest,
+  ) {
+    await client.cancelQueries({ queryKey, exact: true });
+    if (!authority.session.isCurrent(authority.session.generation)) return;
+    publishSportingRevision(client, queryKey, accepted, body.revision);
+    invalidateClassificationReads(client, queryKey);
+    invalidateSportingReads(client);
+  }
+  const save = useCommand(
+    {
+      mutationKey: [
+        ...queryKey,
+        ...(target.kind === "pack"
+          ? getSetPackClassificationMutationKey()
+          : getSetPoolClassificationMutationKey()),
+      ],
+      mutationFn: async (body: SetClassificationRequest) => {
+        const options = await authority.request();
+        return target.kind === "pack"
+          ? setPackClassification(target.id, body, options)
+          : setPoolClassification(target.id, body, options);
+      },
+      onSuccess: accept,
     },
-  });
-  return { authority, query, save, saving };
+    { groupKey: queryKey, requiresRead: requiresRevisionRead },
+  );
+  return { authority, query, save, queryKey };
 }
 /** Configuration list includes inactive entries for lifecycle context; consumers filter assignable choices. */
 export function useDivisions() {
   const authority = useSportingAuthority("divisions");
-  const query = useQuery(
-    createSportingAdministrationQueries(authority).divisions(),
-  );
-  return { authority, query };
+  const options = createSportingAdministrationQueries(authority).divisions();
+  const query = useQuery(options);
+  return { authority, query, queryKey: options.queryKey };
 }
 /** Activity is a separate full-state command and always reconciles the original division on explicit reread. */
 export function useDivisionActivity(id: string) {
@@ -149,33 +158,27 @@ export function useDivisionActivity(id: string) {
   const client = useQueryClient();
   const queryKey = getSessionQueryKey(authority.session.generation, [
     ...getGetDivisionQueryKey(id),
-    "activity",
   ]);
-  const saving = useIsMutating({ mutationKey: queryKey }) > 0;
-  const save = useMutation({
-    mutationKey: queryKey,
-    gcTime: 0,
-    mutationFn: async (body: SetDivisionActivityRequest) => {
-      const accepted = await setDivisionActivity(
-        id,
-        body,
-        await authority.request(),
-      );
-      if (!authority.session.isCurrent(authority.session.generation))
-        throw new ApiError("cancelled");
-      void client.invalidateQueries({
-        predicate: ({ queryKey: key }) =>
-          hashKey(key) !== hashKey(queryKey) &&
-          key.some(
-            (part) =>
-              typeof part === "string" &&
-              (part.startsWith("/administration/divisions") ||
-                part.includes("/classification")),
-          ),
-      });
-      invalidateSportingReads(client);
-      return accepted;
+  /** Updates the original division after acceptance and refreshes every affected administration/public projection. */
+  async function accept(
+    accepted: DivisionResponse,
+    body: SetDivisionActivityRequest,
+  ) {
+    await client.cancelQueries({ queryKey, exact: true });
+    if (!authority.session.isCurrent(authority.session.generation)) return;
+    publishSportingRevision(client, queryKey, accepted, body.revision);
+    invalidateDivisionReads(client, queryKey);
+    invalidateClassificationReads(client);
+    invalidateSportingReads(client);
+  }
+  const save = useCommand(
+    {
+      mutationKey: [...queryKey, ...getSetDivisionActivityMutationKey()],
+      mutationFn: async (body: SetDivisionActivityRequest) =>
+        setDivisionActivity(id, body, await authority.request()),
+      onSuccess: accept,
     },
-  });
-  return { authority, save, saving };
+    { groupKey: queryKey, requiresRead: requiresPresentationReread },
+  );
+  return { authority, save, queryKey };
 }

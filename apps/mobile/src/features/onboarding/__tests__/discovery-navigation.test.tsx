@@ -1,3 +1,4 @@
+import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import * as Application from "expo-application";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { focusManager } from "@tanstack/react-query";
@@ -5,7 +6,7 @@ import { act, screen, userEvent } from "@testing-library/react-native";
 import { Stack } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType } from "react";
-import { Pressable, Text } from "react-native";
+import { Linking, Pressable, Text } from "react-native";
 import RootLayout from "../../../app/_layout";
 import OnboardingRoute from "../../../app/onboarding";
 import SignInRoute from "../../../app/(ordinary)/sign-in";
@@ -143,11 +144,8 @@ it("presents common discovery before ordinary access, then keeps sign-out and fo
 
 it.each([
   ["cancelled", "Connexion annulée."],
-  ["failed", "La connexion est indisponible. Réessayez."],
-  [
-    "profile unavailable",
-    "Votre identité est connectée, mais votre profil Blockout est indisponible.",
-  ],
+  ["failed", TECHNICAL_ERROR],
+  ["profile unavailable", TECHNICAL_ERROR],
 ])(
   "keeps completed discovery and ordinary guest/support access after %s sign-in",
   async (outcome, message) => {
@@ -306,4 +304,42 @@ it("leaves completed discovery unchanged after restart and a later V2 release", 
   expect(await screen.findByText("Support route")).toBeOnTheScreen();
   expect(screen.queryByRole("button", { name: "Passer" })).toBeNull();
   expect(await readDiscoveryCompletion()).toBe(true);
+});
+
+it("keeps the public store action and its error available while installation initialization is pending", async () => {
+  // Given
+  const initialization = Promise.withResolvers<void>();
+  jest
+    .mocked(initializeV2Installation)
+    .mockReturnValueOnce(initialization.promise);
+  const access = applicationAccessResponse();
+  access.versions.ios = {
+    minimumVersion: "3.0.0",
+    storeUrl: "https://apps.apple.com/app/id123456789",
+  };
+  access.versions.android = {
+    minimumVersion: "3.0.0",
+    storeUrl: "https://play.google.com/store/apps/details?id=app.blockout",
+  };
+  mockFetch.mockResolvedValue(Response.json(access));
+  jest
+    .spyOn(Linking, "openURL")
+    .mockRejectedValue(new Error("Store unavailable"));
+  const user = userEvent.setup();
+  await openInstallation();
+
+  // When
+  await user.press(
+    await screen.findByRole("button", { name: "Mettre à jour l’application" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
+  ).toBeOnTheScreen();
+  expect(mockAuth0.hasValidCredentials).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole("button", { name: "Mettre à jour l’application" }),
+  ).toBeEnabled();
+  await act(() => initialization.resolve());
 });

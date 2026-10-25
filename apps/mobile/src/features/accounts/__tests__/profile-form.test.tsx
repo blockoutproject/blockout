@@ -1,3 +1,5 @@
+import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
+import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -148,8 +150,10 @@ async function renderProfile() {
       <ThemeProvider>
         <ApplicationAccessProvider>
           <AccountSessionProvider>
-            <ProfileScreen admitted proEntry={null} />
-            <SessionActions />
+            <AccountFeedbackProvider>
+              <ProfileScreen admitted proEntry={null} />
+              <SessionActions />
+            </AccountFeedbackProvider>
           </AccountSessionProvider>
         </ApplicationAccessProvider>
       </ThemeProvider>
@@ -210,7 +214,11 @@ it("sends one atomic multipart save with JSON metadata and no omitted photo", as
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
-  await screen.findByText("Profil enregistré.");
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Enregistrer", busy: false }),
+    ).toBeEnabled(),
+  );
   const writes = mockFetch.mock.calls.filter(
     ([, request]) => request?.method === "PATCH",
   );
@@ -276,7 +284,7 @@ it("preserves the draft when native crop is cancelled or permission is refused",
   );
 
   // Then
-  await screen.findByText("Impossible de sélectionner l’image. Réessayez.");
+  await screen.findByText(TECHNICAL_ERROR);
   expect(screen.getByDisplayValue("My_draft")).toBeOnTheScreen();
   expect(ImagePicker.launchImageLibraryAsync).toHaveBeenCalledWith(
     expect.objectContaining({ allowsEditing: true, aspect: [1, 1] }),
@@ -353,7 +361,11 @@ it("submits prepared replacement then explicit removal without a username edit",
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await screen.findByText("Profil enregistré.");
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Enregistrer", busy: false }),
+    ).toBeEnabled(),
+  );
   await user.press(
     screen.getByRole("button", { name: "Choisir une photo de profil" }),
   );
@@ -410,7 +422,11 @@ it.each([
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
     // Then
-    await screen.findByText("Profil enregistré.");
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Enregistrer", busy: false }),
+      ).toBeEnabled(),
+    );
     const writes = mockFetch.mock.calls.filter(
       ([, request]) => request?.method === "PATCH",
     );
@@ -442,9 +458,7 @@ it("retains the previous prepared choice and username when another preparation f
   );
 
   // Then
-  await screen.findByText(
-    "Impossible de préparer la photo. Votre choix précédent est conservé.",
-  );
+  await screen.findByText(TECHNICAL_ERROR);
   expect(
     screen.getByRole("button", { name: "Aperçu : Photo de profil" }),
   ).toBeOnTheScreen();
@@ -562,7 +576,11 @@ it("cancels an initial photo read before refreshing the accepted replacement", a
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await screen.findByText("Profil enregistré.");
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Enregistrer", busy: false }),
+      ).toBeEnabled(),
+    );
 
     // Then
     await waitFor(() => expect(reads).toHaveLength(2));

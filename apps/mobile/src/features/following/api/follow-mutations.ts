@@ -1,4 +1,5 @@
 import {
+  hashKey,
   useMutation,
   useMutationState,
   useQueryClient,
@@ -11,11 +12,16 @@ import {
   getListPoolFollowsQueryKey,
   getListPersonalMatchesQueryKey,
 } from "../../../../.generated/mobile";
+import { useLayoutEffect, useRef } from "react";
 import type { FollowStateResponse } from "../../../../.generated/schemas/index.zod";
 import {
   ApiError,
   isUncertainMutationFailure,
 } from "../../../shared/api/api-fetch";
+import {
+  startCommand,
+  retireSettledCommands,
+} from "../../../shared/query/use-command";
 import {
   followStateKey,
   followMutationKey,
@@ -43,11 +49,7 @@ export function retireSettledFollowAttempts(
   owner: FollowingOwner,
   target: FollowingTarget,
 ) {
-  const cache = client.getMutationCache();
-  cache
-    .findAll({ mutationKey: followMutationKey(owner, target), exact: true })
-    .filter(({ state }) => state.status !== "pending")
-    .forEach((previous) => cache.remove(previous));
+  retireSettledCommands(client, followMutationKey(owner, target), () => false);
 }
 
 /**
@@ -63,11 +65,21 @@ export function useFollowMutation(
   const mutationKey = owner
     ? followMutationKey(owner, target)
     : ["following-unavailable"];
+  const identity = hashKey(mutationKey);
+  const currentIdentity = useRef<string | undefined>(identity);
+  useLayoutEffect(() => {
+    currentIdentity.current = identity;
+    return () => {
+      currentIdentity.current = undefined;
+    };
+  }, [identity]);
   const stateKey = owner
     ? followStateKey(owner, target)
     : ["following-unavailable"];
   const mutation = useMutation({
     mutationKey,
+    // Fresh observation, the next explicit replacement or session disposal retires this target record.
+    gcTime: Infinity,
     retry: false,
     networkMode: "always",
     onMutate: async () => {
@@ -119,7 +131,8 @@ export function useFollowMutation(
         }
       }
     },
-    onSuccess: async (result) => {
+    /** Accepts the acknowledged/observed target and invalidates dependent personal/public reads. */
+    onSuccess: async function acceptFollowState(result) {
       if (!owner?.isCurrent(owner.generation)) return;
       await client.cancelQueries({ queryKey: stateKey, exact: true });
       if (!owner.isCurrent(owner.generation)) return;
@@ -169,7 +182,8 @@ export function useFollowMutation(
         }),
       ]);
     },
-    onError: async (error) => {
+    /** A confirmed restriction suspends the shared target until a later successful member read. */
+    onError: async function acceptFollowRestriction(error) {
       if (!owner?.isCurrent(owner.generation) || !isFollowRestriction(error))
         return;
       await client.cancelQueries({ queryKey: stateKey, exact: true });
@@ -198,16 +212,30 @@ export function useFollowMutation(
     latest,
     pending: latest?.status === "pending",
     /** Ignores additional taps before awaiting cancellation or native credentials. */
-    replace(following: boolean) {
+    start(following: boolean) {
       if (
+        currentIdentity.current !== identity ||
         !context.usable ||
-        !owner?.isCurrent(owner.generation) ||
-        client.isMutating({ mutationKey, exact: true })
+        !owner?.isCurrent(owner.generation)
       )
         return;
-      // A finished attempt must not become current again when a newer control unmounts.
-      retireSettledFollowAttempts(client, owner, target);
-      mutation.mutate(following);
+      return startCommand(
+        client,
+        // F06 permits an explicit retry of the same replacement after its one bounded observation.
+        { groupKey: mutationKey, requiresRead: () => false },
+        () => {
+          retireSettledFollowAttempts(client, owner, target);
+          return mutation
+            .mutateAsync(following)
+            .finally(() =>
+              retireSettledCommands(
+                client,
+                mutationKey,
+                isUncertainMutationFailure,
+              ),
+            );
+        },
+      );
     },
   };
 }

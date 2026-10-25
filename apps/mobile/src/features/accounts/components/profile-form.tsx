@@ -1,8 +1,10 @@
+import { ImageValidationError } from "../../../shared/images/image-validation-error";
 import type { File } from "expo-file-system";
 import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
+import { useImageSelection } from "../../../shared/images/use-image-selection";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { UserRound } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
@@ -10,6 +12,7 @@ import {
   ApiError,
   isUncertainMutationFailure,
 } from "../../../shared/api/api-fetch";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { ImageField } from "../../../shared/components/image-field";
 import {
@@ -33,13 +36,13 @@ export interface ProfileFormProps {
 /** Keeps drafts through refetch/refusal and requires original-target reconciliation before an explicit uncertain retry. */
 export function ProfileForm({ account }: ProfileFormProps) {
   const session = useAccountSession();
+  const feedback = useActionFeedback();
   const { generation, isCurrent, subscribe } = session;
   const { colors } = useTheme();
-  const { save, original } = useProfileEditing(account.accountId);
+  const { save, original, reread } = useProfileEditing(account.accountId);
   const photo = useProfilePhoto(account.accountId, account.hasPhoto);
   const active = useRef(true);
   const uploading = useRef<File | undefined>(undefined);
-  const [preparing, setPreparing] = useState(false);
   const {
     control,
     handleSubmit,
@@ -47,15 +50,38 @@ export function ProfileForm({ account }: ProfileFormProps) {
     getValues,
     setError,
     reset,
-    formState: { errors, isSubmitting, dirtyFields },
+    formState: { errors, dirtyFields },
   } = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: { username: account.username, photo: { action: "keep" } },
   });
+  const selection = useImageSelection({
+    canSelect: () => !save.isPending(),
+    allowsEditing: true,
+    aspect: [1, 1],
+    onSelect: async (assets) => {
+      const selected = assets[0];
+      if (!selected) return;
+      try {
+        const prepared = await prepareProfilePhoto(selected, session);
+        if (active.current && session.isCurrent(session.generation))
+          replacePhoto({ action: "replace", prepared });
+        else deleteOwnedImage(prepared);
+      } catch (error) {
+        if (!active.current || !session.isCurrent(session.generation)) return;
+        if (error instanceof ImageValidationError)
+          setError("photo", {
+            message:
+              "Impossible de préparer la photo. Votre choix précédent est conservé.",
+          });
+        else throw error;
+      }
+    },
+  });
   const draft = useWatch({ control, name: "photo" });
   const uncertain = isUncertainMutationFailure(save.error);
-  const needsRead = uncertain && !original.isSuccess;
-  const busy = preparing || isSubmitting || original.isFetching;
+  const needsRead = save.needsRead;
+  const busy = selection.pending || save.pending || original.isFetching;
   let photoUri: string | undefined;
   if (draft.action === "replace") photoUri = draft.prepared.uri;
   else if (draft.action === "keep" && account.hasPhoto && photo.data)
@@ -95,22 +121,23 @@ export function ProfileForm({ account }: ProfileFormProps) {
       deleteOwnedImage(previous.prepared);
   }
 
-  /** Sends only supplied editing intent; an uncertain failure performs one read without replaying the write. */
+  /** Sends supplied intent once; one original-target read may reconcile uncertainty without replay. */
   async function submit(values: ProfileValues) {
     if (
       needsRead ||
-      preparing ||
+      selection.isPending() ||
       !active.current ||
       !session.isCurrent(session.generation)
     )
       return;
     const file =
       values.photo.action === "replace" ? values.photo.prepared : undefined;
+    feedback.clear();
+    const attempt = save.start(toProfileBody(values, dirtyFields));
+    if (!attempt) return;
     uploading.current = file;
     try {
-      const accepted = await save.mutateAsync(
-        toProfileBody(values, dirtyFields),
-      );
+      const accepted = await attempt;
       if (active.current && session.isCurrent(session.generation))
         reset({ username: accepted.username, photo: { action: "keep" } });
     } catch (error) {
@@ -128,7 +155,8 @@ export function ProfileForm({ account }: ProfileFormProps) {
           message:
             "Cette photo ne peut pas être enregistrée. Choisissez une autre image.",
         });
-      if (isUncertainMutationFailure(error)) await original.refetch();
+      else if (isUncertainMutationFailure(error)) await reread();
+      else feedback.error();
     } finally {
       uploading.current = undefined;
       const current = getValues("photo");
@@ -163,34 +191,13 @@ export function ProfileForm({ account }: ProfileFormProps) {
         <ImageField
           label="Photo de profil"
           images={images}
-          allowsEditing
+          selection={selection}
           placeholderIcon={UserRound}
-          aspect={[1, 1]}
           disabled={busy}
           chooseLabel="Choisir une photo de profil"
           helper="Facultatif. PNG/JPEG, jusqu’à 5 Mio."
           error={errors.photo?.message}
           onRemove={() => replacePhoto({ action: "remove" })}
-          onSelect={async (assets) => {
-            const selected = assets[0];
-            if (!selected) return;
-            setPreparing(true);
-            try {
-              const prepared = await prepareProfilePhoto(selected, session);
-              if (active.current && session.isCurrent(session.generation))
-                replacePhoto({ action: "replace", prepared });
-              else deleteOwnedImage(prepared);
-            } catch {
-              if (active.current && session.isCurrent(session.generation))
-                setError("photo", {
-                  message:
-                    "Impossible de préparer la photo. Votre choix précédent est conservé.",
-                });
-            } finally {
-              if (active.current && session.isCurrent(session.generation))
-                setPreparing(false);
-            }
-          }}
         />
       </View>
       <View
@@ -224,10 +231,7 @@ export function ProfileForm({ account }: ProfileFormProps) {
           helper="L’adresse e-mail est liée au compte et ne peut pas être modifiée ici."
         />
       </View>
-      {save.isError && !uncertain && (
-        <RequestError message="Votre profil n’a pas pu être enregistré. Votre brouillon est conservé." />
-      )}
-      {uncertain &&
+      {(uncertain || needsRead) &&
         (needsRead ? (
           <RequestError message="Le résultat de la sauvegarde est incertain. Vérifiez votre profil avant de réessayer." />
         ) : (
@@ -243,22 +247,14 @@ export function ProfileForm({ account }: ProfileFormProps) {
         <Button
           label="Vérifier mon profil"
           loading={original.isFetching}
-          onPress={() => void original.refetch()}
+          onPress={() => void reread()}
         />
-      )}
-      {save.isSuccess && (
-        <Text
-          accessibilityLiveRegion="polite"
-          style={[tokens.typography.body, { color: colors.text }]}
-        >
-          Profil enregistré.
-        </Text>
       )}
       <Button
         label="Enregistrer"
         onPress={() => void handleSubmit(submit)()}
         disabled={busy || needsRead}
-        loading={isSubmitting}
+        loading={save.executing}
       />
     </View>
   );

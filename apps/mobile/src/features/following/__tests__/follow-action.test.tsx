@@ -1,3 +1,5 @@
+import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
+import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import { useEffect, type ReactNode, type ReactElement } from "react";
 import { QueryClientProvider, useInfiniteQuery } from "@tanstack/react-query";
 import {
@@ -117,7 +119,9 @@ async function mount(children: ReactElement, status = "authenticated") {
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              <SessionProbe>{children}</SessionProbe>
+              <AccountFeedbackProvider>
+                <SessionProbe>{children}</SessionProbe>
+              </AccountFeedbackProvider>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
@@ -423,9 +427,8 @@ it("does not resurrect a superseded failure when the successful second control u
     ).toHaveLength(2),
   );
   await user.press(screen.getAllByRole("button", { name: "Suivre" })[0]);
-  await screen.findAllByText(
-    "La demande de suivi a échoué. Vous pouvez réessayer.",
-  );
+  await screen.findByText(TECHNICAL_ERROR);
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
   await user.press(screen.getAllByRole("button", { name: "Suivre" })[1]);
   await waitFor(() =>
     expect(
@@ -517,7 +520,9 @@ it("keeps the confirmed member state when returning from an explicit maintenance
   });
 
   // Then
-  expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
+  );
   await user.press(screen.getByRole("button", { name: "Suivi" }));
   await screen.findByRole("button", { name: "Suivre", busy: false });
   const writes = mockFetch.mock.calls.filter(
@@ -657,14 +662,9 @@ it.each([403, 404])(
 );
 
 it.each([403, 404])(
-  "keeps refusal %s after native collection of a detached mutation while another control remains mounted",
+  "keeps refusal %s after the settled command is retired and its initiating control leaves",
   async (refusal) => {
-    // Given: use the installed library's real five-minute collection rather than retaining test mutations forever.
-    jest.useFakeTimers();
-    client.setDefaultOptions({
-      ...client.getDefaultOptions(),
-      mutations: { ...client.getDefaultOptions().mutations, gcTime: 300_000 },
-    });
+    // Given: Query owns the restriction after the settled command is retired.
     mockFetch.mockImplementation((url, request) =>
       request?.method === "PUT"
         ? Promise.resolve(new Response(null, { status: refusal }))
@@ -693,9 +693,6 @@ it.each([403, 404])(
         <FollowButton key="second" target={team} season={season} />
       </>,
     );
-    await act(async () => {
-      await jest.advanceTimersByTimeAsync(300_001);
-    });
 
     // Then
     expect(client.getMutationCache().findAll({ status: "error" })).toHaveLength(
@@ -940,9 +937,7 @@ it.each([true, false])(
 
     // When
     await user.press(screen.getByRole("button", { name: label }));
-    await screen.findByText(
-      "La demande de suivi a échoué. Vous pouvez réessayer.",
-    );
+    await screen.findByText(TECHNICAL_ERROR);
 
     // Then
     expect(writes).toBe(1);
@@ -1060,8 +1055,10 @@ it("shares an uncertain-write observation with an explicit member reread and can
   ).toHaveLength(1);
 });
 
-it("does not invent an outcome when both write response and reconciliation are lost", async () => {
+it("retains an uncertain follow across route disposal and cache expiry until a deliberate same-command retry", async () => {
   // Given
+  jest.useFakeTimers();
+  client.setMutationDefaults([], { gcTime: 300_000 });
   let attempted = false;
   mockFetch.mockImplementation((url, request) => {
     if (request?.method === "PUT") {
@@ -1073,7 +1070,7 @@ it("does not invent an outcome when both write response and reconciliation are l
     return transport(url, request);
   });
   const user = userEvent.setup();
-  await mount(<FollowButton target={team} season={season} />);
+  const rendered = await mount(<FollowButton target={team} season={season} />);
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
   );
@@ -1098,6 +1095,37 @@ it("does not invent an outcome when both write response and reconciliation are l
         url.includes("team-follows") && request?.method !== "PUT",
     ),
   ).toHaveLength(2);
+  // When: detached native mutation collection must not erase an unresolved result.
+  await rendered.rerender(<></>);
+  await act(async () => {
+    await jest.advanceTimersByTimeAsync(300_001);
+  });
+  await rendered.rerender(<FollowButton target={team} season={season} />);
+
+  // Then: the failed reopening read retains the original explicit replacement.
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(
+        ([url, request]) =>
+          url.includes("team-follows") && request?.method !== "PUT",
+      ),
+    ).toHaveLength(3),
+  );
+  await waitFor(() => {
+    const state = client.getQueryState(
+      followStateKey({ ...session, accountId }, team),
+    );
+    expect(state?.fetchStatus).toBe("idle");
+    expect(state?.status).toBe("error");
+  });
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Réessayer le suivi" }),
+    ).toBeEnabled(),
+  );
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(1);
   mockFetch.mockImplementation(transport);
   await user.press(screen.getByRole("button", { name: "Réessayer le suivi" }));
   await screen.findByRole("button", { name: "Suivi", busy: false });

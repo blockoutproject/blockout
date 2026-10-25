@@ -37,7 +37,7 @@ type AuthenticationStatus =
  */
 export interface AccountSession extends SessionSnapshot, SessionGeneration {
   /** Suspends business reads and invalidates private work before the SDK's explicit hosted login. */
-  signIn(audience: string): Promise<void>;
+  signIn(audience: string): Promise<AccountCommandSession | undefined>;
   /** Invalidates private work immediately, then closes the native session with independent local clearing. */
   signOut(): Promise<void>;
   /** Invalidates private work before native local clearing; the sign-out flow owns browser/network cleanup. */
@@ -49,6 +49,13 @@ export interface AccountSession extends SessionSnapshot, SessionGeneration {
   /** Remounts the SDK after failed restoration, resetting navigation without clearing credentials. */
   retryAuthentication(): void;
 }
+
+/** Original authenticated generation supplied directly by a successful explicit native login. */
+export type AccountCommandSession = Pick<
+  SessionSnapshot,
+  "generation" | "accountId"
+> &
+  Pick<SessionGeneration, "isCurrent" | "setAccount">;
 
 type Initialization =
   | { status: "initializing" }
@@ -137,10 +144,6 @@ function SessionScope({
   retryAuthentication: () => void;
 }>) {
   const auth = useAuth0();
-  const [operation, setOperation] = useState<{
-    generation: string;
-    status: "authenticating" | "signing-out";
-  }>();
   const [session] = useState(createSessionGeneration);
   const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot);
   const reauthenticationRequired = requiresReauthentication(auth.error);
@@ -153,26 +156,11 @@ function SessionScope({
   let status: AuthenticationStatus = "guest";
   if (initialization.status === "initialization-error")
     status = "initialization-error";
-  else if (operation) status = operation.status;
+  else if (snapshot.operation) status = snapshot.operation;
   else if (auth.isLoading) status = "restoring";
   else if (reauthenticationRequired) status = "reauthentication-required";
   else if (auth.user) status = "authenticated";
   else if (auth.error) status = "authentication-error";
-  /** Invalidates private work synchronously and binds the pending command to its own generation. */
-  function beginOperation(status: "authenticating" | "signing-out") {
-    session.invalidate();
-    const generation = session.getSnapshot().generation;
-    setOperation({ generation, status });
-    return generation;
-  }
-
-  /** An older native completion cannot release a newer pending business command. */
-  function finishOperation(generation: string) {
-    setOperation((current) =>
-      current?.generation === generation ? undefined : current,
-    );
-  }
-
   const value: AccountSession = {
     ...session,
     ...snapshot,
@@ -192,30 +180,40 @@ function SessionScope({
     async signIn(audience) {
       if (initialization.status !== "ready")
         throw new Error("Native authentication is unavailable");
-      const generation = beginOperation("authenticating");
+      const generation = session.beginOperation("authenticating");
+      if (!generation) return;
       try {
         await auth.authorize({
           audience,
           scope: "openid profile email offline_access",
         });
+        if (!session.isCurrent(generation)) return;
+        return {
+          generation,
+          accountId: session.getSnapshot().accountId,
+          isCurrent: session.isCurrent,
+          setAccount: session.setAccount,
+        };
       } finally {
-        finishOperation(generation);
+        session.finishOperation(generation);
       }
     },
     async clearCredentials() {
-      const generation = beginOperation("signing-out");
+      const generation = session.beginOperation("signing-out");
+      if (!generation) return;
       try {
         if (initialization.status === "ready") await auth.clearCredentials();
       } finally {
-        finishOperation(generation);
+        session.finishOperation(generation);
       }
     },
     async signOut() {
-      const generation = beginOperation("signing-out");
+      const generation = session.beginOperation("signing-out");
+      if (!generation) return;
       try {
         if (initialization.status === "ready") await signOutNativeSession(auth);
       } finally {
-        finishOperation(generation);
+        session.finishOperation(generation);
       }
     },
     setAccount: (generation, accountId) =>

@@ -1,11 +1,6 @@
+import { useSettingsAuthority } from "./use-settings-authority";
 import { createApplicationVersionsQueryOptions } from "./access-settings-queries";
-import {
-  useIsMutating,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
-import { useAuth0 } from "react-native-auth0";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   changeApplicationVersionSettings,
   getChangeApplicationVersionSettingsMutationKey,
@@ -15,14 +10,16 @@ import type {
   ChangeApplicationVersionsRequest,
 } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
-import { getSessionQueryKey } from "../../../shared/query/query-client";
-import { useAccountSession } from "../../accounts/current-account";
+import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
+import { useCommand } from "../../../shared/query/use-command";
 import { useApplicationAccess } from "../queries/use-application-access";
 
 /** Reads and atomically edits the versions group using generated transport and F05 session isolation. */
 export function useApplicationVersionsSettings(enabled: boolean) {
-  const session = useAccountSession();
-  const auth = useAuth0();
+  const { session, request, observedRevision } = useSettingsAuthority(
+    enabled,
+    "manageApplicationVersions",
+  );
   const client = useQueryClient();
   const { observations } = useApplicationAccess();
   const options = createApplicationVersionsQueryOptions(
@@ -34,23 +31,6 @@ export function useApplicationVersionsSettings(enabled: boolean) {
     observe,
   );
   const queryKey = options.queryKey;
-  const mutationKey = getSessionQueryKey(
-    session.generation,
-    getChangeApplicationVersionSettingsMutationKey(),
-  );
-  // Query's mutation cache retains pending work even when its original observer unmounts.
-  const saving = useIsMutating({ mutationKey, exact: true }) > 0;
-  /** Rechecks current presentation authority before native credentials; the server owns actual authorization. */
-  async function request() {
-    if (!enabled) throw new ApiError("http", 403);
-    const credentials = await auth.getCredentials();
-    if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
-    if (!credentials) throw new ApiError("http", 401);
-    return {
-      session,
-      headers: { Authorization: `Bearer ${credentials.accessToken}` },
-    };
-  }
   /** Advances only validated, current partial observations; this never establishes ordinary admission. */
   function observe(value: ApplicationVersionsResponse, signal?: AbortSignal) {
     if (!session.isCurrent(session.generation) || signal?.aborted)
@@ -61,19 +41,33 @@ export function useApplicationVersionsSettings(enabled: boolean) {
     return value;
   }
   const query = useQuery(options);
-  const content = useMutation({
-    mutationKey,
-    gcTime: 0,
-    mutationFn: async (body: ChangeApplicationVersionsRequest) => {
-      const accepted = await changeApplicationVersionSettings(
-        body,
-        await request(),
-      );
-      await client.cancelQueries({ queryKey, exact: true });
-      observe(accepted);
-      client.setQueryData(queryKey, accepted);
-      return accepted;
+  /** Accepts a confirmed group without letting an older response replace a newer restriction. */
+  async function acceptVersions(value: ApplicationVersionsResponse) {
+    await client.cancelQueries({ queryKey, exact: true });
+    if (!session.isCurrent(session.generation)) return;
+    const current = client.getQueryData<ApplicationVersionsResponse>(queryKey);
+    if (
+      value.revision <
+      Math.max(
+        current?.revision ?? 0,
+        observations.getSnapshot().versions?.revision ?? 0,
+      )
+    )
+      return;
+    client.setQueryData(queryKey, value);
+    observations.versions(value);
+  }
+  const content = useCommand(
+    {
+      mutationKey: [
+        ...queryKey,
+        ...getChangeApplicationVersionSettingsMutationKey(),
+      ],
+      mutationFn: async (body: ChangeApplicationVersionsRequest) =>
+        changeApplicationVersionSettings(body, await request(body.revision)),
+      onSuccess: acceptVersions,
     },
-  });
-  return { query, content, saving };
+    { groupKey: queryKey, requiresRead: requiresRevisionRead },
+  );
+  return { query, queryKey, observedRevision, content };
 }

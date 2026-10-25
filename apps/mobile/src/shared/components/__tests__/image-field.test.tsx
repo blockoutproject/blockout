@@ -1,14 +1,27 @@
+import { ActionFeedbackProvider } from "../action-feedback";
+import { TECHNICAL_ERROR } from "../error-copy";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createQueryClient } from "../../query/query-client";
+import { useCommand } from "../../query/use-command";
 import {
   act,
   fireEvent,
   render,
+  renderHook,
   screen,
   userEvent,
 } from "@testing-library/react-native";
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
+import { useState, type PropsWithChildren } from "react";
 import { ThemeProvider } from "../../theme/theme-provider";
-import { ImageField, type ImageFieldProps } from "../image-field";
+import {
+  ImageField as ImageFieldControl,
+  type ImageFieldProps,
+} from "../image-field";
+import {
+  useImageSelection,
+  type ImageSelectionOptions,
+} from "../../images/use-image-selection";
 import { ImageFieldExamplesScreen } from "../../../development/image-field-examples";
 
 jest.mock("expo-image-picker", () => ({ launchImageLibraryAsync: jest.fn() }));
@@ -41,12 +54,39 @@ const photo: ImagePicker.ImagePickerAsset = {
   fileSize: 2048,
 };
 
+/** Test host composes the real selection owner and controlled field; only native I/O is doubled. */
+function ImageField({
+  onSelect,
+  canSelect,
+  multiple,
+  selectionLimit,
+  allowsEditing,
+  aspect,
+  ...props
+}: Omit<ImageFieldProps, "selection"> & ImageSelectionOptions) {
+  const selection = useImageSelection({
+    onSelect,
+    canSelect,
+    multiple,
+    selectionLimit,
+    allowsEditing,
+    aspect,
+  });
+  return (
+    <ImageFieldControl {...props} multiple={multiple} selection={selection} />
+  );
+}
+
 /** Renders real control/appearance owners with native picker and filesystem I/O doubled. */
-async function renderField(props: Partial<ImageFieldProps> = {}) {
+async function renderField(
+  props: Partial<
+    Omit<ImageFieldProps, "selection"> & ImageSelectionOptions
+  > = {},
+) {
   const onSelect = jest.fn();
   const onRemove = jest.fn();
   await render(
-    <ThemeProvider>
+    <MediaProviders>
       <ImageField
         label="Logo"
         images={[]}
@@ -54,7 +94,7 @@ async function renderField(props: Partial<ImageFieldProps> = {}) {
         onRemove={onRemove}
         {...props}
       />
-    </ThemeProvider>,
+    </MediaProviders>,
   );
   return { onSelect, onRemove, user: userEvent.setup() };
 }
@@ -129,6 +169,94 @@ it.each([
   },
 );
 
+it("opens one native picker when selection is requested twice before a render", async () => {
+  // Given — the public selection owner must also reject duplicate native dispatch without a field rerender.
+  let complete: (result: ImagePicker.ImagePickerResult) => void = () => {};
+  launch.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        complete = resolve;
+      }),
+  );
+  const onSelect = jest.fn();
+  const { result } = await renderHook(() => useImageSelection({ onSelect }), {
+    wrapper: MediaProviders,
+  });
+
+  // When
+  await act(async () => {
+    result.current.select();
+    result.current.select();
+  });
+
+  // Then
+  expect(launch).toHaveBeenCalledTimes(1);
+  expect(result.current.pending).toBe(true);
+  await act(async () => complete({ canceled: false, assets: [photo] }));
+  expect(onSelect).toHaveBeenCalledTimes(1);
+  expect(mockDeleteFile).toHaveBeenCalledWith(photo.uri);
+  expect(result.current.pending).toBe(false);
+});
+
+it.each(["selection", "command"])(
+  "excludes overlapping native selection and HTTP admission when %s starts before a render",
+  async (first) => {
+    // Given — real operation owners share only synchronous admission checks, never mirrored pending state.
+    const client = createQueryClient();
+    const picker = Promise.withResolvers<ImagePicker.ImagePickerResult>();
+    const response = Promise.withResolvers<void>();
+    launch.mockReturnValue(picker.promise);
+    const write = jest.fn(() => response.promise);
+    const { result, unmount } = await renderHook(
+      () => {
+        const command = useCommand(
+          { mutationKey: ["image-owner"], mutationFn: write },
+          {
+            groupKey: ["image-owner"],
+            requiresRead: () => false,
+          },
+        );
+        const selection = useImageSelection({
+          canSelect: () => !command.isPending(),
+          onSelect: jest.fn(),
+        });
+        return { command, selection };
+      },
+      {
+        wrapper: ({ children }: PropsWithChildren) => (
+          <QueryClientProvider client={client}>
+            <MediaProviders>{children}</MediaProviders>
+          </QueryClientProvider>
+        ),
+      },
+    );
+    let attempt: Promise<void> | undefined;
+
+    // When
+    await act(async () => {
+      if (first === "selection") {
+        result.current.selection.select();
+        if (!result.current.selection.isPending())
+          attempt = result.current.command.start();
+      } else {
+        attempt = result.current.command.start();
+        result.current.selection.select();
+      }
+    });
+
+    // Then
+    expect(launch).toHaveBeenCalledTimes(first === "selection" ? 1 : 0);
+    expect(write).toHaveBeenCalledTimes(first === "command" ? 1 : 0);
+    await act(async () => {
+      picker.resolve({ canceled: true, assets: null });
+      response.resolve();
+      await attempt;
+    });
+    await unmount();
+    client.clear();
+  },
+);
+
 it("preserves the existing image when native selection is cancelled", async () => {
   // Given
   launch.mockResolvedValue({ canceled: true, assets: null });
@@ -167,9 +295,7 @@ it.each(["ERR_USER_REJECTED_PERMISSIONS", "ERR_TEST_PICKER"])(
     );
 
     // Then
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Impossible de sélectionner l’image. Réessayez.",
-    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(TECHNICAL_ERROR);
     expect(screen.queryByText(/private path/)).not.toBeOnTheScreen();
     expect(onSelect).not.toHaveBeenCalled();
     expect(
@@ -283,7 +409,7 @@ it("retains the old image and caller validation error when preparation rejects u
   function Owner() {
     const [error, setError] = useState<string>();
     return (
-      <ThemeProvider>
+      <MediaProviders>
         <ImageField
           label="Pièces jointes"
           images={[logo]}
@@ -297,7 +423,7 @@ it("retains the old image and caller validation error when preparation rejects u
             }
           }}
         />
-      </ThemeProvider>
+      </MediaProviders>
     );
   }
   const user = userEvent.setup();
@@ -366,9 +492,7 @@ it("blocks reselection during owner preparation and recovers safely from rejecti
   });
 
   // Then
-  expect(await screen.findByRole("alert")).toHaveTextContent(
-    "Impossible de sélectionner l’image. Réessayez.",
-  );
+  expect(await screen.findByRole("alert")).toHaveTextContent(TECHNICAL_ERROR);
   expect(mockDeleteFile).toHaveBeenCalledWith(photo.uri);
   expect(
     screen.getByRole("button", {
@@ -434,7 +558,7 @@ it("shows accepted caller values and removes them only when the owner updates", 
   function Owner() {
     const [images, setImages] = useState([logo]);
     return (
-      <ThemeProvider>
+      <MediaProviders>
         <ImageField
           label="Logo"
           images={images}
@@ -451,7 +575,7 @@ it("shows accepted caller values and removes them only when the owner updates", 
             setImages((current) => current.filter((image) => image.id !== id))
           }
         />
-      </ThemeProvider>
+      </MediaProviders>
     );
   }
   const user = userEvent.setup();
@@ -509,7 +633,7 @@ it("starts a new preview attempt when an image URI returns or the viewer reopens
   const onSelect = jest.fn();
   const view = await render(
     <ImageField images={[logo]} onSelect={onSelect} />,
-    { wrapper: ThemeProvider },
+    { wrapper: MediaProviders },
   );
   await user.press(
     screen.getByRole("button", { name: "Aperçu : Logo du club" }),
@@ -644,9 +768,9 @@ it("keeps the demonstration preview in memory after its picker cache copy is rel
   mockReadBase64.mockReturnValue(bytes.promise);
   const user = userEvent.setup();
   await render(
-    <ThemeProvider>
+    <MediaProviders>
       <ImageFieldExamplesScreen />
-    </ThemeProvider>,
+    </MediaProviders>,
   );
 
   // When
@@ -685,3 +809,14 @@ it("keeps the demonstration preview in memory after its picker cache copy is rel
   ).not.toBeOnTheScreen();
   expect(mockDeleteFile).toHaveBeenCalledTimes(1);
 });
+
+/** Matches the application's theme and transient feedback owners for native selection scenarios. */
+function MediaProviders({ children }: PropsWithChildren) {
+  return (
+    <ThemeProvider>
+      <ActionFeedbackProvider scopeKey="image-selection-test">
+        {children}
+      </ActionFeedbackProvider>
+    </ThemeProvider>
+  );
+}

@@ -2,6 +2,7 @@ import type { ImagePickerAsset } from "expo-image-picker";
 import { File, Paths } from "expo-file-system";
 import { randomUUID } from "expo-crypto";
 import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
+import { ImageValidationError } from "../../../shared/images/image-validation-error";
 import {
   ImageManipulator,
   SaveFormat,
@@ -9,7 +10,7 @@ import {
 } from "expo-image-manipulator";
 import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
 
-/** Returns an app-owned cache File by copying admissible PNG/JPEG bytes or preparing one bounded PNG; rejected output is deleted. Borrowed input remains with ImageField until preparation settles; the library original is untouched. */
+/** Returns an app-owned cache File by copying admissible PNG/JPEG bytes or preparing one bounded PNG; rejected output is deleted. Borrowed input remains with the selection owner until preparation settles; the library original is untouched. */
 export async function prepareSportingLogo(
   asset: ImagePickerAsset,
   session: NonNullable<ApiFetchOptions["session"]>,
@@ -21,7 +22,7 @@ export async function prepareSportingLogo(
     asset.width < 1 ||
     asset.height < 1
   )
-    throw new Error("Invalid dimensions");
+    throw new ImageValidationError("Invalid dimensions");
   const original = new File(asset.uri);
   const mediaType = asset.mimeType ?? original.type;
   if (
@@ -63,7 +64,7 @@ export async function prepareSportingLogo(
     file = new File(output.uri);
     if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
     if (file.size < 1 || file.size > 5_242_880)
-      throw new Error("Prepared image exceeds the upload limit");
+      throw new ImageValidationError("Prepared image exceeds the upload limit");
     return file;
   } catch (error) {
     deleteOwnedImage(file);

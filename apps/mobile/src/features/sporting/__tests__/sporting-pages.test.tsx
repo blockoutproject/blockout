@@ -1,3 +1,4 @@
+import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import type { ReactElement } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -147,9 +148,11 @@ async function renderPage(content: ReactElement) {
     wrapper: ({ children }) => (
       <QueryClientProvider client={client}>
         <ThemeProvider>
-          <ApplicationAccessProvider>
-            <AccountSessionProvider>{children}</AccountSessionProvider>
-          </ApplicationAccessProvider>
+          <ActionFeedbackProvider scopeKey="test">
+            <ApplicationAccessProvider>
+              <AccountSessionProvider>{children}</AccountSessionProvider>
+            </ApplicationAccessProvider>
+          </ActionFeedbackProvider>
         </ThemeProvider>
       </QueryClientProvider>
     ),
@@ -546,7 +549,7 @@ it("reports a refused external opening while keeping club information usable", a
 
   // Then
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "Impossible d’ouvrir ce lien. Vous pouvez réessayer.",
+    "Une erreur est survenue. Veuillez réessayer plus tard.",
   );
   expect(screen.getByText(club.club.name)).toBeOnTheScreen();
 });

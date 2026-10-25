@@ -1,3 +1,4 @@
+import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import {
   act,
   fireEvent,
@@ -18,7 +19,9 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 async function openForm(onSubmit = jest.fn().mockResolvedValue(undefined)) {
   await render(
     <ThemeProvider>
-      <AgeForm onSubmit={onSubmit} />
+      <ActionFeedbackProvider scopeKey="test">
+        <AgeForm pending={false} onSubmit={onSubmit} />
+      </ActionFeedbackProvider>
     </ThemeProvider>,
   );
   return onSubmit;
@@ -103,7 +106,7 @@ it("keeps the editable choice after rejected persistence and allows explicit ret
   await user.press(screen.getByRole("button", { name: "Continuer" }));
 
   // Then
-  expect(screen.getByRole("button", { name: "Continuer" })).toBeDisabled();
+  expect(submit).toHaveBeenCalledTimes(1);
 
   // When
   await act(async () => write.reject(new Error("Storage")));
@@ -128,7 +131,9 @@ it("cancels an edited correction on unmount and starts a fresh neutral choice wh
   const submit = jest.fn().mockResolvedValue(undefined);
   const view = await render(
     <ThemeProvider>
-      <AgeForm onSubmit={submit} />
+      <ActionFeedbackProvider scopeKey="test">
+        <AgeForm pending={false} onSubmit={submit} />
+      </ActionFeedbackProvider>
     </ThemeProvider>,
   );
   await fireEvent(screen.getByRole("adjustable"), "change", {

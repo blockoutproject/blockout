@@ -1,10 +1,11 @@
+import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { getListClubTeamsQueryKey } from "../../../../.generated/mobile";
 import { act, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { Alert, Pressable, Text } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
-import type { ComponentType } from "react";
+import type { ComponentType, PropsWithChildren } from "react";
 import RootLayout from "../../../app/_layout";
 import OnboardingRoute from "../../../app/onboarding";
 import OperationsLayout from "../../../app/(operations)/_layout";
@@ -16,7 +17,10 @@ import { ClassificationSelectionScreen } from "../screens/classification-selecti
 import { PresentationScreen } from "../screens/presentation-screen";
 import CreateDivisionRoute from "../../../app/(operations)/administration/divisions/new";
 import { AdministrationScreen } from "../../access/screens/administration-screen";
-import { useCurrentAccount } from "../../accounts/current-account";
+import {
+  useCurrentAccount,
+  useAccountSession,
+} from "../../accounts/current-account";
 import { ClassificationEntry } from "../entry";
 import { completeDiscovery } from "../../onboarding/discovery-state";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
@@ -194,7 +198,9 @@ async function renderEditor(
         <QueryClientProvider client={client}>
           <ThemeProvider>
             <ApplicationAccessProvider>
-              <AccountSessionProvider>{children}</AccountSessionProvider>
+              <AccountSessionProvider>
+                <ActionFeedbackScope>{children}</ActionFeedbackScope>
+              </AccountSessionProvider>
             </ApplicationAccessProvider>
           </ThemeProvider>
         </QueryClientProvider>
@@ -252,7 +258,11 @@ it("submits a complete pool override after confirmation and excludes inactive ch
       }),
     ),
   );
-  await screen.findByText("Classification enregistrée.");
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
 });
 
 it("removes the complete pack default with explicit null", async () => {
@@ -275,7 +285,11 @@ it("removes the complete pack default with explicit null", async () => {
       }),
     ),
   );
-  await screen.findByText("Classification enregistrée.");
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
 });
 
 it("retains dirty choices and displays conflicting scopes without applying a subset", async () => {
@@ -316,7 +330,9 @@ it("retains dirty choices and displays conflicting scopes without applying a sub
   expect(
     screen.getByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "2 × 2" });
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
+  );
 });
 it("requires a successful current-state read after an uncertain write and preserves the draft", async () => {
   // Given
@@ -337,7 +353,7 @@ it("requires a successful current-state read after an uncertain write and preser
   await screen.findByRole("button", { name: "Relire la classification" });
   stored = { ...stored, revision: "r2" };
   await user.press(
-    screen.getByRole("button", { name: "Relire la classification" }),
+    await screen.findByRole("button", { name: "Relire la classification" }),
   );
   // Then
   expect(
@@ -427,7 +443,7 @@ it("keeps a failed recovery read blocking and never retries the uncertain write"
   await screen.findByRole("button", { name: "Relire la classification" });
   failedRead = true;
   await user.press(
-    screen.getByRole("button", { name: "Relire la classification" }),
+    await screen.findByRole("button", { name: "Relire la classification" }),
   );
 
   // Then
@@ -437,7 +453,9 @@ it("keeps a failed recovery read blocking and never retries the uncertain write"
   expect(
     screen.getByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
+  );
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
   ).toHaveLength(1);
@@ -588,14 +606,17 @@ it("retains a classification draft and uncertainty through actual protected-rout
     await screen.findByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
   expect(
-    screen.getByRole("button", { name: "Relire la classification" }),
+    await screen.findByRole("button", { name: "Relire la classification" }),
   ).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
+  );
   await act(async () => router.back());
   expect(Alert.alert).toHaveBeenLastCalledWith(
     "Abandonner les modifications ?",
     "Votre brouillon n’a pas été enregistré.",
     expect.any(Array),
+    expect.any(Object),
   );
 });
 
@@ -662,11 +683,10 @@ it.each(["classification", "activity"])(
     await confirm();
 
     // Then
-    await screen.findByText(
-      operation === "activity"
-        ? "Division désactivée. L’historique est conservé."
-        : "Classification enregistrée.",
-    );
+    if (operation === "activity")
+      await screen.findByText(
+        "Division désactivée. L’historique est conservé.",
+      );
     await waitFor(() =>
       expect(client.getQueryState(clubKey)?.isInvalidated).toBe(true),
     );
@@ -710,14 +730,18 @@ it("distinguishes a stale revision and uses the reread revision only on explicit
   await screen.findByText(/La classification a changé depuis votre lecture/);
   stored = { ...stored, revision: "r2" };
   await user.press(
-    screen.getByRole("button", { name: "Relire la classification" }),
+    await screen.findByRole("button", { name: "Relire la classification" }),
   );
   refuse = false;
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await confirm();
 
   // Then
-  await screen.findByText("Classification enregistrée.");
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
   const writes = mockFetch.mock.calls.filter(
     ([, options]) => options?.method === "PUT",
   );
@@ -748,7 +772,9 @@ it("reauthorizes a held native confirmation after the current classification gra
   expect(
     await screen.findByText("Cette action nécessite une permission dédiée."),
   ).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
+  );
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
   ).toBe(false);
@@ -887,3 +913,13 @@ it("discards a held classification confirmation when its protected route is remo
     mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
   ).toBe(false);
 });
+
+/** Uses the real F05 generation so a previous session cannot retain action feedback in this fixture. */
+function ActionFeedbackScope({ children }: PropsWithChildren) {
+  const { generation } = useAccountSession();
+  return (
+    <ActionFeedbackProvider scopeKey={generation}>
+      {children}
+    </ActionFeedbackProvider>
+  );
+}

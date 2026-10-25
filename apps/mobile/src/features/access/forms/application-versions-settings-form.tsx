@@ -1,4 +1,10 @@
+import {
+  ActionFeedbackProvider,
+  useActionFeedback,
+} from "../../../shared/components/action-feedback";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
+import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
+import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { applicationVersionsValues as values } from "./application-versions-values";
 import { toApplicationVersionsRequest } from "../api/application-versions-request";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -12,7 +18,6 @@ import { ChevronDown, ChevronRight, Check } from "lucide-react-native";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
 import {
-  Alert,
   Modal,
   Platform,
   Pressable,
@@ -28,7 +33,6 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useAccountSession } from "../../accounts/current-account";
 import { useApplicationVersionsSettings } from "../api/use-application-versions-settings";
-import { requiresSettingsReread } from "../api/use-maintenance-settings";
 import {
   applicationVersionsSchema,
   raisesMinimum,
@@ -51,12 +55,19 @@ export function ApplicationVersionsSettingsForm({
 }: ApplicationVersionsSettingsFormProps) {
   const session = useAccountSession();
   const { colors } = useTheme();
+  const confirmAction = useActionConfirmation();
+  const actionFeedback = useActionFeedback();
   const { fontScale } = useWindowDimensions();
   const largeText = fontScale > 1;
   const mounted = useRef(false);
   const [editor] = useState(() => applicationVersionsEditor(session, settings));
   const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
-  const { baseline, needsRead, feedback } = state;
+  const { baseline } = state;
+  const feedback = editing.content.needsRead
+    ? "Le résultat doit être vérifié. Relisez les réglages avant une nouvelle soumission."
+    : Math.max(settings.revision, editing.observedRevision) > baseline.revision
+      ? "Les réglages ont changé. Relisez-les avant une nouvelle soumission."
+      : state.feedback;
   const [expanded, setExpanded] = useState({ ios: false, android: false });
   const [preview, setPreview] = useState(false);
   const [acknowledged, setAcknowledged] = useState<string>();
@@ -64,7 +75,7 @@ export function ApplicationVersionsSettingsForm({
     formControl: editor.form.formControl,
     resolver: zodResolver(applicationVersionsSchema),
   });
-  const { errors, isSubmitting, isDirty, dirtyFields } = useFormState({
+  const { errors, isDirty, dirtyFields } = useFormState({
     control,
   });
   useDiscardChanges(isDirty, () => {
@@ -90,9 +101,10 @@ export function ApplicationVersionsSettingsForm({
   const raised = raisesMinimum(current, baseline);
   const storeChoice = JSON.stringify([current.ios, current.android]);
   const checked = acknowledged === storeChoice;
-  const busy =
-    disabled || isSubmitting || editing.saving || editing.query.isFetching;
-  const rereadRequired = needsRead || settings.revision > baseline.revision;
+  const busy = disabled || editing.content.pending || editing.query.isFetching;
+  const rereadRequired =
+    editing.content.needsRead ||
+    Math.max(settings.revision, editing.observedRevision) > baseline.revision;
 
   useEffect(() => {
     mounted.current = true;
@@ -101,72 +113,67 @@ export function ApplicationVersionsSettingsForm({
     };
   }, []);
 
-  /** Native confirmation applies one reviewed draft; raising a minimum needs explicit store verification. */
-  function confirm(draft: ApplicationVersionsValues) {
-    if (busy || rereadRequired || (raised && !checked)) return;
-    Alert.alert(
-      "Appliquer les modifications ?",
-      "Les réglages de maintenance restent inchangés.",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Appliquer",
-          onPress: () => {
-            if (mounted.current) void submit(draft);
-          },
-        },
-      ],
-    );
-  }
   /** Maps only dirty fields, with null removals, into the generated atomic PATCH. */
   async function submit(draft: ApplicationVersionsValues) {
-    if (!session.isCurrent(session.generation) || busy || rereadRequired)
+    if (
+      !session.isCurrent(session.generation) ||
+      busy ||
+      rereadRequired ||
+      (raised && !checked)
+    )
       return;
+    if (
+      !(await confirmAction({
+        title: "Appliquer les modifications ?",
+        message: "Les réglages de maintenance restent inchangés.",
+        confirmLabel: "Appliquer",
+      })) ||
+      !session.isCurrent(session.generation)
+    )
+      return;
+    actionFeedback.clear();
     try {
-      const accepted = await editing.content.mutateAsync(
+      const command = editing.content.start(
         toApplicationVersionsRequest(baseline.revision, draft, dirtyFields),
       );
+      if (!command) return;
+      const accepted = await command;
       if (!session.isCurrent(session.generation)) return;
       editor.update({
         baseline: accepted,
-        needsRead: false,
-        feedback: "Réglages de versions enregistrés.",
       });
       reset(values(accepted));
-      setAcknowledged(undefined);
+      if (mounted.current) setAcknowledged(undefined);
     } catch (error) {
       if (!session.isCurrent(session.generation)) return;
-      if (requiresSettingsReread(error)) {
-        editor.update({
-          ...state,
-          needsRead: true,
-          feedback:
-            "Le résultat doit être vérifié. Relisez les réglages avant une nouvelle soumission.",
-        });
-      } else
-        editor.update({
-          ...state,
-          feedback:
-            "L’enregistrement a été refusé. Vérifiez les valeurs et vos permissions.",
-        });
+      if (!requiresRevisionRead(error))
+        actionFeedback.error(
+          "L’enregistrement a été refusé. Vérifiez les valeurs et vos permissions.",
+        );
     }
   }
   /** Reads the actual outcome and keeps dirty fields, without submitting or merging conflicting input. */
   async function reread() {
-    const result = await editing.query.refetch();
+    const { result, reconciled } = await editing.content.reconcile(
+      [editing.queryKey],
+      () => editing.query.refetch(),
+      (result) =>
+        !result.isError &&
+        !!result.data &&
+        result.data.revision >= baseline.revision,
+    );
     // Query may restore its old success when route removal cancels this read.
     if (!mounted.current || !session.isCurrent(session.generation)) return;
     if (
+      !reconciled ||
       !result.data ||
       result.isError ||
       result.data.revision < baseline.revision
     ) {
-      editor.update({ ...state, needsRead: true, feedback: undefined });
       return;
     }
     editor.update({
       baseline: result.data,
-      needsRead: false,
       feedback:
         "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
     });
@@ -343,7 +350,10 @@ export function ApplicationVersionsSettingsForm({
               fullWidth
               variant="secondary"
               label="Aperçu"
-              onPress={() => setPreview(true)}
+              onPress={() => {
+                actionFeedback.clear();
+                setPreview(true);
+              }}
               disabled={busy}
             />
           </View>
@@ -354,9 +364,9 @@ export function ApplicationVersionsSettingsForm({
               disabled={
                 busy || rereadRequired || !isDirty || (raised && !checked)
               }
-              loading={isSubmitting || editing.saving}
+              loading={editing.content.pending}
               onPress={() =>
-                void handleSubmit(confirm, (errors) =>
+                void handleSubmit(submit, (errors) =>
                   setExpanded({
                     ios: !!errors.ios || expanded.ios,
                     android: !!errors.android || expanded.android,
@@ -389,16 +399,22 @@ export function ApplicationVersionsSettingsForm({
         onRequestClose={() => setPreview(false)}
       >
         <SafeAreaProvider>
-          <ApplicationVersionsPreview
-            message={current.message.trim() || null}
-            storeUrl={
-              applicationVersionsSchema.safeParse(current).success
-                ? current[Platform.OS === "ios" ? "ios" : "android"].storeUrl ||
-                  null
-                : null
-            }
-            onClose={() => setPreview(false)}
-          />
+          {/* Native modal surfaces own their overlay; iOS retains children through dismissal, so closing resets callbacks immediately. */}
+          <ActionFeedbackProvider
+            key={preview ? "open" : "closed"}
+            scopeKey={session.generation}
+          >
+            <ApplicationVersionsPreview
+              message={current.message.trim() || null}
+              storeUrl={
+                applicationVersionsSchema.safeParse(current).success
+                  ? current[Platform.OS === "ios" ? "ios" : "android"]
+                      .storeUrl || null
+                  : null
+              }
+              onClose={() => setPreview(false)}
+            />
+          </ActionFeedbackProvider>
         </SafeAreaProvider>
       </Modal>
     </View>

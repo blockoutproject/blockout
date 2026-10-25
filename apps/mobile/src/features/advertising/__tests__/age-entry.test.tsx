@@ -95,6 +95,7 @@ const mockFetch = jest.fn<
 const environment = { ...process.env };
 
 let account: AccountSession;
+let installationAge: ReturnType<typeof useAgeDeclaration>;
 
 beforeEach(async () => {
   jest.replaceProperty(
@@ -167,6 +168,9 @@ function SessionProbe() {
   }, [session]);
   const { state } = usePro();
   const age = useAgeDeclaration();
+  useEffect(() => {
+    installationAge = age;
+  }, [age]);
   return (
     <>
       <Text>Session: {session.status}</Text>
@@ -175,6 +179,92 @@ function SessionProbe() {
     </>
   );
 }
+
+it("persists the first explicit age once and suppresses a concurrent different age without success", async () => {
+  // Given
+  await completeDiscovery();
+  await openEntry("/session");
+  await screen.findByText("Category: under16");
+  const acknowledgement = Promise.withResolvers<void>();
+  const write = jest
+    .spyOn(AsyncStorage, "setItem")
+    .mockReturnValueOnce(acknowledgement.promise);
+  write.mockClear();
+  let first: Promise<void> | undefined;
+  let second: Promise<void> | undefined;
+
+  // When
+  await act(() => {
+    first = installationAge.confirm(16);
+    second = installationAge.confirm(18);
+  });
+
+  // Then
+  expect(write).toHaveBeenCalledTimes(1);
+  expect(first).toBeInstanceOf(Promise);
+  expect(second).toBeUndefined();
+  expect(JSON.parse(write.mock.calls[0][1])).toEqual({
+    category: "16–17",
+    declaredAt: expect.any(String),
+  });
+  expect(screen.getByText("Category: under16")).toBeOnTheScreen();
+
+  // When
+  await act(async () => {
+    acknowledgement.resolve();
+    await first;
+  });
+
+  // Then
+  expect(screen.getByText("Category: 16–17")).toBeOnTheScreen();
+  expect(write).toHaveBeenCalledTimes(1);
+});
+
+it("keeps a remounted age form busy while installation storage survives a session change", async () => {
+  // Given
+  await completeDiscovery();
+  await openEntry("/");
+  const user = userEvent.setup();
+  await fireEvent(await screen.findByRole("adjustable"), "change", {
+    nativeEvent: { value: 16 },
+  });
+  const acknowledgement = Promise.withResolvers<void>();
+  const write = jest
+    .spyOn(AsyncStorage, "setItem")
+    .mockReturnValueOnce(acknowledgement.promise);
+  write.mockClear();
+  await user.press(screen.getByRole("button", { name: "Continuer" }));
+  await screen.findByRole("button", { name: "Continuer", busy: true });
+
+  // When — the installation owner remains mounted while navigation discards the form and F05 changes.
+  await act(async () => router.replace("/session"));
+  await screen.findByText("Session: guest");
+  await act(async () => account.clearCredentials());
+  await act(async () => router.replace("/"));
+
+  // Then — a fresh neutral draft cannot accept a second age during the first write.
+  expect(await screen.findByText("—")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Continuer", busy: true }),
+  ).toBeDisabled();
+  expect(screen.getByRole("adjustable")).toBeDisabled();
+  expect(
+    screen.getByRole("button", { name: "Augmenter l’âge" }),
+  ).toBeDisabled();
+  await user.press(screen.getByRole("button", { name: "Augmenter l’âge" }));
+  expect(write).toHaveBeenCalledTimes(1);
+
+  // When
+  await act(async () => acknowledgement.resolve());
+  await act(async () => router.replace("/session"));
+
+  // Then
+  expect(await screen.findByText("Category: 16–17")).toBeOnTheScreen();
+  expect(write).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(write.mock.calls[0][1])).toMatchObject({
+    category: "16–17",
+  });
+});
 
 it("guards ordinary home after guest selection even when discovery was skipped", async () => {
   // Given
