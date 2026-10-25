@@ -2,16 +2,16 @@ import { useRouter } from "expo-router";
 import { Check, Plus } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import type { SportingSeasonResponse } from "../../../../.generated/schemas/index.zod";
-import {
-  ApiError,
-  isUncertainMutationFailure,
-} from "../../../shared/api/api-fetch";
+import { isUncertainMutationFailure } from "../../../shared/api/api-fetch";
 import { Button } from "../../../shared/components/button";
 import { RequestError } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useFollowState } from "../api/follow-state";
-import { useFollowMutation } from "../api/follow-mutations";
+import {
+  useFollowMutation,
+  isFollowRestriction,
+} from "../api/follow-mutations";
 import type { FollowingTarget } from "../api/following-keys";
 
 /** Exact viewable target and its season; confirmation never changes a personal-space filter. */
@@ -29,10 +29,7 @@ export function FollowButton({ target, season }: FollowButtonProps) {
   const { query, profile, usable, sessionStatus } = context;
   const latest = action.latest;
   const failed = latest?.status === "error";
-  const unavailable = [query.error, latest?.error].some(
-    (error) =>
-      error instanceof ApiError && [403, 404].includes(error.status ?? 0),
-  );
+  const unavailable = [query.error, latest?.error].some(isFollowRestriction);
   if (unavailable)
     return (
       <RequestError

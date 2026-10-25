@@ -32,6 +32,11 @@ interface FollowResult {
   observed: boolean;
 }
 
+/** A current permission/visibility refusal suspends the personal control until a successful member read. */
+export function isFollowRestriction(error: unknown): error is ApiError {
+  return error instanceof ApiError && [403, 404].includes(error.status ?? 0);
+}
+
 /** Drops superseded feedback after a fresh read or new command, preserving any pending target action. */
 export function retireSettledFollowAttempts(
   client: QueryClient,
@@ -120,9 +125,21 @@ export function useFollowMutation(
         ),
       );
       if (!owner.isCurrent(owner.generation)) return;
-      stateKeys.forEach((queryKey) =>
-        client.setQueryData(queryKey, result.state),
-      );
+      const restriction = stateKeys
+        .map((queryKey) => client.getQueryState(queryKey))
+        .find((state) => isFollowRestriction(state?.error));
+      stateKeys.forEach((queryKey) => {
+        if (restriction && !result.observed) {
+          // The write may have been recorded before a newer visibility refusal arrived.
+          client.getQueryCache().find({ queryKey, exact: true })?.setState({
+            data: result.state,
+            dataUpdatedAt: Date.now(),
+            status: "error",
+            error: restriction.error,
+            errorUpdatedAt: restriction.errorUpdatedAt,
+          });
+        } else client.setQueryData(queryKey, result.state);
+      });
       // Consumers own visible-tab enablement and must not supply former initial/placeholder data.
       void Promise.allSettled([
         client.resetQueries({
@@ -154,6 +171,24 @@ export function useFollowMutation(
           exact: true,
         }),
       ]);
+    },
+    onError: async (error) => {
+      if (!owner?.isCurrent(owner.generation) || !isFollowRestriction(error))
+        return;
+      await Promise.all(
+        stateKeys.map((queryKey) =>
+          client.cancelQueries({ queryKey, exact: true }),
+        ),
+      );
+      if (!owner.isCurrent(owner.generation)) return;
+      // Query owns current availability independently of temporary mutation feedback and its collection.
+      stateKeys.forEach((queryKey) =>
+        client.getQueryCache().find({ queryKey, exact: true })?.setState({
+          status: "error",
+          error,
+          errorUpdatedAt: Date.now(),
+        }),
+      );
     },
   });
   const states = useMutationState({

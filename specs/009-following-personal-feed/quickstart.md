@@ -69,6 +69,10 @@ cache variants. Response loss performs one bounded member read without replay, a
 ordinary explicit retry of the same requested value. A successful observation is not announced as
 proof of the original write or delayed cancellation.
 
+Current 403/404 availability belongs to the member Query, independently of mutation collection.
+An earlier saved write response cannot erase a newer refusal; a successful current member read
+restores the control. The tests include native five-minute collection with another control still mounted.
+
 Controlled future infinite-query consumers prove cancellation of former traversal, visible first-page
 reload, hidden-query deferral and preserved write confirmation after dependent-read failure. These
 are interface tests, not completed list/calendar screens or their integrated qualifications.

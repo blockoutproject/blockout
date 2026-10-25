@@ -163,6 +163,7 @@ afterEach(async () => {
   await cleanup();
   client.clear();
   jest.restoreAllMocks();
+  jest.useRealTimers();
 });
 afterAll(() => {
   process.env = environment;
@@ -568,6 +569,129 @@ it.each([403, 404])(
         screen.getAllByRole("button", { name: "Suivi", busy: false }),
       ).toHaveLength(2),
     );
+  },
+);
+
+it.each([403, 404])(
+  "keeps a newer current read refusal %s when an earlier saved write response arrives late",
+  async (refusal) => {
+    // Given
+    let hidden = false;
+    let following = false;
+    const response = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url, request) => {
+      if (request?.method === "PUT") {
+        following = true;
+        hidden = true;
+        return response.promise;
+      }
+      if (url.includes("team-follows"))
+        return Promise.resolve(
+          hidden
+            ? new Response(null, { status: refusal })
+            : Response.json({ following }),
+        );
+      return transport(url, request);
+    });
+    const user = userEvent.setup();
+    const rendered = await mount(
+      <>
+        <FollowButton key="first" target={team} season={season} />
+      </>,
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+    );
+    await user.press(screen.getByRole("button", { name: "Suivre" }));
+    await rendered.rerender(
+      <>
+        <FollowButton key="first" target={team} season={season} />
+        <FollowButton key="reopened" target={team} season={season} />
+      </>,
+    );
+    await screen.findAllByText(
+      "Le suivi est indisponible pour cette ressource.",
+    );
+
+    // When
+    await act(async () => response.resolve(Response.json({ following: true })));
+    await waitFor(() => expect(client.isMutating()).toBe(0));
+
+    // Then
+    expect(
+      screen.getAllByText("Le suivi est indisponible pour cette ressource."),
+    ).toHaveLength(2);
+    expect(
+      screen.queryByRole("button", { name: "Suivi" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByText(/Suivi confirmé/)).not.toBeOnTheScreen();
+    hidden = false;
+    await user.press(screen.getAllByRole("button", { name: "Réessayer" })[0]);
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole("button", { name: "Suivi", disabled: false }),
+      ).toHaveLength(2),
+    );
+  },
+);
+
+it.each([403, 404])(
+  "keeps refusal %s after native collection of a detached mutation while another control remains mounted",
+  async (refusal) => {
+    // Given: use the installed library's real five-minute collection rather than retaining test mutations forever.
+    jest.useFakeTimers();
+    client.setDefaultOptions({
+      ...client.getDefaultOptions(),
+      mutations: { ...client.getDefaultOptions().mutations, gcTime: 300_000 },
+    });
+    mockFetch.mockImplementation((url, request) =>
+      request?.method === "PUT"
+        ? Promise.resolve(new Response(null, { status: refusal }))
+        : transport(url, request),
+    );
+    const user = userEvent.setup();
+    const rendered = await mount(
+      <>
+        <FollowButton key="first" target={team} season={season} />
+        <FollowButton key="second" target={team} season={season} />
+      </>,
+    );
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole("button", { name: "Suivre", disabled: false }),
+      ).toHaveLength(2),
+    );
+    await user.press(screen.getAllByRole("button", { name: "Suivre" })[0]);
+    await screen.findAllByText(
+      "Le suivi est indisponible pour cette ressource.",
+    );
+
+    // When
+    await rendered.rerender(
+      <>
+        <FollowButton key="second" target={team} season={season} />
+      </>,
+    );
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(300_001);
+    });
+
+    // Then
+    expect(client.getMutationCache().findAll({ status: "error" })).toHaveLength(
+      0,
+    );
+    expect(
+      screen.getByText("Le suivi est indisponible pour cette ressource."),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Suivre" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(
+        ([url, request]) =>
+          url.includes("team-follows") && request?.method !== "PUT",
+      ),
+    ).toHaveLength(1);
   },
 );
 
