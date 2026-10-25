@@ -175,18 +175,19 @@ function ResultLogo({
   );
 }
 
-/** Owns only the ephemeral native image representation; obsolete conversion completions are ignored. */
+/** Retains a decoded same-identity image during conversion; obsolete completions cannot replace it. */
 function LogoPreview({ blob }: { blob: Blob }) {
   const [uri, setUri] = useState<string>();
   const [failed, setFailed] = useState(false);
   const { colors } = useTheme();
   useEffect(() => {
     let current = true;
-    setUri(undefined);
-    setFailed(false);
     void binaryImagePreview(blob).then(
       (value) => {
-        if (current) setUri(value);
+        if (current) {
+          setUri(value);
+          setFailed(false);
+        }
       },
       () => {
         if (current) setFailed(true);
