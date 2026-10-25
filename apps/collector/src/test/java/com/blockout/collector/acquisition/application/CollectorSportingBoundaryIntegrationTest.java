@@ -583,6 +583,8 @@ class CollectorSportingBoundaryIntegrationTest {
         sporting,
         provider,
         mock(LnvAcquisition.class),
+        mock(ClubSheets.class),
+        mock(MunicipalGeocoder.class),
         discovery,
         lifecycle,
         Clock.systemUTC());
