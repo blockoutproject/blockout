@@ -9,7 +9,6 @@ import {
   ResourceTabs,
   ResourceText,
 } from "../components/resource-page";
-import { resourceUnavailable } from "../model/consultation-availability";
 import {
   SportingIdentity,
   SportingLink,
@@ -53,7 +52,7 @@ function TeamPage({
     retryOnMount: true,
   });
   const [selected, setSelected] = useState<string>();
-  const data = resourceUnavailable(team.error) ? undefined : team.data;
+  const data = team.data;
   const tabs = [
     { id: "upcoming", label: "À venir" },
     { id: "completed", label: "Terminés" },

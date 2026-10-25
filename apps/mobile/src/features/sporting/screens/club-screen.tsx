@@ -12,7 +12,6 @@ import {
   ResourceTabs,
   ResourceText,
 } from "../components/resource-page";
-import { resourceUnavailable } from "../model/consultation-availability";
 import {
   SportingIdentity,
   SportingLink,
@@ -53,7 +52,7 @@ function ClubPage({ clubId, renderCalendar }: ClubScreenProps) {
   const [tab, setTab] = useState("info");
   const [selectedSeason, setSelectedSeason] = useState<string>();
   const [choosingSeason, setChoosingSeason] = useState(false);
-  const data = resourceUnavailable(club.error) ? undefined : club.data;
+  const data = club.data;
   const seasons = data?.seasons ?? [];
   const season =
     seasons.find((item) => item.id === selectedSeason) ?? seasons[0];
@@ -65,10 +64,7 @@ function ClubPage({ clubId, renderCalendar }: ClubScreenProps) {
     enabled: !!data && !!season && tab === "teams",
     staleTime: Infinity,
   });
-  const teamData =
-    resourceUnavailable(teams.error) || teams.data?.seasonId !== season?.id
-      ? undefined
-      : teams.data;
+  const teamData = teams.data?.seasonId === season?.id ? teams.data : undefined;
   return (
     <ResourcePage title="Club" scroll={false}>
       <FlatList

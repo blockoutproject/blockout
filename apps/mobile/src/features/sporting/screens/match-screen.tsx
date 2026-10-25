@@ -10,7 +10,6 @@ import {
   ResourcePage,
   ResourceText,
 } from "../components/resource-page";
-import { resourceUnavailable } from "../model/consultation-availability";
 import {
   ContactLink,
   mapDestination,
@@ -32,7 +31,7 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
     retryOnMount: true,
   });
   const { colors } = useTheme();
-  const data = resourceUnavailable(match.error) ? undefined : match.data;
+  const data = match.data;
   return (
     <ResourcePage title="Match">
       <ResourceFeedback query={match} />

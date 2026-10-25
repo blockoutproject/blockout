@@ -46,38 +46,27 @@ export function MatchSummary({ match }: MatchSummaryProps) {
       {!match.schedule.instant && (
         <ResourceText>Horaire à confirmer</ResourceText>
       )}
-      <View style={styles.team}>
-        <View style={styles.identity}>
-          <SportingLink
-            kind="team"
-            id={match.home.id}
-            identity={match.home}
-            label={match.home.name}
-          />
+      {[
+        { team: match.home, score: result?.homeSets, side: "domicile" },
+        { team: match.away, score: result?.awaySets, side: "extérieur" },
+      ].map(({ team, score, side }) => (
+        <View key={side} style={styles.team}>
+          <View style={styles.identity}>
+            <SportingLink
+              kind="team"
+              id={team.id}
+              identity={team}
+              label={team.name}
+            />
+          </View>
+          <Text
+            accessibilityLabel={`Score ${side} : ${score ?? "indisponible"}`}
+            style={[styles.score, { color: colors.text }]}
+          >
+            {score ?? "—"}
+          </Text>
         </View>
-        <Text
-          accessibilityLabel={`Score domicile : ${result?.homeSets ?? "indisponible"}`}
-          style={[styles.score, { color: colors.text }]}
-        >
-          {result?.homeSets ?? "—"}
-        </Text>
-      </View>
-      <View style={styles.team}>
-        <View style={styles.identity}>
-          <SportingLink
-            kind="team"
-            id={match.away.id}
-            identity={match.away}
-            label={match.away.name}
-          />
-        </View>
-        <Text
-          accessibilityLabel={`Score extérieur : ${result?.awaySets ?? "indisponible"}`}
-          style={[styles.score, { color: colors.text }]}
-        >
-          {result?.awaySets ?? "—"}
-        </Text>
-      </View>
+      ))}
       <ResourceText>
         {!result
           ? "Résultat indisponible"

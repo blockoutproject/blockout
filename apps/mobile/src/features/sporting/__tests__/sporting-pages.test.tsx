@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
+  cleanup,
   render,
   screen,
   userEvent,
@@ -648,6 +649,89 @@ it("keeps a team readable when its own logo fails", async () => {
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/logo")),
   ).toHaveLength(1);
+});
+
+it("retains a usable logo through a failed refresh and clears it after a current refusal", async () => {
+  // Given: only native binary conversion and HTTP are controlled; Query retains the representation.
+  const previousReader = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "FileReader",
+  );
+  /** Completes native binary conversion synchronously; HTTP and Query remain real. */
+  class LogoReader {
+    static LOADING = 1;
+    readyState = 2;
+    result = "data:image/png;base64,c3ludGhldGlj";
+    onload?: () => void;
+    onerror?: () => void;
+    /** Supplies a successfully converted image without testing the platform decoder. */
+    readAsDataURL() {
+      this.onload?.();
+    }
+  }
+  Object.defineProperty(globalThis, "FileReader", {
+    configurable: true,
+    value: LogoReader,
+  });
+  try {
+    team.team.team.logoUrl = `/teams/${sportingId}/logo`;
+    team.team.team.shortName = "VDR";
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).pathname.endsWith("/logo")
+        ? Promise.resolve(
+            new Response("synthetic", {
+              headers: { "Content-Type": "image/png" },
+            }),
+          )
+        : reads(url),
+    );
+    await renderPage(<TeamScreen teamId={sportingId} />);
+    await screen.findByText(team.team.team.name);
+    await waitFor(() =>
+      expect(screen.queryByText("VDR")).not.toBeOnTheScreen(),
+    );
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).pathname.endsWith("/logo")
+        ? Promise.reject(new TypeError("offline"))
+        : reads(url),
+    );
+
+    // When
+    await act(async () => {
+      await client.refetchQueries({
+        predicate: (query) =>
+          query.queryKey.includes(`/teams/${sportingId}/logo`),
+      });
+    });
+
+    // Then
+    await screen.findByText(
+      /Logo indisponible|L’actualisation du logo a échoué\./,
+    );
+    expect(screen.queryByText("VDR")).not.toBeOnTheScreen();
+    expect(
+      await screen.findByText("L’actualisation du logo a échoué."),
+    ).toBeOnTheScreen();
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).pathname.endsWith("/logo")
+        ? Promise.resolve(Response.json({ status: 404 }, { status: 404 }))
+        : reads(url),
+    );
+    await act(async () => {
+      await client.refetchQueries({
+        predicate: (query) =>
+          query.queryKey.includes(`/teams/${sportingId}/logo`),
+      });
+    });
+    expect(await screen.findByText("Logo indisponible")).toBeOnTheScreen();
+    expect(screen.getByText("VDR")).toBeOnTheScreen();
+    expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
+  } finally {
+    await cleanup();
+    if (previousReader)
+      Object.defineProperty(globalThis, "FileReader", previousReader);
+    else Reflect.deleteProperty(globalThis, "FileReader");
+  }
 });
 
 it("retains the club teams when returning to a visited tab without an implicit reread", async () => {

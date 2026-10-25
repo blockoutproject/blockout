@@ -22,7 +22,7 @@ export interface SportingLogoProps {
   size?: number;
 }
 
-/** Keeps an accessible name beside missing/loading/failed artwork and never falls back to another owner. */
+/** Retains authorized artwork after refresh failure; missing/refused artwork keeps a readable identity. */
 export function SportingLogo({ identity, kind, size = 40 }: SportingLogoProps) {
   const queries = useConsultationQueries();
   const options =
@@ -38,29 +38,35 @@ export function SportingLogo({ identity, kind, size = 40 }: SportingLogoProps) {
     retryOnMount: true,
   });
   const { colors } = useTheme();
+  const data = identity.logoUrl ? logo.data : undefined;
   return (
-    <View
-      style={[
-        styles.logo,
-        { width: size, height: size, backgroundColor: colors.mediaPlaceholder },
-      ]}
-    >
-      {identity.logoUrl && logo.data && !logo.isError ? (
-        <LogoImage
-          key={JSON.stringify(options.queryKey)}
-          blob={logo.data}
-          size={size}
-        />
-      ) : null}
-      {(!identity.logoUrl || !logo.data || logo.isError) && (
-        <Text
-          accessible={false}
-          style={[styles.initials, { color: colors.text }]}
-        >
-          {identity.shortName ??
-            identity.name.slice(0, 2).toLocaleUpperCase("fr")}
-        </Text>
-      )}
+    <View style={{ width: size }}>
+      <View
+        style={[
+          styles.logo,
+          {
+            width: size,
+            height: size,
+            backgroundColor: colors.mediaPlaceholder,
+          },
+        ]}
+      >
+        {data ? (
+          <LogoImage
+            key={JSON.stringify(options.queryKey)}
+            blob={data}
+            size={size}
+          />
+        ) : (
+          <Text
+            accessible={false}
+            style={[styles.initials, { color: colors.text }]}
+          >
+            {identity.shortName ??
+              identity.name.slice(0, 2).toLocaleUpperCase("fr")}
+          </Text>
+        )}
+      </View>
       {identity.logoUrl && logo.isPending && (
         <Text style={[styles.logoState, { color: colors.secondaryText }]}>
           Chargement du logo
@@ -68,7 +74,7 @@ export function SportingLogo({ identity, kind, size = 40 }: SportingLogoProps) {
       )}
       {identity.logoUrl && logo.isError && (
         <Text style={[styles.logoState, { color: colors.secondaryText }]}>
-          Logo indisponible
+          {data ? "L’actualisation du logo a échoué." : "Logo indisponible"}
         </Text>
       )}
     </View>

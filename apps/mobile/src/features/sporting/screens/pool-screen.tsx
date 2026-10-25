@@ -11,7 +11,6 @@ import {
   ResourceTabs,
   ResourceText,
 } from "../components/resource-page";
-import { resourceUnavailable } from "../model/consultation-availability";
 import { SportingIdentity } from "../components/sporting-identity";
 import type {
   PoolCalendarSelection,
@@ -53,7 +52,7 @@ function PoolPage({
     retryOnMount: true,
   });
   const [tab, setTab] = useState("standings");
-  const data = resourceUnavailable(pool.error) ? undefined : pool.data;
+  const data = pool.data;
   return (
     <ResourcePage title="Poule">
       <ResourceFeedback query={pool} />
