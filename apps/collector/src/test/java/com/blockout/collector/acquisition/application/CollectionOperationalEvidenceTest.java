@@ -9,10 +9,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.blockout.collector.acquisition.ffvb.FfvbCalendarParser;
+import com.blockout.collector.acquisition.ffvb.FfvbObservationReader;
+import com.blockout.collector.acquisition.ffvb.FfvbStandingsParser;
+import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionPhaseEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.collector.generated.ingestion.model.GeocodingOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
@@ -22,8 +27,10 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
+import org.apache.hc.client5.http.HttpResponseException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -146,13 +153,12 @@ class CollectionOperationalEvidenceTest {
     CollectorLifecycle.AdmittedCycle cycle = admitted();
     URI source =
         URI.create("https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?calend=COMPLET");
-    com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient http =
-        mock(com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient.class);
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
     FfvbAcquisition reader =
-        new com.blockout.collector.acquisition.ffvb.FfvbObservationReader(
+        new FfvbObservationReader(
             http,
-            new com.blockout.collector.acquisition.ffvb.FfvbCalendarParser(),
-            new com.blockout.collector.acquisition.ffvb.FfvbStandingsParser(),
+            new FfvbCalendarParser(),
+            new FfvbStandingsParser(),
             Clock.fixed(NOW, ZoneOffset.UTC));
     CollectPassage actual =
         new CollectPassage(
@@ -169,7 +175,7 @@ class CollectionOperationalEvidenceTest {
         CollectionBackend.Target.builder()
             .scopeId(CLUB)
             .poolId(CLUB)
-            .provider(com.blockout.collector.generated.ingestion.model.CollectionProviderEnum.FFVB)
+            .provider(CollectionProviderEnum.FFVB)
             .kind(CollectionTargetKindEnum.CALENDAR)
             .url(source)
             .build();
@@ -177,9 +183,8 @@ class CollectionOperationalEvidenceTest {
         .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
     when(http.page(source))
         .thenReturn(
-            java.util.concurrent.CompletableFuture.failedFuture(
-                new org.apache.hc.client5.http.HttpResponseException(
-                    503, "private-provider-body")));
+            CompletableFuture.failedFuture(
+                new HttpResponseException(503, "private-provider-body")));
 
     // When
     actual.execute(cycle);

@@ -970,7 +970,8 @@ public class CollectPassage {
   }
 
   /**
-   * Retains a safe cause while allowing independent scopes and phases to proceed.
+   * Records the failed observation through its backend owner. If that write is unconfirmed, keeps
+   * the original safe cause here for investigation while independent scopes may proceed.
    *
    * @param context admitted capability
    * @param target affected stage and scope
@@ -990,19 +991,29 @@ public class CollectPassage {
                     || failure instanceof IllegalArgumentException
                 ? "urn:blockout:acquisition:structure"
                 : "urn:blockout:acquisition:technical");
-    record(
-        context,
-        new CollectionBackend.Result(
-            target.scopeId(),
-            CollectionStageEnum.fromValue(target.kind().getValue()),
-            CollectionPhaseEnum.ACQUISITION,
-            ordinal,
-            clock.instant(),
-            CollectionOutcomeEnum.FAILED,
-            reasonType,
-            reason,
-            null,
-            null));
+    boolean confirmed =
+        record(
+            context,
+            new CollectionBackend.Result(
+                target.scopeId(),
+                CollectionStageEnum.fromValue(target.kind().getValue()),
+                CollectionPhaseEnum.ACQUISITION,
+                ordinal,
+                clock.instant(),
+                CollectionOutcomeEnum.FAILED,
+                reasonType,
+                reason,
+                null,
+                null));
+    if (!confirmed) {
+      log.atWarn()
+          .addKeyValue("operation", "collection_acquisition")
+          .addKeyValue("cycleId", context.getCycle().id())
+          .addKeyValue("scope", target.scopeId())
+          .addKeyValue("stage", target.kind().getValue())
+          .addKeyValue("reason", reason)
+          .log("Failed source observation has no confirmed backend evidence");
+    }
   }
 
   /**
@@ -1114,10 +1125,13 @@ public class CollectPassage {
    *
    * @param context admitted control capability
    * @param result safe typed evidence including its original reason category
+   * @return whether backend acceptance of the evidence was confirmed
    */
-  private void record(CollectorLifecycle.AdmittedCycle context, CollectionBackend.Result result) {
+  private boolean record(
+      CollectorLifecycle.AdmittedCycle context, CollectionBackend.Result result) {
     try {
       backend.record(context.getCycle().id(), result);
+      return true;
     } catch (CollectionBackendFailure failure) {
       if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
       log.atError()
@@ -1130,6 +1144,7 @@ public class CollectPassage {
           .addKeyValue("outcome", "unconfirmed")
           .log(
               "Current collection evidence could not be confirmed; the operation was not replayed");
+      return false;
     }
   }
 }

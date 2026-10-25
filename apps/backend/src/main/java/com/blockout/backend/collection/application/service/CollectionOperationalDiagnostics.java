@@ -154,10 +154,7 @@ public class CollectionOperationalDiagnostics {
     diagnose(
         () -> {
           seasons.lockCollectionState(event.seasonId());
-          long pending =
-              store.sources(event.seasonId()).stream()
-                  .filter(source -> source.provider() == event.provider() && !source.launched())
-                  .count();
+          long pending = store.countUnlaunchedSources(event.seasonId(), event.provider());
           report(event.seasonId(), event.provider(), "season-preparation", pending);
         });
   }
@@ -220,9 +217,9 @@ public class CollectionOperationalDiagnostics {
    */
   private String provider(CollectionFamilyEnum family) {
     return switch (family) {
-      case FFVB, CLUB_SHEETS -> "FFVB";
-      case LNV -> "LNV";
-      case GEOCODING -> "IGN";
+      case FFVB, CLUB_SHEETS -> CollectionProviderEnum.FFVB.getValue();
+      case LNV -> CollectionProviderEnum.LNV.getValue();
+      case GEOCODING -> "ign";
     };
   }
 
