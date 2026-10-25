@@ -61,10 +61,6 @@ jest.mock("react-native-auth0", () => {
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
-jest.mock("expo-router", () => ({
-  ...jest.requireActual("expo-router"),
-  useRouter: () => ({ back: jest.fn() }),
-}));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, options?: RequestInit) =>
     String(url).endsWith("/application-access")
@@ -685,19 +681,22 @@ function AccessProbe() {
   );
 }
 
-it("does not advertise an unusable technical administration entry to a presentation-only account during maintenance", async () => {
+it("opens the delivered administration entry for a presentation-only account during maintenance", async () => {
   // Given
   mockMaintenance = true;
+  const user = userEvent.setup();
 
   // When
   await openRoutes("/access");
-
-  // Then
   await screen.findByRole("header", { name: "Blockout est en maintenance" });
   await screen.findByText("Presentation authority available");
-  expect(
-    screen.queryByRole("link", { name: "Accès administrateur" }),
-  ).not.toBeOnTheScreen();
+  await user.press(
+    await screen.findByRole("link", { name: "Accès administrateur" }),
+  );
+
+  // Then
+  await screen.findByText("Administration route");
+  expect(screen).toHavePathname("/administration");
 });
 
 it("keeps a presentation-only original-target editor admitted during maintenance", async () => {
