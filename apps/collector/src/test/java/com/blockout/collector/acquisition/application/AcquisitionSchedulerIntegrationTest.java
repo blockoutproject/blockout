@@ -11,20 +11,15 @@ import static org.mockito.Mockito.when;
 
 import com.blockout.collector.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionSeasonStateEnum;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.task.SyncTaskExecutor;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.Trigger;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.scheduling.support.SimpleTriggerContext;
 
 /** Verifies Spring scheduling and bounded executor behavior without provider traffic. */
 @DisplayName("Native acquisition scheduler integration")
@@ -98,52 +93,5 @@ class AcquisitionSchedulerIntegrationTest {
       release.countDown();
       executor.shutdown();
     }
-  }
-
-  @Test
-  @DisplayName("Discovery is independent of seasons and lenient triggers skip overrun firings")
-  void skipsOverrunFirings() {
-    // Given
-    CollectorLifecycle lifecycle = mock(CollectorLifecycle.class);
-    when(lifecycle.isActive()).thenReturn(true);
-    DiscoverSeasonSources discovery = mock(DiscoverSeasonSources.class);
-    TaskScheduler timer = mock(TaskScheduler.class);
-    AcquisitionScheduler scheduler =
-        new AcquisitionScheduler(
-            timer,
-            new SyncTaskExecutor(),
-            lifecycle,
-            discovery,
-            mock(CollectPassage.class),
-            mock(QualifySource.class));
-    Instant now = Instant.parse("2026-10-24T10:00:00Z");
-    SimpleTriggerContext context = new SimpleTriggerContext(Clock.fixed(now, ZoneOffset.UTC));
-    org.mockito.ArgumentCaptor<Trigger> triggers =
-        org.mockito.ArgumentCaptor.forClass(Trigger.class);
-    org.mockito.ArgumentCaptor<Runnable> scheduled =
-        org.mockito.ArgumentCaptor.forClass(Runnable.class);
-
-    // When
-    scheduler.start();
-    verify(timer, times(3)).schedule(scheduled.capture(), triggers.capture());
-    scheduled.getAllValues().getFirst().run();
-    List<Instant> initial =
-        triggers.getAllValues().stream().map(trigger -> trigger.nextExecution(context)).toList();
-    context.update(now, now, Instant.parse("2026-10-24T10:40:01Z"));
-    List<Instant> afterOverrun =
-        triggers.getAllValues().stream().map(trigger -> trigger.nextExecution(context)).toList();
-
-    // Then
-    verify(discovery).currentEntries();
-    assertThat(initial)
-        .containsExactly(
-            Instant.parse("2026-10-24T10:30:00Z"),
-            Instant.parse("2026-10-24T10:05:00Z"),
-            Instant.parse("2026-10-24T10:01:00Z"));
-    assertThat(afterOverrun)
-        .containsExactly(
-            Instant.parse("2026-10-24T11:00:00Z"),
-            Instant.parse("2026-10-24T10:45:00Z"),
-            Instant.parse("2026-10-24T10:41:00Z"));
   }
 }

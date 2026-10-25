@@ -1,6 +1,5 @@
 package com.blockout.backend.notifications.testsupport;
 
-import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -10,10 +9,9 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/** Shared migrated PostgreSQL and synthetic sporting/owner data for inbox integration suites. */
+/** Stateless synthetic sporting/owner data for each inbox suite's own migrated PostgreSQL. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class InboxDatabaseFixture {
   public static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000001");
@@ -25,37 +23,18 @@ public final class InboxDatabaseFixture {
   public static final UUID HOME = UUID.fromString("00000000-0000-4000-8000-000000000014");
   public static final UUID AWAY = UUID.fromString("00000000-0000-4000-8000-000000000015");
   public static final Instant NOW = Instant.parse("2026-10-25T12:00:00.123456Z");
-  private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
 
   /**
-   * Starts and migrates only this suite’s disposable PostgreSQL database.
+   * Recreates synthetic owner and sporting scope only in the calling suite's database.
    *
-   * @param properties isolated application properties
-   * @throws Exception on migration failure
-   */
-  public static synchronized void register(DynamicPropertyRegistry properties) throws Exception {
-    if (!DATABASE.isRunning()) {
-      DATABASE.start();
-      PostgresTestDatabase.migrate(DATABASE);
-      System.out.println(
-          "Issue 250 PostgreSQL "
-              + DATABASE.getContainerId()
-              + " port "
-              + DATABASE.getMappedPort(5432));
-    }
-    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
-  }
-
-  /**
-   * Recreates the shared synthetic owner and sporting scope for one scenario.
-   *
-   * @param sql application-role connection
+   * @param database concrete suite-owned disposable container
+   * @param sql application-role connection to that same container
    * @throws Exception on isolated fixture failure
    */
-  public static void reset(JdbcTemplate sql) throws Exception {
+  public static void reset(PostgreSQLContainer database, JdbcTemplate sql) throws Exception {
     try (Connection connection =
             DriverManager.getConnection(
-                DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
         Statement fixture = connection.createStatement()) {

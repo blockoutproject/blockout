@@ -116,7 +116,7 @@ afterEach(async () => {
   await cleanup();
   client.clear();
   jest.restoreAllMocks();
-  process.env = previousEnvironment;
+  process.env = { ...previousEnvironment };
 });
 
 /** Real session/rights observers; only native SDK and navigation commands are controlled. */

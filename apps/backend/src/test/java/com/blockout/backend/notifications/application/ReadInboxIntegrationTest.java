@@ -15,8 +15,8 @@ import static org.mockito.Mockito.when;
 import com.blockout.backend.notifications.application.InboxViews.Entry;
 import com.blockout.backend.notifications.application.InboxViews.Page;
 import com.blockout.backend.notifications.application.InboxViews.Summary;
-import com.blockout.backend.notifications.testsupport.InboxDatabaseFixture;
 import com.blockout.backend.sporting.application.ReadSportingResources;
+import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.persistence.EntityManagerFactory;
 import java.sql.Timestamp;
 import java.time.Clock;
@@ -44,11 +44,17 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Real owner/sporting/link data with a controlled clock; no purge or provider execution. */
 @SpringBootTest
 @DisplayName("Current inbox selection on PostgreSQL")
+@Testcontainers
 class ReadInboxIntegrationTest {
+  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  private ProjectionInspector inspector;
   @Autowired private ReadInbox reads;
   @Autowired private JdbcTemplate sql;
   @Autowired private ReadSportingResources sporting;
@@ -64,7 +70,8 @@ class ReadInboxIntegrationTest {
    */
   @DynamicPropertySource
   static void database(DynamicPropertyRegistry properties) throws Exception {
-    InboxDatabaseFixture.register(properties);
+    PostgresTestDatabase.migrate(DATABASE);
+    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
     properties.add("spring.jpa.properties.hibernate.generate_statistics", () -> true);
     properties.add(
         "spring.jpa.properties.hibernate.session_factory.statement_inspector",
@@ -78,14 +85,20 @@ class ReadInboxIntegrationTest {
    */
   @BeforeEach
   void owners() throws Exception {
-    reset(sql);
+    inspector =
+        (ProjectionInspector)
+            entityManagerFactory
+                .unwrap(SessionFactory.class)
+                .getSessionFactoryOptions()
+                .getStatementInspector();
+    reset(DATABASE, sql);
     when(clock.instant()).thenReturn(NOW);
   }
 
   /** Releases only this suite's bounded SQL interleaving. */
   @AfterEach
   void clearHook() {
-    ProjectionInspector.hook = null;
+    inspector.hook = null;
   }
 
   @Test
@@ -246,7 +259,7 @@ class ReadInboxIntegrationTest {
     TransactionTemplate independent = new TransactionTemplate(transactions);
     independent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     AtomicBoolean corrected = new AtomicBoolean();
-    ProjectionInspector.hook =
+    inspector.hook =
         statement -> {
           String query = statement.toLowerCase(Locale.ROOT);
           if (query.contains("from sporting_match")
@@ -308,7 +321,7 @@ class ReadInboxIntegrationTest {
   /** Native test hook observes actual statement boundaries without modifying SQL. */
   public static class ProjectionInspector implements StatementInspector {
     private static final long serialVersionUID = 1L;
-    private static volatile Consumer<String> hook;
+    private volatile Consumer<String> hook;
     private final AtomicBoolean inspecting = new AtomicBoolean();
 
     /** {@inheritDoc} */

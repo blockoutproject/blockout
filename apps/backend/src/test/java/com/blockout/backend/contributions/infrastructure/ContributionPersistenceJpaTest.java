@@ -25,24 +25,33 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
- * Real migrated PostgreSQL invariants; SQL fixtures deliberately bypass application authorization.
+ * Real JPA adapter and migrated PostgreSQL invariants; SQL fixtures deliberately bypass application
+ * authorization. Test-managed transactions are disabled to retain explicit commits and flush order
+ * without starting unrelated web, provider or scheduler components.
  */
-@SpringBootTest
+@DataJpaTest(showSql = false)
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
+@Import({JpaContributionStore.class, ContributionPersistenceMapperImpl.class})
 @Testcontainers
 @DisplayName("Contribution persistence baseline")
-class ContributionPersistenceIntegrationTest {
+class ContributionPersistenceJpaTest {
   @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   private static final UUID OWNER = UUID.fromString("00000000-0000-4000-8000-000000000001");
   private static final UUID OTHER = UUID.fromString("00000000-0000-4000-8000-000000000002");

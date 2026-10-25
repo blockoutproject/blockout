@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import com.blockout.backend.notifications.application.NotificationStore;
 import com.blockout.backend.notifications.application.PurgeNotifications;
 import java.time.Clock;
 import java.time.Duration;
@@ -16,6 +15,7 @@ import org.springframework.boot.test.context.ConfigDataApplicationContextInitial
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.env.StandardEnvironment;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor;
 import org.springframework.scheduling.config.CronTask;
@@ -27,17 +27,29 @@ import org.springframework.scheduling.support.SimpleTriggerContext;
 class NotificationRetentionConfigurationIntegrationTest {
   private final ApplicationContextRunner context =
       new ApplicationContextRunner()
+          .withInitializer(
+              application -> {
+                application
+                    .getEnvironment()
+                    .getPropertySources()
+                    .remove(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
+                application
+                    .getEnvironment()
+                    .getPropertySources()
+                    .remove(StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME);
+              })
           .withInitializer(new ConfigDataApplicationContextInitializer())
           .withUserConfiguration(Scheduling.class)
-          .withBean(TaskScheduler.class, () -> mock(TaskScheduler.class))
-          .withBean(NotificationStore.class, () -> mock(NotificationStore.class))
-          .withBean(PurgeNotifications.class, () -> mock(PurgeNotifications.class));
+          .withBean(TaskScheduler.class, () -> mock(TaskScheduler.class));
 
   @Test
   @DisplayName("Disables retention in ordinary backend test contexts")
   void disablesOrdinaryTestCallback() {
-    // Given / When
-    context.run(
+    // Given
+    ApplicationContextRunner runner = context;
+
+    // When
+    runner.run(
         application -> {
           // Then
           assertThat(application).hasNotFailed();
@@ -82,20 +94,28 @@ class NotificationRetentionConfigurationIntegrationTest {
   @Test
   @DisplayName("Rejects an invalid retention cron at startup through Spring's native validation")
   void refusesInvalidConfiguration() {
-    // Given / When
-    context
-        .withPropertyValues("blockout.notifications.retention-cron=invalid")
-        .run(
-            application -> {
-              // Then
-              assertThat(application).hasFailed();
-              assertThat(application.getStartupFailure())
-                  .hasRootCauseInstanceOf(IllegalStateException.class);
-            });
+    // Given
+    ApplicationContextRunner runner =
+        context.withPropertyValues("blockout.notifications.retention-cron=invalid");
+
+    // When
+    runner.run(
+        application -> {
+          // Then
+          assertThat(application).hasFailed();
+          assertThat(application.getStartupFailure())
+              .hasRootCauseInstanceOf(IllegalStateException.class);
+        });
   }
 
   /** Imports only the actual schedule; the purge collaborator is controlled by each context. */
   @Configuration(proxyBeanMethods = false)
   @Import(NotificationRetentionConfiguration.class)
-  static class Scheduling {}
+  static class Scheduling {
+    /** Supplies the task boundary without importing its nested persistence components. */
+    @org.springframework.context.annotation.Bean
+    PurgeNotifications purgeNotifications() {
+      return mock(PurgeNotifications.class);
+    }
+  }
 }

@@ -7,17 +7,44 @@ import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.domain.StreamAddress;
 import com.blockout.backend.contributions.support.ContributionScenario;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
+import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Real caller-only native paging and derived current context; no test transaction encloses actions.
  */
 @DisplayName("Private contribution owner reads")
+@Testcontainers
 class ReadOwnContributionsIntegrationTest extends ContributionScenario {
+  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+
+  /**
+   * Migrates this suite's disposable database before wiring its real application services.
+   *
+   * @param properties native Spring datasource properties for this container
+   * @throws Exception if role initialization or the production migration fails
+   */
+  @DynamicPropertySource
+  static void database(DynamicPropertyRegistry properties) throws Exception {
+    PostgresTestDatabase.migrate(DATABASE);
+    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  protected PostgreSQLContainer databaseContainer() {
+    return DATABASE;
+  }
+
   @Test
   @DisplayName("Foreign members remain unavailable while collection reads include only the caller")
   void hidesForeignHistory() {

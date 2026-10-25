@@ -25,9 +25,8 @@ beforeEach(() => {
 });
 afterEach(() => {
   jest.restoreAllMocks();
-});
-afterAll(() => {
-  process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
+  else process.env.EXPO_PUBLIC_API_URL = originalUrl;
 });
 
 it("accepts additive public fields and preserves unknown contacts without source fallbacks", async () => {

@@ -15,8 +15,10 @@ beforeEach(() => {
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   mockFetch.mockReset();
 });
-afterAll(() => {
-  process.env.EXPO_PUBLIC_API_URL = originalUrl;
+afterEach(() => {
+  jest.restoreAllMocks();
+  if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
+  else process.env.EXPO_PUBLIC_API_URL = originalUrl;
 });
 
 it("starts an ordinary public read with no account, credentials or entitlement dependency", async () => {
@@ -123,14 +125,17 @@ it("rejects an old public-session completion even without native cancellation", 
   const result = client.fetchQuery(options);
   const rejected = expect(result).rejects.toMatchObject({ kind: "cancelled" });
 
-  // When
-  session.invalidate();
-  response.resolve(Response.json(clubDetail("Obsolete")));
+  try {
+    // When
+    session.invalidate();
+    response.resolve(Response.json(clubDetail("Obsolete")));
 
-  // Then
-  await rejected;
-  expect(client.getQueryData(options.queryKey)).toBeUndefined();
-  client.clear();
+    // Then
+    await rejected;
+    expect(client.getQueryData(options.queryKey)).toBeUndefined();
+  } finally {
+    client.clear();
+  }
 });
 
 it.each([401, 403, 404, 503])(
@@ -270,14 +275,17 @@ it("rejects revoked bypass while credentials are pending", async () => {
   const result = client.fetchQuery(queries.club(sportingId));
   const rejected = expect(result).rejects.toMatchObject({ kind: "cancelled" });
 
-  // When
-  bypass.clear();
-  credentials.resolve({ accessToken: "obsolete-token" });
+  try {
+    // When
+    bypass.clear();
+    credentials.resolve({ accessToken: "obsolete-token" });
 
-  // Then
-  await rejected;
-  expect(mockFetch).not.toHaveBeenCalled();
-  client.clear();
+    // Then
+    await rejected;
+    expect(mockFetch).not.toHaveBeenCalled();
+  } finally {
+    client.clear();
+  }
 });
 
 it("keeps a newer successful representation when cancelled credential work later refuses", async () => {
@@ -365,21 +373,23 @@ it("rejects a late bypass body after intent ends and keeps ordinary context sepa
   const rejected = expect(result).rejects.toMatchObject({ kind: "cancelled" });
   await reading.promise;
 
-  // When
-  bypass.clear();
-  body.resolve(clubDetail());
+  try {
+    // When
+    bypass.clear();
+    body.resolve(clubDetail());
 
-  // Then
-  await rejected;
-  const ordinary = createConsultationQueries(
-    { ...session.getSnapshot(), isCurrent: session.isCurrent },
-    { request: (options) => options },
-    jest.fn(),
-  );
-  expect(ordinary.club(sportingId).queryKey).not.toEqual(options.queryKey);
-  expect(client.getQueryData(options.queryKey)).toBeUndefined();
-  jest.restoreAllMocks();
-  client.clear();
+    // Then
+    await rejected;
+    const ordinary = createConsultationQueries(
+      { ...session.getSnapshot(), isCurrent: session.isCurrent },
+      { request: (options) => options },
+      jest.fn(),
+    );
+    expect(ordinary.club(sportingId).queryKey).not.toEqual(options.queryKey);
+    expect(client.getQueryData(options.queryKey)).toBeUndefined();
+  } finally {
+    client.clear();
+  }
 });
 
 it("keeps each calendar selector, category and grouping zone in its generated context", () => {

@@ -10,7 +10,6 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.when;
 
 import com.blockout.backend.accounts.application.AccountAccess;
-import com.blockout.backend.notifications.testsupport.InboxDatabaseFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.time.Clock;
 import java.time.Duration;
@@ -35,11 +34,16 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Real committed read writes and controlled removals; actual erasure/purge belong to T052. */
 @SpringBootTest
 @DisplayName("Monotone notification reading on PostgreSQL")
+@Testcontainers
 class MarkNotificationReadIntegrationTest {
+  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   @Autowired private MarkNotificationRead marks;
   @Autowired private ReadInbox reads;
   @Autowired private JdbcTemplate sql;
@@ -55,7 +59,8 @@ class MarkNotificationReadIntegrationTest {
    */
   @DynamicPropertySource
   static void database(DynamicPropertyRegistry properties) throws Exception {
-    InboxDatabaseFixture.register(properties);
+    PostgresTestDatabase.migrate(DATABASE);
+    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
   }
 
   /**
@@ -65,7 +70,7 @@ class MarkNotificationReadIntegrationTest {
    */
   @BeforeEach
   void owners() throws Exception {
-    reset(sql);
+    reset(DATABASE, sql);
     when(clock.instant()).thenReturn(NOW);
   }
 

@@ -1,4 +1,4 @@
-package com.blockout.backend.accounts.infrastructure;
+package com.blockout.backend.accounts.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -9,11 +9,6 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 import com.blockout.backend.access.domain.Permission;
-import com.blockout.backend.accounts.application.AccountStore;
-import com.blockout.backend.accounts.application.ChangeAccountProfile;
-import com.blockout.backend.accounts.application.EstablishAccount;
-import com.blockout.backend.accounts.application.PrincipalReader;
-import com.blockout.backend.accounts.application.ReadAccount;
 import com.blockout.backend.accounts.application.exception.AccountUnavailableException;
 import com.blockout.backend.accounts.application.exception.ProviderEmailUnavailableException;
 import com.blockout.backend.accounts.domain.Account;

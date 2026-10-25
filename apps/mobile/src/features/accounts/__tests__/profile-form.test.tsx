@@ -113,7 +113,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   client.clear();
-  process.env = previousEnvironment;
+  process.env = { ...previousEnvironment };
 });
 
 /** Real account/form owners with controlled I/O; the unrelated F09 composition is explicitly omitted. */

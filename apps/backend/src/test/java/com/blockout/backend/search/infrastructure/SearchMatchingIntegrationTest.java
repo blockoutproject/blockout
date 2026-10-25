@@ -7,29 +7,43 @@ import com.blockout.backend.search.application.SearchDocuments;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /** Native committed analyzers and complete whole-query branches against the pinned engine. */
 @DisplayName("Native search matching")
 class SearchMatchingIntegrationTest {
-  private static OpenSearchEngine engine;
-  private static String prefix;
+  private static final SearchTestEngine NATIVE = new SearchTestEngine();
+  private OpenSearchEngine engine;
+  private String prefix;
 
-  /** Starts this suite's isolated engine and its mapped team index. */
+  /** Starts this suite's isolated engine; each scenario owns its mapped team index. */
   @BeforeAll
   static void start() throws Exception {
-    SearchTestEngine.startEngine();
+    NATIVE.startEngine();
+  }
+
+  /** Gives each scenario an empty mapped index; no ranking evidence inherits earlier documents. */
+  @BeforeEach
+  void createIndex() throws Exception {
     prefix = "blockout-local-search-" + UUID.randomUUID();
-    SearchTestEngine.createIndex(prefix + "-teams");
-    engine = new OpenSearchEngine(SearchTestEngine.client, new SearchIndexProperties(prefix));
+    NATIVE.createIndex(prefix + "-teams");
+    engine = new OpenSearchEngine(NATIVE.client, new SearchIndexProperties(prefix));
+  }
+
+  /** Removes this scenario's index after every outcome. */
+  @AfterEach
+  void deleteIndex() throws Exception {
+    NATIVE.client.indices().delete(request -> request.index(prefix + "-teams"));
   }
 
   /** Releases only this suite's native client and engine. */
   @AfterAll
   static void stop() throws Exception {
-    SearchTestEngine.stopEngine();
+    NATIVE.close();
   }
 
   @Test
@@ -40,7 +54,7 @@ class SearchMatchingIntegrationTest {
     UUID eagles = UUID.fromString("00000000-0000-4000-8000-000000000001");
     index(eagles, "Éagles Volley", "Lyon");
     index(UUID.fromString("00000000-0000-4000-8000-000000000002"), "Elephants", "Lille");
-    SearchTestEngine.client.indices().refresh(r -> r.index(prefix + "-teams"));
+    NATIVE.client.indices().refresh(r -> r.index(prefix + "-teams"));
 
     // When
     List<UUID> prefixes = ids("  ÉAG  ly ");
@@ -61,7 +75,7 @@ class SearchMatchingIntegrationTest {
     // Given
     UUID identity = UUID.fromString("00000000-0000-4000-8000-000000000003");
     index(identity, "ﬃ".repeat(200), null);
-    SearchTestEngine.client.indices().refresh(r -> r.index(prefix + "-teams"));
+    NATIVE.client.indices().refresh(r -> r.index(prefix + "-teams"));
 
     // When
     List<UUID> intermediate = ids("ﬃ".repeat(199));
@@ -82,8 +96,7 @@ class SearchMatchingIntegrationTest {
   private void index(UUID id, String name, String city) throws Exception {
     SearchDocuments document =
         new SearchDocuments(id, List.of(name), List.of(), city, null, null, null, null);
-    SearchTestEngine.client.index(
-        r -> r.index(prefix + "-teams").id(id.toString()).document(document));
+    NATIVE.client.index(r -> r.index(prefix + "-teams").id(id.toString()).document(document));
   }
 
   /**
@@ -118,9 +131,8 @@ class SearchMatchingIntegrationTest {
             division,
             "6x6",
             "female");
-    SearchTestEngine.client.index(
-        r -> r.index(prefix + "-teams").id(id.toString()).document(document));
-    SearchTestEngine.client.indices().refresh(r -> r.index(prefix + "-teams"));
+    NATIVE.client.index(r -> r.index(prefix + "-teams").id(id.toString()).document(document));
+    NATIVE.client.indices().refresh(r -> r.index(prefix + "-teams"));
     SearchContext exact =
         new SearchContext(
             SearchContext.Resource.TEAM,
@@ -186,7 +198,7 @@ class SearchMatchingIntegrationTest {
     UUID fuzzy = UUID.fromString("00000000-0000-4000-8000-000000000006");
     index(direct, "Volly", "Paris");
     index(fuzzy, "Volley", "Paris");
-    SearchTestEngine.client.indices().refresh(r -> r.index(prefix + "-teams"));
+    NATIVE.client.indices().refresh(r -> r.index(prefix + "-teams"));
 
     // When
     List<UUID> matches = ids("volly paris");
@@ -203,7 +215,7 @@ class SearchMatchingIntegrationTest {
     UUID second = UUID.fromString("00000000-0000-4000-8000-000000000008");
     index(first, "Namesakes", null);
     index(second, "Namesakes", null);
-    SearchTestEngine.client.indices().refresh(r -> r.index(prefix + "-teams"));
+    NATIVE.client.indices().refresh(r -> r.index(prefix + "-teams"));
 
     // When
     List<UUID> matches = ids("namesakes");

@@ -14,7 +14,8 @@ jest.mock("expo/fetch", () => ({
 const mockFetch = jest.fn();
 const originalUrl = process.env.EXPO_PUBLIC_API_URL;
 afterEach(() => {
-  process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
+  else process.env.EXPO_PUBLIC_API_URL = originalUrl;
 });
 
 it("keeps captured calendar days and continuation inputs while display uses the new zone", async () => {

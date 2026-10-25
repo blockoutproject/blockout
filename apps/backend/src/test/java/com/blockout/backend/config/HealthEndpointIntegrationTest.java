@@ -6,28 +6,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.blockout.backend.access.application.AccessSettingsStore;
 import com.blockout.backend.access.application.MaintenanceAdmission;
-import com.blockout.backend.access.application.PermissionStore;
-import com.blockout.backend.accounts.application.AccountStore;
-import com.blockout.backend.accounts.application.EstablishAccount;
-import com.blockout.backend.collection.application.port.CollectionStore;
-import com.blockout.backend.collection.application.service.CollectionOperationalDiagnostics;
-import com.blockout.backend.contributions.application.ContributionStore;
-import com.blockout.backend.following.application.FollowStore;
-import com.blockout.backend.notifications.application.InboxReadStore;
-import com.blockout.backend.notifications.application.NotificationStore;
-import com.blockout.backend.sporting.application.ConsultationMatchSelection;
-import com.blockout.backend.sporting.application.ConsultationStore;
-import com.blockout.backend.sporting.application.port.SportingReadStore;
-import com.blockout.backend.sporting.application.port.SportingStore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.availability.AvailabilityChangeEvent;
 import org.springframework.boot.availability.ReadinessState;
 import org.springframework.boot.health.contributor.Health;
@@ -44,40 +29,27 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /**
- * Exercises Boot's actual Actuator and security wiring with controlled database health. The
- * separate HealthIntegrationTest owns the real PostgreSQL connection and failure boundary.
+ * Exercises Boot's actual Actuator and security wiring in an isolated application with controlled
+ * database health and ordinary-business admission. The separate HealthIntegrationTest owns the real
+ * PostgreSQL connection and failure boundary.
  */
-@SpringBootTest
+@SpringBootTest(classes = HealthEndpointIntegrationTest.TestApplication.class)
 @AutoConfigureMockMvc
-@ImportAutoConfiguration(exclude = DataSourceAutoConfiguration.class)
 @DisplayName("Public native readiness boundary")
 class HealthEndpointIntegrationTest {
   @Autowired private MockMvc mvc;
   @Autowired private ApplicationContext context;
 
-  // Business persistence is outside the operational HTTP boundary qualified by this context.
-  @MockitoBean private SportingStore sportingStore;
-
-  @MockitoBean(extraInterfaces = ConsultationMatchSelection.class)
-  private ConsultationStore consultationReads;
-
-  @MockitoBean private SportingReadStore sportingReads;
-  @MockitoBean private CollectionStore collectionStore;
-
-  @MockitoBean private CollectionOperationalDiagnostics collectionDiagnostics;
-
-  @MockitoBean private AccountStore accounts;
-  @MockitoBean private FollowStore follows;
-  @MockitoBean private NotificationStore notifications;
-  @MockitoBean private InboxReadStore inbox;
-  @MockitoBean private ContributionStore contributions;
-  @MockitoBean private EstablishAccount establishment;
-  @MockitoBean private PermissionStore permissions;
-  @MockitoBean private AccessSettingsStore settings;
   @MockitoBean private MaintenanceAdmission admission;
 
   @MockitoBean(name = "dbHealthIndicator", answers = Answers.CALLS_REAL_METHODS)
   private HealthIndicator database;
+
+  /** Restores shared Boot availability after the intentional readiness mutation. */
+  @org.junit.jupiter.api.AfterEach
+  void restoreReadiness() {
+    AvailabilityChangeEvent.publish(context, ReadinessState.ACCEPTING_TRAFFIC);
+  }
 
   @Test
   @DisplayName("Returns only aggregate UP to an anonymous main-path GET")
@@ -166,4 +138,11 @@ class HealthEndpointIntegrationTest {
     // Then
     response.andExpect(status().isForbidden());
   }
+
+  /** Loads native Actuator and production security without unrelated business persistence. */
+  @org.springframework.context.annotation.Configuration(proxyBeanMethods = false)
+  @org.springframework.boot.autoconfigure.EnableAutoConfiguration(
+      exclude = DataSourceAutoConfiguration.class)
+  @org.springframework.context.annotation.Import(SecurityConfiguration.class)
+  static class TestApplication {}
 }

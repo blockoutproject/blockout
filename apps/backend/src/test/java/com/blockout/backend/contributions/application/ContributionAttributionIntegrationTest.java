@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.backend.contributions.support.ContributionScenario;
-import java.time.Duration;
+import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -13,14 +13,40 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Real JPA replacement against controlled original-account row erasure; no F05 orchestrator claim.
  */
 @DisplayName("Contribution attribution account locking")
+@Testcontainers
 class ContributionAttributionIntegrationTest extends ContributionScenario {
+  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+
+  /**
+   * Migrates this suite's disposable database before wiring its real application services.
+   *
+   * @param properties native Spring datasource properties for this container
+   * @throws Exception if role initialization or the production migration fails
+   */
+  @DynamicPropertySource
+  static void database(DynamicPropertyRegistry properties) throws Exception {
+    PostgresTestDatabase.migrate(DATABASE);
+    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  protected PostgreSQLContainer databaseContainer() {
+    return DATABASE;
+  }
+
   @Test
   @DisplayName("Replacing an erased nonfollowing owner waits before loading mutable attribution")
   void waitsForPreviousOwnerErasure() throws Exception {
@@ -44,17 +70,7 @@ class ContributionAttributionIntegrationTest extends ContributionScenario {
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
                                   submit(AUTHOR, "1", "https://youtube.com/selected", true);
                                 }));
-                int backend = pid.orTimeout(10, TimeUnit.SECONDS).join();
-                org.awaitility.Awaitility.await()
-                    .atMost(Duration.ofSeconds(10))
-                    .until(
-                        () ->
-                            future.isDone()
-                                || Boolean.TRUE.equals(
-                                    sql.queryForObject(
-                                        "SELECT cardinality(pg_blocking_pids(?)) > 0",
-                                        Boolean.class,
-                                        backend)));
+                PostgresTestDatabase.awaitBlocked(sql, pid);
                 assertThat(future.isDone())
                     .as("Publication must wait for the previous original account")
                     .isFalse();
@@ -101,17 +117,7 @@ class ContributionAttributionIntegrationTest extends ContributionScenario {
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
                                   submit(AUTHOR, "1", "https://youtube.com/selected", true);
                                 }));
-                int backend = pid.orTimeout(10, TimeUnit.SECONDS).join();
-                org.awaitility.Awaitility.await()
-                    .atMost(Duration.ofSeconds(10))
-                    .until(
-                        () ->
-                            future.isDone()
-                                || Boolean.TRUE.equals(
-                                    sql.queryForObject(
-                                        "SELECT cardinality(pg_blocking_pids(?)) > 0",
-                                        Boolean.class,
-                                        backend)));
+                PostgresTestDatabase.awaitBlocked(sql, pid);
                 assertThat(future.isDone())
                     .as("Publication must wait for the retained decision actor")
                     .isFalse();

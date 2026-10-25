@@ -11,8 +11,8 @@ import static org.mockito.Mockito.when;
 
 import com.blockout.backend.notifications.domain.NotificationFamily;
 import com.blockout.backend.notifications.infrastructure.NotificationRetentionConfiguration;
-import com.blockout.backend.notifications.testsupport.InboxDatabaseFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
+import jakarta.persistence.EntityManagerFactory;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -26,6 +26,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.hibernate.SessionFactory;
 import org.hibernate.resource.jdbc.spi.StatementInspector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,12 +46,19 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Actual migrated purge/read/create boundaries; clock and SQL interruption are test controlled. */
 @SpringBootTest
 @ExtendWith(OutputCaptureExtension.class)
 @DisplayName("Daily notification retention on PostgreSQL")
+@Testcontainers
 class PurgeNotificationsIntegrationTest {
+  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  private PurgeInspector inspector;
+  @Autowired private EntityManagerFactory entityManagerFactory;
   @Autowired private NotificationRetentionConfiguration daily;
   @Autowired private PurgeNotifications.DeleteExpiredEntries batch;
   @Autowired private ReadInbox reads;
@@ -68,7 +76,8 @@ class PurgeNotificationsIntegrationTest {
    */
   @DynamicPropertySource
   static void database(DynamicPropertyRegistry properties) throws Exception {
-    InboxDatabaseFixture.register(properties);
+    PostgresTestDatabase.migrate(DATABASE);
+    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
     properties.add(
         "spring.jpa.properties.hibernate.session_factory.statement_inspector",
         () -> PurgeInspector.class.getName());
@@ -81,14 +90,20 @@ class PurgeNotificationsIntegrationTest {
    */
   @BeforeEach
   void owners() throws Exception {
-    reset(sql);
+    inspector =
+        (PurgeInspector)
+            entityManagerFactory
+                .unwrap(SessionFactory.class)
+                .getSessionFactoryOptions()
+                .getStatementInspector();
+    reset(DATABASE, sql);
     when(clock.instant()).thenReturn(NOW);
   }
 
   /** Releases this suite's injected SQL interruption. */
   @AfterEach
   void clearFailure() {
-    PurgeInspector.failMatch = null;
+    inspector.failMatch = null;
   }
 
   @ParameterizedTest
@@ -160,7 +175,7 @@ class PurgeNotificationsIntegrationTest {
       entry(sql, i, ACCOUNT, NOW.minus(Duration.ofDays(31)).plusSeconds(i));
     UUID survivor = entry(sql, 200, ACCOUNT, NOW.minusSeconds(60));
     AtomicBoolean failed = new AtomicBoolean();
-    PurgeInspector.failMatch =
+    inspector.failMatch =
         statement -> {
           if (statement.startsWith("delete from notification")
               && sql.queryForObject("SELECT COUNT(*) FROM notification", Long.class) == 6
@@ -196,7 +211,7 @@ class PurgeNotificationsIntegrationTest {
             "synthetic-private-notification-content", ACCOUNT.toString(), expired.toString());
 
     // When
-    PurgeInspector.failMatch = null;
+    inspector.failMatch = null;
     when(clock.instant()).thenReturn(NOW.plus(Duration.ofDays(1)));
     daily.purge();
 
@@ -229,7 +244,7 @@ class PurgeNotificationsIntegrationTest {
                         () -> {
                           // Use the production proxied batch; its REQUIRES_NEW transaction owns
                           // deletion.
-                          PurgeInspector.failMatch =
+                          inspector.failMatch =
                               statement -> {
                                 if (statement.startsWith("delete from notification")) {
                                   purgePid.complete(
@@ -312,7 +327,7 @@ class PurgeNotificationsIntegrationTest {
   /** Test-only SQL hook injects one real transaction failure or observes its lock attempt. */
   public static class PurgeInspector implements StatementInspector {
     private static final long serialVersionUID = 1L;
-    private static volatile java.util.function.Consumer<String> failMatch;
+    private volatile java.util.function.Consumer<String> failMatch;
 
     /** {@inheritDoc} */
     @Override

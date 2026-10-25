@@ -5,30 +5,74 @@ import static org.mockito.Mockito.when;
 
 import com.blockout.backend.contributions.support.ContributionScenario;
 import com.blockout.backend.following.application.FollowContext;
+import com.blockout.backend.testsupport.PostgresTestDatabase;
+import jakarta.persistence.EntityManagerFactory;
 import java.sql.Timestamp;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import org.hibernate.SessionFactory;
 import org.hibernate.resource.jdbc.spi.StatementInspector;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Actual F06/F07 snapshot boundary with committed turnover between separate origin statements. */
 @SpringBootTest(
     properties =
         "spring.jpa.properties.hibernate.session_factory.statement_inspector=com.blockout.backend.notifications.application.RecipientSnapshotIntegrationTest$TurnoverInspector")
 @DisplayName("Atomic F06 recipient union during origin turnover")
+@Testcontainers
 class RecipientSnapshotIntegrationTest extends ContributionScenario {
+  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+  private TurnoverInspector inspector;
+  @Autowired private EntityManagerFactory entityManagerFactory;
+
+  /**
+   * Migrates this suite's disposable database before wiring its real application services.
+   *
+   * @param properties native Spring datasource properties for this container
+   * @throws Exception if role initialization or the production migration fails
+   */
+  @DynamicPropertySource
+  static void database(DynamicPropertyRegistry properties) throws Exception {
+    PostgresTestDatabase.migrate(DATABASE);
+    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  protected PostgreSQLContainer databaseContainer() {
+    return DATABASE;
+  }
+
+  /** Selects the SQL interleaving hook owned by this suite's actual Hibernate factory. */
+  @BeforeEach
+  void selectInspector() {
+    inspector =
+        (TurnoverInspector)
+            entityManagerFactory
+                .unwrap(SessionFactory.class)
+                .getSessionFactoryOptions()
+                .getStatementInspector();
+  }
+
   /** Clears only this test's SQL interleaving callback after the owned scenario. */
   @AfterEach
   void clearHook() {
-    TurnoverInspector.hook = null;
+    inspector.hook = null;
   }
 
   @Test
@@ -54,7 +98,7 @@ class RecipientSnapshotIntegrationTest extends ContributionScenario {
     TransactionTemplate independent = new TransactionTemplate(transactions);
     independent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     AtomicInteger stage = new AtomicInteger();
-    TurnoverInspector.hook =
+    inspector.hook =
         statement -> {
           String query = statement.toLowerCase(Locale.ROOT).stripLeading();
           if (!query.startsWith("select")) return;
@@ -92,7 +136,7 @@ class RecipientSnapshotIntegrationTest extends ContributionScenario {
    */
   public static class TurnoverInspector implements StatementInspector {
     private static final long serialVersionUID = 1L;
-    private static volatile Consumer<String> hook;
+    private volatile Consumer<String> hook;
     private final AtomicBoolean inspecting = new AtomicBoolean();
 
     /**

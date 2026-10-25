@@ -1,23 +1,48 @@
-package com.blockout.backend.contributions.infrastructure;
+package com.blockout.backend.contributions.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.blockout.backend.contributions.application.ContributionRejectedException;
-import com.blockout.backend.contributions.application.SubmitContribution;
 import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.domain.StreamAddress;
 import com.blockout.backend.contributions.support.ContributionScenario;
+import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.net.URI;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Real submission and current-state persistence; time alone is controlled by the shared fixture.
  */
 @DisplayName("Atomic contribution submission")
-class ContributionSubmissionIntegrationTest extends ContributionScenario {
+@Testcontainers
+class SubmitContributionIntegrationTest extends ContributionScenario {
+  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
+
+  /**
+   * Migrates this suite's disposable database before wiring its real application services.
+   *
+   * @param properties native Spring datasource properties for this container
+   * @throws Exception if role initialization or the production migration fails
+   */
+  @DynamicPropertySource
+  static void database(DynamicPropertyRegistry properties) throws Exception {
+    PostgresTestDatabase.migrate(DATABASE);
+    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  protected PostgreSQLContainer databaseContainer() {
+    return DATABASE;
+  }
+
   @Test
   @DisplayName("An eligible ordinary submission publishes one quota-participating version")
   void publishesOrdinaryVersion() {

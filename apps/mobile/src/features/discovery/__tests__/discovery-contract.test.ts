@@ -18,8 +18,10 @@ beforeEach(() => {
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   mockFetch.mockReset();
 });
-afterAll(() => {
-  process.env.EXPO_PUBLIC_API_URL = originalUrl;
+afterEach(() => {
+  jest.restoreAllMocks();
+  if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
+  else process.env.EXPO_PUBLIC_API_URL = originalUrl;
 });
 
 it("admits additive fields while preserving absent optional values", async () => {

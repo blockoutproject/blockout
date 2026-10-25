@@ -13,9 +13,11 @@ beforeEach(() => {
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   mockFetch.mockReset();
 });
-afterEach(() => onlineManager.setOnline(true));
-afterAll(() => {
-  process.env.EXPO_PUBLIC_API_URL = originalUrl;
+afterEach(() => {
+  onlineManager.setOnline(true);
+  jest.restoreAllMocks();
+  if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
+  else process.env.EXPO_PUBLIC_API_URL = originalUrl;
 });
 
 /** Uses real session and admission preparation while controlling only the network boundary. */
