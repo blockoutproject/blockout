@@ -55,6 +55,34 @@ Read beyond one twenty-item follow page, including equal names and French accent
 
 ## Mobile journeys
 
+### Native follow action boundary (T008, T014, T015)
+
+`follow-action.test.tsx` exercises the real Query, theme, F05 session and F12 admission owners,
+generated member operations and response validation. Only native Auth0 I/O and HTTP are controlled.
+It covers shared target busy/provisional state, independent typed targets, explicit replacement,
+guest invitation with no sign-in replay, unavailable profile, exact sporting-route composition,
+completion after unmount and retired-session rejection. Definite refusals retain confirmation;
+response loss performs one bounded member read without replay, and failed observation leaves an
+ordinary explicit retry of the same requested value. A successful observation is not announced as
+proof of the original write or delayed cancellation.
+
+Controlled future infinite-query consumers prove cancellation of former traversal, visible first-page
+reload, hidden-query deferral and preserved write confirmation after dependent-read failure. These
+are interface tests, not completed list/calendar screens or their integrated qualifications.
+Confirmation names the public target's season without writing a personal season selection. The
+generated boundary remains unchanged; no public follower-count UI is delivered here.
+
+```sh
+npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/following/__tests__/follow-action.test.tsx
+```
+
+These JavaScript checks establish no actual authentication provider, account-erasure orchestration,
+native accessibility or design qualification. T016, later story tasks and T045 retain their scopes;
+live Dynamic Type [#433](https://github.com/blockoutproject/blockout/issues/433) and iOS input
+[#449](https://github.com/blockoutproject/blockout/issues/449) remain deferred.
+
+### Integrated journeys to qualify
+
 Using Jest Expo/React Native Testing Library and native device checks where applicable:
 
 - Open the same target in different tabs, act once and observe the same immediate provisional/busy state; repeated taps do not enqueue work and another target remains usable.
