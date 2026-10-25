@@ -186,7 +186,7 @@ class DiscoveryContractTest {
             SearchContext.Resource.TEAM, "ÉTOILE Volley", null, null, null, null, false);
     String cursor =
         requests.encode(
-            new DiscoveryRequest.Continuation(
+            new com.blockout.backend.search.application.SearchContinuation(
                 context, 1.5, UUID.fromString("00000000-0000-4000-8000-000000000001")));
 
     // When

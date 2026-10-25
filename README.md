@@ -156,7 +156,13 @@ npm run generate
 ./mvnw -B -ntp -pl apps/backend verify -Dtest='Discovery*Test,OpenSearchPropertiesTest' -Dit.test=OpenSearchClientIntegrationTest
 ```
 
-The integration suite creates its own TLS, credential, mapped port and disposable Testcontainers engine; it requires Docker and OpenSSL but does not require the Compose instance. It checks trust refusal, namespace refusal, native serialization/query, bulk item failures, explicit refresh and atomic aliases. See the [F04 qualification limits](specs/008-search-discovery/quickstart.md#contracts-and-access). Full backend verification remains `npx nx run backend:test`.
+The integration suite creates its own TLS, credential, mapped port and disposable Testcontainers engine; it requires Docker and OpenSSL but does not require the Compose instance. It checks trust refusal, namespace refusal, native serialization/query, bulk item failures, explicit refresh and atomic aliases. See the [F04 qualification limits](specs/008-search-discovery/quickstart.md#contracts-and-access). Named-search behavior is qualified with the current F02/F03 reads by the `SearchMatchingIntegrationTest`, `SearchCurrentDataIntegrationTest` and `SearchTraversalIntegrationTest` suites. They include native analyzer bounds, current visibility/city checks and generated HTTP traversal beyond 10,000 results. Run the focused suites after contract generation:
+
+```sh
+./mvnw -B -ntp -pl apps/backend verify -Dtest='ReadSearchTest,SearchDocumentsTest,Discovery*Test,OpenSearchEngineTest,OpenSearchPropertiesTest,Consultation*Test' -Dit.test='SearchCurrentDataIntegrationTest,SearchMatchingIntegrationTest,SearchTraversalIntegrationTest,OpenSearchClientIntegrationTest'
+```
+
+Full backend verification remains `npx nx run backend:test`.
 
 ### Application processes
 
