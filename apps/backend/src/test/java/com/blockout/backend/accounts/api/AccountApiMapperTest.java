@@ -7,7 +7,7 @@ import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.generated.mobile.model.AccountPermissionsResponse;
 import com.blockout.backend.generated.mobile.model.AccountResponse;
 import java.time.Instant;
-import java.time.ZoneOffset;
+import java.time.OffsetDateTime;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -94,7 +94,7 @@ class AccountApiMapperTest {
     assertThat(result.getUsername()).isEqualTo(account.username());
     assertThat(result.getEmail()).isEqualTo(account.email());
     assertThat(result.getPrincipalCreatedAt().get())
-        .isEqualTo(account.principalCreatedAt().atOffset(ZoneOffset.UTC));
+        .isEqualTo(OffsetDateTime.parse("2020-01-02T03:04:05Z"));
     assertThat(result.getHasPhoto()).isTrue();
     assertThat(result.getPermissions().getManageMaintenance()).isTrue();
     assertThat(result.getPermissions().getBypassMaintenance()).isTrue();

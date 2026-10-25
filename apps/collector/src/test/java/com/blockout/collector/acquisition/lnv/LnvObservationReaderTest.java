@@ -91,15 +91,18 @@ class LnvObservationReaderTest {
                 true),
             Instant.EPOCH);
 
-    // When / Then
-    assertThatThrownBy(() -> resource.document(target, "Scoresheet"))
-        .isInstanceOf(LnvAcquisitionException.class);
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
+        () -> resource.document(target, "Scoresheet");
+
+    // Then
+    assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
     verifyNoInteractions(http);
   }
 
   @Test
   @DisplayName(
-      "Positive contradictory season evidence prevents both detail and document interpretation")
+      "Refuses detail interpretation when the published season contradicts the admitted season")
   void rejectsContradictoryDetailSeason() {
     // Given
     ProviderHttpClient http = mock(ProviderHttpClient.class);
@@ -118,10 +121,41 @@ class LnvObservationReaderTest {
             new ProviderHttpClient.Response(html.getBytes(StandardCharsets.UTF_8), page, true),
             Instant.EPOCH);
 
-    // When / Then
-    assertThatThrownBy(() -> resource.detail(target)).isInstanceOf(LnvAcquisitionException.class);
-    assertThatThrownBy(() -> resource.document(target, "Scoresheet"))
-        .isInstanceOf(LnvAcquisitionException.class);
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable action = () -> resource.detail(target);
+
+    // Then
+    assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
+    verifyNoInteractions(http);
+  }
+
+  @Test
+  @DisplayName(
+      "Refuses document lookup when the published detail season contradicts the admitted season")
+  void rejectsContradictoryDocumentSeason() {
+    // Given
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    LnvObservationReader reader = documentReader(http);
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .seasonLabel("2026/2027")
+            .nativeMatchReference("990")
+            .competitionReference("901")
+            .build();
+    URI page = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901");
+    String html =
+        "<title>Alterna VOLSTAR 2027/2028</title><span id=Content_Main_LB_DateTime>dimanche 17 octobre 2027</span><span id=Content_Main_LBL_WonSetHome>3</span><span id=Content_Main_LBL_WonSetGuest>1</span>";
+    LnvAcquisition.Resource resource =
+        reader.fromPage(
+            new ProviderHttpClient.Response(html.getBytes(StandardCharsets.UTF_8), page, true),
+            Instant.EPOCH);
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
+        () -> resource.document(target, "Scoresheet");
+
+    // Then
+    assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
     verifyNoInteractions(http);
   }
 
@@ -165,9 +199,12 @@ class LnvObservationReaderTest {
                             + "&ID=901"),
                     true)));
 
-    // When / Then
-    assertThatThrownBy(() -> resource.document(target, "Scoresheet"))
-        .isInstanceOf(LnvAcquisitionException.class);
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
+        () -> resource.document(target, "Scoresheet");
+
+    // Then
+    assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
     verify(http).postPage(any(), any());
     verifyNoMoreInteractions(http);
   }

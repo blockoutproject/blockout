@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
+import com.blockout.backend.notifications.application.AllocateAnnouncements.Created;
 import com.blockout.backend.notifications.application.ProcessResultAnnouncement.Transition;
 import com.blockout.backend.notifications.domain.MatchAnnouncementFacts;
 import com.blockout.backend.notifications.domain.NotificationFamily;
@@ -39,16 +40,17 @@ class ResultAnnouncementTest {
   @DisplayName("Fixes result composition even with zero recipients and an earlier live event")
   void fixesComposition(boolean link, NotificationFamily family, boolean postConsumed) {
     // Given
-    when(store.facts(MATCH)).thenReturn(MatchAnnouncementFacts.empty(MATCH).consumeLive());
+    when(store.facts(MATCH))
+        .thenReturn(new MatchAnnouncementFacts(MATCH, true, false, false, null));
     when(recipients.select(any())).thenReturn(List.of());
 
     // When
-    assertThat(
-            processor.process(
-                transition(null, result(ResultStateEnum.FINAL), false, false, true, link)))
-        .isEmpty();
+    List<Created> created =
+        processor.process(
+            transition(null, result(ResultStateEnum.FINAL), false, false, true, link));
 
     // Then
+    assertThat(created).isEmpty();
     verify(store).saveFacts(new MatchAnnouncementFacts(MATCH, true, true, postConsumed, family));
   }
 
@@ -57,16 +59,17 @@ class ResultAnnouncementTest {
   @DisplayName("Silent final processing preserves the category for a genuinely later publication")
   void suppressesHistoricOrHidden(boolean discovery, boolean reconstruction, boolean visible) {
     // Given
-    when(store.facts(MATCH)).thenReturn(MatchAnnouncementFacts.empty(MATCH));
+    when(store.facts(MATCH))
+        .thenReturn(new MatchAnnouncementFacts(MATCH, false, false, false, null));
 
     // When
-    assertThat(
-            processor.process(
-                transition(
-                    null, result(ResultStateEnum.FINAL), discovery, reconstruction, visible, true)))
-        .isEmpty();
+    List<Created> created =
+        processor.process(
+            transition(
+                null, result(ResultStateEnum.FINAL), discovery, reconstruction, visible, true));
 
     // Then
+    assertThat(created).isEmpty();
     ArgumentCaptor<MatchAnnouncementFacts> recorded =
         ArgumentCaptor.forClass(MatchAnnouncementFacts.class);
     verify(store).saveFacts(recorded.capture());
@@ -81,13 +84,15 @@ class ResultAnnouncementTest {
   @DisplayName("Does not infer finality from a score or elapsed time")
   void ignoresNonFinal(ResultStateEnum state) {
     // Given
-    when(store.facts(MATCH)).thenReturn(MatchAnnouncementFacts.empty(MATCH));
+    when(store.facts(MATCH))
+        .thenReturn(new MatchAnnouncementFacts(MATCH, false, false, false, null));
 
     // When
-    assertThat(processor.process(transition(null, result(state), false, false, true, false)))
-        .isEmpty();
+    List<Created> created =
+        processor.process(transition(null, result(state), false, false, true, false));
 
     // Then
+    assertThat(created).isEmpty();
     verifyNoInteractions(recipients);
     verify(store, never()).saveFacts(any());
   }
@@ -96,7 +101,8 @@ class ResultAnnouncementTest {
   @DisplayName("Discovery without a link records no emitted result composition")
   void preservesLaterPublication() {
     // Given
-    when(store.facts(MATCH)).thenReturn(MatchAnnouncementFacts.empty(MATCH));
+    when(store.facts(MATCH))
+        .thenReturn(new MatchAnnouncementFacts(MATCH, false, false, false, null));
 
     // When
     processor.process(transition(null, result(ResultStateEnum.FINAL), true, false, true, false));
@@ -113,7 +119,8 @@ class ResultAnnouncementTest {
       "An already-final accepted result cannot masquerade as a new event without stored facts")
   void suppressesAlreadyFinal() {
     // Given
-    when(store.facts(MATCH)).thenReturn(MatchAnnouncementFacts.empty(MATCH));
+    when(store.facts(MATCH))
+        .thenReturn(new MatchAnnouncementFacts(MATCH, false, false, false, null));
 
     // When
     processor.process(transition(result(ResultStateEnum.FINAL), null, false, false, true, false));
@@ -131,7 +138,8 @@ class ResultAnnouncementTest {
   @DisplayName("A final result after a provisional score remains eligible without a time cutoff")
   void acceptsFinalAfterProvisional() {
     // Given
-    when(store.facts(MATCH)).thenReturn(MatchAnnouncementFacts.empty(MATCH));
+    when(store.facts(MATCH))
+        .thenReturn(new MatchAnnouncementFacts(MATCH, false, false, false, null));
     when(recipients.select(any())).thenReturn(List.of());
 
     // When
@@ -145,7 +153,6 @@ class ResultAnnouncementTest {
             false));
 
     // Then
-    verify(recipients).select(any());
     verify(store)
         .saveFacts(
             new MatchAnnouncementFacts(MATCH, false, true, false, NotificationFamily.PLAIN_RESULT));
@@ -162,18 +169,18 @@ class ResultAnnouncementTest {
             new MatchAnnouncementFacts(MATCH, false, true, false, NotificationFamily.PLAIN_RESULT));
 
     // When
-    assertThat(
-            processor.process(
-                transition(
-                    previousFinal ? result(ResultStateEnum.FINAL) : null,
-                    currentFinal ? result(ResultStateEnum.FINAL) : null,
-                    false,
-                    false,
-                    true,
-                    true)))
-        .isEmpty();
+    List<Created> created =
+        processor.process(
+            transition(
+                previousFinal ? result(ResultStateEnum.FINAL) : null,
+                currentFinal ? result(ResultStateEnum.FINAL) : null,
+                false,
+                false,
+                true,
+                true));
 
     // Then
+    assertThat(created).isEmpty();
     verifyNoInteractions(recipients);
     verify(store, never()).saveFacts(any());
   }

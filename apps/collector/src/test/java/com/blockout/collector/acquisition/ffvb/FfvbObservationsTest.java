@@ -11,8 +11,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -67,29 +65,72 @@ class FfvbObservationsTest {
   }
 
   @Test
-  @DisplayName("A qualified empty pool differs from unavailable or contradictory content")
+  @DisplayName("Accepts a header-only export when the full page explicitly publishes an empty pool")
   void qualifiesEmptyPool() throws IOException {
     // Given
-    String form =
-        fixture("calendar.html").substring(0, fixture("calendar.html").indexOf("<table>"));
+    String source = fixture("calendar.html");
     String html =
-        form
+        source.substring(0, source.indexOf("<table>"))
             + "<table><tr><td>TST - Synthetic pool</td></tr><tr><td colspan=11></td></tr></table></body></html>";
-    String header = fixture("calendar.csv").lines().findFirst().orElseThrow() + "\n";
-    FfvbPage empty = page(html);
+    byte[] header = bytes(fixture("calendar.csv").lines().findFirst().orElseThrow() + "\n");
+    FfvbPage context = page(html);
 
     // When
-    SportingObservation.Calendar calendar = calendars.parse(bytes(header), empty, SCOPE);
-    SportingObservation.Standings table = standings.parse(empty);
+    SportingObservation.Calendar calendar = calendars.parse(header, context, SCOPE);
 
     // Then
     assertThat(calendar.complete()).isTrue();
     assertThat(calendar.matches()).isEmpty();
+  }
+
+  @Test
+  @DisplayName("Leaves standings unpublished when the qualified empty pool has no table")
+  void preservesUnpublishedEmptyStandings() throws IOException {
+    // Given
+    String source = fixture("calendar.html");
+    FfvbPage context =
+        page(
+            source.substring(0, source.indexOf("<table>"))
+                + "<table><tr><td>TST - Synthetic pool</td></tr><tr><td colspan=11></td></tr></table></body></html>");
+
+    // When
+    SportingObservation.Standings table = standings.parse(context);
+
+    // Then
     assertThat(table.publicationState()).isEqualTo(StandingsPublicationStateEnum.NOT_PUBLISHED);
-    assertThatThrownBy(() -> calendars.parse(bytes(fixture("calendar.csv")), empty, SCOPE))
-        .isInstanceOf(FfvbAcquisitionException.class);
-    assertThatThrownBy(() -> page("<html><body>Temporarily unavailable</body></html>"))
-        .isInstanceOf(FfvbAcquisitionException.class);
+  }
+
+  @Test
+  @DisplayName("Rejects export matches contradicting an explicitly empty pool")
+  void rejectsMatchesForEmptyPool() throws IOException {
+    // Given
+    String source = fixture("calendar.html");
+    FfvbPage context =
+        page(
+            source.substring(0, source.indexOf("<table>"))
+                + "<table><tr><td>TST - Synthetic pool</td></tr><tr><td colspan=11></td></tr></table></body></html>");
+    byte[] export = bytes(fixture("calendar.csv"));
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
+        () -> calendars.parse(export, context, SCOPE);
+
+    // Then
+    assertThatThrownBy(parse).isInstanceOf(FfvbAcquisitionException.class);
+  }
+
+  @Test
+  @DisplayName("Rejects an unavailable page before interpreting a calendar")
+  void rejectsUnavailablePage() {
+    // Given
+    byte[] html = bytes("<html><body>Temporarily unavailable</body></html>");
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable qualify =
+        () -> new FfvbPage(html, URL, SCOPE);
+
+    // Then
+    assertThatThrownBy(qualify).isInstanceOf(FfvbAcquisitionException.class);
   }
 
   @Test
@@ -103,9 +144,12 @@ class FfvbObservationsTest {
     byte[] header = bytes(fixture("calendar.csv").lines().findFirst().orElseThrow() + "\n");
     FfvbPage context = page(incomplete);
 
-    // When / Then
-    assertThatThrownBy(() -> calendars.parse(header, context, SCOPE))
-        .isInstanceOf(FfvbAcquisitionException.class);
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
+        () -> calendars.parse(header, context, SCOPE);
+
+    // Then
+    assertThatThrownBy(action).isInstanceOf(FfvbAcquisitionException.class);
   }
 
   @Test
@@ -195,64 +239,72 @@ class FfvbObservationsTest {
   }
 
   @Test
-  @DisplayName("Collapses identical repetitions but isolates conflicting versions")
+  @DisplayName("Collapses identical repeated match rows")
+  void collapsesDuplicateMatch() throws IOException {
+    // Given
+    String csv = fixture("calendar.csv");
+    String row = csv.lines().skip(1).findFirst().orElseThrow();
+    FfvbPage context = page(fixture("calendar.html"));
+
+    // When
+    SportingObservation.Calendar result = calendars.parse(bytes(csv + row + "\n"), context, SCOPE);
+
+    // Then
+    assertThat(result.matches()).hasSize(1);
+    assertThat(result.complete()).isTrue();
+  }
+
+  @Test
+  @DisplayName("Isolates conflicting versions of the same match")
   void isolatesContradictoryMatch() throws IOException {
     // Given
     String csv = fixture("calendar.csv");
     String row = csv.lines().skip(1).findFirst().orElseThrow();
+    FfvbPage context = page(fixture("calendar.html"));
 
     // When
-    SportingObservation.Calendar duplicate =
-        calendars.parse(bytes(csv + row + "\n"), page(fixture("calendar.html")), SCOPE);
-    SportingObservation.Calendar conflict =
-        calendars.parse(
-            bytes(csv + row.replace("3/0", "0/3") + "\n"), page(fixture("calendar.html")), SCOPE);
+    SportingObservation.Calendar result =
+        calendars.parse(bytes(csv + row.replace("3/0", "0/3") + "\n"), context, SCOPE);
 
     // Then
-    assertThat(duplicate.matches()).hasSize(1);
-    assertThat(duplicate.complete()).isTrue();
-    assertThat(conflict.matches()).isEmpty();
-    assertThat(conflict.complete()).isFalse();
-    assertThat(conflict.failures())
-        .singleElement()
-        .satisfies(failure -> assertThat(failure.sourceReference()).isEqualTo("TST001"));
+    assertThat(result.matches()).isEmpty();
+    assertThat(result.complete()).isFalse();
+    assertThat(result.failures())
+        .extracting(SportingObservation.Failure::sourceReference)
+        .containsExactly("TST001");
   }
 
   @Test
-  @DisplayName("Keeps 99 usable matches when one participant is invalid")
+  @DisplayName("Keeps the valid match when another participant is invalid")
   void keepsUsablePartialCalendar() throws IOException {
     // Given
     String source = fixture("calendar.html");
     String html =
         source.substring(0, source.indexOf("<table>"))
-            + "<table><tr><td>Journée 01</td></tr>"
-            + IntStream.rangeClosed(1, 100)
-                .mapToObj(
-                    i ->
-                        "<tr><td>M"
-                            + i
-                            + "</td><td>01/10/26</td><td></td><td>A</td><td></td><td>B</td></tr>")
-                .collect(Collectors.joining())
-            + "</table></body></html>";
+            + """
+        <table><tr><td>Journée 01</td></tr>
+        <tr><td>M1</td><td>01/10/26</td><td></td><td>A</td><td></td><td>B</td></tr>
+        <tr><td>M2</td><td>01/10/26</td><td></td><td>A</td><td></td><td>B</td></tr>
+        </table></body></html>
+        """;
     String csv =
         fixture("calendar.csv").lines().findFirst().orElseThrow()
             + "\n"
-            + IntStream.rangeClosed(1, 100)
-                .mapToObj(
-                    i ->
-                        "ABCCS;01;M"
-                            + i
-                            + ";2026-10-01;00:00;001;A;"
-                            + (i == 50 ? "" : "002")
-                            + ";B;;;;;;;\n")
-                .collect(Collectors.joining());
+            + """
+        ABCCS;01;M1;2026-10-01;00:00;001;A;002;B;;;;;;;
+        ABCCS;01;M2;2026-10-01;00:00;001;A;;B;;;;;;;
+        """;
 
     // When
     SportingObservation.Calendar result = calendars.parse(bytes(csv), page(html), SCOPE);
 
     // Then
-    assertThat(result.matches()).hasSize(99);
-    assertThat(result.failures()).hasSize(1);
+    assertThat(result.matches())
+        .extracting(SportingObservation.Match::nativeMatchReference)
+        .containsExactly("M1");
+    assertThat(result.failures())
+        .extracting(SportingObservation.Failure::sourceReference)
+        .containsExactly("M2");
     assertThat(result.complete()).isFalse();
   }
 
@@ -280,21 +332,32 @@ class FfvbObservationsTest {
   }
 
   @Test
-  @DisplayName("Rejects wrong-season and recent-only contexts before producing observations")
-  void rejectsUnqualifiedContext() throws IOException {
+  @DisplayName("Rejects a published season contradicting the admitted context")
+  void rejectsWrongSeason() throws IOException {
     // Given
-    String html = fixture("calendar.html");
+    byte[] html = bytes(fixture("calendar.html").replace("2026/2027", "2025/2026"));
 
-    // When / Then
-    assertThatThrownBy(() -> page(html.replace("2026/2027", "2025/2026")))
-        .isInstanceOf(FfvbAcquisitionException.class);
-    assertThatThrownBy(
-            () ->
-                new FfvbPage(
-                    bytes(html),
-                    URI.create("https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php"),
-                    SCOPE))
-        .isInstanceOf(FfvbAcquisitionException.class);
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable qualify =
+        () -> new FfvbPage(html, URL, SCOPE);
+
+    // Then
+    assertThatThrownBy(qualify).isInstanceOf(FfvbAcquisitionException.class);
+  }
+
+  @Test
+  @DisplayName("Rejects a recent-only calendar URL before producing observations")
+  void rejectsRecentOnlyCalendar() throws IOException {
+    // Given
+    byte[] html = bytes(fixture("calendar.html"));
+    URI recent = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php");
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable qualify =
+        () -> new FfvbPage(html, recent, SCOPE);
+
+    // Then
+    assertThatThrownBy(qualify).isInstanceOf(FfvbAcquisitionException.class);
   }
 
   @Test

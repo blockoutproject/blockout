@@ -1,6 +1,7 @@
 package com.blockout.collector.acquisition.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
@@ -15,7 +16,6 @@ import java.time.ZoneOffset;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 /**
  * Candidate interpretation uses controlled complete HTTP responses; no backend mutation is implied.
@@ -27,7 +27,7 @@ class QualifySourceTest {
       "A supported LNV championship without season evidence requires explicit confirmation")
   void requiresSeasonEvidence() {
     // Given
-    ProviderHttpClient http = Mockito.mock(ProviderHttpClient.class);
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
     URI url = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901");
     byte[] page =
         "<title>Alterna VOLSTAR</title><a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>"
@@ -39,9 +39,9 @@ class QualifySourceTest {
         new QualifySource(
             http,
             new LnvDiscovery(),
-            Mockito.mock(DiscoverSeasonSources.class),
-            Mockito.mock(CollectionBackend.class),
-            Mockito.mock(CollectorLifecycle.class),
+            mock(DiscoverSeasonSources.class),
+            mock(CollectionBackend.class),
+            mock(CollectorLifecycle.class),
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
 
     // When
@@ -58,7 +58,7 @@ class QualifySourceTest {
   @DisplayName("A supported-origin redirect into another championship cannot be confirmed away")
   void refusesWrongChampionship() {
     // Given
-    ProviderHttpClient http = Mockito.mock(ProviderHttpClient.class);
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
     URI url = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901");
     byte[] page =
         "<title>Alterna VOLSTAR</title><a href='CompetitionMatches.aspx?ID=999&PID=902'>Regular</a>"
@@ -74,9 +74,9 @@ class QualifySourceTest {
         new QualifySource(
             http,
             new LnvDiscovery(),
-            Mockito.mock(DiscoverSeasonSources.class),
-            Mockito.mock(CollectionBackend.class),
-            Mockito.mock(CollectorLifecycle.class),
+            mock(DiscoverSeasonSources.class),
+            mock(CollectionBackend.class),
+            mock(CollectorLifecycle.class),
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
 
     // When

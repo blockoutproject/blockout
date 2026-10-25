@@ -10,8 +10,10 @@ import java.util.Base64;
 import java.util.UUID;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 /** Opaque continuation precision and syntax, independent of a retained anchor or owner registry. */
@@ -34,12 +36,37 @@ class NotificationCursorTest {
 
     // When
     String cursor = NotificationCursor.encode(keys);
+    Continuation decoded = NotificationCursor.decode(cursor);
 
     // Then
     assertThat(cursor).matches("[A-Za-z0-9_-]+");
-    assertThat(NotificationCursor.decode(cursor)).isEqualTo(keys);
-    assertThat(NotificationCursor.decode(null)).isNull();
-    assertThat(NotificationCursor.encode(null)).isNull();
+    assertThat(decoded).isEqualTo(keys);
+  }
+
+  @Test
+  @DisplayName("Leaves a fresh traversal without continuation keys")
+  void preservesAbsentCursor() {
+    // Given
+    String cursor = null;
+
+    // When
+    Continuation decoded = NotificationCursor.decode(cursor);
+
+    // Then
+    assertThat(decoded).isNull();
+  }
+
+  @Test
+  @DisplayName("Emits no continuation token after exhaustion")
+  void preservesAbsentContinuation() {
+    // Given
+    Continuation keys = null;
+
+    // When
+    String cursor = NotificationCursor.encode(keys);
+
+    // Then
+    assertThat(cursor).isNull();
   }
 
   @ParameterizedTest
@@ -52,7 +79,10 @@ class NotificationCursorTest {
     ThrowingCallable decode = () -> NotificationCursor.decode(token);
 
     // Then
-    assertThatThrownBy(decode).isInstanceOf(ResponseStatusException.class);
+    assertThatThrownBy(decode)
+        .isInstanceOfSatisfying(
+            ResponseStatusException.class,
+            error -> assertThat(error.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST));
   }
 
   @ParameterizedTest
@@ -76,6 +106,9 @@ class NotificationCursorTest {
     ThrowingCallable decode = () -> NotificationCursor.decode(cursor);
 
     // Then
-    assertThatThrownBy(decode).isInstanceOf(ResponseStatusException.class);
+    assertThatThrownBy(decode)
+        .isInstanceOfSatisfying(
+            ResponseStatusException.class,
+            error -> assertThat(error.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST));
   }
 }

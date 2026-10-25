@@ -3,6 +3,7 @@ package com.blockout.backend.collection.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -23,28 +24,26 @@ import java.util.UUID;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 /** Discovery decisions with controlled owner ports; database atomicity is qualified separately. */
-@ExtendWith(MockitoExtension.class)
 @DisplayName("Source discovery decisions")
 class ObserveCollectionSourceTest {
   private static final UUID STARTUP = UUID.fromString("00000000-0000-4000-8000-000000000171");
   private static final UUID SEASON = UUID.fromString("00000000-0000-4000-8000-000000000172");
   private static final UUID SOURCE = UUID.fromString("00000000-0000-4000-8000-000000000173");
-  @Mock private CollectionStore store;
-  @Mock private CollectorRuntimeAccess runtimes;
-  @Mock private ChangeCollectionSeasons seasons;
-  @Mock private org.springframework.context.ApplicationEventPublisher events;
-  @InjectMocks private ObserveCollectionSource service;
+  private final CollectionStore store = mock(CollectionStore.class);
+  private final CollectorRuntimeAccess runtimes = mock(CollectorRuntimeAccess.class);
+  private final ChangeCollectionSeasons seasons = mock(ChangeCollectionSeasons.class);
+  private final org.springframework.context.ApplicationEventPublisher events =
+      mock(org.springframework.context.ApplicationEventPublisher.class);
+  private final ObserveCollectionSource service =
+      new ObserveCollectionSource(store, runtimes, seasons, events);
 
   @Test
   @DisplayName("A repeated discovery preserves the operator candidate and active season")
   void preservesOperatorCandidate() {
     // Given
+    ObserveCollectionSource.Proposal proposal = proposal();
     when(seasons.getOrCreate(2026)).thenReturn(new SeasonView(SEASON, 2026, "2026/2027"));
     when(seasons.lockCollectionState(SEASON))
         .thenReturn(
@@ -62,7 +61,7 @@ class ObserveCollectionSourceTest {
         .thenReturn(Optional.of(existing));
 
     // When
-    ObserveCollectionSource.Resolved result = service.observe(proposal());
+    ObserveCollectionSource.Resolved result = service.observe(proposal);
 
     // Then
     assertThat(result).isEqualTo(new ObserveCollectionSource.Resolved(SEASON, SOURCE));
@@ -73,6 +72,7 @@ class ObserveCollectionSourceTest {
   @DisplayName("Closed history refuses a discovered root without writing a source")
   void refusesClosedHistory() {
     // Given
+    ObserveCollectionSource.Proposal proposal = proposal();
     when(seasons.getOrCreate(2026)).thenReturn(new SeasonView(SEASON, 2026, "2026/2027"));
     when(seasons.lockCollectionState(SEASON))
         .thenReturn(
@@ -80,11 +80,11 @@ class ObserveCollectionSourceTest {
                 SEASON, "2026/2027", 2026, CollectionSeasonStateEnum.CLOSED, 4));
 
     // When
-    ThrowingCallable observe = () -> service.observe(proposal());
+    ThrowingCallable observe = () -> service.observe(proposal);
 
     // Then
     assertThatThrownBy(observe).isInstanceOf(CollectionConflictException.class);
-    verifyNoInteractions(store);
+    verifyNoInteractions(store, events);
   }
 
   /** Supplies an explicitly qualified year rather than deriving it from a native identifier. */

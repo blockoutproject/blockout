@@ -4,14 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.backend.sporting.api.SportingIngestionController;
-import com.blockout.backend.sporting.application.service.ValidateSportingImage;
 import java.io.ByteArrayInputStream;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
@@ -23,11 +22,11 @@ import org.springframework.web.server.ResponseStatusException;
 @DisplayName("Ingestion binary request bound")
 class IngestionBodyLimitAdviceTest {
   @ParameterizedTest
-  @ValueSource(booleans = {true, false})
+  @CsvSource({"true, 5242912", "false, 31"})
   @DisplayName("Rejects oversized source images without reading past the bounded detection byte")
-  void boundsImageBeforeConversion(boolean declaredLength) throws Exception {
+  void boundsImageBeforeConversion(boolean declaredLength, int unreadBytes) throws Exception {
     // Given
-    int length = ValidateSportingImage.MAX_BYTES + 32;
+    int length = 5_242_912;
     ByteArrayInputStream content = new ByteArrayInputStream(new byte[length]);
     MockHttpInputMessage message = new MockHttpInputMessage(content);
     if (declaredLength) message.getHeaders().setContentLength(length);
@@ -55,6 +54,6 @@ class IngestionBodyLimitAdviceTest {
         .isInstanceOfSatisfying(
             ResponseStatusException.class,
             failure -> assertThat(failure.getStatusCode()).isEqualTo(HttpStatus.CONTENT_TOO_LARGE));
-    assertThat(content.available()).isEqualTo(declaredLength ? length : 31);
+    assertThat(content.available()).isEqualTo(unreadBytes);
   }
 }

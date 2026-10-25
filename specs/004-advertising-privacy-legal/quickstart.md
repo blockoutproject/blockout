@@ -66,7 +66,7 @@ Use focused Jest/RNTL checks for mobile behavior and existing Java/PostgreSQL to
 After the README installation and contract bundle steps, run the existing owners:
 
 ```sh
-./mvnw -B -ntp -pl apps/backend verify -Dtest=LoggingTest -Dit.test=SportingPresentationIntegrationTest
+./mvnw -B -ntp -pl apps/backend verify -Dit.test='LoggingIntegrationTest,SportingPresentationIntegrationTest'
 npm run test --workspace=@blockout/mobile -- --runInBand src/shared/observability/__tests__/sentry.test.ts
 ```
 

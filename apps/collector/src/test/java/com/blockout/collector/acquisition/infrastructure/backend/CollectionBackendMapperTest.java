@@ -20,7 +20,7 @@ class CollectionBackendMapperTest {
   private final CollectionBackendMapper mapper = new CollectionBackendMapperImpl();
 
   @Test
-  @DisplayName("Preserves the absolute completion instant and precision across UTC serialization")
+  @DisplayName("Reads the absolute completion instant with nanosecond precision")
   void preservesOffsetInstant() {
     // Given
     CollectionCycleInternalResponse source =
@@ -29,10 +29,21 @@ class CollectionBackendMapperTest {
 
     // When
     CollectionBackend.Cycle cycle = mapper.toView(source);
-    CompleteCollectionCycleInternalRequest completion = mapper.toDto(cycle.completedAt());
 
     // Then
     assertThat(cycle.completedAt()).isEqualTo(Instant.parse("2026-10-24T22:30:15.123456789Z"));
+  }
+
+  @Test
+  @DisplayName("Writes a completion instant as a UTC transport timestamp")
+  void writesUtcCompletion() {
+    // Given
+    Instant completedAt = Instant.parse("2026-10-24T22:30:15.123456789Z");
+
+    // When
+    CompleteCollectionCycleInternalRequest completion = mapper.toDto(completedAt);
+
+    // Then
     assertThat(completion.getCompletedAt())
         .isEqualTo(OffsetDateTime.parse("2026-10-24T22:30:15.123456789Z"));
     assertThat(completion.getCompletedAt().getOffset()).isEqualTo(ZoneOffset.UTC);

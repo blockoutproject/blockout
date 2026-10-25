@@ -1,140 +1,150 @@
 package com.blockout.backend.notifications.application;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.blockout.backend.notifications.application.AllocateAnnouncements.Created;
 import com.blockout.backend.notifications.domain.MatchAnnouncementFacts;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 /**
- * Isolated current-link timing decisions; actual producer/lock proof lives in integration tests.
+ * Isolated link allowance decisions; producer locks and personal writes have integration evidence.
  */
 @DisplayName("Link announcement timing")
 class LinkAnnouncementTest {
   private static final UUID MATCH = UUID.fromString("00000000-0000-4000-8000-000000000252");
-  private static final Instant H = Instant.parse("2026-10-24T12:00:00Z");
+  private static final Instant START = Instant.parse("2026-10-24T12:00:00Z");
+  private final NotificationStore store = mock(NotificationStore.class);
+  private final ProcessLinkAnnouncement processor =
+      new ProcessLinkAnnouncement(store, new AllocateAnnouncements(store));
 
   @ParameterizedTest
-  @CsvSource({"-1,false,false", "0,false,true", "1,false,true", "0,true,true"})
-  @DisplayName("Consumes live at the reliable start instant even with no audience")
-  void consumesAtStart(long seconds, boolean publication, boolean consumed) {
+  @CsvSource({"0,false", "1,false", "0,true"})
+  @DisplayName(
+      "Consumes the live allowance at or after the reliable start even without an audience")
+  void consumesDueLiveAllowance(long elapsedSeconds, boolean acceptedPublication) {
     // Given
-    NotificationStore store = mock(NotificationStore.class);
-    when(store.facts(MATCH)).thenReturn(MatchAnnouncementFacts.empty(MATCH));
-    ProcessLinkAnnouncement processor =
-        new ProcessLinkAnnouncement(store, new AllocateAnnouncements(store));
-
-    // When
-    processor.process(
+    when(store.facts(MATCH))
+        .thenReturn(new MatchAnnouncementFacts(MATCH, false, false, false, null));
+    ProcessLinkAnnouncement.Context context =
         new ProcessLinkAnnouncement.Context(
             new MatchView(MATCH, MATCH, "synthetic", MATCH, MATCH),
             true,
             false,
-            H,
-            publication,
-            H.plusSeconds(seconds)),
-        List.of());
+            START,
+            acceptedPublication,
+            START.plusSeconds(elapsedSeconds));
+
+    // When
+    List<Created> created = processor.process(context, List.of());
 
     // Then
-    if (consumed) verify(store).saveFacts(MatchAnnouncementFacts.empty(MATCH).consumeLive());
-    else
-      org.mockito.Mockito.verify(store, org.mockito.Mockito.never())
-          .saveFacts(org.mockito.ArgumentMatchers.any());
+    assertThat(created).isEmpty();
+    verify(store).saveFacts(new MatchAnnouncementFacts(MATCH, true, false, false, null));
+    verify(store, never()).create(any());
+  }
+
+  @Test
+  @DisplayName("Preserves the live allowance immediately before the reliable start")
+  void preservesFutureAllowance() {
+    // Given
+    when(store.facts(MATCH))
+        .thenReturn(new MatchAnnouncementFacts(MATCH, false, false, false, null));
+    ProcessLinkAnnouncement.Context context =
+        new ProcessLinkAnnouncement.Context(
+            new MatchView(MATCH, MATCH, "synthetic", MATCH, MATCH),
+            true,
+            false,
+            START,
+            false,
+            START.minusSeconds(1));
+
+    // When
+    List<Created> created = processor.process(context, List.of());
+
+    // Then
+    assertThat(created).isEmpty();
+    verify(store, never()).saveFacts(any());
+    verify(store, never()).create(any());
+  }
+
+  @Test
+  @DisplayName("Consumes the unused post-result allowance for a later accepted publication")
+  void consumesLaterPublication() {
+    // Given
+    when(store.facts(MATCH))
+        .thenReturn(new MatchAnnouncementFacts(MATCH, false, true, false, null));
+    ProcessLinkAnnouncement.Context context =
+        new ProcessLinkAnnouncement.Context(
+            new MatchView(MATCH, MATCH, "synthetic", MATCH, MATCH), true, true, null, true, START);
+
+    // When
+    List<Created> created = processor.process(context, List.of());
+
+    // Then
+    assertThat(created).isEmpty();
+    verify(store).saveFacts(new MatchAnnouncementFacts(MATCH, false, true, true, null));
   }
 
   @ParameterizedTest
-  @CsvSource({"true,false,true", "false,false,false", "true,true,false"})
-  @DisplayName("Only an accepted later publication can consume an unused post-result allowance")
-  void requiresNewPublication(boolean publication, boolean consumed, boolean expected) {
+  @CsvSource({"false,false", "true,true"})
+  @DisplayName("Preserves a final match without a new publication or with a consumed allowance")
+  void preservesUnavailablePublication(boolean publication, boolean consumed) {
     // Given
-    NotificationStore store = mock(NotificationStore.class);
-    MatchAnnouncementFacts facts = MatchAnnouncementFacts.empty(MATCH).consumeResult(null);
-    if (consumed) facts = facts.consumePostResultLink();
-    when(store.facts(MATCH)).thenReturn(facts);
-    ProcessLinkAnnouncement processor =
-        new ProcessLinkAnnouncement(store, new AllocateAnnouncements(store));
-
-    // When
-    processor.process(
+    when(store.facts(MATCH))
+        .thenReturn(new MatchAnnouncementFacts(MATCH, false, true, consumed, null));
+    ProcessLinkAnnouncement.Context context =
         new ProcessLinkAnnouncement.Context(
             new MatchView(MATCH, MATCH, "synthetic", MATCH, MATCH),
             true,
             true,
             null,
             publication,
-            H),
-        List.of());
+            START);
+
+    // When
+    List<Created> created = processor.process(context, List.of());
 
     // Then
-    if (expected) verify(store).saveFacts(facts.consumePostResultLink());
-    else
-      org.mockito.Mockito.verify(store, org.mockito.Mockito.never())
-          .saveFacts(org.mockito.ArgumentMatchers.any());
+    assertThat(created).isEmpty();
+    verify(store, never()).saveFacts(any());
+    verify(store, never()).create(any());
   }
 
   @ParameterizedTest
   @CsvSource({"false,true,false", "true,false,false", "true,true,true"})
   @DisplayName(
-      "Absent availability unknown time and an already processed category create no new live fact")
-  void preservesUnavailableOrConsumed(boolean available, boolean knownTime, boolean consumed) {
+      "Preserves live facts when availability, reliable time or an unused allowance is absent")
+  void preservesUnavailableLiveAllowance(boolean available, boolean knownTime, boolean consumed) {
     // Given
-    NotificationStore store = mock(NotificationStore.class);
-    MatchAnnouncementFacts facts = MatchAnnouncementFacts.empty(MATCH);
-    if (consumed) facts = facts.consumeLive();
-    when(store.facts(MATCH)).thenReturn(facts);
-    ProcessLinkAnnouncement processor =
-        new ProcessLinkAnnouncement(store, new AllocateAnnouncements(store));
-
-    // When
-    processor.process(
+    when(store.facts(MATCH))
+        .thenReturn(new MatchAnnouncementFacts(MATCH, consumed, false, false, null));
+    ProcessLinkAnnouncement.Context context =
         new ProcessLinkAnnouncement.Context(
             new MatchView(MATCH, MATCH, "synthetic", MATCH, MATCH),
             available,
             false,
-            knownTime ? H : null,
+            knownTime ? START : null,
             true,
-            H),
-        List.of());
-
-    // Then
-    org.mockito.Mockito.verify(store, org.mockito.Mockito.never())
-        .saveFacts(org.mockito.ArgumentMatchers.any());
-  }
-
-  @ParameterizedTest
-  @CsvSource({
-    "2026-03-14,20:00,2026-03-14T15:00:00-04:00",
-    "2026-03-29,20:00,2026-03-29T14:00:00-04:00",
-    "2026-10-31,20:00,2026-10-31T15:00:00-04:00"
-  })
-  @DisplayName(
-      "Paris starts and New York processing use the same instant across differing DST weeks")
-  void comparesReliableInstants(String date, String parisTime, String newYorkTime) {
-    // Given
-    Instant start =
-        com.blockout.backend.sporting.domain.MatchFacts.resolveStart(
-            java.time.LocalDate.parse(date), parisTime, "Europe/Paris");
-    Instant now = OffsetDateTime.parse(newYorkTime).toInstant();
-    NotificationStore store = mock(NotificationStore.class);
-    when(store.facts(MATCH)).thenReturn(MatchAnnouncementFacts.empty(MATCH));
-    ProcessLinkAnnouncement processor =
-        new ProcessLinkAnnouncement(store, new AllocateAnnouncements(store));
+            START);
 
     // When
-    processor.process(
-        new ProcessLinkAnnouncement.Context(
-            new MatchView(MATCH, MATCH, "synthetic", MATCH, MATCH), true, false, start, false, now),
-        List.of());
+    List<Created> created = processor.process(context, List.of());
 
     // Then
-    verify(store).saveFacts(MatchAnnouncementFacts.empty(MATCH).consumeLive());
+    assertThat(created).isEmpty();
+    verify(store, never()).saveFacts(any());
+    verify(store, never()).create(any());
   }
 }

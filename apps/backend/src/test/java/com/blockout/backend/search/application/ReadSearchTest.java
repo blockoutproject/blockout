@@ -31,7 +31,7 @@ class ReadSearchTest {
   @DisplayName("Continues before the first eligible candidate not returned on the page")
   void retainsUnconsumedCandidate() {
     // Given
-    List<Candidate> candidates = IntStream.rangeClosed(1, 47).mapToObj(this::candidate).toList();
+    List<Candidate> candidates = IntStream.rangeClosed(1, 21).mapToObj(this::candidate).toList();
     when(engine.search(eq(context), any(), eq(200))).thenReturn(new Batch(candidates, true));
     when(hydration.current(eq(context), any()))
         .thenReturn(
@@ -44,7 +44,10 @@ class ReadSearchTest {
     SearchPage page = search.read(context, null);
 
     // Then
-    assertThat(page.items()).hasSize(20);
+    assertThat(page.items())
+        .extracting(item -> item.club().club().id())
+        .containsExactlyElementsOf(
+            IntStream.rangeClosed(1, 20).mapToObj(number -> new UUID(0, number)).toList());
     assertThat(page.next()).isEqualTo(candidate(20).position());
   }
 
@@ -65,7 +68,10 @@ class ReadSearchTest {
     SearchPage page = search.read(context, null);
 
     // Then
-    assertThat(page.items()).hasSize(20);
+    assertThat(page.items())
+        .extracting(item -> item.club().club().id())
+        .containsExactlyElementsOf(
+            IntStream.rangeClosed(1, 20).mapToObj(number -> new UUID(0, number)).toList());
     assertThat(page.next()).isNull();
   }
 
@@ -74,9 +80,13 @@ class ReadSearchTest {
       "Fails instead of returning an empty continuation when bounded hydration finds no eligible data")
   void refusesFalseEmptyPage() {
     // Given
-    when(engine.search(eq(context), any(), eq(200)))
-        .thenReturn(
-            new Batch(IntStream.rangeClosed(1, 200).mapToObj(this::candidate).toList(), false));
+    List<Candidate> candidates = IntStream.rangeClosed(1, 10).mapToObj(this::candidate).toList();
+    when(engine.search(context, null, 200))
+        .thenReturn(new Batch(List.of(candidates.getFirst()), false));
+    for (int page = 1; page < candidates.size(); page++) {
+      when(engine.search(context, candidates.get(page - 1).position(), 200))
+          .thenReturn(new Batch(List.of(candidates.get(page)), false));
+    }
     when(hydration.current(eq(context), any())).thenReturn(Map.of());
 
     // When
@@ -91,30 +101,20 @@ class ReadSearchTest {
       "Returns a partial page at the processing bound before its reserved eligible candidate")
   void returnsPartialContinuation() {
     // Given
-    when(engine.search(eq(context), any(), eq(200)))
-        .thenAnswer(
-            invocation -> {
-              Position after = invocation.getArgument(1);
-              int start = after == null ? 1 : (int) after.id().getLeastSignificantBits() + 1;
-              List<Candidate> batch =
-                  IntStream.range(start, Math.min(start + 200, 2001))
-                      .mapToObj(this::candidate)
-                      .toList();
-              return new Batch(batch, batch.size() < 200);
-            });
-    when(hydration.current(eq(context), any()))
-        .thenAnswer(
-            invocation -> {
-              List<Candidate> candidates = invocation.getArgument(1);
-              return candidates.stream()
-                  .filter(
-                      c ->
-                          c.position().id().getLeastSignificantBits() == 1
-                              || c.position().id().getLeastSignificantBits() == 2000)
-                  .collect(
-                      java.util.stream.Collectors.toMap(
-                          c -> c.position().id(), c -> summary(c.position().id())));
-            });
+    List<Candidate> candidates = IntStream.rangeClosed(1, 10).mapToObj(this::candidate).toList();
+    when(engine.search(context, null, 200))
+        .thenReturn(new Batch(List.of(candidates.getFirst()), false));
+    for (int page = 1; page < 9; page++) {
+      when(engine.search(context, candidates.get(page - 1).position(), 200))
+          .thenReturn(new Batch(List.of(candidates.get(page)), false));
+    }
+    when(engine.search(context, candidate(9).position(), 200))
+        .thenReturn(
+            new Batch(List.of(candidate(10)), false), new Batch(List.of(candidate(10)), true));
+    when(hydration.current(context, List.of(candidate(1))))
+        .thenReturn(Map.of(new UUID(0, 1), summary(new UUID(0, 1))));
+    when(hydration.current(context, List.of(candidate(10))))
+        .thenReturn(Map.of(new UUID(0, 10), summary(new UUID(0, 10))));
 
     // When
     SearchPage first = search.read(context, null);
@@ -124,10 +124,10 @@ class ReadSearchTest {
     assertThat(first.items())
         .extracting(item -> item.club().club().id())
         .containsExactly(new UUID(0, 1));
-    assertThat(first.next()).isEqualTo(candidate(1999).position());
+    assertThat(first.next()).isEqualTo(candidate(9).position());
     assertThat(last.items())
         .extracting(item -> item.club().club().id())
-        .containsExactly(new UUID(0, 2000));
+        .containsExactly(new UUID(0, 10));
     assertThat(last.next()).isNull();
   }
 
@@ -149,37 +149,32 @@ class ReadSearchTest {
   }
 
   @Test
-  @DisplayName("Keeps current hydration batched while seeking lookahead after a full page")
-  void batchesLookaheadHydration() {
+  @DisplayName("Seeks beyond stale candidates before promising continuation from a full page")
+  void seeksEligibleLookahead() {
     // Given
-    List<Integer> batchSizes = new java.util.ArrayList<>();
-    when(engine.search(eq(context), any(), eq(200)))
-        .thenAnswer(
-            invocation -> {
-              Position after = invocation.getArgument(1);
-              int start = after == null ? 1 : (int) after.id().getLeastSignificantBits() + 1;
-              return new Batch(
-                  IntStream.range(start, start + 200).mapToObj(this::candidate).toList(), false);
-            });
-    when(hydration.current(eq(context), any()))
-        .thenAnswer(
-            invocation -> {
-              List<Candidate> candidates = invocation.getArgument(1);
-              batchSizes.add(candidates.size());
-              return candidates.stream()
-                  .filter(c -> c.position().id().getLeastSignificantBits() <= 20)
-                  .collect(
-                      java.util.stream.Collectors.toMap(
-                          c -> c.position().id(), c -> summary(c.position().id())));
-            });
+    List<Candidate> firstBatch = IntStream.rangeClosed(1, 22).mapToObj(this::candidate).toList();
+    Map<UUID, SearchPage.Summary> firstPage =
+        IntStream.rangeClosed(1, 20)
+            .boxed()
+            .collect(
+                java.util.stream.Collectors.toMap(
+                    number -> new UUID(0, number), number -> summary(new UUID(0, number))));
+    when(engine.search(context, null, 200)).thenReturn(new Batch(firstBatch, false));
+    when(engine.search(context, candidate(22).position(), 200))
+        .thenReturn(new Batch(List.of(candidate(23)), true));
+    when(hydration.current(context, firstBatch.subList(0, 21))).thenReturn(firstPage);
+    when(hydration.current(context, List.of(candidate(23))))
+        .thenReturn(Map.of(new UUID(0, 23), summary(new UUID(0, 23))));
 
     // When
     SearchPage page = search.read(context, null);
 
     // Then
-    assertThat(page.items()).hasSize(19);
-    assertThat(page.next()).isEqualTo(candidate(19).position());
-    assertThat(batchSizes.stream().filter(size -> size == 1).count()).isZero();
+    assertThat(page.items())
+        .extracting(item -> item.club().club().id())
+        .containsExactlyElementsOf(
+            IntStream.rangeClosed(1, 20).mapToObj(number -> new UUID(0, number)).toList());
+    assertThat(page.next()).isEqualTo(candidate(22).position());
   }
 
   /**

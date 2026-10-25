@@ -55,8 +55,8 @@ After dependency installation and generation, run this boundary with Docker avai
 
 ```sh
 BLOCKOUT_ACCESS_CONSUMERS_TEST=true ./mvnw -B -ntp -pl apps/backend verify \
-  -Dtest=AdministrationSettingsWebMvcTest,AccessSettingsValidationTest,AccessSettingsConsumerProcessTest \
-  -Dit.test=AccessSettingsIntegrationTest,AccessSettingsConsumersIntegrationTest,AccountMaintenanceAdmissionIntegrationTest,HealthEndpointIntegrationTest
+  -Dtest=AdministrationSettingsWebMvcTest,AccessSettingsValidationTest \
+  -Dit.test=AccessSettingsIntegrationTest,AccessSettingsConsumersIntegrationTest,AccessSettingsConsumerProcessIntegrationTest,AccountMaintenanceAdmissionIntegrationTest,HealthEndpointIntegrationTest
 npm run test --workspace=@blockout/mobile -- \
   --runTestsByPath src/features/access/__tests__/maintenance-settings.test.tsx
 ```
@@ -115,7 +115,7 @@ No native screen, Auth0/RevenueCat/store operation or real source collection was
 
 On 2026-10-24, `SportingPushAdmission.allowsHandoff()` consumes the actual F12 `MaintenanceAdmission.currentMaintenance()` read on every decision. It accepts no recipient privilege or bypass input. The sender must check it immediately before each new provider handoff, discard a skipped attempt and keep recipient eligibility, inbox creation and purge under F07 ownership. Unavailable current state propagates F12's existing exception and diagnostic without granting admission. A previously admitted handoff may finish after activation.
 
-`MaintenancePushAdmissionTest` passes eight cases after seven behavioral failures against an initially permissive policy. Direct construction uses the real F12 reader and authorization, with controlled settings storage, transactions and handoff callbacks. It covers inactive admission, ordinary refusal, refusal for an operator with an admitted current bypass, activation between handoffs, completion of a prior admission, read-only settings access without privilege lookup, reopening for a new event without replaying a skipped callback, and unavailable state after an earlier admission. It introduces no notification storage, provider adapter or deferred-work mechanism.
+`MaintenancePushAdmissionTest` directly constructs the production policy with a controlled `MaintenanceAdmission` collaborator and real immutable settings. Its five cases cover inactive admission, active refusal, activation before the next decision, reopening for a new decision and unavailable current state after an earlier admission. The assertions concern the returned decision or propagated failure. Test-only sender callbacks have been removed: they did not establish provider handoff, replay, recall or operator-bypass behavior. The existing F12 admission suites own current grant and bypass checks; actual sender binding remains with F07. No notification storage, provider adapter or deferred-work mechanism is introduced.
 
 After dependency installation and contract bundling, run:
 

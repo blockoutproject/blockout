@@ -75,7 +75,24 @@ class CollectionOperationalEvidenceTest {
   void categorizesAcquisitionFailure(
       RuntimeException failure, String category, CapturedOutput output) {
     // Given
-    CollectorLifecycle.AdmittedCycle cycle = admitted();
+    when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
+    when(backend.register(0, lifecycle.getIncarnationId()))
+        .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
+    lifecycle.start();
+    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+    CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
+    when(backend.complete(cycle.getCycle().id(), NOW))
+        .thenReturn(
+            new CollectionBackend.Cycle(
+                cycle.getCycle().id(),
+                lifecycle.getIncarnationId(),
+                CONTROL,
+                null,
+                1,
+                CollectionModeEnum.PERIODIC,
+                CollectionCycleStateEnum.COMPLETED,
+                false,
+                NOW));
     CollectionBackend.Target target =
         CollectionBackend.Target.builder()
             .scopeId(CLUB)
@@ -113,7 +130,24 @@ class CollectionOperationalEvidenceTest {
   @DisplayName("Valid unresolved municipality acquisition stays successful when integration fails")
   void separatesNormalAcquisition(GeocodingOutcomeEnum outcome) {
     // Given
-    CollectorLifecycle.AdmittedCycle cycle = admitted();
+    when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
+    when(backend.register(0, lifecycle.getIncarnationId()))
+        .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
+    lifecycle.start();
+    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+    CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
+    when(backend.complete(cycle.getCycle().id(), NOW))
+        .thenReturn(
+            new CollectionBackend.Cycle(
+                cycle.getCycle().id(),
+                lifecycle.getIncarnationId(),
+                CONTROL,
+                null,
+                1,
+                CollectionModeEnum.PERIODIC,
+                CollectionCycleStateEnum.COMPLETED,
+                false,
+                NOW));
     CollectionBackend.Target target =
         CollectionBackend.Target.builder()
             .scopeId(CLUB)
@@ -151,7 +185,24 @@ class CollectionOperationalEvidenceTest {
   @DisplayName("A wrapped FFVB HTTP failure remains a transport problem")
   void reportsWrappedTransportFailure(CapturedOutput output) {
     // Given
-    CollectorLifecycle.AdmittedCycle cycle = admitted();
+    when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
+    when(backend.register(0, lifecycle.getIncarnationId()))
+        .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
+    lifecycle.start();
+    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+    CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
+    when(backend.complete(cycle.getCycle().id(), NOW))
+        .thenReturn(
+            new CollectionBackend.Cycle(
+                cycle.getCycle().id(),
+                lifecycle.getIncarnationId(),
+                CONTROL,
+                null,
+                1,
+                CollectionModeEnum.PERIODIC,
+                CollectionCycleStateEnum.COMPLETED,
+                false,
+                NOW));
     URI source =
         URI.create("https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?calend=COMPLET");
     ProviderHttpClient http = mock(ProviderHttpClient.class);
@@ -218,43 +269,22 @@ class CollectionOperationalEvidenceTest {
   }
 
   /**
-   * Establishes real startup/admission decisions and an exact normal terminal acknowledgement.
+   * Returns the backend's running response correlated to the generated admission identity.
    *
-   * @return lifecycle-issued control capability without a mocked record or enum
+   * @param command explicit control or candidate request sent by the real lifecycle
+   * @return runnable response with no side effects or installed stubs
    */
-  private CollectorLifecycle.AdmittedCycle admitted() {
-    when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
-    when(backend.register(0, lifecycle.getIncarnationId()))
-        .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
-    lifecycle.start();
-    when(backend.admit(any()))
-        .thenAnswer(
-            call -> {
-              CollectionBackend.StartCycle start = call.getArgument(0);
-              return new CollectionBackend.Cycle(
-                  start.cycleId(),
-                  start.incarnationId(),
-                  CONTROL,
-                  null,
-                  1,
-                  CollectionModeEnum.PERIODIC,
-                  CollectionCycleStateEnum.RUNNING,
-                  false,
-                  null);
-            });
-    CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
-    when(backend.complete(cycle.getCycle().id(), NOW))
-        .thenReturn(
-            new CollectionBackend.Cycle(
-                cycle.getCycle().id(),
-                lifecycle.getIncarnationId(),
-                CONTROL,
-                null,
-                1,
-                CollectionModeEnum.PERIODIC,
-                CollectionCycleStateEnum.COMPLETED,
-                false,
-                NOW));
-    return cycle;
+  private static CollectionBackend.Cycle runningCycle(CollectionBackend.StartCycle command) {
+    boolean candidate = command.sourceBindingId() != null;
+    return new CollectionBackend.Cycle(
+        command.cycleId(),
+        command.incarnationId(),
+        command.controlId(),
+        command.sourceBindingId(),
+        1,
+        candidate ? null : CollectionModeEnum.PERIODIC,
+        CollectionCycleStateEnum.RUNNING,
+        candidate,
+        null);
   }
 }

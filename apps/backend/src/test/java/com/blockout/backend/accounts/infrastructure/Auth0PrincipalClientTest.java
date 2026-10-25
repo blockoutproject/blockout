@@ -29,38 +29,16 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 @ExtendWith(OutputCaptureExtension.class)
 class Auth0PrincipalClientTest {
   private final ValidatorFactory validators = Validation.buildDefaultValidatorFactory();
-  private String body = "{}";
-  private int status = 200;
   private Request request;
-  private final OkHttpClient http =
-      new OkHttpClient.Builder()
-          .addInterceptor(
-              chain -> {
-                request = chain.request();
-                return new Response.Builder()
-                    .request(request)
-                    .protocol(Protocol.HTTP_1_1)
-                    .code(status)
-                    .message("controlled")
-                    .body(ResponseBody.create(body, MediaType.get("application/json")))
-                    .build();
-              })
-          .build();
-  private final Auth0PrincipalClient client =
-      new Auth0PrincipalClient(
-          ManagementApi.builder()
-              .domain("identity.example.invalid")
-              .token("synthetic-server-token")
-              .httpClient(http)
-              .maxRetries(0)
-              .build(),
-          validators.getValidator());
+  private OkHttpClient http;
 
   /** Releases only this suite's SDK transport and native validator. */
   @AfterEach
   void close() {
-    http.connectionPool().evictAll();
-    http.dispatcher().executorService().shutdown();
+    if (http != null) {
+      http.connectionPool().evictAll();
+      http.dispatcher().executorService().shutdown();
+    }
     validators.close();
   }
 
@@ -68,13 +46,14 @@ class Auth0PrincipalClientTest {
   @DisplayName("Reads only the exact encoded principal and preserves existing linked evidence")
   void readsExactPrincipal(CapturedOutput output) {
     // Given
-    body =
+    String body =
         """
         {"user_id":"auth0|one","email":"shared@example.invalid","created_at":"2020-01-02T03:04:05Z",
          "name":"Private name","picture":"https://private.example.invalid/photo",
          "identities":[{"provider":"google-oauth2","connection":"google-oauth2","profileData":{"email":"other@example.invalid"}},
                        {"provider":"apple","connection":"apple"}]}
         """;
+    Auth0PrincipalClient client = client(body, 200);
 
     // When
     PrincipalReader.Evidence result = client.read("https://identity.example.invalid/", "auth0|one");
@@ -100,14 +79,15 @@ class Auth0PrincipalClientTest {
 
   @ParameterizedTest
   @ValueSource(
-      strings = {"{}", "{\"email\":\"not-an-email\"}", "{\"email\":\" \",\"created_at\":null}"})
+      strings = {
+        "{\"user_id\":\"auth0|one\"}",
+        "{\"user_id\":\"auth0|one\",\"email\":\"not-an-email\"}",
+        "{\"user_id\":\"auth0|one\",\"email\":\" \",\"created_at\":null}"
+      })
   @DisplayName("Keeps missing or unusable email and missing age unknown")
-  void keepsMissingEvidenceUnknown(String fields) {
+  void keepsMissingEvidenceUnknown(String body) {
     // Given
-    body =
-        fields.substring(0, fields.length() - 1)
-            + (fields.length() > 2 ? "," : "")
-            + "\"user_id\":\"auth0|one\"}";
+    Auth0PrincipalClient client = client(body, 200);
 
     // When
     PrincipalReader.Evidence result = client.read("https://identity.example.invalid/", "auth0|one");
@@ -128,7 +108,7 @@ class Auth0PrincipalClientTest {
   @DisplayName("Refuses an unproven principal or malformed provider representation")
   void refusesUnprovenPrincipal(String response) {
     // Given
-    body = response;
+    Auth0PrincipalClient client = client(response, 200);
 
     // When
     org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
@@ -142,8 +122,7 @@ class Auth0PrincipalClientTest {
   @DisplayName("Translates provider refusal without logging its private payload")
   void refusesProviderFailureSafely(CapturedOutput output) {
     // Given
-    status = 429;
-    body = "{\"message\":\"private provider payload\"}";
+    Auth0PrincipalClient client = client("{\"message\":\"private provider payload\"}", 429);
 
     // When
     org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
@@ -154,5 +133,37 @@ class Auth0PrincipalClientTest {
         .isInstanceOf(AccountUnavailableException.class)
         .hasMessageNotContaining("private provider payload");
     assertThat(output).doesNotContain("private provider payload", "synthetic-server-token");
+  }
+
+  /**
+   * Creates the real SDK adapter with one explicit response at its native HTTP interceptor seam.
+   *
+   * @param body synthetic response payload owned by the scenario
+   * @param status HTTP status supplied without network access
+   * @return the production reader using this scenario's response
+   */
+  private Auth0PrincipalClient client(String body, int status) {
+    http =
+        new OkHttpClient.Builder()
+            .addInterceptor(
+                chain -> {
+                  request = chain.request();
+                  return new Response.Builder()
+                      .request(request)
+                      .protocol(Protocol.HTTP_1_1)
+                      .code(status)
+                      .message("controlled")
+                      .body(ResponseBody.create(body, MediaType.get("application/json")))
+                      .build();
+                })
+            .build();
+    return new Auth0PrincipalClient(
+        ManagementApi.builder()
+            .domain("identity.example.invalid")
+            .token("synthetic-server-token")
+            .httpClient(http)
+            .maxRetries(0)
+            .build(),
+        validators.getValidator());
   }
 }

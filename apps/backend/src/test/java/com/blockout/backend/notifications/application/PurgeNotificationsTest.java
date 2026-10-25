@@ -7,7 +7,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.DisplayName;
@@ -21,7 +20,7 @@ class PurgeNotificationsTest {
   void retainsOneCutoff() {
     // Given
     Instant now = Instant.parse("2026-10-25T12:00:00Z");
-    Instant cutoff = now.minus(Duration.ofDays(29));
+    Instant cutoff = Instant.parse("2026-09-26T12:00:00Z");
     Clock clock = mock(Clock.class);
     when(clock.instant()).thenReturn(now, now.plusSeconds(60));
     PurgeNotifications.DeleteExpiredEntries batches =
@@ -45,7 +44,7 @@ class PurgeNotificationsTest {
   void leavesFailureForNextPass() {
     // Given
     Instant now = Instant.parse("2026-10-25T12:00:00Z");
-    Instant cutoff = now.minus(Duration.ofDays(29));
+    Instant cutoff = Instant.parse("2026-09-26T12:00:00Z");
     PurgeNotifications.DeleteExpiredEntries batches =
         mock(PurgeNotifications.DeleteExpiredEntries.class);
     when(batches.delete(cutoff)).thenThrow(new IllegalStateException("controlled failure"));
@@ -64,7 +63,7 @@ class PurgeNotificationsTest {
   void continuesConcurrentRemoval() {
     // Given
     Instant now = Instant.parse("2026-10-25T12:00:00Z");
-    Instant cutoff = now.minus(Duration.ofDays(29));
+    Instant cutoff = Instant.parse("2026-09-26T12:00:00Z");
     PurgeNotifications.DeleteExpiredEntries batches =
         mock(PurgeNotifications.DeleteExpiredEntries.class);
     when(batches.delete(cutoff))

@@ -55,7 +55,11 @@ class ProjectSearchTest {
             documents.capture());
     assertThat(documents.getValue())
         .singleElement()
-        .satisfies(document -> assertThat(document.names()).containsExactly("Current name"));
+        .satisfies(
+            document -> {
+              assertThat(document.id()).isEqualTo(club);
+              assertThat(document.names()).containsExactly("Current name");
+            });
     verify(writer).update(Kind.TEAM, Set.of(hidden), List.of());
   }
 
