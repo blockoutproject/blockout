@@ -1,4 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 import { ProviderSourcesScreen } from "../../../../features/collection/screens/provider-sources-screen";
 import { usePreparationDiscard } from "../../../../features/collection/forms/use-preparation-discard";
 import { discardProviderPreparationEditor } from "../../../../features/collection/forms/preparation-editors";
@@ -10,7 +11,11 @@ export default function ProviderSourcesRoute() {
     seasonId: string;
     provider: string;
   }>();
-  const onDirtyChange = usePreparationDiscard(discardProviderPreparationEditor);
+  const [dirty, onDirtyChange] = useState(false);
+  usePreparationDiscard(dirty, () => {
+    onDirtyChange(false);
+    discardProviderPreparationEditor();
+  });
   return provider === "ffvb" || provider === "lnv" ? (
     <ProviderSourcesScreen
       seasonId={seasonId}
