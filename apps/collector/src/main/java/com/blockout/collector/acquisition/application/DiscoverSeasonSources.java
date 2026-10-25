@@ -23,6 +23,7 @@ import org.apache.hc.core5.net.URIBuilder;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
@@ -32,16 +33,26 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 public class DiscoverSeasonSources {
-  private static final List<URI> FFVB_ENTRIES =
+  /** Fixed official-entry identity; no provider URL or discovered identifier becomes a log key. */
+  private record CurrentEntry(String scope, URI url) {}
+
+  private static final List<CurrentEntry> FFVB_ENTRIES =
       List.of(
-          URI.create("https://www.ffvb.org/119-37-1-Championnats-Nationaux"),
-          URI.create("https://www.ffvb.org/120-37-1-Championnats-Regionaux"),
-          URI.create("https://www.ffvb.org/122-37-1-Championnats-Departementaux"));
-  private static final List<URI> LNV_ENTRIES =
+          new CurrentEntry(
+              "ffvb-national", URI.create("https://www.ffvb.org/119-37-1-Championnats-Nationaux")),
+          new CurrentEntry(
+              "ffvb-regional", URI.create("https://www.ffvb.org/120-37-1-Championnats-Regionaux")),
+          new CurrentEntry(
+              "ffvb-departmental",
+              URI.create("https://www.ffvb.org/122-37-1-Championnats-Departementaux")));
+  private static final List<CurrentEntry> LNV_ENTRIES =
       List.of(
-          URI.create("https://www.lnv.fr/competitions/saforelle-volstar"),
-          URI.create("https://www.lnv.fr/competitions/alterna-volstar"),
-          URI.create("https://www.lnv.fr/competitions/volstar-masculine-2"));
+          new CurrentEntry(
+              "lnv-women-first", URI.create("https://www.lnv.fr/competitions/saforelle-volstar")),
+          new CurrentEntry(
+              "lnv-men-first", URI.create("https://www.lnv.fr/competitions/alterna-volstar")),
+          new CurrentEntry(
+              "lnv-men-second", URI.create("https://www.lnv.fr/competitions/volstar-masculine-2")));
   private final ProviderHttpClient ffvbHttp;
   private final ProviderHttpClient lnvHttp;
   private final FfvbDiscovery ffvb;
@@ -90,11 +101,14 @@ public class DiscoverSeasonSources {
    */
   public void currentEntries() {
     lifecycle.requireActive();
-    for (URI entry : FFVB_ENTRIES) currentFfvb(entry);
-    for (URI entry : LNV_ENTRIES) {
+    for (CurrentEntry entry : FFVB_ENTRIES)
+      reportEntry(CollectionProviderEnum.FFVB, entry.scope(), currentFfvb(entry.url()));
+    for (CurrentEntry entry : LNV_ENTRIES) {
+      boolean usable = false;
+      boolean complete = true;
       try {
         lifecycle.requireActive();
-        ProviderHttpClient.Response page = lnvHttp.page(entry).join();
+        ProviderHttpClient.Response page = lnvHttp.page(entry.url()).join();
         for (Element frame :
             Jsoup.parse(new String(page.body(), StandardCharsets.UTF_8), page.url().toString())
                 .select("iframe[src]")) {
@@ -104,12 +118,16 @@ public class DiscoverSeasonSources {
           if (competition == null) continue;
           ProviderHttpClient.Response source = lnvHttp.page(candidate).join();
           String season = lnv.qualify(source.body(), source.url(), competition);
+          usable = true;
           if (season != null)
-            propose(CollectionProviderEnum.LNV, competition, season, candidate, entry);
+            complete &=
+                propose(CollectionProviderEnum.LNV, competition, season, candidate, entry.url());
         }
       } catch (RuntimeException failure) {
-        discoveryFailure(CollectionProviderEnum.LNV, failure);
+        complete = false;
+        discoveryFailure(failure);
       }
+      reportEntry(CollectionProviderEnum.LNV, entry.scope(), usable && complete);
     }
   }
 
@@ -266,8 +284,11 @@ public class DiscoverSeasonSources {
    * Reads published current FFVB menus and submits only a uniquely evidenced sporting year.
    *
    * @param entry one fixed official current entry, never an archive crawl root
+   * @return whether the entry yielded qualified evidence without an unreadable branch
    */
-  private void currentFfvb(URI entry) {
+  private boolean currentFfvb(URI entry) {
+    boolean usable = false;
+    boolean complete = true;
     try {
       ProviderHttpClient.Response page = ffvbHttp.page(entry).join();
       Set<URI> seen = new LinkedHashSet<>();
@@ -299,15 +320,20 @@ public class DiscoverSeasonSources {
               try {
                 SportingObservation.Catalog catalog =
                     ffvb.parse(source.body(), source.url(), seasons.getFirst(), organizer);
-                if (catalog.complete())
-                  propose(
-                      CollectionProviderEnum.FFVB,
-                      organizer,
-                      seasons.getFirst(),
-                      source.url(),
-                      entry);
+                complete &= catalog.complete();
+                if (catalog.complete()) {
+                  boolean accepted =
+                      propose(
+                          CollectionProviderEnum.FFVB,
+                          organizer,
+                          seasons.getFirst(),
+                          source.url(),
+                          entry);
+                  usable |= accepted;
+                  complete &= accepted;
+                }
               } catch (FfvbAcquisitionException unsupported) {
-                failed(CollectionProviderEnum.FFVB);
+                complete = false;
               }
             }
           }
@@ -316,12 +342,15 @@ public class DiscoverSeasonSources {
                   .filter(link -> !link.getPath().endsWith("vbspo_calendrier.php"))
                   .toList());
         } catch (RuntimeException failure) {
-          discoveryFailure(CollectionProviderEnum.FFVB, failure);
+          complete = false;
+          discoveryFailure(failure);
         }
       }
     } catch (RuntimeException failure) {
-      discoveryFailure(CollectionProviderEnum.FFVB, failure);
+      complete = false;
+      discoveryFailure(failure);
     }
+    return usable && complete;
   }
 
   /**
@@ -332,12 +361,13 @@ public class DiscoverSeasonSources {
    * @param season positive published season label
    * @param candidate published root URL
    * @param entry official evidence entry
+   * @return whether a qualified consecutive year proposal was accepted
    */
-  private void propose(
+  private boolean propose(
       CollectionProviderEnum provider, String organizer, String season, URI candidate, URI entry) {
-    if (!season.matches("[0-9]{4}/[0-9]{4}")) return;
+    if (!season.matches("[0-9]{4}/[0-9]{4}")) return false;
     long year = Long.parseLong(season.substring(0, 4));
-    if (!season.endsWith(Long.toString(year + 1))) return;
+    if (!season.endsWith(Long.toString(year + 1))) return false;
     backend.observeSource(
         new CollectionBackend.SourceProposal(
             lifecycle.getIncarnationId(),
@@ -347,6 +377,7 @@ public class DiscoverSeasonSources {
             candidate,
             entry,
             clock.instant()));
+    return true;
   }
 
   /**
@@ -364,30 +395,36 @@ public class DiscoverSeasonSources {
   }
 
   /**
-   * Preserves independent discovery failures while stopping a replaced collector.
+   * Leaves this entry unusable while refusing further work from a replaced collector.
    *
-   * @param provider affected provider
    * @param failure failed read or proposal
    */
-  private void discoveryFailure(CollectionProviderEnum provider, RuntimeException failure) {
+  private void discoveryFailure(RuntimeException failure) {
     if (failure instanceof CollectionBackendFailure refused
         && refused.getKind() == CollectionBackendFailure.Kind.CONFLICT) {
       if (!lifecycle.getIncarnationId().equals(backend.current().incarnationId())) lifecycle.stop();
     }
     lifecycle.requireActive();
-    failed(provider);
   }
 
   /**
-   * Reports a payload-free failure without inferring absence or activation.
+   * Emits one bounded ordinary entry summary, so only this entry's usable reread ends its
+   * condition. A readable page without qualified source context is not recovery; accepted neighbors
+   * survive partial failure. Native Grafana owns grouping and reminders, without persisted alert
+   * state.
    *
-   * @param provider affected provider; independent current entries remain eligible
+   * @param provider fixed entry authority
+   * @param scope fixed nonpersonal official-entry identity
+   * @param usable whether the whole attempted entry yielded usable evidence
    */
-  private void failed(CollectionProviderEnum provider) {
-    log.atWarn()
+  private void reportEntry(CollectionProviderEnum provider, String scope, boolean usable) {
+    log.atLevel(usable ? Level.INFO : Level.WARN)
         .addKeyValue("operation", "source_discovery")
-        .addKeyValue("provider", provider)
-        .addKeyValue("outcome", "failed")
-        .log("Current source discovery was unavailable; no absence or activation was inferred");
+        .addKeyValue("provider", provider.getValue())
+        .addKeyValue("scope", scope)
+        .addKeyValue("stage", "discovery")
+        .addKeyValue("outcome", usable ? "success" : "failed")
+        .addKeyValue("collection_entry_usable", usable ? 1 : 0)
+        .log("Current official entry observation");
   }
 }

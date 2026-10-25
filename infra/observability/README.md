@@ -144,18 +144,20 @@ sum by (environment, service_name, operation, cycleId) (
 
 The existing `cycleId` is the originally attempted capability, retained for private current-state inspection. A live process with an unconfirmed terminal write must be covered; external API availability alone cannot detect it. Alert expiry supplies no confirmation. Inspect current state and follow [explicit collection recovery](../operations/README.md#collection-inspection-and-explicit-recovery); no mutation replay, instantaneous crash detector or background repair is introduced. Separately alert on backend `operation=collection_diagnostics, outcome=unavailable` with `count_over_time` over the same window, grouped only by environment/service, so diagnostic failure is not silent business recovery.
 
-Current-entry discovery precedes a season/control: its existing `operation=source_discovery, outcome=failed` signal therefore has no `CollectionResult`. Add the native actionable rule `F01 current-entry discovery` with the same one-minute evaluation, pending **0s**, A below and threshold **greater than 0**. Group by environment/service/provider. No raw entry URL is needed, and count-window expiry does not establish source recovery.
+Current-entry discovery precedes a season/control and has no `CollectionResult`. Its `source_discovery` batch summaries carry a fixed official-entry `scope` and `collection_entry_usable`: **0** after unavailable, unqualified or partial discovery, **1** after a new usable observation of that same entry. Recognized source structure may remain usable without enough seasonal attribution to propose a year; no year is guessed. Accepted independent FFVB proposals survive an unreadable sibling, but cannot repair the whole entry. Entry scopes are fixed nonpersonal names; no raw URL or provider identifier is a label.
+
+Add the actionable rule `F01 current-entry discovery`, evaluated every minute, pending **0s**, A below and threshold **less than 1**. Keep No Data/Error handling as above and group notifications by environment/service/provider while retaining each entry instance. Only this entry's later usable summary ends its condition; another entry/provider cannot clear it.
 
 ```logql
-sum by (environment, service_name, provider) (
-  count_over_time(
-    {environment="preproduction", service_name="blockout-collector"}
-    | json
-    | operation="source_discovery"
-    | outcome="failed"
-    [14d]
-  )
-)
+last_over_time(
+  {environment="preproduction", service_name="blockout-collector"}
+  | json
+  | operation="source_discovery"
+  | collection_entry_usable!=""
+  | unwrap collection_entry_usable
+  | __error__=""
+  [14d]
+) by (environment, service_name, provider, scope)
 ```
 
 Route the actionable rules and the informational rule to F13's existing private native contact point. Group actionable result instances by alert name/environment/service/control/stage/phase, keeping each scope identifiable inside the group; group operator needs by alert name/environment/provider/season/subject. Use **group interval 5m**, **repeat interval 5d** and native firing/resolved delivery. Put only fixed interpretation and the administration destination in annotations; never interpolate a raw log line, reason text or private target. Notification timing and stale-series closure are Grafana-owned, with no exact delivery or business-transition guarantee. Confirm the actual settings and output under T063 before activation.
