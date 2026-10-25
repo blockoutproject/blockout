@@ -1,7 +1,7 @@
 package com.blockout.backend.sporting.api;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.AdditionalMatchers.aryEq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -24,6 +24,8 @@ import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
+import com.blockout.backend.sporting.application.model.SportingPresentation.DivisionDefinition;
+import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.service.ChangeDivisionLifecycle;
 import com.blockout.backend.sporting.application.service.ReadSportingConfiguration;
@@ -38,6 +40,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -75,8 +78,10 @@ class DivisionAdministrationWebMvcTest {
   void createsDivision() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(divisions.create(eq(ACCOUNT), eq("National 2"), eq("#112233"), any(), any(), any()))
+    when(divisions.create(
+            eq(ACCOUNT), eq(new DivisionDefinition("National 2", "#112233", null)), any()))
         .thenReturn(new DivisionDetail(DIVISION, 0L, "National 2", "#112233", null, false, true));
+
     // When
     ResultActions response =
         mvc.perform(
@@ -89,6 +94,7 @@ class DivisionAdministrationWebMvcTest {
                                 token
                                     .issuer("https://identity.example.invalid/")
                                     .claim("azp", "mobile-test"))));
+
     // Then
     response
         .andExpect(status().isCreated())
@@ -100,12 +106,49 @@ class DivisionAdministrationWebMvcTest {
   }
 
   @Test
+  @DisplayName("Rejects a blank division name before decoding optional image content")
+  void refusesBlankDivisionName() throws Exception {
+    // Given
+    when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
+    MockMultipartFile metadata =
+        new MockMultipartFile(
+            "metadata",
+            "",
+            "application/json",
+            "{\"name\":\"   \",\"color\":\"#112233\",\"gradient\":null,\"logoAction\":\"replace\"}"
+                .getBytes(StandardCharsets.UTF_8));
+    MockMultipartFile oversized =
+        new MockMultipartFile("image", "synthetic.png", "image/png", new byte[5_242_881]);
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            multipart("/administration/divisions")
+                .file(metadata)
+                .file(oversized)
+                .with(
+                    jwt()
+                        .jwt(
+                            token ->
+                                token
+                                    .issuer("https://identity.example.invalid/")
+                                    .claim("azp", "mobile-test"))));
+
+    // Then
+    response
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:unprocessable-content"));
+    verifyNoInteractions(divisions);
+  }
+
+  @Test
   @DisplayName("Refuses an undecodable replacement before creating any division")
   void refusesInvalidImage() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     MockMultipartFile image =
         new MockMultipartFile("image", "synthetic.png", "image/png", new byte[] {1, 2, 3});
+
     // When
     ResultActions response =
         mvc.perform(
@@ -119,9 +162,10 @@ class DivisionAdministrationWebMvcTest {
                                 token
                                     .issuer("https://identity.example.invalid/")
                                     .claim("azp", "mobile-test"))));
+
     // Then
     response.andExpect(status().isUnprocessableEntity());
-    verify(divisions, never()).create(any(), any(), any(), any(), any(), any());
+    verify(divisions, never()).create(any(), any(), any());
   }
 
   @Test
@@ -151,7 +195,7 @@ class DivisionAdministrationWebMvcTest {
 
     // Then
     response.andExpect(status().isForbidden());
-    verify(divisions, never()).create(any(), any(), any(), any(), any(), any());
+    verify(divisions, never()).create(any(), any(), any());
   }
 
   @ParameterizedTest
@@ -166,8 +210,9 @@ class DivisionAdministrationWebMvcTest {
     String mediaType = format.equals("PNG") ? "image/png" : "image/jpeg";
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     when(divisions.create(
-            eq(ACCOUNT), eq("National 2"), eq("#112233"), any(), aryEq(bytes), eq(mediaType)))
+            eq(ACCOUNT), eq(new DivisionDefinition("National 2", "#112233", null)), any()))
         .thenReturn(new DivisionDetail(DIVISION, 0L, "National 2", "#112233", null, true, true));
+
     // When
     ResultActions response =
         mvc.perform(
@@ -182,12 +227,19 @@ class DivisionAdministrationWebMvcTest {
                                 token
                                     .issuer("https://identity.example.invalid/")
                                     .claim("azp", "mobile-test"))));
+
     // Then
     response
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.logo.manualUrl").value("/divisions/" + DIVISION + "/logo"));
+    ArgumentCaptor<Image> acceptedImage = ArgumentCaptor.forClass(Image.class);
     verify(divisions)
-        .create(eq(ACCOUNT), eq("National 2"), eq("#112233"), any(), aryEq(bytes), eq(mediaType));
+        .create(
+            eq(ACCOUNT),
+            eq(new DivisionDefinition("National 2", "#112233", null)),
+            acceptedImage.capture());
+    assertThat(acceptedImage.getValue().bytes()).isEqualTo(bytes);
+    assertThat(acceptedImage.getValue().mediaType()).isEqualTo(mediaType);
   }
 
   @ParameterizedTest
@@ -198,6 +250,7 @@ class DivisionAdministrationWebMvcTest {
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     MockMultipartFile image =
         new MockMultipartFile("image", "synthetic.png", "image/png", new byte[] {1});
+
     // When
     ResultActions response =
         mvc.perform(
@@ -211,9 +264,10 @@ class DivisionAdministrationWebMvcTest {
                                 token
                                     .issuer("https://identity.example.invalid/")
                                     .claim("azp", "mobile-test"))));
+
     // Then
     response.andExpect(status().isUnprocessableEntity());
-    verify(divisions, never()).create(any(), any(), any(), any(), any(), any());
+    verify(divisions, never()).create(any(), any(), any());
   }
 
   @Test
@@ -222,6 +276,7 @@ class DivisionAdministrationWebMvcTest {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     // The metadata deliberately requests a missing replacement.
+
     // When
     ResultActions response =
         mvc.perform(
@@ -234,9 +289,10 @@ class DivisionAdministrationWebMvcTest {
                                 token
                                     .issuer("https://identity.example.invalid/")
                                     .claim("azp", "mobile-test"))));
+
     // Then
     response.andExpect(status().isUnprocessableEntity());
-    verify(divisions, never()).create(any(), any(), any(), any(), any(), any());
+    verify(divisions, never()).create(any(), any(), any());
   }
 
   @Test
@@ -256,6 +312,7 @@ class DivisionAdministrationWebMvcTest {
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     when(configurationReads.divisions(ACCOUNT, true)).thenReturn(List.of(division));
     when(configurationReads.division(ACCOUNT, DIVISION)).thenReturn(division);
+
     // When
     ResultActions list =
         mvc.perform(
@@ -278,6 +335,7 @@ class DivisionAdministrationWebMvcTest {
                                 token
                                     .issuer("https://identity.example.invalid/")
                                     .claim("azp", "mobile-test"))));
+
     // Then
     list.andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
@@ -296,6 +354,7 @@ class DivisionAdministrationWebMvcTest {
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     when(divisions.setActive(ACCOUNT, DIVISION, "0", false))
         .thenReturn(new DivisionDetail(DIVISION, 1L, "National 2", "#112233", null, false, false));
+
     // When
     ResultActions response =
         mvc.perform(
@@ -309,6 +368,7 @@ class DivisionAdministrationWebMvcTest {
                                 token
                                     .issuer("https://identity.example.invalid/")
                                     .claim("azp", "mobile-test"))));
+
     // Then
     response
         .andExpect(status().isOk())
@@ -322,6 +382,7 @@ class DivisionAdministrationWebMvcTest {
   void requiresMultipart() throws Exception {
     // Given
     // JSON alone cannot carry the atomic editor's image part.
+
     // When
     ResultActions response =
         mvc.perform(
@@ -335,6 +396,7 @@ class DivisionAdministrationWebMvcTest {
                                 token
                                     .issuer("https://identity.example.invalid/")
                                     .claim("azp", "mobile-test"))));
+
     // Then
     response.andExpect(status().isUnsupportedMediaType());
     verifyNoInteractions(divisions);

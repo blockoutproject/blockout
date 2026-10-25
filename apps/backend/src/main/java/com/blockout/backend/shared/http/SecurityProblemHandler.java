@@ -1,10 +1,8 @@
 package com.blockout.backend.shared.http;
 
-import com.blockout.backend.generated.mobile.model.ProblemResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -73,8 +71,6 @@ public class SecurityProblemHandler implements AuthenticationEntryPoint, AccessD
     response.setStatus(status.value());
     response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
     response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
-    mapper.writeValue(
-        response.getOutputStream(),
-        new ProblemResponse(URI.create(type), status.getReasonPhrase(), status.value()));
+    mapper.writeValue(response.getOutputStream(), HttpProblems.body(status, type));
   }
 }

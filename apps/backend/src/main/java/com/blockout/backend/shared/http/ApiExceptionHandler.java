@@ -4,16 +4,19 @@ import com.blockout.backend.access.api.AccessApiMapper;
 import com.blockout.backend.access.domain.MaintenanceRequiredException;
 import com.blockout.backend.access.domain.MaintenanceSettings;
 import com.blockout.backend.generated.mobile.model.AccessProblemResponse;
-import com.blockout.backend.generated.mobile.model.ProblemResponse;
 import java.net.URI;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
@@ -21,8 +24,9 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 /** Translates framework failures without exposing rejected values or exception messages. */
 @RestControllerAdvice
+@Order(Ordered.LOWEST_PRECEDENCE)
+@Slf4j
 public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
-  private static final Logger LOG = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
   /**
    * Publishes the active restriction observed at admission, without claiming a reopening time.
@@ -34,13 +38,13 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
   ResponseEntity<Object> maintenanceRequired(MaintenanceRequiredException failure) {
     MaintenanceSettings maintenance = failure.getMaintenance();
     if (!maintenance.active()) {
-      LOG.atError()
+      log.atError()
           .addKeyValue("operation", "maintenance_refusal")
           .addKeyValue("outcome", "unavailable")
           .addKeyValue("reason", "inactive_maintenance")
           .log("Inconsistent maintenance refusal");
-      return safeProblem(
-          HttpStatus.SERVICE_UNAVAILABLE, "urn:blockout:problem:unavailable", new HttpHeaders());
+      return HttpProblems.response(
+          HttpStatus.SERVICE_UNAVAILABLE, "urn:blockout:problem:unavailable");
     }
     AccessProblemResponse problem =
         new AccessProblemResponse(
@@ -48,18 +52,19 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
             .maintenance(AccessApiMapper.toPublicDto(maintenance));
     return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
         .contentType(MediaType.APPLICATION_PROBLEM_JSON)
-        .cacheControl(org.springframework.http.CacheControl.noStore())
+        .cacheControl(CacheControl.noStore())
         .body(problem);
   }
 
-  /** {@inheritDoc} */
+  /**
+   * {@inheritDoc}
+   *
+   * <p>Only replaces the final public representation. Spring retains committed-response handling,
+   * error request attributes, status selection and protocol headers.
+   */
   @Override
-  protected ResponseEntity<Object> handleExceptionInternal(
-      Exception exception,
-      Object body,
-      HttpHeaders headers,
-      HttpStatusCode status,
-      WebRequest request) {
+  protected ResponseEntity<Object> createResponseEntity(
+      Object body, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
     String type =
         switch (status.value()) {
           case 400 -> "urn:blockout:problem:invalid-request";
@@ -70,7 +75,28 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
           case 503 -> "urn:blockout:problem:unavailable";
           default -> "about:blank";
         };
-    return safeProblem(status, type, headers);
+    return HttpProblems.response(HttpProblems.body(status, type), headers);
+  }
+
+  /**
+   * Translates known storage acquisition outages once for every MVC entrypoint.
+   *
+   * @param failure database resource or transaction acquisition failure, logged through the safe
+   *     encoder
+   * @return opaque unavailable response; integrity and programming failures remain unexpected
+   */
+  @ExceptionHandler({
+    DataAccessResourceFailureException.class,
+    CannotCreateTransactionException.class
+  })
+  ResponseEntity<Object> storageUnavailable(Exception failure) {
+    log.atError()
+        .addKeyValue("operation", "http_request")
+        .addKeyValue("outcome", "unavailable")
+        .setCause(failure)
+        .log("HTTP storage unavailable");
+    return HttpProblems.response(
+        HttpStatus.SERVICE_UNAVAILABLE, "urn:blockout:problem:unavailable");
   }
 
   /**
@@ -85,32 +111,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     if (exception instanceof AccessDeniedException denied) {
       throw denied;
     }
-    LOG.atError()
+    log.atError()
         .addKeyValue("operation", "http_request")
         .addKeyValue("outcome", "failed")
         .setCause(exception)
         .log("HTTP boundary failed unexpectedly");
-    return safeProblem(HttpStatus.INTERNAL_SERVER_ERROR, "about:blank", new HttpHeaders());
-  }
-
-  /**
-   * Builds the canonical generated Problem Response using canonical identifiers and safe status
-   * titles.
-   *
-   * @param status HTTP response status
-   * @param type canonical problem identifier or RFC's generic fallback
-   * @param suppliedHeaders framework headers such as Allow and Accept
-   * @return a non-cacheable problem response
-   */
-  protected ResponseEntity<Object> safeProblem(
-      HttpStatusCode status, String type, HttpHeaders suppliedHeaders) {
-    ProblemResponse problem =
-        new ProblemResponse(
-            URI.create(type), HttpStatus.valueOf(status.value()).getReasonPhrase(), status.value());
-    HttpHeaders headers = new HttpHeaders();
-    headers.putAll(suppliedHeaders);
-    headers.setContentType(MediaType.APPLICATION_PROBLEM_JSON);
-    headers.setCacheControl("no-store");
-    return new ResponseEntity<>(problem, headers, status);
+    return HttpProblems.response(HttpStatus.INTERNAL_SERVER_ERROR, "about:blank");
   }
 }

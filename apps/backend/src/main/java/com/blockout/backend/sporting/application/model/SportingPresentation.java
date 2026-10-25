@@ -157,6 +157,22 @@ public final class SportingPresentation {
     }
   }
 
+  /** Complete validated division metadata, independent from optional prepared image content. */
+  public record DivisionDefinition(String name, String color, List<String> gradient) {
+    /**
+     * Requires the same usable name for HTTP and non-HTTP division creation.
+     *
+     * @param name nonblank display name
+     * @param color validated primary color
+     * @param gradient three validated colors, or null for derived treatment
+     * @throws SportingValidationException when the name is absent or blank
+     */
+    public DivisionDefinition {
+      requireDivisionName(name);
+      gradient = gradient == null ? null : List.copyOf(gradient);
+    }
+  }
+
   /** Division presentation remains separate from its explicit activity command. */
   public record DivisionEdit(
       String revision,
@@ -176,7 +192,7 @@ public final class SportingPresentation {
      * @param image already validated replacement, or null
      */
     public DivisionEdit {
-      if (name == null || name.isBlank()) throw new SportingValidationException();
+      requireDivisionName(name);
       gradient = gradient == null ? null : List.copyOf(gradient);
     }
   }
@@ -230,6 +246,16 @@ public final class SportingPresentation {
     public boolean sameContent(byte[] otherBytes, String otherMediaType) {
       return mediaType.equals(otherMediaType) && Arrays.equals(bytes, otherBytes);
     }
+  }
+
+  /**
+   * Keeps division creation and presentation changes on the same name invariant.
+   *
+   * @param name required division name
+   * @throws SportingValidationException when the name is absent or blank
+   */
+  private static void requireDivisionName(String name) {
+    if (name == null || name.isBlank()) throw new SportingValidationException();
   }
 
   /**

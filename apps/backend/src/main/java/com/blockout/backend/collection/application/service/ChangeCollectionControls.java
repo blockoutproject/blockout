@@ -13,6 +13,7 @@ import com.blockout.backend.sporting.application.model.SportingViews.CollectionS
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +36,8 @@ public class ChangeCollectionControls {
    * @param revision last read editing revision
    * @param enabled desired ordinary eligibility
    * @return current state; matching no-op preserves the revision
+   * @throws AccessDeniedException if the current operator lacks the collection grant
+   * @throws CollectionConflictException if the revision or lifecycle refuses the change
    */
   @Transactional
   public ControlView setActivity(UUID accountId, UUID id, long revision, boolean enabled) {
@@ -63,10 +66,13 @@ public class ChangeCollectionControls {
    * @param accountId current operator, never retained as a future actor session
    * @param id selected family
    * @param revision last read editing revision
-   * @return existing running work or a single pending intent; acceptance promises no start time
+   * @return existing running work or a single pending intent, distinguished by its application
+   *     outcome; acceptance promises no start time
+   * @throws AccessDeniedException if the current operator lacks the collection grant
+   * @throws CollectionConflictException if the revision or current eligibility refuses the request
    */
   @Transactional
-  public ControlView request(UUID accountId, UUID id, long revision) {
+  public RequestOutcome request(UUID accountId, UUID id, long revision) {
     store.lockRuntime();
     UUID seasonId = store.controlSeason(id);
     CollectionSeasonView season = seasonId == null ? null : seasons.lockCollectionState(seasonId);
@@ -80,18 +86,29 @@ public class ChangeCollectionControls {
     requireLaunched(control, season);
     ControlView current = configurationReads.controlView(control);
     if (current.cycle() != null && current.cycle().state() == CollectionCycleStateEnum.RUNNING)
-      return current;
-    if (control.requestId() != null) return current;
+      return new RequestOutcome(current, true);
+    if (control.requestId() != null) return new RequestOutcome(current, false);
     CollectionRevision.requireAdvance(control.revision());
-    return configurationReads.controlView(
-        store.setControlIntent(id, true, UUID.randomUUID(), CollectionModeEnum.MANUAL));
+    return new RequestOutcome(
+        configurationReads.controlView(
+            store.setControlIntent(id, true, UUID.randomUUID(), CollectionModeEnum.MANUAL)),
+        false);
   }
+
+  /**
+   * Reports whether a request found admitted work or retained one pending intent.
+   *
+   * @param view current authorized control state
+   * @param running whether this request returned already running work instead of pending intent
+   */
+  public record RequestOutcome(ControlView view, boolean running) {}
 
   /**
    * Refuses an unlaunched provider even when another provider has activated the same season.
    *
    * @param control locked family whose launch is required
    * @param season locked canonical season, or null for seasonless controls
+   * @throws CollectionConflictException if the family has no launch in its active season
    */
   private void requireLaunched(Control control, CollectionSeasonView season) {
     if (season != null

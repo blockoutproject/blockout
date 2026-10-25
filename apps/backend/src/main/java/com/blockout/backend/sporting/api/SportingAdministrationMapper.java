@@ -4,11 +4,13 @@ import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.generated.mobile.model.AcquisitionClassificationRequest;
 import com.blockout.backend.generated.mobile.model.AcquisitionClassificationResponse;
 import com.blockout.backend.generated.mobile.model.ClassificationDetailResponse;
+import com.blockout.backend.generated.mobile.model.CreateDivisionRequest;
 import com.blockout.backend.generated.mobile.model.DivisionListResponse;
 import com.blockout.backend.generated.mobile.model.DivisionResponse;
 import com.blockout.backend.generated.mobile.model.LogoPresentationResponse;
 import com.blockout.backend.shared.api.RequiredNullableMapping;
 import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingPresentation.DivisionDefinition;
 import com.blockout.backend.sporting.application.model.SportingViews.ClassificationView;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import java.util.List;
@@ -20,6 +22,24 @@ import org.openapitools.jackson.nullable.JsonNullable;
 /** Mechanical generated-contract mappings, preserving required explicit nulls. */
 @Mapper(config = MappingConfiguration.class, uses = RequiredNullableMapping.class)
 public interface SportingAdministrationMapper {
+  /**
+   * Captures valid division metadata before decoding optional image content.
+   *
+   * @param source complete generated multipart metadata
+   * @return immutable application metadata with the division name invariant
+   */
+  DivisionDefinition toCommand(CreateDivisionRequest source);
+
+  /**
+   * Retains explicit null for the required nullable gradient.
+   *
+   * @param value present nullable generated gradient
+   * @return the supplied colors, or null for derived treatment
+   */
+  default List<String> unwrapGradient(JsonNullable<List<String>> value) {
+    return value.get();
+  }
+
   /**
    * Maps the complete classification using the generated contract enums.
    *

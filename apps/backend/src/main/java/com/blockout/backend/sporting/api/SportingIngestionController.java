@@ -10,7 +10,6 @@ import com.blockout.backend.generated.ingestion.model.ClubLocalityObservationInt
 import com.blockout.backend.generated.ingestion.model.MatchDetailObservationInternalRequest;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeInternalResponse;
 import com.blockout.backend.generated.ingestion.model.StandingsObservationInternalRequest;
-import com.blockout.backend.sporting.application.exception.SportingValidationException;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import com.blockout.backend.sporting.application.service.AcceptCalendar;
@@ -20,7 +19,6 @@ import com.blockout.backend.sporting.application.service.AcceptClubLocality;
 import com.blockout.backend.sporting.application.service.AcceptMatchObservation;
 import com.blockout.backend.sporting.application.service.AcceptSourceImage;
 import com.blockout.backend.sporting.application.service.AcceptStandings;
-import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -42,8 +40,7 @@ public class SportingIngestionController implements SportingApi {
   private final AcceptClubDetails clubObservations;
   private final AcceptClubLocality localities;
   private final AcceptSourceImage images;
-  private final com.blockout.backend.sporting.application.service.ValidateSportingImage
-      imageContent;
+  private final SportingPresentationValidator imageParts;
   private final SportingPresentationMapper presentationMapper;
 
   /** {@inheritDoc} */
@@ -107,12 +104,7 @@ public class SportingIngestionController implements SportingApi {
     MatchObservation.Context context =
         mapper.toContext(cycleId, readOrdinal, observedAt, providerPublishedAt);
     images.requireSource(teamId, context);
-    Image validated;
-    try {
-      validated = imageContent.validate(body.getContentAsByteArray());
-    } catch (IOException invalid) {
-      throw new SportingValidationException();
-    }
+    Image validated = imageParts.validateImage(body);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(mapper.toDto(images.acceptSource(teamId, context, validated)));

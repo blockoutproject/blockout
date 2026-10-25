@@ -1,6 +1,7 @@
 package com.blockout.backend.accounts.infrastructure;
 
 import com.blockout.backend.accounts.application.ProfilePhoto;
+import com.blockout.backend.accounts.application.ProfilePhotoPreparation;
 import com.blockout.backend.accounts.application.exception.InvalidProfilePhotoException;
 import com.blockout.backend.accounts.application.exception.ProfilePhotoTooLargeException;
 import com.blockout.backend.accounts.application.exception.UnsupportedProfilePhotoException;
@@ -19,18 +20,13 @@ import org.springframework.stereotype.Component;
 
 /** Prepares bounded photo pixels before the SQL transaction. */
 @Component
-public class ProfilePhotoProcessor {
+public class ProfilePhotoProcessor implements ProfilePhotoPreparation {
   /**
-   * Decodes only bounded square PNG/JPEG and writes fresh pixels without source metadata. All
-   * streams remain in memory; callers finish this step before acquiring the account lock.
+   * {@inheritDoc}
    *
-   * @param bytes compressed original part, at most 5 MiB
-   * @param mediaType case-insensitive declared media type, checked against detected content
-   * @return reencoded pixels with their actual type and square dimension
-   * @throws InvalidProfilePhotoException for unreadable, spoofed or out-of-bounds pixels
-   * @throws ProfilePhotoTooLargeException for excessive input or output bytes
-   * @throws UnsupportedProfilePhotoException for an unsupported media declaration
+   * <p>All streams remain in memory; callers finish preparation before acquiring the account lock.
    */
+  @Override
   public ProfilePhoto prepare(byte[] bytes, String mediaType) {
     MediaType declaredType;
     try {

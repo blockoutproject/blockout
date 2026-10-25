@@ -3,39 +3,34 @@ package com.blockout.backend.access.api;
 import com.blockout.backend.access.domain.AccessSettingsUnavailableException;
 import com.blockout.backend.access.domain.InvalidAccessSettingsException;
 import com.blockout.backend.access.domain.StaleSettingsRevisionException;
-import com.blockout.backend.shared.http.ApiExceptionHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.blockout.backend.shared.http.HttpProblems;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.TransactionException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-/** Reuses F13's generated Problem Details construction and framework-error translation. */
+/** Translates settings-owned refusals; framework failures retain their shared HTTP owner. */
 @RestControllerAdvice(assignableTypes = AdministrationSettingsController.class)
 @Order(0)
-public class AccessSettingsExceptionHandler extends ApiExceptionHandler {
-  private static final Logger LOG = LoggerFactory.getLogger(AccessSettingsExceptionHandler.class);
+@Slf4j
+public class AccessSettingsExceptionHandler {
 
   /** Treats both the submitted-revision and JPA commit-time failures as the canonical 409. */
   @ExceptionHandler({StaleSettingsRevisionException.class, OptimisticLockingFailureException.class})
   ResponseEntity<Object> stale() {
-    return safeProblem(
-        HttpStatus.CONFLICT, "urn:blockout:problem:stale-revision", new HttpHeaders());
+    return HttpProblems.response(HttpStatus.CONFLICT, "urn:blockout:problem:stale-revision");
   }
 
   /** Refuses an invalid resulting group without exposing entered text, URLs or stored values. */
   @ExceptionHandler(InvalidAccessSettingsException.class)
   ResponseEntity<Object> invalid() {
-    return safeProblem(
-        HttpStatus.UNPROCESSABLE_CONTENT,
-        "urn:blockout:problem:unprocessable-content",
-        new HttpHeaders());
+    return HttpProblems.response(
+        HttpStatus.UNPROCESSABLE_CONTENT, "urn:blockout:problem:unprocessable-content");
   }
 
   /**
@@ -56,12 +51,12 @@ public class AccessSettingsExceptionHandler extends ApiExceptionHandler {
           case DataAccessException _ -> "database_unavailable";
           default -> "transaction_failed";
         };
-    LOG.atError()
+    log.atError()
         .addKeyValue("operation", "access_settings")
         .addKeyValue("outcome", "failed")
         .addKeyValue("reason", reason)
         .log("Access settings unavailable");
-    return safeProblem(
-        HttpStatus.SERVICE_UNAVAILABLE, "urn:blockout:problem:unavailable", new HttpHeaders());
+    return HttpProblems.response(
+        HttpStatus.SERVICE_UNAVAILABLE, "urn:blockout:problem:unavailable");
   }
 }

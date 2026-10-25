@@ -8,6 +8,7 @@ import com.blockout.backend.generated.mobile.model.CreateDivisionRequest;
 import com.blockout.backend.generated.mobile.model.DivisionListResponse;
 import com.blockout.backend.generated.mobile.model.DivisionResponse;
 import com.blockout.backend.generated.mobile.model.SetDivisionActivityRequest;
+import com.blockout.backend.sporting.application.model.SportingPresentation.DivisionDefinition;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.service.ChangeDivisionLifecycle;
@@ -16,11 +17,9 @@ import java.net.URI;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 /** Generated administrative division routes; public image delivery has its own access boundary. */
 @RestController
@@ -57,17 +56,9 @@ public class DivisionAdministrationController implements DivisionAdministrationA
       CreateDivisionRequest metadata, MultipartFile image) {
     UUID accountId = account.id();
     permissions.requireForRead(accountId, Permission.MANAGE_DIVISION_LIFECYCLE);
-    if (metadata.getName().isBlank())
-      throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT);
+    DivisionDefinition definition = mapper.toCommand(metadata);
     Image validated = imageParts.validateImage(metadata.getLogoAction(), image);
-    DivisionDetail created =
-        divisions.create(
-            accountId,
-            metadata.getName(),
-            metadata.getColor(),
-            metadata.getGradient().get(),
-            validated == null ? null : validated.bytes(),
-            validated == null ? null : validated.mediaType());
+    DivisionDetail created = divisions.create(accountId, definition, validated);
     return ResponseEntity.created(URI.create("/administration/divisions/" + created.id()))
         .cacheControl(CacheControl.noStore())
         .body(mapper.toDto(created));

@@ -41,6 +41,7 @@ import org.springframework.mock.web.MockPart;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
@@ -55,6 +56,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
   AccountExceptionHandler.class,
   ReadAccount.class,
   AccountApiMapperImpl.class,
+  AccountRequest.class,
   com.blockout.backend.accounts.application.ChangeAccountProfile.class,
   com.blockout.backend.accounts.infrastructure.ProfilePhotoProcessor.class
 })
@@ -87,8 +89,10 @@ class AccountProfileWebMvcTest {
     MockMultipartHttpServletRequestBuilder request = patch(metadata);
 
     // When
-    mvc.perform(request)
-        // Then
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response
         .andExpect(status().isBadRequest())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:invalid-request"));
@@ -103,9 +107,10 @@ class AccountProfileWebMvcTest {
         patch(metadata).part(part("image", "photo.png", "image/png", new byte[] {1}));
 
     // When
-    mvc.perform(request)
-        // Then
-        .andExpect(status().isBadRequest());
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isBadRequest());
   }
 
   @ParameterizedTest
@@ -120,8 +125,10 @@ class AccountProfileWebMvcTest {
     when(permissions.forAccount(ID)).thenReturn(Set.of());
 
     // When
-    mvc.perform(patch("{\"username\":\"" + username + "\"}"))
-        // Then
+    ResultActions response = mvc.perform(patch("{\"username\":\"" + username + "\"}"));
+
+    // Then
+    response
         .andExpect(status().isOk())
         .andExpect(header().string("Accept-Patch", "multipart/form-data"))
         .andExpect(jsonPath("$.username").value("Original"));
@@ -134,8 +141,11 @@ class AccountProfileWebMvcTest {
     MockMultipartHttpServletRequestBuilder request = multipart(HttpMethod.PATCH, "/accounts/" + ID);
     request.with(principal());
 
-    // When / Then
-    mvc.perform(request).andExpect(status().isBadRequest());
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isBadRequest());
     verifyNoInteractions(store);
   }
 
@@ -143,11 +153,16 @@ class AccountProfileWebMvcTest {
   @ValueSource(strings = {"image/gif", "application/octet-stream"})
   @DisplayName("Refuses unsupported photo media without account effects")
   void refusesMedia(String mediaType) throws Exception {
-    // Given / When
-    mvc.perform(
-            patch("{\"photoAction\":\"replace\"}")
-                .part(part("image", "photo.gif", mediaType, new byte[] {1})))
-        // Then
+    // Given
+    MockMultipartHttpServletRequestBuilder request =
+        patch("{\"photoAction\":\"replace\"}")
+            .part(part("image", "photo.gif", mediaType, new byte[] {1}));
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response
         .andExpect(status().isUnsupportedMediaType())
         .andExpect(header().string("Cache-Control", "no-store"));
     verifyNoInteractions(store);
@@ -156,11 +171,16 @@ class AccountProfileWebMvcTest {
   @Test
   @DisplayName("Refuses oversized photo parts before applying a username")
   void refusesOversizedPhoto() throws Exception {
-    // Given / When
-    mvc.perform(
-            patch("{\"username\":\"New_name\",\"photoAction\":\"replace\"}")
-                .part(part("image", "photo.png", "image/png", new byte[5 * 1024 * 1024 + 1])))
-        // Then
+    // Given
+    MockMultipartHttpServletRequestBuilder request =
+        patch("{\"username\":\"New_name\",\"photoAction\":\"replace\"}")
+            .part(part("image", "photo.png", "image/png", new byte[5 * 1024 * 1024 + 1]));
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response
         .andExpect(status().isContentTooLarge())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:payload-too-large"));
     verifyNoInteractions(store);
@@ -169,11 +189,16 @@ class AccountProfileWebMvcTest {
   @Test
   @DisplayName("Rejects invalid decoded content before applying a username")
   void refusesInvalidPhoto() throws Exception {
-    // Given / When
-    mvc.perform(
-            patch("{\"username\":\"New_name\",\"photoAction\":\"replace\"}")
-                .part(part("image", "photo.png", "image/png", new byte[] {1, 2, 3})))
-        // Then
+    // Given
+    MockMultipartHttpServletRequestBuilder request =
+        patch("{\"username\":\"New_name\",\"photoAction\":\"replace\"}")
+            .part(part("image", "photo.png", "image/png", new byte[] {1, 2, 3}));
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:invalid-image"));
     verifyNoInteractions(store);
@@ -188,8 +213,11 @@ class AccountProfileWebMvcTest {
     when(store.lockById(ID)).thenReturn(Optional.of(original));
     doThrow(new UsernameUnavailableException()).when(store).changeProfile(ID, "Taken", null, null);
 
-    // When / Then
-    mvc.perform(patch("{\"username\":\"Taken\"}"))
+    // When
+    ResultActions response = mvc.perform(patch("{\"username\":\"Taken\"}"));
+
+    // Then
+    response
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:username-unavailable"))
         .andExpect(header().string("Cache-Control", "no-store"));
@@ -199,26 +227,34 @@ class AccountProfileWebMvcTest {
   @ValueSource(strings = {"unknown", "metadata"})
   @DisplayName("Rejects unknown or repeated multipart parts")
   void refusesExtraPart(String name) throws Exception {
-    // Given / When
-    mvc.perform(
-            patch("{\"username\":\"Original\"}")
-                .part(part(name, null, "application/json", "{}".getBytes(StandardCharsets.UTF_8))))
-        // Then
-        .andExpect(status().isBadRequest());
+    // Given
+    MockMultipartHttpServletRequestBuilder request =
+        patch("{\"username\":\"Original\"}")
+            .part(part(name, null, "application/json", "{}".getBytes(StandardCharsets.UTF_8)));
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isBadRequest());
     verifyNoInteractions(store);
   }
 
   @Test
   @DisplayName("Rejects repeated replacement images")
   void refusesRepeatedImages() throws Exception {
-    // Given / When
-    mvc.perform(
-            patch("{\"photoAction\":\"replace\"}")
-                .part(
-                    part("image", "one.png", "image/png", new byte[] {1}),
-                    part("image", "two.png", "image/png", new byte[] {2})))
-        // Then
-        .andExpect(status().isBadRequest());
+    // Given
+    MockMultipartHttpServletRequestBuilder request =
+        patch("{\"photoAction\":\"replace\"}")
+            .part(
+                part("image", "one.png", "image/png", new byte[] {1}),
+                part("image", "two.png", "image/png", new byte[] {2}));
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isBadRequest());
     verifyNoInteractions(store);
   }
 
@@ -232,8 +268,11 @@ class AccountProfileWebMvcTest {
     when(store.findById(ID)).thenReturn(Optional.of(original));
     when(store.photo(ID)).thenReturn(Optional.of(new ProfilePhoto(bytes, "image/png", 1)));
 
-    // When / Then
-    mvc.perform(get("/accounts/" + ID + "/photo").with(principal()))
+    // When
+    ResultActions response = mvc.perform(get("/accounts/" + ID + "/photo").with(principal()));
+
+    // Then
+    response
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(content().contentType("image/png"))
@@ -248,10 +287,13 @@ class AccountProfileWebMvcTest {
     when(store.lockById(ID)).thenReturn(Optional.of(other));
     when(store.findById(ID)).thenReturn(Optional.of(other));
 
-    // When / Then
-    mvc.perform(patch("{\"username\":\"Original\"}")).andExpect(status().isNotFound());
-    mvc.perform(get("/accounts/" + ID + "/photo").with(principal()))
-        .andExpect(status().isNotFound());
+    // When
+    ResultActions profileResponse = mvc.perform(patch("{\"username\":\"Original\"}"));
+    ResultActions photoResponse = mvc.perform(get("/accounts/" + ID + "/photo").with(principal()));
+
+    // Then
+    profileResponse.andExpect(status().isNotFound());
+    photoResponse.andExpect(status().isNotFound());
     verify(store, never()).photo(ID);
   }
 
@@ -264,8 +306,11 @@ class AccountProfileWebMvcTest {
             Optional.of(
                 new Account(ID, ISSUER, "auth0|one", "Original", "shared@example.invalid", null)));
 
-    // When / Then
-    mvc.perform(get("/accounts/" + ID + "/photo").with(principal()))
+    // When
+    ResultActions response = mvc.perform(get("/accounts/" + ID + "/photo").with(principal()));
+
+    // Then
+    response
         .andExpect(status().isNotFound())
         .andExpect(header().string("Cache-Control", "no-store"));
   }

@@ -9,7 +9,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -54,12 +53,10 @@ public class MaintenanceAdmissionFilter extends OncePerRequestFilter {
           principal == null ? null : principal.getToken().getClaimAsString("iss"),
           principal == null ? null : principal.getToken().getSubject(),
           bypass);
-    } catch (MaintenanceRequiredException | ResponseStatusException failure) {
+    } catch (MaintenanceRequiredException
+        | ResponseStatusException
+        | AccountUnavailableException failure) {
       problems.resolveException(request, response, null, failure);
-      return;
-    } catch (AccountUnavailableException failure) {
-      problems.resolveException(
-          request, response, null, new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE));
       return;
     }
     chain.doFilter(request, response);

@@ -82,6 +82,8 @@ The simpler alternative of one surrounding transaction is rejected for calendar 
 
 **Alternatives and tradeoffs**: A schema-language export or custom assembly stage adds an additional authority/transform without an accepted need. No editable per-plan contract copies or template forks.
 
+**Server adapter mechanism**: The [controller/error pattern](plan.md#http-controller-and-error-pattern) uses the installed generator's [native Spring validation option](https://github.com/OpenAPITools/openapi-generator/blob/v7.26.0/docs/generators/spring.md) and Spring's [final response customization hook](https://github.com/spring-projects/spring-framework/blob/v7.0.9/spring-webmvc/src/main/java/org/springframework/web/servlet/mvc/method/annotation/ResponseEntityExceptionHandler.java). Feature advices compose the shared generated problem representation without inheriting the application's global advice. This avoids duplicating Spring's exception dispatch and lifecycle. Image adapters share native [MultipartFile.getResource()](<https://docs.spring.io/spring-framework/docs/7.0.9/javadoc-api/org/springframework/web/multipart/MultipartFile.html#getResource()>) when reading multipart and binary content; application validation remains with its owner. No controller base class, generated-source patch or framework upgrade is needed.
+
 **Decision**: One targeted Fetch adapter with generated Zod validation.
 
 **Rationale**: Validate business JSON once before Query success/cache; centralize credentials, cancellation, bounded waiting and safe errors.

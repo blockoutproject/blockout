@@ -7,11 +7,9 @@ import java.time.ZoneId;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.web.server.ResponseStatusException;
 
 /** Following-specific binding used after the existing mobile security and F12 admission filter. */
@@ -26,7 +24,8 @@ public class FollowingRequest {
    *
    * @param original account UUID from the generated path binding
    * @return that same UUID after the current F05 mapping matches
-   * @throws ResponseStatusException with safe 404 for an absent/different account or 503 for outage
+   * @throws ResponseStatusException with safe 404 for an absent/different account ; storage outages
+   *     retain their shared HTTP owner
    */
   public UUID requireOwner(UUID original) {
     try {
@@ -34,8 +33,6 @@ public class FollowingRequest {
       return original;
     } catch (AccessDeniedException absent) {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-    } catch (DataAccessResourceFailureException | CannotCreateTransactionException unavailable) {
-      throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE);
     }
   }
 

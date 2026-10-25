@@ -5,9 +5,10 @@ import com.blockout.backend.access.application.CurrentPermissions;
 import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
+import com.blockout.backend.sporting.application.model.SportingPresentation.DivisionDefinition;
+import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.port.SportingStore;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -26,25 +27,21 @@ public class ChangeDivisionLifecycle {
    * Creates one active division and its previously validated optional image atomically.
    *
    * @param accountId original account with the lifecycle grant
-   * @param name nonblank unique name
-   * @param color validated sRGB color
-   * @param gradient three validated colors, or null
-   * @param image validated PNG/JPEG bytes, or null
-   * @param mediaType actual image type, or null
+   * @param definition complete validated name and colors
+   * @param image validated PNG/JPEG content, or null
    * @return created division with its initial version
    * @throws AccessDeniedException if the current lifecycle grant is absent
    * @throws SportingConflictException if the name exists ignoring case
    */
   @Transactional
-  public DivisionDetail create(
-      UUID accountId,
-      String name,
-      String color,
-      List<String> gradient,
-      byte[] image,
-      String mediaType) {
+  public DivisionDetail create(UUID accountId, DivisionDefinition definition, Image image) {
     authorization.require(accountId, Permission.MANAGE_DIVISION_LIFECYCLE);
-    return store.createDivision(name, color, gradient, image, mediaType);
+    return store.createDivision(
+        definition.name(),
+        definition.color(),
+        definition.gradient(),
+        image == null ? null : image.bytes(),
+        image == null ? null : image.mediaType());
   }
 
   /**
