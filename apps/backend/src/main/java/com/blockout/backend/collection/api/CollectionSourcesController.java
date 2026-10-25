@@ -2,7 +2,8 @@ package com.blockout.backend.collection.api;
 
 import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
-import com.blockout.backend.collection.application.service.SourcePreparationService;
+import com.blockout.backend.collection.application.service.PrepareCollectionSources;
+import com.blockout.backend.collection.application.service.ReadCollectionConfiguration;
 import com.blockout.backend.generated.mobile.api.CollectionSourcesApi;
 import com.blockout.backend.generated.mobile.model.CollectionSeasonListResponse;
 import com.blockout.backend.generated.mobile.model.CollectionSeasonResponse;
@@ -25,7 +26,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 public class CollectionSourcesController implements CollectionSourcesApi {
-  private final SourcePreparationService preparation;
+  private final PrepareCollectionSources preparation;
+  private final ReadCollectionConfiguration configurationReads;
   private final CurrentAccount account;
   private final CollectionApiMapper mapper;
 
@@ -34,7 +36,7 @@ public class CollectionSourcesController implements CollectionSourcesApi {
   public ResponseEntity<CollectionSeasonListResponse> listCollectionSeasons() {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toSeasonsDto(preparation.seasons(account.id())));
+        .body(mapper.toSeasonsDto(configurationReads.seasons(account.id())));
   }
 
   /** {@inheritDoc} */
@@ -42,7 +44,7 @@ public class CollectionSourcesController implements CollectionSourcesApi {
   public ResponseEntity<CollectionSeasonResponse> getCollectionSeason(UUID seasonId) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(preparation.season(account.id(), seasonId)));
+        .body(mapper.toDto(configurationReads.season(account.id(), seasonId)));
   }
 
   /** {@inheritDoc} */
@@ -50,7 +52,7 @@ public class CollectionSourcesController implements CollectionSourcesApi {
   public ResponseEntity<SourceBindingListResponse> listCollectionSources(UUID seasonId) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toSourcesDto(preparation.list(account.id(), seasonId)));
+        .body(mapper.toSourcesDto(configurationReads.sources(account.id(), seasonId)));
   }
 
   /** {@inheritDoc} */
@@ -58,7 +60,7 @@ public class CollectionSourcesController implements CollectionSourcesApi {
   public ResponseEntity<SourceBindingResponse> getCollectionSource(UUID sourceBindingId) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(preparation.get(account.id(), sourceBindingId)));
+        .body(mapper.toDto(configurationReads.source(account.id(), sourceBindingId)));
   }
 
   /** {@inheritDoc} */
@@ -140,6 +142,6 @@ public class CollectionSourcesController implements CollectionSourcesApi {
         .cacheControl(CacheControl.noStore())
         .body(
             mapper.toDto(
-                preparation.children(account.id(), sourceBindingId, parentId, page, size)));
+                configurationReads.children(account.id(), sourceBindingId, parentId, page, size)));
   }
 }

@@ -1,15 +1,12 @@
 package com.blockout.backend.notifications.application;
 
+import com.blockout.backend.notifications.application.AllocateAnnouncements.Created;
 import com.blockout.backend.notifications.application.AnnouncementRecipients.Recipient;
-import com.blockout.backend.notifications.application.ProcessResultAnnouncement.Created;
 import com.blockout.backend.notifications.domain.MatchAnnouncementFacts;
 import com.blockout.backend.notifications.domain.NotificationFamily;
-import com.blockout.backend.notifications.domain.NotificationVariant;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -20,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ProcessLinkAnnouncement {
   private final NotificationStore store;
+  private final AllocateAnnouncements allocations;
 
   /**
    * Processes current availability; a due pass never invents a later publication.
@@ -44,21 +42,7 @@ public class ProcessLinkAnnouncement {
       family = NotificationFamily.LIVE_LINK;
       store.saveFacts(facts.consumeLive());
     }
-    List<Created> created = new ArrayList<>();
-    for (Recipient recipient : recipients) {
-      UUID id = UUID.randomUUID();
-      NotificationStore.Entry entry =
-          new NotificationStore.Entry(
-              id,
-              recipient.accountId(),
-              context.match().id(),
-              family,
-              NotificationVariant.choose(id),
-              context.now());
-      store.create(entry);
-      created.add(new Created(entry, recipient.relations()));
-    }
-    return List.copyOf(created);
+    return allocations.create(context.match().id(), family, recipients, context.now());
   }
 
   /**

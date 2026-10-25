@@ -19,9 +19,11 @@ import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
-import com.blockout.backend.sporting.application.service.SeasonService;
-import com.blockout.backend.sporting.application.service.SportingIdentityService;
-import com.blockout.backend.sporting.application.service.SportingReadService;
+import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import com.blockout.backend.sporting.application.service.EstablishMatchIdentity;
+import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
+import com.blockout.backend.sporting.application.service.ReadSportingData;
+import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -47,12 +49,14 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.util.AopTestUtils;
+import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -61,15 +65,18 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Exercises committed identity decisions through the real services and migrated PostgreSQL. */
+@Import(SportingIdentityFixture.class)
 @SpringBootTest
 @Testcontainers
 @DisplayName("Persistent sporting identities")
 class SportingIdentityIntegrationTest {
   @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   private static final UUID DIVISION = UUID.fromString("00000000-0000-4000-8000-000000000010");
-  @Autowired private SeasonService seasons;
-  @Autowired private SportingIdentityService identities;
-  @Autowired private SportingReadService reads;
+  @Autowired private ChangeCollectionSeasons seasons;
+  @Autowired private SportingIdentityFixture identities;
+  @Autowired private EstablishMatchIdentity identityParticipant;
+  @Autowired private ReadSportingData reads;
+  @Autowired private ReadSportingAcquisition acquisitionReads;
   @Autowired private JdbcTemplate sql;
   @Autowired private PlatformTransactionManager transactions;
   @MockitoSpyBean private JpaSportingStore store;
@@ -104,6 +111,24 @@ class SportingIdentityIntegrationTest {
     sql.update(
         "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'Synthetic division', TRUE, '#112233')",
         DIVISION);
+  }
+
+  @Test
+  @DisplayName("Refuses identity writes without an accepting caller transaction")
+  void refusesIdentityOutsideAcceptance() {
+    // Given
+    SeasonView season = seasons.getOrCreate(2026L);
+    PoolView pool = pool(season, "A", null, CollectionProviderEnum.FFVB);
+
+    // When
+    ThrowingCallable identify =
+        () ->
+            identityParticipant.identifyMatch(
+                pool.id(), "M1", ffvb("Home", "0001"), ffvb("Away", "0002"));
+
+    // Then
+    assertThatThrownBy(identify).isInstanceOf(IllegalTransactionStateException.class);
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Long.class)).isZero();
   }
 
   @Test
@@ -161,7 +186,8 @@ class SportingIdentityIntegrationTest {
 
     // When
     List<AcquisitionReference> references =
-        reads.acquisitionPools(season.id(), CollectionProviderEnum.FFVB, "LIG", false, now, null);
+        acquisitionReads.acquisitionPools(
+            season.id(), CollectionProviderEnum.FFVB, "LIG", false, now, null);
 
     // Then
     assertThat(references)
@@ -197,8 +223,8 @@ class SportingIdentityIntegrationTest {
     assertThat(seasons.getOrCreate(2026L)).isEqualTo(first);
     assertThat(first.label()).isEqualTo("2026/2027");
     assertThat(firstMatch.id()).isNotEqualTo(nextMatch.id());
-    TeamView firstTeam = reads.team(firstMatch.homeTeamId()).orElseThrow();
-    TeamView nextTeam = reads.team(nextMatch.homeTeamId()).orElseThrow();
+    TeamView firstTeam = acquisitionReads.team(firstMatch.homeTeamId()).orElseThrow();
+    TeamView nextTeam = acquisitionReads.team(nextMatch.homeTeamId()).orElseThrow();
     assertThat(firstTeam.id()).isNotEqualTo(nextTeam.id());
     assertThat(firstTeam.clubId()).isEqualTo(nextTeam.clubId());
     assertThat(reads.club(firstTeam.clubId()).orElseThrow().reference()).isEqualTo("0001");
@@ -231,7 +257,8 @@ class SportingIdentityIntegrationTest {
                 Long.class,
                 one.homeTeamId()))
         .isEqualTo(2L);
-    assertThat(reads.team(two.homeTeamId()).orElseThrow().sourceName()).isEqualTo("SAINT  D'OR 1");
+    assertThat(acquisitionReads.team(two.homeTeamId()).orElseThrow().sourceName())
+        .isEqualTo("SAINT  D'OR 1");
   }
 
   @Test
@@ -280,8 +307,8 @@ class SportingIdentityIntegrationTest {
       NULL, group-1
       tour-1, group-1
       """)
-  @DisplayName("Reuses the native pool identity with present or absent tour and group")
-  void reusesOptionalPoolContext(String tour, String group) {
+  @DisplayName("Resolves the native pool identity with present or absent tour and group")
+  void resolvesOptionalPoolContext(String tour, String group) {
     // Given
     SeasonView season = seasons.getOrCreate(2026L);
     PoolKey key =
@@ -289,10 +316,11 @@ class SportingIdentityIntegrationTest {
             CollectionProviderEnum.FFVB, season.id(), "LIG", "competition", tour, group, "A");
     SportingClassification classification =
         new SportingClassification(DIVISION, SportFormatEnum._6X6, SportGenderEnum.MIXED);
-    PoolView existing = identities.establishPool(key, "pack", "Synthetic pool", classification);
+    PoolView existing = identities.createPool(key, "pack", "Synthetic pool", classification);
 
     // When
-    PoolView repeated = identities.establishPool(key, "pack", "Synthetic pool", classification);
+    PoolView repeated =
+        new TransactionTemplate(transactions).execute(status -> store.pool(key).orElseThrow());
 
     // Then
     assertThat(repeated).isEqualTo(existing);
@@ -314,8 +342,9 @@ class SportingIdentityIntegrationTest {
 
     // Then
     assertThatThrownBy(replace).isInstanceOf(UnresolvedSportingIdentityException.class);
-    assertThat(reads.match(match.id())).contains(match);
-    assertThat(reads.team(match.homeTeamId()).orElseThrow().sourceName()).isEqualTo("Home 1");
+    assertThat(acquisitionReads.match(match.id())).contains(match);
+    assertThat(acquisitionReads.team(match.homeTeamId()).orElseThrow().sourceName())
+        .isEqualTo("Home 1");
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_team", Long.class)).isEqualTo(2L);
   }
 
@@ -342,7 +371,8 @@ class SportingIdentityIntegrationTest {
     // Then
     assertThat(renamed).isEqualTo(match);
     assertThat(otherClub.homeTeamId()).isNotEqualTo(match.homeTeamId());
-    assertThat(reads.team(match.homeTeamId()).orElseThrow().sourceName()).isEqualTo("Renamed home");
+    assertThat(acquisitionReads.team(match.homeTeamId()).orElseThrow().sourceName())
+        .isEqualTo("Renamed home");
   }
 
   @Test
@@ -356,7 +386,7 @@ class SportingIdentityIntegrationTest {
             "M1",
             new TeamCandidate("T1", "Home", null, null),
             new TeamCandidate("T2", "Away", null, null));
-    assertThat(reads.team(match.homeTeamId()).orElseThrow().clubId()).isNull();
+    assertThat(acquisitionReads.team(match.homeTeamId()).orElseThrow().clubId()).isNull();
 
     // When
     MatchView renamed =
@@ -368,7 +398,8 @@ class SportingIdentityIntegrationTest {
 
     // Then
     assertThat(renamed).isEqualTo(match);
-    assertThat(reads.team(match.homeTeamId()).orElseThrow().sourceName()).isEqualTo("Renamed home");
+    assertThat(acquisitionReads.team(match.homeTeamId()).orElseThrow().sourceName())
+        .isEqualTo("Renamed home");
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_club", Long.class)).isZero();
   }
 
@@ -396,7 +427,7 @@ class SportingIdentityIntegrationTest {
     SeasonView season = seasons.getOrCreate(2026L);
     PoolView first = pool(season, "A", null, CollectionProviderEnum.FFVB);
     PoolView other =
-        identities.establishPool(
+        identities.createPool(
             new PoolKey(
                 CollectionProviderEnum.FFVB,
                 season.id(),
@@ -425,8 +456,9 @@ class SportingIdentityIntegrationTest {
 
     // Then
     assertThatThrownBy(identify).isInstanceOf(UnresolvedSportingIdentityException.class);
-    assertThat(reads.match(otherMatch.id())).contains(otherMatch);
-    assertThat(reads.team(match.homeTeamId()).orElseThrow().sourceName()).isEqualTo("Home");
+    assertThat(acquisitionReads.match(otherMatch.id())).contains(otherMatch);
+    assertThat(acquisitionReads.team(match.homeTeamId()).orElseThrow().sourceName())
+        .isEqualTo("Home");
   }
 
   @Test
@@ -463,9 +495,9 @@ class SportingIdentityIntegrationTest {
 
     // Then
     assertThat(current.id()).isEqualTo(match.id());
-    assertThat(reads.team(current.homeTeamId()).orElseThrow().clubId()).isEqualTo(club);
+    assertThat(acquisitionReads.team(current.homeTeamId()).orElseThrow().clubId()).isEqualTo(club);
     assertThat(newSeason.homeTeamId()).isNotEqualTo(current.homeTeamId());
-    assertThat(reads.team(newSeason.homeTeamId()).orElseThrow().clubId()).isNull();
+    assertThat(acquisitionReads.team(newSeason.homeTeamId()).orElseThrow().clubId()).isNull();
   }
 
   @Test
@@ -475,7 +507,7 @@ class SportingIdentityIntegrationTest {
     PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, CollectionProviderEnum.FFVB);
     MatchView match =
         identities.identifyMatch(pool.id(), "M1", ffvb("Home", "0001"), ffvb("Away", "0002"));
-    TeamView home = reads.team(match.homeTeamId()).orElseThrow();
+    TeamView home = acquisitionReads.team(match.homeTeamId()).orElseThrow();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
     // When
@@ -629,7 +661,23 @@ class SportingIdentityIntegrationTest {
   void isolatesConcurrentClubCreation() throws Exception {
     // Given
     PoolView first = pool(seasons.getOrCreate(2026L), "A", null, CollectionProviderEnum.FFVB);
-    PoolView second = pool(seasons.getOrCreate(2027L), "A", null, CollectionProviderEnum.FFVB);
+    UUID otherDivision = UUID.fromString("00000000-0000-4000-8000-000000000011");
+    sql.update(
+        "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'Other division', TRUE, '#112233')",
+        otherDivision);
+    PoolView second =
+        identities.createPool(
+            new PoolKey(
+                CollectionProviderEnum.FFVB,
+                seasons.getOrCreate(2027L).id(),
+                "LIG",
+                "competition",
+                null,
+                null,
+                "A"),
+            "pack",
+            "Synthetic pool",
+            new SportingClassification(otherDivision, SportFormatEnum._6X6, SportGenderEnum.MIXED));
     CyclicBarrier bothRead = new CyclicBarrier(2);
     // Configure Mockito without entering transaction advice; application actions retain their
     // proxy.
@@ -707,9 +755,9 @@ class SportingIdentityIntegrationTest {
       MatchView result = work.get(15, TimeUnit.SECONDS);
 
       // Then
-      assertThat(reads.team(result.homeTeamId()).orElseThrow().classification().format())
+      assertThat(acquisitionReads.team(result.homeTeamId()).orElseThrow().classification().format())
           .isEqualTo(SportFormatEnum._4X4);
-      assertThat(reads.team(result.awayTeamId()).orElseThrow().classification().format())
+      assertThat(acquisitionReads.team(result.awayTeamId()).orElseThrow().classification().format())
           .isEqualTo(SportFormatEnum._4X4);
     }
   }
@@ -740,7 +788,7 @@ class SportingIdentityIntegrationTest {
    */
   private PoolView pool(
       SeasonView season, String reference, String tour, CollectionProviderEnum provider) {
-    return identities.establishPool(
+    return identities.createPool(
         new PoolKey(provider, season.id(), "LIG", "competition", tour, null, reference),
         "pack",
         "Synthetic pool",

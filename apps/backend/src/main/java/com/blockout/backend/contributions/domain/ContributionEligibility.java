@@ -43,11 +43,11 @@ public final class ContributionEligibility {
       if (current.active() != null && !actor.accountId().equals(current.active().ownerId()))
         return new Decision(Status.NOT_OWNER, null);
       if (actor.principalCreatedAt() == null) return new Decision(Status.ACCOUNT_AGE_UNKNOWN, null);
-      if (Duration.between(actor.principalCreatedAt(), now).compareTo(Duration.ofDays(7)) < 0)
+      if (now.isBefore(accountEligibleAt(actor.principalCreatedAt())))
         return new Decision(Status.ACCOUNT_TOO_YOUNG, null);
       if (!match.definitiveResult()) {
         if (match.confirmedStart() == null) return new Decision(Status.START_UNCONFIRMED, null);
-        if (now.isBefore(match.confirmedStart().minus(Duration.ofHours(1))))
+        if (now.isBefore(windowOpensAt(match.confirmedStart())))
           return new Decision(Status.WINDOW_NOT_OPEN, null);
       }
     }
@@ -71,6 +71,26 @@ public final class ContributionEligibility {
             ? Status.PENDING
             : Status.ACTIVE,
         null);
+  }
+
+  /**
+   * Resolves the ordinary publication age boundary from reliable retained principal evidence.
+   *
+   * @param principalCreatedAt reliable Auth0 creation instant
+   * @return inclusive instant at which the seven elapsed days condition is satisfied
+   */
+  public static Instant accountEligibleAt(Instant principalCreatedAt) {
+    return principalCreatedAt.plus(Duration.ofDays(7));
+  }
+
+  /**
+   * Resolves the ordinary publication window independently of calendar display categories.
+   *
+   * @param confirmedStart reliable current sporting start instant
+   * @return inclusive instant one hour before that start
+   */
+  public static Instant windowOpensAt(Instant confirmedStart) {
+    return confirmedStart.minus(Duration.ofHours(1));
   }
 
   /**

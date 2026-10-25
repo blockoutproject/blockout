@@ -6,7 +6,7 @@ import static org.mockito.Mockito.when;
 import com.blockout.backend.contributions.support.ContributionScenario;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.notifications.application.ProcessDueLinkAnnouncements;
-import com.blockout.backend.sporting.application.service.DivisionService;
+import com.blockout.backend.sporting.application.service.ChangeDivisionLifecycle;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.sql.Timestamp;
@@ -28,8 +28,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @DisplayName("Sporting root order during division deactivation")
 class ContributionSportingLocksIntegrationTest extends ContributionScenario {
-  @Autowired private DivisionService divisions;
-  @Autowired private ProcessDueLinkAnnouncements.DueMatch dueMatch;
+  @Autowired private ChangeDivisionLifecycle divisions;
+  @Autowired private ProcessDueLinkAnnouncements.ProcessDueMatch dueMatch;
 
   @ParameterizedTest
   @ValueSource(strings = {"submission", "due", "result"})

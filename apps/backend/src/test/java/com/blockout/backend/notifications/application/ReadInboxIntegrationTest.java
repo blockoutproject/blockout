@@ -12,9 +12,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-import com.blockout.backend.notifications.application.InboxReadStore.Entry;
-import com.blockout.backend.notifications.application.InboxReadStore.Page;
-import com.blockout.backend.notifications.application.InboxReadStore.Summary;
+import com.blockout.backend.notifications.application.InboxViews.Entry;
+import com.blockout.backend.notifications.application.InboxViews.Page;
+import com.blockout.backend.notifications.application.InboxViews.Summary;
 import com.blockout.backend.notifications.testsupport.InboxDatabaseFixture;
 import com.blockout.backend.sporting.application.ReadSportingResources;
 import jakarta.persistence.EntityManagerFactory;
@@ -294,7 +294,7 @@ class ReadInboxIntegrationTest {
     // Given
     UUID own = entry(sql, 1, ACCOUNT, NOW.minusSeconds(60));
     UUID foreign = entry(sql, 2, OTHER, NOW);
-    InboxReadStore.Continuation keys = new InboxReadStore.Continuation(NOW, foreign);
+    InboxViews.Continuation keys = new InboxViews.Continuation(NOW, foreign);
 
     // When
     Page page = reads.page(new NotificationContext(ACCOUNT), keys);

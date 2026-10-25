@@ -24,7 +24,7 @@ class ReadSearchTest {
   private final SearchContext context =
       new SearchContext(SearchContext.Resource.CLUB, "eagles", null, null, null, null, false);
   private final SearchEngine engine = mock(SearchEngine.class);
-  private final SearchHydration hydration = mock(SearchHydration.class);
+  private final HydrateSearch hydration = mock(HydrateSearch.class);
   private final ReadSearch search = new ReadSearch(engine, hydration);
 
   @Test

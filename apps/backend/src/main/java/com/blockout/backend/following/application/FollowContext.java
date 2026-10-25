@@ -46,4 +46,13 @@ public record FollowContext(UUID accountId, Target target) {
       Objects.requireNonNull(id);
     }
   }
+
+  /**
+   * Immutable original account, sporting target and relation lifecycle for in-process consumers.
+   *
+   * @param id unique relation incarnation, replaced after unfollow/re-follow
+   * @param accountId original account protected by the relation's FK
+   * @param target exact typed sporting identity
+   */
+  public record Relation(UUID id, UUID accountId, FollowContext.Target target) {}
 }

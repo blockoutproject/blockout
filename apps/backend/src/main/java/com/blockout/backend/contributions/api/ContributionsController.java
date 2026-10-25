@@ -1,9 +1,9 @@
 package com.blockout.backend.contributions.api;
 
-import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.contributions.application.ContributionContext;
 import com.blockout.backend.contributions.application.ReadOwnContributions;
 import com.blockout.backend.contributions.application.SubmitContribution;
+import com.blockout.backend.contributions.application.SubmitModeratedContribution;
 import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.generated.mobile.api.StreamSubmissionApi;
 import com.blockout.backend.generated.mobile.model.CreateModeratedStreamContributionRequest;
@@ -26,7 +26,7 @@ public class ContributionsController implements StreamSubmissionApi {
   private final SubmitContribution submissions;
   private final ReadOwnContributions reads;
   private final ContributionApiMapper mapper;
-  private final AccountAccess accounts;
+  private final SubmitModeratedContribution moderated;
 
   /** {@inheritDoc} */
   @Override
@@ -72,13 +72,14 @@ public class ContributionsController implements StreamSubmissionApi {
     ContributionContext context = request.current();
     context.requireOriginalAccount(body.getActorAccountId());
     context.requireModeration();
-    SubmitContribution.Outcome outcome =
-        submissions.submit(context.accountId(), matchId, body.getRevision(), body.getUrl(), true);
+    SubmitModeratedContribution.Result result =
+        moderated.submit(context.accountId(), matchId, body.getRevision(), body.getUrl());
+    SubmitContribution.Outcome outcome = result.contribution();
     ContributionVersion version = outcome.version();
     return response(
         outcome.created(),
         "/administration/matches/" + matchId + "/stream-contributions/" + version.id(),
-        mapper.toDto(outcome, accounts.displayName(context.accountId())));
+        mapper.toDto(outcome, result.displayName()));
   }
 
   /**

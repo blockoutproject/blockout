@@ -30,6 +30,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -116,7 +117,7 @@ class ChangeAccountProfileIntegrationTest {
     ReadAccount.View saved =
         changes.change(
             ISSUER, "auth0|one", id, "  Chosen_name  ", ProfilePhotoActionEnum.REPLACE, PHOTO);
-    Account loggedIn = establishment.establish(ISSUER, "auth0|one").account();
+    Account loggedIn = establishment.establish(ISSUER, "auth0|one").view().account();
 
     // Then
     assertThat(saved.account().username()).isEqualTo("Chosen_name");
@@ -135,12 +136,14 @@ class ChangeAccountProfileIntegrationTest {
     changes.change(ISSUER, "auth0|one", id, null, ProfilePhotoActionEnum.REPLACE, PHOTO);
     ProfilePhoto replacement = new ProfilePhoto(new byte[] {4, 5}, "image/jpeg", 2);
 
-    // When / Then
-    assertThatThrownBy(
-            () ->
-                changes.change(
-                    ISSUER, "auth0|one", id, "taken", ProfilePhotoActionEnum.REPLACE, replacement))
-        .isInstanceOf(UsernameUnavailableException.class);
+    // When
+    ThrowingCallable change =
+        () ->
+            changes.change(
+                ISSUER, "auth0|one", id, "taken", ProfilePhotoActionEnum.REPLACE, replacement);
+
+    // Then
+    assertThatThrownBy(change).isInstanceOf(UsernameUnavailableException.class);
     assertThat(accounts.findById(id).orElseThrow().username()).isEqualTo("Original");
     assertThat(sql.queryForObject("SELECT photo_bytes FROM account WHERE id = ?", byte[].class, id))
         .isEqualTo(PHOTO.bytes());
@@ -152,11 +155,12 @@ class ChangeAccountProfileIntegrationTest {
     // Given
     changes.change(ISSUER, "auth0|one", id, null, ProfilePhotoActionEnum.REPLACE, PHOTO);
 
-    // When / Then
-    assertThatThrownBy(
-            () ->
-                changes.change(ISSUER, "auth0|one", id, "ab", ProfilePhotoActionEnum.REMOVE, null))
-        .isInstanceOf(InvalidProfileChangeException.class);
+    // When
+    ThrowingCallable change =
+        () -> changes.change(ISSUER, "auth0|one", id, "ab", ProfilePhotoActionEnum.REMOVE, null);
+
+    // Then
+    assertThatThrownBy(change).isInstanceOf(InvalidProfileChangeException.class);
     assertThat(reads.original(ISSUER, "auth0|one", id).hasPhoto()).isTrue();
   }
 
@@ -255,9 +259,11 @@ class ChangeAccountProfileIntegrationTest {
             status ->
                 accounts.create(ISSUER, "auth0|one", "Replacement", "new@example.invalid", null));
 
-      // When / Then
-      assertThatThrownBy(() -> result.get(15, TimeUnit.SECONDS))
-          .hasCauseInstanceOf(AccountNotFoundException.class);
+      // When
+      ThrowingCallable completed = () -> result.get(15, TimeUnit.SECONDS);
+
+      // Then
+      assertThatThrownBy(completed).hasCauseInstanceOf(AccountNotFoundException.class);
       assertThat(accounts.findById(id)).isEmpty();
       if (recreate)
         assertThat(accounts.findByPrincipal(ISSUER, "auth0|one").orElseThrow().username())

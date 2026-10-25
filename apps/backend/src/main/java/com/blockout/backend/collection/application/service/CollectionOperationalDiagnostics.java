@@ -8,8 +8,8 @@ import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
-import com.blockout.backend.sporting.application.service.SeasonService;
-import com.blockout.backend.sporting.application.service.SportingReadService;
+import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -29,8 +29,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class CollectionOperationalDiagnostics {
   private static final long REPORT_LIMIT = 10_000;
   private final CollectionStore store;
-  private final SeasonService seasons;
-  private final SportingReadService sporting;
+  private final ChangeCollectionSeasons seasons;
+  private final ReadSportingAcquisition acquisitionReads;
   private final TransactionTemplate reads;
 
   /** Stable result key whose committed state needs diagnosis, without copying provider data. */
@@ -48,17 +48,17 @@ public class CollectionOperationalDiagnostics {
    *
    * @param store current F01 state owner
    * @param seasons canonical season lock owner
-   * @param sporting current effective acquisition-classification reads
+   * @param acquisitionReads current effective acquisition-classification reads
    * @param transactions existing application transaction manager
    */
   public CollectionOperationalDiagnostics(
       CollectionStore store,
-      SeasonService seasons,
-      SportingReadService sporting,
+      ChangeCollectionSeasons seasons,
+      ReadSportingAcquisition acquisitionReads,
       PlatformTransactionManager transactions) {
     this.store = store;
     this.seasons = seasons;
-    this.sporting = sporting;
+    this.acquisitionReads = acquisitionReads;
     this.reads = new TransactionTemplate(transactions);
     this.reads.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
   }
@@ -104,7 +104,7 @@ public class CollectionOperationalDiagnostics {
                   "reason",
                   success
                       ? "usable-observation"
-                      : CollectionResultService.isStructuralReason(result.reasonType())
+                      : RecordCollectionResults.isStructuralReason(result.reasonType())
                           ? "structure-or-context"
                           : "failed-observation")
               .addKeyValue("collection_cycle_order", result.cycleOrder())
@@ -141,7 +141,7 @@ public class CollectionOperationalDiagnostics {
               control.seasonId(),
               provider,
               "classification",
-              sporting.countUnclassifiedPools(control.seasonId(), provider));
+              acquisitionReads.countUnclassifiedPools(control.seasonId(), provider));
         });
   }
 

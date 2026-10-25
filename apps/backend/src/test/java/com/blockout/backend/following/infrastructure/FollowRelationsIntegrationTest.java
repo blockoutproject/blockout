@@ -1,25 +1,27 @@
 package com.blockout.backend.following.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.accounts.application.PrincipalReader;
 import com.blockout.backend.accounts.application.exception.AccountNotFoundException;
 import com.blockout.backend.following.application.FollowContext;
+import com.blockout.backend.following.application.FollowContext.Relation;
 import com.blockout.backend.following.application.FollowContext.Target;
 import com.blockout.backend.following.application.FollowContext.TargetType;
-import com.blockout.backend.following.application.FollowEligibility;
-import com.blockout.backend.following.application.FollowService;
 import com.blockout.backend.following.application.FollowStore;
-import com.blockout.backend.following.application.FollowStore.Relation;
 import com.blockout.backend.following.application.FollowUnavailableTargetException;
+import com.blockout.backend.following.application.ReadFollowEligibility;
+import com.blockout.backend.following.application.ReadFollowState;
+import com.blockout.backend.following.application.ReplaceFollowState;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -63,9 +65,10 @@ class FollowRelationsIntegrationTest {
   // Deliberately equal UUIDs in different owner tables must remain distinct typed targets.
   private static final UUID TARGET = UUID.fromString("00000000-0000-4000-8000-000000000013");
   @Autowired private JdbcTemplate sql;
-  @Autowired private FollowService service;
+  @Autowired private ReadFollowState reads;
+  @Autowired private ReplaceFollowState changes;
   @Autowired private FollowStore store;
-  @Autowired private FollowEligibility eligibility;
+  @Autowired private ReadFollowEligibility eligibility;
   @Autowired private AccountAccess accounts;
   @Autowired private PlatformTransactionManager transactions;
   @MockitoBean private PrincipalReader provider;
@@ -136,18 +139,27 @@ class FollowRelationsIntegrationTest {
   void replacesIdempotently(TargetType type) {
     // Given
     FollowContext context = context(type);
-    assertThat(service.state(context)).isFalse();
-    assertThat(service.replace(context, true)).isTrue();
+    assertThat(reads.read(context)).isFalse();
+    assertThat(changes.replace(context, true)).isTrue();
     UUID original = relation(type).id();
 
-    // When / Then
-    assertThat(service.replace(context, true)).isTrue();
-    assertThat(relation(type).id()).isEqualTo(original);
-    assertThat(service.replace(context, false)).isFalse();
-    assertThat(service.replace(context, false)).isFalse();
-    assertThat(store.find(context)).isEmpty();
-    assertThat(service.replace(context, true)).isTrue();
-    assertThat(relation(type).id()).isNotEqualTo(original);
+    // When
+    boolean repeatedTrue = changes.replace(context, true);
+    UUID retained = relation(type).id();
+    boolean firstRemoval = changes.replace(context, false);
+    boolean repeatedRemoval = changes.replace(context, false);
+    Optional<Relation> removed = store.find(context);
+    boolean restored = changes.replace(context, true);
+    UUID recreated = relation(type).id();
+
+    // Then
+    assertThat(repeatedTrue).isTrue();
+    assertThat(retained).isEqualTo(original);
+    assertThat(firstRemoval).isFalse();
+    assertThat(repeatedRemoval).isFalse();
+    assertThat(removed).isEmpty();
+    assertThat(restored).isTrue();
+    assertThat(recreated).isNotEqualTo(original);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_team", Long.class)).isEqualTo(1L);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_pool", Long.class)).isEqualTo(1L);
     verifyNoInteractions(provider);
@@ -157,19 +169,19 @@ class FollowRelationsIntegrationTest {
   @DisplayName("Removes only the exact owner's typed association")
   void isolatesOwnersAndKinds() {
     // Given
-    service.replace(context(TargetType.TEAM), true);
-    assertThat(service.state(context(TargetType.POOL))).isFalse();
-    service.replace(context(TargetType.POOL), true);
+    changes.replace(context(TargetType.TEAM), true);
+    assertThat(reads.read(context(TargetType.POOL))).isFalse();
+    changes.replace(context(TargetType.POOL), true);
     FollowContext other = new FollowContext(OTHER, context(TargetType.TEAM).target());
-    service.replace(other, true);
+    changes.replace(other, true);
 
     // When
-    service.replace(context(TargetType.TEAM), false);
+    changes.replace(context(TargetType.TEAM), false);
 
     // Then
-    assertThat(service.state(context(TargetType.TEAM))).isFalse();
-    assertThat(service.state(context(TargetType.POOL))).isTrue();
-    assertThat(service.state(other)).isTrue();
+    assertThat(reads.read(context(TargetType.TEAM))).isFalse();
+    assertThat(reads.read(context(TargetType.POOL))).isTrue();
+    assertThat(reads.read(other)).isTrue();
   }
 
   @ParameterizedTest
@@ -180,19 +192,42 @@ class FollowRelationsIntegrationTest {
     String table = type == TargetType.TEAM ? "team_follow" : "pool_follow";
     String column = type == TargetType.TEAM ? "team_id" : "pool_id";
     String insert = "INSERT INTO " + table + "(id, account_id, " + column + ") VALUES (?, ?, ?)";
-    service.replace(context(type), true);
+    changes.replace(context(type), true);
 
-    // When / Then: each statement commits independently, so every rejection reaches SQL.
-    assertThatThrownBy(() -> sql.update(insert, UUID.randomUUID(), ACCOUNT, TARGET))
-        .isInstanceOf(DataIntegrityViolationException.class);
-    assertThatThrownBy(() -> sql.update(insert, UUID.randomUUID(), null, TARGET))
-        .isInstanceOf(DataIntegrityViolationException.class);
-    assertThatThrownBy(() -> sql.update(insert, UUID.randomUUID(), ACCOUNT, null))
-        .isInstanceOf(DataIntegrityViolationException.class);
-    assertThatThrownBy(() -> sql.update(insert, UUID.randomUUID(), UUID.randomUUID(), TARGET))
-        .isInstanceOf(DataIntegrityViolationException.class);
-    assertThatThrownBy(() -> sql.update(insert, UUID.randomUUID(), ACCOUNT, UUID.randomUUID()))
-        .isInstanceOf(DataIntegrityViolationException.class);
+    // When: each statement commits independently, so every rejection reaches SQL.
+    Throwable observedFailure =
+        catchThrowable(() -> sql.update(insert, UUID.randomUUID(), ACCOUNT, TARGET));
+
+    // Then
+    assertThat(observedFailure).isInstanceOf(DataIntegrityViolationException.class);
+
+    // When
+    Throwable secondFailure =
+        catchThrowable(() -> sql.update(insert, UUID.randomUUID(), null, TARGET));
+
+    // Then
+    assertThat(secondFailure).isInstanceOf(DataIntegrityViolationException.class);
+
+    // When
+    Throwable thirdFailure =
+        catchThrowable(() -> sql.update(insert, UUID.randomUUID(), ACCOUNT, null));
+
+    // Then
+    assertThat(thirdFailure).isInstanceOf(DataIntegrityViolationException.class);
+
+    // When
+    Throwable fourthFailure =
+        catchThrowable(() -> sql.update(insert, UUID.randomUUID(), UUID.randomUUID(), TARGET));
+
+    // Then
+    assertThat(fourthFailure).isInstanceOf(DataIntegrityViolationException.class);
+
+    // When
+    Throwable fifthFailure =
+        catchThrowable(() -> sql.update(insert, UUID.randomUUID(), ACCOUNT, UUID.randomUUID()));
+
+    // Then
+    assertThat(fifthFailure).isInstanceOf(DataIntegrityViolationException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM " + table, Long.class)).isEqualTo(1L);
   }
 
@@ -201,24 +236,34 @@ class FollowRelationsIntegrationTest {
   @DisplayName("Retains a hidden relation and restores its identity when F02 permits viewing again")
   void retainsHiddenRelations(TargetType type) {
     // Given
-    service.replace(context(type), true);
+    changes.replace(context(type), true);
     UUID original = relation(type).id();
     sql.update(
         "UPDATE sporting_pool SET catalog_eligible=FALSE, calendar_empty=TRUE WHERE id=?", TARGET);
 
-    // When / Then
-    assertThatThrownBy(() -> service.state(context(type)))
-        .isInstanceOf(FollowUnavailableTargetException.class);
-    assertThatThrownBy(() -> service.replace(context(type), false))
-        .isInstanceOf(FollowUnavailableTargetException.class);
+    // When
+    Throwable observedFailure = catchThrowable(() -> reads.read(context(type)));
+
+    // Then
+    assertThat(observedFailure).isInstanceOf(FollowUnavailableTargetException.class);
+
+    // When
+    Throwable secondFailure = catchThrowable(() -> changes.replace(context(type), false));
+
+    // Then
+    assertThat(secondFailure).isInstanceOf(FollowUnavailableTargetException.class);
     assertThat(relation(type).id()).isEqualTo(original);
     sql.update(
         "UPDATE sporting_pool SET catalog_eligible=TRUE, calendar_empty=FALSE WHERE id=?", TARGET);
     sql.update("UPDATE sporting_division SET active=FALSE WHERE id=?", DIVISION);
-    assertThatThrownBy(() -> service.state(context(type)))
-        .isInstanceOf(FollowUnavailableTargetException.class);
+
+    // When
+    Throwable thirdFailure = catchThrowable(() -> reads.read(context(type)));
+
+    // Then
+    assertThat(thirdFailure).isInstanceOf(FollowUnavailableTargetException.class);
     sql.update("UPDATE sporting_division SET active=TRUE WHERE id=?", DIVISION);
-    assertThat(service.state(context(type))).isTrue();
+    assertThat(reads.read(context(type))).isTrue();
     assertThat(relation(type).id()).isEqualTo(original);
   }
 
@@ -227,7 +272,7 @@ class FollowRelationsIntegrationTest {
       "Keeps corrections on the original identity without transferring to homonyms in another season")
   void preservesIdentityAcrossCorrections() {
     // Given
-    service.replace(context(TargetType.TEAM), true);
+    changes.replace(context(TargetType.TEAM), true);
     UUID original = relation(TargetType.TEAM).id();
     UUID nextSeason = UUID.randomUUID();
     UUID nextTeam = UUID.randomUUID();
@@ -246,7 +291,7 @@ class FollowRelationsIntegrationTest {
         TARGET);
 
     // Then
-    assertThat(service.state(context(TargetType.TEAM))).isTrue();
+    assertThat(reads.read(context(TargetType.TEAM))).isTrue();
     assertThat(relation(TargetType.TEAM).id()).isEqualTo(original);
     assertThat(store.find(new FollowContext(ACCOUNT, new Target(TargetType.TEAM, nextTeam))))
         .isEmpty();
@@ -261,9 +306,11 @@ class FollowRelationsIntegrationTest {
     // Given
     FollowContext missing = new FollowContext(ACCOUNT, new Target(type, UUID.randomUUID()));
 
-    // When / Then
-    assertThatThrownBy(() -> service.replace(missing, true))
-        .isInstanceOf(FollowUnavailableTargetException.class);
+    // When
+    Throwable observedFailure = catchThrowable(() -> changes.replace(missing, true));
+
+    // Then
+    assertThat(observedFailure).isInstanceOf(FollowUnavailableTargetException.class);
     assertThat(store.find(missing)).isEmpty();
   }
 
@@ -271,20 +318,23 @@ class FollowRelationsIntegrationTest {
   @DisplayName("Rolls back all relation changes on a later transactional failure")
   void rollsBack() {
     // Given
-    service.replace(context(TargetType.POOL), true);
+    changes.replace(context(TargetType.POOL), true);
     UUID original = relation(TargetType.POOL).id();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
-    // When / Then
-    assertThatThrownBy(
+    // When
+    Throwable observedFailure =
+        catchThrowable(
             () ->
                 transaction.executeWithoutResult(
                     status -> {
-                      service.replace(context(TargetType.POOL), false);
-                      service.replace(context(TargetType.TEAM), true);
+                      changes.replace(context(TargetType.POOL), false);
+                      changes.replace(context(TargetType.TEAM), true);
                       throw new IllegalStateException("Controlled rollback");
-                    }))
-        .isInstanceOf(IllegalStateException.class);
+                    }));
+
+    // Then
+    assertThat(observedFailure).isInstanceOf(IllegalStateException.class);
     assertThat(store.find(context(TargetType.TEAM))).isEmpty();
     assertThat(relation(TargetType.POOL).id()).isEqualTo(original);
   }
@@ -308,10 +358,10 @@ class FollowRelationsIntegrationTest {
                                 inner -> {
                                   waitingPid.complete(
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
-                                  return service.replace(context(TargetType.TEAM), last);
+                                  return changes.replace(context(TargetType.TEAM), last);
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, waitingPid);
-                service.replace(context(TargetType.TEAM), first);
+                changes.replace(context(TargetType.TEAM), first);
                 return second;
               });
 
@@ -319,7 +369,7 @@ class FollowRelationsIntegrationTest {
       assertThat(waiting.get(15, TimeUnit.SECONDS)).isEqualTo(last);
 
       // Then
-      assertThat(service.state(context(TargetType.TEAM))).isEqualTo(last);
+      assertThat(reads.read(context(TargetType.TEAM))).isEqualTo(last);
       assertThat(sql.queryForObject("SELECT COUNT(*) FROM team_follow", Long.class))
           .isEqualTo(last ? 1L : 0L);
       verifyNoInteractions(provider);
@@ -346,7 +396,7 @@ class FollowRelationsIntegrationTest {
                                 inner -> {
                                   waitingPid.complete(
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
-                                  return service.replace(context(TargetType.TEAM), true);
+                                  return changes.replace(context(TargetType.TEAM), true);
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, waitingPid);
                 sql.update("DELETE FROM account WHERE id=?", ACCOUNT);
@@ -357,9 +407,11 @@ class FollowRelationsIntegrationTest {
             "INSERT INTO account(id, issuer, subject, username, email) VALUES (?, 'https://identity.example.invalid/', 'one', 'replacement', 'replacement@example.invalid')",
             UUID.randomUUID());
 
-      // When / Then
-      assertThatThrownBy(() -> waiting.get(15, TimeUnit.SECONDS))
-          .hasCauseInstanceOf(AccountNotFoundException.class);
+      // When
+      Throwable observedFailure = catchThrowable(() -> waiting.get(15, TimeUnit.SECONDS));
+
+      // Then
+      assertThat(observedFailure).hasCauseInstanceOf(AccountNotFoundException.class);
       assertThat(sql.queryForObject("SELECT COUNT(*) FROM team_follow", Long.class)).isZero();
       assertThat(sql.queryForObject("SELECT COUNT(*) FROM pool_follow", Long.class)).isZero();
       verifyNoInteractions(provider);
@@ -377,7 +429,7 @@ class FollowRelationsIntegrationTest {
       Future<?> deletion =
           transaction.execute(
               status -> {
-                service.replace(context(TargetType.POOL), true);
+                changes.replace(context(TargetType.POOL), true);
                 Future<?> remover =
                     worker.submit(
                         () ->
@@ -400,8 +452,13 @@ class FollowRelationsIntegrationTest {
 
       // Then
       assertThat(store.find(context(TargetType.POOL))).isEmpty();
-      assertThatThrownBy(() -> service.replace(context(TargetType.POOL), true))
-          .isInstanceOf(AccountNotFoundException.class);
+
+      // When
+      Throwable observedFailure =
+          catchThrowable(() -> changes.replace(context(TargetType.POOL), true));
+
+      // Then
+      assertThat(observedFailure).isInstanceOf(AccountNotFoundException.class);
       verifyNoInteractions(provider);
     }
   }
@@ -410,16 +467,16 @@ class FollowRelationsIntegrationTest {
   @DisplayName("Reads current typed relations for eligibility and excludes a recreated UUID")
   void readsEligibility() {
     // Given
-    service.replace(context(TargetType.TEAM), true);
-    service.replace(context(TargetType.POOL), true);
+    changes.replace(context(TargetType.TEAM), true);
+    changes.replace(context(TargetType.POOL), true);
     Relation original = relation(TargetType.TEAM);
     Map<UUID, Set<Relation>> recipients =
         eligibility.recipients(
             Set.of(context(TargetType.TEAM).target(), context(TargetType.POOL).target()));
 
     // When
-    service.replace(context(TargetType.TEAM), false);
-    service.replace(context(TargetType.TEAM), true);
+    changes.replace(context(TargetType.TEAM), false);
+    changes.replace(context(TargetType.TEAM), true);
 
     // Then
     assertThat(recipients).containsEntry(ACCOUNT, Set.of(original, relation(TargetType.POOL)));

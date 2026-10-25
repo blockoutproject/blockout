@@ -15,14 +15,14 @@ import com.blockout.backend.access.domain.MaintenanceSettings;
 import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
-import com.blockout.backend.sporting.application.ConsultationStore.CalendarRequest;
+import com.blockout.backend.sporting.application.ConsultationRequest.CalendarRequest;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.model.SportingVisibility;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Reason;
 import com.blockout.backend.sporting.application.port.SportingReadStore;
 import com.blockout.backend.sporting.application.port.SportingStore;
-import com.blockout.backend.sporting.application.service.SportingReadService;
+import com.blockout.backend.sporting.application.service.ReadSportingData;
 import java.time.ZoneId;
 import java.util.Optional;
 import java.util.Set;
@@ -125,8 +125,8 @@ class ConsultationAccessTest {
     SportingReadStore current = mock(SportingReadStore.class);
     when(current.visibility(Kind.MATCH, ID))
         .thenReturn(Optional.of(new SportingVisibility(ID, Kind.MATCH, Set.of(reason))));
-    SportingReadService reads =
-        new SportingReadService(
+    ReadSportingData reads =
+        new ReadSportingData(
             facts,
             org.mapstruct.factory.Mappers.getMapper(
                 com.blockout.backend.sporting.application.model.SportingModelMapper.class),
@@ -152,8 +152,8 @@ class ConsultationAccessTest {
         .thenReturn(
             Optional.of(new SportingVisibility(ID, Kind.MATCH, Set.of())),
             Optional.of(new SportingVisibility(ID, Kind.MATCH, Set.of(Reason.DATE_UNKNOWN))));
-    SportingReadService reads =
-        new SportingReadService(
+    ReadSportingData reads =
+        new ReadSportingData(
             facts,
             org.mapstruct.factory.Mappers.getMapper(
                 com.blockout.backend.sporting.application.model.SportingModelMapper.class),
@@ -170,16 +170,14 @@ class ConsultationAccessTest {
   @Test
   @DisplayName("Keeps a club calendar bound to its selected season")
   void requiresClubSeason() {
-    // Given / When
+    // Given
+    ZoneId groupingZone = ZoneId.of("Europe/Paris");
+
+    // When
     org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
         () ->
             new CalendarRequest(
-                Kind.CLUB,
-                ID,
-                null,
-                CalendarCategoryEnum.UPCOMING,
-                ZoneId.of("Europe/Paris"),
-                null);
+                Kind.CLUB, ID, null, CalendarCategoryEnum.UPCOMING, groupingZone, null);
 
     // Then
     assertThatThrownBy(read).isInstanceOf(IllegalArgumentException.class);
@@ -191,11 +189,12 @@ class ConsultationAccessTest {
       names = {"TEAM", "POOL", "MATCH"})
   @DisplayName("Rejects a season on team/pool selectors and excludes match as a calendar selector")
   void rejectsWrongSelector(Kind kind) {
-    // Given / When
+    // Given
+    ZoneId groupingZone = ZoneId.of("Europe/Paris");
+
+    // When
     org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () ->
-            new CalendarRequest(
-                kind, ID, ID, CalendarCategoryEnum.UPCOMING, ZoneId.of("Europe/Paris"), null);
+        () -> new CalendarRequest(kind, ID, ID, CalendarCategoryEnum.UPCOMING, groupingZone, null);
 
     // Then
     assertThatThrownBy(read).isInstanceOf(IllegalArgumentException.class);

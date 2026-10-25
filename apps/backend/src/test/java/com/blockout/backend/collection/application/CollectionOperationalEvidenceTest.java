@@ -7,21 +7,20 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.blockout.backend.access.application.CurrentPermissions;
 import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionStageMapper;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.collection.application.port.CollectionStore;
-import com.blockout.backend.collection.application.service.CollectionCycleService;
-import com.blockout.backend.collection.application.service.CollectionResultService;
+import com.blockout.backend.collection.application.service.CollectionCycleAccess;
+import com.blockout.backend.collection.application.service.RecordCollectionResults;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
-import com.blockout.backend.sporting.application.service.SportingReadService;
+import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Optional;
@@ -48,23 +47,17 @@ class CollectionOperationalEvidenceTest {
   private static final UUID CYCLE = UUID.fromString("00000000-0000-4000-8000-000000000204");
   private static final Instant FIRST = Instant.parse("2026-10-25T00:00:00Z");
   @Mock private CollectionStore store;
-  @Mock private CollectionCycleService cycles;
-  @Mock private SportingReadService sporting;
-  @Mock private CurrentPermissions permissions;
+  @Mock private CollectionCycleAccess cycleAccess;
+  @Mock private ReadSportingAcquisition sporting;
   @Mock private ApplicationEventPublisher events;
-  private CollectionResultService service;
+  private RecordCollectionResults service;
 
   /** Uses real enum mapping while replacing only external application collaborators. */
   @BeforeEach
   void createService() {
     service =
-        new CollectionResultService(
-            store,
-            cycles,
-            sporting,
-            permissions,
-            events,
-            Mappers.getMapper(CollectionStageMapper.class));
+        new RecordCollectionResults(
+            store, cycleAccess, sporting, events, Mappers.getMapper(CollectionStageMapper.class));
   }
 
   @Test
@@ -181,7 +174,7 @@ class CollectionOperationalEvidenceTest {
   void completesWithoutInventingEvidence() {
     // Given
     CollectionState.Cycle cycle = cycle(3);
-    when(cycles.lockControlPassage(CYCLE)).thenReturn(cycle);
+    when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle);
     when(store.cycle(CYCLE)).thenReturn(Optional.of(cycle));
 
     // When
@@ -222,7 +215,7 @@ class CollectionOperationalEvidenceTest {
    * @param stage actual selected role
    */
   private void admitted(long order, CollectionStageEnum stage) {
-    when(cycles.lockControlPassage(CYCLE)).thenReturn(cycle(order));
+    when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(order));
     when(store.containsTarget(CYCLE, SCOPE, CollectionTargetKindEnum.fromValue(stage.getValue())))
         .thenReturn(true);
   }

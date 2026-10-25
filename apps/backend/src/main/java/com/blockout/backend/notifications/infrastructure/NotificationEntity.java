@@ -1,6 +1,6 @@
 package com.blockout.backend.notifications.infrastructure;
 
-import com.blockout.backend.notifications.application.NotificationStore.Entry;
+import com.blockout.backend.notifications.application.AllocateAnnouncements.Entry;
 import com.blockout.backend.notifications.domain.NotificationFamily;
 import com.blockout.backend.notifications.domain.NotificationVariant;
 import jakarta.persistence.Column;

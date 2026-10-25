@@ -1,7 +1,8 @@
 package com.blockout.backend.collection.api;
 
 import com.blockout.backend.accounts.api.CurrentAccount;
-import com.blockout.backend.collection.application.service.CollectionResultService;
+import com.blockout.backend.collection.application.service.ReadCollectionConfiguration;
+import com.blockout.backend.collection.application.service.RecordCollectionResults;
 import com.blockout.backend.generated.mobile.api.CollectionResultsApi;
 import com.blockout.backend.generated.mobile.model.CollectionResultPageResponse;
 import java.util.UUID;
@@ -14,7 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 public class CollectionResultsController implements CollectionResultsApi {
-  private final CollectionResultService results;
+  private final RecordCollectionResults results;
+  private final ReadCollectionConfiguration configurationReads;
   private final CurrentAccount account;
   private final CollectionApiMapper mapper;
 
@@ -24,6 +26,6 @@ public class CollectionResultsController implements CollectionResultsApi {
       UUID controlId, Long page, Integer size) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(results.list(account.id(), controlId, page, size)));
+        .body(mapper.toDto(configurationReads.results(account.id(), controlId, page, size)));
   }
 }

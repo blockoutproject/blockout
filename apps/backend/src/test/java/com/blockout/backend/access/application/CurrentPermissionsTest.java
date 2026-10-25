@@ -87,4 +87,51 @@ class CurrentPermissionsTest {
     assertThatThrownBy(action).isInstanceOf(AccessDeniedException.class);
     verifyNoInteractions(store);
   }
+
+  @ParameterizedTest
+  @EnumSource(Permission.class)
+  @DisplayName("Allows protected content with its current exact grant")
+  void allowsAssignedRead(Permission permission) {
+    // Given
+    when(store.findByAccountId(ACCOUNT_ID)).thenReturn(Set.of(permission));
+
+    // When
+    ThrowingCallable read = () -> permissions.requireForRead(ACCOUNT_ID, permission);
+
+    // Then
+    assertThatCode(read).doesNotThrowAnyException();
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = Permission.class,
+      names = "MANAGE_MAINTENANCE",
+      mode = EnumSource.Mode.EXCLUDE)
+  @DisplayName("Refuses protected content when only an unrelated grant is assigned")
+  void refusesUnassignedRead(Permission permission) {
+    // Given
+    when(store.findByAccountId(ACCOUNT_ID)).thenReturn(Set.of(Permission.MANAGE_MAINTENANCE));
+
+    // When
+    ThrowingCallable read = () -> permissions.requireForRead(ACCOUNT_ID, permission);
+
+    // Then
+    assertThatThrownBy(read).isInstanceOf(AccessDeniedException.class);
+  }
+
+  @Test
+  @DisplayName("Rechecks a grant withdrawn since the previous protected read")
+  void refusesReadAfterWithdrawal() {
+    // Given
+    when(store.findByAccountId(ACCOUNT_ID))
+        .thenReturn(Set.of(Permission.MANAGE_COLLECTION), Set.of());
+    permissions.requireForRead(ACCOUNT_ID, Permission.MANAGE_COLLECTION);
+
+    // When
+    ThrowingCallable read =
+        () -> permissions.requireForRead(ACCOUNT_ID, Permission.MANAGE_COLLECTION);
+
+    // Then
+    assertThatThrownBy(read).isInstanceOf(AccessDeniedException.class);
+  }
 }

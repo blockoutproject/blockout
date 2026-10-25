@@ -8,10 +8,12 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
+import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.accounts.application.ChangeAccountProfile;
 import com.blockout.backend.accounts.application.EstablishAccount;
 import com.blockout.backend.accounts.application.PrincipalReader;
+import com.blockout.backend.accounts.application.ReadAccount;
 import com.blockout.backend.accounts.application.exception.AccountUnavailableException;
 import com.blockout.backend.accounts.application.exception.ProviderEmailUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
@@ -106,10 +108,11 @@ class EstablishAccountIntegrationTest {
           List.of(first.get(15, TimeUnit.SECONDS), second.get(15, TimeUnit.SECONDS));
 
       // Then
-      assertThat(outcomes.stream().map(result -> result.account().id()).distinct()).hasSize(1);
+      assertThat(outcomes.stream().map(result -> result.view().account().id()).distinct())
+          .hasSize(1);
       assertThat(outcomes.stream().filter(EstablishAccount.Outcome::created)).hasSize(1);
       assertThat(sql.queryForObject("SELECT COUNT(*) FROM account", Long.class)).isEqualTo(1L);
-      Account account = outcomes.getFirst().account();
+      Account account = outcomes.getFirst().view().account();
       assertThat(account.username()).matches("[A-Za-z0-9._-]{3,32}");
       assertThat(account.principalCreatedAt()).isEqualTo(CREATED);
       assertThat(accounts.hasPhoto(account.id())).isFalse();
@@ -148,10 +151,10 @@ class EstablishAccountIntegrationTest {
 
     // Then
     assertThat(result.created()).isFalse();
-    Account persisted = accounts.findById(result.account().id()).orElseThrow();
+    Account persisted = accounts.findById(result.view().account().id()).orElseThrow();
     assertThat(persisted.username()).isEqualTo("Chosen_name");
     assertThat(persisted.email()).isEqualTo("updated@example.invalid");
-    assertThat(result.account().username()).isEqualTo("Chosen_name");
+    assertThat(result.view().account().username()).isEqualTo("Chosen_name");
   }
 
   @Test
@@ -162,8 +165,8 @@ class EstablishAccountIntegrationTest {
         .thenReturn(new PrincipalReader.Evidence("shared@example.invalid", null, List.of()));
 
     // When
-    Account first = establishment.establish(ISSUER, "auth0|one").account();
-    Account second = establishment.establish(ISSUER, "auth0|One").account();
+    Account first = establishment.establish(ISSUER, "auth0|one").view().account();
+    Account second = establishment.establish(ISSUER, "auth0|One").view().account();
 
     // Then
     assertThat(first.id()).isNotEqualTo(second.id());
@@ -202,7 +205,7 @@ class EstablishAccountIntegrationTest {
         .create(eq(ISSUER), eq("auth0|one"), anyString(), anyString(), any());
 
     // When
-    Account created = establishment.establish(ISSUER, "auth0|one").account();
+    Account created = establishment.establish(ISSUER, "auth0|one").view().account();
 
     // Then
     assertThat(created.id()).isNotEqualTo(competitor);
@@ -248,7 +251,7 @@ class EstablishAccountIntegrationTest {
 
     // Then
     assertThat(result.created()).isFalse();
-    assertThat(result.account()).isEqualTo(original);
+    assertThat(result.view().account()).isEqualTo(original);
     assertThat(accounts.findById(original.id())).contains(original);
   }
 
@@ -276,6 +279,90 @@ class EstablishAccountIntegrationTest {
     assertThat(locked).isEqualTo(original);
     assertThat(accounts.hasPhoto(original.id())).isTrue();
     assertThat(accounts.hasPhoto(UUID.randomUUID())).isFalse();
+  }
+
+  @Test
+  @DisplayName("Returns current photo presence and grants with the established original account")
+  void returnsCurrentProjection() {
+    // Given
+    Account original =
+        transaction.execute(
+            status ->
+                accounts.create(ISSUER, "auth0|one", "Original", "known@example.invalid", CREATED));
+    sql.update(
+        "UPDATE account SET photo_bytes = ?, photo_media_type = 'image/png', photo_dimension = 1 WHERE id = ?",
+        new byte[] {1, 2, 3},
+        original.id());
+    sql.update(
+        "INSERT INTO account_permission (account_id, permission) VALUES (?, 'maintenance.manage')",
+        original.id());
+    when(provider.read(ISSUER, "auth0|one"))
+        .thenReturn(new PrincipalReader.Evidence("current@example.invalid", CREATED, List.of()));
+
+    // When
+    ReadAccount.View view = establishment.establish(ISSUER, "auth0|one").view();
+
+    // Then
+    assertThat(view.account().id()).isEqualTo(original.id());
+    assertThat(view.account().email()).isEqualTo("current@example.invalid");
+    assertThat(view.hasPhoto()).isTrue();
+    assertThat(view.permissions()).containsExactly(Permission.MANAGE_MAINTENANCE);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  @DisplayName(
+      "Keeps a committed establishment unavailable when its original is erased before projection")
+  void refusesErasureAfterCommit(boolean recreate) {
+    // Given
+    Account original =
+        transaction.execute(
+            status ->
+                accounts.create(ISSUER, "auth0|one", "Original", "known@example.invalid", CREATED));
+    when(provider.read(ISSUER, "auth0|one"))
+        .thenReturn(new PrincipalReader.Evidence("committed@example.invalid", CREATED, List.of()));
+    AccountStore target = AopTestUtils.getUltimateTargetObject(accounts);
+    doAnswer(
+            call -> {
+              TransactionTemplate competing = new TransactionTemplate(transactions);
+              competing.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+              competing.executeWithoutResult(
+                  status -> {
+                    assertThat(
+                            sql.queryForObject(
+                                "SELECT email FROM account WHERE id = ?",
+                                String.class,
+                                original.id()))
+                        .isEqualTo("committed@example.invalid");
+                    sql.update("DELETE FROM account WHERE id = ?", original.id());
+                    if (recreate)
+                      accounts.create(
+                          ISSUER,
+                          "auth0|one",
+                          "Replacement",
+                          "replacement@example.invalid",
+                          CREATED);
+                  });
+              return call.callRealMethod();
+            })
+        .when(target)
+        .findById(original.id());
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable establish =
+        () -> establishment.establish(ISSUER, "auth0|one");
+
+    // Then
+    assertThatThrownBy(establish).isInstanceOf(AccountUnavailableException.class);
+    assertThat(
+            sql.queryForObject(
+                "SELECT COUNT(*) FROM account WHERE id = ?", Long.class, original.id()))
+        .isZero();
+    Optional<Account> replacement = accounts.findByPrincipal(ISSUER, "auth0|one");
+    if (recreate) {
+      assertThat(replacement.orElseThrow().id()).isNotEqualTo(original.id());
+      assertThat(replacement.orElseThrow().email()).isEqualTo("replacement@example.invalid");
+    } else assertThat(replacement).isEmpty();
   }
 
   @ParameterizedTest

@@ -2,7 +2,8 @@ package com.blockout.backend.contributions.application;
 
 import com.blockout.backend.sporting.application.model.SportingVisibility;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
-import com.blockout.backend.sporting.application.service.SportingReadService;
+import com.blockout.backend.sporting.application.service.ReadSportingData;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -15,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ReadPublicContribution {
   private final ContributionStore store;
-  private final SportingReadService sporting;
+  private final ReadSportingData sporting;
 
   /**
    * Supplies only current link presence after a consumer's F03 database selection, in the same
@@ -40,6 +41,18 @@ public class ReadPublicContribution {
     if (sporting.visibility(Kind.MATCH, matchId).filter(SportingVisibility::viewable).isEmpty())
       return Optional.empty();
     return store.active(matchId).map(version -> new Link(version.id(), version.address().value()));
+  }
+
+  /**
+   * Selects the next bounded set of active-link candidates for the ordinary due pass. The consumer
+   * must reread current sporting eligibility and contribution under its match lock.
+   *
+   * @param afterId exclusive previous match identity, or null for the first page
+   * @return at most one hundred current candidates without private contribution details
+   */
+  @Transactional(readOnly = true)
+  public List<UUID> activeMatches(UUID afterId) {
+    return store.activeMatches(afterId);
   }
 
   /**

@@ -3,18 +3,18 @@ package com.blockout.backend.sporting.application;
 import static com.blockout.backend.sporting.support.SportingIngestionFixture.candidate;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.blockout.backend.collection.application.service.CollectionCycleService;
-import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
+import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.generated.ingestion.model.MatchFactsInternalRequest;
 import com.blockout.backend.generated.ingestion.model.MatchResultInternalRequest;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.sporting.api.SportingObservationMapper;
 import com.blockout.backend.sporting.application.model.CalendarObservation;
 import com.blockout.backend.sporting.application.model.MatchObservation;
-import com.blockout.backend.sporting.application.service.CalendarAcceptanceService;
-import com.blockout.backend.sporting.application.service.MatchAcceptanceService;
-import com.blockout.backend.sporting.application.service.SeasonService;
-import com.blockout.backend.sporting.application.service.SportingIdentityService;
+import com.blockout.backend.sporting.application.service.AcceptCalendar;
+import com.blockout.backend.sporting.application.service.AcceptMatchObservation;
+import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.time.Instant;
@@ -26,6 +26,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -34,18 +35,19 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Real calendar/result producer, F06 recipients and F07 persistence on migrated PostgreSQL. */
+@Import(SportingIdentityFixture.class)
 @SpringBootTest
 @Testcontainers
 @DisplayName("Result producer announcement integration")
 class ResultAnnouncementIntegrationTest {
   @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   @Autowired private JdbcTemplate sql;
-  @Autowired private SeasonService seasons;
-  @Autowired private SportingIdentityService identities;
-  @Autowired private CollectionCycleService cycles;
-  @Autowired private CollectorRuntimeService runtimes;
-  @Autowired private CalendarAcceptanceService calendars;
-  @Autowired private MatchAcceptanceService matches;
+  @Autowired private ChangeCollectionSeasons seasons;
+  @Autowired private SportingIdentityFixture identities;
+  @Autowired private AdmitCollectionCycle cycles;
+  @Autowired private RegisterCollectorRuntime runtimes;
+  @Autowired private AcceptCalendar calendars;
+  @Autowired private AcceptMatchObservation matches;
   @Autowired private SportingObservationMapper mapper;
   private SportingIngestionFixture.Scope scope;
   private UUID matchId;

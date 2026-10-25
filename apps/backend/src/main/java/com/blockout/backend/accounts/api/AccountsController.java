@@ -59,19 +59,10 @@ public class AccountsController implements AccountsApi {
                 admitted.orElseThrow())
             : establishment.establish(
                 principal.getToken().getIssuer().toString(), principal.getToken().getSubject());
-    ReadAccount.View view;
-    try {
-      view =
-          reads.original(
-              principal.getToken().getIssuer().toString(),
-              principal.getToken().getSubject(),
-              outcome.account().id());
-    } catch (AccountNotFoundException absent) {
-      throw new AccountUnavailableException();
-    }
+    ReadAccount.View view = outcome.view();
     ResponseEntity.BodyBuilder response =
         outcome.created()
-            ? ResponseEntity.created(URI.create("/accounts/" + outcome.account().id()))
+            ? ResponseEntity.created(URI.create("/accounts/" + view.account().id()))
             : ResponseEntity.ok();
     return response
         .header("Cache-Control", "no-store")
@@ -106,8 +97,7 @@ public class AccountsController implements AccountsApi {
     requireOrdinaryAccess(id);
     requireProfileParts();
     ProfilePhotoActionEnum action = metadata.getPhotoAction();
-    if ((action == ProfilePhotoActionEnum.REPLACE) != (image != null))
-      throw new InvalidProfileChangeException();
+    ProfilePhoto.requireConsistentIntent(action, image != null);
     ProfilePhoto photo = null;
     if (image != null) {
       try {

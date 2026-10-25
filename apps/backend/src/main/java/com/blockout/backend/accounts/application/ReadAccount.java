@@ -46,7 +46,7 @@ public class ReadAccount {
     return view(
         accounts
             .findById(id)
-            .filter(account -> issuer.equals(account.issuer()) && subject.equals(account.subject()))
+            .filter(account -> account.belongsTo(issuer, subject))
             .orElseThrow(() -> new AccountNotFoundException()));
   }
 
@@ -62,7 +62,7 @@ public class ReadAccount {
   public ProfilePhoto photo(String issuer, String subject, UUID id) {
     accounts
         .findById(id)
-        .filter(account -> issuer.equals(account.issuer()) && subject.equals(account.subject()))
+        .filter(account -> account.belongsTo(issuer, subject))
         .orElseThrow(AccountNotFoundException::new);
     return accounts.photo(id).orElseThrow(AccountNotFoundException::new);
   }

@@ -36,7 +36,7 @@ This is synthetic cross-owner runtime evidence. The broader partial-success/abse
 
 ### Result announcement transaction — #252
 
-T029/T033 bind `MatchAcceptanceService` to the real F08 current-public-link and F07 required
+T029/T033 bind `AcceptMatchObservation` to the real F08 current-public-link and F07 required
 announcement participant. [The result-producer regression](../../apps/backend/src/test/java/com/blockout/backend/sporting/application/ResultAnnouncementIntegrationTest.java)
 and [cross-owner cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAnnouncementsIntegrationTest.java)
 qualify both concurrent publication/result orders, real inbox-constraint rollback, zero recipients,
@@ -180,7 +180,7 @@ retained #433 live Dynamic Type and #449 iOS 17 input limits are unchanged.
 
 ### Current visibility and projection boundary
 
-F02 T035–T040 are exercised by `SportingVisibilityIntegrationTest`, `SportingProjectionIntegrationTest` and `SportingReadServiceTest`, alongside the existing calendar/identity/classification suites. The integration suites use the real F01 admission, closure and completion services with explicitly migrated disposable PostgreSQL 18.6 and the restricted application role.
+F02 T035–T040 are exercised by `SportingVisibilityIntegrationTest`, `SportingProjectionIntegrationTest` and `ReadSportingDataTest`, alongside the existing calendar/identity/classification suites. The integration suites use the real F01 admission, closure and completion services with explicitly migrated disposable PostgreSQL 18.6 and the restricted application role.
 
 Current public reads recheck canonical visibility, permitted municipality, qualified aliases and participation; they never hydrate from an index document. Retained internal identity reads remain available to acquisition. A known date without a time remains eligible; a dateless or withdrawn match does not. Official standings retain labels, order and statistics while dropping links to unavailable participants. `SportingProjectionChanges.Changed` carries only identities/scopes after commit; `projectionDependents` expands current retained relations in batches, including hidden identities needing index removal. Rollback emits no handoff and score-only changes submit no search work. No request queue or recovery state is stored.
 

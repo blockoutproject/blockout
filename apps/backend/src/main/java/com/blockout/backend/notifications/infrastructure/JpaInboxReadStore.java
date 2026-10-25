@@ -1,10 +1,11 @@
 package com.blockout.backend.notifications.infrastructure;
 
-import com.blockout.backend.contributions.application.ReadPublicContribution;
 import com.blockout.backend.notifications.application.InboxReadStore;
+import com.blockout.backend.notifications.application.InboxViews.Continuation;
+import com.blockout.backend.notifications.application.InboxViews.Summary;
 import com.blockout.backend.notifications.application.NotificationContext;
+import com.blockout.backend.notifications.domain.NotificationRetention;
 import com.blockout.backend.sporting.application.ConsultationMatchSelection;
-import com.blockout.backend.sporting.application.ConsultationViews.MatchSummary;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Tuple;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -14,9 +15,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.ScrollPosition;
 import org.springframework.data.domain.Sort;
@@ -25,7 +24,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 
 /**
- * Current owner/age/sporting selection before keyset paging, followed by bounded owner hydration.
+ * Current owner/age/sporting selection before native keyset paging; no application orchestration.
  */
 @Repository
 @RequiredArgsConstructor
@@ -34,12 +33,11 @@ public class JpaInboxReadStore implements InboxReadStore {
   private final NotificationRepository notifications;
   private final EntityManager entities;
   private final ConsultationMatchSelection sporting;
-  private final ReadPublicContribution contributions;
   private final NotificationPersistenceMapper mapper;
 
   /** {@inheritDoc} */
   @Override
-  public Page page(NotificationContext owner, Continuation after, Instant now) {
+  public Selection page(NotificationContext owner, Continuation after, Instant now) {
     ScrollPosition position =
         after == null
             ? ScrollPosition.keyset()
@@ -51,17 +49,17 @@ public class JpaInboxReadStore implements InboxReadStore {
     List<NotificationRow> rows = window.getContent();
     Continuation next =
         window.hasNext() ? new Continuation(rows.getLast().createdAt(), rows.getLast().id()) : null;
-    return new Page(hydrate(rows, now), next);
+    return new Selection(rows.stream().map(mapper::toSnapshot).toList(), next);
   }
 
   /** {@inheritDoc} */
   @Override
-  public Optional<Entry> member(NotificationContext owner, UUID id, Instant now) {
+  public Optional<Snapshot> member(NotificationContext owner, UUID id, Instant now) {
     Specification<NotificationEntity> selected =
         current(owner, now).and((root, query, builder) -> builder.equal(root.get("id"), id));
     return notifications
         .findBy(selected, q -> q.as(NotificationRow.class).one())
-        .map(row -> hydrate(List.of(row), now).getFirst());
+        .map(mapper::toSnapshot);
   }
 
   /** {@inheritDoc} */
@@ -79,7 +77,8 @@ public class JpaInboxReadStore implements InboxReadStore {
     Tuple result = entities.createQuery(query).getSingleResult();
     Instant oldest = result.get("oldest", Instant.class);
     return new Summary(
-        result.get("count", Long.class), oldest == null ? null : oldest.plus(RETENTION));
+        result.get("count", Long.class),
+        oldest == null ? null : oldest.plus(NotificationRetention.RETENTION));
   }
 
   /** {@inheritDoc} */
@@ -99,23 +98,7 @@ public class JpaInboxReadStore implements InboxReadStore {
     return (root, query, builder) ->
         builder.and(
             builder.equal(root.get("accountId"), owner.accountId()),
-            builder.greaterThan(root.get("createdAt"), now.minus(RETENTION)),
+            builder.greaterThan(root.get("createdAt"), now.minus(NotificationRetention.RETENTION)),
             root.get("matchId").in(sporting.visibleIds(query, builder)));
-  }
-
-  /**
-   * Hydrates current sporting and link facts in bounded owner queries.
-   *
-   * @param rows bounded current personal rows
-   * @param now shared evaluation instant
-   * @return current detached presentation without N+1 sporting/link reads
-   */
-  private List<Entry> hydrate(List<NotificationRow> rows, Instant now) {
-    Set<UUID> ids = rows.stream().map(NotificationRow::matchId).collect(Collectors.toSet());
-    Map<UUID, MatchSummary> matches = sporting.summaries(ids, now);
-    Set<UUID> links = contributions.availableForConsultableMatches(ids);
-    return rows.stream()
-        .map(row -> mapper.toView(row, matches.get(row.matchId()), links.contains(row.matchId())))
-        .toList();
   }
 }

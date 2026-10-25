@@ -1,5 +1,6 @@
 package com.blockout.backend.notifications.application;
 
+import com.blockout.backend.notifications.domain.NotificationRetention;
 import java.time.Clock;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class PurgeNotifications {
-  private final ExpiredEntries transaction;
+  private final DeleteExpiredEntries transaction;
   private final Clock clock;
 
   /**
@@ -22,7 +23,7 @@ public class PurgeNotifications {
    * ordinary daily pass or manual intervention. No personal references enter diagnostics.
    */
   public void run() {
-    Instant cutoff = clock.instant().minus(InboxReadStore.RETENTION);
+    Instant cutoff = clock.instant().minus(NotificationRetention.RETENTION);
     long deleted = 0;
     log.atInfo()
         .addKeyValue("operation", "notification_retention")
@@ -54,7 +55,7 @@ public class PurgeNotifications {
   /** Separate proxy owns each short retention transaction, without sporting/account locks. */
   @Service
   @RequiredArgsConstructor
-  public static class ExpiredEntries {
+  public static class DeleteExpiredEntries {
     private final NotificationStore store;
 
     /**

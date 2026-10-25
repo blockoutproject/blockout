@@ -24,6 +24,7 @@ import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.contributions.application.ContributionRejectedException;
 import com.blockout.backend.contributions.application.ReadOwnContributions;
 import com.blockout.backend.contributions.application.SubmitContribution;
+import com.blockout.backend.contributions.application.SubmitModeratedContribution;
 import com.blockout.backend.contributions.domain.ContributionEligibility.Status;
 import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.domain.StreamAddress;
@@ -46,6 +47,8 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -64,7 +67,8 @@ import org.springframework.transaction.PlatformTransactionManager;
   MaintenanceAdmission.class,
   ActionAuthorization.class,
   CurrentPermissions.class,
-  ContributionApiMapperImpl.class
+  ContributionApiMapperImpl.class,
+  SubmitModeratedContribution.class
 })
 @DisplayName("Generated contribution submission HTTP boundary")
 class ContributionSubmissionWebMvcTest {
@@ -99,17 +103,20 @@ class ContributionSubmissionWebMvcTest {
     when(submissions.submit(any(), any(), any(), any(), anyBoolean()))
         .thenReturn(new SubmitContribution.Outcome(version(), "1", created));
 
-    // When / Then
-    org.springframework.test.web.servlet.ResultActions response =
+    // When
+    ResultActions response =
         mvc.perform(
-                post(PATH)
-                    .with(mobile())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"revision\":\"0\",\"url\":\"https://youtube.com/synthetic\"}"))
-            .andExpect(status().is(status))
-            .andExpect(header().string("Cache-Control", "no-store"))
-            .andExpect(jsonPath("$.contribution.id").value(VERSION.toString()))
-            .andExpect(jsonPath("$.revision").value("1"));
+            post(PATH)
+                .with(mobile())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"revision\":\"0\",\"url\":\"https://youtube.com/synthetic\"}"));
+
+    // Then
+    response
+        .andExpect(status().is(status))
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.contribution.id").value(VERSION.toString()))
+        .andExpect(jsonPath("$.revision").value("1"));
     if (created) response.andExpect(header().string("Location", PATH + "/" + VERSION));
   }
 
@@ -123,9 +130,15 @@ class ContributionSubmissionWebMvcTest {
       })
   @DisplayName("Rejects missing null and unknown command properties before submission")
   void rejectsInvalidBody(String body) throws Exception {
-    // Given / When / Then
-    mvc.perform(post(PATH).with(mobile()).contentType(MediaType.APPLICATION_JSON).content(body))
-        .andExpect(status().isBadRequest());
+    // Given
+    MockHttpServletRequestBuilder request =
+        post(PATH).with(mobile()).contentType(MediaType.APPLICATION_JSON).content(body);
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isBadRequest());
     verifyNoInteractions(submissions);
   }
 
@@ -145,12 +158,16 @@ class ContributionSubmissionWebMvcTest {
     when(submissions.submit(any(), any(), any(), any(), anyBoolean()))
         .thenThrow(new ContributionRejectedException(refusal));
 
-    // When / Then
-    mvc.perform(
+    // When
+    ResultActions response =
+        mvc.perform(
             post(PATH)
                 .with(mobile())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":\"0\",\"url\":\"https://youtube.com/synthetic\"}"))
+                .content("{\"revision\":\"0\",\"url\":\"https://youtube.com/synthetic\"}"));
+
+    // Then
+    response
         .andExpect(status().is(code))
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.status").value(code));
@@ -159,34 +176,50 @@ class ContributionSubmissionWebMvcTest {
   @Test
   @DisplayName("Requires authentication before invoking a submission")
   void requiresAuthentication() throws Exception {
-    // Given / When / Then
-    mvc.perform(
-            post(PATH)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":\"0\",\"url\":\"https://youtube.com/a\"}"))
-        .andExpect(status().isUnauthorized());
+    // Given
+    MockHttpServletRequestBuilder request =
+        post(PATH)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"revision\":\"0\",\"url\":\"https://youtube.com/a\"}");
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isUnauthorized());
     verifyNoInteractions(submissions);
   }
 
   @Test
   @DisplayName("Refuses an intent addressed to another original account")
   void rejectsForeignOwner() throws Exception {
-    // Given / When / Then
-    mvc.perform(
-            post(PATH.replace(OWNER.toString(), VERSION.toString()))
-                .with(mobile())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":\"0\",\"url\":\"https://youtube.com/a\"}"))
-        .andExpect(status().isForbidden());
+    // Given
+    MockHttpServletRequestBuilder request =
+        post(PATH.replace(OWNER.toString(), VERSION.toString()))
+            .with(mobile())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"revision\":\"0\",\"url\":\"https://youtube.com/a\"}");
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isForbidden());
     verifyNoInteractions(submissions);
   }
 
   @Test
   @DisplayName("Rejects unsupported body media without business effects")
   void rejectsMediaType() throws Exception {
-    // Given / When / Then
-    mvc.perform(post(PATH).with(mobile()).contentType(MediaType.TEXT_PLAIN).content("synthetic"))
-        .andExpect(status().isUnsupportedMediaType());
+    // Given
+    MockHttpServletRequestBuilder request =
+        post(PATH).with(mobile()).contentType(MediaType.TEXT_PLAIN).content("synthetic");
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isUnsupportedMediaType());
     verifyNoInteractions(submissions);
   }
 
@@ -196,8 +229,11 @@ class ContributionSubmissionWebMvcTest {
     // Given
     when(reads.member(OWNER, MATCH, VERSION)).thenThrow(new SportingResourceNotFoundException());
 
-    // When / Then
-    mvc.perform(get(PATH + "/" + VERSION).with(mobile()))
+    // When
+    ResultActions response = mvc.perform(get(PATH + "/" + VERSION).with(mobile()));
+
+    // Then
+    response
         .andExpect(status().isNotFound())
         .andExpect(header().string("Cache-Control", "no-store"));
   }
@@ -205,16 +241,21 @@ class ContributionSubmissionWebMvcTest {
   @Test
   @DisplayName("An unrelated administrative role does not grant stream publication")
   void rejectsUnprivilegedModerator() throws Exception {
-    // Given / When / Then
-    mvc.perform(
-            post("/administration/matches/" + MATCH + "/stream-contributions")
-                .with(mobile())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    "{\"actorAccountId\":\""
-                        + OWNER
-                        + "\",\"revision\":\"0\",\"url\":\"https://youtube.com/a\"}"))
-        .andExpect(status().isForbidden());
+    // Given
+    MockHttpServletRequestBuilder request =
+        post("/administration/matches/" + MATCH + "/stream-contributions")
+            .with(mobile())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                "{\"actorAccountId\":\""
+                    + OWNER
+                    + "\",\"revision\":\"0\",\"url\":\"https://youtube.com/a\"}");
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isForbidden());
     verifyNoInteractions(submissions);
   }
 
@@ -235,8 +276,11 @@ class ContributionSubmissionWebMvcTest {
             0);
     when(reads.read(OWNER, MATCH, 0)).thenReturn(page);
 
-    // When / Then
-    mvc.perform(get(PATH).with(mobile()))
+    // When
+    ResultActions response = mvc.perform(get(PATH).with(mobile()));
+
+    // Then
+    response
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.eligibility.requiresApproval").value(true))
@@ -252,8 +296,11 @@ class ContributionSubmissionWebMvcTest {
     when(reads.member(OWNER, MATCH, VERSION))
         .thenReturn(new ReadOwnContributions.Detail("1", version()));
 
-    // When / Then
-    mvc.perform(get(PATH + "/" + VERSION).with(mobile()))
+    // When
+    ResultActions response = mvc.perform(get(PATH + "/" + VERSION).with(mobile()));
+
+    // Then
+    response
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.contribution.id").value(VERSION.toString()));
@@ -270,15 +317,19 @@ class ContributionSubmissionWebMvcTest {
         .thenReturn(new SubmitContribution.Outcome(version(), "1", true));
     when(accounts.displayName(OWNER)).thenReturn("Synthetic");
 
-    // When / Then
-    mvc.perform(
+    // When
+    ResultActions response =
+        mvc.perform(
             post("/administration/matches/" + MATCH + "/stream-contributions")
                 .with(mobile())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     "{\"actorAccountId\":\""
                         + OWNER
-                        + "\",\"revision\":\"0\",\"url\":\"https://youtube.com/a\"}"))
+                        + "\",\"revision\":\"0\",\"url\":\"https://youtube.com/a\"}"));
+
+    // Then
+    response
         .andExpect(status().isCreated())
         .andExpect(
             header()
@@ -297,12 +348,16 @@ class ContributionSubmissionWebMvcTest {
     when(submissions.submit(any(), any(), any(), any(), anyBoolean()))
         .thenThrow(new DataAccessResourceFailureException("Controlled storage outage"));
 
-    // When / Then
-    mvc.perform(
+    // When
+    ResultActions response =
+        mvc.perform(
             post(PATH)
                 .with(mobile())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":\"0\",\"url\":\"https://youtube.com/a\"}"))
+                .content("{\"revision\":\"0\",\"url\":\"https://youtube.com/a\"}"));
+
+    // Then
+    response
         .andExpect(status().isServiceUnavailable())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:unavailable"));
@@ -317,12 +372,16 @@ class ContributionSubmissionWebMvcTest {
             new com.blockout.backend.notifications.application
                 .AnnouncementAudienceChangedException());
 
-    // When / Then
-    mvc.perform(
+    // When
+    ResultActions response =
+        mvc.perform(
             post(PATH)
                 .with(mobile())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":\"0\",\"url\":\"https://youtube.com/a\"}"))
+                .content("{\"revision\":\"0\",\"url\":\"https://youtube.com/a\"}"));
+
+    // Then
+    response
         .andExpect(status().isConflict())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:conflict"));

@@ -1,6 +1,7 @@
 package com.blockout.backend.following.infrastructure;
 
 import com.blockout.backend.following.application.FollowContext;
+import com.blockout.backend.following.application.FollowContext.Relation;
 import com.blockout.backend.following.application.FollowContext.Target;
 import com.blockout.backend.following.application.FollowStore;
 import java.util.HashSet;

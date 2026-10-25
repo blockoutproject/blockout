@@ -3,11 +3,13 @@ package com.blockout.backend.sporting.application.service;
 import static com.blockout.backend.sporting.support.SportingIngestionFixture.candidate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionState;
-import com.blockout.backend.collection.application.service.CollectionCycleService;
-import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
+import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.InformationSheetInternalRequest;
 import com.blockout.backend.generated.ingestion.model.MatchFactsInternalRequest;
@@ -30,6 +32,7 @@ import com.blockout.backend.sporting.application.model.StandingsObservation;
 import com.blockout.backend.sporting.application.model.StandingsView;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.port.SportingStore;
+import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.persistence.EntityManager;
@@ -50,6 +53,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -60,6 +64,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Real admission, generated mappings, application transactions and migrated PostgreSQL state. */
+@Import(SportingIdentityFixture.class)
 @SpringBootTest
 @Testcontainers
 @DisplayName("Independent match facts and official tables")
@@ -70,13 +75,14 @@ class MatchDetailsAndStandingsIntegrationTest {
   @Autowired private EntityManager entityManager;
   @Autowired private EntityManagerFactory entityManagerFactory;
   @Autowired private PlatformTransactionManager transactions;
-  @Autowired private SeasonService seasons;
-  @Autowired private SportingIdentityService identities;
-  @Autowired private CollectionCycleService cycles;
-  @Autowired private CollectorRuntimeService runtimes;
-  @Autowired private CalendarAcceptanceService calendars;
-  @Autowired private MatchAcceptanceService matches;
-  @Autowired private StandingsService standings;
+  @Autowired private ChangeCollectionSeasons seasons;
+  @Autowired private SportingIdentityFixture identities;
+  @Autowired private AdmitCollectionCycle cycles;
+  @Autowired private RegisterCollectorRuntime runtimes;
+  @Autowired private ReadCollectionWork collectionWork;
+  @Autowired private AcceptCalendar calendars;
+  @Autowired private AcceptMatchObservation matches;
+  @Autowired private AcceptStandings standings;
   @Autowired private SportingStore store;
   @Autowired private SportingObservationMapper mapper;
   private SportingIngestionFixture.Scope scope;
@@ -516,8 +522,9 @@ class MatchDetailsAndStandingsIntegrationTest {
     StandingsView previous = table();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
-    // When / Then
-    assertThatThrownBy(
+    // When
+    Throwable thrown =
+        catchThrowable(
             () ->
                 transaction.executeWithoutResult(
                     status -> {
@@ -530,8 +537,10 @@ class MatchDetailsAndStandingsIntegrationTest {
                               List.of()));
                       entityManager.flush();
                       throw new IllegalStateException("Synthetic failure before commit");
-                    }))
-        .isInstanceOf(IllegalStateException.class);
+                    }));
+
+    // Then
+    assertThat(thrown).isInstanceOf(IllegalStateException.class);
     assertThat(table()).isEqualTo(previous);
   }
 
@@ -539,13 +548,13 @@ class MatchDetailsAndStandingsIntegrationTest {
   @ValueSource(strings = {"F", "P", "3/F", "3/P", "F/F", "2/F"})
   @DisplayName("Persists recognized special results without inventing numeric scores")
   void persistsSpecialResult(String notation) {
+    // Given
+    MatchFactsInternalRequest facts =
+        new MatchFactsInternalRequest()
+            .result(new MatchResultInternalRequest(ResultStateEnum.FINAL).specialLabel(notation));
+
     // When
-    matches.detail(
-        detail(
-            2,
-            new MatchFactsInternalRequest()
-                .result(
-                    new MatchResultInternalRequest(ResultStateEnum.FINAL).specialLabel(notation))));
+    matches.detail(detail(2, facts));
 
     // Then
     assertThat(details().result().specialLabel()).isEqualTo(notation);
@@ -629,7 +638,7 @@ class MatchDetailsAndStandingsIntegrationTest {
     // Given
     UUID professionalPool =
         identities
-            .establishPool(
+            .createPool(
                 new PoolKey(
                     CollectionProviderEnum.LNV,
                     scope.season(),
@@ -662,7 +671,7 @@ class MatchDetailsAndStandingsIntegrationTest {
             .admit(
                 new CollectionState.StartCycle(
                     UUID.fromString("00000000-0000-4000-8000-000000000167"),
-                    runtimes.current().incarnationId(),
+                    collectionWork.current().incarnationId(),
                     control,
                     null,
                     0,

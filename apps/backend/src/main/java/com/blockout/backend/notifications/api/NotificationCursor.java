@@ -1,6 +1,6 @@
 package com.blockout.backend.notifications.api;
 
-import com.blockout.backend.notifications.application.InboxReadStore.Continuation;
+import com.blockout.backend.notifications.application.InboxViews.Continuation;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;

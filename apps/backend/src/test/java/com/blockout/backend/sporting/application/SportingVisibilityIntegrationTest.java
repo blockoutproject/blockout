@@ -9,11 +9,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionState;
+import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
+import com.blockout.backend.collection.application.service.ChangeCollectionControls;
 import com.blockout.backend.collection.application.service.CloseCollectionSeason;
-import com.blockout.backend.collection.application.service.CollectionControlService;
-import com.blockout.backend.collection.application.service.CollectionCycleService;
-import com.blockout.backend.collection.application.service.CollectionResultService;
-import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.RecordCollectionResults;
+import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
@@ -30,13 +31,15 @@ import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Reason;
 import com.blockout.backend.sporting.application.model.StandingsObservation;
 import com.blockout.backend.sporting.application.model.StandingsView;
-import com.blockout.backend.sporting.application.service.CalendarAcceptanceService;
-import com.blockout.backend.sporting.application.service.CatalogAcceptanceService;
-import com.blockout.backend.sporting.application.service.MatchAcceptanceService;
-import com.blockout.backend.sporting.application.service.SeasonService;
-import com.blockout.backend.sporting.application.service.SportingIdentityService;
-import com.blockout.backend.sporting.application.service.SportingReadService;
-import com.blockout.backend.sporting.application.service.StandingsService;
+import com.blockout.backend.sporting.application.service.AcceptCalendar;
+import com.blockout.backend.sporting.application.service.AcceptCatalog;
+import com.blockout.backend.sporting.application.service.AcceptMatchObservation;
+import com.blockout.backend.sporting.application.service.AcceptStandings;
+import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import com.blockout.backend.sporting.application.service.ReadCollectionSeasons;
+import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
+import com.blockout.backend.sporting.application.service.ReadSportingData;
+import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.persistence.EntityManagerFactory;
@@ -57,6 +60,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -68,6 +72,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 /**
  * Real admitted F01 cycles and committed F02 transactions against the migrated PostgreSQL schema.
  */
+@Import(SportingIdentityFixture.class)
 @SpringBootTest
 @Testcontainers
 @DisplayName("Independent visibility reasons and retained sporting history")
@@ -77,19 +82,22 @@ class SportingVisibilityIntegrationTest {
   @Autowired private JdbcTemplate sql;
   @Autowired private EntityManagerFactory entityManagerFactory;
   @Autowired private PlatformTransactionManager transactions;
-  @Autowired private SeasonService seasons;
-  @Autowired private SportingIdentityService identities;
-  @Autowired private CollectionCycleService cycles;
-  @Autowired private CollectorRuntimeService runtimes;
-  @Autowired private CalendarAcceptanceService calendars;
-  @Autowired private MatchAcceptanceService matches;
-  @Autowired private CatalogAcceptanceService catalogs;
-  @Autowired private SportingReadService reads;
-  @Autowired private StandingsService standings;
+  @Autowired private ChangeCollectionSeasons seasons;
+  @Autowired private ReadCollectionSeasons seasonReads;
+  @Autowired private SportingIdentityFixture identities;
+  @Autowired private AdmitCollectionCycle cycles;
+  @Autowired private RegisterCollectorRuntime runtimes;
+  @Autowired private ReadCollectionWork collectionWork;
+  @Autowired private AcceptCalendar calendars;
+  @Autowired private AcceptMatchObservation matches;
+  @Autowired private AcceptCatalog catalogs;
+  @Autowired private ReadSportingData reads;
+  @Autowired private ReadSportingAcquisition acquisitionReads;
+  @Autowired private AcceptStandings standings;
   @Autowired private CloseCollectionSeason closure;
-  @Autowired private CollectionResultService results;
+  @Autowired private RecordCollectionResults results;
 
-  @Autowired private CollectionControlService controls;
+  @Autowired private ChangeCollectionControls controls;
 
   private CollectionState.Cycle cycle;
   private UUID pool;
@@ -134,7 +142,7 @@ class SportingVisibilityIntegrationTest {
             .getFirst();
     UUID id =
         switch (kind) {
-          case CLUB -> reads.team(match.homeTeamId()).orElseThrow().clubId();
+          case CLUB -> acquisitionReads.team(match.homeTeamId()).orElseThrow().clubId();
           case TEAM -> match.homeTeamId();
           case POOL -> pool;
           case MATCH -> match.resourceId();
@@ -248,7 +256,7 @@ class SportingVisibilityIntegrationTest {
         .containsExactly(Reason.CALENDAR_EMPTY);
     assertThat(reads.publicMatch(match)).isEmpty();
     assertThat(
-            reads.acquisitionPools(
+            acquisitionReads.acquisitionPools(
                 season, CollectionProviderEnum.FFVB, "SYNTHETIC", false, NOW.toInstant(), null))
         .extracting(reference -> reference.scopeId())
         .contains(pool);
@@ -280,7 +288,8 @@ class SportingVisibilityIntegrationTest {
     assertThat(reads.visibility(Kind.POOL, pool).orElseThrow().reasons())
         .containsExactly(Reason.DIVISION_INACTIVE);
     assertThat(reads.publicMatch(first.resourceId())).isEmpty();
-    assertThat(reads.club(reads.team(first.homeTeamId()).orElseThrow().clubId())).isPresent();
+    assertThat(reads.club(acquisitionReads.team(first.homeTeamId()).orElseThrow().clubId()))
+        .isPresent();
   }
 
   @Test
@@ -289,7 +298,7 @@ class SportingVisibilityIntegrationTest {
     // Given
     UUID other =
         identities
-            .establishPool(
+            .createPool(
                 new PoolKey(
                     CollectionProviderEnum.FFVB, season, "SYNTHETIC", "COMP", null, null, "OTHER"),
                 "PACK",
@@ -328,7 +337,7 @@ class SportingVisibilityIntegrationTest {
             .accept(pool, calendar(1, List.of(candidate("M1", "Home", null))))
             .outcomes()
             .getFirst();
-    UUID club = reads.team(first.homeTeamId()).orElseThrow().clubId();
+    UUID club = acquisitionReads.team(first.homeTeamId()).orElseThrow().clubId();
 
     // When
     calendars.accept(pool, calendar(2, List.of()));
@@ -374,7 +383,7 @@ class SportingVisibilityIntegrationTest {
                 Integer.class,
                 first.resourceId()))
         .isEqualTo(3);
-    assertThat(reads.match(first.resourceId())).isPresent();
+    assertThat(acquisitionReads.match(first.resourceId())).isPresent();
   }
 
   @Test
@@ -415,7 +424,7 @@ class SportingVisibilityIntegrationTest {
     UUID olderSeason = seasons.getOrCreate(2025).id();
     UUID olderPool =
         identities
-            .establishPool(
+            .createPool(
                 new PoolKey(
                     CollectionProviderEnum.FFVB,
                     olderSeason,
@@ -444,7 +453,7 @@ class SportingVisibilityIntegrationTest {
     // Given
     UUID professional =
         identities
-            .establishPool(
+            .createPool(
                 new PoolKey(
                     CollectionProviderEnum.LNV, season, "LNV", "CHAMP", null, null, "PHASE"),
                 "LNV_PACK",
@@ -462,9 +471,11 @@ class SportingVisibilityIntegrationTest {
   @Test
   @DisplayName("Partial catalog discovery cannot withdraw accepted pools")
   void preservesPartialCatalog() {
-    // Given / When
-    ObservationOutcome.Catalog result =
-        catalogs.accept(SOURCE, new CatalogObservation(context(1), false, List.of()));
+    // Given
+    CatalogObservation observation = new CatalogObservation(context(1), false, List.of());
+
+    // When
+    ObservationOutcome.Catalog result = catalogs.accept(SOURCE, observation);
 
     // Then
     assertThat(result.absenceReconciled()).isFalse();
@@ -563,7 +574,7 @@ class SportingVisibilityIntegrationTest {
             .getFirst()
             .resourceId();
     closure.close(
-        account, season, seasons.collectionState(season).collectionRevision(), "2026/2027");
+        account, season, seasonReads.collectionState(season).collectionRevision(), "2026/2027");
 
     // When
     calendars.accept(pool, calendar(2, List.of(candidate("M1", "Home", LocalDate.of(2027, 9, 1)))));
@@ -571,7 +582,7 @@ class SportingVisibilityIntegrationTest {
 
     // Then
     assertThat(reads.publicMatch(match)).isPresent();
-    assertThat(reads.pool(pool).orElseThrow().key().seasonId()).isEqualTo(season);
+    assertThat(acquisitionReads.pool(pool).orElseThrow().key().seasonId()).isEqualTo(season);
     assertThatThrownBy(() -> calendars.accept(pool, calendar(3, List.of())))
         .isInstanceOf(CollectionConflictException.class);
     assertThatThrownBy(
@@ -593,7 +604,7 @@ class SportingVisibilityIntegrationTest {
             .getFirst()
             .resourceId();
     UUID startup = UUID.randomUUID();
-    runtimes.register(runtimes.current().revision(), startup);
+    runtimes.register(collectionWork.current().revision(), startup);
     UUID request = UUID.fromString("00000000-0000-4000-8000-000000000187");
     sql.update("UPDATE sporting_season SET collection_state='PREPARING' WHERE id=?", season);
     sql.update(
@@ -719,7 +730,7 @@ class SportingVisibilityIntegrationTest {
     assertThat(publicMatch).isEmpty();
     assertThat(reads.visibility(Kind.MATCH, match).orElseThrow().reasons())
         .containsExactly(Reason.DATE_UNKNOWN);
-    assertThat(reads.match(match)).isPresent();
+    assertThat(acquisitionReads.match(match)).isPresent();
   }
 
   /**

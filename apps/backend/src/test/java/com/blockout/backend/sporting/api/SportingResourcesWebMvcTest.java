@@ -149,7 +149,7 @@ class SportingResourcesWebMvcTest {
   void servesEmptySeason() throws Exception {
     // Given
     when(resources.clubTeams(
-            new com.blockout.backend.sporting.application.ConsultationStore.ClubSeasonRequest(
+            new com.blockout.backend.sporting.application.ConsultationRequest.ClubSeasonRequest(
                 ID, ID)))
         .thenReturn(new ConsultationViews.ClubTeams(ID, List.of()));
 

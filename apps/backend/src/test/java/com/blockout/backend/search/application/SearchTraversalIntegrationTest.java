@@ -8,7 +8,7 @@ import com.blockout.backend.search.infrastructure.OpenSearchEngine;
 import com.blockout.backend.search.infrastructure.SearchIndexProperties;
 import com.blockout.backend.search.infrastructure.SearchTestEngine;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
-import com.blockout.backend.sporting.application.service.SportingReadService;
+import com.blockout.backend.sporting.application.service.ReadSportingData;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -51,7 +51,7 @@ class SearchTraversalIntegrationTest {
   @Autowired MockMvc mvc;
   @Autowired JsonMapper json;
   @Autowired JdbcTemplate sql;
-  @Autowired SportingReadService owners;
+  @Autowired ReadSportingData owners;
 
   /**
    * Migrates the real owner schema before restricted-role startup.

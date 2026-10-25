@@ -11,11 +11,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionState;
-import com.blockout.backend.collection.application.service.CollectionCycleService;
-import com.blockout.backend.collection.application.service.CollectionResultService;
-import com.blockout.backend.collection.application.service.CollectionSourceService;
-import com.blockout.backend.collection.application.service.CollectorRuntimeService;
-import com.blockout.backend.collection.application.service.SourcePreparationService;
+import com.blockout.backend.collection.application.service.AcceptSourceValidation;
+import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
+import com.blockout.backend.collection.application.service.ObserveCollectionSource;
+import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.RecordCollectionResults;
+import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
@@ -43,6 +44,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
@@ -59,10 +61,11 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 class CollectionContractWebMvcTest {
   @Autowired private MockMvc mvc;
 
-  @MockitoBean private CollectionSourceService sources;
+  @MockitoBean private ObserveCollectionSource sources;
 
-  @MockitoBean private CollectorRuntimeService runtimes;
-  @MockitoBean private SourcePreparationService preparation;
+  @MockitoBean private RegisterCollectorRuntime runtimes;
+  @MockitoBean private ReadCollectionWork collectionWork;
+  @MockitoBean private AcceptSourceValidation sourceValidation;
 
   @Test
   @DisplayName("The generated discovery operation resolves owner identities with no-store")
@@ -72,7 +75,7 @@ class CollectionContractWebMvcTest {
     UUID season = UUID.fromString("00000000-0000-4000-8000-000000000172");
     UUID source = UUID.fromString("00000000-0000-4000-8000-000000000173");
     when(sources.observe(ArgumentMatchers.any()))
-        .thenReturn(new CollectionSourceService.Resolved(season, source));
+        .thenReturn(new ObserveCollectionSource.Resolved(season, source));
 
     // When
     ResultActions response =
@@ -94,8 +97,8 @@ class CollectionContractWebMvcTest {
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.seasonId").value(season.toString()))
         .andExpect(jsonPath("$.sourceBindingId").value(source.toString()));
-    ArgumentCaptor<CollectionSourceService.Proposal> command =
-        ArgumentCaptor.forClass(CollectionSourceService.Proposal.class);
+    ArgumentCaptor<ObserveCollectionSource.Proposal> command =
+        ArgumentCaptor.forClass(ObserveCollectionSource.Proposal.class);
     Mockito.verify(sources).observe(command.capture());
     Assertions.assertThat(command.getValue().incarnationId()).isEqualTo(incarnation);
     Assertions.assertThat(command.getValue().observedAt())
@@ -113,7 +116,7 @@ class CollectionContractWebMvcTest {
     CollectionState.SourceValidation result =
         new CollectionState.SourceValidation(
             cycleId, SourceValidationStateEnum.QUALIFIED, observedAt, "2026/2027", null);
-    when(preparation.submitValidation(sourceId, result))
+    when(sourceValidation.submitValidation(sourceId, result))
         .thenReturn(
             CollectionState.Source.builder()
                 .id(sourceId)
@@ -144,14 +147,15 @@ class CollectionContractWebMvcTest {
         .andExpect(header().string("Cache-Control", "no-store"));
   }
 
-  @MockitoBean private CollectionCycleService cycles;
-  @MockitoBean private CollectionResultService results;
+  @MockitoBean private AdmitCollectionCycle cycles;
+
+  @MockitoBean private RecordCollectionResults results;
 
   @Test
   @DisplayName("Returns required explicit null before registration with no-store")
   void returnsUnregisteredRuntime() throws Exception {
     // Given
-    when(runtimes.current()).thenReturn(new CollectionState.Runtime(0, null));
+    when(collectionWork.current()).thenReturn(new CollectionState.Runtime(0, null));
 
     // When
     ResultActions response = mvc.perform(get("/ingestion/collector-runtime").with(collector()));
@@ -174,14 +178,15 @@ class CollectionContractWebMvcTest {
       })
   @DisplayName("Rejects malformed or unsafe registration before application effects")
   void rejectsInvalidRegistration(String body) throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request =
+        put("/ingestion/collector-runtime")
+            .with(collector())
+            .contentType("application/json")
+            .content(body);
 
     // When
-    ResultActions response =
-        mvc.perform(
-            put("/ingestion/collector-runtime")
-                .with(collector())
-                .contentType("application/json")
-                .content(body));
+    ResultActions response = mvc.perform(request);
 
     // Then
     response
@@ -273,7 +278,7 @@ class CollectionContractWebMvcTest {
             .provider(CollectionProviderEnum.FFVB)
             .organizerReference("ABCCS")
             .build();
-    when(cycles.targets(cycle, 2L, 1))
+    when(collectionWork.targets(cycle, 2L, 1))
         .thenReturn(
             new CollectionState.TargetPage(
                 List.of(new CollectionState.ServedTarget(target, null, null, null)), 2, hasNext));
@@ -302,17 +307,18 @@ class CollectionContractWebMvcTest {
   @CsvSource({"size, 0", "size, 201", "page, -1", "page, 9007199254740992"})
   @DisplayName("Rejects out-of-range target pages before loading a snapshot")
   void rejectsUnboundedPage(String parameter, String value) throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request =
+        get("/ingestion/collection-cycles/00000000-0000-4000-8000-000000000001/targets")
+            .with(collector())
+            .param(parameter, value);
 
     // When
-    ResultActions response =
-        mvc.perform(
-            get("/ingestion/collection-cycles/00000000-0000-4000-8000-000000000001/targets")
-                .with(collector())
-                .param(parameter, value));
+    ResultActions response = mvc.perform(request);
 
     // Then
     response.andExpect(status().isBadRequest());
-    verifyNoInteractions(cycles);
+    verifyNoInteractions(collectionWork);
   }
 
   @Test

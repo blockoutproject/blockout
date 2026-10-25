@@ -1,11 +1,12 @@
 package com.blockout.backend.collection.api;
 
 import com.blockout.backend.collection.application.model.CollectionState.Admission;
-import com.blockout.backend.collection.application.service.CollectionCycleService;
-import com.blockout.backend.collection.application.service.CollectionResultService;
-import com.blockout.backend.collection.application.service.CollectionSourceService;
-import com.blockout.backend.collection.application.service.CollectorRuntimeService;
-import com.blockout.backend.collection.application.service.SourcePreparationService;
+import com.blockout.backend.collection.application.service.AcceptSourceValidation;
+import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
+import com.blockout.backend.collection.application.service.ObserveCollectionSource;
+import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.RecordCollectionResults;
+import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.generated.ingestion.api.CollectionApi;
 import com.blockout.backend.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleInternalResponse;
@@ -32,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 public class CollectorOperationsController implements CollectorOperationsApi, CollectionApi {
-  private final CollectionSourceService sources;
+  private final ObserveCollectionSource sources;
 
   /** {@inheritDoc} */
   @Override
@@ -43,11 +44,13 @@ public class CollectorOperationsController implements CollectorOperationsApi, Co
         .body(mapper.toDto(sources.observe(mapper.toCommand(request))));
   }
 
-  private final CollectorRuntimeService runtimes;
-  private final CollectionCycleService cycles;
+  private final RegisterCollectorRuntime runtimes;
+  private final ReadCollectionWork collectionWork;
+  private final AdmitCollectionCycle cycles;
+
   private final CollectionApiMapper mapper;
-  private final CollectionResultService results;
-  private final SourcePreparationService preparation;
+  private final RecordCollectionResults results;
+  private final AcceptSourceValidation sourceValidation;
 
   /** {@inheritDoc} */
   @Override
@@ -57,7 +60,7 @@ public class CollectorOperationsController implements CollectorOperationsApi, Co
         .cacheControl(CacheControl.noStore())
         .body(
             mapper.toValidationDto(
-                preparation.submitValidation(sourceBindingId, mapper.toCommand(request))));
+                sourceValidation.submitValidation(sourceBindingId, mapper.toCommand(request))));
   }
 
   /** {@inheritDoc} */
@@ -85,7 +88,7 @@ public class CollectorOperationsController implements CollectorOperationsApi, Co
   public ResponseEntity<CollectorRuntimeInternalResponse> getCollectorRuntime() {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(runtimes.current()));
+        .body(mapper.toDto(collectionWork.current()));
   }
 
   /** {@inheritDoc} */
@@ -102,7 +105,7 @@ public class CollectorOperationsController implements CollectorOperationsApi, Co
   public ResponseEntity<CollectionWorkInternalResponse> getCollectionWork(UUID incarnationId) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(cycles.work(incarnationId)));
+        .body(mapper.toDto(collectionWork.work(incarnationId)));
   }
 
   /** {@inheritDoc} */
@@ -123,7 +126,7 @@ public class CollectorOperationsController implements CollectorOperationsApi, Co
   public ResponseEntity<CollectionCycleInternalResponse> getCollectionCycle(UUID cycleId) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(cycles.get(cycleId)));
+        .body(mapper.toDto(collectionWork.get(cycleId)));
   }
 
   /** {@inheritDoc} */
@@ -132,6 +135,6 @@ public class CollectorOperationsController implements CollectorOperationsApi, Co
       UUID cycleId, Long page, Integer size) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(cycles.targets(cycleId, page, size)));
+        .body(mapper.toDto(collectionWork.targets(cycleId, page, size)));
   }
 }

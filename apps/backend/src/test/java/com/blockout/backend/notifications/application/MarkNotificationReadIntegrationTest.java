@@ -6,7 +6,7 @@ import static com.blockout.backend.notifications.testsupport.InboxDatabaseFixtur
 import static com.blockout.backend.notifications.testsupport.InboxDatabaseFixture.entry;
 import static com.blockout.backend.notifications.testsupport.InboxDatabaseFixture.reset;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.when;
 
 import com.blockout.backend.accounts.application.AccountAccess;
@@ -77,8 +77,8 @@ class MarkNotificationReadIntegrationTest {
     NotificationContext owner = new NotificationContext(ACCOUNT);
 
     // When
-    InboxReadStore.Entry first = marks.mark(owner, id);
-    InboxReadStore.Entry second = marks.mark(owner, id);
+    InboxViews.Entry first = marks.mark(owner, id);
+    InboxViews.Entry second = marks.mark(owner, id);
 
     // Then
     assertThat(first.read()).isTrue();
@@ -98,9 +98,12 @@ class MarkNotificationReadIntegrationTest {
     // Given
     UUID id = entry(sql, 1, ACCOUNT, NOW.minus(Duration.ofDays(29)));
 
-    // When / Then
-    assertThatThrownBy(() -> marks.mark(new NotificationContext(ACCOUNT), id))
-        .isInstanceOf(NotificationNotFoundException.class);
+    // When
+    Throwable observedFailure =
+        catchThrowable(() -> marks.mark(new NotificationContext(ACCOUNT), id));
+
+    // Then
+    assertThat(observedFailure).isInstanceOf(NotificationNotFoundException.class);
     assertThat(sql.queryForObject("SELECT is_read FROM notification WHERE id=?", Boolean.class, id))
         .isFalse();
   }
@@ -114,11 +117,11 @@ class MarkNotificationReadIntegrationTest {
     TransactionTemplate transaction = new TransactionTemplate(transactions);
     CompletableFuture<Integer> waitingPid = new CompletableFuture<>();
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
-      Future<InboxReadStore.Entry> repeated =
+      Future<InboxViews.Entry> repeated =
           transaction.execute(
               status -> {
                 marks.mark(owner, id);
-                Future<InboxReadStore.Entry> waiting =
+                Future<InboxViews.Entry> waiting =
                     worker.submit(
                         () ->
                             transaction.execute(
@@ -132,7 +135,7 @@ class MarkNotificationReadIntegrationTest {
               });
 
       // When
-      InboxReadStore.Entry result = repeated.get(15, TimeUnit.SECONDS);
+      InboxViews.Entry result = repeated.get(15, TimeUnit.SECONDS);
 
       // Then
       assertThat(result.read()).isTrue();
@@ -170,14 +173,22 @@ class MarkNotificationReadIntegrationTest {
                 return mark;
               });
 
-      // When / Then
-      assertThatThrownBy(() -> waiting.get(15, TimeUnit.SECONDS))
+      // When
+      Throwable observedFailure = catchThrowable(() -> waiting.get(15, TimeUnit.SECONDS));
+
+      // Then
+      assertThat(observedFailure)
           .isInstanceOf(ExecutionException.class)
           .hasCauseInstanceOf(NotificationNotFoundException.class);
       assertThat(sql.queryForObject("SELECT COUNT(*) FROM notification", Long.class)).isZero();
       if (removed.equals("account")) {
-        assertThatThrownBy(() -> reads.summary(new NotificationContext(ACCOUNT)))
-            .isInstanceOf(NotificationNotFoundException.class);
+
+        // When
+        Throwable secondFailure =
+            catchThrowable(() -> reads.summary(new NotificationContext(ACCOUNT)));
+
+        // Then
+        assertThat(secondFailure).isInstanceOf(NotificationNotFoundException.class);
       } else assertThat(reads.summary(new NotificationContext(ACCOUNT)).unreadCount()).isZero();
     }
   }
@@ -193,7 +204,7 @@ class MarkNotificationReadIntegrationTest {
       transaction.executeWithoutResult(
           status -> {
             marks.mark(owner, id);
-            Future<InboxReadStore.Entry> previous = worker.submit(() -> reads.member(owner, id));
+            Future<InboxViews.Entry> previous = worker.submit(() -> reads.member(owner, id));
             try {
               assertThat(previous.get(15, TimeUnit.SECONDS).read()).isFalse();
             } catch (Exception failure) {
@@ -202,7 +213,7 @@ class MarkNotificationReadIntegrationTest {
           });
 
       // When
-      InboxReadStore.Entry committed = reads.member(owner, id);
+      InboxViews.Entry committed = reads.member(owner, id);
 
       // Then
       assertThat(committed.read()).isTrue();
@@ -216,17 +227,29 @@ class MarkNotificationReadIntegrationTest {
     // Given
     UUID id = entry(sql, 1, ACCOUNT, NOW);
 
-    // When / Then
-    assertThatThrownBy(() -> marks.mark(new NotificationContext(OTHER), id))
-        .isInstanceOf(NotificationNotFoundException.class);
+    // When
+    Throwable observedFailure =
+        catchThrowable(() -> marks.mark(new NotificationContext(OTHER), id));
+
+    // Then
+    assertThat(observedFailure).isInstanceOf(NotificationNotFoundException.class);
     sql.update("UPDATE sporting_match SET present=FALSE WHERE id=?", id);
-    assertThatThrownBy(() -> marks.mark(new NotificationContext(ACCOUNT), id))
-        .isInstanceOf(NotificationNotFoundException.class);
+
+    // When
+    Throwable secondFailure =
+        catchThrowable(() -> marks.mark(new NotificationContext(ACCOUNT), id));
+
+    // Then
+    assertThat(secondFailure).isInstanceOf(NotificationNotFoundException.class);
     assertThat(sql.queryForObject("SELECT is_read FROM notification WHERE id=?", Boolean.class, id))
         .isFalse();
     sql.update("DELETE FROM notification WHERE id=?", id);
-    assertThatThrownBy(() -> marks.mark(new NotificationContext(ACCOUNT), id))
-        .isInstanceOf(NotificationNotFoundException.class);
+
+    // When
+    Throwable thirdFailure = catchThrowable(() -> marks.mark(new NotificationContext(ACCOUNT), id));
+
+    // Then
+    assertThat(thirdFailure).isInstanceOf(NotificationNotFoundException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM notification", Long.class)).isZero();
   }
 

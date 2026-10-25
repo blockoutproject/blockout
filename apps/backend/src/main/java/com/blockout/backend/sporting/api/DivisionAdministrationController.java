@@ -1,5 +1,7 @@
 package com.blockout.backend.sporting.api;
 
+import com.blockout.backend.access.application.CurrentPermissions;
+import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.generated.mobile.api.DivisionAdministrationApi;
 import com.blockout.backend.generated.mobile.model.CreateDivisionRequest;
@@ -8,7 +10,8 @@ import com.blockout.backend.generated.mobile.model.DivisionResponse;
 import com.blockout.backend.generated.mobile.model.SetDivisionActivityRequest;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
-import com.blockout.backend.sporting.application.service.DivisionService;
+import com.blockout.backend.sporting.application.service.ChangeDivisionLifecycle;
+import com.blockout.backend.sporting.application.service.ReadSportingConfiguration;
 import java.net.URI;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -23,8 +26,11 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequiredArgsConstructor
 public class DivisionAdministrationController implements DivisionAdministrationApi {
-  private final DivisionService divisions;
+  private final ChangeDivisionLifecycle divisions;
+  private final ReadSportingConfiguration configurationReads;
   private final CurrentAccount account;
+  private final SportingPresentationValidator imageParts;
+  private final CurrentPermissions permissions;
   private final SportingAdministrationMapper mapper;
 
   /** {@inheritDoc} */
@@ -32,7 +38,9 @@ public class DivisionAdministrationController implements DivisionAdministrationA
   public ResponseEntity<DivisionListResponse> listDivisions(Boolean includeInactive) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(divisions.list(account.id(), Boolean.TRUE.equals(includeInactive))));
+        .body(
+            mapper.toDto(
+                configurationReads.divisions(account.id(), Boolean.TRUE.equals(includeInactive))));
   }
 
   /** {@inheritDoc} */
@@ -40,7 +48,7 @@ public class DivisionAdministrationController implements DivisionAdministrationA
   public ResponseEntity<DivisionResponse> getDivision(UUID divisionId) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(divisions.get(account.id(), divisionId)));
+        .body(mapper.toDto(configurationReads.division(account.id(), divisionId)));
   }
 
   /** {@inheritDoc} */
@@ -48,10 +56,10 @@ public class DivisionAdministrationController implements DivisionAdministrationA
   public ResponseEntity<DivisionResponse> createDivision(
       CreateDivisionRequest metadata, MultipartFile image) {
     UUID accountId = account.id();
-    divisions.requireLifecycle(accountId);
+    permissions.requireForRead(accountId, Permission.MANAGE_DIVISION_LIFECYCLE);
     if (metadata.getName().isBlank())
       throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT);
-    Image validated = SportingPresentationValidator.validateImage(metadata.getLogoAction(), image);
+    Image validated = imageParts.validateImage(metadata.getLogoAction(), image);
     DivisionDetail created =
         divisions.create(
             accountId,

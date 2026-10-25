@@ -1,6 +1,6 @@
 package com.blockout.backend.search.infrastructure;
 
-import com.blockout.backend.search.application.SearchProjection;
+import com.blockout.backend.search.application.ProjectSearch;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -37,7 +37,7 @@ public class SearchProjectionConfiguration {
    */
   @Bean
   SearchProjectionScheduler searchProjectionScheduler(
-      SearchProjection projection,
+      ProjectSearch projection,
       @org.springframework.beans.factory.annotation.Qualifier("searchProjectionTasks")
           ThreadPoolTaskScheduler searchProjectionTasks,
       SearchProjectionProperties properties,

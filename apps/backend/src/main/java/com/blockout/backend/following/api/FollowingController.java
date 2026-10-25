@@ -2,7 +2,8 @@ package com.blockout.backend.following.api;
 
 import com.blockout.backend.following.api.FollowingRequest.QueryShape;
 import com.blockout.backend.following.application.FollowContext.TargetType;
-import com.blockout.backend.following.application.FollowService;
+import com.blockout.backend.following.application.ReadFollowState;
+import com.blockout.backend.following.application.ReplaceFollowState;
 import com.blockout.backend.generated.mobile.api.FollowingApi;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
 import com.blockout.backend.generated.mobile.model.FollowOptionsResponse;
@@ -26,7 +27,8 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequiredArgsConstructor
 public class FollowingController implements FollowingApi {
-  private final FollowService follows;
+  private final ReadFollowState reads;
+  private final ReplaceFollowState changes;
   private final FollowingRequest requests;
   private final HttpServletRequest request;
 
@@ -35,7 +37,7 @@ public class FollowingController implements FollowingApi {
   public ResponseEntity<FollowStateResponse> getTeamFollowState(
       UUID accountId, UUID teamId, Boolean bypass) {
     requests.validateQuery(request, QueryShape.MEMBER);
-    return stateResponse(follows.state(requests.member(accountId, TargetType.TEAM, teamId)));
+    return stateResponse(reads.read(requests.member(accountId, TargetType.TEAM, teamId)));
   }
 
   /** {@inheritDoc} */
@@ -44,7 +46,7 @@ public class FollowingController implements FollowingApi {
       UUID accountId, UUID teamId, ReplaceFollowStateRequest body, Boolean bypass) {
     requests.validateQuery(request, QueryShape.MEMBER);
     return stateResponse(
-        follows.replace(requests.member(accountId, TargetType.TEAM, teamId), body.getFollowing()));
+        changes.replace(requests.member(accountId, TargetType.TEAM, teamId), body.getFollowing()));
   }
 
   /** {@inheritDoc} */
@@ -52,7 +54,7 @@ public class FollowingController implements FollowingApi {
   public ResponseEntity<FollowStateResponse> getPoolFollowState(
       UUID accountId, UUID poolId, Boolean bypass) {
     requests.validateQuery(request, QueryShape.MEMBER);
-    return stateResponse(follows.state(requests.member(accountId, TargetType.POOL, poolId)));
+    return stateResponse(reads.read(requests.member(accountId, TargetType.POOL, poolId)));
   }
 
   /** {@inheritDoc} */
@@ -61,7 +63,7 @@ public class FollowingController implements FollowingApi {
       UUID accountId, UUID poolId, ReplaceFollowStateRequest body, Boolean bypass) {
     requests.validateQuery(request, QueryShape.MEMBER);
     return stateResponse(
-        follows.replace(requests.member(accountId, TargetType.POOL, poolId), body.getFollowing()));
+        changes.replace(requests.member(accountId, TargetType.POOL, poolId), body.getFollowing()));
   }
 
   /**

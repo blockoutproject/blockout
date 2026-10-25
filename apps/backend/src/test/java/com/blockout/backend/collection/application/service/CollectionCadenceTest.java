@@ -35,11 +35,16 @@ class CollectionCadenceTest {
             .lastAttemptAt(attempt)
             .fastWindowEndsAt(fast ? attempt.plusSeconds(14400) : null)
             .build();
-    // When / Then
-    assertThat(CollectionTargetSelector.due(target, attempt.plusSeconds(seconds - 1))).isFalse();
-    assertThat(CollectionTargetSelector.due(target, attempt.plusSeconds(seconds))).isTrue();
-    assertThat(
-            CollectionTargetSelector.due(target.toBuilder().lastAttemptAt(null).build(), attempt))
-        .isTrue();
+
+    // When
+    boolean beforeCadence = FreezeCollectionTargets.due(target, attempt.plusSeconds(seconds - 1));
+    boolean atCadence = FreezeCollectionTargets.due(target, attempt.plusSeconds(seconds));
+    boolean neverAttempted =
+        FreezeCollectionTargets.due(target.toBuilder().lastAttemptAt(null).build(), attempt);
+
+    // Then
+    assertThat(beforeCadence).isFalse();
+    assertThat(atCadence).isTrue();
+    assertThat(neverAttempted).isTrue();
   }
 }

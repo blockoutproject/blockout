@@ -6,11 +6,13 @@ import static com.blockout.backend.sporting.support.SportingIngestionFixture.SOU
 import static com.blockout.backend.sporting.support.SportingIngestionFixture.candidate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionState;
-import com.blockout.backend.collection.application.service.CollectionCycleService;
-import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
+import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.model.CalendarObservation;
@@ -18,6 +20,7 @@ import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
+import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.net.URI;
@@ -38,6 +41,7 @@ import org.junit.jupiter.api.Test;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -50,6 +54,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 /**
  * Real admitted F01 cycles and committed F02 transactions against the migrated PostgreSQL schema.
  */
+@Import(SportingIdentityFixture.class)
 @SpringBootTest
 @Testcontainers
 @DisplayName("Contextual catalog and independently committed calendars")
@@ -58,13 +63,15 @@ class CalendarAcceptanceIntegrationTest {
   private static final OffsetDateTime NOW = OffsetDateTime.parse("2026-10-19T12:00:00Z");
   @Autowired private JdbcTemplate sql;
   @Autowired private PlatformTransactionManager transactions;
-  @Autowired private SeasonService seasons;
-  @Autowired private SportingIdentityService identities;
-  @Autowired private CollectionCycleService cycles;
-  @Autowired private CollectorRuntimeService runtimes;
-  @Autowired private CalendarAcceptanceService calendars;
-  @Autowired private MatchAcceptanceService matches;
-  @Autowired private CatalogAcceptanceService catalogs;
+  @Autowired private ChangeCollectionSeasons seasons;
+  @Autowired private SportingIdentityFixture identities;
+  @Autowired private AdmitCollectionCycle cycles;
+  @Autowired private RegisterCollectorRuntime runtimes;
+  @Autowired private ReadCollectionWork collectionWork;
+  @Autowired private AcceptCalendar calendars;
+  @Autowired private ValidateSportingImage imageContent;
+  @Autowired private AcceptMatchObservation matches;
+  @Autowired private AcceptCatalog catalogs;
   private CollectionState.Cycle cycle;
   private UUID pool;
   private UUID season;
@@ -92,6 +99,43 @@ class CalendarAcceptanceIntegrationTest {
     season = scope.season();
     pool = scope.pool();
     cycle = scope.cycle();
+  }
+
+  @Test
+  @DisplayName("Refuses image decoding while a database transaction is active")
+  void refusesImageDecodingInTransaction() {
+    // Given
+    byte[] undecodable = new byte[] {1, 2, 3};
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable validate =
+        () -> transaction.executeWithoutResult(status -> imageContent.validate(undecodable));
+
+    // Then
+    assertThatThrownBy(validate)
+        .isInstanceOf(org.springframework.transaction.IllegalTransactionStateException.class);
+  }
+
+  @Test
+  @DisplayName("Refuses an ambient transaction before admitting any calendar work")
+  void refusesAmbientTransaction() {
+    // Given
+    CalendarObservation observation =
+        calendar(1, List.of(candidate("AMBIENT", "Home", LocalDate.of(2026, 10, 1))));
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable accept =
+        () -> transaction.executeWithoutResult(status -> calendars.accept(pool, observation));
+
+    // Then
+    assertThatThrownBy(accept)
+        .isInstanceOf(org.springframework.transaction.IllegalTransactionStateException.class);
+    assertThat(
+            sql.queryForObject(
+                "SELECT COUNT(*) FROM sporting_match WHERE pool_id = ?", Long.class, pool))
+        .isZero();
   }
 
   @Test
@@ -196,13 +240,15 @@ class CalendarAcceptanceIntegrationTest {
   @Test
   @DisplayName("Rejects a globally unselected pool before creating sporting identities")
   void rejectsGlobalScope() {
+    // Given
+    UUID unselected = UUID.fromString("00000000-0000-4000-8000-000000000199");
+    CalendarObservation observation = calendar(1, List.of(candidate("M1", "Home", null)));
 
-    // When / Then
-    assertThatThrownBy(
-            () ->
-                calendars.accept(
-                    UUID.randomUUID(), calendar(1, List.of(candidate("M1", "Home", null)))))
-        .isInstanceOf(CollectionConflictException.class);
+    // When
+    Throwable thrown = catchThrowable(() -> calendars.accept(unselected, observation));
+
+    // Then
+    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Integer.class)).isZero();
   }
 
@@ -250,16 +296,13 @@ class CalendarAcceptanceIntegrationTest {
     CatalogObservation.Pool item = catalogPool("NEW", "New pool");
     ObservationOutcome.Catalog first =
         catalogs.accept(SOURCE, new CatalogObservation(context(1), false, List.of(item, item)));
+    Boolean originalEligible =
+        sql.queryForObject(
+            "SELECT catalog_eligible FROM sporting_pool WHERE id=?", Boolean.class, pool);
 
-    // When / Then
-    assertThat(first.outcomes()).hasSize(2);
-    assertThat(first.outcomes().get(0).resourceId())
-        .isEqualTo(first.outcomes().get(1).resourceId());
-    assertThat(
-            sql.queryForObject(
-                "SELECT catalog_eligible FROM sporting_pool WHERE id=?", Boolean.class, pool))
-        .isTrue();
-    assertThatThrownBy(
+    // When
+    Throwable conflict =
+        catchThrowable(
             () ->
                 catalogs.accept(
                     SOURCE,
@@ -269,8 +312,14 @@ class CalendarAcceptanceIntegrationTest {
                         List.of(
                             catalogPool("OTHER", "Other"),
                             item,
-                            catalogPool("NEW", "Contradiction")))))
-        .isInstanceOf(SportingConflictException.class);
+                            catalogPool("NEW", "Contradiction")))));
+
+    // Then
+    assertThat(first.outcomes()).hasSize(2);
+    assertThat(first.outcomes().get(0).resourceId())
+        .isEqualTo(first.outcomes().get(1).resourceId());
+    assertThat(originalEligible).isTrue();
+    assertThat(conflict).isInstanceOf(SportingConflictException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_pool", Integer.class))
         .isEqualTo(2);
     assertThat(
@@ -331,7 +380,7 @@ class CalendarAcceptanceIntegrationTest {
     CountDownLatch release = new CountDownLatch(1);
     CompletableFuture<Integer> replacementPid = new CompletableFuture<>();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
-    long revision = runtimes.current().revision();
+    long revision = collectionWork.current().revision();
     try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
       Future<?> accepting =
           workers.submit(
@@ -564,14 +613,17 @@ class CalendarAcceptanceIntegrationTest {
         new CatalogObservation.Pool(
             "OTHER_PACK", "COMP", "POOL", null, null, null, null, "Existing");
 
-    // When / Then
-    assertThatThrownBy(
+    // When
+    Throwable thrown =
+        catchThrowable(
             () ->
                 catalogs.accept(
                     SOURCE,
                     new CatalogObservation(
-                        context(1), true, List.of(catalogPool("NEW", "New"), wrongPack))))
-        .isInstanceOf(SportingConflictException.class);
+                        context(1), true, List.of(catalogPool("NEW", "New"), wrongPack))));
+
+    // Then
+    assertThat(thrown).isInstanceOf(SportingConflictException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_pool", Integer.class))
         .isEqualTo(1);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_catalog", Integer.class)).isZero();
@@ -598,7 +650,7 @@ class CalendarAcceptanceIntegrationTest {
   void preservesInitialHistory() {
     // Given
     UUID startup = UUID.randomUUID();
-    runtimes.register(runtimes.current().revision(), startup);
+    runtimes.register(collectionWork.current().revision(), startup);
     UUID request = UUID.fromString("00000000-0000-4000-8000-000000000163");
     sql.update("UPDATE sporting_season SET collection_state='PREPARING' WHERE id=?", season);
     sql.update(

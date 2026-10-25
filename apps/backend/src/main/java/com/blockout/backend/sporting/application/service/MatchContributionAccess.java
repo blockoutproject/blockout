@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class MatchContributionAccess {
   private final SportingStore store;
-  private final SportingReadService reads;
+  private final ReadSportingData reads;
 
   /**
    * Locks season, current division and match in owner order before any account lock.

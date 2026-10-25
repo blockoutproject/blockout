@@ -1,9 +1,11 @@
 package com.blockout.backend.accounts.application;
 
 import com.blockout.backend.accounts.application.exception.AccountCreationConflictException;
+import com.blockout.backend.accounts.application.exception.AccountNotFoundException;
 import com.blockout.backend.accounts.application.exception.AccountUnavailableException;
 import com.blockout.backend.accounts.application.exception.ProviderEmailUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
+import com.blockout.backend.accounts.domain.AccountUsername;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -21,6 +23,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class EstablishAccount {
   private final AccountStore accounts;
   private final PrincipalReader provider;
+  private final ReadAccount reads;
   private final PlatformTransactionManager transactions;
 
   /**
@@ -29,7 +32,7 @@ public class EstablishAccount {
    *
    * @param issuer exact validated issuer
    * @param subject exact validated subject
-   * @return committed account and creation outcome
+   * @return current original-account projection after commit and creation outcome
    * @throws ProviderEmailUnavailableException when creation lacks a usable provider address
    * @throws AccountUnavailableException for unavailable evidence or an erased original UUID
    */
@@ -45,7 +48,7 @@ public class EstablishAccount {
    * @param issuer exact validated issuer
    * @param subject exact validated subject
    * @param admittedAccount original non-null business UUID authorized at admission
-   * @return committed existing account with current evidence
+   * @return current original-account projection after its evidence commit
    * @throws AccountUnavailableException if that original disappears or is replaced
    */
   @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -59,14 +62,15 @@ public class EstablishAccount {
    * @param issuer exact validated issuer
    * @param subject exact validated subject
    * @param admittedAccount required bypass lifecycle, or null for ordinary explicit establishment
-   * @return locally committed account and creation outcome
+   * @return current original-account projection after commit and creation outcome
    * @throws AccountUnavailableException when an admitted original is absent or replaced
    * @throws ProviderEmailUnavailableException when unconstrained creation lacks a usable address
    */
   private Outcome establish(String issuer, String subject, UUID admittedAccount) {
-    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    TransactionTemplate capture = new TransactionTemplate(transactions);
+    capture.setReadOnly(true);
     Optional<UUID> original =
-        transaction.execute(status -> accounts.findIdByPrincipal(issuer, subject));
+        capture.execute(status -> accounts.findIdByPrincipal(issuer, subject));
     if (admittedAccount != null && original.filter(admittedAccount::equals).isEmpty()) {
       throw new AccountUnavailableException();
     }
@@ -80,10 +84,13 @@ public class EstablishAccount {
     }
     PrincipalReader.Evidence available = evidence;
     boolean providerUnavailable = unavailable;
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
     for (int attempt = 0; attempt < 5; attempt++) {
       try {
-        return transaction.execute(
-            status -> commit(issuer, subject, original, available, providerUnavailable));
+        Committed committed =
+            transaction.execute(
+                status -> commit(issuer, subject, original, available, providerUnavailable));
+        return outcome(issuer, subject, committed);
       } catch (AccountCreationConflictException conflict) {
         // The failed insert transaction has rolled back before another candidate is considered.
       }
@@ -105,7 +112,7 @@ public class EstablishAccount {
    * @throws AccountUnavailableException when the captured original has disappeared
    * @throws ProviderEmailUnavailableException when creation lacks usable provider email
    */
-  private Outcome commit(
+  private Committed commit(
       String issuer,
       String subject,
       Optional<UUID> original,
@@ -118,21 +125,49 @@ public class EstablishAccount {
           accounts
               .synchronize(current.orElseThrow(), evidence.email(), evidence.createdAt())
               .orElseThrow(() -> new AccountUnavailableException());
-      return new Outcome(account, false);
+      return new Committed(account.id(), false);
     }
     if (providerUnavailable) throw new AccountUnavailableException();
     if (evidence.email() == null || evidence.email().isBlank())
       throw new ProviderEmailUnavailableException();
-    String username = "Player_" + UUID.randomUUID().toString().replace("-", "").substring(0, 24);
-    return new Outcome(
-        accounts.create(issuer, subject, username, evidence.email(), evidence.createdAt()), true);
+    Account account =
+        accounts.create(
+            issuer, subject, AccountUsername.neutral(), evidence.email(), evidence.createdAt());
+    return new Committed(account.id(), true);
   }
 
   /**
-   * Committed establishment result; the business UUID identifies only this account lifecycle.
+   * Reloads only the committed lifecycle for the final response; erasure never announces a usable
+   * account or redirects the result to a replacement created for the same principal.
    *
-   * @param account usable account with known evidence preserved
+   * @param issuer validated issuer
+   * @param subject validated subject
+   * @param committed completed local creation or synchronization
+   * @return current local profile, photo presence and permissions after commit
+   * @throws AccountUnavailableException when the original disappears before result projection
+   */
+  private Outcome outcome(String issuer, String subject, Committed committed) {
+    try {
+      return new Outcome(
+          reads.original(issuer, subject, committed.accountId()), committed.created());
+    } catch (AccountNotFoundException absent) {
+      throw new AccountUnavailableException();
+    }
+  }
+
+  /**
+   * Current presentation of a committed establishment, retaining only its original lifecycle.
+   *
+   * @param view current usable account, accepted-photo presence and independent grants
    * @param created whether this request created it
    */
-  public record Outcome(Account account, boolean created) {}
+  public record Outcome(ReadAccount.View view, boolean created) {}
+
+  /**
+   * Minimal local commit fact retained while the original lifecycle is projected for response.
+   *
+   * @param accountId original business UUID
+   * @param created whether the committed transaction created it
+   */
+  private record Committed(UUID accountId, boolean created) {}
 }

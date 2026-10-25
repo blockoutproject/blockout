@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.backend.sporting.api.SportingIngestionController;
-import com.blockout.backend.sporting.application.service.SportingImageService;
+import com.blockout.backend.sporting.application.service.ValidateSportingImage;
 import java.io.ByteArrayInputStream;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -27,7 +27,7 @@ class IngestionBodyLimitAdviceTest {
   @DisplayName("Rejects oversized source images without reading past the bounded detection byte")
   void boundsImageBeforeConversion(boolean declaredLength) throws Exception {
     // Given
-    int length = SportingImageService.MAX_BYTES + 32;
+    int length = ValidateSportingImage.MAX_BYTES + 32;
     ByteArrayInputStream content = new ByteArrayInputStream(new byte[length]);
     MockHttpInputMessage message = new MockHttpInputMessage(content);
     if (declaredLength) message.getHeaders().setContentLength(length);

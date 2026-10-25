@@ -16,7 +16,8 @@ import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
-import com.blockout.backend.collection.application.service.SourcePreparationService;
+import com.blockout.backend.collection.application.service.PrepareCollectionSources;
+import com.blockout.backend.collection.application.service.ReadCollectionConfiguration;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
@@ -44,6 +45,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 /**
@@ -68,7 +70,8 @@ class SourcePreparationWebMvcTest {
   private static final String URL =
       "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=ABCCS";
   @Autowired private MockMvc mvc;
-  @MockitoBean private SourcePreparationService preparation;
+  @MockitoBean private PrepareCollectionSources preparation;
+  @MockitoBean private ReadCollectionConfiguration configurationReads;
   @MockitoBean private AccountAccess accounts;
 
   @Test
@@ -76,7 +79,7 @@ class SourcePreparationWebMvcTest {
   void readsSourceEvidence() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(preparation.get(ACCOUNT, SOURCE))
+    when(configurationReads.source(ACCOUNT, SOURCE))
         .thenReturn(source(SourceValidationStateEnum.UNVALIDATED));
 
     // When
@@ -101,7 +104,7 @@ class SourcePreparationWebMvcTest {
   void readsSeasons() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(preparation.seasons(ACCOUNT))
+    when(configurationReads.seasons(ACCOUNT))
         .thenReturn(
             List.of(
                 new CollectionSeasonView(
@@ -222,7 +225,7 @@ class SourcePreparationWebMvcTest {
   void readsDirectChildren() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(preparation.children(ACCOUNT, SOURCE, null, 0, 50))
+    when(configurationReads.children(ACCOUNT, SOURCE, null, 0, 50))
         .thenReturn(
             new CollectionResourcePage(
                 List.of(
@@ -299,13 +302,15 @@ class SourcePreparationWebMvcTest {
       })
   @DisplayName("Missing or invalid body revisions fail before any application command")
   void refusesInvalidRevision(String body) throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request =
+        post("/administration/source-bindings/{id}/validations", SOURCE)
+            .with(mobile())
+            .contentType("application/json")
+            .content(body);
+
     // When
-    ResultActions response =
-        mvc.perform(
-            post("/administration/source-bindings/{id}/validations", SOURCE)
-                .with(mobile())
-                .contentType("application/json")
-                .content(body));
+    ResultActions response = mvc.perform(request);
 
     // Then
     response.andExpect(status().isBadRequest());
@@ -335,14 +340,16 @@ class SourcePreparationWebMvcTest {
   @ValueSource(strings = {"size=201", "size=0", "page=-1"})
   @DisplayName("Direct child reads enforce generated pagination bounds")
   void boundsChildren(String query) throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request =
+        get("/administration/source-bindings/" + SOURCE + "/children?" + query).with(mobile());
+
     // When
-    ResultActions response =
-        mvc.perform(
-            get("/administration/source-bindings/" + SOURCE + "/children?" + query).with(mobile()));
+    ResultActions response = mvc.perform(request);
 
     // Then
     response.andExpect(status().isBadRequest());
-    verifyNoInteractions(preparation);
+    verifyNoInteractions(configurationReads);
   }
 
   @Test
@@ -350,7 +357,7 @@ class SourcePreparationWebMvcTest {
   void requiresOperationalGrant() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(preparation.get(ACCOUNT, SOURCE))
+    when(configurationReads.source(ACCOUNT, SOURCE))
         .thenThrow(new AccessDeniedException("Collection management is not permitted"));
 
     // When

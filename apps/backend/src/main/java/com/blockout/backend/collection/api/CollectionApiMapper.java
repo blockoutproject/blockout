@@ -3,7 +3,7 @@ package com.blockout.backend.collection.api;
 import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.RecordCollectionResult;
-import com.blockout.backend.collection.application.service.CollectionSourceService;
+import com.blockout.backend.collection.application.service.ObserveCollectionSource;
 import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.generated.ingestion.model.CollectionControlInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleInternalResponse;
@@ -117,7 +117,7 @@ public interface CollectionApiMapper {
    * @param source strict generated discovery proposal
    * @return immutable application command
    */
-  CollectionSourceService.Proposal toCommand(ObserveSeasonSourceInternalRequest source);
+  ObserveCollectionSource.Proposal toCommand(ObserveSeasonSourceInternalRequest source);
 
   /**
    * Returns existing owner identities without claiming activation.
@@ -126,7 +126,7 @@ public interface CollectionApiMapper {
    * @return generated discovery acknowledgement
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  SeasonSourceInternalResponse toDto(CollectionSourceService.Resolved source);
+  SeasonSourceInternalResponse toDto(ObserveCollectionSource.Resolved source);
 
   /**
    * Reuses the shared contract-owned provider enum across generated API namespaces.

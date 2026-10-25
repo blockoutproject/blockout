@@ -1,7 +1,7 @@
 package com.blockout.backend.following.infrastructure;
 
 import com.blockout.backend.config.MappingConfiguration;
-import com.blockout.backend.following.application.FollowStore.Relation;
+import com.blockout.backend.following.application.FollowContext.Relation;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

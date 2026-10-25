@@ -23,7 +23,7 @@ import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
-import com.blockout.backend.notifications.application.InboxReadStore;
+import com.blockout.backend.notifications.application.InboxViews;
 import com.blockout.backend.notifications.application.MarkNotificationRead;
 import com.blockout.backend.notifications.application.NotificationNotFoundException;
 import com.blockout.backend.notifications.application.ReadInbox;
@@ -48,6 +48,8 @@ import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /** HTTP binding/security with controlled application reads; SQL is qualified separately. */
 @WebMvcTest(controllers = NotificationsController.class)
@@ -77,7 +79,7 @@ class NotificationsWebMvcTest {
   void listsOwner() throws Exception {
     // Given
     when(account.id()).thenReturn(ACCOUNT);
-    when(reads.page(any(), isNull())).thenReturn(new InboxReadStore.Page(List.of(), null));
+    when(reads.page(any(), isNull())).thenReturn(new InboxViews.Page(List.of(), null));
 
     // When
     mvc.perform(get(COLLECTION).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))))
@@ -123,9 +125,13 @@ class NotificationsWebMvcTest {
     when(reads.member(any(), eq(ID))).thenReturn(entry(false));
     when(marks.mark(any(), eq(ID))).thenReturn(entry(true));
 
-    // When / Then
-    mvc.perform(
-            get(COLLECTION + "/" + ID).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))))
+    // When
+    ResultActions response =
+        mvc.perform(
+            get(COLLECTION + "/" + ID).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))));
+
+    // Then
+    response
         .andExpect(status().isOk())
         .andExpect(header().string("Accept-Patch", "application/json"))
         .andExpect(header().string("Cache-Control", "no-store"))
@@ -137,11 +143,16 @@ class NotificationsWebMvcTest {
                 .value(org.hamcrest.Matchers.containsString("Le lien n’est plus proposé.")));
     verifyNoInteractions(marks);
     for (int repetition = 0; repetition < 2; repetition++) {
-      mvc.perform(
+      // When
+      ResultActions secondResponse =
+          mvc.perform(
               patch(COLLECTION + "/" + ID)
                   .with(jwt().jwt(token -> token.claim("azp", "mobile-test")))
                   .contentType(MediaType.APPLICATION_JSON)
-                  .content("{\"read\":true}"))
+                  .content("{\"read\":true}"));
+
+      // Then
+      secondResponse
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.read").value(true))
           .andExpect(header().string("Accept-Patch", "application/json"))
@@ -154,12 +165,16 @@ class NotificationsWebMvcTest {
   void summarizesOwner() throws Exception {
     // Given
     when(account.id()).thenReturn(ACCOUNT);
-    when(reads.summary(any())).thenReturn(new InboxReadStore.Summary(0, null));
+    when(reads.summary(any())).thenReturn(new InboxViews.Summary(0, null));
 
-    // When / Then
-    mvc.perform(
+    // When
+    ResultActions response =
+        mvc.perform(
             get("/accounts/" + ACCOUNT + "/notification-summary")
-                .with(jwt().jwt(token -> token.claim("azp", "mobile-test"))))
+                .with(jwt().jwt(token -> token.claim("azp", "mobile-test"))));
+
+    // Then
+    response
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.unreadCount").value(0))
@@ -180,8 +195,13 @@ class NotificationsWebMvcTest {
     // Given
     when(account.id()).thenReturn(ACCOUNT);
 
-    // When / Then
-    mvc.perform(get(COLLECTION + query).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))))
+    // When
+    ResultActions response =
+        mvc.perform(
+            get(COLLECTION + query).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))));
+
+    // Then
+    response
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:invalid-request"))
         .andExpect(header().string("Cache-Control", "no-store"));
@@ -196,16 +216,26 @@ class NotificationsWebMvcTest {
     when(reads.member(any(), eq(ID))).thenThrow(new NotificationNotFoundException());
     when(marks.mark(any(), eq(ID))).thenThrow(new NotificationNotFoundException());
 
-    // When / Then
-    mvc.perform(
-            get(COLLECTION + "/" + ID).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))))
+    // When
+    ResultActions response =
+        mvc.perform(
+            get(COLLECTION + "/" + ID).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))));
+
+    // Then
+    response
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:not-found"));
-    mvc.perform(
+
+    // When
+    ResultActions secondResponse =
+        mvc.perform(
             patch(COLLECTION + "/" + ID)
                 .with(jwt().jwt(token -> token.claim("azp", "mobile-test")))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"read\":true}"))
+                .content("{\"read\":true}"));
+
+    // Then
+    secondResponse
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:not-found"));
   }
@@ -216,20 +246,29 @@ class NotificationsWebMvcTest {
     // Given
     when(account.id()).thenReturn(UUID.fromString("00000000-0000-4000-8000-000000000002"));
 
-    // When / Then
+    // When
     for (String path :
         List.of(
             COLLECTION, COLLECTION + "/" + ID, "/accounts/" + ACCOUNT + "/notification-summary")) {
-      mvc.perform(get(path).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))))
+      // When
+      ResultActions response =
+          mvc.perform(get(path).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))));
+
+      // Then
+      response
           .andExpect(status().isNotFound())
           .andExpect(header().string("Cache-Control", "no-store"));
     }
-    mvc.perform(
+    // When
+    ResultActions secondResponse =
+        mvc.perform(
             patch(COLLECTION + "/" + ID)
                 .with(jwt().jwt(token -> token.claim("azp", "mobile-test")))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"read\":true}"))
-        .andExpect(status().isNotFound());
+                .content("{\"read\":true}"));
+
+    // Then
+    secondResponse.andExpect(status().isNotFound());
     verifyNoInteractions(reads, marks);
   }
 
@@ -241,8 +280,12 @@ class NotificationsWebMvcTest {
     when(reads.page(any(), isNull()))
         .thenThrow(new DataAccessResourceFailureException("private diagnostic"));
 
-    // When / Then
-    mvc.perform(get(COLLECTION).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))))
+    // When
+    ResultActions response =
+        mvc.perform(get(COLLECTION).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))));
+
+    // Then
+    response
         .andExpect(status().isServiceUnavailable())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:unavailable"))
         .andExpect(jsonPath("$.detail").doesNotExist())
@@ -257,8 +300,12 @@ class NotificationsWebMvcTest {
     when(reads.page(any(), isNull()))
         .thenThrow(new InvalidDataAccessResourceUsageException("private SQL diagnostic"));
 
-    // When / Then
-    mvc.perform(get(COLLECTION).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))))
+    // When
+    ResultActions response =
+        mvc.perform(get(COLLECTION).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))));
+
+    // Then
+    response
         .andExpect(status().isInternalServerError())
         .andExpect(jsonPath("$.type").value("about:blank"))
         .andExpect(jsonPath("$.detail").doesNotExist())
@@ -268,29 +315,47 @@ class NotificationsWebMvcTest {
   @Test
   @DisplayName("No manual notification deletion or other PATCH media is exposed")
   void refusesUnsupportedActions() throws Exception {
-    // Given / When / Then
-    mvc.perform(
-            delete(COLLECTION + "/" + ID)
-                .with(jwt().jwt(token -> token.claim("azp", "mobile-test"))))
-        .andExpect(status().isMethodNotAllowed());
-    mvc.perform(
+    // Given
+    MockHttpServletRequestBuilder request =
+        delete(COLLECTION + "/" + ID).with(jwt().jwt(token -> token.claim("azp", "mobile-test")));
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isMethodNotAllowed());
+
+    // When
+    ResultActions secondResponse =
+        mvc.perform(
             patch(COLLECTION + "/" + ID)
                 .with(jwt().jwt(token -> token.claim("azp", "mobile-test")))
                 .contentType("application/merge-patch+json")
-                .content("{\"read\":true}"))
-        .andExpect(status().isUnsupportedMediaType());
+                .content("{\"read\":true}"));
+
+    // Then
+    secondResponse.andExpect(status().isUnsupportedMediaType());
     verifyNoInteractions(marks);
   }
 
   @Test
   @DisplayName("Guests and maintenance refusals never reach the owner inbox reader")
   void enforcesAdmission() throws Exception {
-    // Given / When / Then
-    mvc.perform(get(COLLECTION)).andExpect(status().isUnauthorized());
+    // Given
+    MockHttpServletRequestBuilder request = get(COLLECTION);
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isUnauthorized());
     doThrow(new MaintenanceRequiredException(new MaintenanceSettings(7L, true, "Pause", null)))
         .when(admission)
         .requireOrdinaryAccess(anyString(), anyString(), eq(false));
-    mvc.perform(
+
+    // When
+    ResultActions secondResponse =
+        mvc.perform(
             get(COLLECTION)
                 .with(
                     jwt()
@@ -299,7 +364,10 @@ class NotificationsWebMvcTest {
                                 token
                                     .issuer("https://identity.example.invalid/")
                                     .subject("auth0|owner")
-                                    .claim("azp", "mobile-test"))))
+                                    .claim("azp", "mobile-test"))));
+
+    // Then
+    secondResponse
         .andExpect(status().isServiceUnavailable())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:maintenance"))
         .andExpect(header().string("Cache-Control", "no-store"));
@@ -312,7 +380,7 @@ class NotificationsWebMvcTest {
    * @param read scenario's confirmed read bit
    * @return valid detached current facts for transport mapping
    */
-  private static InboxReadStore.Entry entry(boolean read) {
+  private static InboxViews.Entry entry(boolean read) {
     ConsultationViews.Division division =
         new ConsultationViews.Division(ACCOUNT, "Division", null, "#112233", null);
     ConsultationViews.PoolSummary pool =
@@ -335,7 +403,7 @@ class NotificationsWebMvcTest {
                 Instant.parse("2026-10-24T11:00:00Z").atOffset(java.time.ZoneOffset.UTC)),
             CalendarCategoryEnum.COMPLETED,
             null);
-    return new InboxReadStore.Entry(
+    return new InboxViews.Entry(
         ID,
         Instant.parse("2026-10-24T12:00:00.123456Z"),
         NotificationFamily.ENRICHED_RESULT,

@@ -44,13 +44,13 @@ Restore authoritative PostgreSQL into isolation and rebuild the derived search s
 
 Qualified lifecycle boundary: `SearchProjectionIntegrationTest` runs migrated PostgreSQL 18.6, actual F02 current reads/after-commit events, the one-thread Spring scheduler and real TLS OpenSearch 3.9.0/client 3.10.0 under Microsoft OpenJDK 25.0.4. Ten cases establish commit versus rollback, current rereads behind a full run, club/division/participation dependents, removal of hidden teams, full-run catch-up without an event, refreshed native document serialization, failed bulk-item/refresh preservation, lost alias acknowledgements and an alias request applied after the old-state reread. Native failures and delayed acknowledgements use controlled SDK call boundaries against real owned indexes; they are not a process-kill or hosted failure injection. Bulk calls assert that SQL transactions have ended and that execution stays on the sole search thread. Cleanup preserves aliased/unrelated indexes and removes at most twelve unaliased UUID generations; failed/unconfirmed runs defer cleanup until a later confirmed full run. The existing F02 `SportingProjectionIntegrationTest` also qualifies source/season scope expansion, score-only exclusion and transaction handoff under its real owners.
 
-`SearchProjectionTest` covers bounded multi-page reconstruction and current identity/removal orchestration. `SearchProjectionSchedulerTest` qualifies the native immediate fixed-delay scheduling call, validated delay, disabled non-web context and separation from the ordinary Spring scheduler. `SearchDiagnosticsTest` exercises the actual Boot ECS encoder and native metric registry: rejected submission, failed bulk envelope/items, failed metadata cleanup and truthful latest-full-success state exclude synthetic query/city/contact/credential/raw error content. The initial no-op projection tests and the premature-cleanup regression were observed failing before their corrections.
+`ProjectSearchTest` covers bounded multi-page reconstruction and current identity/removal orchestration. `SearchProjectionSchedulerTest` qualifies the native immediate fixed-delay scheduling call, validated delay, disabled non-web context and separation from the ordinary Spring scheduler. `SearchDiagnosticsTest` exercises the actual Boot ECS encoder and native metric registry: rejected submission, failed bulk envelope/items, failed metadata cleanup and truthful latest-full-success state exclude synthetic query/city/contact/credential/raw error content. The initial no-op projection tests and the premature-cleanup regression were observed failing before their corrections.
 
 Run these boundaries from the repository root after the README's contract bundle step:
 
 ```sh
 ./mvnw -B -ntp -pl apps/backend verify \
-  -Dtest=SearchProjectionTest,SearchProjectionSchedulerTest,SearchDiagnosticsTest \
+  -Dtest=ProjectSearchTest,SearchProjectionSchedulerTest,SearchDiagnosticsTest \
   -Dit.test=SearchProjectionIntegrationTest
 ```
 

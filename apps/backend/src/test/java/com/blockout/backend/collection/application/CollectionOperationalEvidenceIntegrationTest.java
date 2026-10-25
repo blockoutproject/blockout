@@ -6,16 +6,18 @@ import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.collection.application.service.CollectionOperationalDiagnostics;
-import com.blockout.backend.collection.application.service.CollectionResultService;
-import com.blockout.backend.collection.application.service.CollectionSourceService;
-import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.collection.application.service.ObserveCollectionSource;
+import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.RecordCollectionResults;
+import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
-import com.blockout.backend.sporting.application.service.SeasonService;
-import com.blockout.backend.sporting.application.service.SportingReadService;
+import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
+import com.blockout.backend.sporting.application.service.ReadSportingData;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.net.URI;
 import java.sql.Timestamp;
@@ -60,12 +62,14 @@ class CollectionOperationalEvidenceIntegrationTest {
   private static final UUID SCOPE = UUID.fromString("00000000-0000-4000-8000-000000000203");
   private static final UUID OTHER = UUID.fromString("00000000-0000-4000-8000-000000000204");
   private static final URI TECHNICAL = URI.create("urn:blockout:acquisition:technical");
-  @Autowired private CollectionResultService results;
-  @Autowired private CollectorRuntimeService runtimes;
-  @Autowired private CollectionSourceService sources;
+  @Autowired private RecordCollectionResults results;
+  @Autowired private RegisterCollectorRuntime runtimes;
+  @Autowired private ReadCollectionWork collectionWork;
+  @Autowired private ObserveCollectionSource sources;
   @Autowired private CollectionStore store;
-  @Autowired private SeasonService seasons;
-  @Autowired private SportingReadService sporting;
+  @Autowired private ChangeCollectionSeasons seasons;
+  @Autowired private ReadSportingData sporting;
+  @Autowired private ReadSportingAcquisition acquisitionReads;
   @Autowired private ApplicationEventPublisher events;
   @Autowired private PlatformTransactionManager transactions;
   @Autowired private JdbcTemplate sql;
@@ -103,7 +107,7 @@ class CollectionOperationalEvidenceIntegrationTest {
         COMPETITIONS,
         season);
     incarnation = UUID.randomUUID();
-    runtimes.register(runtimes.current().revision(), incarnation);
+    runtimes.register(collectionWork.current().revision(), incarnation);
   }
 
   @ParameterizedTest
@@ -476,8 +480,8 @@ class CollectionOperationalEvidenceIntegrationTest {
   @DisplayName("Source observations report one current provider-season preparation aggregate")
   void reportsGroupedPreparation(CapturedOutput output) {
     // Given
-    CollectionSourceService.Proposal first = proposal("SYNTHETIC-A");
-    CollectionSourceService.Proposal second = proposal("SYNTHETIC-B");
+    ObserveCollectionSource.Proposal first = proposal("SYNTHETIC-A");
+    ObserveCollectionSource.Proposal second = proposal("SYNTHETIC-B");
     sources.observe(first);
 
     // When
@@ -531,7 +535,8 @@ class CollectionOperationalEvidenceIntegrationTest {
         UUID.fromString("00000000-0000-4000-8000-000000000212"),
         season,
         pack);
-    assertThat(sporting.countUnclassifiedPools(season, CollectionProviderEnum.FFVB)).isEqualTo(1);
+    assertThat(acquisitionReads.countUnclassifiedPools(season, CollectionProviderEnum.FFVB))
+        .isEqualTo(1);
 
     // When
     results.record(
@@ -567,7 +572,8 @@ class CollectionOperationalEvidenceIntegrationTest {
     assertThat(reports)
         .allSatisfy(
             log -> assertThat(log.path("collection_subject").asText()).isEqualTo("classification"));
-    assertThat(sporting.countUnclassifiedPools(season, CollectionProviderEnum.FFVB)).isZero();
+    assertThat(acquisitionReads.countUnclassifiedPools(season, CollectionProviderEnum.FFVB))
+        .isZero();
   }
 
   @Test
@@ -849,8 +855,8 @@ class CollectionOperationalEvidenceIntegrationTest {
    * @param organizer explicit distinct source root
    * @return credential-free evidence in the existing 2026 canonical season
    */
-  private CollectionSourceService.Proposal proposal(String organizer) {
-    return new CollectionSourceService.Proposal(
+  private ObserveCollectionSource.Proposal proposal(String organizer) {
+    return new ObserveCollectionSource.Proposal(
         incarnation,
         2026,
         CollectionProviderEnum.FFVB,

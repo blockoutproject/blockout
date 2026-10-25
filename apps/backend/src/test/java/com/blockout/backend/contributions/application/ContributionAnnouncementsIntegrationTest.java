@@ -1,14 +1,16 @@
 package com.blockout.backend.contributions.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.backend.contributions.domain.StreamAddress;
 import com.blockout.backend.contributions.support.ContributionScenario;
 import com.blockout.backend.generated.ingestion.model.MatchFactsInternalRequest;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.notifications.application.AfterCommitAnnouncements;
-import com.blockout.backend.notifications.application.ProcessResultAnnouncement;
+import com.blockout.backend.notifications.application.AllocateAnnouncements;
+import com.blockout.backend.notifications.application.ProcessDueLinkAnnouncements.ProcessDueMatch;
+import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.model.CalendarObservation;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.net.URI;
@@ -42,6 +44,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 @DisplayName("Atomic contribution, result and announcement composition")
 class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
   @Autowired private Probe probe;
+  @Autowired private SportingProjectionChanges projectionChanges;
+  @Autowired private ProcessDueMatch dueMatch;
 
   @Autowired
   private com.blockout.backend.sporting.application.service.MatchContributionAccess sportingContext;
@@ -49,14 +53,39 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
   @Autowired
   private com.blockout.backend.notifications.application.AnnouncementRecipients recipientSelection;
 
-  @Autowired private ContributionTransitions transitions;
+  @Autowired private AnnounceContribution transitions;
 
   /** Clears only this test's ephemeral handoff observations. */
   @BeforeEach
   void clearProbe() {
     probe.ids.clear();
+    probe.handoffs.clear();
     probe.relationCounts.clear();
     probe.fail = false;
+  }
+
+  @Test
+  @DisplayName(
+      "Hands off announcements before projection invalidation only after their shared commit")
+  void ordersCommittedHandoffs() {
+    // Given
+    follow(FOLLOWER);
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+
+    // When
+    transaction.executeWithoutResult(
+        status -> {
+          projectionChanges.submit(SportingProjectionChanges.Kind.POOL, scope.pool());
+          submit(AUTHOR, "0", "https://youtube.com/ordered", false);
+          assertThat(probe.handoffs).isEmpty();
+        });
+
+    // Then
+    assertThat(probe.handoffs)
+        .containsExactly(
+            AfterCommitAnnouncements.Ready.class, SportingProjectionChanges.Changed.class);
+    assertThat(probe.ids).hasSize(1);
+    assertThat(count("notification")).isEqualTo(1);
   }
 
   @Test
@@ -131,9 +160,12 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
     moderator(AUTHOR);
     duplicateFamily("POST_RESULT_LINK");
 
-    // When / Then
-    assertThatThrownBy(() -> submit(AUTHOR, "0", "https://youtube.com/replay", true))
-        .isInstanceOf(DataIntegrityViolationException.class);
+    // When
+    Throwable observedFailure =
+        catchThrowable(() -> submit(AUTHOR, "0", "https://youtube.com/replay", true));
+
+    // Then
+    assertThat(observedFailure).isInstanceOf(DataIntegrityViolationException.class);
     assertThat(count("contribution_version")).isZero();
     assertThat(count("contribution_state")).isZero();
     assertThat(probe.ids).isEmpty();
@@ -152,9 +184,11 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
     follow(FOLLOWER);
     duplicateFamily("PLAIN_RESULT");
 
-    // When / Then
-    assertThatThrownBy(() -> result(2, ResultStateEnum.FINAL))
-        .isInstanceOf(DataIntegrityViolationException.class);
+    // When
+    Throwable observedFailure = catchThrowable(() -> result(2, ResultStateEnum.FINAL));
+
+    // Then
+    assertThat(observedFailure).isInstanceOf(DataIntegrityViolationException.class);
     assertThat(
             sql.queryForObject(
                 "SELECT result_state FROM sporting_match WHERE id=?", String.class, matchId))
@@ -344,14 +378,20 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
                                   submit(AUTHOR, "0", "https://youtube.com/live", false);
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, pid);
-                assertThatThrownBy(
+
+                // When
+                Throwable observedFailure =
+                    catchThrowable(
                         () ->
                             independent.execute(
                                 inner ->
                                     sql.queryForObject(
                                         "SELECT id FROM account WHERE id=? FOR UPDATE NOWAIT",
                                         UUID.class,
-                                        FOLLOWER)))
+                                        FOLLOWER)));
+
+                // Then
+                assertThat(observedFailure)
                     .isInstanceOf(org.springframework.dao.DataAccessException.class);
                 // The later author must not have been locked before the smaller audience
                 // identities.
@@ -437,8 +477,11 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
                 return future;
               });
 
-      // When / Then
-      assertThatThrownBy(() -> waiting.get(15, TimeUnit.SECONDS))
+      // When
+      Throwable observedFailure = catchThrowable(() -> waiting.get(15, TimeUnit.SECONDS));
+
+      // Then
+      assertThat(observedFailure)
           .hasCauseInstanceOf(
               com.blockout.backend.accounts.application.exception.AccountNotFoundException.class);
       assertThat(count("contribution_version")).isZero();
@@ -559,7 +602,7 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
       Future<?> waiting =
           tx.execute(
               status -> {
-                due.run();
+                dueMatch.process(matchId);
                 Future<?> future =
                     worker.submit(
                         () ->
@@ -605,9 +648,11 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
                 return future;
               });
 
-      // When / Then
-      assertThatThrownBy(() -> waiting.get(15, TimeUnit.SECONDS))
-          .hasCauseInstanceOf(ContributionRejectedException.class);
+      // When
+      Throwable observedFailure = catchThrowable(() -> waiting.get(15, TimeUnit.SECONDS));
+
+      // Then
+      assertThat(observedFailure).hasCauseInstanceOf(ContributionRejectedException.class);
       assertThat(count("contribution_version")).isEqualTo(1);
       assertThat(contributions.state(matchId).revision()).isEqualTo(1);
     }
@@ -640,9 +685,11 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
                 return future;
               });
 
-      // When / Then
-      assertThatThrownBy(() -> waiting.get(15, TimeUnit.SECONDS))
-          .hasCauseInstanceOf(AccessDeniedException.class);
+      // When
+      Throwable observedFailure = catchThrowable(() -> waiting.get(15, TimeUnit.SECONDS));
+
+      // Then
+      assertThat(observedFailure).hasCauseInstanceOf(AccessDeniedException.class);
       assertThat(count("contribution_version")).isZero();
     }
   }
@@ -699,9 +746,11 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
                 return future;
               });
 
-      // When / Then
-      assertThatThrownBy(() -> waiting.get(15, TimeUnit.SECONDS))
-          .hasCauseInstanceOf(ContributionRejectedException.class);
+      // When
+      Throwable observedFailure = catchThrowable(() -> waiting.get(15, TimeUnit.SECONDS));
+
+      // Then
+      assertThat(observedFailure).hasCauseInstanceOf(ContributionRejectedException.class);
       assertThat(count("contribution_version")).isEqualTo(3);
       assertThat(contributions.state(second).revision()).isZero();
       assertThat(reads.read(AUTHOR, matchId, 0).usage().dailyMatchesUsed()).isEqualTo(3);
@@ -748,6 +797,7 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
    * Observes committed visibility on a separate transaction before an optional external failure.
    */
   static class Probe {
+    final List<Class<?>> handoffs = new java.util.concurrent.CopyOnWriteArrayList<>();
     final List<UUID> ids = new java.util.concurrent.CopyOnWriteArrayList<>();
     final java.util.List<Integer> relationCounts =
         new java.util.concurrent.CopyOnWriteArrayList<>();
@@ -767,15 +817,26 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
     }
 
     /**
+     * Records the actual projection event for relative ordering with committed announcements.
+     *
+     * @param changed owner scopes delivered by the native after-commit listener
+     */
+    @EventListener
+    void changed(SportingProjectionChanges.Changed changed) {
+      handoffs.add(SportingProjectionChanges.Changed.class);
+    }
+
+    /**
      * Checks committed entry visibility, retaining no address, user payload or provider credential.
      *
      * @param ready actual committed notification allocations
      */
     @EventListener
     void ready(AfterCommitAnnouncements.Ready ready) {
+      handoffs.add(AfterCommitAnnouncements.Ready.class);
       TransactionTemplate independent = new TransactionTemplate(transactions);
       independent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-      for (ProcessResultAnnouncement.Created created : ready.entries()) {
+      for (AllocateAnnouncements.Created created : ready.entries()) {
         assertThat(
                 independent.<Long>execute(
                     status ->

@@ -6,9 +6,8 @@ import com.blockout.backend.collection.application.exception.CollectionConflictE
 import com.blockout.backend.collection.application.exception.InvalidSeasonConfirmationException;
 import com.blockout.backend.collection.application.model.CollectionState.Control;
 import com.blockout.backend.collection.application.port.CollectionStore;
-import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
-import com.blockout.backend.sporting.application.service.SeasonService;
+import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CloseCollectionSeason {
   private final CollectionStore store;
-  private final SeasonService seasons;
+  private final ChangeCollectionSeasons seasons;
   private final ActionAuthorization authorization;
 
   /**
@@ -42,15 +41,13 @@ public class CloseCollectionSeason {
     List<Control> controls =
         store.controls(seasonId).stream().map(control -> store.lockControl(control.id())).toList();
     authorization.require(accountId, Permission.MANAGE_COLLECTION);
-    if (revision != season.collectionRevision())
-      throw new CollectionConflictException("stale-revision");
-    if (season.collectionState() == CollectionSeasonStateEnum.CLOSED)
-      throw new CollectionConflictException("conflict");
+    CollectionRevision.requireRevision(revision, season.collectionRevision());
+    CollectionLifecycle.requireOpen(season);
     if (!season.label().equals(confirmation)) throw new InvalidSeasonConfirmationException();
-    CollectorRuntimeService.requireAdvance(season.collectionRevision());
+    CollectionRevision.requireAdvance(season.collectionRevision());
     for (Control control : controls) {
       if (control.requestId() != null) {
-        CollectorRuntimeService.requireAdvance(control.revision());
+        CollectionRevision.requireAdvance(control.revision());
         store.setControlIntent(control.id(), control.enabled(), null, null);
       }
     }

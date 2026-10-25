@@ -6,7 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-import com.blockout.backend.search.application.SearchProjection;
+import com.blockout.backend.search.application.ProjectSearch;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Changed;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
@@ -28,7 +28,7 @@ class SearchProjectionSchedulerTest {
   @DisplayName("Defers scope rereads to the same scheduler used for immediate fixed-delay rebuilds")
   void defersOwnerReads() {
     // Given
-    SearchProjection projection = mock(SearchProjection.class);
+    ProjectSearch projection = mock(ProjectSearch.class);
     ThreadPoolTaskScheduler tasks = mock(ThreadPoolTaskScheduler.class);
     SearchProjectionScheduler scheduler =
         new SearchProjectionScheduler(
@@ -66,7 +66,7 @@ class SearchProjectionSchedulerTest {
     WebApplicationContextRunner context =
         new WebApplicationContextRunner()
             .withUserConfiguration(SearchProjectionConfiguration.class)
-            .withBean(SearchProjection.class, () -> mock(SearchProjection.class))
+            .withBean(ProjectSearch.class, () -> mock(ProjectSearch.class))
             .withBean(io.micrometer.core.instrument.MeterRegistry.class, SimpleMeterRegistry::new)
             .withPropertyValues(
                 "blockout.search.enabled=true", "blockout.search.projection.full-rebuild-delay=1h");
@@ -98,7 +98,7 @@ class SearchProjectionSchedulerTest {
                     org.springframework.boot.autoconfigure.task.TaskSchedulingAutoConfiguration
                         .class))
             .withUserConfiguration(SearchProjectionConfiguration.class, OrdinaryScheduling.class)
-            .withBean(SearchProjection.class, () -> mock(SearchProjection.class))
+            .withBean(ProjectSearch.class, () -> mock(ProjectSearch.class))
             .withBean(io.micrometer.core.instrument.MeterRegistry.class, SimpleMeterRegistry::new)
             .withPropertyValues(
                 "blockout.search.enabled=true", "blockout.search.projection.full-rebuild-delay=1h");
@@ -151,7 +151,7 @@ class SearchProjectionSchedulerTest {
     WebApplicationContextRunner context =
         new WebApplicationContextRunner()
             .withUserConfiguration(SearchProjectionConfiguration.class)
-            .withBean(SearchProjection.class, () -> mock(SearchProjection.class))
+            .withBean(ProjectSearch.class, () -> mock(ProjectSearch.class))
             .withBean(io.micrometer.core.instrument.MeterRegistry.class, SimpleMeterRegistry::new)
             .withPropertyValues(
                 "blockout.search.enabled=true", "blockout.search.projection.full-rebuild-delay=0s");

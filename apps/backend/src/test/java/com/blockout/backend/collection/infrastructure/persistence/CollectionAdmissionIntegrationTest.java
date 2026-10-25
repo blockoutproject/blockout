@@ -2,6 +2,7 @@ package com.blockout.backend.collection.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.exception.CollectionNotFoundException;
@@ -9,8 +10,11 @@ import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.CollectionState.Admission;
 import com.blockout.backend.collection.application.model.CollectionState.StartCycle;
 import com.blockout.backend.collection.application.port.CollectionStore;
-import com.blockout.backend.collection.application.service.CollectionCycleService;
-import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
+import com.blockout.backend.collection.application.service.CollectionCycleAccess;
+import com.blockout.backend.collection.application.service.CollectorRuntimeAccess;
+import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
@@ -20,8 +24,8 @@ import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
-import com.blockout.backend.sporting.application.service.SeasonService;
-import com.blockout.backend.sporting.application.service.SportingIdentityService;
+import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.persistence.EntityManagerFactory;
 import java.sql.Connection;
@@ -51,6 +55,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -66,6 +71,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Real PostgreSQL admission, frozen-target and transaction-fence contracts. */
+@Import(SportingIdentityFixture.class)
 @SpringBootTest
 @Testcontainers
 @DisplayName("Collector admission and transaction-held incarnation fence")
@@ -79,10 +85,14 @@ class CollectionAdmissionIntegrationTest {
   private static final Instant NOW = Instant.parse("2026-10-19T10:00:00Z");
   private static final UUID DIVISION = UUID.fromString("00000000-0000-4000-8000-000000000154");
   @MockitoBean private Clock clock;
-  @Autowired private SportingIdentityService identities;
-  @Autowired private CollectorRuntimeService runtimes;
-  @Autowired private CollectionCycleService cycles;
-  @Autowired private SeasonService seasons;
+  @Autowired private SportingIdentityFixture identities;
+  @Autowired private RegisterCollectorRuntime runtimes;
+  @Autowired private CollectorRuntimeAccess runtimeAccess;
+  @Autowired private ReadCollectionWork collectionWork;
+  @Autowired private AdmitCollectionCycle cycles;
+  @Autowired private CollectionCycleAccess cycleAccess;
+
+  @Autowired private ChangeCollectionSeasons seasons;
   @Autowired private JdbcTemplate sql;
   @Autowired private PlatformTransactionManager transactions;
   @Autowired private EntityManagerFactory entityManagerFactory;
@@ -131,24 +141,41 @@ class CollectionAdmissionIntegrationTest {
   }
 
   @Test
-  @DisplayName("Enforces unique source roots and seasonal controls in PostgreSQL")
-  void enforcesUniqueConfiguration() {
+  @DisplayName("PostgreSQL refuses duplicate seasonal controls")
+  void refusesDuplicateSeasonalControl() {
+    // Given
+    UUID duplicate = UUID.fromString("00000000-0000-4000-8000-000000000199");
 
-    // When / Then
-    assertThatThrownBy(
+    // When
+    Throwable thrown =
+        catchThrowable(
             () ->
                 sql.update(
                     "INSERT INTO collection_control(id,season_id,family,enabled) VALUES (?,?,'FFVB',TRUE)",
-                    UUID.randomUUID(),
-                    season))
-        .isInstanceOf(DataIntegrityViolationException.class);
-    assertThatThrownBy(
+                    duplicate,
+                    season));
+
+    // Then
+    assertThat(thrown).isInstanceOf(DataIntegrityViolationException.class);
+  }
+
+  @Test
+  @DisplayName("PostgreSQL refuses duplicate source roots")
+  void refusesDuplicateSourceRoot() {
+    // Given
+    UUID duplicate = UUID.fromString("00000000-0000-4000-8000-000000000199");
+
+    // When
+    Throwable thrown =
+        catchThrowable(
             () ->
                 sql.update(
                     "INSERT INTO collection_source_binding(id,season_id,provider,organizer_reference,validation_state,locked,launched) VALUES (?,?,'FFVB','ABCCS','UNVALIDATED',FALSE,FALSE)",
-                    UUID.randomUUID(),
-                    season))
-        .isInstanceOf(DataIntegrityViolationException.class);
+                    duplicate,
+                    season));
+
+    // Then
+    assertThat(thrown).isInstanceOf(DataIntegrityViolationException.class);
   }
 
   @Test
@@ -157,10 +184,12 @@ class CollectionAdmissionIntegrationTest {
     // Given
     sql.update("UPDATE collector_runtime SET revision = 9007199254740991 WHERE id = 1");
 
-    // When / Then
-    assertThatThrownBy(() -> runtimes.register(9_007_199_254_740_991L, REPLACEMENT))
-        .isInstanceOf(CollectionConflictException.class);
-    assertThat(runtimes.current().incarnationId()).isEqualTo(STARTUP);
+    // When
+    Throwable thrown = catchThrowable(() -> runtimes.register(9_007_199_254_740_991L, REPLACEMENT));
+
+    // Then
+    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+    assertThat(collectionWork.current().incarnationId()).isEqualTo(STARTUP);
   }
 
   @Test
@@ -172,8 +201,8 @@ class CollectionAdmissionIntegrationTest {
             "SELECT revision FROM collection_control WHERE id = ?", Long.class, CONTROL);
 
     // When
-    cycles.work(STARTUP);
-    cycles.work(STARTUP);
+    collectionWork.work(STARTUP);
+    collectionWork.work(STARTUP);
 
     // Then
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_cycle", Long.class)).isZero();
@@ -207,7 +236,7 @@ class CollectionAdmissionIntegrationTest {
                 new TransactionTemplate(transactions)
                     .executeWithoutResult(
                         status ->
-                            cycles.requireTarget(
+                            cycleAccess.requireTarget(
                                 CYCLE, SOURCE, CollectionTargetKindEnum.DISCOVERY)))
         .isInstanceOf(CollectionConflictException.class);
   }
@@ -218,8 +247,11 @@ class CollectionAdmissionIntegrationTest {
     // Given
     StartCycle command = new StartCycle(CYCLE, STARTUP, CONTROL, SOURCE, 0, null);
 
-    // When / Then
-    assertThatThrownBy(() -> cycles.admit(command)).isInstanceOf(CollectionConflictException.class);
+    // When
+    Throwable thrown = catchThrowable(() -> cycles.admit(command));
+
+    // Then
+    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
   }
 
   @Test
@@ -236,7 +268,8 @@ class CollectionAdmissionIntegrationTest {
 
     // Then
     assertThat(second.cycle().cycleOrder()).isGreaterThan(first.cycle().cycleOrder());
-    assertThatThrownBy(() -> cycles.get(CYCLE)).isInstanceOf(CollectionNotFoundException.class);
+    assertThatThrownBy(() -> collectionWork.get(CYCLE))
+        .isInstanceOf(CollectionNotFoundException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_cycle", Long.class))
         .isEqualTo(1);
   }
@@ -255,8 +288,8 @@ class CollectionAdmissionIntegrationTest {
         pool);
 
     // Then
-    CollectionState.TargetPage first = cycles.targets(CYCLE, 0, 1);
-    CollectionState.TargetPage second = cycles.targets(CYCLE, 1, 1);
+    CollectionState.TargetPage first = collectionWork.targets(CYCLE, 0, 1);
+    CollectionState.TargetPage second = collectionWork.targets(CYCLE, 1, 1);
     assertThat(first.hasNext()).isTrue();
     assertThat(first.items())
         .singleElement()
@@ -291,7 +324,7 @@ class CollectionAdmissionIntegrationTest {
     cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
 
     // Then
-    assertThat(cycles.targets(CYCLE, 0, 50).items()).isEmpty();
+    assertThat(collectionWork.targets(CYCLE, 0, 50).items()).isEmpty();
     assertThat(
             sql.queryForObject(
                 "SELECT last_success_at FROM collection_control WHERE id = ?",
@@ -321,7 +354,7 @@ class CollectionAdmissionIntegrationTest {
         club);
 
     // Then
-    assertThat(cycles.targets(CYCLE, 0, 50).items())
+    assertThat(collectionWork.targets(CYCLE, 0, 50).items())
         .singleElement()
         .satisfies(
             item -> {
@@ -331,7 +364,7 @@ class CollectionAdmissionIntegrationTest {
     sql.update(
         "UPDATE sporting_club SET municipality_restricted = TRUE, locality_revision = 3 WHERE id = ?",
         club);
-    assertThat(cycles.targets(CYCLE, 0, 50).items())
+    assertThat(collectionWork.targets(CYCLE, 0, 50).items())
         .singleElement()
         .satisfies(
             item -> {
@@ -365,12 +398,12 @@ class CollectionAdmissionIntegrationTest {
     statistics.setStatisticsEnabled(true);
     try {
       long before = statistics.getPrepareStatementCount();
-      cycles.targets(CYCLE, 0, 1);
+      collectionWork.targets(CYCLE, 0, 1);
       long singleTargetReads = statistics.getPrepareStatementCount() - before;
       before = statistics.getPrepareStatementCount();
 
       // When
-      CollectionState.TargetPage page = cycles.targets(CYCLE, 0, 200);
+      CollectionState.TargetPage page = collectionWork.targets(CYCLE, 0, 200);
       long pageReads = statistics.getPrepareStatementCount() - before;
 
       // Then
@@ -423,7 +456,7 @@ class CollectionAdmissionIntegrationTest {
 
       // Then
       assertThat(statements).isLessThanOrEqualTo(targets.size());
-      assertThat(cycles.targets(CYCLE, 0, 50).items())
+      assertThat(collectionWork.targets(CYCLE, 0, 50).items())
           .filteredOn(item -> item.target().kind() == CollectionTargetKindEnum.CALENDAR)
           .extracting(item -> item.target().scopeId())
           .containsExactlyElementsOf(scopes);
@@ -614,7 +647,7 @@ class CollectionAdmissionIntegrationTest {
     statistics.setStatisticsEnabled(true);
     try {
       long before = statistics.getPrepareStatementCount();
-      cycles.work(STARTUP);
+      collectionWork.work(STARTUP);
       long singleCycleReads = statistics.getPrepareStatementCount() - before;
       sql.update(
           "INSERT INTO collection_control(id, season_id, family, enabled, current_cycle_id) VALUES (?, ?, 'LNV', FALSE, ?), (?, NULL, 'GEOCODING', FALSE, ?)",
@@ -637,7 +670,7 @@ class CollectionAdmissionIntegrationTest {
       before = statistics.getPrepareStatementCount();
 
       // When
-      CollectionState.Work work = cycles.work(STARTUP);
+      CollectionState.Work work = collectionWork.work(STARTUP);
       long listReads = statistics.getPrepareStatementCount() - before;
 
       // Then
@@ -665,7 +698,7 @@ class CollectionAdmissionIntegrationTest {
     statistics.setStatisticsEnabled(true);
     try {
       long before = statistics.getPrepareStatementCount();
-      cycles.work(STARTUP);
+      collectionWork.work(STARTUP);
       long singleSeasonReads = statistics.getPrepareStatementCount() - before;
       sql.update(
           "INSERT INTO collection_control(id, season_id, family, enabled) VALUES ('00000000-0000-4000-8000-000000000172', ?, 'FFVB', FALSE), ('00000000-0000-4000-8000-000000000173', ?, 'FFVB', FALSE)",
@@ -678,7 +711,7 @@ class CollectionAdmissionIntegrationTest {
       before = statistics.getPrepareStatementCount();
 
       // When
-      CollectionState.Work work = cycles.work(STARTUP);
+      CollectionState.Work work = collectionWork.work(STARTUP);
       long listReads = statistics.getPrepareStatementCount() - before;
 
       // Then
@@ -812,9 +845,12 @@ class CollectionAdmissionIntegrationTest {
         "UPDATE collection_source_binding SET revision = 1, locked = FALSE, launched = FALSE, validation_state = 'PENDING' WHERE id = ?",
         SOURCE);
 
-    // When / Then
-    assertThatThrownBy(() -> cycles.admit(new StartCycle(CYCLE, STARTUP, null, SOURCE, 0, null)))
-        .isInstanceOf(CollectionConflictException.class);
+    // When
+    Throwable thrown =
+        catchThrowable(() -> cycles.admit(new StartCycle(CYCLE, STARTUP, null, SOURCE, 0, null)));
+
+    // Then
+    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_cycle", Long.class)).isZero();
   }
 
@@ -824,12 +860,15 @@ class CollectionAdmissionIntegrationTest {
     // Given
     sql.update("UPDATE collection_control SET revision = 9007199254740991 WHERE id = ?", CONTROL);
 
-    // When / Then
-    assertThatThrownBy(
+    // When
+    Throwable thrown =
+        catchThrowable(
             () ->
                 cycles.admit(
-                    new StartCycle(CYCLE, STARTUP, CONTROL, null, 9_007_199_254_740_991L, null)))
-        .isInstanceOf(CollectionConflictException.class);
+                    new StartCycle(CYCLE, STARTUP, CONTROL, null, 9_007_199_254_740_991L, null)));
+
+    // Then
+    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_cycle", Long.class)).isZero();
   }
 
@@ -864,7 +903,7 @@ class CollectionAdmissionIntegrationTest {
 
     // Then
     assertThat(admitted.cycle().mode()).isEqualTo(CollectionModeEnum.INITIAL_IMPORT);
-    assertThat(cycles.targets(CYCLE, 0, 50).items())
+    assertThat(collectionWork.targets(CYCLE, 0, 50).items())
         .extracting(item -> item.target().scopeId())
         .containsExactly(historicalPool, SOURCE);
     assertThat(
@@ -900,7 +939,7 @@ class CollectionAdmissionIntegrationTest {
     cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
 
     // Then
-    assertThat(cycles.targets(CYCLE, 0, 50).items())
+    assertThat(collectionWork.targets(CYCLE, 0, 50).items())
         .singleElement()
         .satisfies(item -> assertThat(item.target().scopeId()).isEqualTo(SOURCE));
   }
@@ -917,7 +956,7 @@ class CollectionAdmissionIntegrationTest {
     PoolKey key = new PoolKey(CollectionProviderEnum.FFVB, season, "ABCCS", "N2", null, null, "P1");
     UUID pool =
         identities
-            .establishPool(
+            .createPool(
                 key,
                 "PACK",
                 "Synthetic pool",
@@ -945,7 +984,7 @@ class CollectionAdmissionIntegrationTest {
     // Then
     assertThat(admitted.created()).isTrue();
     assertThat(admitted.cycle().cycleOrder()).isPositive();
-    assertThat(cycles.targets(CYCLE, 0, 50).items())
+    assertThat(collectionWork.targets(CYCLE, 0, 50).items())
         .singleElement()
         .satisfies(
             target -> {
@@ -964,8 +1003,11 @@ class CollectionAdmissionIntegrationTest {
     // Given
     StartCycle command = new StartCycle(CYCLE, STARTUP, CONTROL, null, 1, null);
 
-    // When / Then
-    assertThatThrownBy(() -> cycles.admit(command)).isInstanceOf(CollectionConflictException.class);
+    // When
+    Throwable thrown = catchThrowable(() -> cycles.admit(command));
+
+    // Then
+    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_cycle", Long.class)).isZero();
   }
 
@@ -975,16 +1017,19 @@ class CollectionAdmissionIntegrationTest {
     // Given
     sql.update("UPDATE sporting_season SET collection_state = 'CLOSED' WHERE id = ?", season);
 
-    // When / Then
-    assertThatThrownBy(() -> cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null)))
-        .isInstanceOf(CollectionConflictException.class);
+    // When
+    Throwable thrown =
+        catchThrowable(() -> cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null)));
+
+    // Then
+    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
   }
 
   @Test
   @DisplayName("Repeating the current registration is harmless but stale replacement is refused")
   void preservesRegistrationRevision() {
     // Given
-    long revision = runtimes.current().revision();
+    long revision = collectionWork.current().revision();
 
     // When
     long duplicate = runtimes.register(0, STARTUP).revision();
@@ -1010,7 +1055,7 @@ class CollectionAdmissionIntegrationTest {
               () ->
                   transaction.executeWithoutResult(
                       status -> {
-                        runtimes.requireCurrent(STARTUP);
+                        runtimeAccess.requireCurrent(STARTUP);
                         sql.update(
                             "UPDATE sporting_season SET label = 'Committed fact' WHERE id = ?",
                             season);
@@ -1049,8 +1094,8 @@ class CollectionAdmissionIntegrationTest {
                 "SELECT label FROM sporting_season WHERE id = ?", String.class, season))
         .isEqualTo("Committed fact");
     assertThatThrownBy(
-            () -> transaction.executeWithoutResult(status -> runtimes.requireCurrent(STARTUP)))
+            () -> transaction.executeWithoutResult(status -> runtimeAccess.requireCurrent(STARTUP)))
         .isInstanceOf(CollectionConflictException.class);
-    assertThat(cycles.get(CYCLE).state().getValue()).isEqualTo("interrupted");
+    assertThat(collectionWork.get(CYCLE).state().getValue()).isEqualTo("interrupted");
   }
 }

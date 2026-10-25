@@ -1,11 +1,10 @@
 package com.blockout.backend.notifications.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.backend.accounts.application.AccountAccess;
-import com.blockout.backend.following.application.FollowStore.Relation;
+import com.blockout.backend.following.application.FollowContext.Relation;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.notifications.application.ProcessResultAnnouncement.Transition;
 import com.blockout.backend.notifications.domain.NotificationFamily;
@@ -168,7 +167,7 @@ class AnnouncementTransactionIntegrationTest {
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
     // When
-    List<ProcessResultAnnouncement.Created> created =
+    List<AllocateAnnouncements.Created> created =
         transaction.execute(
             status -> {
               roots(MATCH);
@@ -253,7 +252,8 @@ class AnnouncementTransactionIntegrationTest {
         });
 
     // When
-    assertThatThrownBy(
+    Throwable observedFailure =
+        catchThrowable(
             () ->
                 transaction.executeWithoutResult(
                     status -> {
@@ -264,15 +264,17 @@ class AnnouncementTransactionIntegrationTest {
                       processor.process(transition(MATCH, false));
                       // A distinct UUID still violates the required owner/match/family invariant.
                       notifications.create(
-                          new NotificationStore.Entry(
+                          new AllocateAnnouncements.Entry(
                               UUID.randomUUID(),
                               ACCOUNT,
                               MATCH,
                               NotificationFamily.PLAIN_RESULT,
                               NotificationVariant.FIRST,
                               ORIGIN));
-                    }))
-        .isInstanceOf(DataIntegrityViolationException.class);
+                    }));
+
+    // Then
+    assertThat(observedFailure).isInstanceOf(DataIntegrityViolationException.class);
 
     // Then
     assertThat(count("notification")).isEqualTo(1);
@@ -292,7 +294,8 @@ class AnnouncementTransactionIntegrationTest {
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
     // When
-    assertThatThrownBy(
+    Throwable observedFailure =
+        catchThrowable(
             () ->
                 transaction.executeWithoutResult(
                     status -> {
@@ -308,8 +311,10 @@ class AnnouncementTransactionIntegrationTest {
                               throw new IllegalStateException("Controlled after-commit failure");
                             }
                           });
-                    }))
-        .isInstanceOf(IllegalStateException.class);
+                    }));
+
+    // Then
+    assertThat(observedFailure).isInstanceOf(IllegalStateException.class);
 
     // Then
     assertThat(count("notification")).isEqualTo(1);
@@ -443,7 +448,7 @@ class AnnouncementTransactionIntegrationTest {
   void rejectsExistingPersonalIdentity() {
     // Given
     TransactionTemplate transaction = new TransactionTemplate(transactions);
-    NotificationStore.Entry original =
+    AllocateAnnouncements.Entry original =
         transaction.execute(
             status -> {
               roots(MATCH);
@@ -584,14 +589,20 @@ class AnnouncementTransactionIntegrationTest {
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, waitingPid);
                 // The writer must already hold ACCOUNT when it waits for the later OTHER UUID.
-                assertThatThrownBy(
+
+                // When
+                Throwable observedFailure =
+                    catchThrowable(
                         () ->
                             independent.execute(
                                 inner ->
                                     sql.queryForObject(
                                         "SELECT id FROM account WHERE id=? FOR UPDATE NOWAIT",
                                         UUID.class,
-                                        ACCOUNT)))
+                                        ACCOUNT)));
+
+                // Then
+                assertThat(observedFailure)
                     .isInstanceOfSatisfying(
                         UncategorizedSQLException.class,
                         failure ->
@@ -658,17 +669,30 @@ class AnnouncementTransactionIntegrationTest {
     String insert =
         "INSERT INTO notification(id,account_id,match_id,family,variant,created_at,is_read) VALUES (?,?,?,'PLAIN_RESULT','FIRST',?,FALSE)";
 
-    // When / Then: independent statements reach PostgreSQL, rather than parsing migration text.
-    assertThatThrownBy(
-            () -> sql.update(insert, UUID.randomUUID(), ACCOUNT, MATCH, Timestamp.from(ORIGIN)))
-        .isInstanceOf(DataIntegrityViolationException.class);
-    assertThatThrownBy(() -> sql.update(insert, UUID.randomUUID(), OTHER, MATCH, null))
-        .isInstanceOf(DataIntegrityViolationException.class);
-    assertThatThrownBy(
+    // When: independent statements reach PostgreSQL, rather than parsing migration text.
+    Throwable observedFailure =
+        catchThrowable(
+            () -> sql.update(insert, UUID.randomUUID(), ACCOUNT, MATCH, Timestamp.from(ORIGIN)));
+
+    // Then
+    assertThat(observedFailure).isInstanceOf(DataIntegrityViolationException.class);
+
+    // When
+    Throwable secondFailure =
+        catchThrowable(() -> sql.update(insert, UUID.randomUUID(), OTHER, MATCH, null));
+
+    // Then
+    assertThat(secondFailure).isInstanceOf(DataIntegrityViolationException.class);
+
+    // When
+    Throwable thirdFailure =
+        catchThrowable(
             () ->
                 sql.update(
-                    insert, UUID.randomUUID(), UUID.randomUUID(), MATCH, Timestamp.from(ORIGIN)))
-        .isInstanceOf(DataIntegrityViolationException.class);
+                    insert, UUID.randomUUID(), UUID.randomUUID(), MATCH, Timestamp.from(ORIGIN)));
+
+    // Then
+    assertThat(thirdFailure).isInstanceOf(DataIntegrityViolationException.class);
     assertThat(count("notification")).isEqualTo(1);
   }
 
