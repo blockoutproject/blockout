@@ -705,13 +705,9 @@ it("retains a usable logo through a failed refresh and clears it after a current
     });
 
     // Then
-    await screen.findByText(
-      /Logo indisponible|L’actualisation du logo a échoué\./,
-    );
+    await screen.findByText(/Logo indisponible|Logo non actualisé/);
     expect(screen.queryByText("VDR")).not.toBeOnTheScreen();
-    expect(
-      await screen.findByText("L’actualisation du logo a échoué."),
-    ).toBeOnTheScreen();
+    expect(screen.getByText("Logo non actualisé")).toBeOnTheScreen();
     mockFetch.mockImplementation((url: string) =>
       new URL(url).pathname.endsWith("/logo")
         ? Promise.resolve(Response.json({ status: 404 }, { status: 404 }))

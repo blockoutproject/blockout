@@ -40,17 +40,13 @@ export function SportingLogo({ identity, kind, size = 40 }: SportingLogoProps) {
   const { colors } = useTheme();
   const data = identity.logoUrl ? logo.data : undefined;
   return (
-    <View style={{ width: size }}>
-      <View
-        style={[
-          styles.logo,
-          {
-            width: size,
-            height: size,
-            backgroundColor: colors.mediaPlaceholder,
-          },
-        ]}
-      >
+    <View
+      style={[
+        styles.logo,
+        { width: size, backgroundColor: colors.mediaPlaceholder },
+      ]}
+    >
+      <View style={[styles.logo, { width: size, height: size }]}>
         {data ? (
           <LogoImage
             key={JSON.stringify(options.queryKey)}
@@ -74,7 +70,7 @@ export function SportingLogo({ identity, kind, size = 40 }: SportingLogoProps) {
       )}
       {identity.logoUrl && logo.isError && (
         <Text style={[styles.logoState, { color: colors.secondaryText }]}>
-          {data ? "L’actualisation du logo a échoué." : "Logo indisponible"}
+          {data ? "Logo non actualisé" : "Logo indisponible"}
         </Text>
       )}
     </View>
