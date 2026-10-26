@@ -22,7 +22,21 @@ export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
   const router = useRouter();
   const { colors } = useTheme();
   return (
-    <PreparationPage title={season.data?.label ?? "Saison"}>
+    <PreparationPage
+      title={season.data?.label ?? "Saison"}
+      refreshing={season.isFetching || authority.account.isFetching}
+      onRefresh={
+        authority.sessionStatus === "authenticated"
+          ? () => {
+              if (!authority.enabled)
+                void authority.account.refetch({ cancelRefetch: false });
+              else {
+                void season.refetch({ cancelRefetch: false });
+              }
+            }
+          : undefined
+      }
+    >
       <CollectionAccessFeedback authority={authority} />
       {authority.enabled &&
         (season.data ? (

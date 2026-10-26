@@ -35,8 +35,10 @@ jest.mock("react-native-auth0", () => {
   return jest.requireActual("react-native-auth0");
 });
 
+// Navigation is an external boundary here; the discard guard has real-router coverage in its owning suite.
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
+  usePreventRemove: jest.fn(),
   useRouter: () => ({ replace: jest.fn() }),
 }));
 jest.mock("expo/fetch", () => ({
@@ -99,7 +101,7 @@ const account = {
     moderateStreamLinks: false,
   },
 };
-const retryLabel = "Réessayer la lecture de l’ancienneté";
+const retryLabel = "Réessayer";
 const previousEnvironment = { ...process.env };
 
 beforeEach(() => {

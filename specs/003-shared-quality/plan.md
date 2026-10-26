@@ -47,6 +47,8 @@ For the 2026-10-22 presentation simplification only, the owner explicitly author
 
 Known limits do not waive gates: the Dokploy S3 masking fix must be verified before real V2 credential use; local generated-contract checks are implemented, while provider activation, isolated deployment and restoration still require their owning qualifications. A failed qualification blocks affected adoption rather than permitting an invented fallback.
 
+For [#532](https://github.com/blockoutproject/blockout/issues/532), the owner's 2026-10-26 request explicitly selects code-first interaction reconciliation, then the designated Figma library/product screens, then the designated prototype, with linked draft PRs and no merge. FR-036/FR-037 supply omitted interaction intent. This scoped direction governs Gate III for these conventions only; earlier one-off publication permissions do not apply to this delivery and unrelated design/provider/release prerequisites remain unchanged.
+
 ## Project Structure
 
 ### Documentation (this feature)
@@ -278,6 +280,14 @@ One `theme-provider.tsx`, composed by `apps/mobile/src/app/_layout.tsx`, resolve
 
 ### Components, patterns and screens
 
+#### Repeated interaction conventions
+
+[FR-036/FR-037](spec.md#functional-requirements) own the code-first interaction reconciliation requested in [#532](https://github.com/blockoutproject/blockout/issues/532). Use React Native `RefreshControl` in the existing scroll/list owners. A thin shared `DataRefreshControl` supplies theme and accessible progress; features supply their own current read callback and fetching state. `FormScrollView`, `PreparationPage`, `EditorPage`, `ResourcePage` and scrollable `Sheet` forward native refresh controls, preserve bounded height and allow short empty/error content to be pulled. No custom gesture recognizer, action registry or second query lifecycle is introduced.
+
+Refresh reads only the displayed authorized scope and does not call mutation reconciliation. Keep mounted draft identity and dirty values; remove competing refresh buttons, disable refresh while conflicting commands are pending without unmounting the native control or its content, and distinguish pagination fetching from refresh progress. Forward the `children` and `style` supplied by Android’s native scroll owner; native qualification must verify the same form survives the pending transition. Error retry stays with its failed read; command reconciliation keeps an explicit effect-specific verb and existing uncertainty guard. Static selectors, onboarding, local-only forms and provider-owned views receive no artificial gesture. F03 active tabs retain their specific read boundary; unfinished content receives no simulated read.
+
+`PageHeader`, `Sheet`, `Button`, `NavigationLink`, domain navigation rows, `useDiscardChanges`, `useActionConfirmation` and the existing request/action feedback owners carry the repeated intention. Use the labels in FR-037, explicit business confirmation verbs and native navigation/dialog behavior. Guard dirty session exit before sign-out as well as route removal. A failed read must never label a purchase, retry an upload or silently execute another business command. Validate shared owners and every delivered consumer independently, including real iOS/Android gestures, then project the same decisions into live Figma instances and the designated prototype. Existing incomplete business lots remain explicit qualification limits.
+
 Blockout selects native `StyleSheet` styling and the existing [React Native skill's](../../.agents/skills/react-native-expo/SKILL.md) component conventions, without an alternative styling engine or generic screen-state engine. Figma's useful component relationships guide reuse; documentation frames, sample content and every visual layer do not become React components.
 
 Shared `ErrorState` and `EmptyState` cards own the reusable feedback anatomy; owners retain read lifecycle and contextual empty copy. Technical failures use only “Une erreur est survenue” and “Veuillez réessayer plus tard.” once, with an optional explicit “Réessayer” action supplied by the read owner. Search reuses the shared `SearchField`, Button, theme and original volleyball artwork; its result/skeleton composition remains feature-owned. The scoped [#506 design correction](https://github.com/blockoutproject/blockout/issues/506) supersedes the Error State's former hidden recovery default without changing F12 gates or unsafe-command safeguards.
@@ -326,18 +336,19 @@ Dokploy 0.30.8 has a statically verified S3 credential-redaction defect across c
 
 ## Coverage and validation boundary
 
-| Applicable requirement / outcome             | Plan coverage and future proof                                                                                                                   |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| FR-004–005, FR-008; SC-002                   | Owner transactions, preserved usable projections, honest stage outcomes, bounded waits; domain freshness/rebuild/uncertainty scenarios.          |
-| FR-009–014; SC-004                           | External probe, ordinary diagnostics, native alerts, privacy filtering and manual intervention; failed stage/host/no-data and recovery checks.   |
-| FR-015–019; SC-005                           | Token and business checks, session isolation, no replay; refusal without side effects, old-session and wrong-environment tests.                  |
-| FR-020–021                                   | Domain rebuild replacement/partial success/current restrictions; interrupted and stale-work scenarios.                                           |
-| FR-022–028; SC-006                           | Native independent backups, retention, initial isolated restore and compatible rollback; restore bytes/associations/rights and failed migration. |
-| FR-029–031; SC-007                           | French native phones, accessible approved states and explicit business retries; device/accessibility/lifecycle checks.                           |
-| FR-032; SC-008                               | F14 logo retention and certain-identity reassociation; no missing file treated as retention proof.                                               |
-| FR-033                                       | Shared image control across profile, sporting editors and support; verify selection, replacement and removal with each owner’s constraints.      |
-| FR-034–035; SC-009                           | Native UI projection, system appearance and owner composition; A23/A24 compare exact approved states and live theme changes on both platforms.   |
-| Withdrawn FR-001–003, FR-006–007, SC-001/003 | Excluded; no performance/capacity or monthly availability qualification is reintroduced.                                                         |
+| Applicable requirement / outcome             | Plan coverage and future proof                                                                                                                                         |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FR-004–005, FR-008; SC-002                   | Owner transactions, preserved usable projections, honest stage outcomes, bounded waits; domain freshness/rebuild/uncertainty scenarios.                                |
+| FR-009–014; SC-004                           | External probe, ordinary diagnostics, native alerts, privacy filtering and manual intervention; failed stage/host/no-data and recovery checks.                         |
+| FR-015–019; SC-005                           | Token and business checks, session isolation, no replay; refusal without side effects, old-session and wrong-environment tests.                                        |
+| FR-020–021                                   | Domain rebuild replacement/partial success/current restrictions; interrupted and stale-work scenarios.                                                                 |
+| FR-022–028; SC-006                           | Native independent backups, retention, initial isolated restore and compatible rollback; restore bytes/associations/rights and failed migration.                       |
+| FR-029–031; SC-007                           | French native phones, accessible approved states and explicit business retries; device/accessibility/lifecycle checks.                                                 |
+| FR-032; SC-008                               | F14 logo retention and certain-identity reassociation; no missing file treated as retention proof.                                                                     |
+| FR-033                                       | Shared image control across profile, sporting editors and support; verify selection, replacement and removal with each owner’s constraints.                            |
+| FR-034–035; SC-009                           | Native UI projection, system appearance and owner composition; A23/A24 compare exact approved states and live theme changes on both platforms.                         |
+| FR-036–037; US6 A25–A26                      | Shared native refresh and intent owners, all delivered consumers, draft/pending safeguards, native iOS/Android evidence and Figma/prototype reconciliation; T085–T089. |
+| Withdrawn FR-001–003, FR-006–007, SC-001/003 | Excluded; no performance/capacity or monthly availability qualification is reintroduced.                                                                               |
 
 [Quickstart](quickstart.md) defines the validation scenarios. Delivery follows [AGENTS.md](../../AGENTS.md#git-delivery).
 

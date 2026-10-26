@@ -192,7 +192,7 @@ it("shows loading without publishing defaults, then retries a failed initial rea
     ).toBeOnTheScreen();
   });
   expect(
-    screen.queryByRole("button", { name: "Appliquer les modifications" }),
+    screen.queryByRole("button", { name: "Enregistrer" }),
   ).not.toBeOnTheScreen();
 
   // When
@@ -241,15 +241,13 @@ it("saves independent iOS and Android edits atomically under one revision", asyn
   mockFetch.mockImplementation(() => response.promise);
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Appliquer les modifications" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await act(async () => nativeAction("Appliquer").onPress?.());
 
   // Then
   expect(
     await screen.findByRole("button", {
-      name: "Appliquer les modifications",
+      name: "Enregistrer",
       busy: true,
     }),
   ).toBeDisabled();
@@ -305,9 +303,7 @@ it("removes a platform minimum and optional message with null while omitting the
   );
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Appliquer les modifications" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await act(async () => nativeAction("Appliquer").onPress?.());
 
   // Then
@@ -354,9 +350,7 @@ it.each([
     const user = await editField(label, value);
 
     // When
-    await user.press(
-      screen.getByRole("button", { name: "Appliquer les modifications" }),
-    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
     // Then
     expect(await screen.findByRole("alert")).toBeOnTheScreen();
@@ -400,9 +394,7 @@ it("requires store acknowledgement before raising a minimum, and cancellation pr
   const user = await editField("Version minimale iOS", "2.10.0");
 
   // Then
-  expect(
-    screen.getByRole("button", { name: "Appliquer les modifications" }),
-  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 
   // When
   await user.press(
@@ -410,9 +402,7 @@ it("requires store acknowledgement before raising a minimum, and cancellation pr
       name: "J’ai vérifié que la version requise est disponible sur chaque store concerné.",
     }),
   );
-  await user.press(
-    screen.getByRole("button", { name: "Appliquer les modifications" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await act(async () => nativeAction("Annuler").onPress?.());
 
   // Then
@@ -428,9 +418,7 @@ it("requires store acknowledgement before raising a minimum, and cancellation pr
 
   // Then
   expect(screen.getByRole("checkbox")).not.toBeChecked();
-  expect(
-    screen.getByRole("button", { name: "Appliquer les modifications" }),
-  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 });
 it.each([403, 422])(
   "preserves input after a confirmed %i refusal",
@@ -447,9 +435,7 @@ it.each([403, 422])(
     );
 
     // When
-    await user.press(
-      screen.getByRole("button", { name: "Appliquer les modifications" }),
-    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
     await act(async () => nativeAction("Appliquer").onPress?.());
 
     // Then
@@ -461,9 +447,7 @@ it.each([403, 422])(
     expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
       "Mon brouillon",
     );
-    expect(
-      screen.getByRole("button", { name: "Appliquer les modifications" }),
-    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
   },
 );
 it.each(["conflict", "lost", "invalid-response"])(
@@ -500,16 +484,12 @@ it.each(["conflict", "lost", "invalid-response"])(
     });
 
     // When
-    await user.press(
-      screen.getByRole("button", { name: "Appliquer les modifications" }),
-    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
     await act(async () => nativeAction("Appliquer").onPress?.());
 
     // Then
     await screen.findByRole("button", { name: "Relire les réglages" });
-    expect(
-      screen.getByRole("button", { name: "Appliquer les modifications" }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
     expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
       "Mon brouillon",
     );
@@ -536,14 +516,10 @@ it.each(["conflict", "lost", "invalid-response"])(
     expect(screen.getByLabelText("Version minimale iOS")).toHaveDisplayValue(
       "1.8.0",
     );
-    expect(
-      screen.getByRole("button", { name: "Appliquer les modifications" }),
-    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
 
     // When
-    await user.press(
-      screen.getByRole("button", { name: "Appliquer les modifications" }),
-    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
     await act(async () => nativeAction("Appliquer").onPress?.());
 
     // Then
@@ -575,9 +551,7 @@ it("keeps dirty values and blocks writes after a newer refetch and a failed rere
   expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
     "Mon brouillon",
   );
-  expect(
-    screen.getByRole("button", { name: "Appliquer les modifications" }),
-  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 
   // When
   mockFetch.mockImplementation(async () =>
@@ -599,9 +573,7 @@ it("keeps dirty values and blocks writes after a newer refetch and a failed rere
   expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
     "Mon brouillon",
   );
-  expect(
-    screen.getByRole("button", { name: "Appliquer les modifications" }),
-  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 });
 it.each(["revoked", "unavailable"])(
   "retains read-only input and rejects a held confirmation when permissions are %s",
@@ -610,9 +582,7 @@ it.each(["revoked", "unavailable"])(
     await renderSettings();
     await screen.findByDisplayValue(initial.message);
     const user = await editField("Message commun", "Mon brouillon");
-    await user.press(
-      screen.getByRole("button", { name: "Appliquer les modifications" }),
-    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
     const confirm = nativeAction("Appliquer").onPress;
     mockFetch.mockImplementation(async (url) =>
       String(url).endsWith("/accounts/me")
@@ -699,9 +669,7 @@ it("advances only versions observations after a successful partial save and requ
   );
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Appliquer les modifications" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await act(async () => nativeAction("Appliquer").onPress?.());
 
   // Then
@@ -775,7 +743,7 @@ it("previews absent optional copy with the same fallback and preserves the draft
   ).toBeDisabled();
 
   // When
-  await user.press(screen.getByRole("button", { name: "Fermer l’aperçu" }));
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
 
   // Then
   expect(screen.getByLabelText("Message commun")).toHaveDisplayValue("");
@@ -828,7 +796,7 @@ it("shows a store failure in the native preview and retires it when the preview 
   ).toBeEnabled();
 
   // When
-  await user.press(screen.getByRole("button", { name: "Fermer l’aperçu" }));
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
   await user.press(screen.getByRole("button", { name: "Aperçu" }));
 
   // Then
@@ -851,7 +819,7 @@ it("ignores a late store failure from a previously closed native preview", async
   );
 
   // When
-  await user.press(screen.getByRole("button", { name: "Fermer l’aperçu" }));
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
   await user.press(screen.getByRole("button", { name: "Aperçu" }));
   await act(() => opening.reject(new Error("Late native failure")));
 
@@ -871,9 +839,7 @@ it("keeps a delayed acknowledged write and older reread behind the latest public
   mockFetch.mockImplementation(async (_url, options) =>
     options?.method === "PATCH" ? response.promise : json(stored),
   );
-  await user.press(
-    screen.getByRole("button", { name: "Appliquer les modifications" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await act(async () => nativeAction("Appliquer").onPress?.());
 
   // When
@@ -894,9 +860,7 @@ it("keeps a delayed acknowledged write and older reread behind the latest public
   );
 
   // Then
-  expect(
-    screen.getByRole("button", { name: "Appliquer les modifications" }),
-  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
   expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
 
   // When
@@ -908,9 +872,7 @@ it("keeps a delayed acknowledged write and older reread behind the latest public
       "La relecture a échoué. Votre brouillon est conservé.",
     ),
   ).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Appliquer les modifications" }),
-  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 
   // When
   stored = { ...stored, revision: 4 };
@@ -923,9 +885,7 @@ it("keeps a delayed acknowledged write and older reread behind the latest public
     ).not.toBeOnTheScreen(),
   );
   await editField("Message commun", "Nouveau choix");
-  expect(
-    screen.getByRole("button", { name: "Appliquer les modifications" }),
-  ).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
   ).toHaveLength(1);

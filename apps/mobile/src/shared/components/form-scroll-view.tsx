@@ -7,7 +7,7 @@ import {
 /** Bounded form content; callers own the draft, page chrome and content spacing. */
 export type FormScrollViewProps = Pick<
   ScrollViewProps,
-  "children" | "contentContainerStyle"
+  "children" | "contentContainerStyle" | "refreshControl"
 >;
 
 /** Uses the accepted single native keyboard mechanism per platform and preserves handled action taps. */
@@ -15,12 +15,17 @@ export function FormScrollView(props: FormScrollViewProps) {
   return Platform.OS === "ios" ? (
     <ScrollView
       {...props}
+      alwaysBounceVertical
       automaticallyAdjustKeyboardInsets
       keyboardShouldPersistTaps="handled"
     />
   ) : (
     <KeyboardProvider>
-      <KeyboardAwareScrollView {...props} keyboardShouldPersistTaps="handled" />
+      <KeyboardAwareScrollView
+        {...props}
+        alwaysBounceVertical
+        keyboardShouldPersistTaps="handled"
+      />
     </KeyboardProvider>
   );
 }

@@ -9,6 +9,7 @@ import { tokens } from "../../../shared/theme/tokens";
 import { Button } from "../../../shared/components/button";
 import { PageHeader } from "../../../shared/components/page-header";
 import { NavigationLink } from "../../../shared/components/navigation-link";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
 
 /** Admission is supplied by the route owner, independently of command visibility. */
@@ -87,12 +88,25 @@ export function AdministrationScreen({
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <PageHeader title="Administration technique" />
-      <ScrollView contentContainerStyle={styles.content}>{content}</ScrollView>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        alwaysBounceVertical
+        refreshControl={
+          admitted && sessionStatus === "authenticated" ? (
+            <DataRefreshControl
+              refreshing={account.isFetching}
+              onRefresh={() => void account.refetch()}
+            />
+          ) : undefined
+        }
+      >
+        {content}
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: { padding: tokens.spacing.lg, gap: tokens.spacing.lg },
+  content: { flexGrow: 1, padding: tokens.spacing.lg, gap: tokens.spacing.lg },
 });

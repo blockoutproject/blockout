@@ -5,7 +5,7 @@ import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
 import { IconButton } from "./icon-button";
 
-/** Ordinary back navigation with an optional centered identity; safe areas belong to the page. */
+/** Ordinary back navigation with an optional centered identity; direct entry returns home. */
 export interface PageHeaderProps {
   title?: string;
 }
@@ -17,7 +17,12 @@ export function PageHeader({ title }: PageHeaderProps) {
   return (
     <View style={styles.header}>
       <View style={styles.rail}>
-        <IconButton label="Retour" onPress={() => router.back()}>
+        <IconButton
+          label="Retour"
+          onPress={() =>
+            router.canGoBack() ? router.back() : router.replace("/")
+          }
+        >
           <ChevronLeft
             accessible={false}
             color={colors.icon}

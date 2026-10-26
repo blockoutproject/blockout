@@ -3,6 +3,7 @@ import { ActionFeedbackProvider } from "../../../shared/components/action-feedba
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -211,6 +212,53 @@ async function editCandidate() {
   await user.type(screen.getByLabelText("URL officielle"), draftUrl);
   return user;
 }
+
+it.each(["candidate", "creation"] as const)(
+  "cancels the %s draft only after native discard confirmation",
+  async (kind) => {
+    // Given
+    const user = userEvent.setup();
+    await renderPreparation(
+      kind === "candidate" ? (
+        <SourcePreparationScreen seasonId={seasonId} sourceId={sourceId} />
+      ) : (
+        <ProviderSourcesScreen seasonId={seasonId} provider="lnv" />
+      ),
+    );
+    const open =
+      kind === "candidate" ? "Modifier le lien" : "Ajouter une source";
+    await user.press(await screen.findByRole("button", { name: open }));
+    await user.clear(screen.getByLabelText("URL officielle"));
+    await user.type(screen.getByLabelText("URL officielle"), draftUrl);
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Annuler" }));
+    await confirm("Continuer la saisie");
+
+    // Then
+    expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Annuler" }));
+    await confirm("Abandonner");
+
+    // Then
+    expect(screen.queryByLabelText("URL officielle")).toBeNull();
+    expect(
+      mockFetch.mock.calls.every(
+        ([, options]) => !options?.method || options.method === "GET",
+      ),
+    ).toBe(true);
+
+    // When
+    await user.press(screen.getByRole("button", { name: open }));
+
+    // Then
+    expect(screen.getByLabelText("URL officielle")).toHaveDisplayValue(
+      kind === "candidate" ? candidateUrl : "",
+    );
+  },
+);
 /** Explicit actions use the existing owners so session invalidation and grant refresh remain real. */
 function AccountActions() {
   const session = useAccountSession();
@@ -242,7 +290,7 @@ it("lists canonical seasons in the production collection overview", async () => 
 
   // When
   await user.press(
-    await screen.findByRole("button", { name: "2026/2027, Active" }),
+    await screen.findByRole("link", { name: "2026/2027, Active" }),
   );
 
   // Then
@@ -259,7 +307,7 @@ it("opens provider controls without loading unused source configuration", async 
 
   // When
   await user.press(
-    await screen.findByRole("button", {
+    await screen.findByRole("link", {
       name: "LNV, Les trois championnats professionnels",
     }),
   );
@@ -281,7 +329,6 @@ it("shows an honest empty season list and recovers an initial read failure expli
   mockFetch.mockImplementation(async (url) =>
     String(url).endsWith("/collection-seasons") ? refused(503) : reads(url),
   );
-  const user = userEvent.setup();
   await renderPreparation(<CollectionDashboardScreen />);
   await screen.findByText("Les saisons sont indisponibles.");
 
@@ -291,7 +338,7 @@ it("shows an honest empty season list and recovers an initial read failure expli
       ? json({ items: [] })
       : reads(url),
   );
-  await user.press(screen.getByRole("button", { name: "Actualiser" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
   expect(await screen.findByText("Aucune saison découverte")).toBeOnTheScreen();
@@ -350,7 +397,7 @@ it("saves an inline candidate and clears old qualification before another explic
   );
 
   // When
-  await user.press(screen.getByRole("button", { name: "Enregistrer le lien" }));
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
   expect(
@@ -393,9 +440,7 @@ it.each(["unchanged", "trimmed"])(
     );
 
     // When
-    await user.press(
-      screen.getByRole("button", { name: "Enregistrer le lien" }),
-    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
     // Then
     expect(
@@ -429,9 +474,7 @@ it("preserves dirty input through a background refetch and requires an explicit 
   // Then
   expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
   await waitFor(() =>
-    expect(
-      screen.getByRole("button", { name: "Enregistrer le lien" }),
-    ).toBeDisabled(),
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
   );
 });
 
@@ -446,9 +489,7 @@ it.each([400, 403, 422])(
     );
 
     // When
-    await user.press(
-      screen.getByRole("button", { name: "Enregistrer le lien" }),
-    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
     // Then
     expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -456,9 +497,7 @@ it.each([400, 403, 422])(
     );
     expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: "Enregistrer le lien" }),
-      ).toBeEnabled(),
+      expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
     );
   },
 );
@@ -485,9 +524,7 @@ it.each(["conflict", "uncertain", "invalid-response"])(
     });
 
     // When
-    await user.press(
-      screen.getByRole("button", { name: "Enregistrer le lien" }),
-    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
     await screen.findByText(
       "Le résultat doit être vérifié avant une nouvelle action.",
     );
@@ -502,9 +539,7 @@ it.each(["conflict", "uncertain", "invalid-response"])(
     expect(writes).toBe(1);
 
     // When
-    await user.press(
-      screen.getByRole("button", { name: "Enregistrer le lien" }),
-    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
     // Then
     await screen.findByText(
@@ -524,7 +559,7 @@ it("keeps an uncertain candidate blocked when reread fails", async () => {
   mockFetch.mockImplementation(async (_url, options) =>
     options?.method === "PUT" ? refused(409) : refused(503),
   );
-  await user.press(screen.getByRole("button", { name: "Enregistrer le lien" }));
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await screen.findByText(
     "Le résultat doit être vérifié avant une nouvelle action.",
   );
@@ -539,9 +574,7 @@ it("keeps an uncertain candidate blocked when reread fails", async () => {
     ),
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Enregistrer le lien" }),
-  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 });
 
 it("keeps 202 pending distinct from qualification and only rereads on demand", async () => {
@@ -573,7 +606,7 @@ it("keeps 202 pending distinct from qualification and only rereads on demand", a
     validation: "confirmation-required",
     reason: "Attribution saisonnière manquante",
   });
-  await user.press(screen.getByRole("button", { name: "Relire l’état" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
   expect(await screen.findByText("À confirmer")).toBeOnTheScreen();
@@ -678,7 +711,7 @@ it.each([409, 422, "lost"])(
     await renderPreparation(
       <ProviderSourcesScreen seasonId={seasonId} provider="lnv" />,
     );
-    await screen.findByRole("button", { name: "Préparer D1 masculine" });
+    await screen.findByRole("link", { name: "Préparer D1 masculine" });
     mockFetch.mockImplementation(async (url, options) => {
       if (options?.method === "POST") {
         if (outcome === "lost") throw new TypeError("Lost response");
@@ -724,7 +757,7 @@ it("rereads a failed launch without discarding selections before a new explicit 
   await renderPreparation(
     <ProviderSourcesScreen seasonId={seasonId} provider="lnv" />,
   );
-  await screen.findByRole("button", { name: "Préparer D1 masculine" });
+  await screen.findByRole("link", { name: "Préparer D1 masculine" });
   let writes = 0;
   mockFetch.mockImplementation(async (url, options) => {
     if (options?.method === "POST") {
@@ -788,7 +821,7 @@ it("rejects credential-bearing candidate input locally without losing it or send
   await user.type(screen.getByLabelText("URL officielle"), invalid);
 
   // When
-  await user.press(screen.getByRole("button", { name: "Enregistrer le lien" }));
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
   expect(
@@ -827,9 +860,7 @@ it("adds only an unqualified candidate for the explicit provider and current sea
   });
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Enregistrer la source" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
   await screen.findByText(
@@ -881,9 +912,7 @@ it("keeps a manual draft read-only when the reread establishes terminal season c
   mockFetch.mockImplementation(async (url, options) =>
     options?.method === "POST" ? refused(409) : reads(url),
   );
-  await user.press(
-    screen.getByRole("button", { name: "Enregistrer la source" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await screen.findByText(
     "Le résultat doit être vérifié avant une nouvelle action.",
   );
@@ -911,7 +940,7 @@ it("launches an initial-import-locked qualified binding unchanged", async () => 
   await renderPreparation(
     <ProviderSourcesScreen seasonId={seasonId} provider="lnv" />,
   );
-  await screen.findByRole("button", { name: "Préparer D1 masculine" });
+  await screen.findByRole("link", { name: "Préparer D1 masculine" });
   mockFetch.mockImplementation(async (url, options) =>
     options?.method === "POST" ? json({ ...season, revision: 6 }) : reads(url),
   );
@@ -958,7 +987,7 @@ it("reads bounded direct children and their next page without exposing mapping o
   await screen.findByText("Phase régulière");
 
   // When
-  await user.press(screen.getByRole("button", { name: "Afficher la suite" }));
+  await user.press(screen.getByRole("button", { name: "Charger la suite" }));
 
   // Then
   expect(await screen.findByText("Phase finale")).toBeOnTheScreen();
@@ -1002,7 +1031,7 @@ it("retries the failed next child page instead of only refreshing already loaded
     <SourceChildrenScreen seasonId={seasonId} sourceId={sourceId} />,
   );
   await screen.findByText("Phase régulière");
-  await user.press(screen.getByRole("button", { name: "Afficher la suite" }));
+  await user.press(screen.getByRole("button", { name: "Charger la suite" }));
   await screen.findByText("Les groupes sont indisponibles.");
   fails = false;
 
@@ -1040,9 +1069,7 @@ it("retains the manual supported-source draft after a duplicate conflict", async
   );
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Enregistrer la source" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
   await screen.findByText(
@@ -1100,7 +1127,7 @@ it("rejects a source mutation arriving after the original F05 session ended", as
   mockFetch.mockImplementation((url, options) =>
     options?.method === "PUT" ? pending.promise : reads(url),
   );
-  await user.press(screen.getByRole("button", { name: "Enregistrer le lien" }));
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await waitFor(() =>
     expect(
       mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
@@ -1133,9 +1160,9 @@ it("preserves a newer source read when an older accepted candidate response arri
   mockFetch.mockImplementation((url, options) =>
     options?.method === "PUT" ? response.promise : reads(url),
   );
-  await user.press(screen.getByRole("button", { name: "Enregistrer le lien" }));
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await screen.findByRole("button", {
-    name: "Enregistrer le lien",
+    name: "Enregistrer",
     busy: true,
   });
 
@@ -1170,9 +1197,7 @@ it("preserves a newer source read when an older accepted candidate response arri
         ),
     })[0]?.state.data,
   ).toMatchObject({ revision: 4, candidateUrl: source.candidateUrl });
-  expect(
-    screen.getByRole("button", { name: "Enregistrer le lien" }),
-  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
   ).toHaveLength(1);
@@ -1213,9 +1238,7 @@ it("keeps every provider blocked when an acknowledged source invalidates a seaso
   });
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Enregistrer la source" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await screen.findByText(
     "Source ajoutée. Relisez l’état avant une nouvelle action.",
   );
@@ -1238,9 +1261,7 @@ it("keeps every provider blocked when an acknowledged source invalidates a seaso
   await user.press(
     await screen.findByRole("button", { name: "Ajouter une source" }),
   );
-  expect(
-    screen.getByRole("button", { name: "Enregistrer la source" }),
-  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
   expect(
     screen.getByText(
       "L’état de la saison doit être relu avant une nouvelle action.",
@@ -1249,4 +1270,27 @@ it("keeps every provider blocked when an acknowledged source invalidates a seaso
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
   ).toHaveLength(1);
+});
+
+it("preserves an edited source URL when pull-to-refresh reads a newer source revision", async () => {
+  // Given
+  await renderPreparation();
+  await editCandidate();
+  expect(screen.queryByRole("button", { name: "Relire l’état" })).toBeNull();
+  source = binding({ revision: 3, label: "D1 actualisée" });
+  mockFetch.mockClear();
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await screen.findByRole("header", { name: "D1 actualisée" });
+  expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Relire l’état" })).toBeEnabled();
+  expect(
+    mockFetch.mock.calls.every(
+      ([, options]) => !options?.method || options.method === "GET",
+    ),
+  ).toBe(true);
 });

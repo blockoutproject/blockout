@@ -229,9 +229,42 @@ it.each(["pending", "uncertain"] as const)(
     // Then
     expect(screen.getByText("Pro: active")).toBeOnTheScreen();
     expect(screen.getByRole("alert")).toHaveTextContent(/en attente|incertain/);
-    expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Vérifier mes droits" }),
+    ).toBeOnTheScreen();
     expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error), {
       tags: { feature: "pro", operation: "operation", outcome: operation },
     });
   },
 );
+
+it("offers one rights verification after a failed purchase and failed read", async () => {
+  // Given
+  await mountAccount();
+  mockPurchases.getCustomerInfo.mockRejectedValue(new Error("unavailable"));
+  await act(() => pro.completeOperation("failed"));
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    /L’achat n’a pas abouti\./,
+  );
+  mockPurchases.getCustomerInfo.mockClear().mockResolvedValue(
+    customerInfo({
+      active: {},
+      all: {},
+      verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+    }),
+  );
+
+  // When
+  await userEvent.press(
+    screen.getByRole("button", { name: "Vérifier mes droits" }),
+  );
+
+  // Then
+  await waitFor(() =>
+    expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(1),
+  );
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
+});

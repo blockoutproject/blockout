@@ -199,7 +199,7 @@ export function PresentationForm({
         title: "Créer la division ?",
         message:
           "La nouvelle division sera active. Sa présentation ne changera jamais implicitement son activité.",
-        confirmLabel: "Confirmer",
+        confirmLabel: "Créer la division",
       }))
     )
       return;
@@ -314,7 +314,7 @@ export function PresentationForm({
         message: division.active
           ? "Les poules, équipes et matchs seront masqués sans effacer leur historique. La collecte s’arrêtera selon ses règles habituelles."
           : "Seule l’inactivité sera levée. Les autres restrictions de visibilité et de collecte restent applicables.",
-        confirmLabel: "Confirmer",
+        confirmLabel: division.active ? "Désactiver" : "Réactiver",
       }))
     )
       return;

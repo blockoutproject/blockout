@@ -105,6 +105,25 @@ beforeEach(() => {
   mockReadBase64.mockReset().mockResolvedValue("cHJldmlldw==");
 });
 
+it("keeps image selection explicit after validation instead of promising a retry", async () => {
+  // Given
+  launch.mockResolvedValue({ canceled: true, assets: null });
+  const { user, onSelect } = await renderField({
+    error:
+      "Cette image ne peut pas être enregistrée. Choisissez une autre image.",
+  });
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Choisir une image" }));
+
+  // Then
+  expect(launch).toHaveBeenCalledTimes(1);
+  expect(onSelect).not.toHaveBeenCalled();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+});
+
 it("loans native image copies without imposing cropping and releases them after acceptance", async () => {
   // Given
   launch.mockResolvedValue({ canceled: false, assets: [photo] });
@@ -316,7 +335,7 @@ it("opens a full-screen preview and closes it without changing caller values", a
     screen.getByRole("button", { name: "Aperçu : Logo du club" }),
   );
   expect(screen.getByRole("image", { name: "Logo du club" })).toBeOnTheScreen();
-  await user.press(screen.getByRole("button", { name: "Fermer l’aperçu" }));
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
 
   // Then
   expect(
@@ -464,7 +483,7 @@ it("blocks reselection during owner preparation and recovers safely from rejecti
   // Then
   expect(
     screen.getByRole("button", {
-      name: "Chargement…",
+      name: "Changer l’image : Logo du club",
       busy: true,
       disabled: true,
     }),
@@ -478,7 +497,10 @@ it("blocks reselection during owner preparation and recovers safely from rejecti
 
   // When
   await user.press(
-    screen.getByRole("button", { name: "Chargement…", disabled: true }),
+    screen.getByRole("button", {
+      name: "Changer l’image : Logo du club",
+      disabled: true,
+    }),
   );
 
   // Then
@@ -621,9 +643,7 @@ it("keeps preview dismissal available when native image decoding fails", async (
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "Impossible d’afficher l’image.",
   );
-  expect(
-    screen.getByRole("button", { name: "Fermer l’aperçu" }),
-  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Fermer" })).toBeOnTheScreen();
   expect(screen.queryByText(/private file path/)).not.toBeOnTheScreen();
 });
 
@@ -674,7 +694,7 @@ it("starts a new preview attempt when an image URI returns or the viewer reopens
     "error",
     { nativeEvent: { error: "Native decoding failed" } },
   );
-  await user.press(screen.getByRole("button", { name: "Fermer l’aperçu" }));
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
   await user.press(
     screen.getByRole("button", { name: "Aperçu : Logo du club" }),
   );
@@ -685,12 +705,12 @@ it("starts a new preview attempt when an image URI returns or the viewer reopens
   ).not.toBeOnTheScreen();
 });
 
-it("offers the caller's retry meaning after an empty-field validation error", async () => {
+it("retains the caller's image choice after an empty-field validation error", async () => {
   // Given
   launch.mockResolvedValue({ canceled: false, assets: [photo] });
   const { user, onSelect } = await renderField({
     error: "Cette capture ne peut pas être utilisée.",
-    retryLabel: "Choisir une autre capture",
+    chooseLabel: "Choisir une autre capture",
   });
 
   // When
@@ -798,7 +818,7 @@ it("keeps the demonstration preview in memory after its picker cache copy is rel
   ]);
 
   // When
-  await user.press(screen.getByRole("button", { name: "Fermer l’aperçu" }));
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
   await user.press(
     screen.getByRole("button", { name: "Supprimer l’image : Image 1" }),
   );

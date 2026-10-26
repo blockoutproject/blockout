@@ -5,6 +5,7 @@ import { ApplicationAccessProvider } from "../../access/queries/use-application-
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -15,7 +16,7 @@ import { File } from "expo-file-system";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { Pressable, Text } from "react-native";
+import { Alert, Pressable, Text } from "react-native";
 import {
   AccountSessionProvider,
   useAccountSession,
@@ -37,8 +38,10 @@ jest.mock("react-native-auth0", () => {
   return jest.requireActual("react-native-auth0");
 });
 
+// Navigation is an external boundary here; the discard guard has real-router coverage in its owning suite.
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
+  usePreventRemove: jest.fn(),
   useRouter: () => ({ replace: jest.fn() }),
 }));
 jest.mock("expo/fetch", () => ({
@@ -141,6 +144,7 @@ beforeEach(() => {
 afterEach(() => {
   client.clear();
   process.env = { ...previousEnvironment };
+  jest.restoreAllMocks();
 });
 
 /** Real account/form owners with controlled I/O; the unrelated F09 composition is explicitly omitted. */
@@ -196,6 +200,242 @@ function json(value: unknown, status = 200) {
     },
   });
 }
+
+it("keeps the profile draft and session until departure is explicitly confirmed", async () => {
+  // Given
+  jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  const user = await renderProfile();
+  await user.clear(screen.getByLabelText("Pseudo"));
+  await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
+  );
+
+  // Then
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+  expect(screen.getByDisplayValue("Unsaved")).toBeOnTheScreen();
+  const choices = jest.mocked(Alert.alert).mock.lastCall?.[2];
+  expect(choices?.map(({ text }) => text)).toEqual([
+    "Continuer la saisie",
+    "Abandonner",
+  ]);
+
+  // When
+  await act(() => choices?.[0].onPress?.());
+
+  // Then
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+  expect(screen.getByDisplayValue("Unsaved")).toBeOnTheScreen();
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
+  );
+  await act(() => jest.mocked(Alert.alert).mock.lastCall?.[2]?.[1].onPress?.());
+
+  // Then
+  await waitFor(() =>
+    expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1),
+  );
+  expect(screen.queryByDisplayValue("Unsaved")).not.toBeOnTheScreen();
+});
+
+it("refreshes the profile without changing a dirty draft or replaying a save", async () => {
+  // Given
+  const user = await renderProfile();
+  await user.clear(screen.getByLabelText("Pseudo"));
+  await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
+  mockFetch.mockClear().mockImplementation(async () =>
+    json({
+      ...account,
+      username: "Remote_name",
+      email: "updated@example.invalid",
+    }),
+  );
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(
+    await screen.findByDisplayValue("updated@example.invalid"),
+  ).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Unsaved")).toBeOnTheScreen();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(mockFetch.mock.calls[0][1]?.method).toBe("GET");
+});
+
+it("shows freshly read profile values when there is no local edit", async () => {
+  // Given
+  await renderProfile();
+  mockFetch
+    .mockClear()
+    .mockImplementation(async () =>
+      json({ ...account, username: "Remote_name" }),
+    );
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(await screen.findByDisplayValue("Remote_name")).toBeOnTheScreen();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(mockFetch.mock.calls[0][1]?.method).toBe("GET");
+});
+
+it("preserves the active save and suspends refresh and guest departure", async () => {
+  // Given
+  jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  const user = await renderProfile();
+  await user.clear(screen.getByLabelText("Pseudo"));
+  await user.type(screen.getByLabelText("Pseudo"), "Chosen");
+  mockFetch.mockImplementation(async () =>
+    json({ ...account, email: "updated@example.invalid" }),
+  );
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await screen.findByDisplayValue("updated@example.invalid");
+  await user.press(
+    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
+  );
+  await act(() => jest.mocked(Alert.alert).mock.lastCall?.[2]?.[0].onPress?.());
+  const save = Promise.withResolvers<Response>();
+  mockFetch.mockClear().mockReturnValue(save.promise);
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
+  );
+
+  // Then
+  expect(
+    screen.getByRole("button", { name: "Enregistrer", busy: true }),
+  ).toBeDisabled();
+  expect(screen.getByDisplayValue("Chosen")).toBeOnTheScreen();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
+
+  // When
+  await act(() => save.resolve(json({ ...account, username: "Chosen" })));
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+  );
+  expect(screen.getByDisplayValue("Chosen")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
+  );
+
+  // Then: accepted values cleared the draft, so leaving does not ask to discard them.
+  await waitFor(() =>
+    expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1),
+  );
+  expect(Alert.alert).toHaveBeenCalledTimes(1);
+});
+
+it.each(["keep", "replace"] as const)(
+  "refreshes the displayed remote photo while preserving a %s draft",
+  async (intent) => {
+    // Given
+    mockFetch.mockImplementation(async (url) =>
+      String(url).endsWith("/photo")
+        ? new Response(png, { headers: { "Content-Type": "image/png" } })
+        : json({ ...account, hasPhoto: true }),
+    );
+    const previousReader = Object.getOwnPropertyDescriptor(
+      globalThis,
+      "FileReader",
+    );
+    const nativeRead = jest.fn();
+    /** Controls only the native binary decoder, so each successful photo read is observable in the preview. */
+    class PhotoReader {
+      result = "";
+      onload?: () => void;
+      /** Publishes the native decoder result while keeping real Fetch and Query ownership. */
+      readAsDataURL() {
+        nativeRead();
+        this.result = `data:image/png;base64,photo${nativeRead.mock.calls.length}`;
+        this.onload?.();
+      }
+    }
+    Object.defineProperty(globalThis, "FileReader", {
+      configurable: true,
+      value: PhotoReader,
+    });
+    try {
+      const user = await renderProfile();
+      await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+      if (intent === "replace") {
+        jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+          canceled: false,
+          assets: [
+            {
+              uri: "file:///cache/ImagePicker/source.heic",
+              width: 64,
+              height: 64,
+            },
+          ],
+        });
+        await user.press(
+          screen.getByRole("button", {
+            name: "Changer l’image : Photo de profil",
+          }),
+        );
+        await waitFor(() =>
+          expect(
+            screen.getByRole("button", { name: "Enregistrer" }),
+          ).toBeEnabled(),
+        );
+      }
+      mockFetch.mockClear();
+
+      // When
+      await fireEvent(
+        screen.getByLabelText("Actualiser les données"),
+        "refresh",
+      );
+      await waitFor(() =>
+        expect(screen.getByLabelText("Actualiser les données")).toHaveProp(
+          "accessibilityState",
+          expect.objectContaining({ busy: false }),
+        ),
+      );
+      await user.press(
+        screen.getByRole("button", { name: "Aperçu : Photo de profil" }),
+      );
+
+      // Then
+      expect(screen.getByRole("image", { name: "Photo de profil" })).toHaveProp(
+        "source",
+        [
+          {
+            uri:
+              intent === "keep"
+                ? "data:image/png;base64,photo2"
+                : "file:///prepared.png",
+          },
+        ],
+      );
+      expect(mockFetch).toHaveBeenCalledTimes(intent === "keep" ? 2 : 1);
+      expect(
+        mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
+      ).toBe(true);
+      expect(mockFile.delete).not.toHaveBeenCalled();
+    } finally {
+      if (previousReader)
+        Object.defineProperty(globalThis, "FileReader", previousReader);
+      else delete (globalThis as { FileReader?: unknown }).FileReader;
+    }
+  },
+);
 
 it("sends one atomic multipart save with JSON metadata and no omitted photo", async () => {
   // Given

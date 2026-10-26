@@ -1,4 +1,10 @@
-import { act, screen, userEvent, waitFor } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import { Stack, router, usePathname } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType } from "react";
@@ -248,7 +254,7 @@ it.each(["candidate", "addition"])(
           ? pending.promise
           : serve(url),
     );
-    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
     const path =
       kind === "candidate"
         ? `/collection/${seasonId}/sources/${sourceId}`
@@ -270,8 +276,7 @@ it.each(["candidate", "addition"])(
     }
     const draft = `${candidateUrl}&PID=192`;
     await user.type(screen.getByLabelText("URL officielle"), draft);
-    const save =
-      kind === "candidate" ? "Enregistrer le lien" : "Enregistrer la source";
+    const save = "Enregistrer";
     await user.press(screen.getByRole("button", { name: save }));
     await screen.findByText(
       "Le résultat doit être vérifié avant une nouvelle action.",
@@ -311,7 +316,7 @@ it.each(["candidate", "addition"])(
       ),
     );
     mockFetch.mockImplementation(serve);
-    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
     await screen.findByRole("link", { name: "Accès administrateur" });
     await act(async () => router.push(path));
 
@@ -337,7 +342,7 @@ it("opens preparation from the administration entry during maintenance with coll
 
   // Then
   expect(
-    await screen.findByRole("button", { name: "2026/2027, Active" }),
+    await screen.findByRole("link", { name: "2026/2027, Active" }),
   ).toBeOnTheScreen();
   expect(screen.getByLabelText("Route courante")).toHaveTextContent(
     "/collection",
@@ -360,7 +365,7 @@ it("keeps a resumed candidate locked while its original save remains pending", a
         ? permissions.promise
         : serve(url),
   );
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   const path = `/collection/${seasonId}/sources/${sourceId}`;
   await act(async () => router.push(path));
   await user.press(
@@ -369,9 +374,9 @@ it("keeps a resumed candidate locked while its original save remains pending", a
   await user.clear(screen.getByLabelText("URL officielle"));
   const draft = `${candidateUrl}&PID=192`;
   await user.type(screen.getByLabelText("URL officielle"), draft);
-  await user.press(screen.getByRole("button", { name: "Enregistrer le lien" }));
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await screen.findByRole("button", {
-    name: "Enregistrer le lien",
+    name: "Enregistrer",
     busy: true,
   });
   await act(async () =>
@@ -392,7 +397,7 @@ it("keeps a resumed candidate locked while its original save remains pending", a
   );
 
   // When
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await screen.findByRole("link", { name: "Accès administrateur" });
   await act(async () => router.push(path));
 
@@ -401,7 +406,7 @@ it("keeps a resumed candidate locked while its original save remains pending", a
     draft,
   );
   expect(
-    screen.getByRole("button", { name: "Enregistrer le lien", busy: true }),
+    screen.getByRole("button", { name: "Enregistrer", busy: true }),
   ).toBeDisabled();
 
   // When
@@ -474,7 +479,7 @@ it("retains the exact failed launch selection when admission removes and later r
       ? permissions.promise
       : peer(url, options),
   );
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   const path = `/collection/${seasonId}/lnv`;
   await act(async () => router.push(path));
   await user.press(
@@ -506,7 +511,7 @@ it("retains the exact failed launch selection when admission removes and later r
   await screen.findByRole("header", { name: "Blockout est en maintenance" });
   expanded = true;
   mockFetch.mockImplementation(peer);
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await screen.findByRole("link", { name: "Accès administrateur" });
   await act(async () => router.push(path));
   await user.press(
@@ -547,10 +552,10 @@ it("navigates through seasonal provider controls to separate source preparation"
 
   // When
   await user.press(
-    await screen.findByRole("button", { name: "2026/2027, Active" }),
+    await screen.findByRole("link", { name: "2026/2027, Active" }),
   );
   await user.press(
-    await screen.findByRole("button", {
+    await screen.findByRole("link", {
       name: "LNV, Les trois championnats professionnels",
     }),
   );
@@ -577,7 +582,7 @@ it("retains a typed closure draft across protected-route removal and cancels thr
   mockFetch.mockImplementation((url) =>
     String(url).endsWith("/accounts/me") ? permissions.promise : serve(url),
   );
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await act(async () => router.push(`/collection/${seasonId}`));
   await user.press(
     await screen.findByRole("button", { name: "Clôturer la saison" }),
@@ -602,7 +607,7 @@ it("retains a typed closure draft across protected-route removal and cancels thr
   );
   await screen.findByRole("header", { name: "Blockout est en maintenance" });
   mockFetch.mockImplementation(serve);
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await screen.findByRole("link", { name: "Accès administrateur" });
   await act(async () => router.push(`/collection/${seasonId}`));
   await user.press(
@@ -750,7 +755,7 @@ it("does not send a prepared command when a newer minimum blocks the client duri
         ? Promise.resolve(Response.json(source))
         : serve(url),
   );
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await act(async () =>
     router.push(`/collection/${seasonId}/sources/${sourceId}`),
   );
@@ -765,9 +770,9 @@ it("does not send a prepared command when a newer minimum blocks the client duri
   const credentials =
     Promise.withResolvers<ReturnType<typeof credentialsFor>>();
   mockAuth0.getCredentials.mockImplementationOnce(() => credentials.promise);
-  await user.press(screen.getByRole("button", { name: "Enregistrer le lien" }));
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await screen.findByRole("button", {
-    name: "Enregistrer le lien",
+    name: "Enregistrer",
     busy: true,
   });
   const access = applicationAccessResponse();

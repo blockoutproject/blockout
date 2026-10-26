@@ -16,12 +16,14 @@ import {
 import type { ProviderPreparationEditor } from "./provider-preparation-editor";
 import { createSourceValues } from "./create-source-values";
 
-/** Shares the provider's original season revision; only accepted creation clears this retained candidate draft. */
+/** Shares the provider's original season revision and its explicit local cancellation owner. */
 export interface CreateSourceFormProps {
   editor: ProviderPreparationEditor;
   provider: CollectionProviderEnum;
   editing: ReturnType<typeof useSeasonPreparation>;
   disabled: boolean;
+  /** Confirms disposal in the retained provider owner before closing the inline form. */
+  onCancel(): void;
 }
 
 /** Validates and submits a supported candidate without qualifying it or launching collection implicitly. */
@@ -30,6 +32,7 @@ export function CreateSourceForm({
   provider,
   editing,
   disabled,
+  onCancel,
 }: CreateSourceFormProps) {
   const { session } = editing.authority;
   const actionFeedback = useActionFeedback();
@@ -118,11 +121,18 @@ export function CreateSourceForm({
         )}
       />
       <Button
-        label="Enregistrer la source"
+        label="Enregistrer"
         fullWidth
         onPress={() => void handleSubmit(submit)()}
         disabled={disabled}
         loading={editing.create.executing}
+      />
+      <Button
+        label="Annuler"
+        variant="secondary"
+        fullWidth
+        onPress={onCancel}
+        disabled={editing.create.pending}
       />
     </View>
   );

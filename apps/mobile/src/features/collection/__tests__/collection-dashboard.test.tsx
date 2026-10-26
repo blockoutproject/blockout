@@ -1,4 +1,10 @@
-import { act, screen, waitFor } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import { Alert } from "react-native";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import {
@@ -86,13 +92,15 @@ it("separates competition seasons from the two seasonless controls", async () =>
   await renderCollection(<CollectionDashboardScreen />, peer.client);
 
   // When
-  await pressAction("Fiches clubs");
+  await userEvent
+    .setup()
+    .press(await screen.findByRole("link", { name: "Fiches clubs" }));
 
   // Then
   expect(
-    await screen.findByRole("button", { name: /2026\/2027/ }),
+    await screen.findByRole("link", { name: /2026\/2027/ }),
   ).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Géocodage" })).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: "Géocodage" })).toBeOnTheScreen();
   expect(mockPush).toHaveBeenCalledWith({
     pathname: "/collection/clubs/[family]",
     params: { family: "club-sheets" },
@@ -117,7 +125,7 @@ it("refreshes only reads and retains uncertain integration and absent measuremen
   ).toBeOnTheScreen();
 
   // When
-  await pressAction("Actualiser");
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await pressAction("Afficher les diagnostics");
 
   // Then
@@ -758,4 +766,58 @@ it("keeps completion freshness already read at the same editing revision as a de
   // Then
   expect(screen.getByText("Dernier cycle terminé")).toBeOnTheScreen();
   expect(screen.queryByText("Collecte en cours")).toBeNull();
+});
+
+it("disables pull-to-refresh while a collection command is awaiting acknowledgement", async () => {
+  // Given
+  let acknowledge: (response: Response) => void = () => {
+    throw new Error("No pending command");
+  };
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "POST"
+      ? new Promise<Response>((resolve) => {
+          acknowledge = resolve;
+        })
+      : peer.reads(url, options),
+  );
+  await renderCollection(
+    <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+    peer.client,
+  );
+
+  // When
+  await pressAction("Relancer");
+  await confirm("Relancer");
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
+    ).toBe(true),
+  );
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByLabelText("Actualiser les données")).toBeDisabled(),
+  );
+  mockFetch.mockClear();
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  expect(mockFetch).not.toHaveBeenCalled();
+
+  // When
+  await act(async () =>
+    acknowledge(
+      json(
+        control({
+          revision: 4,
+          pendingRequestId: "00000000-0000-4000-8000-000000000192",
+        }),
+        202,
+      ),
+    ),
+  );
+
+  // Then
+  expect(
+    await screen.findByText("Collecte demandée · en attente de démarrage"),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
 });

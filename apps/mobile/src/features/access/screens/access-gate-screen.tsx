@@ -10,6 +10,7 @@ import { IconButton } from "../../../shared/components/icon-button";
 import { Button } from "../../../shared/components/button";
 import { BrandMark } from "../../../shared/components/brand-mark";
 import { RequestLoading } from "../../../shared/components/request-feedback";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { GateBackdrop } from "../components/gate-backdrop";
@@ -18,14 +19,14 @@ import { useAccessAdmission } from "../queries/use-access-admission";
 import { useApplicationAccess } from "../queries/use-application-access";
 import { accessPresentation } from "../state/access-presentation";
 
-/** Presentation of the current restriction; retry and operator entry remain explicit owner commands. */
+/** Presentation of current admission data; error retry, store handoff and operator entry keep their distinct intents. */
 interface GateViewProps {
   gate: ReturnType<typeof accessPresentation>["gate"];
   maintenance?: Pick<PublicMaintenanceResponse, "message" | "imageUrl">;
   updateMessage?: string | null;
   storeUrl?: string | null;
   checking?: boolean;
-  onRetry?: () => void;
+  onRefresh?: () => void;
   onAdministration?: () => void;
   /** Local presentation only; closing a preview never changes admission. */
   onClose?: () => void;
@@ -38,7 +39,7 @@ function GateView({
   updateMessage,
   storeUrl,
   checking = false,
-  onRetry,
+  onRefresh,
   onAdministration,
   onClose,
 }: GateViewProps) {
@@ -75,7 +76,7 @@ function GateView({
           {onClose ? "APERÇU" : badge}
         </Text>
         {onClose && (
-          <IconButton label="Fermer l’aperçu" onPress={onClose}>
+          <IconButton label="Fermer" onPress={onClose}>
             <X
               accessible={false}
               size={tokens.size.actionIcon}
@@ -84,7 +85,15 @@ function GateView({
           </IconButton>
         )}
       </View>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        alwaysBounceVertical
+        refreshControl={
+          !onClose && onRefresh ? (
+            <DataRefreshControl refreshing={checking} onRefresh={onRefresh} />
+          ) : undefined
+        }
+      >
         <View style={styles.stage}>
           <GateBackdrop />
           {gate === "checking" ? (
@@ -121,22 +130,22 @@ function GateView({
         <View style={styles.actions}>
           {update && storeUrl ? (
             <StoreAction key={storeUrl} url={storeUrl} />
-          ) : onClose ? (
+          ) : update && onClose ? (
             <Button
               fullWidth
               label="Mettre à jour l’application"
               onPress={undefined}
               disabled
             />
-          ) : (
+          ) : gate === "unavailable" ? (
             <Button
               fullWidth
               label="Réessayer"
               trailingIcon={RotateCw}
               loading={checking}
-              onPress={onRetry}
+              onPress={onRefresh}
             />
-          )}
+          ) : null}
           {inMaintenance && onAdministration && (
             <Pressable
               accessibilityRole="link"
@@ -223,7 +232,7 @@ export function StartupAccessGate() {
       updateMessage={access.snapshot.versions?.message}
       storeUrl={presentation.versions?.storeUrl}
       checking={access.checking}
-      onRetry={() => void access.retry()}
+      onRefresh={() => void access.retry()}
     />
   );
 }
@@ -239,7 +248,7 @@ export function AccessGateScreen() {
       updateMessage={access.snapshot.versions?.message}
       storeUrl={access.versions?.storeUrl}
       checking={access.checking}
-      onRetry={access.retry}
+      onRefresh={access.retry}
       onAdministration={
         access.administration ? () => router.push("/administration") : undefined
       }

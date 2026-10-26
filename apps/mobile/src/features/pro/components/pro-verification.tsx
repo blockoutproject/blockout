@@ -21,7 +21,13 @@ export function ProVerification({ onSupport }: ProVerificationProps) {
       state.operation,
     ) ||
     (state.operation === "purchased" && state.status !== "active");
-  if (state.status !== "unavailable" && !verificationFailed && !uncertain)
+  const failed = state.operation === "failed";
+  if (
+    state.status !== "unavailable" &&
+    !verificationFailed &&
+    !uncertain &&
+    !failed
+  )
     return null;
   const waiting =
     state.status === "unavailable" &&
@@ -29,7 +35,10 @@ export function ProVerification({ onSupport }: ProVerificationProps) {
       (refreshing && !verificationFailed));
   let message =
     "La vérification de vos droits Pro est indisponible. Réessayez ou contactez l’assistance.";
-  if (state.operation === "purchased" && state.status !== "active")
+  if (failed)
+    message =
+      "L’achat n’a pas abouti. Aucun accès Pro supplémentaire n’est confirmé.";
+  else if (state.operation === "purchased" && state.status !== "active")
     message =
       "Paiement confirmé. L’activation Pro reste à vérifier. Vérifiez vos droits sans acheter à nouveau.";
   else if (state.operation === "already-owned")
@@ -44,6 +53,15 @@ export function ProVerification({ onSupport }: ProVerificationProps) {
     <View style={styles.feedback}>
       {waiting ? (
         <RequestLoading />
+      ) : uncertain || failed ? (
+        <>
+          <RequestError message={message} />
+          <Button
+            label="Vérifier mes droits"
+            onPress={retry}
+            loading={refreshing}
+          />
+        </>
       ) : (
         <RequestError message={message} onRetry={retry} retrying={refreshing} />
       )}

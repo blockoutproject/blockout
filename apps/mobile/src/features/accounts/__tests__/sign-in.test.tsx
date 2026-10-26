@@ -41,8 +41,10 @@ jest.mock("react-native-auth0", () => {
   return jest.requireActual("react-native-auth0");
 });
 
+// Navigation is an external boundary here; the discard guard has real-router coverage in its owning suite.
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
+  usePreventRemove: jest.fn(),
   useRouter: () => ({ replace: mockNavigate, push: mockNavigate }),
 }));
 jest.mock("expo/fetch", () => ({
@@ -289,6 +291,9 @@ it("retries missing initial email explicitly without asking for another valid lo
     await screen.findByText("L’adresse e-mail du compte est indisponible."),
   ).toBeOnTheScreen();
   expect(mockNavigate).not.toHaveBeenCalled();
+  expect(
+    screen.queryByRole("button", { name: "Se connecter" }),
+  ).not.toBeOnTheScreen();
   mockFetch.mockImplementation(async () => json(account));
 
   // When
@@ -360,6 +365,7 @@ it.each(["sign-in", "profile"])(
     expect(
       await screen.findByText(`Current account: ${account.accountId}`),
     ).toBeOnTheScreen();
+    if (entry === "profile") await screen.findByDisplayValue(account.username);
 
     // When
     await user.press(
@@ -406,6 +412,7 @@ it.each(["sign-in", "profile"])(
     expect(
       await screen.findByText(`Current account: ${account.accountId}`),
     ).toBeOnTheScreen();
+    if (entry === "profile") await screen.findByDisplayValue(account.username);
 
     // When
     await user.press(

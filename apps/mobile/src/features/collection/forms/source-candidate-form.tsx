@@ -71,7 +71,7 @@ export function SourceCandidateForm({
   const { isDirty, dirtyFields } = useFormState({
     control,
   });
-  useDiscardChanges(isDirty, editor.discard);
+  const confirmDiscard = useDiscardChanges(isDirty, editor.discard);
   // Subscribe to RHF's dirty fields so keepDirtyValues retains the editable snapshot on reread.
   void dirtyFields;
   const current = editing.source.data ?? source;
@@ -90,17 +90,38 @@ export function SourceCandidateForm({
     editing.candidate.pending ||
     editing.source.isFetching ||
     editing.season.isFetching;
-  const rereadRequired =
+  const reconciliationRequired =
     editing.candidate.needsRead ||
     editing.seasonInvalidated ||
-    editing.season.isError ||
     current.revision > baseline.revision;
+  const rereadRequired = reconciliationRequired || editing.season.isError;
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
     };
   }, []);
+
+  /** Cancels the URL draft without releasing the owner needed by later edits and temporary route removal. */
+  async function cancelEditing() {
+    if (editing.candidate.isPending()) return;
+    const accepted = await confirmDiscard(() => {
+      if (
+        mounted.current &&
+        session.isCurrent(session.generation) &&
+        !editing.candidate.isPending()
+      )
+        reset(sourceCandidateValues(editor.getSnapshot().baseline));
+    });
+    if (
+      !accepted ||
+      !mounted.current ||
+      !session.isCurrent(session.generation) ||
+      editing.candidate.isPending()
+    )
+      return;
+    editor.update({ ...editor.getSnapshot(), editingUrl: false });
+  }
 
   /** A refusal retains input; ambiguous acknowledgements additionally prevent any new command until reread. */
   function failed(error: unknown) {
@@ -371,11 +392,18 @@ export function SourceCandidateForm({
                   )}
                 />
                 <Button
-                  label="Enregistrer le lien"
+                  label="Enregistrer"
                   fullWidth
                   onPress={() => void handleSubmit(save)()}
                   disabled={busy || readOnly || rereadRequired}
                   loading={editing.candidate.executing}
+                />
+                <Button
+                  label="Annuler"
+                  variant="secondary"
+                  fullWidth
+                  onPress={() => void cancelEditing()}
+                  disabled={editing.candidate.pending}
                 />
               </>
             ) : (
@@ -412,7 +440,7 @@ export function SourceCandidateForm({
         )}
       </Surface>
       <Pressable
-        accessibilityRole="button"
+        accessibilityRole="link"
         accessibilityLabel={
           current.provider === "lnv"
             ? "Phases découvertes"
@@ -471,15 +499,24 @@ export function SourceCandidateForm({
         </Text>
       )}
       {(editing.source.isError || editing.season.isError) && !feedback && (
-        <RequestError message="La relecture a échoué. Votre saisie est conservée." />
+        <RequestError
+          message="La relecture a échoué. Votre saisie est conservée."
+          onRetry={() => {
+            void editing.source.refetch({ cancelRefetch: false });
+            void editing.season.refetch({ cancelRefetch: false });
+          }}
+          retrying={editing.source.isFetching || editing.season.isFetching}
+        />
       )}
-      <Button
-        label="Relire l’état"
-        variant="secondary"
-        onPress={() => void reread()}
-        disabled={busy}
-        loading={editing.source.isFetching || editing.season.isFetching}
-      />
+      {reconciliationRequired && (
+        <Button
+          label="Relire l’état"
+          variant="secondary"
+          onPress={() => void reread()}
+          disabled={busy}
+          loading={editing.source.isFetching || editing.season.isFetching}
+        />
+      )}
     </View>
   );
 }

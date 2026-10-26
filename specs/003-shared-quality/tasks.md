@@ -370,3 +370,11 @@ When parallel work is explicitly authorized, use the distinct-file batches above
 - [x] T082 Normalize local persistence, native image selection and destination handoffs at their actual owner; audit SDK synchronization, purchase, restoration and advertising exceptions without inventing retries, queues or provider changes. Preserve the accepted ImagePicker limitation in #523.
 - [x] T083 Reconcile the changed visible conventions in the designated prototype and live Figma sources, retaining existing components and the applicable design approval boundary; deliver any linked changes as draft PRs without merging.
 - [x] T084 Verify all inventory families through observable transitions, review every modified test against its canonical testing examples, independently search remaining variants, run the actual affected repository checks and native evidence, and deliver the complete application draft PR with accurate evidence limits.
+
+## Repeated interaction consistency (US6; FR-036–FR-037)
+
+- [x] T085 Inventory every delivered mobile route, repeated intent, shared owner and consumer; reconcile the simple conventions in F13 spec/plan and independently identify omitted and non-reloadable cases.
+- [x] T086 Implement native pull-to-refresh through existing scroll/list owners and all reloadable collection, sporting, search, account and administration consumers, including empty/error states, with focused regression tests for preserved drafts, read scope and pending operations.
+- [x] T087 Align save, cancel, close, back, confirmation, detail, retry and continuation behavior at shared owners and all delivered consumers; cover dirty exits, misleading retries, action feedback and native semantics with meaningful regression tests.
+- [x] T088 Independently verify all comparable cases, review changed tests against canonical examples, run affected repository checks and exercise real iOS/Android interaction states; record evidence and unavailable scope in the existing quickstart.
+- [ ] T089 Reconcile the resulting conventions into the designated Figma library and product screens using live components, then the designated prototype; verify owner/consumer consistency and deliver linked draft PRs per repository without merge.

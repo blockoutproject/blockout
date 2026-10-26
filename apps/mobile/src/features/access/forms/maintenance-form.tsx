@@ -294,7 +294,7 @@ export function MaintenanceForm({
           )}
           <Button
             fullWidth
-            label="Enregistrer le contenu"
+            label="Enregistrer"
             onPress={() => void handleSubmit(submit)()}
             disabled={busy || rereadRequired}
             loading={editing.content.executing}

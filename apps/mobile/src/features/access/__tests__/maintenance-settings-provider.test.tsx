@@ -280,9 +280,7 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
     );
 
     // When
-    await user.press(
-      screen.getByRole("button", { name: "Enregistrer le contenu" }),
-    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
     await act(async () => nativeAction("Enregistrer").onPress?.());
 
     // Then
@@ -304,9 +302,7 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
     expect(screen.getByDisplayValue("First editor draft")).toBeOnTheScreen();
 
     // When
-    await user.press(
-      screen.getByRole("button", { name: "Enregistrer le contenu" }),
-    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
     await act(async () => nativeAction("Enregistrer").onPress?.());
 
     // Then
@@ -330,9 +326,7 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
     mockLoseNextResponse = true;
 
     // When
-    await user.press(
-      screen.getByRole("button", { name: "Enregistrer le contenu" }),
-    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
     await act(async () => nativeAction("Enregistrer").onPress?.());
 
     // Then
@@ -357,9 +351,7 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
     expect(mockPatchCount).toBe(writes);
 
     // When
-    await user.press(
-      screen.getByRole("button", { name: "Enregistrer le contenu" }),
-    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
     await act(async () => nativeAction("Enregistrer").onPress?.());
 
     // Then

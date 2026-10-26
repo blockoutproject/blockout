@@ -25,6 +25,7 @@ import {
 } from "../components/preparation-layout";
 import { CreateSourceForm } from "./create-source-form";
 import { providerPreparationEditor } from "./provider-preparation-editor";
+import { createSourceValues } from "./create-source-values";
 
 /** Shares the original season revision and launch selection with its retained manual-source draft. */
 export interface ProviderPreparationFormProps {
@@ -59,7 +60,7 @@ export function ProviderPreparationForm({
         ? "L’état de la saison doit être relu avant une nouvelle action."
         : undefined);
   const { isDirty } = useFormState({ control: editor.form.control });
-  useDiscardChanges(isDirty, editor.discard);
+  const confirmDiscard = useDiscardChanges(isDirty, editor.discard);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -76,11 +77,11 @@ export function ProviderPreparationForm({
     editing.create.pending ||
     editing.season.isFetching ||
     editing.sources.isFetching;
-  const rereadRequired =
+  const reconciliationRequired =
     editing.create.needsRead ||
     editing.seasonInvalidated ||
-    editing.season.isError ||
     season.revision > baseline.revision;
+  const rereadRequired = reconciliationRequired || editing.season.isError;
   const ready = sources
     .filter(
       (source) =>
@@ -95,6 +96,27 @@ export function ProviderPreparationForm({
     selection.length > 0 &&
     selection.every((id) => ready.includes(id));
   const Icon = provider === "lnv" ? Trophy : Globe;
+
+  /** Cancels only this addition; the retained provider owner still protects subsequent drafts. */
+  async function cancelAddition() {
+    if (editing.create.isPending()) return;
+    const accepted = await confirmDiscard(() => {
+      if (
+        mounted.current &&
+        session.isCurrent(session.generation) &&
+        !editing.create.isPending()
+      )
+        editor.form.reset(createSourceValues());
+    });
+    if (
+      !accepted ||
+      !mounted.current ||
+      !session.isCurrent(session.generation) ||
+      editing.create.isPending()
+    )
+      return;
+    editor.update({ ...editor.getSnapshot(), adding: false });
+  }
 
   /** Leaves selection and manual values intact; only uncertain/conflicting commands require reconciliation. */
   function failed(error: unknown) {
@@ -215,7 +237,7 @@ export function ProviderPreparationForm({
       {sources.map((source) => (
         <Surface key={source.id}>
           <Pressable
-            accessibilityRole="button"
+            accessibilityRole="link"
             accessibilityLabel={`Préparer ${source.label}`}
             onPress={() =>
               router.push({
@@ -281,6 +303,7 @@ export function ProviderPreparationForm({
             provider={provider}
             editing={editing}
             disabled={busy || closed || rereadRequired}
+            onCancel={() => void cancelAddition()}
           />
         </Surface>
       )}
@@ -294,15 +317,24 @@ export function ProviderPreparationForm({
         </Text>
       )}
       {(editing.season.isError || editing.sources.isError) && !feedback && (
-        <RequestError message="La relecture a échoué. Votre saisie est conservée." />
+        <RequestError
+          message="La relecture a échoué. Votre saisie est conservée."
+          onRetry={() => {
+            void editing.season.refetch({ cancelRefetch: false });
+            void editing.sources.refetch({ cancelRefetch: false });
+          }}
+          retrying={editing.season.isFetching || editing.sources.isFetching}
+        />
       )}
-      <Button
-        label="Relire l’état"
-        variant="secondary"
-        onPress={() => void reread()}
-        disabled={busy}
-        loading={editing.season.isFetching || editing.sources.isFetching}
-      />
+      {reconciliationRequired && (
+        <Button
+          label="Relire l’état"
+          variant="secondary"
+          onPress={() => void reread()}
+          disabled={busy}
+          loading={editing.season.isFetching || editing.sources.isFetching}
+        />
+      )}
     </View>
   );
 }

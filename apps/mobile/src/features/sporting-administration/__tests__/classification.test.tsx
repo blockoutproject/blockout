@@ -1,7 +1,13 @@
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { getListClubTeamsQueryKey } from "../../../../.generated/mobile";
-import { act, screen, userEvent, waitFor } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import { Alert, Pressable, Text } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
@@ -220,11 +226,11 @@ async function choose(
   await screen.findByRole("button", { name: field });
 }
 /** Accepts the native confirmation only when a test explicitly chooses its final action. */
-async function confirm() {
+async function confirm(label = "Enregistrer") {
   const action = jest
     .mocked(Alert.alert)
     .mock.calls.at(-1)?.[2]
-    ?.find((button) => button.text === "Confirmer");
+    ?.find((button) => button.text === label);
   await act(async () => {
     action?.onPress?.();
   });
@@ -263,6 +269,57 @@ it("submits a complete pool override after confirmation and excludes inactive ch
       screen.queryByText("Modifications non enregistrées"),
     ).not.toBeOnTheScreen(),
   );
+});
+
+it("refreshes classification data without replacing dirty choices or accepting a newer editing baseline", async () => {
+  // Given
+  stored.setting = classification;
+  const user = await renderEditor();
+  await choose(user, "Format", "4 × 4");
+  stored = { ...stored, revision: "r2" };
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await screen.findByRole("button", { name: "Relire la classification" });
+  expect(
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+  expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.every(([, options]) => options?.method === "GET"),
+  ).toBe(true);
+});
+
+it("refreshes an empty division catalogue without changing its search or activity filter", async () => {
+  // Given
+  let listed = false;
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/divisions?")
+      ? Promise.resolve(
+          json({ items: listed ? [{ ...division, active: false }] : [] }),
+        )
+      : respond(url, options),
+  );
+  const user = await renderEditor("divisions");
+  await screen.findByText("Aucune division active");
+  await user.type(screen.getByLabelText("Rechercher une division"), "National");
+  await user.press(screen.getByRole("tab", { name: "Inactives" }));
+  listed = true;
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: "National 2" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("National")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("tab", { name: "Inactives", selected: true }),
+  ).toBeOnTheScreen();
 });
 
 it("removes the complete pack default with explicit null", async () => {
@@ -372,7 +429,7 @@ it("uses an independent explicit activity command with the division revision", a
   await user.press(
     await screen.findByRole("button", { name: "Désactiver la division" }),
   );
-  await confirm();
+  await confirm("Désactiver");
   // Then
   await waitFor(() =>
     expect(mockFetch).toHaveBeenCalledWith(
@@ -481,7 +538,7 @@ it("reconciles uncertain deactivation before offering explicit reactivation", as
   await user.press(
     await screen.findByRole("button", { name: "Désactiver la division" }),
   );
-  await confirm();
+  await confirm("Désactiver");
   await user.press(
     await screen.findByRole("button", { name: "Relire la division" }),
   );
@@ -680,7 +737,7 @@ it.each(["classification", "activity"])(
       await user.press(
         await screen.findByRole("button", { name: "Enregistrer" }),
       );
-    await confirm();
+    await confirm(operation === "activity" ? "Désactiver" : "Enregistrer");
 
     // Then
     if (operation === "activity")
@@ -826,7 +883,7 @@ it("shows current activity on reentry for an operator with classification permis
 it("filters division names within the selected activity catalogue without exposing lifecycle commands on cards", async () => {
   // Given
   const user = await renderEditor("divisions");
-  await screen.findByRole("button", { name: "National 2" });
+  await screen.findByRole("link", { name: "National 2" });
 
   // When
   await user.type(screen.getByLabelText("Rechercher une division"), "national");
@@ -847,7 +904,7 @@ it("filters division names within the selected activity catalogue without exposi
 it("clears the division search without resetting the selected activity catalogue", async () => {
   // Given
   const user = await renderEditor("divisions");
-  await screen.findByRole("button", { name: "National 2" });
+  await screen.findByRole("link", { name: "National 2" });
   await user.type(screen.getByLabelText("Rechercher une division"), "national");
   await user.press(screen.getByRole("tab", { name: "Inactives" }));
   await screen.findByText("Aucune division ne correspond à votre recherche.");
@@ -865,10 +922,10 @@ it("clears the division search without resetting the selected activity catalogue
     screen.getByRole("tab", { name: "Inactives", selected: true }),
   ).toBeOnTheScreen();
   expect(
-    await screen.findByRole("button", { name: "Inactive" }),
+    await screen.findByRole("link", { name: "Inactive" }),
   ).toBeOnTheScreen();
   expect(
-    screen.queryByRole("button", { name: "National 2" }),
+    screen.queryByRole("link", { name: "National 2" }),
   ).not.toBeOnTheScreen();
 });
 
@@ -912,7 +969,9 @@ it("discards a held classification confirmation when its protected route is remo
   await user.press(await screen.findByRole("button", { name: "Enregistrer" }));
   const confirmation = jest
     .mocked(Alert.alert)
-    .mock.lastCall?.[2]?.find((action) => action.text === "Confirmer")?.onPress;
+    .mock.lastCall?.[2]?.find(
+      (action) => action.text === "Enregistrer",
+    )?.onPress;
   if (!confirmation)
     throw new Error("Missing native classification confirmation");
 

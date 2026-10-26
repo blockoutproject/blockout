@@ -371,7 +371,7 @@ export function ApplicationVersionsForm({
             <View style={[styles.action, largeText && styles.expandedCard]}>
               <Button
                 fullWidth
-                label="Appliquer les modifications"
+                label="Enregistrer"
                 disabled={
                   busy || rereadRequired || !isDirty || (raised && !checked)
                 }

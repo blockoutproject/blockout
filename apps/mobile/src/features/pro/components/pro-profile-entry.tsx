@@ -20,7 +20,7 @@ import { ProVerification } from "./pro-verification";
 export function ProProfileEntry() {
   const router = useRouter();
   const account = useAccountSession();
-  const { state, retry } = usePro();
+  const { state } = usePro();
   const offering = useProOffering();
   const { colors } = useTheme();
   const session = account.getSnapshot();
@@ -97,12 +97,6 @@ export function ProProfileEntry() {
             >
               Achat annulé.
             </Text>
-          )}
-          {state.status !== "guest" && state.operation === "failed" && (
-            <RequestError
-              message="L’achat n’a pas abouti. Aucun accès Pro supplémentaire n’est confirmé."
-              onRetry={retry}
-            />
           )}
           {state.status === "active" &&
             (state.operation === "purchased" ||

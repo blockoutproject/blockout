@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Globe, Mail, MapPin, Phone } from "lucide-react-native";
 import { FlatList, StyleSheet, View } from "react-native";
 import { tokens } from "../../../shared/theme/tokens";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { Button } from "../../../shared/components/button";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import {
@@ -61,6 +62,21 @@ function ClubPage({ clubId, renderCalendar }: ClubScreenProps) {
   return (
     <ResourcePage title="Club" scroll={false}>
       <FlatList
+        alwaysBounceVertical
+        refreshControl={
+          tab === "info" || !data || (tab === "teams" && season) ? (
+            <DataRefreshControl
+              refreshing={
+                tab === "teams" && data ? teams.isFetching : club.isFetching
+              }
+              onRefresh={() => {
+                if (tab === "teams" && data && season)
+                  void teams.refetch({ cancelRefetch: false });
+                else void club.refetch({ cancelRefetch: false });
+              }}
+            />
+          ) : undefined
+        }
         contentContainerStyle={styles.content}
         data={data && tab === "teams" ? (teamData?.items ?? []) : []}
         keyExtractor={(item) => item.team.id}
@@ -213,6 +229,7 @@ function ClubPage({ clubId, renderCalendar }: ClubScreenProps) {
 
 const styles = StyleSheet.create({
   content: {
+    flexGrow: 1,
     padding: tokens.spacing.lg,
     paddingTop: tokens.spacing.sm,
     paddingBottom: tokens.spacing.section,

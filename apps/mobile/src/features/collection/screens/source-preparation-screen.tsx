@@ -25,7 +25,26 @@ export function SourcePreparationScreen({
   const current =
     authority.sessionStatus === "authenticated" ? source.data : undefined;
   return (
-    <PreparationPage title={current?.label ?? "Source"}>
+    <PreparationPage
+      title={current?.label ?? "Source"}
+      refreshing={
+        source.isFetching || season.isFetching || authority.account.isFetching
+      }
+      refreshEnabled={!editing.candidate.pending}
+      onRefresh={
+        authority.sessionStatus === "authenticated"
+          ? () => {
+              if (editing.candidate.isPending()) return;
+              if (!authority.enabled)
+                void authority.account.refetch({ cancelRefetch: false });
+              else {
+                void source.refetch({ cancelRefetch: false });
+                void season.refetch({ cancelRefetch: false });
+              }
+            }
+          : undefined
+      }
+    >
       <CollectionAccessFeedback authority={authority} />
       {current && season.data && current.seasonId === seasonId ? (
         <SourceCandidateForm

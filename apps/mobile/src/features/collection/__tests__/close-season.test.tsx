@@ -80,6 +80,7 @@ it("requires the exact displayed label and sends the current revision once", asy
   );
   const user = userEvent.setup();
   const input = await screen.findByLabelText("Nom exact de la saison");
+  expect(screen.queryByRole("button", { name: "Relire l’état" })).toBeNull();
 
   // When
   await user.type(input, "2026/2027 ");

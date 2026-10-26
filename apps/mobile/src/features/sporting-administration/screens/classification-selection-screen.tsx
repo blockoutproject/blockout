@@ -11,6 +11,7 @@ import {
   RequestLoading,
 } from "../../../shared/components/request-feedback";
 import { Sheet } from "../../../shared/components/sheet";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { useAccountSession } from "../../accounts/current-account";
@@ -70,7 +71,25 @@ function Selection({
   const disabled =
     divisions.authority.permissions?.manageSportingClassification !== true;
   return (
-    <Sheet title={label} onClose={() => router.back()}>
+    <Sheet
+      title={label}
+      onClose={() => router.back()}
+      refreshControl={
+        field === "divisionId" &&
+        divisions.authority.sessionStatus === "authenticated" ? (
+          <DataRefreshControl
+            refreshing={
+              divisions.query.isFetching ||
+              divisions.authority.account.isFetching
+            }
+            onRefresh={() => {
+              if (divisions.authority.enabled) void divisions.query.refetch();
+              else void divisions.authority.account.refetch();
+            }}
+          />
+        ) : undefined
+      }
+    >
       {field === "divisionId" && divisions.query.isPending && (
         <RequestLoading />
       )}

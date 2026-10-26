@@ -68,7 +68,13 @@ function TeamPage({
     (item) => item.pool.id === tab,
   );
   return (
-    <ResourcePage title="Équipe">
+    <ResourcePage
+      title="Équipe"
+      refreshing={team.isFetching}
+      onRefresh={
+        !data ? () => void team.refetch({ cancelRefetch: false }) : undefined
+      }
+    >
       <ResourceFeedback query={team} />
       {data && (
         <>

@@ -52,7 +52,13 @@ function PoolPage({
   const [tab, setTab] = useState("standings");
   const data = pool.data;
   return (
-    <ResourcePage title="Poule">
+    <ResourcePage
+      title="Poule"
+      refreshing={pool.isFetching}
+      onRefresh={
+        !data ? () => void pool.refetch({ cancelRefetch: false }) : undefined
+      }
+    >
       <ResourceFeedback query={pool} />
       {data && (
         <>

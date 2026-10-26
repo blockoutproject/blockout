@@ -1,5 +1,11 @@
 import { focusManager, onlineManager } from "@tanstack/react-query";
-import { act, screen, waitFor, userEvent } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  userEvent,
+} from "@testing-library/react-native";
 import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import { Text, Pressable } from "react-native";
@@ -316,7 +322,7 @@ it("displays maintenance first but refuses an outdated operator and every minimu
   expect(screen.queryByText("Maintenance editor")).toBeNull();
 });
 
-it("retries existing-account identification with native credentials independently of a complete public retry", async () => {
+it("refreshes maintenance and retries existing-account identification without interactive sign-in", async () => {
   // Given
   const full = applicationAccessResponse();
   full.maintenance = {
@@ -334,7 +340,6 @@ it("retries existing-account identification with native credentials independentl
     }
     return json(full);
   });
-  const user = userEvent.setup();
   await openRoute("/");
   await screen.findByRole("header", { name: "Blockout est en maintenance" });
   await waitFor(() =>
@@ -351,7 +356,7 @@ it("retries existing-account identification with native credentials independentl
 
   // When
   identificationFails = false;
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
   expect(
@@ -369,6 +374,7 @@ it("retries existing-account identification with native credentials independentl
     mockFetch.mock.calls.every(([, options]) => options?.method === "GET"),
   ).toBe(true);
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
 });
 
 it("keeps ordinary public admission independent of an account 503", async () => {
@@ -556,7 +562,6 @@ it("retries failed Auth0 restoration without clearing credentials or starting in
   mockFetch.mockImplementation(async (url) =>
     json(String(url).endsWith("/accounts/me") ? operator : full),
   );
-  const user = userEvent.setup();
   await openRoute("/");
   await screen.findByRole("header", { name: "Blockout est en maintenance" });
   expect(
@@ -564,7 +569,7 @@ it("retries failed Auth0 restoration without clearing credentials or starting in
   ).toBeNull();
 
   // When
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
   expect(

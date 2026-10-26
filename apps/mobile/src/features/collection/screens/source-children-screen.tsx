@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { Layers } from "lucide-react-native";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { Button } from "../../../shared/components/button";
 import {
   RequestError,
@@ -36,6 +37,21 @@ export function SourceChildrenScreen({
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <PageHeader title="Groupes découverts" />
       <FlatList
+        alwaysBounceVertical
+        refreshControl={
+          authority.sessionStatus === "authenticated" ? (
+            <DataRefreshControl
+              enabled={!query.isFetchingNextPage}
+              refreshing={query.isFetching || authority.account.isFetching}
+              onRefresh={() => {
+                if (query.isFetching) return;
+                if (authority.enabled)
+                  void query.refetch({ cancelRefetch: false });
+                else void authority.account.refetch({ cancelRefetch: false });
+              }}
+            />
+          ) : undefined
+        }
         data={authority.enabled ? items : []}
         keyExtractor={(item) => item.id}
         contentContainerStyle={preparationStyles.content}
@@ -94,9 +110,12 @@ export function SourceChildrenScreen({
               />
             ) : query.hasNextPage ? (
               <Button
-                label="Afficher la suite"
+                label="Charger la suite"
                 variant="secondary"
-                onPress={() => void query.fetchNextPage()}
+                onPress={() =>
+                  void query.fetchNextPage({ cancelRefetch: false })
+                }
+                disabled={query.isFetching}
                 loading={query.isFetchingNextPage}
               />
             ) : undefined

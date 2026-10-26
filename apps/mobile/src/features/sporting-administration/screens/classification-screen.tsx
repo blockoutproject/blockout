@@ -2,6 +2,7 @@ import {
   RequestError,
   RequestLoading,
 } from "../../../shared/components/request-feedback";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import {
   useClassification,
   useDivisions,
@@ -24,6 +25,27 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
       : undefined;
   return (
     <EditorPage
+      refreshControl={
+        authority.sessionStatus === "authenticated" ? (
+          <DataRefreshControl
+            enabled={!editing.save.pending}
+            refreshing={
+              editing.query.isFetching ||
+              divisions.query.isFetching ||
+              authority.account.isFetching
+            }
+            onRefresh={() => {
+              if (editing.save.isPending()) return;
+              if (!authority.enabled) {
+                void authority.account.refetch();
+                return;
+              }
+              void editing.query.refetch();
+              void divisions.query.refetch();
+            }}
+          />
+        ) : undefined
+      }
       title={
         target.kind === "pack"
           ? "Classification du pack"

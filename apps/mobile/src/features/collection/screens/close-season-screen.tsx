@@ -14,7 +14,23 @@ export function CloseSeasonScreen({ seasonId }: { seasonId: string }) {
   const editing = useCloseCollectionSeason(seasonId);
   const { authority, season } = editing;
   return (
-    <PreparationPage title="Clôturer la saison">
+    <PreparationPage
+      title={"Clôturer la saison"}
+      refreshing={season.isFetching || authority.account.isFetching}
+      refreshEnabled={!editing.close.pending}
+      onRefresh={
+        authority.sessionStatus === "authenticated"
+          ? () => {
+              if (editing.close.isPending()) return;
+              if (!authority.enabled)
+                void authority.account.refetch({ cancelRefetch: false });
+              else {
+                void season.refetch({ cancelRefetch: false });
+              }
+            }
+          : undefined
+      }
+    >
       <CollectionAccessFeedback authority={authority} />
       {season.data ? (
         <CloseSeasonForm

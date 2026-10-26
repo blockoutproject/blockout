@@ -26,7 +26,26 @@ export function ProviderSourcesScreen({
   const current =
     authority.sessionStatus === "authenticated" ? season.data : undefined;
   return (
-    <PreparationPage title={provider === "lnv" ? "LNV" : "FFVB"}>
+    <PreparationPage
+      title={provider === "lnv" ? "LNV" : "FFVB"}
+      refreshing={
+        season.isFetching || sources.isFetching || authority.account.isFetching
+      }
+      refreshEnabled={!editing.create.pending}
+      onRefresh={
+        authority.sessionStatus === "authenticated"
+          ? () => {
+              if (editing.create.isPending()) return;
+              if (!authority.enabled)
+                void authority.account.refetch({ cancelRefetch: false });
+              else {
+                void season.refetch({ cancelRefetch: false });
+                void sources.refetch({ cancelRefetch: false });
+              }
+            }
+          : undefined
+      }
+    >
       <CollectionAccessFeedback authority={authority} />
       {current && sources.data ? (
         <ProviderPreparationForm

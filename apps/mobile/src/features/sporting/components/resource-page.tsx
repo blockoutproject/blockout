@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { resourceUnavailable } from "../model/consultation-availability";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { PageHeader } from "../../../shared/components/page-header";
 import {
   RequestError,
@@ -22,6 +23,8 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 export interface ResourcePageProps extends PropsWithChildren {
   title?: string;
   scroll?: boolean;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 /** Native safe areas and the source-owned 48 px header; bounded content uses the 16 px section gap. */
@@ -29,13 +32,26 @@ export function ResourcePage({
   title,
   children,
   scroll = true,
+  refreshing = false,
+  onRefresh,
 }: ResourcePageProps) {
   const { colors } = useTheme();
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <PageHeader title={title} />
       {scroll ? (
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView
+          alwaysBounceVertical
+          contentContainerStyle={styles.content}
+          refreshControl={
+            onRefresh ? (
+              <DataRefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+              />
+            ) : undefined
+          }
+        >
           {children}
         </ScrollView>
       ) : (
@@ -153,6 +169,7 @@ export function ResourceTabs({ items, selected, onSelect }: ResourceTabsProps) {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: {
+    flexGrow: 1,
     padding: tokens.spacing.lg,
     paddingTop: tokens.spacing.sm,
     gap: tokens.spacing.lg,

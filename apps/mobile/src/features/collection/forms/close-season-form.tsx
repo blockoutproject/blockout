@@ -215,9 +215,13 @@ export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
         </Text>
       )}
       {editing.season.isError && !feedback && (
-        <RequestError message="La relecture a échoué. Votre saisie est conservée." />
+        <RequestError
+          message="La relecture a échoué. Votre saisie est conservée."
+          onRetry={() => void editing.season.refetch({ cancelRefetch: false })}
+          retrying={editing.season.isFetching}
+        />
       )}
-      {!closed && (
+      {!closed && needsRead && (
         <Button
           label="Relire l’état"
           variant="secondary"

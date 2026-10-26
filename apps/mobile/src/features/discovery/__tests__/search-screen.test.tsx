@@ -490,3 +490,245 @@ it("retries native rendering after a successful logo reread with identical bytes
     screen.queryByRole("image", { name: "Logo indisponible : Volley" }),
   ).not.toBeOnTheScreen();
 });
+
+it.each(["empty", "error"])(
+  "refreshes %s search without discarding text or the selected tab",
+  async (state) => {
+    // Given
+    const user = userEvent.setup();
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).pathname.endsWith("/clubs")
+        ? Promise.resolve(
+            state === "empty"
+              ? Response.json({ clubs: [] })
+              : Response.json(
+                  { title: "Unavailable", status: 503 },
+                  { status: 503 },
+                ),
+          )
+        : publicReads(url),
+    );
+    await renderSearch();
+    await user.paste(await screen.findByLabelText("Rechercher"), "Volley");
+    await user.press(screen.getByRole("tab", { name: "Clubs" }));
+    if (state === "empty")
+      await screen.findByText("Aucun résultat pour ces critères");
+    else await screen.findByRole("button", { name: "Réessayer" });
+    mockFetch.mockReset().mockImplementation(publicReads);
+
+    // When
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then
+    expect(await screen.findByText("Lyon")).toBeOnTheScreen();
+    expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("tab", { name: "Clubs", selected: true }),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.every(([url]) =>
+        new URL(String(url)).pathname.endsWith("/clubs"),
+      ),
+    ).toBe(true);
+  },
+);
+
+it("retries only the failed continuation and keeps one row per resource", async () => {
+  // Given
+  const user = userEvent.setup();
+  let nextPageAvailable = false;
+  mockFetch.mockImplementation((url: string) => {
+    const parsed = new URL(url);
+    if (!parsed.pathname.endsWith("/clubs")) return publicReads(url);
+    const first = { club: { id: firstId, name: "Volley Lyon" }, city: "Lyon" };
+    if (!parsed.searchParams.has("cursor"))
+      return Promise.resolve(
+        Response.json({ clubs: [first], nextCursor: "next-page" }),
+      );
+    return Promise.resolve(
+      nextPageAvailable
+        ? Response.json({
+            clubs: [
+              first,
+              { club: { id: secondId, name: "Volley Niort" }, city: "Niort" },
+            ],
+          })
+        : Response.json({ title: "Unavailable", status: 500 }, { status: 500 }),
+    );
+  });
+  await renderSearch();
+  await user.paste(await screen.findByLabelText("Rechercher"), "Volley");
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await user.press(
+    await screen.findByRole("button", { name: "Charger la suite" }),
+  );
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
+  nextPageAvailable = true;
+  mockFetch.mockClear();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText("Volley Niort")).toBeOnTheScreen();
+  expect(screen.getAllByText("Volley Lyon")).toHaveLength(1);
+  expect(
+    screen.getByRole("header", { name: "2 résultats chargés" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Charger la suite" }),
+  ).not.toBeOnTheScreen();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(
+    new URL(String(mockFetch.mock.calls[0][0])).searchParams.get("cursor"),
+  ).toBe("next-page");
+});
+
+it.each([false, true])(
+  "refreshes only the first page and retains loaded pages when it fails: %s",
+  async (fails) => {
+    // Given
+    const user = userEvent.setup();
+    mockFetch.mockImplementation((url: string) => {
+      const parsed = new URL(url);
+      if (!parsed.pathname.endsWith("/clubs")) return publicReads(url);
+      return Promise.resolve(
+        Response.json(
+          parsed.searchParams.has("cursor")
+            ? {
+                clubs: [
+                  {
+                    club: { id: secondId, name: "Volley Niort" },
+                    city: "Niort",
+                  },
+                ],
+              }
+            : {
+                clubs: [
+                  { club: { id: firstId, name: "Volley Lyon" }, city: "Lyon" },
+                ],
+                nextCursor: "next-page",
+              },
+        ),
+      );
+    });
+    await renderSearch();
+    await user.paste(await screen.findByLabelText("Rechercher"), "Volley");
+    await user.press(screen.getByRole("tab", { name: "Clubs" }));
+    await user.press(
+      await screen.findByRole("button", { name: "Charger la suite" }),
+    );
+    await screen.findByText("Volley Niort");
+    mockFetch.mockClear();
+    mockFetch.mockImplementation(() =>
+      Promise.resolve(
+        fails
+          ? Response.json(
+              { title: "Unavailable", status: 500 },
+              { status: 500 },
+            )
+          : Response.json({
+              clubs: [
+                {
+                  club: { id: firstId, name: "Volley Lyon actualisé" },
+                  city: "Lyon",
+                },
+              ],
+              nextCursor: "new-page",
+            }),
+      ),
+    );
+
+    // When
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    if (fails) {
+      await screen.findByRole("button", { name: "Réessayer" });
+      expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
+      expect(screen.getByText("Volley Niort")).toBeOnTheScreen();
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      mockFetch.mockClear();
+      mockFetch.mockImplementation(() =>
+        Promise.resolve(
+          Response.json({
+            clubs: [
+              {
+                club: { id: firstId, name: "Volley Lyon actualisé" },
+                city: "Lyon",
+              },
+            ],
+            nextCursor: "new-page",
+          }),
+        ),
+      );
+      await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    }
+
+    // Then
+    expect(await screen.findByText("Volley Lyon actualisé")).toBeOnTheScreen();
+    expect(screen.queryByText("Volley Niort")).toBeNull();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(
+      new URL(String(mockFetch.mock.calls[0][0])).searchParams.has("cursor"),
+    ).toBe(false);
+    expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("tab", { name: "Clubs", selected: true }),
+    ).toBeOnTheScreen();
+  },
+);
+
+it("cancels pending pagination before refresh and rejects its late response", async () => {
+  // Given
+  const user = userEvent.setup();
+  const pending = Promise.withResolvers<Response>();
+  let pageSignal: AbortSignal | undefined;
+  mockFetch.mockImplementation((url: string, options?: RequestInit) => {
+    const parsed = new URL(url);
+    if (!parsed.pathname.endsWith("/clubs")) return publicReads(url);
+    if (parsed.searchParams.has("cursor")) {
+      pageSignal = options?.signal ?? undefined;
+      return pending.promise;
+    }
+    return Promise.resolve(
+      Response.json({
+        clubs: [{ club: { id: firstId, name: "Volley Lyon" }, city: "Lyon" }],
+        nextCursor: "next-page",
+      }),
+    );
+  });
+  await renderSearch();
+  await user.paste(await screen.findByLabelText("Rechercher"), "Volley");
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await user.press(
+    await screen.findByRole("button", { name: "Charger la suite" }),
+  );
+  await waitFor(() => expect(pageSignal).toBeDefined());
+  mockFetch.mockClear();
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await waitFor(() => expect(pageSignal?.aborted).toBe(true));
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Charger la suite" }),
+    ).toBeEnabled(),
+  );
+  await act(async () =>
+    pending.resolve(
+      Response.json({
+        clubs: [
+          { club: { id: secondId, name: "Obsolete page" }, city: "Niort" },
+        ],
+      }),
+    ),
+  );
+
+  // Then
+  expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
+  expect(screen.queryByText("Obsolete page")).toBeNull();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(
+    new URL(String(mockFetch.mock.calls[0][0])).searchParams.has("cursor"),
+  ).toBe(false);
+});

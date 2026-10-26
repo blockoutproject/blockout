@@ -38,7 +38,6 @@ export interface ImageFieldProps {
   disabled?: boolean;
   size?: "standard" | "compact";
   chooseLabel?: string;
-  retryLabel?: string;
   /** Thumbnail fitting only; use contain for logos. This does not transform selected assets or full previews. */
   contentFit?: "cover" | "contain";
   replaceLabel?: string;
@@ -59,7 +58,6 @@ export function ImageField({
   disabled = false,
   size = "standard",
   chooseLabel = "Choisir une image",
-  retryLabel = "Réessayer",
   contentFit = "cover",
   replaceLabel = "Changer l’image",
   removeLabel = "Supprimer l’image",
@@ -74,9 +72,6 @@ export function ImageField({
   const message = error;
   const unavailable = disabled || busy;
   const compact = size === "compact";
-  let selectionLabel = chooseLabel;
-  if (busy) selectionLabel = "Chargement…";
-  else if (message) selectionLabel = retryLabel;
 
   return (
     <View style={[styles.field, disabled && styles.disabled]}>
@@ -123,9 +118,7 @@ export function ImageField({
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={
-                busy ? "Chargement…" : `${replaceLabel} : ${image.label}`
-              }
+              accessibilityLabel={`${replaceLabel} : ${image.label}`}
               accessibilityHint={message ?? helper}
               accessibilityState={{ disabled: unavailable, busy }}
               disabled={unavailable}
@@ -137,7 +130,7 @@ export function ImageField({
             >
               {busy && <LoadingIndicator color={colors.icon} />}
               <Text style={[styles.label, { color: colors.text }]}>
-                {busy ? "Chargement…" : replaceLabel}
+                {replaceLabel}
               </Text>
             </Pressable>
           </View>
@@ -166,7 +159,7 @@ export function ImageField({
       {(images.length === 0 || multiple) && (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={selectionLabel}
+          accessibilityLabel={chooseLabel}
           accessibilityHint={message ?? helper}
           accessibilityState={{ disabled: unavailable, busy }}
           disabled={unavailable}
@@ -209,7 +202,7 @@ export function ImageField({
             )}
           </View>
           <Text style={[styles.label, { color: colors.text }]}>
-            {selectionLabel}
+            {chooseLabel}
           </Text>
         </Pressable>
       )}
@@ -259,7 +252,7 @@ function ImagePreview({
       style={[styles.viewer, { backgroundColor: colors.canvas }]}
       accessibilityViewIsModal
     >
-      <IconButton label="Fermer l’aperçu" onPress={onClose}>
+      <IconButton label="Fermer" onPress={onClose}>
         <X
           accessible={false}
           size={tokens.size.actionIcon}
