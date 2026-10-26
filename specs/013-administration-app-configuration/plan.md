@@ -104,7 +104,7 @@ Ordinary consumers explicitly capture their access context before choosing a cac
 
 Validate the published native version as three numeric components and compare them numerically. Build numbers and suffixes do not participate. Without a threshold, no comparison is needed; unreadable metadata with a threshold uses unavailable access. Use the native store-opening mechanism, with ordinary error and explicit retry, never inferred installation success. The operator verifies actual store availability before raising a threshold.
 
-The optional maintenance image uses the existing image component and controlled HTTPS URL. No backend fetch or upload API; invalid URL input is rejected, display failure leaves text/actions available. Preserve the accepted placeholders, Lucide icon, tokens, reduced-motion behavior and accessibility.
+The optional maintenance image uses the existing image component and controlled HTTPS URL. No backend fetch or upload API; invalid URL input is rejected, display failure leaves text/actions available. Preserve the accepted maintenance/required-update media, tokens, reduced-motion behavior and accessibility. Admission checking and failed initial reads retain the branded header and use the common loader or illustrated opaque error card respectively, following [F13 FR-038](../003-shared-quality/spec.md#functional-requirements); domain media and decorative bands do not add a separate failed-read layout.
 
 ## Production preparation
 

@@ -33,7 +33,7 @@ Provide account-owned team/pool follows, public counts and a personal sporting c
 Pre-research and post-design checks pass for the scoped documentary delivery:
 
 - F06 owns follows and personal selection; F02 owns sporting identities/visibility, F03 calendar semantics and F05 accounts/erasure. Consumer reconciliation is included below.
-- Existing [October 10 design acceptance](https://github.com/blockoutproject/blockout/issues/34#issuecomment-6102118765) covers season reconciliation and discreet follow reconciliation. Live inspection confirmed the ordinary follow button's loading variant and Home's existing list, empty, loading and error states. No new visual journey is introduced.
+- Existing [October 10 design acceptance](../003-shared-quality/spec.md#evidence-scope) covers season reconciliation and discreet follow reconciliation. Live inspection confirmed the ordinary follow button's loading variant and Home's existing list, empty, loading and error states. No new visual journey is introduced.
 - Relevant design references: [Home](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=888-8), [followed team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1023-5097), [no available follows](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4480-3901), [no matches](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4480-4201). These establish accepted presentation, not native qualification.
 - One canonical mobile OpenAPI source and the existing generation chain; no feature-local editable copy or new deployment.
 - Ordinary relations, counts, projections and Query mechanisms satisfy the need without recovery infrastructure. Runtime qualifications remain future evidence.

@@ -19,6 +19,8 @@ import {
 } from "../../accounts/session/account-session-provider";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
+import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { ProProvider, usePro, type ProContext } from "../pro-provider";
 import { ProProfileEntry } from "../components/pro-profile-entry";
 import {
@@ -108,6 +110,7 @@ beforeEach(() => {
   prepareProNativeIO();
   client = createQueryClient();
   mockRouter.navigate.mockImplementation(() => openPresentation());
+  mockRouter.back.mockImplementation(() => closePresentation());
   mockPurchases.getOfferings
     .mockReset()
     .mockResolvedValue({ current: null, all: { v2: v2Offering } });
@@ -131,19 +134,22 @@ function Probe() {
 }
 
 let openPresentation: () => void;
+let closePresentation: () => void;
 
 /** Separates explicit route mounting from account establishment without replacing either owner. */
 function Journey(props: ProPresentationScreenProps) {
+  const session = useAccountSession();
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     openPresentation = () => setVisible(true);
+    closePresentation = () => setVisible(false);
   }, []);
   return (
-    <>
+    <ActionFeedbackProvider scopeKey={session.generation}>
       <Probe />
       <ProProfileEntry />
       {visible && <ProPresentationScreen {...props} />}
-    </>
+    </ActionFeedbackProvider>
   );
 }
 
@@ -417,9 +423,7 @@ it.each(["absent", "failed"])(
     // When / Then
     expect(
       await screen.findByText(
-        scenario === "absent"
-          ? /Aucune offre Pro/
-          : /La lecture de l’offre Pro a échoué/,
+        scenario === "absent" ? /Aucune offre Pro/ : /Une erreur est survenue/,
       ),
     ).toBeOnTheScreen();
     expect(mockRouter.back).not.toHaveBeenCalled();
@@ -494,8 +498,8 @@ it("rejects a late offering response after the opening session changes", async (
 
 it.each([
   [PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR, /Le paiement est en attente/],
-  [PURCHASES_ERROR_CODE.NETWORK_ERROR, /L’achat n’a pas abouti/],
-  [PURCHASES_ERROR_CODE.OFFLINE_CONNECTION_ERROR, /L’achat n’a pas abouti/],
+  [PURCHASES_ERROR_CODE.NETWORK_ERROR, TECHNICAL_ERROR],
+  [PURCHASES_ERROR_CODE.OFFLINE_CONNECTION_ERROR, TECHNICAL_ERROR],
   [
     PURCHASES_ERROR_CODE.STORE_PROBLEM_ERROR,
     /Le résultat de l’achat est incertain/,
@@ -504,7 +508,7 @@ it.each([
     PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR,
     /Cet achat est déjà détenu/,
   ],
-  [PURCHASES_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR, /L’achat n’a pas abouti/],
+  [PURCHASES_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR, TECHNICAL_ERROR],
 ] as const)(
   "presents native outcome %s without retrying payment",
   async (code, message) => {
@@ -647,7 +651,7 @@ it("explicitly retries a failed offer from the profile and then opens the offici
       name: "Blockout Pro",
     }),
   );
-  await screen.findByText(/La lecture de l’offre Pro a échoué/);
+  await screen.findByText(/Une erreur est survenue/);
   expect(mockRouter.navigate).not.toHaveBeenCalled();
 
   // When
@@ -686,10 +690,47 @@ it("does not reopen a cached paywall when a new explicit offering read fails", a
 
   // Then
   expect(
-    await screen.findByText(/La lecture de l’offre Pro a échoué/),
+    await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
   ).toBeOnTheScreen();
+  expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
   expect(mockRouter.navigate).not.toHaveBeenCalled();
   expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
+});
+
+it("keeps a successfully empty offer visible when the next explicit read fails", async () => {
+  // Given: a successful SDK catalogue has no configured offering.
+  mockPurchases.getOfferings.mockResolvedValueOnce({ current: null, all: {} });
+  await mount();
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000251",
+    ),
+  );
+  await screen.findByRole("button", { name: "Gérer ou restaurer mes achats" });
+  await userEvent.press(screen.getByRole("button", { name: "Blockout Pro" }));
+  await screen.findByRole("header", { name: "Aucune offre Pro disponible" });
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  mockPurchases.getOfferings.mockRejectedValueOnce(new Error("unavailable"));
+
+  // When
+  await userEvent.press(screen.getByRole("button", { name: "Blockout Pro" }));
+
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "Aucune offre Pro disponible" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(mockRouter.navigate).not.toHaveBeenCalled();
 });
 
 it("allows B's explicit entry while A's abandoned offering read is still pending", async () => {

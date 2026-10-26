@@ -10,6 +10,7 @@ import type {
   MaintenanceSettingsResponse,
 } from "../../../../.generated/schemas/index.zod";
 import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 
 /** Captured F12 settings context; request preparation guards current session and action availability. */
@@ -34,11 +35,20 @@ export function createMaintenanceSettingsQueryOptions(
     ),
     enabled: context.enabled,
     gcTime: 0,
-    queryFn: async ({ signal }) =>
-      observe(
-        await getMaintenanceSettings({ ...(await context.request()), signal }),
-        signal,
-      ),
+    queryFn: async ({ signal, client, queryKey }) => {
+      const previousError = client.getQueryState(queryKey)?.error;
+      try {
+        return observe(
+          await getMaintenanceSettings({
+            ...(await context.request()),
+            signal,
+          }),
+          signal,
+        );
+      } catch (error) {
+        throw settingsReadError(error, previousError);
+      }
+    },
   });
 }
 
@@ -57,13 +67,24 @@ export function createApplicationVersionsQueryOptions(
     ),
     enabled: context.enabled,
     gcTime: 0,
-    queryFn: async ({ signal }) =>
-      observe(
-        await getApplicationVersionSettings({
-          ...(await context.request()),
+    queryFn: async ({ signal, client, queryKey }) => {
+      const previousError = client.getQueryState(queryKey)?.error;
+      try {
+        return observe(
+          await getApplicationVersionSettings({
+            ...(await context.request()),
+            signal,
+          }),
           signal,
-        }),
-        signal,
-      ),
+        );
+      } catch (error) {
+        throw settingsReadError(error, previousError);
+      }
+    },
   });
+}
+
+/** A failed recheck cannot lift a known settings refusal; only a successful read restores command authority. */
+function settingsReadError(error: unknown, previousError: unknown) {
+  return isAccessDenied(previousError) ? previousError : error;
 }

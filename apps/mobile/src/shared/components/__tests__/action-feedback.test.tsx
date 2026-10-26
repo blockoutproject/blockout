@@ -8,8 +8,14 @@ beforeEach(() => jest.useFakeTimers());
 afterEach(() => jest.useRealTimers());
 
 /** Exercises actual presentation events; the optional promise controls only the remote failure boundary. */
-function Actions({ response }: { response?: Promise<void> }) {
-  const feedback = useActionFeedback();
+function Actions({
+  response,
+  retainOnUnmount,
+}: {
+  response?: Promise<void>;
+  retainOnUnmount?: boolean;
+}) {
+  const feedback = useActionFeedback({ retainOnUnmount });
   return (
     <>
       <Pressable
@@ -38,15 +44,19 @@ function Surface({
   scope = "original",
   showActions = true,
   response,
+  retainOnUnmount,
 }: {
   scope?: string;
   showActions?: boolean;
   response?: Promise<void>;
+  retainOnUnmount?: boolean;
 }) {
   return (
     <ThemeProvider>
       <ActionFeedbackProvider scopeKey={scope}>
-        {showActions && <Actions response={response} />}
+        {showActions && (
+          <Actions response={response} retainOnUnmount={retainOnUnmount} />
+        )}
       </ActionFeedbackProvider>
     </ThemeProvider>
   );
@@ -124,4 +134,44 @@ it("drops old session feedback and refuses its delayed failure after a scope cha
   expect(
     screen.getByRole("alert", { name: "Cette action est indisponible." }),
   ).toBeOnTheScreen();
+});
+
+it("retains a published native-handoff failure after route removal until the session changes", async () => {
+  // Given
+  const view = await render(<Surface retainOnUnmount />);
+  await userEvent.press(
+    screen.getByRole("button", { name: "Technical failure" }),
+  );
+
+  // When
+  await view.rerender(<Surface retainOnUnmount showActions={false} />);
+
+  // Then
+  expect(
+    screen.getByRole("alert", { name: TECHNICAL_ERROR }),
+  ).toBeOnTheScreen();
+
+  // When
+  await view.rerender(<Surface scope="replacement" showActions={false} />);
+
+  // Then
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+});
+
+it("ignores a late handoff failure even when an already-published notice could survive navigation", async () => {
+  // Given
+  const response = Promise.withResolvers<void>();
+  const view = await render(
+    <Surface retainOnUnmount response={response.promise} />,
+  );
+  await userEvent.press(
+    screen.getByRole("button", { name: "Technical failure" }),
+  );
+
+  // When
+  await view.rerender(<Surface retainOnUnmount showActions={false} />);
+  await act(() => response.reject(new Error("Late provider failure")));
+
+  // Then
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 });

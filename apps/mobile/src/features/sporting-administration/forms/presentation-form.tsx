@@ -1,3 +1,4 @@
+import { ErrorState } from "../../../shared/components/state-card";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { requiresPresentationReread } from "../api/presentation-recovery";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
@@ -18,10 +19,7 @@ import { ApiError } from "../../../shared/api/api-fetch";
 import { DivisionActivityAction } from "../components/division-activity-action";
 import { Button } from "../../../shared/components/button";
 import { ImageField } from "../../../shared/components/image-field";
-import {
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { TextField } from "../../../shared/components/text-field";
 import { Surface } from "../../../shared/components/surface";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -259,10 +257,7 @@ export function PresentationForm({
           error.problem?.type === "urn:blockout:problem:conflict"
         )
           setError("name", { message: "Ce nom de division est déjà utilisé." });
-        else
-          actionFeedback.error(
-            "L’enregistrement a été refusé. Votre brouillon est conservé.",
-          );
+        else actionFeedback.error();
       }
     } finally {
       editor.finishUpload(file);
@@ -282,10 +277,7 @@ export function PresentationForm({
     )
       return;
     if (!reconciled || result.isError || !result.data) {
-      editor.update({
-        ...state,
-        feedback: "La relecture a échoué. Votre brouillon est conservé.",
-      });
+      actionFeedback.error();
       return;
     }
     editor.update({
@@ -352,9 +344,7 @@ export function PresentationForm({
         });
       else {
         editor.update({ ...editor.getSnapshot(), feedback: undefined });
-        actionFeedback.error(
-          "L’action a été refusée. Votre présentation est conservée.",
-        );
+        actionFeedback.error();
       }
     }
   }
@@ -448,16 +438,18 @@ export function PresentationForm({
         <View style={styles.form}>
           {target.kind !== "pool" && (
             <>
-              {draft.action !== "replace" && hasLogo && artwork.isFetching && (
+              {draft.action !== "replace" && hasLogo && artwork.isLoading && (
                 <RequestLoading />
               )}
-              {draft.action !== "replace" && hasLogo && artwork.isError && (
-                <RequestError
-                  message="Le logo est indisponible. Votre présentation est conservée."
-                  onRetry={() => void artwork.refetch()}
-                  retrying={artwork.isFetching}
-                />
-              )}
+              {draft.action !== "replace" &&
+                hasLogo &&
+                artwork.isError &&
+                artwork.dataUpdatedAt === 0 && (
+                  <ErrorState
+                    onRetry={() => void artwork.refetch()}
+                    retrying={artwork.isFetching}
+                  />
+                )}
               <Controller
                 control={control}
                 name="logo"

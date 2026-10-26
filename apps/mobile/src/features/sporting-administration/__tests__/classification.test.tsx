@@ -1,6 +1,9 @@
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { getListClubTeamsQueryKey } from "../../../../.generated/mobile";
+import {
+  getGetPoolClassificationQueryKey,
+  getListClubTeamsQueryKey,
+} from "../../../../.generated/mobile";
 import {
   act,
   fireEvent,
@@ -215,6 +218,38 @@ async function renderEditor(
   );
   return userEvent.setup();
 }
+it("announces the pending division catalogue without inventing editable rows", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/divisions?")
+      ? response.promise
+      : respond(url, options),
+  );
+
+  // When
+  await renderEditor("divisions");
+
+  // Then
+  expect(
+    await screen.findByRole("progressbar", {
+      name: "Chargement des divisions",
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: division.name }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await act(() => response.resolve(Response.json({ items: [division] })));
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: division.name }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+});
+
 /** Chooses through the real native-stack selection route and returns to the original form. */
 async function choose(
   user: ReturnType<typeof userEvent.setup>,
@@ -447,9 +482,7 @@ it("does not grant classification reads or writes to a lifecycle-only operator",
   // When
   await renderEditor();
   // Then
-  expect(
-    await screen.findByText("Cette action nécessite une permission dédiée."),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.some(([url]) =>
       String(url).includes("/classification"),
@@ -505,7 +538,7 @@ it("keeps a failed recovery read blocking and never retries the uncertain write"
 
   // Then
   await screen.findByText(
-    "La relecture a échoué. Votre brouillon est conservé.",
+    "Une erreur est survenue. Veuillez réessayer plus tard.",
   );
   expect(
     screen.getByRole("button", { name: "Format" }),
@@ -826,9 +859,7 @@ it("reauthorizes a held native confirmation after the current classification gra
   await confirm();
 
   // Then
-  expect(
-    await screen.findByText("Cette action nécessite une permission dédiée."),
-  ).toBeOnTheScreen();
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
   );
@@ -1010,3 +1041,138 @@ function ActionFeedbackScope({ children }: PropsWithChildren) {
     </ActionFeedbackProvider>
   );
 }
+
+it("keeps classification choices but disables editing after a current resource refusal", async () => {
+  // Given
+  stored.setting = classification;
+  const user = await renderEditor();
+  await choose(user, "Format", "4 × 4");
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/classification")
+      ? Promise.resolve(json({ title: "Forbidden", status: 403 }, 403))
+      : respond(url, options),
+  );
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+  expect(screen.getByRole("button", { name: "Format" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
+});
+
+it("keeps an open selector's known choices visible and read-only after its grant is withdrawn", async () => {
+  // Given
+  stored.setting = classification;
+  const user = await renderEditor();
+  await choose(user, "Format", "4 × 4");
+  await user.press(screen.getByRole("button", { name: "Format" }));
+  await screen.findByRole("radio", { name: "4 × 4", checked: true });
+
+  // When
+  permissions = {};
+  await act(async () =>
+    client.refetchQueries({
+      predicate: ({ queryKey }) => queryKey.includes("/accounts/me"),
+    }),
+  );
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("radio", { name: "2 × 2" })).toBeDisabled(),
+  );
+  expect(
+    screen.getByRole("radio", { name: "4 × 4", checked: true }),
+  ).toBeDisabled();
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+  await user.press(screen.getByRole("radio", { name: "2 × 2" }));
+  expect(
+    screen.getByRole("radio", { name: "4 × 4", checked: true }),
+  ).toBeOnTheScreen();
+});
+
+it("keeps an open format selector unavailable through a refused then failed classification reread", async () => {
+  // Given
+  stored.setting = classification;
+  const user = await renderEditor();
+  await choose(user, "Format", "4 × 4");
+  await user.press(screen.getByRole("button", { name: "Format" }));
+  await screen.findByRole("radio", { name: "4 × 4", checked: true });
+  let status = 403;
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/classification")
+      ? Promise.resolve(json({ title: "Read unavailable", status }, status))
+      : respond(url, options),
+  );
+  const [classificationPath] = getGetPoolClassificationQueryKey(id);
+
+  // When
+  await act(async () =>
+    client.refetchQueries({
+      predicate: ({ queryKey }) => queryKey.includes(classificationPath),
+    }),
+  );
+
+  // Then
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+  await waitFor(() =>
+    expect(screen.getByRole("radio", { name: "2 × 2" })).toBeDisabled(),
+  );
+
+  // When
+  status = 503;
+  await act(async () =>
+    client.refetchQueries({
+      predicate: ({ queryKey }) => queryKey.includes(classificationPath),
+    }),
+  );
+  await user.press(await screen.findByRole("radio", { name: "2 × 2" }));
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("radio", { name: "2 × 2" })).toBeDisabled(),
+  );
+  expect(
+    screen.getByRole("radio", { name: "4 × 4", checked: true }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+});
+
+it("refuses a held save confirmation after its current classification read is refused", async () => {
+  // Given
+  jest.spyOn(Alert, "alert");
+  stored.setting = classification;
+  const user = await renderEditor();
+  await choose(user, "Format", "4 × 4");
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/classification")
+      ? Promise.resolve(json({ title: "Forbidden", status: 403 }, 403))
+      : respond(url, options),
+  );
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await screen.findByRole("alert", {
+    name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+  });
+
+  // When
+  await confirm();
+
+  // Then
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+  ).toHaveLength(0);
+  expect(
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+});

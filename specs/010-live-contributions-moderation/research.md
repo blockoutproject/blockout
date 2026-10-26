@@ -8,7 +8,7 @@
 
 **Alternatives:** Remote validation introduces provider availability and access dependencies without guaranteeing later playback. A custom URL parser adds no useful guarantee.
 
-**Generated-binding qualification (#223):** F08 URI properties retain `format: uri` without a redundant `minLength`. OpenAPI Generator 7.26.0 maps them to `java.net.URI`; combining length with that type generated `@Size` and caused valid MVC commands to fail with `UnexpectedTypeException`. [Jakarta Validation 3.1 §8.13](https://jakarta.ee/specifications/bean-validation/3.1/jakarta-validation-spec-3.1#builtinconstraints-size) supports character sequences, collections, maps and arrays, not URI. The owning schema correction preserves the URI contract and required fields; local HTTP(S)/host/credential rules remain T007/T010, rather than being claimed from DTO binding. No generator template, shared configuration or generated output is edited.
+**Generated-binding qualification ([T001–T005](tasks.md)):** F08 URI properties retain `format: uri` without a redundant `minLength`. OpenAPI Generator 7.26.0 maps them to `java.net.URI`; combining length with that type generated `@Size` and caused valid MVC commands to fail with `UnexpectedTypeException`. [Jakarta Validation 3.1 §8.13](https://jakarta.ee/specifications/bean-validation/3.1/jakarta-validation-spec-3.1#builtinconstraints-size) supports character sequences, collections, maps and arrays, not URI. The owning schema correction preserves the URI contract and required fields; local HTTP(S)/host/credential rules remain T007/T010, rather than being claimed from DTO binding. No generator template, shared configuration or generated output is edited.
 
 ## Transactions, quotas and erasure
 

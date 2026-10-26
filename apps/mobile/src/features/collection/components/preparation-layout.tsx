@@ -1,10 +1,9 @@
-import { Image } from "expo-image";
 import {
   CalendarDays,
   ChevronRight,
   type LucideIcon,
 } from "lucide-react-native";
-import type { PropsWithChildren } from "react";
+import type { PropsWithChildren, ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type {
@@ -15,10 +14,9 @@ import { PageHeader } from "../../../shared/components/page-header";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { Surface } from "../../../shared/components/surface";
-import {
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ScreenState } from "../../../shared/components/screen-state";
+import { ErrorState } from "../../../shared/components/state-card";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import type { useCollectionAuthority } from "../api/use-source-preparation";
@@ -30,19 +28,24 @@ export function PreparationPage({
   refreshing = false,
   refreshEnabled = true,
   onRefresh,
+  state,
 }: PropsWithChildren<{
   title: string;
   refreshing?: boolean;
   /** Keeps the native scroll tree mounted while a command temporarily suspends refresh. */
   refreshEnabled?: boolean;
   onRefresh?: () => void;
+  /** Blocking feedback replaces content only before a usable representation or draft exists. */
+  state?: ReactNode;
 }>) {
   const { colors } = useTheme();
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <PageHeader title={title} />
       <FormScrollView
-        contentContainerStyle={preparationStyles.content}
+        contentContainerStyle={
+          state ? styles.stateContent : preparationStyles.content
+        }
         refreshControl={
           onRefresh ? (
             <DataRefreshControl
@@ -53,13 +56,13 @@ export function PreparationPage({
           ) : undefined
         }
       >
-        {children}
+        {state ? <ScreenState>{state}</ScreenState> : children}
       </FormScrollView>
     </SafeAreaView>
   );
 }
 
-/** Explains current identification/grant failures without discarding a mounted read-only draft. */
+/** Initial authority feedback only; retained editor refresh failures use the owning event toast. */
 export function CollectionAccessFeedback({
   authority,
 }: {
@@ -72,47 +75,12 @@ export function CollectionAccessFeedback({
     return <RequestLoading />;
   if (authority.account.isError)
     return (
-      <RequestError
-        message="Les permissions du compte sont indisponibles."
+      <ErrorState
         onRetry={() => void authority.account.refetch()}
         retrying={authority.account.isFetching}
       />
     );
-  return authority.enabled ? null : (
-    <RequestError message="Cette action nécessite une permission dédiée." />
-  );
-}
-
-/** Approved collection empty-state artwork, retained as an unchanged Figma asset at its 120-point slot. */
-export function EmptySources({ label }: { label: string }) {
-  const { colors, scheme } = useTheme();
-  return (
-    <View
-      style={[
-        styles.empty,
-        { backgroundColor: colors.raised, borderColor: colors.border },
-      ]}
-    >
-      <Image
-        accessible={false}
-        source={
-          scheme === "dark"
-            ? require("../../../../assets/collection/empty-sources-dark.svg")
-            : require("../../../../assets/collection/empty-sources.svg")
-        }
-        contentFit="contain"
-        style={styles.emptyArtwork}
-      />
-      <Text
-        style={[
-          tokens.typography.heading,
-          { color: colors.text, textAlign: "center" },
-        ]}
-      >
-        {label}
-      </Text>
-    </View>
-  );
+  return authority.enabled ? null : <ErrorState />;
 }
 
 /** Navigation identity with an accessible action and decorative approved Lucide glyphs. */
@@ -280,15 +248,7 @@ export const preparationStyles = StyleSheet.create({
   },
 });
 const styles = StyleSheet.create({
-  empty: {
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
-    gap: tokens.spacing.md,
-    alignItems: "center",
-    paddingHorizontal: tokens.spacing.xl,
-    paddingVertical: tokens.spacing.section,
-  },
-  emptyArtwork: { width: 120, height: 120 },
+  stateContent: { flexGrow: 1, padding: tokens.spacing.lg },
   screen: { flex: 1 },
   link: {
     flexDirection: "row",

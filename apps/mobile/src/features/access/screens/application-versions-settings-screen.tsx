@@ -1,18 +1,20 @@
+import { ErrorState } from "../../../shared/components/state-card";
+import { ScreenState } from "../../../shared/components/screen-state";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { StyleSheet } from "react-native";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PageHeader } from "../../../shared/components/page-header";
-import {
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useAccountSession } from "../../accounts/current-account";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
 import { useApplicationVersionsSettings } from "../api/use-application-versions-settings";
 import { ApplicationVersionsForm } from "../forms/application-versions-form";
+import { ApplicationVersionsLoading } from "../components/settings-loading";
 
 /** Loads only with current grants and retains an existing draft read-only when they become unavailable. */
 export function ApplicationVersionsSettingsScreen() {
@@ -22,21 +24,35 @@ export function ApplicationVersionsSettingsScreen() {
   const canManage = permissions?.manageApplicationVersions === true;
   const editing = useApplicationVersionsSettings(canManage);
   const { colors } = useTheme();
+  const feedback = useActionFeedback();
+  const denied =
+    isAccessDenied(account.error) || isAccessDenied(editing.query.error);
   const settings =
     sessionStatus === "authenticated" ? editing.query.data : undefined;
+
+  /** Explicit refresh reports retained-data failure once and never resets the mounted draft. */
+  async function refresh() {
+    if (editing.content.isPending()) return;
+    feedback.clear();
+    if (!canManage) {
+      const result = await account.refetch();
+      if (result.isError && settings) feedback.error();
+      return;
+    }
+    const result = await editing.query.refetch();
+    if (session.isCurrent(session.generation) && result.isError && result.data)
+      feedback.error();
+  }
   let accessError = null;
   if (account.isError) {
     accessError = (
-      <RequestError
-        message="Les permissions du compte sont indisponibles."
+      <ErrorState
         onRetry={() => void account.refetch()}
         retrying={account.isFetching}
       />
     );
   } else if (!canManage) {
-    accessError = (
-      <RequestError message="Cette action nécessite une permission dédiée." />
-    );
+    accessError = <ErrorState />;
   }
   let settingsContent = null;
   if (settings) {
@@ -45,50 +61,56 @@ export function ApplicationVersionsSettingsScreen() {
         key={`${session.generation}:${session.accountId}`}
         settings={settings}
         editing={editing}
-        disabled={!canManage}
+        disabled={!canManage || denied}
       />
     );
   } else if (!accessError && editing.query.isError) {
     settingsContent = (
-      <RequestError
-        message="Les réglages de versions sont indisponibles."
+      <ErrorState
         onRetry={() => void editing.query.refetch()}
         retrying={editing.query.isFetching}
       />
     );
   } else if (!accessError) {
-    settingsContent = <RequestLoading />;
+    settingsContent = <ApplicationVersionsLoading />;
   }
+  const loadingSettings =
+    sessionStatus === "authenticated" &&
+    !account.isPending &&
+    !accessError &&
+    !settings &&
+    editing.query.isPending;
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <PageHeader title="Administration technique" />
       <FormScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          loadingSettings && styles.loadingContent,
+        ]}
         refreshControl={
           sessionStatus === "authenticated" ? (
             <DataRefreshControl
               enabled={!editing.content.pending}
-              refreshing={editing.query.isFetching || account.isFetching}
-              onRefresh={() => {
-                if (editing.content.isPending()) return;
-                if (canManage) void editing.query.refetch();
-                else void account.refetch();
-              }}
+              refreshing={editing.query.isRefetching || account.isRefetching}
+              onRefresh={() => void refresh()}
             />
           ) : undefined
         }
       >
-        {sessionStatus === "restoring" ||
-        (sessionStatus === "authenticated" && account.isPending) ? (
-          <RequestLoading />
-        ) : (
-          <>
-            {accessError}
-            {settingsContent}
-            {settings && editing.query.isError && (
-              <RequestError message="La relecture a échoué. Votre brouillon est conservé." />
+        {loadingSettings ? (
+          settingsContent
+        ) : !settings ? (
+          <ScreenState>
+            {sessionStatus === "restoring" ||
+            (sessionStatus === "authenticated" && account.isPending) ? (
+              <RequestLoading />
+            ) : (
+              (accessError ?? settingsContent)
             )}
-          </>
+          </ScreenState>
+        ) : (
+          settingsContent
         )}
       </FormScrollView>
     </SafeAreaView>
@@ -97,4 +119,5 @@ export function ApplicationVersionsSettingsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { flexGrow: 1, padding: tokens.spacing.lg, gap: tokens.spacing.lg },
+  loadingContent: { paddingTop: tokens.spacing.md },
 });

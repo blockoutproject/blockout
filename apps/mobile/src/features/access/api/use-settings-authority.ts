@@ -2,9 +2,14 @@ import { useApplicationAccess } from "../queries/use-application-access";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLayoutEffect, useRef } from "react";
 import { useAuth0 } from "react-native-auth0";
-import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
+import {
+  getGetMyAccountQueryKey,
+  getGetMaintenanceSettingsQueryKey,
+  getGetApplicationVersionSettingsQueryKey,
+} from "../../../../.generated/mobile";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useAccountSession } from "../../accounts/current-account";
 
@@ -26,7 +31,7 @@ export function useSettingsAuthority(
     };
   }, [enabled]);
 
-  /** Reads the cache synchronously so a grant revoked during credential retrieval cannot authorize I/O. */
+  /** Reads live account and settings refusals so delayed credentials or confirmations cannot restore command access. */
   function assertAuthority(revision?: number) {
     if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
     const account = client.getQueryState<AccountResponse>(
@@ -38,6 +43,16 @@ export function useSettingsAuthority(
       account.data?.accountId !== session.accountId ||
       account.data.permissions[permission] !== true
     )
+      throw new ApiError("http", 403);
+    const settings = client.getQueryState(
+      getSessionQueryKey(
+        session.generation,
+        group === "maintenance"
+          ? getGetMaintenanceSettingsQueryKey()
+          : getGetApplicationVersionSettingsQueryKey(),
+      ),
+    );
+    if (revision !== undefined && isAccessDenied(settings?.error))
       throw new ApiError("http", 403);
     if (
       revision !== undefined &&

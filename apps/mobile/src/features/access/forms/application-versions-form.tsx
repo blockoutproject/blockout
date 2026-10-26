@@ -143,14 +143,12 @@ export function ApplicationVersionsForm({
       if (mounted.current) setAcknowledged(undefined);
     } catch (error) {
       if (!session.isCurrent(session.generation)) return;
-      if (!requiresRevisionRead(error))
-        actionFeedback.error(
-          "L’enregistrement a été refusé. Vérifiez les valeurs et vos permissions.",
-        );
+      if (!requiresRevisionRead(error)) actionFeedback.error();
     }
   }
   /** Reads the actual outcome and keeps dirty fields, without submitting or merging conflicting input. */
   async function reread() {
+    actionFeedback.clear();
     const { result, reconciled } = await editing.content.reconcile(
       [editing.queryKey],
       () => editing.query.refetch(),
@@ -167,6 +165,7 @@ export function ApplicationVersionsForm({
       result.isError ||
       result.data.revision < baseline.revision
     ) {
+      actionFeedback.error();
       return;
     }
     editor.update({

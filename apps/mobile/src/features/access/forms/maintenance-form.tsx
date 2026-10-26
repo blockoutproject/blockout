@@ -1,3 +1,4 @@
+import { ErrorState } from "../../../shared/components/state-card";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
@@ -17,7 +18,7 @@ import {
 import { maintenanceValues } from "./maintenance-values";
 import { toMaintenanceRequest } from "../api/maintenance-request";
 import { Button } from "../../../shared/components/button";
-import { RequestError } from "../../../shared/components/request-feedback";
+
 import { TextField } from "../../../shared/components/text-field";
 import { Surface } from "../../../shared/components/surface";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -76,10 +77,7 @@ export function MaintenanceForm({
   /** Keeps a failed draft intact; only ambiguous outcomes and conflicts block further writes. */
   function failed(error: unknown) {
     if (!mounted.current || !session.isCurrent(session.generation)) return;
-    if (!requiresRevisionRead(error))
-      actionFeedback.error(
-        "L’enregistrement a été refusé. Vérifiez les valeurs et vos permissions.",
-      );
+    if (!requiresRevisionRead(error)) actionFeedback.error();
   }
   /** Submits supplied dirty content against its accepted editing revision, without activation. */
   async function submit(draft: MaintenanceValues) {
@@ -144,6 +142,7 @@ export function MaintenanceForm({
   }
   /** Rereads the actual outcome without replay; dirty fields remain until an explicit new submit. */
   async function reread() {
+    actionFeedback.clear();
     const { result, reconciled } = await editing.content.reconcile(
       [editing.queryKey],
       () => editing.query.refetch(),
@@ -159,6 +158,7 @@ export function MaintenanceForm({
       result.isError ||
       result.data.revision < baseline.revision
     ) {
+      actionFeedback.error();
       return;
     }
     setState({
@@ -325,7 +325,7 @@ export function MaintenanceForm({
 function MaintenanceImagePreview({ uri }: { uri: string }) {
   const [failed, setFailed] = useState(false);
   return failed ? (
-    <RequestError message="L’image ne peut pas être affichée." />
+    <ErrorState />
   ) : (
     <Image
       accessible

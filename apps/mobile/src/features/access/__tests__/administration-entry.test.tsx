@@ -178,7 +178,7 @@ it.each([
 
     // Then
     expect(
-      await screen.findByText("Cette action nécessite une permission dédiée."),
+      await screen.findByText("Une erreur est survenue"),
     ).toBeOnTheScreen();
     expect(
       screen.queryByRole("link", { name: "Administration technique" }),
@@ -251,7 +251,7 @@ it.each(["true", 1, null])(
 
     // Then
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Les permissions du compte sont indisponibles.",
+      "Une erreur est survenue",
     );
     expect(
       screen.queryByRole("link", { name: "Administration technique" }),
@@ -303,7 +303,7 @@ it("removes a revoked command independently while retaining another current gran
   ).toBeOnTheScreen();
 });
 
-it("hides retained capabilities after a failed account refresh", async () => {
+it("hides retained capabilities after a refused account refresh behind an opaque read card", async () => {
   // Given
   mockFetch.mockImplementation(async () =>
     json({ ...account, permissions: { manageMaintenance: true } }),
@@ -326,8 +326,9 @@ it("hides retained capabilities after a failed account refresh", async () => {
 
   // Then
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "Les permissions du compte sont indisponibles.",
+    "Une erreur est survenue",
   );
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
   expect(
     screen.queryByRole("link", { name: "Maintenance" }),
   ).not.toBeOnTheScreen();
@@ -378,9 +379,7 @@ it("offers no commands to a guest and performs no current-account read", async (
   await renderAdministration();
 
   // Then
-  expect(
-    await screen.findByText("Cette action nécessite une permission dédiée."),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
   expect(
     screen.queryByRole("link", { name: "Administration technique" }),
   ).not.toBeOnTheScreen();
@@ -482,9 +481,10 @@ it("keeps direct route admission closed with no F12 composition, even with a man
   await screen.findByRole("link", { name: "Administration technique" });
 
   // Then
-  expect(screen.getByRole("alert")).toHaveTextContent(
-    "L’accès à l’application doit être vérifié avant de continuer.",
-  );
+  expect(
+    screen.getByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("Une erreur est survenue")).toBeOnTheScreen();
   expect(
     screen.queryByRole("link", { name: "Maintenance" }),
   ).not.toBeOnTheScreen();

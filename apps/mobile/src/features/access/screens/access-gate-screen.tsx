@@ -1,7 +1,8 @@
+import { ErrorState } from "../../../shared/components/state-card";
 import { applicationUpdateMessage } from "../application-update-message";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { RotateCw, X } from "lucide-react-native";
+import { X } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -10,6 +11,7 @@ import { IconButton } from "../../../shared/components/icon-button";
 import { Button } from "../../../shared/components/button";
 import { BrandMark } from "../../../shared/components/brand-mark";
 import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ScreenState } from "../../../shared/components/screen-state";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -32,7 +34,7 @@ interface GateViewProps {
   onClose?: () => void;
 }
 
-/** Full-width stage centers its content and decorative rails together; only foreground controls own side margins. */
+/** Simple admission feedback shares the useful-area placement; maintenance and update retain their domain stage. */
 function GateView({
   gate,
   maintenance,
@@ -46,11 +48,11 @@ function GateView({
   const { colors } = useTheme();
   const update = gate === "update";
   const inMaintenance = gate === "maintenance";
+  const simple = gate === "checking" || gate === "unavailable";
   const image = inMaintenance ? maintenance?.imageUrl : null;
-  let title = "Accès indisponible.";
-  let badge = "INDISPONIBLE";
-  let message: string | null | undefined =
-    "Petit temps mort pour Blockout. Réessaie dans quelques instants.";
+  let title = "";
+  let badge = gate === "checking" ? "VÉRIFICATION" : "INDISPONIBLE";
+  let message: string | null | undefined;
   if (inMaintenance) {
     title = "Blockout est en maintenance";
     badge = "MAINTENANCE";
@@ -86,82 +88,87 @@ function GateView({
         )}
       </View>
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={simple ? styles.stateContent : styles.scroll}
         alwaysBounceVertical
         refreshControl={
-          !onClose && onRefresh ? (
+          !onClose && onRefresh && gate !== "checking" ? (
             <DataRefreshControl refreshing={checking} onRefresh={onRefresh} />
           ) : undefined
         }
       >
-        <View style={styles.stage}>
-          <GateBackdrop />
-          {gate === "checking" ? (
-            <RequestLoading />
-          ) : (
-            <View
-              style={[
-                styles.card,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-            >
-              {!update && (
-                <View style={styles.mediaInset}>
-                  <GateImage key={image ?? "placeholder"} uri={image} />
-                </View>
-              )}
-              <Text
-                accessibilityRole="header"
-                accessibilityLabel={title.replace("\n", " ")}
+        {simple ? (
+          <ScreenState>
+            {gate === "checking" ? (
+              <RequestLoading />
+            ) : (
+              <ErrorState onRetry={onRefresh} retrying={checking} />
+            )}
+          </ScreenState>
+        ) : (
+          <>
+            <View style={styles.stage}>
+              <GateBackdrop />
+              <View
                 style={[
-                  styles.heading,
-                  update && styles.updateHeading,
-                  { color: colors.text },
+                  styles.card,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
                 ]}
               >
-                {title}
-              </Text>
-              <Text style={[styles.message, { color: colors.secondaryText }]}>
-                {message}
-              </Text>
+                {!update && (
+                  <View style={styles.mediaInset}>
+                    <GateImage key={image ?? "placeholder"} uri={image} />
+                  </View>
+                )}
+                <Text
+                  accessibilityRole="header"
+                  accessibilityLabel={title.replace("\n", " ")}
+                  style={[
+                    styles.heading,
+                    update && styles.updateHeading,
+                    { color: colors.text },
+                  ]}
+                >
+                  {title}
+                </Text>
+                <Text style={[styles.message, { color: colors.secondaryText }]}>
+                  {message}
+                </Text>
+              </View>
             </View>
-          )}
-        </View>
-        <View style={styles.actions}>
-          {update && storeUrl ? (
-            <StoreAction key={storeUrl} url={storeUrl} />
-          ) : update && onClose ? (
-            <Button
-              fullWidth
-              label="Mettre à jour l’application"
-              onPress={undefined}
-              disabled
-            />
-          ) : gate === "unavailable" ? (
-            <Button
-              fullWidth
-              label="Réessayer"
-              trailingIcon={RotateCw}
-              loading={checking}
-              onPress={onRefresh}
-            />
-          ) : null}
-          {inMaintenance && onAdministration && (
-            <Pressable
-              accessibilityRole="link"
-              accessibilityLabel="Accès administrateur"
-              onPress={onAdministration}
-              style={({ pressed }) => [
-                styles.operator,
-                { opacity: pressed ? tokens.opacity.pressed : 1 },
-              ]}
-            >
-              <Text style={[tokens.typography.strong, { color: colors.text }]}>
-                Accès administrateur
-              </Text>
-            </Pressable>
-          )}
-        </View>
+            <View style={styles.actions}>
+              {update && storeUrl ? (
+                <StoreAction key={storeUrl} url={storeUrl} />
+              ) : update && onClose ? (
+                <Button
+                  fullWidth
+                  label="Mettre à jour l’application"
+                  onPress={undefined}
+                  disabled
+                />
+              ) : null}
+              {inMaintenance && onAdministration && (
+                <Pressable
+                  accessibilityRole="link"
+                  accessibilityLabel="Accès administrateur"
+                  onPress={onAdministration}
+                  style={({ pressed }) => [
+                    styles.operator,
+                    { opacity: pressed ? tokens.opacity.pressed : 1 },
+                  ]}
+                >
+                  <Text
+                    style={[tokens.typography.strong, { color: colors.text }]}
+                  >
+                    Accès administrateur
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -282,6 +289,7 @@ const styles = StyleSheet.create({
     paddingVertical: tokens.spacing.xs,
   },
   scroll: { flexGrow: 1 },
+  stateContent: { flexGrow: 1, padding: tokens.spacing.lg },
   stage: {
     flex: 1,
     justifyContent: "center",

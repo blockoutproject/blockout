@@ -1,3 +1,5 @@
+import { isAccessDenied } from "../../../shared/api/access-denied";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Surface } from "../../../shared/components/surface";
 import { hashKey, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
@@ -53,6 +55,13 @@ function TeamPage({
   const team = useQuery(queries.team(teamId));
   const [selected, setSelected] = useState<string>();
   const data = team.data;
+  const feedback = useActionFeedback();
+  /** A failed explicit refresh keeps authorized content and reports only the attempted read. */
+  async function refresh() {
+    const result = await team.refetch({ cancelRefetch: false });
+    if (result.isError && result.data && !isAccessDenied(result.error))
+      feedback.error();
+  }
   const tabs = [
     { id: "upcoming", label: "À venir" },
     { id: "completed", label: "Terminés" },
@@ -69,13 +78,11 @@ function TeamPage({
   );
   return (
     <ResourcePage
+      state={!data ? <ResourceFeedback query={team} /> : undefined}
       title="Équipe"
-      refreshing={team.isFetching}
-      onRefresh={
-        !data ? () => void team.refetch({ cancelRefetch: false }) : undefined
-      }
+      refreshing={team.isRefetching}
+      onRefresh={!data ? () => void refresh() : undefined}
     >
-      <ResourceFeedback query={team} />
       {data && (
         <>
           <SportingIdentity

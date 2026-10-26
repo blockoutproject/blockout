@@ -86,10 +86,7 @@ export function CollectionControl({
       if (!session.isCurrent(session.generation)) return;
       if (requiresRevisionRead(error))
         setNotice("Le résultat doit être vérifié avant une nouvelle action.");
-      else
-        actionFeedback.error(
-          "L’action a été refusée. Le périmètre est conservé.",
-        );
+      else actionFeedback.error();
     }
   }
 
@@ -142,7 +139,7 @@ export function CollectionControl({
     );
     if (!mounted.current || !session.isCurrent(session.generation)) return;
     if (!reconciled || current.isError || !current.data || !seasonRead) {
-      setNotice("La relecture a échoué. Le périmètre est conservé.");
+      actionFeedback.error();
       return;
     }
     setNotice("État relu. Vérifiez le périmètre avant une nouvelle action.");

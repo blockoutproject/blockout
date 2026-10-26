@@ -32,16 +32,16 @@ T026 uses [CollectorSportingBoundaryIntegrationTest](../../apps/collector/src/te
 
 The suite covers confirmed admission before provider work, pre-read ordinal allocation, backend-owned initial-import suppression through the real announcement participant, stable match/team/participation identities through late reads and postponement, and acquisition success remaining distinct from uncertain sporting integration. Lost admission and completion acknowledgements use a read of the original cycle; an unavailable confirmation stays uncertain, with no mutation replay. A collected response submitted after incarnation replacement is refused without new identities or completion, while already committed data survives. PostgreSQL connection-level blocking evidence verifies replacement waiting for an in-flight match transaction; subsequent old-context writes are refused.
 
-This is synthetic cross-owner runtime evidence. The broader partial-success/absence qualification remains [F01 T032](../001-source-acquisition/tasks.md) under the separately owned [#194](https://github.com/blockoutproject/blockout/issues/194) scope; this suite does not qualify live supplier contents, club/geocoding acquisition, actual Auth0, mobile, push delivery or production operations. Ordinary CI compiles this opt-in suite and skips execution without its explicit runtime inputs.
+This is synthetic cross-owner runtime evidence. The broader partial-success/absence qualification remains [F01 T032](../001-source-acquisition/tasks.md) under the separately owned [collector-to-sporting qualification](../001-source-acquisition/quickstart.md#collector-partial-success-and-absence-t032) scope; this suite does not qualify live supplier contents, club/geocoding acquisition, actual Auth0, mobile, push delivery or production operations. Ordinary CI compiles this opt-in suite and skips execution without its explicit runtime inputs.
 
-### Result announcement transaction — #252
+### Result announcement transaction
 
 T029/T033 bind `AcceptMatchObservation` to the real F08 current-public-link and F07 required
 announcement participant. [The result-producer regression](../../apps/backend/src/test/java/com/blockout/backend/sporting/application/ResultAnnouncementIntegrationTest.java)
 and [cross-owner cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAnnouncementsIntegrationTest.java)
 qualify both concurrent publication/result orders, real inbox-constraint rollback, zero recipients,
 initial finished discovery/trusted reconstruction, corrections, withdrawal/restoration and
-post-commit failure. [F07's qualification](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification--252)
+post-commit failure. [F07's qualification](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification)
 owns the detailed allowance and delivery limits. These are synthetic SQL/producer proofs, not
 provider-content, native-push, real moderation or operational purge qualification.
 
@@ -55,7 +55,7 @@ Verify `Cache-Control: no-store` on administration/ingestion successes and error
 
 Try wrong-environment M2M tokens and unauthorized/stale administrative commands. Expect no effects. Lose a response and read current state before an explicit retry; no automatic mutation replay. Exceed the calendar/image bounds and verify explicit refusal, never truncation or deletion of valid images. Qualify a complete source-season catalog against the 8-MiB JSON bound; include repeated pool labels under distinct compound contexts and identical duplicates. Expect positional result correlation, one atomic catalog commit, and no absence change for stale, invalid or oversized input.
 
-## Classification and division editors — #178
+## Classification and division editors
 
 T014/T018 use the existing F05 session and F12 operational admission. Enter pack/pool
 classification from the discovered collection children with both the collection
@@ -80,7 +80,7 @@ T014/T018 implementation is delivered by [#502](https://github.com/blockoutproje
 
 Implementation inputs include [Product Design mapping controls](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4652-28674), [division catalogue](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1340-9338), [creation](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1370-10242) and [gradient/lifecycle](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1368-10291). These identify design sources, not a passed fidelity comparison. The implementation uses F13 native stack sheets and the existing RHF control; lifecycle and presentation retain independent commands with one revision/recovery owner.
 
-The [retained #178 captures](https://github.com/blockoutproject/blockout/pull/502#issuecomment-6395696451) are implementation illustrations only. They are not native, visual, provider or integrated-journey evidence and must not be reused as acceptance, passed scenarios or partial qualification. T055 remains wholly unexecuted for completion purposes and must be performed afresh using its owning specification, approved plan and [prepared scenarios](#presentation-contacts-and-continuity). Future agents must assess the current implementation independently, without inheriting conclusions from #178's exploration. Related #433/#449 qualifications remain with their owners.
+The [retained #178 captures](https://github.com/blockoutproject/blockout/pull/502#issuecomment-6395696451) are implementation illustrations only. They are not native, visual, provider or integrated-journey evidence and must not be reused as acceptance, passed scenarios or partial qualification. T055 remains wholly unexecuted for completion purposes and must be performed afresh using its owning specification, approved plan and [prepared scenarios](#presentation-contacts-and-continuity). Future agents must assess the current implementation independently, without inheriting conclusions from that exploration. Related [F13 live Dynamic Type and iOS input qualifications](../003-shared-quality/quickstart.md#native-presentation-qualification) remain with their owner.
 
 ## Presentation, contacts and continuity
 
@@ -127,7 +127,7 @@ Change effective municipality/postal context while a geocoding response is in fl
 
 Exercise standings with and without a retained usable table: `published` with empty rows remains an available table; `not-published` with empty arrays is qualified absence, and a failed/unreadable read is neither. Preserve a still-usable retained table and its own freshness on failure or non-publication; without one, F03 distinguishes qualified absence from unavailable acquisition. Reject non-publication with nonempty arrays and stale absence observations without effects. A successful table containing an unlinked row preserves official order without a fabricated team. Close a season and verify history remains while new cycles are refused. F14 logo preservation and controlled initial reconstruction remain prerequisites for any separately authorized transition, not actions of this quickstart.
 
-### Collector logo and locality acceptance — #200
+### Collector logo and locality acceptance
 
 T054 uses [CollectorPresentationBoundaryIntegrationTest](../../apps/collector/src/test/java/com/blockout/collector/acquisition/application/CollectorPresentationBoundaryIntegrationTest.java)
 with the [disposable-runtime procedure](../../README.md#collector-to-sporting-qualification).
@@ -175,8 +175,8 @@ restriction is seeded as current SQL state, so these cases do not qualify the ma
 rights procedure itself. Administrative multipart uses Spring RestClient, not the
 native mobile networking stack. No live FFVB/IGN/LNV reads, provider coverage,
 native design/accessibility, production or protected-logo recovery are certified;
-those remain with their owning tasks, including T055/T056 and F01 T058/#201. The
-retained #433 live Dynamic Type and #449 iOS 17 input limits are unchanged.
+those remain with their owning tasks, including T055/T056 and [F01 T058](../001-source-acquisition/tasks.md). The
+retained [F13 live Dynamic Type and iOS 17 input limits](../003-shared-quality/quickstart.md#native-presentation-qualification) are unchanged.
 
 ### Current visibility and projection boundary
 

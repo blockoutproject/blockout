@@ -230,9 +230,12 @@ it("retains entered text while current collection permission is unavailable", as
   await pressAction("Actualiser les permissions");
 
   // Then
-  expect(
-    await screen.findByText("Cette action nécessite une permission dédiée."),
-  ).toBeOnTheScreen();
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Clôturer définitivement" }),
+    ).toBeDisabled(),
+  );
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
   expect(screen.getByDisplayValue("2026/")).toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Clôturer définitivement" }),
@@ -284,7 +287,7 @@ it("retains the draft after a definite refusal and can explicitly submit again",
   // Then
   expect(
     await screen.findByText(
-      "La clôture a été refusée. Votre saisie est conservée.",
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
     ),
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("2026/2027")).toBeOnTheScreen();
@@ -326,7 +329,7 @@ it("does not unlock uncertain closure when its explicit current-state read fails
   // Then
   expect(
     await screen.findByText(
-      "La relecture a échoué. Votre saisie est conservée.",
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
     ),
   ).toBeOnTheScreen();
   expect(

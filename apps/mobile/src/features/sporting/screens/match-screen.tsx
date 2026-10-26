@@ -1,3 +1,5 @@
+import { isAccessDenied } from "../../../shared/api/access-denied";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
@@ -32,12 +34,19 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
   const queries = useConsultationQueries();
   const match = useQuery(queries.match(matchId));
   const data = match.data;
+  const feedback = useActionFeedback();
+  /** A failed explicit refresh keeps authorized content and reports only the attempted read. */
+  async function refresh() {
+    const result = await match.refetch({ cancelRefetch: false });
+    if (result.isError && result.data && !isAccessDenied(result.error))
+      feedback.error();
+  }
   return (
     <ResourcePage
-      refreshing={match.isFetching}
-      onRefresh={() => void match.refetch({ cancelRefetch: false })}
+      state={!data ? <ResourceFeedback query={match} /> : undefined}
+      refreshing={match.isRefetching}
+      onRefresh={() => void refresh()}
     >
-      <ResourceFeedback query={match} />
       {data && (
         <>
           <MatchSummary

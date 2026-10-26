@@ -282,9 +282,7 @@ it("suspends the action after profile retrieval fails while public content remai
   );
 
   // When
-  await screen.findByText(
-    "Votre profil est indisponible. Le suivi est suspendu.",
-  );
+  await screen.findByText("Une erreur est survenue");
 
   // Then
   expect(screen.getByText("Public sport")).toBeOnTheScreen();
@@ -360,10 +358,10 @@ it("distinguishes a failed initial member read from false and offers an explicit
   await mount(<FollowButton target={team} season={season} />);
 
   // When
-  await screen.findByText("Impossible de lire le suivi.");
+  await screen.findByText("Une erreur est survenue");
 
   // Then
-  expect(screen.getByRole("button", { name: "Suivre" })).toBeDisabled();
+  expect(screen.queryByRole("button", { name: "Suivre" })).toBeNull();
   expect(
     mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
   ).toHaveLength(0);
@@ -383,7 +381,7 @@ it("rereads a temporarily hidden target when its public page is reopened after r
       : transport(url, request),
   );
   const rendered = await mount(<FollowButton target={team} season={season} />);
-  await screen.findByText("Le suivi est indisponible pour cette ressource.");
+  await screen.findByText("Une erreur est survenue");
 
   // When
   await rendered.rerender(<Text>Another page</Text>);
@@ -569,7 +567,11 @@ it.each([403, 404])(
     await screen.findByRole("button", { name: "Suivi", busy: false });
     refuse = true;
     await user.press(screen.getByRole("button", { name: "Suivi" }));
-    await screen.findByText("Le suivi est indisponible pour cette ressource.");
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    });
+    expect(screen.getByRole("button", { name: "Suivi" })).toBeDisabled();
+    expect(screen.queryByText("Une erreur est survenue")).toBeNull();
 
     // When
     refuse = false;
@@ -586,9 +588,7 @@ it.each([403, 404])(
         screen.getAllByRole("button", { name: "Suivi", disabled: false }),
       ).toHaveLength(2),
     );
-    expect(
-      screen.queryByText("Le suivi est indisponible pour cette ressource."),
-    ).not.toBeOnTheScreen();
+    expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen();
     await user.press(screen.getAllByRole("button", { name: "Suivi" })[1]);
     await waitFor(() =>
       expect(
@@ -635,8 +635,10 @@ it.each([403, 404])(
         <FollowButton key="reopened" target={team} season={season} />
       </>,
     );
-    await screen.findAllByText(
-      "Le suivi est indisponible pour cette ressource.",
+    await waitFor(() =>
+      expect(screen.getAllByRole("button", { name: "Réessayer" })).toHaveLength(
+        2,
+      ),
     );
 
     // When
@@ -644,15 +646,18 @@ it.each([403, 404])(
     await waitFor(() => expect(client.isMutating()).toBe(0));
 
     // Then
+    expect(screen.queryByText("Une erreur est survenue")).toBeNull();
     expect(
-      screen.getAllByText("Le suivi est indisponible pour cette ressource."),
+      screen.getAllByRole("button", { name: "Suivi", disabled: true }),
     ).toHaveLength(2);
-    expect(
-      screen.queryByRole("button", { name: "Suivi" }),
-    ).not.toBeOnTheScreen();
     expect(screen.queryByText(/Suivi confirmé/)).not.toBeOnTheScreen();
+    expect(screen.queryByText("Accès refusé")).not.toBeOnTheScreen();
     hidden = false;
-    await user.press(screen.getAllByRole("button", { name: "Réessayer" })[0]);
+    await user.press(
+      screen.getAllByRole("button", {
+        name: "Réessayer",
+      })[0],
+    );
     await waitFor(() =>
       expect(
         screen.getAllByRole("button", { name: "Suivi", disabled: false }),
@@ -683,9 +688,12 @@ it.each([403, 404])(
       ).toHaveLength(2),
     );
     await user.press(screen.getAllByRole("button", { name: "Suivre" })[0]);
-    await screen.findAllByText(
-      "Le suivi est indisponible pour cette ressource.",
-    );
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    });
+    expect(
+      screen.getAllByRole("button", { name: "Suivre", disabled: true }),
+    ).toHaveLength(2);
 
     // When
     await rendered.rerender(
@@ -698,12 +706,8 @@ it.each([403, 404])(
     expect(client.getMutationCache().findAll({ status: "error" })).toHaveLength(
       0,
     );
-    expect(
-      screen.getByText("Le suivi est indisponible pour cette ressource."),
-    ).toBeOnTheScreen();
-    expect(
-      screen.queryByRole("button", { name: "Suivre" }),
-    ).not.toBeOnTheScreen();
+    expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeDisabled();
     expect(
       mockFetch.mock.calls.filter(
         ([url, request]) =>
@@ -901,12 +905,10 @@ it("preserves a confirmed write when the subsequent profile read fails", async (
   });
 
   // Then
-  expect(
-    await screen.findByText(
-      "Votre profil est indisponible. Le suivi est suspendu.",
-    ),
-  ).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Suivi" })).toBeDisabled();
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivi" })).toBeDisabled(),
+  );
   expect(client.getQueryData(followStateKey(owner, team))).toEqual({
     following: true,
   });

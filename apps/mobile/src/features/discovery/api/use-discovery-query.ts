@@ -24,15 +24,16 @@ export function useDiscoveryQuery(
   );
   const query = useInfiniteQuery(options);
 
-  /** Cancels old pagination and replaces the traversal only after a successful first-page read. */
+  /** Cancels old pagination and replaces the traversal only after success; returns the original failure for event feedback. */
   async function refresh() {
     if (!options.enabled || !session.isCurrent(session.generation)) return;
     await client.cancelQueries({ queryKey: options.queryKey, exact: true });
     if (!session.isCurrent(session.generation)) return;
     try {
       await client.infiniteQuery({ ...options, pages: 1, staleTime: 0 });
-    } catch {
-      // The existing Query observer owns the failed read and retains its authorized previous pages.
+    } catch (error) {
+      // The observer retains authorized pages; the originating gesture may announce its failure.
+      return error;
     }
   }
 

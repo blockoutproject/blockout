@@ -166,12 +166,44 @@ it("shows loading before any known state can be saved", async () => {
     ).toBe(true),
   );
   expect(
-    screen.getByRole("progressbar", { name: "Chargement en cours" }),
+    screen.getByRole("progressbar", {
+      name: "Chargement des réglages de maintenance",
+    }),
   ).toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Enregistrer" }),
   ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Message de maintenance"),
+  ).not.toBeOnTheScreen();
+
+  // When
   await act(async () => finish(json(initial)));
+
+  // Then
+  expect(await screen.findByDisplayValue(initial.message)).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+});
+
+it("reports one failed refresh while retaining the editable maintenance draft", async () => {
+  // Given
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await editMessage();
+  mockFetch.mockClear().mockRejectedValue(new Error("Network unavailable"));
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+  expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
 });
 it("does not publish defaults after an initial load failure", async () => {
   // Given
@@ -192,9 +224,7 @@ it("does not publish defaults after an initial load failure", async () => {
   await renderSettings();
 
   // Then
-  expect(
-    await screen.findByText("Les réglages de maintenance sont indisponibles."),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
   expect(
     screen.queryByLabelText("Message de maintenance"),
   ).not.toBeOnTheScreen();
@@ -384,9 +414,7 @@ it("keeps text and actions usable when preview display fails", async () => {
   );
 
   // Then
-  expect(
-    await screen.findByText("L’image ne peut pas être affichée."),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
   expect(screen.getByDisplayValue(initial.message)).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
 });
@@ -404,9 +432,7 @@ it("starts a fresh draft image preview when a previously failed URL returns", as
       nativeEvent: { error: "Unavailable" },
     },
   );
-  expect(
-    await screen.findByText("L’image ne peut pas être affichée."),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
 
   // When
   await user.clear(screen.getByLabelText("URL de l’image"));
@@ -421,9 +447,7 @@ it("starts a fresh draft image preview when a previously failed URL returns", as
   expect(
     screen.getByLabelText("Aperçu de l’image de maintenance"),
   ).toBeOnTheScreen();
-  expect(
-    screen.queryByText("L’image ne peut pas être affichée."),
-  ).not.toBeOnTheScreen();
+  expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen();
   expect(screen.getByDisplayValue(initial.message)).toBeOnTheScreen();
 });
 
@@ -452,7 +476,7 @@ it.each([400, 403, 422])(
     // Then
     expect(
       await screen.findByText(
-        "L’enregistrement a été refusé. Vérifiez les valeurs et vos permissions.",
+        "Une erreur est survenue. Veuillez réessayer plus tard.",
       ),
     ).toBeOnTheScreen();
     expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
@@ -534,11 +558,7 @@ it("keeps the production route closed until native admission is composed", async
   await renderSettings(<MaintenanceRoute />);
 
   // Then
-  expect(
-    await screen.findByText(
-      "L’accès à l’application doit être vérifié avant de continuer.",
-    ),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
   expect(
     screen.queryByLabelText("Message de maintenance"),
   ).not.toBeOnTheScreen();
@@ -673,10 +693,131 @@ it("retains a draft through a failed permission refresh", async () => {
 
   // Then
   expect(
-    await screen.findByText("Les permissions du compte sont indisponibles."),
-  ).toBeOnTheScreen();
+    screen.queryByRole("alert", { name: "Une erreur est survenue" }),
+  ).not.toBeOnTheScreen();
   expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
+  );
+});
+
+it("retains a read-only draft and rejects held confirmation after the settings endpoint refuses access", async () => {
+  // Given
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  const user = await editMessage();
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  const confirm = nativeAction("Enregistrer").onPress;
+  mockFetch.mockClear().mockResolvedValue(
+    json(
+      {
+        type: "urn:blockout:problem:forbidden",
+        title: "Forbidden",
+        status: 403,
+      },
+      403,
+    ),
+  );
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await screen.findByRole("alert", {
+    name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+  });
+  await act(async () => confirm?.());
+
+  // Then
+  expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
+    "Mon brouillon",
+  );
+  expect(screen.getByLabelText("Message de maintenance")).toBeDisabled();
+  expect(
+    screen.queryByRole("alert", { name: "Une erreur est survenue" }),
+  ).not.toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    screen.getByRole("button", { name: "Activer la maintenance" }),
+  ).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+  ).toBe(false);
+
+  // When
+  mockFetch.mockResolvedValue(
+    json(
+      {
+        type: "urn:blockout:problem:unavailable",
+        title: "Unavailable",
+        status: 503,
+      },
+      503,
+    ),
+  );
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByLabelText("Actualiser les données")).toHaveProp(
+      "accessibilityState",
+      expect.objectContaining({ busy: false }),
+    ),
+  );
+  expect(
+    screen.getByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Message de maintenance")).toBeDisabled();
+  expect(
+    screen.queryByRole("alert", { name: "Une erreur est survenue" }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  mockFetch.mockImplementation(async (url) =>
+    json(String(url).endsWith("/accounts/me") ? account : stored),
+  );
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByLabelText("Message de maintenance")).toBeEnabled(),
+  );
+  expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
+    "Mon brouillon",
+  );
+  expect(
+    screen.queryByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).not.toBeOnTheScreen();
+});
+
+it("presents an initial settings refusal with an opaque retryable card and no editable defaults", async () => {
+  // Given
+  mockFetch.mockImplementation(async (url) =>
+    String(url).endsWith("/accounts/me")
+      ? json(account)
+      : json(
+          {
+            type: "urn:blockout:problem:forbidden",
+            title: "Forbidden",
+            status: 403,
+          },
+          403,
+        ),
+  );
+
+  // When
+  await renderSettings();
+
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+  expect(
+    screen.queryByLabelText("Message de maintenance"),
+  ).not.toBeOnTheScreen();
 });
 
 it.each([
@@ -714,13 +855,15 @@ it.each([
       });
     });
 
-    await screen.findByText("Cette action nécessite une permission dédiée.");
+    await waitFor(() =>
+      expect(screen.getByLabelText("Message de maintenance")).toBeDisabled(),
+    );
     await act(async () => confirm());
 
     // Then
     expect(
-      screen.getByText("Cette action nécessite une permission dédiée."),
-    ).toBeOnTheScreen();
+      screen.queryByRole("alert", { name: "Une erreur est survenue" }),
+    ).not.toBeOnTheScreen();
     expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
     expect(screen.getByLabelText("Message de maintenance")).toBeDisabled();
     expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
@@ -772,7 +915,7 @@ it("keeps a conflicting draft blocked through a failed settings reread", async (
   // Then
   expect(
     await screen.findByText(
-      "La relecture a échoué. Votre brouillon est conservé.",
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
     ),
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
@@ -825,7 +968,9 @@ it.each([
 
     // Then
     expect(
-      await screen.findByText("Cette action nécessite une permission dédiée."),
+      await screen.findByText(
+        "Une erreur est survenue. Veuillez réessayer plus tard.",
+      ),
     ).toBeOnTheScreen();
     expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
     expect(
@@ -875,7 +1020,7 @@ it("keeps a delayed acknowledged write and older reread behind the latest public
   // Then
   expect(
     await screen.findByText(
-      "La relecture a échoué. Votre brouillon est conservé.",
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
     ),
   ).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();

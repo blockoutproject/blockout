@@ -1,6 +1,7 @@
 import { StyleSheet, View } from "react-native";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import { Skeleton } from "../../../shared/components/skeleton";
 
 /** Product Design 952:14506: two static decorative cards announce one pending read, never fictional results. */
 export function SearchLoading() {
@@ -22,7 +23,6 @@ export function SearchLoading() {
 /** Keeps the approved identity and metadata skeleton geometry independent of remote data or animation. */
 function LoadingCard() {
   const { colors } = useTheme();
-  const fill = { backgroundColor: colors.skeleton };
   return (
     <View
       accessible={false}
@@ -33,16 +33,19 @@ function LoadingCard() {
       ]}
     >
       <View style={styles.identity}>
-        <View style={[styles.logo, fill]} />
+        <Skeleton
+          width={tokens.size.entityMedia}
+          height={tokens.size.entityMedia}
+        />
         <View style={styles.copy}>
-          <View style={[styles.title, fill]} />
-          <View style={[styles.subtitle, fill]} />
+          <Skeleton />
+          <Skeleton width={140} height={12} />
         </View>
       </View>
       <View style={styles.metadata}>
-        <View style={[styles.badge, { width: 96 }, fill]} />
-        <View style={[styles.badge, { width: 76 }, fill]} />
-        <View style={[styles.badge, { width: 52 }, fill]} />
+        <Skeleton width={96} height={tokens.size.badge} />
+        <Skeleton width={76} height={tokens.size.badge} />
+        <Skeleton width={52} height={tokens.size.badge} />
       </View>
     </View>
   );
@@ -62,19 +65,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: tokens.spacing.md,
   },
-  logo: {
-    width: tokens.size.entityMedia,
-    height: tokens.size.entityMedia,
-    borderRadius: tokens.radius.badge,
-  },
   copy: { flex: 1, minWidth: 0, gap: tokens.spacing.sm },
-  title: { height: 16, borderRadius: tokens.radius.badge },
-  subtitle: {
-    width: 140,
-    maxWidth: "100%",
-    height: 12,
-    borderRadius: tokens.radius.badge,
-  },
   metadata: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },
-  badge: { height: tokens.size.badge, borderRadius: tokens.radius.badge },
 });

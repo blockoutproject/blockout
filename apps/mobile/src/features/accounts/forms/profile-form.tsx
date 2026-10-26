@@ -1,3 +1,4 @@
+import { ErrorState } from "../../../shared/components/state-card";
 import { ImageValidationError } from "../../../shared/images/image-validation-error";
 import type { File } from "expo-file-system";
 import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
@@ -15,10 +16,7 @@ import {
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { ImageField } from "../../../shared/components/image-field";
-import {
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { TextField } from "../../../shared/components/text-field";
 import { Surface } from "../../../shared/components/surface";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -34,6 +32,8 @@ import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 /** An editable snapshot of this original account; parent identity/generation changes remount it. */
 export interface ProfileFormProps {
   account: AccountResponse;
+  /** Keeps the local draft visible while the current account read cannot authorize personal edits. */
+  disabled: boolean;
   /** The screen keeps this operation alive while session removal disposes the private form. */
   onContinueAsGuest: () => Promise<void>;
   leaving: boolean;
@@ -42,6 +42,7 @@ export interface ProfileFormProps {
 /** Keeps drafts through refetch/refusal and requires original-target reconciliation before an explicit uncertain retry. */
 export function ProfileForm({
   account,
+  disabled,
   onContinueAsGuest,
   leaving,
 }: ProfileFormProps) {
@@ -65,7 +66,7 @@ export function ProfileForm({
       deleteOwnedImage(photo.prepared);
   });
   const selection = useImageSelection({
-    canSelect: () => !save.isPending(),
+    canSelect: () => !disabled && !save.isPending(),
     allowsEditing: true,
     aspect: [1, 1],
     onSelect: async (assets) => {
@@ -90,7 +91,7 @@ export function ProfileForm({
   const draft = useWatch({ control, name: "photo" });
   const photo = useProfilePhoto(
     account.accountId,
-    account.hasPhoto && draft.action === "keep",
+    !disabled && account.hasPhoto && draft.action === "keep",
   );
   const uncertain = isUncertainMutationFailure(save.error);
   const needsRead = save.needsRead;
@@ -131,6 +132,18 @@ export function ProfileForm({
     };
   }, [getValues, generation, isCurrent, subscribe]);
 
+  /** Observes the original result without replaying a write; failed rereads preserve the draft and uncertainty guard. */
+  async function readOriginal() {
+    feedback.clear();
+    const { result, reconciled } = await reread();
+    if (
+      active.current &&
+      session.isCurrent(session.generation) &&
+      (!reconciled || result.isError)
+    )
+      feedback.error();
+  }
+
   /** Transfers a prepared copy to RHF and releases the replaced draft without touching an active upload. */
   function replacePhoto(next: ProfileValues["photo"]) {
     const previous = getValues("photo");
@@ -146,6 +159,7 @@ export function ProfileForm({
   /** Sends supplied intent once; one original-target read may reconcile uncertainty without replay. */
   async function submit(values: ProfileValues) {
     if (
+      disabled ||
       needsRead ||
       selection.isPending() ||
       !active.current ||
@@ -177,7 +191,7 @@ export function ProfileForm({
           message:
             "Cette photo ne peut pas être enregistrée. Choisissez une autre image.",
         });
-      else if (isUncertainMutationFailure(error)) await reread();
+      else if (isUncertainMutationFailure(error)) await readOriginal();
       else feedback.error();
     } finally {
       uploading.current = undefined;
@@ -196,16 +210,18 @@ export function ProfileForm({
     <View style={styles.form}>
       <Surface>
         <View style={styles.form}>
-          {draft.action === "keep" && account.hasPhoto && photo.isFetching && (
+          {draft.action === "keep" && account.hasPhoto && photo.isLoading && (
             <RequestLoading />
           )}
-          {draft.action === "keep" && account.hasPhoto && photo.isError && (
-            <RequestError
-              message="Votre photo est indisponible."
-              onRetry={() => void photo.refetch()}
-              retrying={photo.isFetching}
-            />
-          )}
+          {draft.action === "keep" &&
+            account.hasPhoto &&
+            photo.isError &&
+            photo.dataUpdatedAt === 0 && (
+              <ErrorState
+                onRetry={() => void photo.refetch()}
+                retrying={photo.isFetching}
+              />
+            )}
           <Controller
             control={control}
             name="photo"
@@ -215,7 +231,7 @@ export function ProfileForm({
                 images={images}
                 selection={selection}
                 placeholderIcon={UserRound}
-                disabled={busy}
+                disabled={disabled || busy}
                 chooseLabel="Choisir une photo de profil"
                 helper="Facultatif. PNG/JPEG, jusqu’à 5 Mio."
                 error={fieldState.error?.message}
@@ -239,7 +255,7 @@ export function ProfileForm({
                 onBlur={field.onBlur}
                 autoCapitalize="none"
                 autoCorrect={false}
-                editable={!busy}
+                editable={!disabled && !busy}
                 helper="3 à 32 caractères : lettres sans accent, chiffres, point, tiret ou soulignement. Les espaces autour sont retirés."
                 error={fieldState.error?.message}
               />
@@ -255,7 +271,13 @@ export function ProfileForm({
       </Surface>
       {(uncertain || needsRead) &&
         (needsRead ? (
-          <RequestError message="Le résultat de la sauvegarde est incertain. Vérifiez votre profil avant de réessayer." />
+          <Text
+            accessibilityLiveRegion="polite"
+            style={[tokens.typography.body, { color: colors.text }]}
+          >
+            Le résultat de la sauvegarde est incertain. Vérifiez votre profil
+            avant de réessayer.
+          </Text>
         ) : (
           <Text
             accessibilityLiveRegion="polite"
@@ -269,13 +291,13 @@ export function ProfileForm({
         <Button
           label="Vérifier mon profil"
           loading={original.isFetching}
-          onPress={() => void reread()}
+          onPress={() => void readOriginal()}
         />
       )}
       <Button
         label="Enregistrer"
         onPress={() => void handleSubmit(submit)()}
-        disabled={busy || needsRead}
+        disabled={disabled || busy || needsRead}
         loading={save.executing}
       />
       <Button

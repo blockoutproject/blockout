@@ -1,3 +1,7 @@
+import { isAccessDenied } from "../../../shared/api/access-denied";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { ErrorState, EmptyState } from "../../../shared/components/state-card";
+import { ScreenState } from "../../../shared/components/screen-state";
 import { PageHeader } from "../../../shared/components/page-header";
 import { useRouter } from "expo-router";
 import { Layers } from "lucide-react-native";
@@ -5,10 +9,7 @@ import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { Button } from "../../../shared/components/button";
-import {
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { ClassificationEntry } from "../../sporting-administration/entry";
@@ -32,7 +33,25 @@ export function SourceChildrenScreen({
   const { authority, query } = useSourceChildren(sourceId, parentId);
   const { colors } = useTheme();
   const router = useRouter();
-  const items = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const denied = isAccessDenied(query.error);
+  const items = denied
+    ? []
+    : (query.data?.pages.flatMap((page) => page.items) ?? []);
+  const feedback = useActionFeedback();
+  /** Refreshes the displayed catalog or its grant and leaves retained rows usable after failure. */
+  async function refresh() {
+    if (query.isFetching) return;
+    const result = authority.enabled
+      ? await query.refetch({ cancelRefetch: false })
+      : await authority.account.refetch({ cancelRefetch: false });
+    if (result.isError && result.data && !isAccessDenied(result.error))
+      feedback.error();
+  }
+  /** Pagination retains the existing traversal and the same continuation command after an error. */
+  async function loadMore() {
+    const result = await query.fetchNextPage({ cancelRefetch: false });
+    if (result.isError && !isAccessDenied(result.error)) feedback.error();
+  }
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <PageHeader title="Groupes découverts" />
@@ -42,22 +61,19 @@ export function SourceChildrenScreen({
           authority.sessionStatus === "authenticated" ? (
             <DataRefreshControl
               enabled={!query.isFetchingNextPage}
-              refreshing={query.isFetching || authority.account.isFetching}
-              onRefresh={() => {
-                if (query.isFetching) return;
-                if (authority.enabled)
-                  void query.refetch({ cancelRefetch: false });
-                else void authority.account.refetch({ cancelRefetch: false });
-              }}
+              refreshing={query.isRefetching || authority.account.isRefetching}
+              onRefresh={() => void refresh()}
             />
           ) : undefined
         }
         data={authority.enabled ? items : []}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={preparationStyles.content}
+        contentContainerStyle={[
+          preparationStyles.content,
+          (!authority.enabled || items.length === 0) && styles.stateContent,
+        ]}
         ListHeaderComponent={
           <>
-            <CollectionAccessFeedback authority={authority} />
             {parentId && authority.enabled && (
               <ClassificationEntry target={{ kind: "pack", id: parentId }} />
             )}
@@ -86,43 +102,44 @@ export function SourceChildrenScreen({
           )
         }
         ListEmptyComponent={
-          authority.enabled ? (
-            query.isPending ? (
-              <RequestLoading />
-            ) : !query.isError ? (
-              <Text style={[tokens.typography.strong, { color: colors.text }]}>
-                Aucun groupe découvert
-              </Text>
-            ) : undefined
-          ) : undefined
-        }
-        ListFooterComponent={
-          authority.enabled ? (
-            query.isError ? (
-              <RequestError
-                message="Les groupes sont indisponibles."
-                onRetry={() =>
-                  void (query.isFetchNextPageError
-                    ? query.fetchNextPage()
-                    : query.refetch())
-                }
+          <ScreenState>
+            {!authority.enabled ? (
+              <CollectionAccessFeedback authority={authority} />
+            ) : denied ? (
+              <ErrorState
+                onRetry={() => void query.refetch()}
                 retrying={query.isFetching}
               />
-            ) : query.hasNextPage ? (
-              <Button
-                label="Charger la suite"
-                variant="secondary"
-                onPress={() =>
-                  void query.fetchNextPage({ cancelRefetch: false })
-                }
-                disabled={query.isFetching}
-                loading={query.isFetchingNextPage}
+            ) : query.isPending ? (
+              <RequestLoading />
+            ) : query.isError && !query.data ? (
+              <ErrorState
+                onRetry={() => void query.refetch()}
+                retrying={query.isFetching}
               />
-            ) : undefined
+            ) : (
+              <EmptyState title="Aucun groupe découvert" />
+            )}
+          </ScreenState>
+        }
+        ListFooterComponent={
+          authority.enabled && !denied && query.hasNextPage ? (
+            <Button
+              label={
+                query.isFetchNextPageError ? "Réessayer" : "Charger la suite"
+              }
+              variant="secondary"
+              onPress={() => void loadMore()}
+              disabled={query.isFetching}
+              loading={query.isFetchingNextPage}
+            />
           ) : undefined
         }
       />
     </SafeAreaView>
   );
 }
-const styles = StyleSheet.create({ screen: { flex: 1 } });
+const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  stateContent: { paddingVertical: tokens.spacing.lg },
+});

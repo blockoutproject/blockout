@@ -74,9 +74,7 @@ export function CreateSourceForm({
         });
       } else {
         editor.update({ ...editor.getSnapshot(), feedback: undefined });
-        actionFeedback.error(
-          "L’action a été refusée. Votre saisie est conservée.",
-        );
+        actionFeedback.error();
       }
     }
   }

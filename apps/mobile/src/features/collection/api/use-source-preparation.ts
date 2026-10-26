@@ -10,6 +10,7 @@ import {
   useInfiniteQuery,
   useQuery,
   useQueryClient,
+  type QueryKey,
 } from "@tanstack/react-query";
 import { createCollectionQueries } from "./collection-queries";
 import { useAuth0 } from "react-native-auth0";
@@ -51,8 +52,8 @@ export function useCollectionAuthority() {
   const client = useQueryClient();
   const enabled =
     capabilities.permissions?.manageCollection === true && version.satisfied;
-  /** Rechecks the live account cache, including held native confirmations and delayed credential retrieval. */
-  function assertAuthority() {
+  /** Rechecks the live grant and required reads, including held confirmations and delayed credential retrieval. */
+  function assertAuthority(readKeys: readonly QueryKey[]) {
     if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
     version.assertCurrent();
     const account = client.getQueryState<AccountResponse>(
@@ -64,12 +65,14 @@ export function useCollectionAuthority() {
       account.data.permissions.manageCollection !== true
     )
       throw new ApiError("http", 403);
+    if (readKeys.some((key) => client.getQueryState(key)?.status !== "success"))
+      throw new ApiError("http", 403);
   }
-  /** Captures the session before asynchronous work and refuses unavailable credentials without replay. */
-  async function request() {
-    assertAuthority();
+  /** Reads need the grant; commands also require their current representations before and after credential retrieval. */
+  async function request(readKeys: readonly QueryKey[] = []) {
+    assertAuthority(readKeys);
     const credentials = await auth.getCredentials();
-    assertAuthority();
+    assertAuthority(readKeys);
     if (!credentials) throw new ApiError("http", 401);
     return {
       session,
@@ -124,7 +127,11 @@ export function useSeasonPreparation(seasonId: string) {
     {
       mutationKey: [...seasonKey, ...getCreateCollectionSourceMutationKey()],
       mutationFn: async (body: CreateSourceBindingRequest) =>
-        createCollectionSource(seasonId, body, await authority.request()),
+        createCollectionSource(
+          seasonId,
+          body,
+          await authority.request([seasonKey, sourcesKey]),
+        ),
       onSuccess: acceptCreatedSource,
     },
     { groupKey: seasonKey, requiresRead: requiresRevisionRead },
@@ -133,7 +140,11 @@ export function useSeasonPreparation(seasonId: string) {
     {
       mutationKey: [...seasonKey, ...getLaunchCollectionSourcesMutationKey()],
       mutationFn: async (body: LaunchCollectionSourcesRequest) =>
-        launchCollectionSources(seasonId, body, await authority.request()),
+        launchCollectionSources(
+          seasonId,
+          body,
+          await authority.request([seasonKey, sourcesKey]),
+        ),
       onSuccess: acceptLaunchedSources,
     },
     { groupKey: seasonKey, requiresRead: requiresRevisionRead },
@@ -172,7 +183,11 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
         ...getSetCollectionSourceCandidateMutationKey(),
       ],
       mutationFn: async (body: SetSourceCandidateRequest) =>
-        setCollectionSourceCandidate(sourceId, body, await authority.request()),
+        setCollectionSourceCandidate(
+          sourceId,
+          body,
+          await authority.request([seasonKey, queryKey]),
+        ),
       onSuccess: accept,
     },
     { groupKey: queryKey, requiresRead: requiresRevisionRead },
@@ -187,7 +202,7 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
         requestCollectionSourceValidation(
           sourceId,
           body,
-          await authority.request(),
+          await authority.request([seasonKey, queryKey]),
         ),
       onSuccess: accept,
     },
@@ -203,7 +218,7 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
         confirmCollectionSourceSeason(
           sourceId,
           body,
-          await authority.request(),
+          await authority.request([seasonKey, queryKey]),
         ),
       onSuccess: accept,
     },

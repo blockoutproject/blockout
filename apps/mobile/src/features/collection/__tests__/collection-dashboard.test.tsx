@@ -330,7 +330,7 @@ it("refuses a held confirmation after current permission withdrawal", async () =
   // When
   peer.permissions = { manageSporting: true };
   await pressAction("Actualiser les permissions");
-  await screen.findByText("Cette action nécessite une permission dédiée.");
+  await screen.findByText("Une erreur est survenue");
   await confirm("Relancer");
 
   // Then
@@ -338,6 +338,60 @@ it("refuses a held confirmation after current permission withdrawal", async () =
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
   ).toHaveLength(0);
 });
+
+it.each(["control", "season"] as const)(
+  "refuses a confirmed collection request when its %s read is denied during credential retrieval",
+  async (scope) => {
+    // Given
+    const read = Promise.withResolvers<Response>();
+    const credentials =
+      Promise.withResolvers<ReturnType<typeof credentialsFor>>();
+    const credentialRequested = Promise.withResolvers<void>();
+    const mounted = await renderCollection(
+      <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+      peer.client,
+    );
+    await pressAction("Relancer");
+    const refusedPath =
+      scope === "control"
+        ? `/collection-controls/${control().id}`
+        : `/collection-seasons/${seasonId}`;
+    mockFetch.mockImplementation((url, options) =>
+      new URL(String(url)).pathname.endsWith(refusedPath) &&
+      options?.method === "GET"
+        ? read.promise
+        : peer.reads(url, options),
+    );
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await waitFor(() =>
+      expect(screen.getByLabelText("Actualiser les données")).toHaveProp(
+        "accessibilityState",
+        expect.objectContaining({ busy: true }),
+      ),
+    );
+    mockAuth0.getCredentials.mockImplementationOnce(() => {
+      credentialRequested.resolve();
+      return credentials.promise;
+    });
+
+    // When
+    await confirm("Relancer");
+    await act(async () => credentialRequested.promise);
+    await act(async () => read.resolve(refused(403)));
+    await waitFor(() => expect(peer.client.isFetching()).toBe(0));
+    await act(async () =>
+      credentials.resolve(credentialsFor("auth0|operator187")),
+    );
+    await waitFor(() => expect(peer.client.isMutating()).toBe(0));
+
+    // Then
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+    ).toHaveLength(0);
+    expect(screen.queryByRole("button", { name: "Relancer" })).toBeNull();
+    await mounted.unmount();
+  },
+);
 
 it("ignores an old-session command response without presenting a new success", async () => {
   // Given
@@ -522,7 +576,7 @@ it("retains earlier rows and retries the failed next results page", async () => 
   // When
   await pressAction("Charger la suite");
   await screen.findByText(
-    "Les résultats sont indisponibles. Les observations déjà lues sont conservées.",
+    "Une erreur est survenue. Veuillez réessayer plus tard.",
   );
   pageAvailable = true;
   await pressAction("Réessayer");
@@ -567,7 +621,7 @@ it("rejects a malformed command acknowledgement and keeps the uncertain scope lo
   // Then
   expect(
     await screen.findByText(
-      "La relecture a échoué. Le périmètre est conservé.",
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
     ),
   ).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Relancer" })).toBeDisabled();

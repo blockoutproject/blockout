@@ -14,7 +14,7 @@
 
 ## User Scenarios & Testing
 
-Design input: [source-operation approval](https://github.com/blockoutproject/blockout/issues/21#issuecomment-6076074926), prototype `d876da909419ef807a72c39c9afa7a0667e81ad3`, and [administration designs](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1170-3654). The approval covers its recorded source/season and independent-pool scope. The scoped prototype and Figma approvals are linked in the [plan](plan.md#design-acceptance); native qualification remains separate.
+Design input: [source-operation approval](plan.md#design-acceptance), prototype `d876da909419ef807a72c39c9afa7a0667e81ad3`, and [administration designs](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1170-3654). The approval covers its recorded source/season and independent-pool scope. The scoped prototype and Figma approvals are linked in the [plan](plan.md#design-acceptance); native qualification remains separate.
 
 The main actor is an operator with explicit collection permissions. Visitors and signed-in users benefit from reliable sporting data but cannot control collection. Live-stream moderator status grants no collection permission. The sporting-data domain consumes observations; its decisions belong to F02 and do not constitute a second end-user role.
 

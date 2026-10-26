@@ -1,3 +1,8 @@
+import { isAccessDenied } from "../../../shared/api/access-denied";
+import { ApiError } from "../../../shared/api/api-fetch";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { ScreenState } from "../../../shared/components/screen-state";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -7,7 +12,7 @@ import { searchSchema, type SearchValues } from "../schemas/search-schema";
 import { searchValues } from "../forms/search-values";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { Button } from "../../../shared/components/button";
-import { EmptyState, ErrorState } from "../../../shared/components/state-card";
+import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { SearchField } from "../../../shared/components/search-field";
@@ -109,16 +114,31 @@ function TextSearchResults({
   onClear: () => void;
 }) {
   const query = useDiscoveryQuery(resource, { q: text });
-  const error = query.isError ? (
-    <ErrorState
-      onRetry={() =>
-        void (query.isFetchNextPageError
-          ? query.fetchNextPage({ cancelRefetch: false })
-          : query.refresh())
-      }
-      retrying={query.isFetching}
-    />
-  ) : undefined;
+  const feedback = useActionFeedback();
+  /** Reports an explicit failed refresh without replacing retained results or their empty state. */
+  async function refresh() {
+    const error = await query.refresh();
+    if (
+      error &&
+      query.data &&
+      !isAccessDenied(error) &&
+      !(error instanceof ApiError && error.status === 404)
+    )
+      feedback.error();
+  }
+  /** Continuation failure leaves loaded rows and the same continuation action available. */
+  async function loadMore() {
+    const result = await query.fetchNextPage({ cancelRefetch: false });
+    if (result.isError && result.data && !isAccessDenied(result.error))
+      feedback.error();
+  }
+  const error =
+    query.isError && !query.data ? (
+      <ErrorState
+        onRetry={() => void query.refresh()}
+        retrying={query.isFetching}
+      />
+    ) : undefined;
   if (
     query.data?.pages.some((page) =>
       "clubs" in page
@@ -132,17 +152,18 @@ function TextSearchResults({
       <SearchResults
         pages={query.data.pages}
         onClear={onClear}
-        feedback={error}
-        refreshing={query.isFetching && !query.isFetchingNextPage}
-        onRefresh={() => void query.refresh()}
+        refreshing={query.isRefetching}
+        onRefresh={() => void refresh()}
         continuation={
-          query.hasNextPage && !query.isFetchNextPageError ? (
+          query.hasNextPage ? (
             <Button
-              label="Charger la suite"
+              label={
+                query.isFetchNextPageError ? "Réessayer" : "Charger la suite"
+              }
               variant="secondary"
               disabled={query.isFetching}
               loading={query.isFetchingNextPage}
-              onPress={() => void query.fetchNextPage({ cancelRefetch: false })}
+              onPress={() => void loadMore()}
             />
           ) : undefined
         }
@@ -153,28 +174,28 @@ function TextSearchResults({
       alwaysBounceVertical
       refreshControl={
         <DataRefreshControl
-          refreshing={query.isFetching}
-          onRefresh={() => void query.refresh()}
+          refreshing={query.isRefetching}
+          onRefresh={() => void refresh()}
         />
       }
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={styles.content}
     >
       <SearchResultsHeading
-        count={query.data && !query.isError ? 0 : undefined}
+        count={query.data ? 0 : undefined}
         onClear={onClear}
       />
       {query.isPending ? (
         <SearchLoading />
       ) : (
-        <View style={styles.feedback}>
+        <ScreenState>
           {error ?? (
             <EmptyState
               title="Aucun résultat pour ces critères"
               description="Essayez un autre nom."
             />
           )}
-        </View>
+        </ScreenState>
       )}
     </ScrollView>
   );
@@ -186,7 +207,6 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     paddingHorizontal: tokens.spacing.lg,
-    paddingBottom: tokens.spacing.section,
+    paddingVertical: tokens.spacing.lg,
   },
-  feedback: { paddingTop: tokens.spacing.xl },
 });

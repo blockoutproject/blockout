@@ -1,3 +1,5 @@
+import { ErrorState } from "../../../shared/components/state-card";
+import { ScreenState } from "../../../shared/components/screen-state";
 import { useRouter } from "expo-router";
 import {
   useIsFetching,
@@ -11,10 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
-import {
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { AdministrationEntry } from "../../access/entry";
@@ -24,6 +23,7 @@ import {
 } from "../api/use-current-account";
 import { ProfileForm } from "../forms/profile-form";
 import { PublicAccountLinks } from "../components/public-account-links";
+import { ProfileLoading } from "../components/profile-loading";
 import { useAccountSession } from "../session/account-session-provider";
 import { useGuestNavigation } from "../hooks/use-guest-navigation";
 import { PageHeader } from "../../../shared/components/page-header";
@@ -49,6 +49,7 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
   const router = useRouter();
   const { colors } = useTheme();
   const guest = useGuestNavigation();
+  const feedback = useActionFeedback();
   const mutationKey = getSessionQueryKey(
     session.generation,
     getChangeAccountProfileMutationKey(),
@@ -61,25 +62,36 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
     getGetAccountPhotoQueryKey(account.data?.accountId ?? ""),
   );
   const photoFetching = useIsFetching({ queryKey: photoKey, exact: true }) > 0;
+  const photoRefreshing =
+    photoFetching && client.getQueryData(photoKey) !== undefined;
 
   /** Refreshes the current profile and its displayed photo; disabled draft previews keep their prepared file. */
   async function refresh() {
     if (client.isMutating({ mutationKey })) return;
+    feedback.clear();
     const result = await account.refetch({ cancelRefetch: false });
-    if (
-      !session.isCurrent(session.generation) ||
-      client.isMutating({ mutationKey }) ||
-      !result.data?.hasPhoto
-    )
+    if (!session.isCurrent(session.generation)) return;
+    if (result.isError) {
+      if (result.data) feedback.error();
       return;
+    }
+    if (client.isMutating({ mutationKey }) || !result.data?.hasPhoto) return;
+    const currentPhotoKey = getSessionQueryKey(
+      session.generation,
+      getGetAccountPhotoQueryKey(result.data.accountId),
+    );
     await client.refetchQueries({
-      queryKey: getSessionQueryKey(
-        session.generation,
-        getGetAccountPhotoQueryKey(result.data.accountId),
-      ),
+      queryKey: currentPhotoKey,
       exact: true,
       type: "active",
     });
+    const photo = client.getQueryState(currentPhotoKey);
+    if (
+      session.isCurrent(session.generation) &&
+      photo?.status === "error" &&
+      photo.dataUpdatedAt > 0
+    )
+      feedback.error();
   }
 
   return (
@@ -91,53 +103,59 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
           admitted && session.status === "authenticated" ? (
             <DataRefreshControl
               enabled={!saving}
-              refreshing={account.isFetching || photoFetching}
+              refreshing={account.isRefetching || photoRefreshing}
               onRefresh={() => void refresh()}
             />
           ) : undefined
         }
       >
         {!admitted ? (
-          <RequestError message="L’accès à l’application doit être vérifié avant de continuer." />
+          <ScreenState>
+            <ErrorState />
+          </ScreenState>
         ) : (
           <>
-            {session.status === "restoring" ||
-            (session.status === "authenticated" && account.isPending) ? (
-              <RequestLoading />
+            {session.status === "restoring" ? (
+              <ScreenState>
+                <RequestLoading />
+              </ScreenState>
+            ) : session.status === "authenticated" && account.isPending ? (
+              <ProfileLoading />
             ) : session.status !== "authenticated" ? (
-              <Button
-                label="Se connecter"
-                onPress={() => router.replace("/sign-in")}
-              />
+              <ScreenState>
+                <Button
+                  label="Se connecter"
+                  onPress={() => router.replace("/sign-in")}
+                />
+              </ScreenState>
             ) : (
               <>
-                {account.isError && (
-                  <RequestError
-                    message={
-                      missing
-                        ? "Votre compte Blockout est introuvable."
-                        : "Votre profil Blockout est indisponible."
-                    }
-                    onRetry={() => void account.refetch()}
-                    retrying={account.isFetching}
-                  />
-                )}
-                {missing && (
-                  <Button
-                    label="Se connecter"
-                    onPress={() => router.replace("/sign-in")}
-                  />
+                {account.isError && !account.data && (
+                  <ScreenState>
+                    <ErrorState
+                      onRetry={() => void account.refetch()}
+                      retrying={account.isFetching}
+                    />
+                    {missing && (
+                      <Button
+                        label="Se connecter"
+                        onPress={() => router.replace("/sign-in")}
+                      />
+                    )}
+                  </ScreenState>
                 )}
                 {account.data && (
                   <>
-                    {account.data.principalCreatedAt === null && (
-                      <AccountAgeRetry
-                        key={`age:${session.generation}:${account.data.accountId}`}
-                      />
-                    )}
+                    {account.isSuccess &&
+                      account.data.principalCreatedAt === null && (
+                        <AccountAgeRetry
+                          key={`age:${session.generation}:${account.data.accountId}`}
+                        />
+                      )}
                     <ProfileForm
                       key={`${session.generation}:${account.data.accountId}`}
                       account={account.data}
+                      disabled={!account.isSuccess}
                       onContinueAsGuest={guest.continueAsGuest}
                       leaving={guest.pending}
                     />
@@ -168,10 +186,10 @@ function AccountAgeRetry() {
   const establishment = useEstablishAccount();
   const feedback = useActionFeedback();
   return (
-    <RequestError
-      message="L’ancienneté de votre compte est indisponible."
-      retrying={establishment.pending}
-      onRetry={() => {
+    <Button
+      label="Réessayer"
+      loading={establishment.pending}
+      onPress={() => {
         feedback.clear();
         void establishment.start(session)?.catch(() => {
           if (session.isCurrent(session.generation)) feedback.error();
@@ -183,5 +201,5 @@ function AccountAgeRetry() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: { padding: tokens.spacing.lg, gap: tokens.spacing.lg },
+  content: { flexGrow: 1, padding: tokens.spacing.lg, gap: tokens.spacing.lg },
 });

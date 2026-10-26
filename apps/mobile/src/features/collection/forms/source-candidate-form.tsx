@@ -16,7 +16,7 @@ import type {
   SourceBindingResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { Button } from "../../../shared/components/button";
-import { RequestError } from "../../../shared/components/request-feedback";
+
 import { TextField } from "../../../shared/components/text-field";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -86,6 +86,7 @@ export function SourceCandidateForm({
   const closed = (editing.season.data ?? season).state === "closed";
   const readOnly = closed || current.locked || current.launched;
   const busy =
+    editing.source.isError ||
     !authority.enabled ||
     editing.candidate.pending ||
     editing.source.isFetching ||
@@ -133,9 +134,7 @@ export function SourceCandidateForm({
       });
     } else {
       editor.update({ ...editor.getSnapshot(), feedback: undefined });
-      actionFeedback.error(
-        "L’action a été refusée. Votre saisie est conservée.",
-      );
+      actionFeedback.error();
     }
   }
   /** Replaces only the candidate against its editing revision; a successful response invalidates old evidence. */
@@ -259,10 +258,7 @@ export function SourceCandidateForm({
       !seasonResult.data ||
       sourceResult.data.revision < baseline.revision
     ) {
-      editor.update({
-        ...editor.getSnapshot(),
-        feedback: "La relecture a échoué. Votre saisie est conservée.",
-      });
+      actionFeedback.error();
       return;
     }
     reset(sourceCandidateValues(sourceResult.data), {
@@ -498,16 +494,7 @@ export function SourceCandidateForm({
           {feedback}
         </Text>
       )}
-      {(editing.source.isError || editing.season.isError) && !feedback && (
-        <RequestError
-          message="La relecture a échoué. Votre saisie est conservée."
-          onRetry={() => {
-            void editing.source.refetch({ cancelRefetch: false });
-            void editing.season.refetch({ cancelRefetch: false });
-          }}
-          retrying={editing.source.isFetching || editing.season.isFetching}
-        />
-      )}
+
       {reconciliationRequired && (
         <Button
           label="Relire l’état"

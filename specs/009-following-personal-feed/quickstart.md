@@ -92,8 +92,8 @@ npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/follo
 
 These JavaScript checks establish no actual authentication provider, account-erasure orchestration,
 native accessibility or design qualification. T016, later story tasks and T045 retain their scopes;
-live Dynamic Type [#433](https://github.com/blockoutproject/blockout/issues/433) and iOS input
-[#449](https://github.com/blockoutproject/blockout/issues/449) remain deferred.
+live Dynamic Type [F13 native qualification](../003-shared-quality/quickstart.md#native-presentation-qualification) and iOS input
+[F13 native qualification](../003-shared-quality/quickstart.md#native-presentation-qualification) remain deferred.
 
 ### Integrated journeys to qualify
 

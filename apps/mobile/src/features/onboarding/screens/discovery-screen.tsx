@@ -1,3 +1,4 @@
+import { ErrorState } from "../../../shared/components/state-card";
 import { ArrowRight, ChevronLeft } from "lucide-react-native";
 import { useEffect, useRef, useState, type ComponentRef } from "react";
 import {
@@ -12,7 +13,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandMark } from "../../../shared/components/brand-mark";
 import { Button } from "../../../shared/components/button";
 import { IconButton } from "../../../shared/components/icon-button";
-import { RequestError } from "../../../shared/components/request-feedback";
+
+import { ScreenState } from "../../../shared/components/screen-state";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import {
@@ -61,7 +63,7 @@ const steps = [
   },
 ];
 
-/** Common skippable discovery after the root's installation-read gate; explicit finish/skip persists completion. */
+/** Common discovery with blocking read feedback; only explicit finish/skip persists completion. */
 export function DiscoveryScreen() {
   const { colors } = useTheme();
   const discovery = useDiscovery();
@@ -112,13 +114,14 @@ export function DiscoveryScreen() {
       <ScrollView
         ref={scroll}
         style={styles.scroll}
-        contentContainerStyle={styles.stage}
+        contentContainerStyle={
+          discovery.error === "read" ? styles.stateContent : styles.stage
+        }
       >
         {discovery.error === "read" ? (
-          <RequestError
-            message="La découverte n’a pas pu être chargée."
-            onRetry={discovery.retryRead}
-          />
+          <ScreenState>
+            <ErrorState onRetry={discovery.retryRead} />
+          </ScreenState>
         ) : (
           <>
             <DiscoveryBackdrop />
@@ -230,6 +233,7 @@ const styles = StyleSheet.create({
   },
   brand: { flexDirection: "row", gap: 9, alignItems: "center" },
   scroll: { flex: 1 },
+  stateContent: { flexGrow: 1, padding: tokens.spacing.lg },
   stage: {
     flexGrow: 1,
     justifyContent: "center",

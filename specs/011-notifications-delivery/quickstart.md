@@ -8,7 +8,7 @@ Use the [generated HTTP boundary](../003-shared-quality/contracts/README.md) and
 
 The [model](data-model.md), [contracts](contracts/README.md) and owning specification define exact states. Use JUnit/Spring MVC/Testcontainers for server boundaries and Jest Expo/React Native Testing Library for mobile behavior. No additional E2E framework or load programme is required.
 
-## Foundation evidence (#237)
+## Foundation evidence
 
 T001 reuses the [shared stack](../003-shared-quality/plan.md) and SDK-compatible `expo-notifications`
 (`~58.1.6` in the [manifest](../../apps/mobile/package.json)). Package compatibility does not qualify
@@ -17,12 +17,12 @@ no external retained-data posture is qualified.
 
 The [Java contract cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/api/NotificationContractWebMvcTest.java) exercise generated request binding and producer serialization through a test-only adapter. The [mobile contract cases](../../apps/mobile/src/features/notifications/__tests__/notification-contract.test.ts) exercise actual Orval consumers and one-time F13 response validation before cache admission. Request schema checks use Zod's native `.strict()`; generated Java does not enforce the boolean enum, so F07 explicitly requires true. Orval's multiple-success-status registration function needs the generated `PushSubscriptionResponse` supplied through the existing F13 `schema` request option, as for F05 establishment. Java server responses are serialization evidence, not a generated Java response-decoder qualification.
 
-The [owner cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/NotificationAccessWebMvcTest.java) use real F05 resolution, native security and an isolated signed-JWT/JWKS boundary; account storage and the F12 admission decision are controlled. The [mobile context cases](../../apps/mobile/src/features/notifications/__tests__/notification-context.test.ts) use the existing session owner, transport and one QueryClient, including native infinite-query `pageParam`, A → guest/B → A and late completion without cancellation. These checks qualify the foundation only. Backend inbox endpoints and SQL are qualified [below](#current-inbox-construction-evidence-250); account-erasure orchestration, native permissions/lifecycle, physical devices and provider delivery remain with their owning tasks.
+The [owner cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/NotificationAccessWebMvcTest.java) use real F05 resolution, native security and an isolated signed-JWT/JWKS boundary; account storage and the F12 admission decision are controlled. The [mobile context cases](../../apps/mobile/src/features/notifications/__tests__/notification-context.test.ts) use the existing session owner, transport and one QueryClient, including native infinite-query `pageParam`, A → guest/B → A and late completion without cancellation. These checks qualify the foundation only. Backend inbox endpoints and SQL are qualified [below](#current-inbox-construction-evidence); account-erasure orchestration, native permissions/lifecycle, physical devices and provider delivery remain with their owning tasks.
 
 Run the README verification for current application, generator and Expo Doctor results;
 revision-specific execution results belong to the delivery PR.
 
-## Announcement construction evidence (#245)
+## Announcement construction evidence
 
 T006–T012 implement the mandatory transactional F07 participant, nonpersonal consumed match facts,
 unread personal allocations, current F06 recipient unions under sorted F05 account locks, and three
@@ -35,9 +35,9 @@ The [persistence rationale](research.md#transactional-inbox-and-approximate-star
 explains insert-only allocation and retained read-state protection. The database-free health HTTP
 context replaces `NotificationStore`, consistently with its other controlled business persistence ports.
 
-These controlled inputs do not qualify the actual F02/F08 producer binding or publication eligibility (T013–T014 / #252), the F05 erasure orchestrator or actual asynchronous sender (T040 / #291), inbox HTTP/mobile, scheduled purge, native devices, provider delivery or restoration. No production optional/no-op hook or transport call was added.
+These controlled inputs do not qualify the actual F02/F08 producer binding or publication eligibility ([T013–T014](tasks.md)), the F05 erasure orchestrator or actual asynchronous sender ([T040](tasks.md)), inbox HTTP/mobile, scheduled purge, native devices, provider delivery or restoration. No production optional/no-op hook or transport call was added.
 
-## Atomic producer and link qualification — #252
+## Atomic producer and link qualification
 
 F02 result acceptance now calls the required F07 participant and reads the real F08 public
 contribution under the retained match lock. F08 accepted active publication joins the same
@@ -57,13 +57,13 @@ required inbox failure and independent-match continuation. A separate transactio
 committed notification rows before the controlled external handoff can fail. Handoff failures
 are logged safely and dropped after commit, preserving the business response and inbox.
 The context retains original relation identities for the later sender; actual association/send-time
-continuity remains F06 T044/#263 and F07 T040/#291.
+continuity remains [F06 T044](../009-following-personal-feed/tasks.md) and [F07 T040](tasks.md).
 
 The [timing policy suite](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/LinkAnnouncementTest.java)
 includes unknown time/availability, before/at/after H, Paris/New York instants across differing
 DST weeks and consumed categories. Controlled personal-row deletion, hiding/hold and source-linked
 quota-exempt reactivation fixtures prove that allowances survive those state changes; they do not
-qualify actual moderation commands, report reset or scheduled purge (T046/#277 and T052/#267).
+qualify actual moderation commands, report reset or scheduled purge ([T046 and T052](tasks.md)).
 No actual push/provider/device result is claimed. Provider handoff remains US4; the immutable
 `AfterCommitAnnouncements.Ready` event is its transient committed input.
 
@@ -90,7 +90,7 @@ relation's identity and target type in one PostgreSQL statement snapshot, qualif
 7.4.5.Final/PostgreSQL 18.6 and the existing F06 SQL suite. The test hook is local
 to that scenario; the production interface, transaction isolation and selected versions are unchanged.
 
-## Current inbox construction evidence (#250)
+## Current inbox construction evidence
 
 T015/T016/T019–T021 implement owner collection/member/summary reads and the independent true-only
 read intent. [HTTP cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/api/NotificationsWebMvcTest.java)
@@ -110,11 +110,11 @@ repeatable-read snapshot. A twenty-distinct-match case bounds query count to exc
 exercise committed monotone marks, repeated/concurrent intents, overlapping GETs and controlled
 original-account/personal-row removal while a command waits. They preserve original age/order,
 current authorization and non-personal consumed facts. These controlled deletions are not actual
-scheduled purge or F05 erasure qualification. T052/#267 owns those races; T051/#360 owns restoration,
-and #253 owns native inbox behavior. No device, push/provider or production evidence is claimed.
+scheduled purge or F05 erasure qualification. [T052](tasks.md) owns those races; [T051](tasks.md) owns restoration,
+and [T017–T024](tasks.md) own native inbox behavior. No device, push/provider or production evidence is claimed.
 Revision-specific commands and outcomes remain in the delivery PR.
 
-## Retention construction and isolated restore cases — #255
+## Retention construction and isolated restore cases
 
 T047/T049 use the existing 29-elapsed-day cutoff, independent of physical deletion.
 The dedicated [PostgreSQL cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/PurgeNotificationsIntegrationTest.java)
@@ -133,17 +133,17 @@ owning construction, and these results do not qualify sending after failed delet
 
 T048 prepares the following cases for [F13's initial isolated restore](../003-shared-quality/quickstart.md#initial-restore-and-activation-condition)
 and the existing [pre-reopen reconciliation](../../infra/operations/README.md#reconcile-before-access-or-sends).
-T051/#360 executes them only with its separately authorized source/destination, qualified backup
+[T051](tasks.md) executes them only with its separately authorized source/destination, qualified backup
 and masking prerequisites. Preparation does not block ordinary local purge construction.
 
-| Restored case                                                                                 | Required observation before affected access/sends reopen                                                                                                                                                                                                                                        |
-| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Inbox just below/exactly 29 days and beyond 30 days, including read/hidden entries            | Keep original UTC creation instants. Remove every due personal row; younger rows keep only their remaining lifetime. A failed/partial purge keeps reopening pending.                                                                                                                            |
-| Account erased since the backup, including its original installation associations             | Reconcile current F05/F11 erasure against private current evidence; remove old inbox/destinations through the authorized owner procedure. A replacement UUID inherits nothing. Actual erase/purge races remain T052/#267 after #280.                                                            |
-| Privacy restriction or current right unknown since backup                                     | Apply current F11/F09 restrictions and F12 admission. Unknown obligations keep affected access and sends closed; a usable SQL restore or old maintenance setting is insufficient.                                                                                                               |
-| Match facts preserved versus genuinely lost in the restored copy                              | Preserve available category/composition facts independently of inbox purge. Inspect no permanent recipient history. Lost facts may exceptionally repeat a sporting announcement, but permit no expired/erased personal data or renewed creation date.                                           |
-| Partial active/offline inbox, seven unread but two loaded, earliest expiry on an unloaded row | Execute T018/T023 with the actual native inbox: at age 29 remove loaded expired content before display/resume and while active, invalidate an unprovable whole count/badge, then reconcile through ordinary refresh. Fixtures/server-only checks do not qualify this mobile boundary.           |
-| Evidence and cleanup                                                                          | Keep source backup time, original timestamps, isolated target, current-obligation decisions, per-case outcomes and remaining gaps in the existing private F13 operational evidence. No private attachments/diagnostics enter this public repository; restoration never renews backup retention. |
+| Restored case                                                                                 | Required observation before affected access/sends reopen                                                                                                                                                                                                                                                                                                                         |
+| --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Inbox just below/exactly 29 days and beyond 30 days, including read/hidden entries            | Keep original UTC creation instants. Remove every due personal row; younger rows keep only their remaining lifetime. A failed/partial purge keeps reopening pending.                                                                                                                                                                                                             |
+| Account erased since the backup, including its original installation associations             | Reconcile current F05/F11 erasure against private current evidence; remove old inbox/destinations through the authorized owner procedure. A replacement UUID inherits nothing. Actual erase/purge races remain [T052](tasks.md) after the [F05 erasure implementation](../005-accounts-identity/tasks.md#phase-6-user-story-5--erase-the-account-and-return-safely-priority-p1). |
+| Privacy restriction or current right unknown since backup                                     | Apply current F11/F09 restrictions and F12 admission. Unknown obligations keep affected access and sends closed; a usable SQL restore or old maintenance setting is insufficient.                                                                                                                                                                                                |
+| Match facts preserved versus genuinely lost in the restored copy                              | Preserve available category/composition facts independently of inbox purge. Inspect no permanent recipient history. Lost facts may exceptionally repeat a sporting announcement, but permit no expired/erased personal data or renewed creation date.                                                                                                                            |
+| Partial active/offline inbox, seven unread but two loaded, earliest expiry on an unloaded row | Execute T018/T023 with the actual native inbox: at age 29 remove loaded expired content before display/resume and while active, invalidate an unprovable whole count/badge, then reconcile through ordinary refresh. Fixtures/server-only checks do not qualify this mobile boundary.                                                                                            |
+| Evidence and cleanup                                                                          | Keep source backup time, original timestamps, isolated target, current-obligation decisions, per-case outcomes and remaining gaps in the existing private F13 operational evidence. No private attachments/diagnostics enter this public repository; restoration never renews backup retention.                                                                                  |
 
 ## Essential scenarios
 

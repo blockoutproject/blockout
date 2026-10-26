@@ -1,11 +1,9 @@
+import { EmptyState, ErrorState } from "../../../shared/components/state-card";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef } from "react";
 import { Text } from "react-native";
 import { Button } from "../../../shared/components/button";
-import {
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import type { SessionSnapshot } from "../../accounts";
@@ -23,6 +21,7 @@ export function ProProfileEntry() {
   const { state } = usePro();
   const offering = useProOffering();
   const { colors } = useTheme();
+  const feedback = useActionFeedback();
   const session = account.getSnapshot();
   const request = useRef<SessionSnapshot | null>(null);
   useFocusEffect(
@@ -51,10 +50,21 @@ export function ProProfileEntry() {
       return;
     // A previous session's pending read cannot block a new explicit opening.
     request.current = attempt;
+    feedback.clear();
     try {
       if (canPurchasePro(state)) {
         const result = await offering.refetch();
-        if (result.isError || !result.data) return;
+        if (result.isError || !result.data) {
+          if (
+            result.isError &&
+            offering.data !== undefined &&
+            request.current === attempt &&
+            account.isCurrent(attempt.generation) &&
+            account.getSnapshot().accountId === attempt.accountId
+          )
+            feedback.error();
+          return;
+        }
       }
       if (
         request.current === attempt &&
@@ -76,7 +86,6 @@ export function ProProfileEntry() {
       {connected && (
         <>
           <ProVerification />
-          {offering.isFetching && <RequestLoading />}
           {associated && (
             <Button
               label="Gérer ou restaurer mes achats"
@@ -110,17 +119,19 @@ export function ProProfileEntry() {
               </Text>
             )}
           {canPurchasePro(state) &&
-            (offering.isError || offering.data === null) && (
-              <RequestError
-                message={
-                  offering.isError
-                    ? "La lecture de l’offre Pro a échoué. Réessayez depuis Blockout Pro."
-                    : "Aucune offre Pro n’est disponible. Réessayez depuis Blockout Pro."
-                }
+            offering.data === undefined &&
+            offering.isError && (
+              <ErrorState
                 onRetry={() => void open()}
                 retrying={offering.isFetching}
               />
             )}
+          {canPurchasePro(state) && offering.data === null && (
+            <EmptyState
+              title="Aucune offre Pro disponible"
+              description="Réessayez plus tard."
+            />
+          )}
         </>
       )}
     </>

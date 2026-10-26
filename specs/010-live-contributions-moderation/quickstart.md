@@ -14,7 +14,7 @@ Reject another account, old erased account UUID, invalid session, ordinary user 
 
 ### Foundation boundary — T001–T005
 
-The #223 foundation uses the existing pinned F13 stack, generators and ignored outputs. The existing XML master and README retain the disposable-baseline/freeze rule and separate migration/application roles; this lot changes no schema or environment. `ContributionContractWebMvcTest` exercises generated Java request binding and response serialization/constraints; `contribution-contract.test.ts` exercises actual Orval calls through F13 and Query, including one JSON read/schema parse, rejected responses, erased attribution, hidden/dateless private context, finite enums, twenty-item pages, numeric bounds and opaque revisions. Public stream fixtures qualify URL/version-ID serialization and consumption only; actual F03/F08 pair selection remains future business mapping.
+The [T001–T005 foundation](tasks.md) uses the existing pinned F13 stack, generators and ignored outputs. The existing XML master and README retain the disposable-baseline/freeze rule and separate migration/application roles; this lot changes no schema or environment. `ContributionContractWebMvcTest` exercises generated Java request binding and response serialization/constraints; `contribution-contract.test.ts` exercises actual Orval calls through F13 and Query, including one JSON read/schema parse, rejected responses, erased attribution, hidden/dateless private context, finite enums, twenty-item pages, numeric bounds and opaque revisions. Public stream fixtures qualify URL/version-ID serialization and consumption only; actual F03/F08 pair selection remains future business mapping.
 
 `ContributionAccessWebMvcTest` composes real signature/environment checks, F05 identity resolution and F12 admission/grants against controlled account/settings/transaction adapters. `contribution-context.test.ts` uses the real session owner, generated calls and Query to qualify keys, native infinite-query page parameters and late reads/writes across A → guest/B → A even without effective cancellation. Strict unknown-command rejection is proved at MVC; Orval's request schemas check known fields, while generated Fetch validates consumed responses once. These are contract/context proofs, not business endpoints, SQL locking/erasure, device, design or provider qualification. Later mutations must recheck identity/grants under their ordered locks.
 
@@ -43,7 +43,7 @@ These suites establish the local model and policies. The following qualification
 implemented store, submission/read endpoints, ordered locks and required F02/F07 atomicity;
 actual account erasure, remaining lifecycle commands and mobile journeys retain their owning tasks.
 
-### Submission and atomic announcements — #252
+### Submission and atomic announcements
 
 T006/T008/T012–T014/T054 bind real F02 sporting roots, F05 original-account locks,
 F06 confirmed relation unions and F07 inbox/allowance persistence. `SubmitContribution`
@@ -70,10 +70,10 @@ The cross-owner fixture controls time and the after-commit external observer; no
 occurs. Commit proofs run outside an enclosing test transaction, with PostgreSQL-observed lock
 exclusion and an independent transaction checking committed entry visibility.
 
-The [F07 qualification](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification--252)
+The [F07 qualification](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification)
 owns announcement timing, handoff and allowance evidence. Controlled hiding/new exempt-version
 and personal-row deletion fixtures are not real moderation-command or scheduled-purge
-qualification; those remain F07 T046/#277 and T052/#267. Actual F05 erasure and native/mobile
+qualification; those remain [F07 T046 and T052](../011-notifications-delivery/tasks.md). Actual F05 erasure and native/mobile
 journeys remain with their existing tasks. F08 T016/F03 public projection is not implemented here.
 
 ## Reads and mobile

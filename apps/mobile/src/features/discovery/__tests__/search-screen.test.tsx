@@ -1,3 +1,4 @@
+import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import {
   QueryClientProvider,
   focusManager,
@@ -119,7 +120,9 @@ async function renderSearch(proAccent = false) {
       <QueryClientProvider client={client}>
         <ThemeProvider proAccent={proAccent}>
           <ApplicationAccessProvider>
-            <AccountSessionProvider>{children}</AccountSessionProvider>
+            <AccountSessionProvider>
+              <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+            </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
       </QueryClientProvider>
@@ -261,6 +264,7 @@ it("distinguishes initial waiting, retryable failure and established no matches 
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "Une erreur est survenue",
   );
+  expect(screen.getByText("Veuillez réessayer plus tard.")).toBeOnTheScreen();
   expect(
     screen.queryByText(/recherche est indisponible/),
   ).not.toBeOnTheScreen();
@@ -643,7 +647,7 @@ it.each([false, true])(
     // When
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
     if (fails) {
-      await screen.findByRole("button", { name: "Réessayer" });
+      await screen.findByRole("alert");
       expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
       expect(screen.getByText("Volley Niort")).toBeOnTheScreen();
       expect(mockFetch).toHaveBeenCalledTimes(1);
@@ -661,7 +665,10 @@ it.each([false, true])(
           }),
         ),
       );
-      await user.press(screen.getByRole("button", { name: "Réessayer" }));
+      await fireEvent(
+        screen.getByLabelText("Actualiser les données"),
+        "refresh",
+      );
     }
 
     // Then
@@ -732,3 +739,39 @@ it("cancels pending pagination before refresh and rejects its late response", as
     new URL(String(mockFetch.mock.calls[0][0])).searchParams.has("cursor"),
   ).toBe(false);
 });
+
+it.each([401, 403, 404])(
+  "replaces retained search results after an explicit current access or visibility refusal (%s)",
+  async (status) => {
+    // Given
+    const user = userEvent.setup();
+    await renderSearch();
+    await user.paste(await screen.findByLabelText("Rechercher"), "Volley");
+    await screen.findByText("Volley professionnel");
+    mockFetch.mockImplementation((url: string) =>
+      url.includes("/teams?")
+        ? Promise.resolve(
+            Response.json({ title: "Unavailable", status }, { status }),
+          )
+        : publicReads(url),
+    );
+
+    // When
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then
+    expect(
+      await screen.findByText("Une erreur est survenue"),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByText(
+        "Une erreur est survenue. Veuillez réessayer plus tard.",
+      ),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByText("Volley professionnel")).not.toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+    expect(
+      screen.queryByText("Aucun résultat pour ces critères"),
+    ).not.toBeOnTheScreen();
+  },
+);

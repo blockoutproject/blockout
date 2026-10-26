@@ -383,9 +383,7 @@ it("does not expose targeted retry through refused profile admission", async () 
   await renderProfile(false);
 
   // When
-  await screen.findByText(
-    "L’accès à l’application doit être vérifié avant de continuer.",
-  );
+  await screen.findByText("Une erreur est survenue");
 
   // Then
   expect(

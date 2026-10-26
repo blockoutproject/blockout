@@ -324,13 +324,43 @@ it("opens provider controls without loading unused source configuration", async 
   ).toBe(false);
 });
 
+it("announces pending collection navigation without inventing a season destination", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url) =>
+    String(url).endsWith("/collection-seasons") ? response.promise : reads(url),
+  );
+
+  // When
+  await renderPreparation(<CollectionDashboardScreen />);
+
+  // Then
+  expect(
+    await screen.findByRole("progressbar", {
+      name: "Chargement des collectes",
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: "2026/2027, Active" }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await act(() => response.resolve(json({ items: [season] })));
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: "2026/2027, Active" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+});
+
 it("shows an honest empty season list and recovers an initial read failure explicitly", async () => {
   // Given
   mockFetch.mockImplementation(async (url) =>
     String(url).endsWith("/collection-seasons") ? refused(503) : reads(url),
   );
   await renderPreparation(<CollectionDashboardScreen />);
-  await screen.findByText("Les saisons sont indisponibles.");
+  await screen.findByText("Une erreur est survenue");
 
   // When
   mockFetch.mockImplementation(async (url) =>
@@ -355,7 +385,7 @@ it.each([{}, { moderateStreams: true }, { manageSportingData: true }])(
 
     // Then
     expect(
-      await screen.findByText("Cette action nécessite une permission dédiée."),
+      await screen.findByText("Une erreur est survenue"),
     ).toBeOnTheScreen();
     expect(
       mockFetch.mock.calls.some(([url]) =>
@@ -493,7 +523,7 @@ it.each([400, 403, 422])(
 
     // Then
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "L’action a été refusée. Votre saisie est conservée.",
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
     );
     expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
     await waitFor(() =>
@@ -570,7 +600,7 @@ it("keeps an uncertain candidate blocked when reread fails", async () => {
   // Then
   expect(
     await screen.findByText(
-      "La relecture a échoué. Votre saisie est conservée.",
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
     ),
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
@@ -729,7 +759,7 @@ it.each([409, 422, "lost"])(
     // Then
     await screen.findByText(
       outcome === 422
-        ? "L’action a été refusée. Votre saisie est conservée."
+        ? "Une erreur est survenue. Veuillez réessayer plus tard."
         : "Le résultat doit être vérifié avant une nouvelle action.",
     );
     expect(jest.mocked(Alert.alert).mock.lastCall?.[1]).toContain(
@@ -1032,7 +1062,9 @@ it("retries the failed next child page instead of only refreshing already loaded
   );
   await screen.findByText("Phase régulière");
   await user.press(screen.getByRole("button", { name: "Charger la suite" }));
-  await screen.findByText("Les groupes sont indisponibles.");
+  await screen.findByText(
+    "Une erreur est survenue. Veuillez réessayer plus tard.",
+  );
   fails = false;
 
   // When
@@ -1098,7 +1130,12 @@ it("blocks a held confirmation after grant revocation while retaining a read-onl
   await user.press(
     screen.getByRole("button", { name: "Relire les permissions" }),
   );
-  await screen.findByText("Cette action nécessite une permission dédiée.");
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Confirmer la saison" }),
+    ).toBeDisabled(),
+  );
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
   await confirm("Confirmer la saison");
 
   // Then
@@ -1262,11 +1299,7 @@ it("keeps every provider blocked when an acknowledged source invalidates a seaso
     await screen.findByRole("button", { name: "Ajouter une source" }),
   );
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-  expect(
-    screen.getByText(
-      "L’état de la saison doit être relu avant une nouvelle action.",
-    ),
-  ).toBeOnTheScreen();
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
   ).toHaveLength(1);
@@ -1293,4 +1326,151 @@ it("preserves an edited source URL when pull-to-refresh reads a newer source rev
       ([, options]) => !options?.method || options.method === "GET",
     ),
   ).toBe(true);
+});
+
+it("hides retained source groups when the current catalog read is refused", async () => {
+  // Given
+  mockFetch.mockImplementation((url) =>
+    String(url).includes("/children")
+      ? Promise.resolve(
+          json({
+            items: [
+              {
+                id: "00000000-0000-4000-8000-000000000182",
+                label: "Groupe retenu",
+                kind: "pool",
+              },
+            ],
+            page: 0,
+            hasNext: false,
+          }),
+        )
+      : reads(url),
+  );
+  await renderPreparation(
+    <SourceChildrenScreen seasonId={seasonId} sourceId={sourceId} />,
+  );
+  await screen.findByText("Groupe retenu");
+  mockFetch.mockImplementation((url) =>
+    String(url).includes("/children")
+      ? Promise.resolve(refused(403))
+      : reads(url),
+  );
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
+  expect(screen.queryByText("Groupe retenu")).not.toBeOnTheScreen();
+  expect(screen.queryByText("Aucun groupe découvert")).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+  mockFetch.mockImplementation((url) =>
+    String(url).includes("/children")
+      ? Promise.resolve(refused(503))
+      : reads(url),
+  );
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
+  expect(screen.queryByText("Groupe retenu")).not.toBeOnTheScreen();
+  expect(screen.queryByText("Aucun groupe découvert")).not.toBeOnTheScreen();
+});
+
+it("explains missing collection permission without leaving a disabled catalog in loading", async () => {
+  // Given
+  permissions = {};
+
+  // When
+  await renderPreparation(
+    <SourceChildrenScreen seasonId={seasonId} sourceId={sourceId} />,
+  );
+
+  // Then
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([url]) => String(url).includes("/children")),
+  ).toBe(false);
+});
+
+it("retains a source draft but disables its commands after the current source read is refused", async () => {
+  // Given
+  await renderPreparation();
+  await editCandidate();
+  mockFetch.mockImplementation((url) =>
+    String(url).endsWith(`/source-bindings/${sourceId}`)
+      ? Promise.resolve(refused(403))
+      : reads(url),
+  );
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+  expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  mockFetch.mockImplementation((url) =>
+    String(url).endsWith(`/source-bindings/${sourceId}`)
+      ? Promise.resolve(refused(503))
+      : reads(url),
+  );
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await waitFor(() =>
+    expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen(),
+  );
+  expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+});
+
+it("keeps refused season navigation hidden through a failed reread until a successful owner retry", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderPreparation(<SeasonPreparationScreen seasonId={seasonId} />);
+  await screen.findByRole("link", {
+    name: "LNV, Les trois championnats professionnels",
+  });
+  let status = 403;
+  mockFetch.mockImplementation((url) =>
+    String(url).endsWith(`/collection-seasons/${seasonId}`) && status !== 200
+      ? Promise.resolve(refused(status))
+      : reads(url),
+  );
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(
+    screen.queryByRole("link", {
+      name: "LNV, Les trois championnats professionnels",
+    }),
+  ).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Clôturer la saison" }),
+  ).toBeNull();
+  status = 503;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled(),
+  );
+  expect(
+    screen.queryByRole("link", {
+      name: "LNV, Les trois championnats professionnels",
+    }),
+  ).toBeNull();
+  status = 200;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  expect(
+    await screen.findByRole("link", {
+      name: "LNV, Les trois championnats professionnels",
+    }),
+  ).toBeEnabled();
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
 });

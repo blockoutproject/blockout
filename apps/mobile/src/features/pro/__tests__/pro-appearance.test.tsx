@@ -286,7 +286,7 @@ it("rejects previous-session gold through A → guest → A, including a late ac
   );
   const oldRead = Promise.withResolvers<CustomerInfo>();
   mockPurchases.getCustomerInfo.mockReturnValueOnce(oldRead.promise);
-  let refreshing: Promise<void> | undefined;
+  let refreshing: ReturnType<ProContext["refresh"]> | undefined;
   await act(() => {
     refreshing = pro.refresh();
   });

@@ -1,7 +1,6 @@
-import {
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { ErrorState } from "../../../shared/components/state-card";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import {
   useClassification,
@@ -23,25 +22,50 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
     authority.sessionStatus === "authenticated"
       ? editing.query.data
       : undefined;
+  const feedback = useActionFeedback();
   return (
     <EditorPage
+      state={
+        !current ? (
+          !authority.enabled ? (
+            <SportingAccessFeedback authority={authority} />
+          ) : editing.query.isError ? (
+            <ErrorState
+              onRetry={() =>
+                void editing.query.refetch().then((result) => {
+                  if (result.isError && result.data) feedback.error();
+                })
+              }
+              retrying={editing.query.isFetching}
+            />
+          ) : (
+            <RequestLoading />
+          )
+        ) : undefined
+      }
       refreshControl={
         authority.sessionStatus === "authenticated" ? (
           <DataRefreshControl
             enabled={!editing.save.pending}
             refreshing={
-              editing.query.isFetching ||
-              divisions.query.isFetching ||
-              authority.account.isFetching
+              editing.query.isRefetching ||
+              divisions.query.isRefetching ||
+              authority.account.isRefetching
             }
             onRefresh={() => {
               if (editing.save.isPending()) return;
               if (!authority.enabled) {
-                void authority.account.refetch();
+                void authority.account.refetch().then((result) => {
+                  if (result.isError && result.data) feedback.error();
+                });
                 return;
               }
-              void editing.query.refetch();
-              void divisions.query.refetch();
+              void editing.query.refetch().then((result) => {
+                if (result.isError && result.data) feedback.error();
+              });
+              void divisions.query.refetch().then((result) => {
+                if (result.isError && result.data) feedback.error();
+              });
             }}
           />
         ) : undefined
@@ -52,8 +76,7 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
           : "Classification de la poule"
       }
     >
-      <SportingAccessFeedback authority={authority} />
-      {current ? (
+      {current && (
         <ClassificationForm
           key={`${authority.session.generation}:${target.kind}:${target.id}`}
           target={target}
@@ -61,17 +84,6 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
           editing={editing}
           divisions={divisions}
         />
-      ) : (
-        authority.enabled &&
-        (editing.query.isError ? (
-          <RequestError
-            message="La classification est indisponible."
-            onRetry={() => void editing.query.refetch()}
-            retrying={editing.query.isFetching}
-          />
-        ) : (
-          <RequestLoading />
-        ))
       )}
     </EditorPage>
   );

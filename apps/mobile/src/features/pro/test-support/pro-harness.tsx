@@ -10,6 +10,7 @@ import {
 } from "../../accounts/test-support/native-auth0";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
+import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { ProProvider, usePro, type ProContext } from "../pro-provider";
 import { ProVerification } from "../components/pro-verification";
 import { customerInfo } from "./customer-info";
@@ -22,11 +23,11 @@ function Probe({ capture, onSupport }: ProHarnessProps) {
   const pro = usePro();
   capture(account, pro);
   return (
-    <>
+    <ActionFeedbackProvider scopeKey={account.generation}>
       <Text>Public sport</Text>
       <Text>Pro: {pro.state.status}</Text>
       <ProVerification onSupport={onSupport} />
-    </>
+    </ActionFeedbackProvider>
   );
 }
 

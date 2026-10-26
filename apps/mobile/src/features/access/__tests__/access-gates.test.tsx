@@ -142,6 +142,11 @@ it("starts the public request while F14 initialization has not completed", async
     ),
   );
   expect(mockAuth0.getCredentials).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole("progressbar", { name: "Chargement en cours" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.queryByText("Illustration à définir")).toBeNull();
 });
 
 it.each(["/support", "/legal", "/sign-in", "/administration"])(
@@ -154,7 +159,13 @@ it.each(["/support", "/legal", "/sign-in", "/administration"])(
     await openRoute(path);
 
     // Then
-    expect(await screen.findByText("Accès indisponible.")).toBeOnTheScreen();
+    expect(
+      await screen.findByRole("alert", {
+        name: "Une erreur est survenue",
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+    expect(screen.queryByText("Illustration à définir")).toBeNull();
     expect(
       screen.queryByText(/^(Support|Legal|Sign-in|Operational) route$/),
     ).toBeNull();
@@ -408,7 +419,9 @@ it("recovers from an unavailable cold check only through an explicit successful 
     .mockImplementation(async () => json(applicationAccessResponse()));
   const user = userEvent.setup();
   await openRoute("/support");
-  await screen.findByRole("header", { name: "Accès indisponible." });
+  await screen.findByRole("alert", {
+    name: "Une erreur est survenue",
+  });
 
   // When
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
@@ -473,7 +486,9 @@ it("keeps an unknown direct route behind the gate", async () => {
 
   // Then
   expect(
-    await screen.findByRole("header", { name: "Accès indisponible." }),
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue",
+    }),
   ).toBeOnTheScreen();
 });
 
@@ -486,7 +501,9 @@ it("keeps the framework sitemap behind ordinary admission", async () => {
 
   // Then
   expect(
-    await screen.findByRole("header", { name: "Accès indisponible." }),
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue",
+    }),
   ).toBeOnTheScreen();
 });
 

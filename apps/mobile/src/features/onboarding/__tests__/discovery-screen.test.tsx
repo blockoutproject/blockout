@@ -140,7 +140,7 @@ it("waits for persistence and retains the journey on write failure before an exp
   // Then
   expect(
     await screen.findByText(
-      /La fin de la découverte n’a pas pu être enregistrée/,
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
     ),
   ).toBeOnTheScreen();
   expect(await readDiscoveryCompletion()).toBe(false);

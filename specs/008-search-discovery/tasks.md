@@ -110,7 +110,7 @@ description: "Implementation tasks for F04 search and discovery"
 
 ### Tests for User Story 4
 
-- [ ] T028 [US4] Write failing semantic paging/navigation tests in `apps/mobile/src/features/discovery/__tests__/search-navigation.test.tsx`: additional loading versus real end, no loaded-count-as-total, one Query context with `pageParam`, deduplication only by identity, same-named cards, correct F03 destinations, explicit unavailable versus network error, retained valid scroll on return and cancellation of old batches after refresh. Mock only the external transport/owner boundaries needed for these component tests.
+- [ ] T028 [US4] Write failing semantic paging/navigation tests in `apps/mobile/src/features/discovery/__tests__/search-navigation.test.tsx`: additional loading versus real end, no loaded-count-as-total, one Query context with `pageParam`, deduplication only by identity, same-named cards, correct F03 destinations, established unavailability versus network failure in content-retention/navigation decisions with the shared opaque F13 presentation, retained valid scroll on return and cancellation of old batches after refresh. Mock only the external transport/owner boundaries needed for these component tests.
 
 ### Implementation and qualification for User Story 4
 

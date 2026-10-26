@@ -23,7 +23,7 @@ for team/pool origins. PostgreSQL [READ COMMITTED](https://www.postgresql.org/do
 provides a snapshot per statement, so two separate origin reads could invent an empty union during
 committed turnover. A single `UNION ALL` fixes that boundary in the F06 Spring Data repository without a separate
 transaction, later account lock or replay. Actual Hibernate 7.4.5.Final/PostgreSQL 18.6 qualification
-is recorded in [quickstart](quickstart.md#atomic-producer-and-link-qualification--252).
+is recorded in [quickstart](quickstart.md#atomic-producer-and-link-qualification).
 
 **Alternatives considered.** Timers persisted per match, a broker and recipient-history snapshots add state without an accepted precision/recovery requirement. Using after-commit listeners for inbox creation would break the accepted atomicity; after-commit is only the push boundary.
 
@@ -39,7 +39,7 @@ is recorded in [quickstart](quickstart.md#atomic-producer-and-link-qualification
 
 **Evidence.** [Spring Data scrolling](https://docs.spring.io/spring-data/jpa/reference/jpa/query-methods.html#jpa.query-methods.scroll) and [specification fluent queries](https://docs.spring.io/spring-data/jpa/reference/jpa/specifications.html) document keyset scrolling and specification-based fluent reads. Use that supported path; string-based `@Query` scrolling is not supported. Non-null sort properties must be available in the selected projection. The opaque HTTP cursor is a focused mapping of those keys, not a new pagination engine. Criteria joins, index use, timestamp precision and generated serialization remain integration qualifications.
 
-### Bounded inbox construction — #250
+### Bounded inbox construction
 
 `ConsultationMatchSelection` supplies F03-owned scalar Criteria subqueries for filtering before
 F07 keyset paging/counting, and bounded detached match summaries. This explicit database
@@ -62,7 +62,7 @@ merges or inserts. Cursor validation uses the JDK Base64/Instant/UUID parsers, m
 and the encoder's canonical representation rather than a second date/UUID grammar. All emitted
 cursors remain valid; alternate spellings never emitted by the server are rejected. Controlled
 personal-row removal is qualified here; actual scheduled purge, F05 erasure and restoration remain
-with T052/#267 and T051/#360.
+with [T052 and T051](tasks.md).
 
 ## Association identity and native lifecycle
 

@@ -107,7 +107,7 @@ it("rejects a detached read and callbacks after provider remount into the same b
   const listener = mockPurchases.addCustomerInfoUpdateListener.mock.calls[0][0];
   const read = Promise.withResolvers<CustomerInfo>();
   mockPurchases.getCustomerInfo.mockReturnValueOnce(read.promise);
-  let refreshing: Promise<void> | undefined;
+  let refreshing: ReturnType<ProContext["refresh"]> | undefined;
   await act(() => {
     refreshing = pro.refresh();
     listener(info);
@@ -153,7 +153,7 @@ it("reads operation completion without waiting for an earlier read and rejects i
         verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
       }),
     );
-  let refresh: Promise<void> | undefined;
+  let refresh: ReturnType<ProContext["refresh"]> | undefined;
   let completion: Promise<void> | undefined;
   await act(() => {
     refresh = pro.refresh();
@@ -185,8 +185,8 @@ it("keeps current verification busy when an older read fails", async () => {
   mockPurchases.getCustomerInfo
     .mockReturnValueOnce(earlier.promise)
     .mockReturnValueOnce(current.promise);
-  let first: Promise<void> | undefined;
-  let latest: Promise<void> | undefined;
+  let first: ReturnType<ProContext["refresh"]> | undefined;
+  let latest: ReturnType<ProContext["refresh"]> | undefined;
   await act(() => {
     first = pro.refresh();
     latest = pro.refresh();
@@ -273,7 +273,7 @@ it.each([
     mockPurchases.getCustomerInfo
       .mockReturnValueOnce(pending.promise)
       .mockResolvedValue(current);
-    let refresh: Promise<void> | undefined;
+    let refresh: ReturnType<ProContext["refresh"]> | undefined;
     await act(() => {
       refresh = pro.refresh();
     });

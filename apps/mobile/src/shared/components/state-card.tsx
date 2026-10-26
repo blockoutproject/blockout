@@ -10,20 +10,29 @@ import { TECHNICAL_ERROR_TITLE, TECHNICAL_ERROR_HELP } from "./error-copy";
 export interface EmptyStateProps {
   title: string;
   description?: string;
+  /** Feature-owned decorative illustration; omitted consumers use the shared volleyball artwork. */
+  artwork?: ReactNode;
 }
 
-/** Shared empty-state anatomy from Product Design 947:3712; the owner supplies its contextual copy. */
-export function EmptyState({ title, description }: EmptyStateProps) {
-  return <StateCard kind="empty" title={title} description={description} />;
+/** Shared empty-state anatomy; the feature supplies contextual copy and any approved illustration. */
+export function EmptyState({ title, description, artwork }: EmptyStateProps) {
+  return (
+    <StateCard
+      kind="empty"
+      title={title}
+      description={description}
+      artwork={artwork}
+    />
+  );
 }
 
-/** A technical error stays opaque; only the read owner can authorize and execute another attempt. */
+/** Opaque failed-read presentation; only the owning read may offer and execute another attempt. */
 export interface ErrorStateProps {
   onRetry?: () => void;
   retrying?: boolean;
 }
 
-/** Product Design 946:3807 with the owner-requested explicit recovery action; no transport details enter the copy. */
+/** Restores the approved illustrated card without exposing transport, permission or provider details. */
 export function ErrorState({ onRetry, retrying = false }: ErrorStateProps) {
   return (
     <StateCard
@@ -38,35 +47,41 @@ export function ErrorState({ onRetry, retrying = false }: ErrorStateProps) {
   );
 }
 
-/** Preserves the approved artwork slots and content-driven surface; actions remain ordinary shared controls. */
+/** Preserves the approved artwork slots and opaque content-sized surface; placement belongs to ScreenState. */
 function StateCard({
   kind,
   title,
   description,
+  artwork,
   children,
 }: EmptyStateProps & { kind: "empty" | "error"; children?: ReactNode }) {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   return (
     <View
       style={[
         styles.card,
-        { backgroundColor: colors.raised, borderColor: colors.border },
+        {
+          backgroundColor: scheme === "dark" ? colors.surface : colors.raised,
+          borderColor: colors.border,
+        },
       ]}
     >
-      <View
-        style={[
-          styles.artwork,
-          kind === "error" ? styles.errorArtwork : styles.emptyArtwork,
-          { backgroundColor: colors.subtle },
-        ]}
-      >
-        <Image
-          accessible={false}
-          source={require("../../../assets/feedback/volleyball.svg")}
-          contentFit="contain"
-          style={styles.illustration}
-        />
-      </View>
+      {artwork ?? (
+        <View
+          style={[
+            styles.artwork,
+            kind === "error" ? styles.errorArtwork : styles.emptyArtwork,
+            { backgroundColor: colors.subtle },
+          ]}
+        >
+          <Image
+            accessible={false}
+            source={require("../../../assets/feedback/volleyball.svg")}
+            contentFit="contain"
+            style={styles.illustration}
+          />
+        </View>
+      )}
       <Text
         accessibilityRole={kind === "error" ? "alert" : "header"}
         accessibilityLiveRegion="polite"

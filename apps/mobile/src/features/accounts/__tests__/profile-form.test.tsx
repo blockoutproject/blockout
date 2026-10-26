@@ -22,6 +22,7 @@ import {
   useAccountSession,
 } from "../session/account-session-provider";
 import { ProfileScreen } from "../screens/profile-screen";
+import { useCurrentAccount } from "../api/use-current-account";
 import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
 
 // The installed library controls native keyboard I/O; form and session behavior remain real.
@@ -148,7 +149,7 @@ afterEach(() => {
 });
 
 /** Real account/form owners with controlled I/O; the unrelated F09 composition is explicitly omitted. */
-async function renderProfile() {
+async function mountProfile() {
   await render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
@@ -163,6 +164,11 @@ async function renderProfile() {
       </ThemeProvider>
     </QueryClientProvider>,
   );
+}
+
+/** Waits for the ordinary editable profile; refused initial reads use the same mount without inventing a profile. */
+async function renderProfile() {
+  await mountProfile();
   await screen.findByDisplayValue("Original");
   return userEvent.setup();
 }
@@ -170,8 +176,16 @@ async function renderProfile() {
 /** Exercises actual lifecycle commands around delayed preparation/saves without a production bypass. */
 function SessionActions() {
   const session = useAccountSession();
+  const account = useCurrentAccount();
   return (
     <>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Relire le compte"
+        onPress={() => void account.refetch()}
+      >
+        <Text>Relire le compte</Text>
+      </Pressable>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Quitter la session"
@@ -283,6 +297,193 @@ it("shows freshly read profile values when there is no local edit", async () => 
   expect(await screen.findByDisplayValue("Remote_name")).toBeOnTheScreen();
   expect(mockFetch).toHaveBeenCalledTimes(1);
   expect(mockFetch.mock.calls[0][1]?.method).toBe("GET");
+});
+
+it("reports an explicit failed refresh while keeping the profile and dirty input", async () => {
+  // Given
+  const user = await renderProfile();
+  await user.clear(screen.getByLabelText("Pseudo"));
+  await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
+  mockFetch.mockClear().mockRejectedValue(new Error("Network unavailable"));
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Unsaved")).toBeOnTheScreen();
+  expect(screen.getByDisplayValue(account.email)).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Votre profil Blockout est indisponible."),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+});
+
+it.each([401, 403])(
+  "presents an initial account refusal %s with opaque copy and owner-controlled retry",
+  async (status) => {
+    // Given
+    mockFetch.mockResolvedValue(json({ title: "Denied", status }, status));
+
+    // When
+    await mountProfile();
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+    expect(screen.queryByLabelText("Pseudo")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
+    ).toBeEnabled();
+  },
+);
+
+it("keeps a refused profile draft read-only through a failed recheck until a successful account read", async () => {
+  // Given
+  const user = await renderProfile();
+  await user.clear(screen.getByLabelText("Pseudo"));
+  await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
+  mockFetch
+    .mockClear()
+    .mockResolvedValue(json({ title: "Denied", status: 403 }, 403));
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
+  ).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Unsaved")).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
+  ).toBeEnabled();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+
+  // When
+  mockFetch.mockResolvedValue(json({ title: "Unavailable", status: 503 }, 503));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await waitFor(() =>
+    expect(screen.getByLabelText("Actualiser les données")).toHaveProp(
+      "accessibilityState",
+      expect.objectContaining({ busy: false }),
+    ),
+  );
+
+  // Then
+  expect(
+    screen.getByRole("alert", { name: TECHNICAL_ERROR }),
+  ).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Unsaved")).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+
+  // When
+  mockFetch.mockResolvedValue(json({ ...account, username: "Remote_name" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+  );
+  expect(screen.getByDisplayValue("Unsaved")).toBeEnabled();
+  expect(screen.queryByRole("alert", { name: TECHNICAL_ERROR })).toBeNull();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method !== "GET"),
+  ).toHaveLength(0);
+});
+
+it("refuses an unsent profile save when its account read is denied during credential retrieval", async () => {
+  // Given
+  const credentials =
+    Promise.withResolvers<ReturnType<typeof credentialsFor>>();
+  const user = await renderProfile();
+  await user.clear(screen.getByLabelText("Pseudo"));
+  await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
+  mockAuth0.getCredentials.mockReturnValueOnce(credentials.promise);
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await screen.findByRole("button", { name: "Enregistrer", busy: true });
+  mockFetch
+    .mockClear()
+    .mockResolvedValue(json({ title: "Denied", status: 403 }, 403));
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Relire le compte" }));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await act(async () => credentials.resolve(credentialsFor("auth0|one")));
+
+  // Then
+  await screen.findByRole("alert", { name: TECHNICAL_ERROR });
+  expect(screen.getByDisplayValue("Unsaved")).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(0);
+});
+
+it("announces the initial profile read without exposing profile commands", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockReturnValue(response.promise);
+
+  // When
+  await mountProfile();
+
+  // Then
+  expect(
+    await screen.findByRole("progressbar", { name: "Chargement du profil" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Supprimer mon compte" }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await act(() => response.resolve(json(account)));
+
+  // Then
+  expect(await screen.findByDisplayValue("Original")).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+});
+
+it("keeps the first photo read separate from native refresh progress", async () => {
+  // Given
+  const photoRead = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation(async (url) =>
+    String(url).endsWith("/photo")
+      ? photoRead.promise
+      : json({ ...account, hasPhoto: true }),
+  );
+
+  // When
+  await renderProfile();
+
+  // Then
+  expect(
+    screen.getByRole("progressbar", { name: "Chargement en cours" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Actualiser les données")).toHaveProp(
+    "accessibilityState",
+    expect.objectContaining({ busy: false }),
+  );
+
+  // When
+  await act(() => photoRead.resolve(new Response(null, { status: 503 })));
+
+  // Then
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 });
 
 it("preserves the active save and suspends refresh and guest departure", async () => {
@@ -436,6 +637,80 @@ it.each(["keep", "replace"] as const)(
     }
   },
 );
+
+it("removes a refused remote photo until a successful photo read without treating failure as an empty profile", async () => {
+  // Given
+  const previousReader = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "FileReader",
+  );
+  /** Supplies only the native binary decoder result; HTTP, Query and the profile remain real. */
+  class PhotoReader {
+    result = "data:image/png;base64,remote";
+    onload?: () => void;
+    /** Completes a successful binary preview without invoking native I/O in Jest. */
+    readAsDataURL() {
+      this.onload?.();
+    }
+  }
+  Object.defineProperty(globalThis, "FileReader", {
+    configurable: true,
+    value: PhotoReader,
+  });
+  let photoStatus = 200;
+  mockFetch.mockImplementation(async (url) => {
+    if (!String(url).endsWith("/photo"))
+      return json({ ...account, hasPhoto: true });
+    return photoStatus === 200
+      ? new Response(png, { headers: { "Content-Type": "image/png" } })
+      : json({ title: "Unavailable", status: photoStatus }, photoStatus);
+  });
+  try {
+    await renderProfile();
+    await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+
+    // When
+    photoStatus = 403;
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Aperçu : Photo de profil" }),
+    ).toBeNull();
+    expect(screen.getByLabelText("Pseudo")).toBeEnabled();
+    expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+
+    // When
+    photoStatus = 503;
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+
+    // Then
+    expect(
+      screen.getByRole("alert", { name: TECHNICAL_ERROR }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Aperçu : Photo de profil" }),
+    ).toBeNull();
+
+    // When
+    photoStatus = 200;
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Aperçu : Photo de profil" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+  } finally {
+    if (previousReader)
+      Object.defineProperty(globalThis, "FileReader", previousReader);
+    else delete (globalThis as { FileReader?: unknown }).FileReader;
+  }
+});
 
 it("sends one atomic multipart save with JSON metadata and no omitted photo", async () => {
   // Given

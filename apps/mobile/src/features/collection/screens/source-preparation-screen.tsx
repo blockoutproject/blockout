@@ -1,7 +1,6 @@
-import {
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { ErrorState } from "../../../shared/components/state-card";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useSourcePreparation } from "../api/use-source-preparation";
 import {
   CollectionAccessFeedback,
@@ -24,11 +23,36 @@ export function SourcePreparationScreen({
   const { authority, source, season } = editing;
   const current =
     authority.sessionStatus === "authenticated" ? source.data : undefined;
+  const retained = Boolean(
+    current && season.data && current.seasonId === seasonId,
+  );
+  const feedback = useActionFeedback();
   return (
     <PreparationPage
+      state={
+        !(current && season.data && current.seasonId === seasonId) ? (
+          !authority.enabled ? (
+            <CollectionAccessFeedback authority={authority} />
+          ) : source.isError ||
+            season.isError ||
+            (current && current.seasonId !== seasonId) ? (
+            <ErrorState
+              onRetry={() => {
+                void source.refetch();
+                void season.refetch();
+              }}
+              retrying={source.isFetching || season.isFetching}
+            />
+          ) : (
+            <RequestLoading />
+          )
+        ) : undefined
+      }
       title={current?.label ?? "Source"}
       refreshing={
-        source.isFetching || season.isFetching || authority.account.isFetching
+        source.isRefetching ||
+        season.isRefetching ||
+        authority.account.isRefetching
       }
       refreshEnabled={!editing.candidate.pending}
       onRefresh={
@@ -36,39 +60,30 @@ export function SourcePreparationScreen({
           ? () => {
               if (editing.candidate.isPending()) return;
               if (!authority.enabled)
-                void authority.account.refetch({ cancelRefetch: false });
+                void authority.account
+                  .refetch({ cancelRefetch: false })
+                  .then((result) => {
+                    if (result.isError && retained) feedback.error();
+                  });
               else {
-                void source.refetch({ cancelRefetch: false });
-                void season.refetch({ cancelRefetch: false });
+                void source.refetch({ cancelRefetch: false }).then((result) => {
+                  if (result.isError && retained) feedback.error();
+                });
+                void season.refetch({ cancelRefetch: false }).then((result) => {
+                  if (result.isError && retained) feedback.error();
+                });
               }
             }
           : undefined
       }
     >
-      <CollectionAccessFeedback authority={authority} />
-      {current && season.data && current.seasonId === seasonId ? (
+      {current && season.data && current.seasonId === seasonId && (
         <SourceCandidateForm
           key={`${authority.session.generation}:${sourceId}`}
           source={current}
           season={season.data}
           editing={editing}
         />
-      ) : (
-        authority.enabled &&
-        (source.isError ||
-        season.isError ||
-        (current && current.seasonId !== seasonId) ? (
-          <RequestError
-            message="La source est indisponible."
-            onRetry={() => {
-              void source.refetch();
-              void season.refetch();
-            }}
-            retrying={source.isFetching || season.isFetching}
-          />
-        ) : (
-          <RequestLoading />
-        ))
       )}
     </PreparationPage>
   );

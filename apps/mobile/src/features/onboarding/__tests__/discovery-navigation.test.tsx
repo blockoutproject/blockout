@@ -205,7 +205,9 @@ it.each(["/onboarding", "/sign-in", "/legal", "/support"])(
     await openInstallation(path);
 
     // Then
-    expect(await screen.findByText("Accès indisponible.")).toBeOnTheScreen();
+    expect(
+      await screen.findByText("Une erreur est survenue"),
+    ).toBeOnTheScreen();
     expect(screen.queryByRole("button", { name: "Passer" })).toBeNull();
     expect(
       screen.queryByText(/Ordinary sign-in|Legal route|Support route/),
@@ -238,9 +240,7 @@ it("keeps the root loading gate during an explicit installation-read retry", asy
     .mockReturnValueOnce(read.promise);
   const user = userEvent.setup();
   await openInstallation();
-  expect(
-    await screen.findByText("La découverte n’a pas pu être chargée."),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
 
   // When
   await user.press(screen.getByRole("button", { name: "Réessayer" }));

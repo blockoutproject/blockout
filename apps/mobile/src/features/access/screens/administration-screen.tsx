@@ -1,9 +1,8 @@
+import { ErrorState } from "../../../shared/components/state-card";
+import { ScreenState } from "../../../shared/components/screen-state";
 import { ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import {
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { Button } from "../../../shared/components/button";
@@ -32,9 +31,7 @@ export function AdministrationScreen({
   const { colors } = useTheme();
   let content = null;
   if (!admitted) {
-    content = (
-      <RequestError message="L’accès à l’application doit être vérifié avant de continuer." />
-    );
+    content = <ErrorState />;
   } else if (
     sessionStatus === "restoring" ||
     (sessionStatus === "authenticated" && account.isPending)
@@ -42,16 +39,13 @@ export function AdministrationScreen({
     content = <RequestLoading />;
   } else if (sessionStatus === "authenticated" && account.isError) {
     content = (
-      <RequestError
-        message="Les permissions du compte sont indisponibles."
+      <ErrorState
         onRetry={() => void account.refetch()}
         retrying={account.isFetching}
       />
     );
   } else if (!hasCommands && !onBypass) {
-    content = (
-      <RequestError message="Cette action nécessite une permission dédiée." />
-    );
+    content = <ErrorState />;
   } else {
     content = (
       <>
@@ -85,6 +79,12 @@ export function AdministrationScreen({
       </>
     );
   }
+  const blocked =
+    !admitted ||
+    sessionStatus === "restoring" ||
+    (sessionStatus === "authenticated" &&
+      (account.isPending || account.isError)) ||
+    (!hasCommands && !onBypass);
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <PageHeader title="Administration technique" />
@@ -94,13 +94,13 @@ export function AdministrationScreen({
         refreshControl={
           admitted && sessionStatus === "authenticated" ? (
             <DataRefreshControl
-              refreshing={account.isFetching}
+              refreshing={account.isRefetching}
               onRefresh={() => void account.refetch()}
             />
           ) : undefined
         }
       >
-        {content}
+        {blocked ? <ScreenState>{content}</ScreenState> : content}
       </ScrollView>
     </SafeAreaView>
   );

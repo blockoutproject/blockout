@@ -1,8 +1,7 @@
+import { ErrorState } from "../../../shared/components/state-card";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import type { CollectionProviderEnum } from "../../../../.generated/schemas/index.zod";
-import {
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useSeasonPreparation } from "../api/use-source-preparation";
 import {
   CollectionAccessFeedback,
@@ -25,11 +24,32 @@ export function ProviderSourcesScreen({
   const { authority, season, sources } = editing;
   const current =
     authority.sessionStatus === "authenticated" ? season.data : undefined;
+  const retained = Boolean(current && sources.data);
+  const feedback = useActionFeedback();
   return (
     <PreparationPage
+      state={
+        !(current && sources.data) ? (
+          !authority.enabled ? (
+            <CollectionAccessFeedback authority={authority} />
+          ) : season.isError || sources.isError ? (
+            <ErrorState
+              onRetry={() => {
+                void season.refetch();
+                void sources.refetch();
+              }}
+              retrying={season.isFetching || sources.isFetching}
+            />
+          ) : (
+            <RequestLoading />
+          )
+        ) : undefined
+      }
       title={provider === "lnv" ? "LNV" : "FFVB"}
       refreshing={
-        season.isFetching || sources.isFetching || authority.account.isFetching
+        season.isRefetching ||
+        sources.isRefetching ||
+        authority.account.isRefetching
       }
       refreshEnabled={!editing.create.pending}
       onRefresh={
@@ -37,37 +57,32 @@ export function ProviderSourcesScreen({
           ? () => {
               if (editing.create.isPending()) return;
               if (!authority.enabled)
-                void authority.account.refetch({ cancelRefetch: false });
+                void authority.account
+                  .refetch({ cancelRefetch: false })
+                  .then((result) => {
+                    if (result.isError && retained) feedback.error();
+                  });
               else {
-                void season.refetch({ cancelRefetch: false });
-                void sources.refetch({ cancelRefetch: false });
+                void season.refetch({ cancelRefetch: false }).then((result) => {
+                  if (result.isError && retained) feedback.error();
+                });
+                void sources
+                  .refetch({ cancelRefetch: false })
+                  .then((result) => {
+                    if (result.isError && retained) feedback.error();
+                  });
               }
             }
           : undefined
       }
     >
-      <CollectionAccessFeedback authority={authority} />
-      {current && sources.data ? (
+      {current && sources.data && (
         <ProviderPreparationForm
           key={`${authority.session.generation}:${seasonId}:${provider}`}
           season={current}
           provider={provider}
           editing={editing}
         />
-      ) : (
-        authority.enabled &&
-        (season.isError || sources.isError ? (
-          <RequestError
-            message="Les sources sont indisponibles."
-            onRetry={() => {
-              void season.refetch();
-              void sources.refetch();
-            }}
-            retrying={season.isFetching || sources.isFetching}
-          />
-        ) : (
-          <RequestLoading />
-        ))
       )}
     </PreparationPage>
   );

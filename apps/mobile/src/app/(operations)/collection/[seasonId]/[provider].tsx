@@ -1,6 +1,7 @@
+import { ErrorState } from "../../../../shared/components/state-card";
+import { PreparationPage } from "../../../../features/collection/components/preparation-layout";
 import { useLocalSearchParams } from "expo-router";
 import { ProviderSourcesScreen } from "../../../../features/collection/screens/provider-sources-screen";
-import { RequestError } from "../../../../shared/components/request-feedback";
 
 /** Only the two contract-owned official providers expose preparation; form discard uses native navigation. */
 export default function ProviderSourcesRoute() {
@@ -11,6 +12,6 @@ export default function ProviderSourcesRoute() {
   return provider === "ffvb" || provider === "lnv" ? (
     <ProviderSourcesScreen seasonId={seasonId} provider={provider} />
   ) : (
-    <RequestError message="Cette source est indisponible." />
+    <PreparationPage title="Collectes" state={<ErrorState />} />
   );
 }

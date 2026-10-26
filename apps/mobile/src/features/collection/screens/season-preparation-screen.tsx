@@ -1,11 +1,11 @@
+import { ErrorState } from "../../../shared/components/state-card";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useRouter } from "expo-router";
 import { Globe, Trophy } from "lucide-react-native";
 import { Text } from "react-native";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
-import {
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { useCollectionSeason } from "../api/use-source-preparation";
@@ -16,79 +16,91 @@ import {
   seasonStatus,
 } from "../components/preparation-layout";
 
-/** Opens seasonal provider controls, their separate preparation destinations and definitive closure. */
+/** Opens seasonal controls, source preparation and definitive closure after current admission. */
 export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
   const { authority, season } = useCollectionSeason(seasonId);
   const router = useRouter();
   const { colors } = useTheme();
+  const feedback = useActionFeedback();
+  /** Refreshes only this season or its grant, retaining authorized content after a technical failure. */
+  async function refresh() {
+    const result = authority.enabled
+      ? await season.refetch({ cancelRefetch: false })
+      : await authority.account.refetch({ cancelRefetch: false });
+    if (result.isError && result.data && !isAccessDenied(result.error))
+      feedback.error();
+  }
   return (
     <PreparationPage
       title={season.data?.label ?? "Saison"}
-      refreshing={season.isFetching || authority.account.isFetching}
-      onRefresh={
-        authority.sessionStatus === "authenticated"
-          ? () => {
-              if (!authority.enabled)
-                void authority.account.refetch({ cancelRefetch: false });
-              else {
-                void season.refetch({ cancelRefetch: false });
-              }
-            }
-          : undefined
-      }
-    >
-      <CollectionAccessFeedback authority={authority} />
-      {authority.enabled &&
-        (season.data ? (
-          <>
-            <Text style={[tokens.typography.strong, { color: colors.text }]}>
-              Collectes de la saison · {seasonStatus(season.data)}
-            </Text>
-            <PreparationLink
-              label="FFVB"
-              detail="National, régional et départemental"
-              icon={Globe}
-              onPress={() =>
-                router.push({
-                  pathname: "/collection/[seasonId]/controls/[provider]",
-                  params: { seasonId, provider: "ffvb" },
-                })
-              }
-            />
-            <PreparationLink
-              label="LNV"
-              detail="Les trois championnats professionnels"
-              icon={Trophy}
-              onPress={() =>
-                router.push({
-                  pathname: "/collection/[seasonId]/controls/[provider]",
-                  params: { seasonId, provider: "lnv" },
-                })
-              }
-            />
-            {season.data.state !== "closed" && (
-              <Button
-                label="Clôturer la saison"
-                variant="secondary"
-                disabled={season.isError || season.isFetching}
-                onPress={() =>
-                  router.push({
-                    pathname: "/collection/[seasonId]/closure",
-                    params: { seasonId },
-                  })
-                }
-              />
-            )}
-          </>
-        ) : season.isError ? (
-          <RequestError
-            message="La saison est indisponible."
+      state={
+        !authority.enabled ? (
+          <CollectionAccessFeedback authority={authority} />
+        ) : isAccessDenied(season.error) ? (
+          <ErrorState
             onRetry={() => void season.refetch()}
             retrying={season.isFetching}
           />
-        ) : (
-          <RequestLoading />
-        ))}
+        ) : !season.data ? (
+          season.isError ? (
+            <ErrorState
+              onRetry={() => void season.refetch()}
+              retrying={season.isFetching}
+            />
+          ) : (
+            <RequestLoading />
+          )
+        ) : undefined
+      }
+      refreshing={season.isRefetching || authority.account.isRefetching}
+      onRefresh={
+        authority.sessionStatus === "authenticated"
+          ? () => void refresh()
+          : undefined
+      }
+    >
+      {authority.enabled && season.data && (
+        <>
+          <Text style={[tokens.typography.strong, { color: colors.text }]}>
+            Collectes de la saison · {seasonStatus(season.data)}
+          </Text>
+          <PreparationLink
+            label="FFVB"
+            detail="National, régional et départemental"
+            icon={Globe}
+            onPress={() =>
+              router.push({
+                pathname: "/collection/[seasonId]/controls/[provider]",
+                params: { seasonId, provider: "ffvb" },
+              })
+            }
+          />
+          <PreparationLink
+            label="LNV"
+            detail="Les trois championnats professionnels"
+            icon={Trophy}
+            onPress={() =>
+              router.push({
+                pathname: "/collection/[seasonId]/controls/[provider]",
+                params: { seasonId, provider: "lnv" },
+              })
+            }
+          />
+          {season.data.state !== "closed" && (
+            <Button
+              label="Clôturer la saison"
+              variant="secondary"
+              disabled={season.isError || season.isFetching}
+              onPress={() =>
+                router.push({
+                  pathname: "/collection/[seasonId]/closure",
+                  params: { seasonId },
+                })
+              }
+            />
+          )}
+        </>
+      )}
     </PreparationPage>
   );
 }
