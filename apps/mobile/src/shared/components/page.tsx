@@ -34,19 +34,23 @@ export function Page({ children, edges, accessibilityViewIsModal }: PageProps) {
   );
 }
 
-/** Shared useful-area insets, also consumed directly by native virtualized lists. */
-export const pageContentStyle = StyleSheet.create({
+/** One inset definition serves bounded sections and native scrolling content. */
+const pageInsets = StyleSheet.create({
   content: {
-    flexGrow: 1,
     paddingHorizontal: tokens.spacing.screen,
     paddingTop: tokens.layout.content.start,
     paddingBottom: tokens.layout.content.end,
   },
 }).content;
 
+/** Native virtualized lists own growing content with the shared page insets. */
+export const pageContentStyle = StyleSheet.create({
+  content: { ...pageInsets, flexGrow: 1 },
+}).content;
+
 /** Bounded sections share page insets and spacing without owning scrolling, data or feedback. */
 export function PageContent({ style, ...props }: ViewProps) {
-  return <View {...props} style={[pageContentStyle, styles.sections, style]} />;
+  return <View {...props} style={[pageInsets, styles.sections, style]} />;
 }
 
 /** Native scrolling with a growing useful area; callers compose content or ScreenState explicitly. */

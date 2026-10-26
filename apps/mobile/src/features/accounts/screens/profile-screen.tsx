@@ -8,7 +8,6 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { type ReactNode } from "react";
-import { StyleSheet } from "react-native";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 
 import { ApiError } from "../../../shared/api/api-fetch";
@@ -124,6 +123,7 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
               <ScreenState>
                 <Button
                   label="Se connecter"
+                  fullWidth
                   onPress={() => router.replace("/sign-in")}
                 />
               </ScreenState>
@@ -138,6 +138,7 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
                     {missing && (
                       <Button
                         label="Se connecter"
+                        fullWidth
                         onPress={() => router.replace("/sign-in")}
                       />
                     )}
@@ -162,7 +163,7 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
                 )}
               </>
             )}
-            <PageContent style={styles.footer}>
+            <PageContent>
               <AdministrationEntry />
               {!(session.status === "authenticated" && account.data) && (
                 <Button
@@ -199,8 +200,3 @@ function AccountAgeRetry() {
     />
   );
 }
-
-const styles = StyleSheet.create({
-  // Auxiliary destinations remain below the useful state area at their natural height.
-  footer: { flexGrow: 0 },
-});
