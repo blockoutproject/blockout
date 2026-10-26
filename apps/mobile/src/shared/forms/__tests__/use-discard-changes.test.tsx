@@ -16,7 +16,7 @@ afterEach(() => jest.restoreAllMocks());
 /** Real route history and dirtiness drive the hook; only the native confirmation is controlled. */
 function Editor() {
   const [dirty, setDirty] = useState(true);
-  useDiscardChanges(dirty, () => {
+  const confirmDiscard = useDiscardChanges(dirty, () => {
     discarded();
     setDirty(false);
   });
@@ -24,6 +24,12 @@ function Editor() {
     <>
       <Text>{dirty ? "Unsaved draft" : "Saved draft"}</Text>
       <Button title="Save draft" onPress={() => setDirty(false)} />
+      <Button
+        title="Cancel inline draft"
+        onPress={() => {
+          void confirmDiscard(() => setDirty(false));
+        }}
+      />
     </>
   );
 }
@@ -92,4 +98,26 @@ it("does not discard or navigate when a held question outlives the dirty draft",
   // Then
   expect(screen.getByText("Saved draft")).toBeOnTheScreen();
   expect(discarded).not.toHaveBeenCalled();
+});
+
+it("shares the native confirmation while retaining an inline editor owner", async () => {
+  // Given
+  await openEditor();
+  const user = userEvent.setup();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Cancel inline draft" }));
+  await act(() => discardChoice().onPress?.());
+
+  // Then
+  expect(Alert.alert).toHaveBeenCalledTimes(1);
+  expect(screen.getByText("Saved draft")).toBeOnTheScreen();
+  expect(discarded).not.toHaveBeenCalled();
+
+  // When
+  await act(() => router.back());
+
+  // Then
+  expect(await screen.findByText("Home")).toBeOnTheScreen();
+  expect(Alert.alert).toHaveBeenCalledTimes(1);
 });

@@ -5,6 +5,8 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { searchSchema, type SearchValues } from "../schemas/search-schema";
 import { searchValues } from "../forms/search-values";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
+import { Button } from "../../../shared/components/button";
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -20,7 +22,7 @@ import { SearchLoading } from "../components/search-loading";
 
 /**
  * Public text-search entry with internal tabs and a single shared editable value. Empty-text
- * examples, filters, full continuation and sporting activation remain with their owning tasks.
+ * examples, filters and sporting activation remain with their owning tasks.
  * Generated Unicode validation rejects over-limit text without truncating the user's draft.
  */
 export function SearchScreen() {
@@ -109,7 +111,11 @@ function TextSearchResults({
   const query = useDiscoveryQuery(resource, { q: text });
   const error = query.isError ? (
     <ErrorState
-      onRetry={() => void query.refetch()}
+      onRetry={() =>
+        void (query.isFetchNextPageError
+          ? query.fetchNextPage({ cancelRefetch: false })
+          : query.refresh())
+      }
       retrying={query.isFetching}
     />
   ) : undefined;
@@ -127,10 +133,30 @@ function TextSearchResults({
         pages={query.data.pages}
         onClear={onClear}
         feedback={error}
+        refreshing={query.isFetching && !query.isFetchingNextPage}
+        onRefresh={() => void query.refresh()}
+        continuation={
+          query.hasNextPage && !query.isFetchNextPageError ? (
+            <Button
+              label="Charger la suite"
+              variant="secondary"
+              disabled={query.isFetching}
+              loading={query.isFetchingNextPage}
+              onPress={() => void query.fetchNextPage({ cancelRefetch: false })}
+            />
+          ) : undefined
+        }
       />
     );
   return (
     <ScrollView
+      alwaysBounceVertical
+      refreshControl={
+        <DataRefreshControl
+          refreshing={query.isFetching}
+          onRefresh={() => void query.refresh()}
+        />
+      }
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={styles.content}
     >
@@ -158,6 +184,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   controls: { padding: tokens.spacing.lg, gap: tokens.spacing.sm },
   content: {
+    flexGrow: 1,
     paddingHorizontal: tokens.spacing.lg,
     paddingBottom: tokens.spacing.section,
   },

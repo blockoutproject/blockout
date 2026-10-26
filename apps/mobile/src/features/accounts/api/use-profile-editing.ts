@@ -140,8 +140,8 @@ export function useProfileEditing(accountId: string) {
   return { save, original, reread };
 }
 
-/** Loads an owner-only binary photo into an ephemeral native preview, outside JSON response validation. */
-export function useProfilePhoto(accountId: string, hasPhoto: boolean) {
+/** Loads the displayed owner-only photo; a prepared replacement or removal disables this remote preview. */
+export function useProfilePhoto(accountId: string, enabled: boolean) {
   const { request } = useOrdinaryRequest();
   const session = useAccountSession();
   const auth = useAuth0();
@@ -151,7 +151,7 @@ export function useProfilePhoto(accountId: string, hasPhoto: boolean) {
         session.generation,
         getGetAccountPhotoQueryKey(accountId),
       ),
-      enabled: hasPhoto && session.status === "authenticated",
+      enabled: enabled && session.status === "authenticated",
       gcTime: 0,
       queryFn: async ({ signal }) => {
         const credentials = await auth.getCredentials();

@@ -2,6 +2,7 @@ import {
   RequestError,
   RequestLoading,
 } from "../../../shared/components/request-feedback";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { useAccountSession } from "../../accounts/current-account";
 import { useAdministrationCapabilities } from "../../access/api/use-administration-capabilities";
 import { usePresentation, type PresentationTarget } from "../api/presentation";
@@ -42,7 +43,23 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
             ? "Modifier la poule"
             : "Personnaliser la division";
   return (
-    <EditorPage title={title}>
+    <EditorPage
+      title={title}
+      refreshControl={
+        sessionStatus === "authenticated" &&
+        target.kind !== "division-creation" ? (
+          <DataRefreshControl
+            enabled={!editing.save.pending}
+            refreshing={editing.query.isFetching || account.isFetching}
+            onRefresh={() => {
+              if (editing.save.isPending()) return;
+              if (canRead) void editing.query.refetch();
+              else void account.refetch();
+            }}
+          />
+        ) : undefined
+      }
+    >
       {pending ? (
         <RequestLoading />
       ) : account.isError ? (

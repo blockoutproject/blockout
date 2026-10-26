@@ -8,6 +8,7 @@ import type {
   CollectionFamilyEnum,
   CollectionSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { Button } from "../../../shared/components/button";
 import {
   RequestError,
@@ -48,7 +49,19 @@ export function CollectionDashboardScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   return (
-    <PreparationPage title="Collectes">
+    <PreparationPage
+      title="Collectes"
+      refreshing={query.isFetching || authority.account.isFetching}
+      onRefresh={
+        authority.sessionStatus === "authenticated"
+          ? () => {
+              if (authority.enabled)
+                void query.refetch({ cancelRefetch: false });
+              else void authority.account.refetch({ cancelRefetch: false });
+            }
+          : undefined
+      }
+    >
       <CollectionAccessFeedback authority={authority} />
       {authority.enabled && (
         <>
@@ -78,7 +91,11 @@ export function CollectionDashboardScreen() {
             </Text>
           )}
           {query.isError ? (
-            <RequestError message="Les saisons sont indisponibles." />
+            <RequestError
+              message="Les saisons sont indisponibles."
+              onRetry={() => void query.refetch({ cancelRefetch: false })}
+              retrying={query.isFetching}
+            />
           ) : (
             !query.data && <RequestLoading />
           )}
@@ -107,13 +124,6 @@ export function CollectionDashboardScreen() {
                 params: { family: "geocoding" },
               })
             }
-          />
-          <Button
-            label="Actualiser"
-            variant="secondary"
-            disabled={query.isFetching}
-            loading={query.isFetching}
-            onPress={() => void query.refetch()}
           />
         </>
       )}
@@ -147,7 +157,19 @@ function SeasonControlScope({
   const { authority, season } = useCollectionSeason(seasonId);
   if (!authority.enabled || !season.data)
     return (
-      <PreparationPage title={familyLabels[family]}>
+      <PreparationPage
+        title={familyLabels[family]}
+        refreshing={season.isFetching || authority.account.isFetching}
+        onRefresh={
+          authority.sessionStatus === "authenticated"
+            ? () => {
+                if (authority.enabled)
+                  void season.refetch({ cancelRefetch: false });
+                else void authority.account.refetch({ cancelRefetch: false });
+              }
+            : undefined
+        }
+      >
         <CollectionAccessFeedback authority={authority} />
         {authority.enabled &&
           (season.isError ? (
@@ -168,7 +190,7 @@ function SeasonControlScope({
       seasonUnavailable={season.isError || season.isFetching}
       seasonFetching={season.isFetching}
       rereadSeason={async () => {
-        const read = await season.refetch();
+        const read = await season.refetch({ cancelRefetch: false });
         return !read.isError && !!read.data;
       }}
     />
@@ -195,7 +217,19 @@ function ControlScope({
   );
   if (!authority.enabled || !selected)
     return (
-      <PreparationPage title={familyLabels[family]}>
+      <PreparationPage
+        title={familyLabels[family]}
+        refreshing={query.isFetching || authority.account.isFetching}
+        onRefresh={
+          authority.sessionStatus === "authenticated"
+            ? () => {
+                if (authority.enabled)
+                  void query.refetch({ cancelRefetch: false });
+                else void authority.account.refetch({ cancelRefetch: false });
+              }
+            : undefined
+        }
+      >
         <CollectionAccessFeedback authority={authority} />
         {authority.enabled &&
           (query.isError ? (
@@ -245,13 +279,32 @@ function ControlDashboard({
   const { colors } = useTheme();
   const router = useRouter();
   const [diagnostics, setDiagnostics] = useState(false);
-  const refreshing = query.isFetching || results.isFetching || seasonFetching;
+  const refreshing =
+    query.isFetching ||
+    (results.isFetching && !results.isFetchingNextPage) ||
+    seasonFetching ||
+    authority.account.isFetching;
   const current = query.data;
   const matches = current?.family === family && current.seasonId === season?.id;
   const rows = results.data?.pages.flatMap((page) => page.items) ?? [];
   /** Refresh reads each projection only; command reconciliation is released by its separate explicit reread action. */
   async function refresh() {
-    await Promise.all([query.refetch(), results.refetch(), rereadSeason?.()]);
+    if (
+      editing.activity.isPending() ||
+      query.isFetching ||
+      results.isFetching ||
+      seasonFetching
+    )
+      return;
+    if (!authority.enabled) {
+      await authority.account.refetch({ cancelRefetch: false });
+      return;
+    }
+    await Promise.all([
+      query.refetch({ cancelRefetch: false }),
+      results.refetch({ cancelRefetch: false }),
+      rereadSeason?.(),
+    ]);
   }
   const header = (
     <View style={styles.section}>
@@ -277,7 +330,11 @@ function ControlDashboard({
               stateUnavailable={seasonUnavailable}
             />
           ) : query.isError ? (
-            <RequestError message="Le contrôle est indisponible." />
+            <RequestError
+              message="Le contrôle est indisponible."
+              onRetry={() => void query.refetch({ cancelRefetch: false })}
+              retrying={query.isFetching}
+            />
           ) : current ? (
             <RequestError message="Le contrôle ne correspond pas au périmètre sélectionné." />
           ) : (
@@ -286,13 +343,6 @@ function ControlDashboard({
           {query.isError && current && (
             <RequestError message="L’actualisation a échoué. Le dernier état lu est conservé." />
           )}
-          <Button
-            label="Actualiser"
-            variant="secondary"
-            disabled={refreshing || editing.activity.pending}
-            loading={refreshing}
-            onPress={() => void refresh()}
-          />
           {season && (family === "ffvb" || family === "lnv") && (
             <Button
               label={
@@ -332,6 +382,16 @@ function ControlDashboard({
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <PageHeader title={familyLabels[family]} />
       <FlatList
+        alwaysBounceVertical
+        refreshControl={
+          authority.sessionStatus === "authenticated" ? (
+            <DataRefreshControl
+              enabled={!editing.activity.pending && !results.isFetchingNextPage}
+              refreshing={refreshing}
+              onRefresh={() => void refresh()}
+            />
+          ) : undefined
+        }
         data={authority.enabled && matches ? rows : []}
         keyExtractor={(row) => `${row.scopeId}/${row.stage}/${row.phase}`}
         contentContainerStyle={preparationStyles.content}

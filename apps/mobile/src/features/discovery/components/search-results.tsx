@@ -6,6 +6,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import type { ReactNode } from "react";
 import type { DiscoveryPage } from "../api/discovery-queries";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -13,11 +14,14 @@ import { tokens } from "../../../shared/theme/tokens";
 import { SearchResultCard } from "./search-result-card";
 import { searchResults } from "../model/search-result";
 
-/** Initial text results; complete continuation and destination activation remain with US4. */
+/** Text results retain native read lifecycle and continuation supplied by their query owner. */
 export interface SearchResultsProps {
   pages: readonly DiscoveryPage[];
   onClear: () => void;
   feedback?: ReactNode;
+  refreshing: boolean;
+  onRefresh: () => void;
+  continuation?: ReactNode;
 }
 
 /** Virtualizes current summaries with stable UUIDs and a loaded count that never claims a total. */
@@ -25,10 +29,27 @@ export function SearchResults({
   pages,
   onClear,
   feedback,
+  refreshing,
+  onRefresh,
+  continuation,
 }: SearchResultsProps) {
-  const items = pages.flatMap(searchResults);
+  // A resource moved between pages keeps one row under its stable public identity.
+  const items = [
+    ...new Map(
+      pages.flatMap(searchResults).map((item) => [item.identity.id, item]),
+    ).values(),
+  ];
   return (
     <FlatList
+      alwaysBounceVertical
+      refreshControl={
+        <DataRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+      ListFooterComponent={
+        continuation ? (
+          <View style={styles.continuation}>{continuation}</View>
+        ) : undefined
+      }
       data={items}
       keyExtractor={(item) => item.identity.id}
       keyboardShouldPersistTaps="handled"
@@ -93,9 +114,11 @@ export function SearchResultsHeading({
 
 const styles = StyleSheet.create({
   content: {
+    flexGrow: 1,
     paddingHorizontal: tokens.spacing.lg,
     paddingBottom: tokens.spacing.section,
   },
+  continuation: { paddingTop: tokens.spacing.lg },
   separator: { height: tokens.spacing.md },
   feedback: { paddingVertical: tokens.spacing.xl },
   toolbar: {

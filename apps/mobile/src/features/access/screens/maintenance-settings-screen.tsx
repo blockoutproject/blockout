@@ -1,5 +1,6 @@
 import { StyleSheet } from "react-native";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PageHeader } from "../../../shared/components/page-header";
 import {
@@ -61,7 +62,22 @@ export function MaintenanceSettingsScreen() {
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <PageHeader title="Administration technique" />
-      <FormScrollView contentContainerStyle={styles.content}>
+      <FormScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={
+          sessionStatus === "authenticated" ? (
+            <DataRefreshControl
+              enabled={!editing.content.pending}
+              refreshing={editing.query.isFetching || account.isFetching}
+              onRefresh={() => {
+                if (editing.content.isPending()) return;
+                if (canManage) void editing.query.refetch();
+                else void account.refetch();
+              }}
+            />
+          ) : undefined
+        }
+      >
         {sessionStatus === "restoring" ||
         (sessionStatus === "authenticated" && account.isPending) ? (
           <RequestLoading />
@@ -80,5 +96,5 @@ export function MaintenanceSettingsScreen() {
 }
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: { padding: tokens.spacing.lg, gap: tokens.spacing.lg },
+  content: { flexGrow: 1, padding: tokens.spacing.lg, gap: tokens.spacing.lg },
 });

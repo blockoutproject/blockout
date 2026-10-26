@@ -1,6 +1,12 @@
 import { X } from "lucide-react-native";
 import type { PropsWithChildren } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type ScrollViewProps,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
@@ -20,6 +26,8 @@ export interface SheetProps extends PropsWithChildren {
   message?: string;
   /** Disable for compact content in a native fitToContents route; its root keeps its natural height. */
   scrollable?: boolean;
+  /** Supply only when the scrollable sheet displays remote data; static choices have no refresh gesture. */
+  refreshControl?: ScrollViewProps["refreshControl"];
 }
 
 /** Supplies system bottom spacing and either scrolling or natural-height content for its native route. */
@@ -28,6 +36,7 @@ export function Sheet({
   title,
   message,
   scrollable = true,
+  refreshControl,
   children,
 }: SheetProps) {
   const { colors } = useTheme();
@@ -71,6 +80,9 @@ export function Sheet({
   return (
     <ScrollView
       style={[styles.screen, { backgroundColor: colors.surface }]}
+      contentContainerStyle={styles.scrollContent}
+      alwaysBounceVertical
+      refreshControl={refreshControl}
       nestedScrollEnabled
     >
       {content}
@@ -80,6 +92,7 @@ export function Sheet({
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  scrollContent: { flexGrow: 1 },
   content: { padding: tokens.spacing.lg, gap: tokens.spacing.section },
   // Product Design's 24-point handle area + 8-point header inset; the grabber is drawn by the native route.
   compactContent: {

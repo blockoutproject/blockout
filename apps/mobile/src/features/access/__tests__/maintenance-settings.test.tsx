@@ -169,7 +169,7 @@ it("shows loading before any known state can be saved", async () => {
     screen.getByRole("progressbar", { name: "Chargement en cours" }),
   ).toBeOnTheScreen();
   expect(
-    screen.queryByRole("button", { name: "Enregistrer le contenu" }),
+    screen.queryByRole("button", { name: "Enregistrer" }),
   ).not.toBeOnTheScreen();
   await act(async () => finish(json(initial)));
 });
@@ -212,16 +212,14 @@ it("separates content preparation from explicit activation", async () => {
   );
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Enregistrer le contenu" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await act(async () => nativeAction("Enregistrer").onPress?.());
 
   try {
     // Then
     expect(
       await screen.findByRole("button", {
-        name: "Enregistrer le contenu",
+        name: "Enregistrer",
         busy: true,
       }),
     ).toBeDisabled();
@@ -242,7 +240,7 @@ it("separates content preparation from explicit activation", async () => {
   );
   expect(
     screen.getByRole("button", {
-      name: "Enregistrer le contenu",
+      name: "Enregistrer",
       busy: false,
     }),
   ).toBeEnabled();
@@ -310,9 +308,7 @@ it("refuses blank text before sending any mutation", async () => {
   const user = await editMessage("   ");
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Enregistrer le contenu" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
   expect(
@@ -333,9 +329,7 @@ it("refuses an invalid image URL without losing the draft", async () => {
   );
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Enregistrer le contenu" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
   expect(
@@ -358,9 +352,7 @@ it("clears the optional image using explicit null", async () => {
   mockFetch.mockImplementation(async () => json({ ...initial, revision: 3 }));
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Enregistrer le contenu" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await act(async () => nativeAction("Enregistrer").onPress?.());
 
   // Then
@@ -385,7 +377,7 @@ it("keeps text and actions usable when preview display fails", async () => {
   await screen.findByDisplayValue(initial.message);
 
   // When
-  fireEvent(
+  await fireEvent(
     screen.getByLabelText("Aperçu de l’image de maintenance"),
     "error",
     { nativeEvent: { error: "Unavailable" } },
@@ -396,9 +388,7 @@ it("keeps text and actions usable when preview display fails", async () => {
     await screen.findByText("L’image ne peut pas être affichée."),
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue(initial.message)).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Enregistrer le contenu" }),
-  ).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
 });
 it("starts a fresh draft image preview when a previously failed URL returns", async () => {
   // Given
@@ -456,9 +446,7 @@ it.each([400, 403, 422])(
     );
 
     // When
-    await user.press(
-      screen.getByRole("button", { name: "Enregistrer le contenu" }),
-    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
     await act(async () => nativeAction("Enregistrer").onPress?.());
 
     // Then
@@ -498,18 +486,14 @@ it.each(["conflict", "lost"])(
     });
 
     // When
-    await user.press(
-      screen.getByRole("button", { name: "Enregistrer le contenu" }),
-    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
     await act(async () => nativeAction("Enregistrer").onPress?.());
 
     // Then
     expect(
       await screen.findByRole("button", { name: "Relire les réglages" }),
     ).toBeOnTheScreen();
-    expect(
-      screen.getByRole("button", { name: "Enregistrer le contenu" }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
     expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
     expect(writes).toBe(1);
 
@@ -529,9 +513,7 @@ it.each(["conflict", "lost"])(
     ).toBeOnTheScreen();
 
     // When
-    await user.press(
-      screen.getByRole("button", { name: "Enregistrer le contenu" }),
-    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
     await act(async () => nativeAction("Enregistrer").onPress?.());
 
     // Then
@@ -569,9 +551,7 @@ it("cancels content confirmation without sending a mutation", async () => {
   const user = await editMessage();
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Enregistrer le contenu" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await act(async () => nativeAction("Annuler").onPress?.());
 
   // Then
@@ -599,9 +579,7 @@ it("retains an uncertain command after its route-local draft is discarded", asyn
     if (options?.method === "PATCH") return response.promise;
     return json(String(url).endsWith("/accounts/me") ? account : stored);
   });
-  await user.press(
-    screen.getByRole("button", { name: "Enregistrer le contenu" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   const confirm = nativeAction("Enregistrer");
   await act(async () => {
     confirm.onPress?.();
@@ -617,9 +595,7 @@ it("retains an uncertain command after its route-local draft is discarded", asyn
   expect(
     await screen.findByRole("button", { name: "Relire les réglages" }),
   ).toBeEnabled();
-  expect(
-    screen.getByRole("button", { name: "Enregistrer le contenu" }),
-  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
   expect(screen.getByDisplayValue(initial.message)).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
@@ -634,9 +610,7 @@ it("retains an uncertain command after its route-local draft is discarded", asyn
       "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
     ),
   ).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Enregistrer le contenu" }),
-  ).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
   ).toHaveLength(1);
@@ -702,13 +676,11 @@ it("retains a draft through a failed permission refresh", async () => {
     await screen.findByText("Les permissions du compte sont indisponibles."),
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Enregistrer le contenu" }),
-  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 });
 
 it.each([
-  ["Enregistrer le contenu", "Enregistrer"],
+  ["Enregistrer", "Enregistrer"],
   ["Activer la maintenance", "Activer"],
 ])(
   "retains a read-only draft and blocks a held %s confirmation after revocation",
@@ -751,9 +723,7 @@ it.each([
     ).toBeOnTheScreen();
     expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
     expect(screen.getByLabelText("Message de maintenance")).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: "Enregistrer le contenu" }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
     expect(
       screen.getByRole("button", { name: "Activer la maintenance" }),
     ).toBeDisabled();
@@ -794,9 +764,7 @@ it("keeps a conflicting draft blocked through a failed settings reread", async (
   });
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Enregistrer le contenu" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await act(async () => nativeAction("Enregistrer").onPress?.());
   await screen.findByRole("button", { name: "Relire les réglages" });
   await user.press(screen.getByRole("button", { name: "Relire les réglages" }));
@@ -808,9 +776,7 @@ it("keeps a conflicting draft blocked through a failed settings reread", async (
     ),
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Enregistrer le contenu" }),
-  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 
   // When
   rereadFails = false;
@@ -827,7 +793,7 @@ it("keeps a conflicting draft blocked through a failed settings reread", async (
 });
 
 it.each([
-  ["Enregistrer le contenu", "Enregistrer"],
+  ["Enregistrer", "Enregistrer"],
   ["Activer la maintenance", "Activer"],
 ])(
   "rechecks live authority after delayed credentials for %s before React renders",
@@ -879,9 +845,7 @@ it("keeps a delayed acknowledged write and older reread behind the latest public
   mockFetch.mockImplementation(async (_url, options) =>
     options?.method === "PATCH" ? response.promise : json(stored),
   );
-  await user.press(
-    screen.getByRole("button", { name: "Enregistrer le contenu" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await act(async () => nativeAction("Enregistrer").onPress?.());
 
   // When
@@ -902,9 +866,7 @@ it("keeps a delayed acknowledged write and older reread behind the latest public
   );
 
   // Then
-  expect(
-    screen.getByRole("button", { name: "Enregistrer le contenu" }),
-  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
   expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
 
   // When
@@ -916,9 +878,7 @@ it("keeps a delayed acknowledged write and older reread behind the latest public
       "La relecture a échoué. Votre brouillon est conservé.",
     ),
   ).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Enregistrer le contenu" }),
-  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 
   // When
   stored = { ...stored, revision: 4 };
@@ -926,9 +886,7 @@ it("keeps a delayed acknowledged write and older reread behind the latest public
 
   // Then
   await waitFor(() =>
-    expect(
-      screen.getByRole("button", { name: "Enregistrer le contenu" }),
-    ).toBeEnabled(),
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
   );
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),

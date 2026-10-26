@@ -2,7 +2,10 @@ import type { PropsWithChildren } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PageHeader } from "../../../shared/components/page-header";
-import { FormScrollView } from "../../../shared/components/form-scroll-view";
+import {
+  FormScrollView,
+  type FormScrollViewProps,
+} from "../../../shared/components/form-scroll-view";
 import {
   RequestError,
   RequestLoading,
@@ -15,13 +18,22 @@ export function EditorPage({
   title,
   children,
   scrollable = true,
-}: PropsWithChildren<{ title: string; scrollable?: boolean }>) {
+  refreshControl,
+}: PropsWithChildren<{
+  title: string;
+  scrollable?: boolean;
+  /** The reading screen owns data refresh; static editors can omit it. */
+  refreshControl?: FormScrollViewProps["refreshControl"];
+}>) {
   const { colors } = useTheme();
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <PageHeader title={title} />
       {scrollable ? (
-        <FormScrollView contentContainerStyle={styles.content}>
+        <FormScrollView
+          contentContainerStyle={styles.content}
+          refreshControl={refreshControl}
+        >
           {children}
         </FormScrollView>
       ) : (
@@ -56,6 +68,7 @@ export function SportingAccessFeedback({
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: {
+    flexGrow: 1,
     padding: tokens.spacing.lg,
     paddingTop: tokens.spacing.sm,
     gap: tokens.spacing.lg,

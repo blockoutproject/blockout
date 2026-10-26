@@ -33,7 +33,10 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
   const match = useQuery(queries.match(matchId));
   const data = match.data;
   return (
-    <ResourcePage>
+    <ResourcePage
+      refreshing={match.isFetching}
+      onRefresh={() => void match.refetch({ cancelRefetch: false })}
+    >
       <ResourceFeedback query={match} />
       {data && (
         <>

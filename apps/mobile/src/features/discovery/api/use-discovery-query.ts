@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth0 } from "react-native-auth0";
 import type { ListTeamsParams } from "../../../../.generated/schemas/index.zod";
 import { useAccountSession } from "../../accounts/current-account";
@@ -14,13 +14,27 @@ export function useDiscoveryQuery(
   const session = useAccountSession();
   const admission = useOrdinaryRequest();
   const { getCredentials } = useAuth0();
-  return useInfiniteQuery(
-    createDiscoveryQueryOptions(
-      resource,
-      input,
-      session,
-      admission,
-      getCredentials,
-    ),
+  const client = useQueryClient();
+  const options = createDiscoveryQueryOptions(
+    resource,
+    input,
+    session,
+    admission,
+    getCredentials,
   );
+  const query = useInfiniteQuery(options);
+
+  /** Cancels old pagination and replaces the traversal only after a successful first-page read. */
+  async function refresh() {
+    if (!options.enabled || !session.isCurrent(session.generation)) return;
+    await client.cancelQueries({ queryKey: options.queryKey, exact: true });
+    if (!session.isCurrent(session.generation)) return;
+    try {
+      await client.infiniteQuery({ ...options, pages: 1, staleTime: 0 });
+    } catch {
+      // The existing Query observer owns the failed read and retains its authorized previous pages.
+    }
+  }
+
+  return { ...query, refresh };
 }

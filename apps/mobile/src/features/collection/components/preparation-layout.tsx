@@ -12,6 +12,7 @@ import type {
   SourceBindingResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { PageHeader } from "../../../shared/components/page-header";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { Surface } from "../../../shared/components/surface";
 import {
@@ -26,12 +27,32 @@ import type { useCollectionAuthority } from "../api/use-source-preparation";
 export function PreparationPage({
   title,
   children,
-}: PropsWithChildren<{ title: string }>) {
+  refreshing = false,
+  refreshEnabled = true,
+  onRefresh,
+}: PropsWithChildren<{
+  title: string;
+  refreshing?: boolean;
+  /** Keeps the native scroll tree mounted while a command temporarily suspends refresh. */
+  refreshEnabled?: boolean;
+  onRefresh?: () => void;
+}>) {
   const { colors } = useTheme();
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <PageHeader title={title} />
-      <FormScrollView contentContainerStyle={preparationStyles.content}>
+      <FormScrollView
+        contentContainerStyle={preparationStyles.content}
+        refreshControl={
+          onRefresh ? (
+            <DataRefreshControl
+              refreshing={refreshing}
+              enabled={refreshEnabled}
+              onRefresh={onRefresh}
+            />
+          ) : undefined
+        }
+      >
         {children}
       </FormScrollView>
     </SafeAreaView>
@@ -111,7 +132,7 @@ export function PreparationLink({
   const { colors } = useTheme();
   return (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole="link"
       accessibilityLabel={detail ? `${label}, ${detail}` : label}
       onPress={onPress}
       style={({ pressed }) => ({
@@ -245,6 +266,7 @@ export function SourceBadge({ source }: { source: SourceBindingResponse }) {
 /** Stable feature composition shared by the actual preparation screens and forms. */
 export const preparationStyles = StyleSheet.create({
   content: {
+    flexGrow: 1,
     padding: tokens.spacing.lg,
     paddingTop: tokens.spacing.sm,
     gap: tokens.spacing.lg,

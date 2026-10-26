@@ -106,10 +106,10 @@ export function ClassificationForm({
     }
     if (
       !(await confirmAction({
-        title: "Confirmer la classification ?",
+        title: "Enregistrer la classification ?",
         message:
           "La correction est appliquée entièrement ou refusée. Retirer le réglage conserve les identités et la dernière classification publiée ; cela peut arrêter la collecte.",
-        confirmLabel: "Confirmer",
+        confirmLabel: "Enregistrer",
       })) ||
       !session.isCurrent(session.generation)
     )

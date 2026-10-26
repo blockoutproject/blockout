@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
 import { IconButton } from "../../../shared/components/icon-button";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { SearchField } from "../../../shared/components/search-field";
 import {
   RequestError,
@@ -58,6 +59,18 @@ export function DivisionsScreen() {
   return (
     <EditorPage title="Divisions" scrollable={false}>
       <FlatList
+        alwaysBounceVertical
+        refreshControl={
+          authority.sessionStatus === "authenticated" ? (
+            <DataRefreshControl
+              refreshing={query.isFetching || authority.account.isFetching}
+              onRefresh={() => {
+                if (authority.enabled) void query.refetch();
+                else void authority.account.refetch();
+              }}
+            />
+          ) : undefined
+        }
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         data={items}
@@ -219,7 +232,7 @@ function DivisionCard({
   );
   return (
     <Pressable
-      accessibilityRole={canEdit ? "button" : undefined}
+      accessibilityRole={canEdit ? "link" : undefined}
       accessibilityLabel={division.name}
       disabled={!canEdit}
       onPress={onPress}
@@ -271,6 +284,7 @@ function DivisionCard({
 }
 const styles = StyleSheet.create({
   content: {
+    flexGrow: 1,
     padding: tokens.spacing.lg,
     paddingTop: tokens.spacing.sm,
     paddingBottom: tokens.spacing.section,

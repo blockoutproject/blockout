@@ -1077,7 +1077,7 @@ it("creates an active division through the existing atomic presentation form wit
   const confirm = jest
     .mocked(Alert.alert)
     .mock.calls.at(-1)?.[2]
-    ?.find((button) => button.text === "Confirmer");
+    ?.find((button) => button.text === "Créer la division");
   await act(async () => {
     confirm?.onPress?.();
   });
@@ -1123,7 +1123,7 @@ it("rereads divisions after an uncertain creation and keeps the draft while iden
   const confirm = jest
     .mocked(Alert.alert)
     .mock.calls.at(-1)?.[2]
-    ?.find((button) => button.text === "Confirmer");
+    ?.find((button) => button.text === "Créer la division");
   await act(async () => {
     confirm?.onPress?.();
   });
@@ -1148,7 +1148,7 @@ it("rereads divisions after an uncertain creation and keeps the draft while iden
   const retry = jest
     .mocked(Alert.alert)
     .mock.calls.at(-1)?.[2]
-    ?.find((button) => button.text === "Confirmer");
+    ?.find((button) => button.text === "Créer la division");
   await act(async () => {
     retry?.onPress?.();
   });
@@ -1190,7 +1190,7 @@ it("keeps lifecycle independent at the end of the division editor for a lifecycl
   const confirmation = jest
     .mocked(Alert.alert)
     .mock.calls.at(-1)?.[2]
-    ?.find((button) => button.text === "Confirmer");
+    ?.find((button) => button.text === "Désactiver");
   mockFetch.mockResolvedValue(
     json({ ...division, revision: "d2", active: false }),
   );
@@ -1251,7 +1251,7 @@ it("preserves unsaved presentation values while an independent activity response
   const confirmation = jest
     .mocked(Alert.alert)
     .mock.calls.at(-1)?.[2]
-    ?.find((button) => button.text === "Confirmer");
+    ?.find((button) => button.text === "Désactiver");
   await act(async () => {
     confirmation?.onPress?.();
   });
@@ -1492,7 +1492,11 @@ it.each(["division-creation", "division"] as const)(
     const confirm = jest
       .mocked(Alert.alert)
       .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === "Confirmer");
+      ?.find(
+        (button) =>
+          button.text ===
+          (kind === "division-creation" ? "Créer la division" : "Désactiver"),
+      );
     expect(confirm).toBeDefined();
 
     // When
@@ -1647,7 +1651,7 @@ it("shares one raw division list across creation and navigation and refreshes it
   const confirm = jest
     .mocked(Alert.alert)
     .mock.calls.at(-1)?.[2]
-    ?.find((button) => button.text === "Confirmer");
+    ?.find((button) => button.text === "Créer la division");
   await act(async () => {
     confirm?.onPress?.();
   });
@@ -1773,7 +1777,7 @@ it("executes a confirmed division activity once when the native callback is deli
   );
   const confirmation = jest
     .mocked(Alert.alert)
-    .mock.lastCall?.[2]?.find((choice) => choice.text === "Confirmer");
+    .mock.lastCall?.[2]?.find((choice) => choice.text === "Désactiver");
   if (!confirmation?.onPress)
     throw new Error("Missing native activity confirmation");
 
@@ -1905,7 +1909,7 @@ it("retains a replacement division draft when the abandoned creation succeeds la
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   const confirm = jest
     .mocked(Alert.alert)
-    .mock.lastCall?.[2]?.find((choice) => choice.text === "Confirmer");
+    .mock.lastCall?.[2]?.find((choice) => choice.text === "Créer la division");
   if (!confirm?.onPress) throw new Error("Missing creation confirmation");
   await act(async () => confirm.onPress?.());
   await screen.findByRole("button", { name: "Enregistrer", busy: true });

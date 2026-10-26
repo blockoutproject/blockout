@@ -161,17 +161,6 @@ function SignInJourney() {
           ))}
         </View>
         <View style={[styles.inset, styles.actions]}>
-          {establishment.status === "error" &&
-            !(
-              establishment.error instanceof ApiError &&
-              establishment.error.kind === "cancelled"
-            ) && (
-              <Button
-                label="Réessayer"
-                onPress={() => void signIn()}
-                loading={busy}
-              />
-            )}
           {session.status === "initialization-error" ? (
             <RequestError
               message="La préparation de la connexion a échoué."
@@ -179,7 +168,15 @@ function SignInJourney() {
             />
           ) : (
             <Button
-              label="Se connecter"
+              label={
+                establishment.status === "error" &&
+                !(
+                  establishment.error instanceof ApiError &&
+                  establishment.error.kind === "cancelled"
+                )
+                  ? "Réessayer"
+                  : "Se connecter"
+              }
               onPress={() => void signIn()}
               loading={busy}
               fullWidth

@@ -29,20 +29,27 @@ import { profileSchema, type ProfileValues } from "../schemas/profile-schema";
 import { profileValues } from "./profile-values";
 import { toProfileBody } from "../api/profile-request";
 import { useAccountSession } from "../session/account-session-provider";
+import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 
 /** An editable snapshot of this original account; parent identity/generation changes remount it. */
 export interface ProfileFormProps {
   account: AccountResponse;
+  /** The screen keeps this operation alive while session removal disposes the private form. */
+  onContinueAsGuest: () => Promise<void>;
+  leaving: boolean;
 }
 
 /** Keeps drafts through refetch/refusal and requires original-target reconciliation before an explicit uncertain retry. */
-export function ProfileForm({ account }: ProfileFormProps) {
+export function ProfileForm({
+  account,
+  onContinueAsGuest,
+  leaving,
+}: ProfileFormProps) {
   const session = useAccountSession();
   const feedback = useActionFeedback();
   const { generation, isCurrent, subscribe } = session;
   const { colors } = useTheme();
   const { save, original, reread } = useProfileEditing(account.accountId);
-  const photo = useProfilePhoto(account.accountId, account.hasPhoto);
   const active = useRef(true);
   const uploading = useRef<File | undefined>(undefined);
   const { control, handleSubmit, setValue, getValues, setError, reset } =
@@ -50,7 +57,13 @@ export function ProfileForm({ account }: ProfileFormProps) {
       resolver: zodResolver(profileSchema),
       defaultValues: profileValues(account),
     });
-  const { dirtyFields } = useFormState({ control });
+  const { isDirty, dirtyFields } = useFormState({ control });
+  const confirmDiscard = useDiscardChanges(isDirty, () => {
+    const photo = getValues("photo");
+    reset(profileValues(account));
+    if (photo.action === "replace" && photo.prepared !== uploading.current)
+      deleteOwnedImage(photo.prepared);
+  });
   const selection = useImageSelection({
     canSelect: () => !save.isPending(),
     allowsEditing: true,
@@ -75,9 +88,22 @@ export function ProfileForm({ account }: ProfileFormProps) {
     },
   });
   const draft = useWatch({ control, name: "photo" });
+  const photo = useProfilePhoto(
+    account.accountId,
+    account.hasPhoto && draft.action === "keep",
+  );
   const uncertain = isUncertainMutationFailure(save.error);
   const needsRead = save.needsRead;
   const busy = selection.pending || save.pending || original.isFetching;
+  useEffect(() => {
+    if (busy) return;
+    // Fresh remote values update untouched fields while RHF retains the draft and any refused-field explanation.
+    reset(profileValues(account), {
+      keepDirtyValues: true,
+      keepDirty: true,
+      keepErrors: true,
+    });
+  }, [account, busy, reset]);
   let photoUri: string | undefined;
   if (draft.action === "replace") photoUri = draft.prepared.uri;
   else if (draft.action === "keep" && account.hasPhoto && photo.data)
@@ -251,6 +277,21 @@ export function ProfileForm({ account }: ProfileFormProps) {
         onPress={() => void handleSubmit(submit)()}
         disabled={busy || needsRead}
         loading={save.executing}
+      />
+      <Button
+        label="Continuer en tant qu’invité"
+        variant="secondary"
+        disabled={busy}
+        loading={leaving}
+        onPress={async () => {
+          if (
+            !(await confirmDiscard()) ||
+            !active.current ||
+            !session.isCurrent(session.generation)
+          )
+            return;
+          await onContinueAsGuest();
+        }}
       />
     </View>
   );

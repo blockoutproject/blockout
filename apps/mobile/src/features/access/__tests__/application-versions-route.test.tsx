@@ -1,4 +1,10 @@
-import { act, screen, waitFor, userEvent } from "@testing-library/react-native";
+import {
+  act,
+  screen,
+  waitFor,
+  userEvent,
+  fireEvent,
+} from "@testing-library/react-native";
 import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import { Alert, Text } from "react-native";
@@ -278,7 +284,7 @@ it("retains the draft through protected-route removal and ignores an obsolete di
   mockFetch.mockImplementation((url) =>
     String(url).endsWith("/accounts/me") ? pending.promise : serve(url),
   );
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await user.press(
     await screen.findByRole("link", { name: "Accès administrateur" }),
   );
@@ -318,7 +324,7 @@ it("retains the draft through protected-route removal and ignores an obsolete di
 
   // When
   mockFetch.mockImplementation(serve);
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await user.press(
     await screen.findByRole("link", { name: "Accès administrateur" }),
   );
@@ -331,9 +337,7 @@ it("retains the draft through protected-route removal and ignores an obsolete di
     "Mon brouillon",
   );
   expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Appliquer les modifications" }),
-  ).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
   expect(mockFetch.mock.calls.some(([, o]) => o?.method === "PATCH")).toBe(
     false,
   );
@@ -354,7 +358,7 @@ it("keeps a resumed draft locked until its earlier pending save settles", async 
         ? permissions.promise
         : serve(url),
   );
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await user.press(
     await screen.findByRole("link", { name: "Accès administrateur" }),
   );
@@ -363,9 +367,7 @@ it("keeps a resumed draft locked until its earlier pending save settles", async 
     await screen.findByLabelText("Message commun"),
     "First draft",
   );
-  await user.press(
-    screen.getByRole("button", { name: "Appliquer les modifications" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await act(async () =>
     jest
       .mocked(Alert.alert)
@@ -373,7 +375,7 @@ it("keeps a resumed draft locked until its earlier pending save settles", async 
       ?.onPress?.(),
   );
   await screen.findByRole("button", {
-    name: "Appliquer les modifications",
+    name: "Enregistrer",
     busy: true,
   });
 
@@ -397,7 +399,7 @@ it("keeps a resumed draft locked until its earlier pending save settles", async 
   mockFetch.mockImplementation((url, options) =>
     options?.method === "PATCH" ? save.promise : serve(url),
   );
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await user.press(
     await screen.findByRole("link", { name: "Accès administrateur" }),
   );
@@ -408,9 +410,7 @@ it("keeps a resumed draft locked until its earlier pending save settles", async 
     const message = await screen.findByLabelText("Message commun");
     expect(message).toHaveDisplayValue("First draft");
     expect(message).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: "Appliquer les modifications" }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
     expect(
       mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
     ).toHaveLength(1);
@@ -446,7 +446,7 @@ it("invalidates a native confirmation when its protected route is removed", asyn
   mockFetch.mockImplementation((url) =>
     String(url).endsWith("/accounts/me") ? permissions.promise : serve(url),
   );
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await user.press(
     await screen.findByRole("link", { name: "Accès administrateur" }),
   );
@@ -455,9 +455,7 @@ it("invalidates a native confirmation when its protected route is removed", asyn
     await screen.findByLabelText("Message commun"),
     "Unconfirmed draft",
   );
-  await user.press(
-    screen.getByRole("button", { name: "Appliquer les modifications" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   const confirm = jest
     .mocked(Alert.alert)
     .mock.lastCall?.[2]?.find((a) => a.text === "Appliquer")?.onPress;
@@ -511,7 +509,7 @@ it("keeps explicit reread required when route removal cancels a recovery read", 
     }
     return serve(url);
   });
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await user.press(
     await screen.findByRole("link", { name: "Accès administrateur" }),
   );
@@ -520,9 +518,7 @@ it("keeps explicit reread required when route removal cancels a recovery read", 
     await screen.findByLabelText("Message commun"),
     "Retained uncertain draft",
   );
-  await user.press(
-    screen.getByRole("button", { name: "Appliquer les modifications" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await act(async () =>
     jest
       .mocked(Alert.alert)
@@ -553,7 +549,7 @@ it("keeps explicit reread required when route removal cancels a recovery read", 
     await screen.findByRole("header", { name: "Blockout est en maintenance" });
     expect(readSignal?.aborted).toBe(true);
     mockFetch.mockImplementation(serve);
-    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
     await user.press(
       await screen.findByRole("link", { name: "Accès administrateur" }),
     );
@@ -564,9 +560,7 @@ it("keeps explicit reread required when route removal cancels a recovery read", 
     expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
       "Retained uncertain draft",
     );
-    expect(
-      screen.getByRole("button", { name: "Appliquer les modifications" }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
     expect(
       mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
     ).toHaveLength(1);

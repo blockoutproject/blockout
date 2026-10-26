@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   cleanup,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -43,7 +44,7 @@ jest.mock("react-native-auth0", () => {
 });
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
-  useRouter: () => ({ back: mockBack, push: mockPush }),
+  useRouter: () => ({ back: mockBack, push: mockPush, canGoBack: () => true }),
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),
@@ -939,3 +940,51 @@ it.each(["network", "503"])(
     expect(await screen.findByText(club.club.name)).toBeOnTheScreen();
   },
 );
+
+it("refreshes the active club team tab only and preserves the selected season", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findByText(club.club.name);
+  await user.press(screen.getByRole("tab", { name: "Équipes" }));
+  await screen.findByRole("link", { name: team.team.team.name });
+  await user.press(screen.getByRole("button", { name: "Saison 2027/2028" }));
+  await user.press(screen.getByRole("button", { name: "2026/2027" }));
+  await waitFor(() =>
+    expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
+  );
+  mockFetch.mockClear();
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+  const request = new URL(String(mockFetch.mock.calls[0][0]));
+  expect(request.pathname).toBe(`/clubs/${sportingId}/teams`);
+  expect(request.searchParams.get("seasonId")).toBe(olderSeason.id);
+  expect(
+    screen.getByRole("button", { name: "Saison 2026/2027" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("tab", { name: "Équipes", selected: true }),
+  ).toBeOnTheScreen();
+});
+
+it("omits pull-to-refresh from a club calendar placeholder with no rechargeable content", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findByText(club.club.name);
+
+  // When
+  await user.press(screen.getByRole("tab", { name: "À venir" }));
+
+  // Then
+  expect(
+    screen.getByText("Calendrier indisponible pour le moment"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Actualiser les données"),
+  ).not.toBeOnTheScreen();
+});
