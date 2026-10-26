@@ -1,9 +1,9 @@
+import { Surface } from "../../../shared/components/surface";
 import { formatCollectionTimestamp } from "../model/collection-time";
 import { Text } from "react-native";
 import type { CollectionResultResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
-import { PreparationCard } from "./preparation-layout";
 
 /** Current evidence for one scope/stage/phase; diagnostics are already filtered by the backend contract. */
 export interface CollectionResultProps {
@@ -41,7 +41,7 @@ export function CollectionResult({
           unconfirmed: "Acquisition non confirmée",
         }[result.outcome];
   return (
-    <PreparationCard>
+    <Surface>
       <Text
         accessibilityRole="header"
         style={[tokens.typography.strong, { color: colors.text }]}
@@ -95,6 +95,6 @@ export function CollectionResult({
               : "Diagnostic indisponible.")}
         </Text>
       )}
-    </PreparationCard>
+    </Surface>
   );
 }

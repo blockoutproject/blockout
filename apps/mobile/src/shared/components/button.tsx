@@ -164,11 +164,7 @@ export function Button({
           {LeadingIcon && icon}
           {loading && !Icon && <LoadingIndicator color={foreground} />}
           <Text
-            style={[
-              styles.label,
-              !fullWidth && styles.contentLabel,
-              { color: foreground },
-            ]}
+            style={[styles.label, { color: foreground }]}
             numberOfLines={2}
             ellipsizeMode="tail"
           >
@@ -209,6 +205,5 @@ const styles = StyleSheet.create({
   gradient: { ...StyleSheet.absoluteFill, borderRadius: tokens.radius.control },
   container: { alignSelf: "stretch" },
   content: { alignSelf: "flex-start", maxWidth: "100%" },
-  contentLabel: { maxWidth: 240 },
   label: { ...tokens.typography.strong, flexShrink: 1, textAlign: "center" },
 });

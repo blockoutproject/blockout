@@ -23,6 +23,7 @@ import {
   RequestLoading,
 } from "../../../shared/components/request-feedback";
 import { TextField } from "../../../shared/components/text-field";
+import { Surface } from "../../../shared/components/surface";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useAccountSession } from "../../accounts/current-account";
@@ -160,10 +161,6 @@ export function PresentationForm({
     baseline.kind !== "division" && baseline.kind !== "division-creation"
       ? baseline.data.names
       : undefined;
-  const card = [
-    styles.card,
-    { backgroundColor: colors.surface, borderColor: colors.border },
-  ];
 
   useEffect(() => {
     mounted.current = true;
@@ -365,166 +362,178 @@ export function PresentationForm({
   function restoreLogo() {
     editor.replaceLogo({ action: "automatic" });
   }
-  return (
-    <View style={styles.form}>
-      <View
-        style={[
-          card,
-          styles.context,
-          isDivision && styles.divisionContext,
-          isDivision && {
-            backgroundColor: `${previewColor}14`,
-            borderColor: `${previewColor}4D`,
-          },
-        ]}
-      >
-        {uri && (
-          <Image
-            source={{ uri }}
-            contentFit="contain"
-            cachePolicy="none"
+  const identity = (
+    <>
+      {uri && (
+        <Image
+          source={{ uri }}
+          contentFit="contain"
+          cachePolicy="none"
+          accessible={false}
+          style={isDivision ? styles.divisionLogo : styles.contextLogo}
+        />
+      )}
+      {isDivision && !uri && (
+        <View
+          style={[
+            styles.divisionPlaceholder,
+            { backgroundColor: colors.mediaPlaceholder },
+          ]}
+        >
+          <ImageOff
             accessible={false}
-            style={isDivision ? styles.divisionLogo : styles.contextLogo}
+            size={tokens.size.actionIcon}
+            color={colors.icon}
           />
-        )}
-        {isDivision && !uri && (
-          <View
+        </View>
+      )}
+      <View style={styles.contextName}>
+        <Text style={[tokens.typography.strong, { color: colors.text }]}>
+          {isDivision ? draftName.trim() || "Nouvelle division" : title}
+        </Text>
+        {isDivision && (
+          <Text
             style={[
-              styles.divisionPlaceholder,
-              { backgroundColor: colors.mediaPlaceholder },
+              tokens.typography.metadata,
+              { color: colors.secondaryText },
             ]}
           >
-            <ImageOff
-              accessible={false}
-              size={tokens.size.actionIcon}
-              color={colors.icon}
-            />
-          </View>
-        )}
-        <View style={styles.contextName}>
-          <Text style={[tokens.typography.strong, { color: colors.text }]}>
-            {isDivision ? draftName.trim() || "Nouvelle division" : title}
+            Aperçu
           </Text>
-          {isDivision && (
-            <Text
-              style={[
-                tokens.typography.metadata,
-                { color: colors.secondaryText },
-              ]}
-            >
-              Aperçu
-            </Text>
-          )}
-        </View>
-        {isDivision && (
-          <View style={styles.palette}>
-            {(draftGradient.some((value) => value !== "")
-              ? draftGradient
-              : [previewColor, previewColor, previewColor]
-            ).map((value, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.paletteColor,
-                  {
-                    backgroundColor: /^#[0-9a-fA-F]{6}$/.test(value)
-                      ? value
-                      : previewColor,
-                  },
-                ]}
-              />
-            ))}
-          </View>
         )}
       </View>
-      <View style={card}>
-        {target.kind !== "pool" && (
-          <>
-            {draft.action !== "replace" && hasLogo && artwork.isFetching && (
-              <RequestLoading />
-            )}
-            {draft.action !== "replace" && hasLogo && artwork.isError && (
-              <RequestError
-                message="Le logo est indisponible. Votre présentation est conservée."
-                onRetry={() => void artwork.refetch()}
-                retrying={artwork.isFetching}
-              />
-            )}
-            <ImageField
-              label={isDivision ? undefined : "Photo ou logo"}
-              images={uri ? [{ id: "logo", uri, label: "Logo" }] : []}
-              contentFit="contain"
-              disabled={busy}
-              helper="PNG/JPEG, jusqu’à 5 Mio"
-              chooseLabel="Choisir un logo"
-              replaceLabel="Changer le logo"
-              removeLabel="Rétablir le logo automatique"
-              error={errors.logo?.message}
-              placeholderIcon={isDivision ? ImageOff : undefined}
-              onRemove={
-                !isDivision ||
-                currentLogo?.manualUrl != null ||
-                draft.action === "replace"
-                  ? restoreLogo
-                  : undefined
-              }
-              selection={imageSelection}
+      {isDivision && (
+        <View style={styles.palette}>
+          {(draftGradient.some((value) => value !== "")
+            ? draftGradient
+            : [previewColor, previewColor, previewColor]
+          ).map((value, index) => (
+            <View
+              key={index}
+              style={[
+                styles.paletteColor,
+                {
+                  backgroundColor: /^#[0-9a-fA-F]{6}$/.test(value)
+                    ? value
+                    : previewColor,
+                },
+              ]}
             />
-            {!uri && (currentLogo?.manualUrl != null || dirtyLogo) && (
-              <Button
-                label="Rétablir le logo automatique"
-                variant="secondary"
-                onPress={restoreLogo}
+          ))}
+        </View>
+      )}
+    </>
+  );
+  return (
+    <View style={styles.form}>
+      {isDivision ? (
+        <View
+          style={[
+            styles.context,
+            styles.divisionContext,
+            {
+              backgroundColor: `${previewColor}14`,
+              borderColor: `${previewColor}4D`,
+            },
+          ]}
+        >
+          {identity}
+        </View>
+      ) : (
+        <Surface>
+          <View style={styles.context}>{identity}</View>
+        </Surface>
+      )}
+      <Surface>
+        <View style={styles.form}>
+          {target.kind !== "pool" && (
+            <>
+              {draft.action !== "replace" && hasLogo && artwork.isFetching && (
+                <RequestLoading />
+              )}
+              {draft.action !== "replace" && hasLogo && artwork.isError && (
+                <RequestError
+                  message="Le logo est indisponible. Votre présentation est conservée."
+                  onRetry={() => void artwork.refetch()}
+                  retrying={artwork.isFetching}
+                />
+              )}
+              <ImageField
+                label={isDivision ? undefined : "Photo ou logo"}
+                images={uri ? [{ id: "logo", uri, label: "Logo" }] : []}
+                contentFit="contain"
                 disabled={busy}
+                helper="PNG/JPEG, jusqu’à 5 Mio"
+                chooseLabel="Choisir un logo"
+                replaceLabel="Changer le logo"
+                removeLabel="Rétablir le logo automatique"
+                error={errors.logo?.message}
+                placeholderIcon={isDivision ? ImageOff : undefined}
+                onRemove={
+                  !isDivision ||
+                  currentLogo?.manualUrl != null ||
+                  draft.action === "replace"
+                    ? restoreLogo
+                    : undefined
+                }
+                selection={imageSelection}
               />
-            )}
-          </>
-        )}
-        <Controller
-          control={control}
-          name="name"
-          render={({ field: { value, onChange, onBlur, ref } }) => (
-            <TextField
-              ref={ref}
-              label={
-                isDivision
-                  ? "Nom de la division"
-                  : target.kind === "club"
-                    ? "Nom personnalisé"
-                    : "Nom complet personnalisé"
-              }
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              editable={!busy}
-              error={errors.name?.message}
-              helper={
-                names
-                  ? `Laisser vide rétablit le nom automatique${names.sourceName ? ` : ${names.sourceName}` : ""}.`
-                  : undefined
-              }
-            />
+              {!uri && (currentLogo?.manualUrl != null || dirtyLogo) && (
+                <Button
+                  label="Rétablir le logo automatique"
+                  variant="secondary"
+                  onPress={restoreLogo}
+                  disabled={busy}
+                />
+              )}
+            </>
           )}
-        />
-        {(target.kind === "team" || target.kind === "pool") && (
           <Controller
             control={control}
-            name="shortName"
+            name="name"
             render={({ field: { value, onChange, onBlur, ref } }) => (
               <TextField
                 ref={ref}
-                label="Nom court personnalisé"
+                label={
+                  isDivision
+                    ? "Nom de la division"
+                    : target.kind === "club"
+                      ? "Nom personnalisé"
+                      : "Nom complet personnalisé"
+                }
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
                 editable={!busy}
-                error={errors.shortName?.message}
-                helper="Laisser vide rétablit le nom court automatique."
+                error={errors.name?.message}
+                helper={
+                  names
+                    ? `Laisser vide rétablit le nom automatique${names.sourceName ? ` : ${names.sourceName}` : ""}.`
+                    : undefined
+                }
               />
             )}
           />
-        )}
-      </View>
+          {(target.kind === "team" || target.kind === "pool") && (
+            <Controller
+              control={control}
+              name="shortName"
+              render={({ field: { value, onChange, onBlur, ref } }) => (
+                <TextField
+                  ref={ref}
+                  label="Nom court personnalisé"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  editable={!busy}
+                  error={errors.shortName?.message}
+                  helper="Laisser vide rétablit le nom court automatique."
+                />
+              )}
+            />
+          )}
+        </View>
+      </Surface>
       {isDivision && (
         <DivisionColorFields
           control={control}
@@ -601,12 +610,6 @@ export function PresentationForm({
 }
 const styles = StyleSheet.create({
   form: { gap: tokens.spacing.lg },
-  card: {
-    padding: tokens.spacing.lg,
-    gap: tokens.spacing.lg,
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
-  },
   context: {
     flexDirection: "row",
     alignItems: "center",
@@ -617,6 +620,7 @@ const styles = StyleSheet.create({
   divisionContext: {
     padding: tokens.spacing.compact,
     borderRadius: tokens.radius.control,
+    borderWidth: tokens.borderWidth,
   },
   divisionLogo: { width: 38, height: 38 },
   divisionPlaceholder: {

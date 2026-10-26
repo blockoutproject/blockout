@@ -1,3 +1,4 @@
+import { Surface } from "../../../shared/components/surface";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,7 +19,6 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useCloseCollectionSeason } from "../api/use-collection-controls";
 import {
   CollectionAccessFeedback,
-  PreparationCard,
   PreparationPage,
   SeasonIdentity,
   preparationStyles,
@@ -176,7 +176,7 @@ function ClosureForm({
           Saison clôturée · historique conservé
         </Text>
       ) : (
-        <PreparationCard>
+        <Surface>
           <Text
             accessibilityRole="header"
             style={[tokens.typography.heading, { color: colors.text }]}
@@ -235,7 +235,7 @@ function ClosureForm({
               Confirmation non envoyée
             </Text>
           )}
-        </PreparationCard>
+        </Surface>
       )}
       {feedback && (
         <Text

@@ -115,7 +115,16 @@ export function InformationRow({
           onPress={onPress}
           disabled={pending}
           accessibilityState={{ disabled: pending, busy: pending }}
-          style={styles.informationRow}
+          style={({ pressed }) => [
+            styles.informationRow,
+            {
+              opacity: pending
+                ? tokens.opacity.disabled
+                : pressed
+                  ? tokens.opacity.pressed
+                  : 1,
+            },
+          ]}
         >
           {content}
         </Pressable>
@@ -200,7 +209,16 @@ function ContactHandoff({
             disabled: handoff.pending,
             busy: handoff.pending,
           }}
-          style={styles.row}
+          style={({ pressed }) => [
+            styles.row,
+            {
+              opacity: handoff.pending
+                ? tokens.opacity.disabled
+                : pressed
+                  ? tokens.opacity.pressed
+                  : 1,
+            },
+          ]}
         >
           {content}
         </Pressable>

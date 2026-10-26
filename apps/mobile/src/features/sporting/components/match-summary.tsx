@@ -1,3 +1,4 @@
+import { divisionTextColor } from "../presentation";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { MatchSummaryResponse } from "../../../../.generated/schemas/index.zod";
@@ -5,11 +6,8 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { formatSportingSchedule } from "../model/sporting-time";
 import { MatchSurface } from "./match-surface";
-import {
-  DivisionPaint,
-  SportingArtwork,
-  SportingLogo,
-} from "./sporting-identity";
+import { SportingArtwork, SportingLogo } from "./sporting-identity";
+import { DivisionPaint } from "./division-paint";
 
 /** Accepted identity/result facts; display zone changes text without changing calendar groups. */
 export interface MatchSummaryProps {
@@ -36,34 +34,18 @@ export function MatchSummary({ match, displayTimeZone }: MatchSummaryProps) {
   return (
     <MatchSurface division={division}>
       <View style={[styles.pool, { backgroundColor: accent }]}>
-        {division?.gradient && <DivisionPaint division={division} />}
-        {division?.logoUrl && (
-          <View
-            pointerEvents="none"
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            style={styles.artwork}
-          >
-            <View style={styles.cover}>
-              <SportingArtwork identity={division} kind="division" />
-            </View>
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  backgroundColor: accent,
-                  opacity: tokens.sporting.coverVeilOpacity,
-                },
-              ]}
-            />
-          </View>
-        )}
+        {division && <DivisionPaint division={division} />}
+        {division && <SportingArtwork division={division} />}
         {division && <SportingLogo kind="division" identity={division} />}
         <Text
           accessibilityRole="header"
           style={[
             styles.poolName,
-            { color: division ? colors.onSporting : context.onAction },
+            {
+              color: division
+                ? divisionTextColor(division.color)
+                : context.onAction,
+            },
           ]}
         >
           {match.pool.pool.name}
@@ -112,7 +94,10 @@ export function MatchSummary({ match, displayTimeZone }: MatchSummaryProps) {
                 params: { teamId: team.id },
               })
             }
-            style={styles.team}
+            style={({ pressed }) => [
+              styles.team,
+              { opacity: pressed ? tokens.opacity.pressed : 1 },
+            ]}
           >
             <SportingLogo kind="team" identity={team} />
             <Text style={[styles.teamName, { color: colors.text }]}>
@@ -157,21 +142,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: tokens.radius.panelInset,
   },
   poolName: { ...tokens.typography.strong, flex: 1, minWidth: 0 },
-  artwork: {
-    ...StyleSheet.absoluteFill,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  cover: {
-    width: tokens.sporting.coverSize,
-    aspectRatio: 1,
-    opacity: tokens.sporting.coverOpacity,
-    transform: [
-      { translateX: tokens.sporting.coverOffsetX },
-      { translateY: tokens.sporting.coverOffsetY },
-    ],
-  },
   metadata: {
     flexDirection: "row",
     flexWrap: "wrap",

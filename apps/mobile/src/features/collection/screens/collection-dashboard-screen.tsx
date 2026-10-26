@@ -1,3 +1,4 @@
+import { PageHeader } from "../../../shared/components/page-header";
 import { useRouter } from "expo-router";
 import { CalendarDays, MapPin, Users } from "lucide-react-native";
 import { useState } from "react";
@@ -26,7 +27,6 @@ import { CollectionControl } from "../components/collection-control";
 import { CollectionResult } from "../components/collection-result";
 import {
   CollectionAccessFeedback,
-  PreparationHeader,
   PreparationLink,
   PreparationPage,
   SeasonIdentity,
@@ -330,7 +330,7 @@ function ControlDashboard({
   );
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
-      <PreparationHeader title={familyLabels[family]} />
+      <PageHeader title={familyLabels[family]} />
       <FlatList
         data={authority.enabled && matches ? rows : []}
         keyExtractor={(row) => `${row.scopeId}/${row.stage}/${row.phase}`}

@@ -694,9 +694,7 @@ it("retains a usable logo through a failed refresh and clears it after a current
     );
     await renderPage(<TeamScreen teamId={sportingId} />);
     await screen.findByText(team.team.team.name);
-    await waitFor(() =>
-      expect(screen.queryByText("VDR")).not.toBeOnTheScreen(),
-    );
+    await screen.findByRole("image", { name: `Logo : ${team.team.team.name}` });
     mockFetch.mockImplementation((url: string) =>
       new URL(url).pathname.endsWith("/logo")
         ? Promise.reject(new TypeError("offline"))
@@ -712,9 +710,13 @@ it("retains a usable logo through a failed refresh and clears it after a current
     });
 
     // Then
-    await screen.findByText(/Logo indisponible|Logo non actualisé/);
-    expect(screen.queryByText("VDR")).not.toBeOnTheScreen();
+    expect(
+      await screen.findByRole("image", {
+        name: `Logo non actualisé : ${team.team.team.name}`,
+      }),
+    ).toBeOnTheScreen();
     expect(screen.getByText("Logo non actualisé")).toBeOnTheScreen();
+    expect(screen.queryByText("VDR")).not.toBeOnTheScreen();
     mockFetch.mockImplementation((url: string) =>
       new URL(url).pathname.endsWith("/logo")
         ? Promise.resolve(Response.json({ status: 404 }, { status: 404 }))
@@ -727,7 +729,12 @@ it("retains a usable logo through a failed refresh and clears it after a current
       });
     });
     expect(await screen.findByText("Logo indisponible")).toBeOnTheScreen();
-    expect(screen.getByText("VDR")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("image", {
+        name: `Logo indisponible : ${team.team.team.name}`,
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText("VDR")).not.toBeOnTheScreen();
     expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
   } finally {
     await cleanup();
@@ -786,9 +793,12 @@ it("shows a new valid logo after decoding the previous blob failed", async () =>
     });
 
     // Then
-    await waitFor(() =>
-      expect(screen.queryByText("Logo indisponible")).not.toBeOnTheScreen(),
-    );
+    expect(
+      await screen.findByRole("image", {
+        name: `Logo : ${team.team.team.name}`,
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText("Logo indisponible")).not.toBeOnTheScreen();
     expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
     expect(screen.queryByText("VDR")).not.toBeOnTheScreen();
     expect(

@@ -340,11 +340,16 @@ function Choice({
       accessibilityState={{ checked: selected, disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={[
+      style={({ pressed }) => [
         styles.choice,
         {
           backgroundColor: selected ? colors.canvas : colors.subtle,
           borderColor: "transparent",
+          opacity: disabled
+            ? tokens.opacity.disabled
+            : pressed
+              ? tokens.opacity.pressed
+              : 1,
         },
       ]}
     >

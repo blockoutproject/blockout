@@ -216,8 +216,9 @@ export function DiscoveryScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: tokens.spacing.section },
+  screen: { flex: 1 },
   header: {
+    marginHorizontal: tokens.spacing.section,
     flexDirection: "row",
     flexWrap: "wrap",
     gap: tokens.spacing.md,
@@ -228,7 +229,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: tokens.borderWidth,
   },
   brand: { flexDirection: "row", gap: 9, alignItems: "center" },
-  scroll: { flex: 1, marginHorizontal: -tokens.spacing.section },
+  scroll: { flex: 1 },
   stage: {
     flexGrow: 1,
     justifyContent: "center",
@@ -241,13 +242,9 @@ const styles = StyleSheet.create({
     borderWidth: tokens.borderWidth,
     gap: tokens.spacing.md,
   },
-  title: {
-    ...tokens.typography.heading,
-    fontSize: 32,
-    lineHeight: 38,
-    letterSpacing: -0.32,
-  },
+  title: tokens.typography.headingXl,
   footer: {
+    paddingHorizontal: tokens.spacing.section,
     flexDirection: "row",
     flexWrap: "wrap",
     gap: tokens.spacing.md,

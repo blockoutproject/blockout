@@ -1,3 +1,4 @@
+import { Surface } from "../../../shared/components/surface";
 import { hashKey, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import type {
@@ -6,7 +7,6 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import {
-  ResourceCard,
   ResourceFeedback,
   ResourcePage,
   ResourceTabs,
@@ -98,7 +98,7 @@ function TeamPage({
           />
           {participation ? (
             <>
-              <ResourceCard>
+              <Surface>
                 <SportingLink
                   kind="pool"
                   id={participation.pool.id}
@@ -106,7 +106,7 @@ function TeamPage({
                   identity={participation.classification.division}
                 />
                 <ResourceText>{participation.competitionName}</ResourceText>
-              </ResourceCard>
+              </Surface>
               {renderStandings?.(participation) ?? (
                 <ResourceText>
                   Classement indisponible pour le moment

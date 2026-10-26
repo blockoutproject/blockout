@@ -3,15 +3,16 @@ import {
   formatLabel,
 } from "../../sporting/classification-presentation";
 import type { SearchResult } from "../model/search-result";
-import { relativeLuminance } from "../../../shared/theme/color-luminance";
+import { divisionTextColor } from "../../sporting/presentation";
+import { DivisionPaint } from "../../sporting/components/division-paint";
+import {
+  SportingMedia,
+  SportingCover,
+} from "../../sporting/components/sporting-media";
 import { hashKey, useQuery } from "@tanstack/react-query";
-import { Image } from "expo-image";
-import { ImageOff } from "lucide-react-native";
-import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { SportingIdentityResponse } from "../../../../.generated/schemas/index.zod";
 import { useConsultationQueries } from "../../sporting/api/use-consultation-queries";
-import { LoadingIndicator } from "../../../shared/components/loading-indicator";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
@@ -26,11 +27,7 @@ export function SearchResultCard({
 }: SearchResult) {
   const { colors } = useTheme();
   const division = classification?.division;
-  const foreground = division
-    ? whiteOnPrimary(division.color)
-      ? colors.onDarkAccent
-      : colors.onLightAccent
-    : colors.text;
+  const foreground = division ? divisionTextColor(division.color) : colors.text;
   const metadata = [
     { id: "city", label: city },
     { id: "division", label: division?.name },
@@ -50,19 +47,8 @@ export function SearchResultCard({
         },
       ]}
     >
-      <View
-        style={[
-          styles.identity,
-          {
-            backgroundColor: division?.color ?? colors.subtle,
-            backgroundImage: division
-              ? division.gradient
-                ? `linear-gradient(135deg, ${division.gradient[0]}, ${division.gradient[1]}, ${division.gradient[2]})`
-                : "linear-gradient(135deg, #00000000, #00000014)"
-              : undefined,
-          },
-        ]}
-      >
+      <View style={styles.identity}>
+        <DivisionPaint division={division} />
         {division?.logoUrl && (
           <ResultArtwork
             identity={division}
@@ -74,7 +60,12 @@ export function SearchResultCard({
           division ? (
             <ResultArtwork identity={division} kind="division" />
           ) : (
-            <LogoFallback identity={identity} />
+            <SportingMedia
+              identity={identity}
+              kind="division"
+              size={tokens.size.entityMedia}
+              presentation="entity"
+            />
           )
         ) : (
           <ResultArtwork identity={identity} kind={kind} />
@@ -129,17 +120,15 @@ export function SearchResultCard({
         style={[
           StyleSheet.absoluteFill,
           styles.edge,
-          { borderColor: division ? `${division.color}4D` : colors.border },
+          {
+            borderColor: division
+              ? `${division.color}${tokens.sporting.borderAlpha}`
+              : colors.border,
+          },
         ]}
       />
     </View>
   );
-}
-
-/** Approved prototype 2177c35 chooses white only when its WCAG contrast against valid sRGB meets 4.5:1. */
-function whiteOnPrimary(primary: string): boolean {
-  const luminance = relativeLuminance(primary);
-  return 1.05 / (luminance + 0.05) >= 4.5;
 }
 
 /** F03 artwork/admission stays authoritative; search inherits F13's no-replay Query defaults. */
@@ -160,122 +149,25 @@ function ResultArtwork({
         ? queries.teamLogo(identity.id)
         : queries.divisionLogo(identity.id);
   const query = useQuery({ ...options, enabled: !!identity.logoUrl });
-  if (identity.logoUrl && query.data)
-    return (
-      <ArtworkImage
+  if (backgroundColor)
+    return identity.logoUrl && query.data ? (
+      <SportingCover
         key={`${hashKey(options.queryKey)}:${query.dataUpdatedAt}`}
         uri={query.data}
-        identity={identity}
-        backgroundColor={backgroundColor}
-        plate={kind !== "division"}
+        primary={backgroundColor}
       />
-    );
-  return backgroundColor ? null : (
-    <LogoFallback
-      identity={identity}
-      state={
-        identity.logoUrl ? (query.isError ? "error" : "loading") : "missing"
-      }
-    />
-  );
-}
-
-/** The Media/Image slot stays present; only supplied monograms replace the ordinary ImageOff fallback. */
-function LogoFallback({
-  identity,
-  state = "missing",
-}: {
-  identity: SportingIdentityResponse;
-  state?: "missing" | "loading" | "error";
-}) {
-  const { colors } = useTheme();
-  const monogram = state === "missing" ? identity.shortName : undefined;
+    ) : null;
   return (
-    <View
-      accessible
-      accessibilityRole="image"
-      accessibilityLabel={`${state === "loading" ? "Chargement du logo" : state === "error" ? "Logo indisponible" : "Logo absent"} : ${identity.name}`}
-      style={[
-        styles.logo,
-        {
-          backgroundColor: monogram
-            ? colors.logoSurface
-            : colors.mediaPlaceholder,
-        },
-      ]}
-    >
-      {state === "loading" ? (
-        <LoadingIndicator color={colors.icon} />
-      ) : monogram ? (
-        <Text style={[tokens.typography.strong, { color: colors.logoInk }]}>
-          {monogram}
-        </Text>
-      ) : (
-        <ImageOff
-          accessible={false}
-          color={colors.icon}
-          size={tokens.size.actionIcon}
-        />
-      )}
-    </View>
-  );
-}
-
-/** Query owns decoded artwork; failure lasts until another successful read starts a native rendering attempt. */
-function ArtworkImage({
-  uri,
-  identity,
-  backgroundColor,
-  plate,
-}: {
-  uri: string;
-  identity: SportingIdentityResponse;
-  backgroundColor?: string;
-  plate: boolean;
-}) {
-  const [failed, setFailed] = useState(false);
-  const { colors } = useTheme();
-  if (failed || !uri)
-    return backgroundColor ? null : (
-      <LogoFallback identity={identity} state={failed ? "error" : "loading"} />
-    );
-  return backgroundColor ? (
-    <View
-      pointerEvents="none"
-      style={StyleSheet.absoluteFill}
-      accessible={false}
-    >
-      <Image
-        accessible={false}
-        source={{ uri }}
-        cachePolicy="none"
-        contentFit="contain"
-        blurRadius={20}
-        onError={() => setFailed(true)}
-        style={styles.atmosphere}
-      />
-      <View
-        style={[StyleSheet.absoluteFill, { backgroundColor, opacity: 0.28 }]}
-      />
-    </View>
-  ) : (
-    <View
-      style={[
-        styles.logo,
-        { backgroundColor: plate ? colors.logoSurface : undefined },
-      ]}
-    >
-      <Image
-        accessibilityRole="image"
-        accessibilityLabel={`Logo : ${identity.name}`}
-        accessible
-        source={{ uri }}
-        cachePolicy="none"
-        contentFit="contain"
-        onError={() => setFailed(true)}
-        style={plate ? styles.logoImage : styles.logo}
-      />
-    </View>
+    <SportingMedia
+      key={`${hashKey(options.queryKey)}:${query.dataUpdatedAt}`}
+      identity={identity}
+      kind={kind}
+      size={tokens.size.entityMedia}
+      presentation="entity"
+      uri={identity.logoUrl ? query.data : undefined}
+      loading={!!identity.logoUrl && query.isPending}
+      error={!!identity.logoUrl && query.isError}
+    />
   );
 }
 
@@ -314,27 +206,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.sm,
     flexShrink: 1,
   },
-  badgeLabel: { ...tokens.typography.metadata, maxWidth: 240 },
-  logo: {
-    width: tokens.size.entityMedia,
-    height: tokens.size.entityMedia,
-    borderRadius: tokens.radius.entityMedia,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  logoImage: {
-    width: tokens.size.entityMedia - 2 * tokens.spacing.xs,
-    height: tokens.size.entityMedia - 2 * tokens.spacing.xs,
-  },
-  // Product Design 916:2985: enlarged actual artwork, 20-point blur, 32% opacity, 28% primary veil.
-  atmosphere: {
-    position: "absolute",
-    width: 574,
-    height: 574,
-    top: "50%",
-    left: "50%",
-    transform: [{ translateX: "-50%" }, { translateY: "-50%" }],
-    opacity: 0.32,
-  },
+  badgeLabel: tokens.typography.metadata,
 });

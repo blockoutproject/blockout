@@ -1,3 +1,4 @@
+import { Surface } from "../../../shared/components/surface";
 import { hashKey, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { Globe, Mail, MapPin, Phone } from "lucide-react-native";
@@ -6,7 +7,6 @@ import { tokens } from "../../../shared/theme/tokens";
 import { Button } from "../../../shared/components/button";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import {
-  ResourceCard,
   ResourceFeedback,
   ResourcePage,
   ResourceTabs,
@@ -65,7 +65,7 @@ function ClubPage({ clubId, renderCalendar }: ClubScreenProps) {
         data={data && tab === "teams" ? (teamData?.items ?? []) : []}
         keyExtractor={(item) => item.team.id}
         renderItem={({ item }) => (
-          <ResourceCard>
+          <Surface>
             <SportingLink
               kind="team"
               id={item.team.id}
@@ -77,7 +77,7 @@ function ClubPage({ clubId, renderCalendar }: ClubScreenProps) {
                 .filter(Boolean)
                 .join(" · ")}
             </ResourceText>
-          </ResourceCard>
+          </Surface>
         )}
         ListHeaderComponent={
           <View style={styles.header}>
@@ -128,7 +128,7 @@ function ClubPage({ clubId, renderCalendar }: ClubScreenProps) {
                 )}
                 {tab === "info" ? (
                   <>
-                    <ResourceCard>
+                    <Surface>
                       <ResourceText>Coordonnées</ResourceText>
                       <ContactLink
                         label="Site web"
@@ -152,8 +152,8 @@ function ClubPage({ clubId, renderCalendar }: ClubScreenProps) {
                         destination={phoneDestination(data.contacts.phone)}
                         icon={Phone}
                       />
-                    </ResourceCard>
-                    <ResourceCard>
+                    </Surface>
+                    <Surface>
                       <ResourceText>Localisation</ResourceText>
                       <ResourceText>Commune du club</ResourceText>
                       {data.location ? (
@@ -177,7 +177,7 @@ function ClubPage({ clubId, renderCalendar }: ClubScreenProps) {
                           .filter(Boolean)
                           .join(", ") || "Adresse non renseignée"}
                       </ResourceText>
-                    </ResourceCard>
+                    </Surface>
                   </>
                 ) : (
                   season &&

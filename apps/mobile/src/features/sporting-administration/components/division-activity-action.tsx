@@ -1,9 +1,10 @@
 import { Pressable, StyleSheet, Text } from "react-native";
+import { LoadingIndicator } from "../../../shared/components/loading-indicator";
 import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 
-/** The editor owns the revision and confirmation; Query owns command recovery. this control renders the lifecycle action and delegates its event to that owner. */
+/** The editor owns revision and confirmation; Query owns recovery. This control presents and delegates the action. */
 export interface DivisionActivityActionProps {
   division: DivisionResponse;
   executing: boolean;
@@ -30,8 +31,23 @@ export function DivisionActivityAction({
       accessibilityState={{ disabled: busy, busy: executing }}
       disabled={busy}
       onPress={onPress}
-      style={[styles.action, busy && styles.disabled]}
+      style={({ pressed }) => [
+        styles.action,
+        {
+          opacity:
+            disabled && !executing
+              ? tokens.opacity.disabled
+              : pressed
+                ? tokens.opacity.pressed
+                : 1,
+        },
+      ]}
     >
+      {executing && (
+        <LoadingIndicator
+          color={division.active ? colors.error : colors.text}
+        />
+      )}
       <Text
         style={[
           styles.label,
@@ -46,9 +62,14 @@ export function DivisionActivityAction({
 const styles = StyleSheet.create({
   action: {
     minHeight: tokens.size.control,
+    flexDirection: "row",
+    gap: tokens.spacing.sm,
     alignItems: "center",
     justifyContent: "center",
   },
-  label: { ...tokens.typography.metadata, textDecorationLine: "underline" },
-  disabled: { opacity: tokens.opacity.disabled },
+  label: {
+    ...tokens.typography.metadata,
+    textDecorationLine: "underline",
+    flexShrink: 1,
+  },
 });

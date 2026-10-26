@@ -1,17 +1,17 @@
 import { useState } from "react";
 import { useRouter } from "expo-router";
-import { Image } from "expo-image";
-import { ChevronRight, ImageOff, Plus, Search } from "lucide-react-native";
+import { ChevronRight, Plus } from "lucide-react-native";
 import {
   FlatList,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
 import { IconButton } from "../../../shared/components/icon-button";
+import { SearchField } from "../../../shared/components/search-field";
 import {
   RequestError,
   RequestLoading,
@@ -20,10 +20,8 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useDivisions } from "../api/classification";
 import { usePresentationLogo } from "../api/presentation";
-import {
-  automaticDivisionGradient,
-  divisionTextColor,
-} from "../components/division-colors";
+import { DivisionPaint } from "../../sporting/components/division-paint";
+import { SportingMedia } from "../../sporting/components/sporting-media";
 import { EditorPage, SportingAccessFeedback } from "../components/editor-page";
 
 /** Product Design 1340:9338: searchable active/inactive catalogue; commands belong to its editor. */
@@ -58,27 +56,13 @@ export function DivisionsScreen() {
           <View style={styles.controls}>
             <SportingAccessFeedback authority={authority} />
             <View style={styles.toolbar}>
-              <View
-                style={[
-                  styles.search,
-                  {
-                    backgroundColor: colors.raised,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Search
-                  accessible={false}
-                  size={tokens.size.controlIcon}
-                  color={colors.icon}
-                />
-                <TextInput
-                  accessibilityLabel="Rechercher une division"
+              <View style={styles.search}>
+                <SearchField
+                  label="Rechercher une division"
                   placeholder="Rechercher une division…"
-                  placeholderTextColor={colors.secondaryText}
                   value={search}
                   onChangeText={setSearch}
-                  style={[styles.searchInput, { color: colors.text }]}
+                  onClear={() => setSearch("")}
                 />
               </View>
               {authority.permissions?.manageDivisionLifecycle === true && (
@@ -87,12 +71,12 @@ export function DivisionsScreen() {
                     styles.add,
                     {
                       backgroundColor: colors.raised,
-                      borderColor: colors.border,
                     },
                   ]}
                 >
                   <IconButton
                     label="Créer une division"
+                    size="control"
                     onPress={() => router.push("/administration/divisions/new")}
                   >
                     <Plus
@@ -101,6 +85,11 @@ export function DivisionsScreen() {
                       color={colors.icon}
                     />
                   </IconButton>
+                  <View
+                    pointerEvents="none"
+                    accessible={false}
+                    style={[styles.addBorder, { borderColor: colors.border }]}
+                  />
                 </View>
               )}
             </View>
@@ -112,29 +101,38 @@ export function DivisionsScreen() {
                   accessibilityLabel={value ? "Actives" : "Inactives"}
                   accessibilityState={{ selected: active === value }}
                   onPress={() => setActive(value)}
-                  style={[
-                    styles.filter,
-                    {
-                      backgroundColor:
-                        active === value ? membership.fill : colors.subtle,
-                      borderColor:
-                        active === value ? membership.border : colors.border,
-                    },
-                  ]}
+                  style={styles.filterTarget}
                 >
-                  <Text
-                    style={[
-                      tokens.typography.metadata,
-                      {
-                        color:
-                          active === value
-                            ? membership.content
-                            : colors.secondaryText,
-                      },
-                    ]}
-                  >
-                    {value ? "Actives" : "Inactives"}
-                  </Text>
+                  {({ pressed }) => (
+                    <View
+                      style={[
+                        styles.filter,
+                        {
+                          backgroundColor:
+                            active === value ? membership.fill : colors.subtle,
+                          borderColor:
+                            active === value
+                              ? membership.border
+                              : colors.border,
+                          opacity: pressed ? tokens.opacity.pressed : 1,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          tokens.typography.metadata,
+                          {
+                            color:
+                              active === value
+                                ? membership.content
+                                : colors.secondaryText,
+                          },
+                        ]}
+                      >
+                        {value ? "Actives" : "Inactives"}
+                      </Text>
+                    </View>
+                  )}
                 </Pressable>
               ))}
             </View>
@@ -204,36 +202,26 @@ function DivisionCard({
       accessibilityLabel={division.name}
       disabled={!canEdit}
       onPress={onPress}
-      style={[
+      style={({ pressed }) => [
         styles.card,
-        { backgroundColor: colors.surface, borderColor: `${division.color}4D` },
+        {
+          backgroundColor: colors.surface,
+          borderColor: `${division.color}${tokens.sporting.borderAlpha}`,
+          opacity: pressed ? tokens.opacity.pressed : 1,
+        },
       ]}
     >
-      <View
-        style={[
-          styles.artwork,
-          {
-            backgroundColor: division.color,
-            backgroundImage: division.gradient
-              ? `linear-gradient(135deg, ${division.gradient.join(", ")})`
-              : automaticDivisionGradient,
-          },
-        ]}
-      >
-        {artwork.data ? (
-          <Image
-            source={{ uri: artwork.data }}
-            contentFit="contain"
-            style={styles.logo}
-            accessible={false}
-          />
-        ) : (
-          <ImageOff
-            accessible={false}
-            size={tokens.size.actionIcon}
-            color={divisionTextColor(division.color)}
-          />
-        )}
+      <View style={styles.artwork}>
+        <DivisionPaint division={division} />
+        <SportingMedia
+          key={artwork.dataUpdatedAt}
+          identity={division}
+          kind="division"
+          size={52}
+          uri={artwork.data}
+          loading={!!division.logo.effectiveUrl && artwork.isPending}
+          error={!!division.logo.effectiveUrl && artwork.isError}
+        />
       </View>
       <View style={styles.identity}>
         <Text style={[tokens.typography.strong, { color: colors.text }]}>
@@ -268,30 +256,27 @@ const styles = StyleSheet.create({
   },
   controls: { gap: tokens.spacing.lg, marginBottom: tokens.spacing.section },
   toolbar: { flexDirection: "row", gap: tokens.spacing.sm },
-  search: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-    paddingHorizontal: tokens.spacing.md,
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.control,
-    minHeight: tokens.size.control,
-  },
-  searchInput: {
-    ...tokens.typography.body,
-    flex: 1,
-    minHeight: tokens.size.control,
-  },
+  search: { flex: 1, minWidth: 0 },
   add: {
     width: tokens.size.control,
     minHeight: tokens.size.control,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: tokens.radius.control,
+  },
+  addBorder: {
+    ...StyleSheet.absoluteFill,
     borderWidth: tokens.borderWidth,
     borderRadius: tokens.radius.control,
   },
   filters: { flexDirection: "row", gap: tokens.spacing.sm },
+  filterTarget: {
+    minHeight:
+      Platform.OS === "android"
+        ? tokens.touchTarget.android
+        : tokens.touchTarget.ios,
+    justifyContent: "center",
+  },
   filter: {
     minHeight: 32,
     justifyContent: "center",
@@ -315,7 +300,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  logo: { width: 52, height: 52 },
   identity: {
     flex: 1,
     gap: tokens.spacing.xl,

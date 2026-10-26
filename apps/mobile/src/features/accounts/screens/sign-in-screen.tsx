@@ -6,6 +6,7 @@ import { WebAuthError, WebAuthErrorCodes } from "react-native-auth0";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
+import { LoadingIndicator } from "../../../shared/components/loading-indicator";
 import { RequestError } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -109,10 +110,12 @@ function SignInJourney() {
     <ScrollView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <SignInArtwork />
       <SafeAreaView edges={["bottom", "left", "right"]} style={styles.content}>
-        <Text style={[styles.summary, { color: colors.text }]}>
-          Les calendriers, les résultats disponibles et vos équipes, au même
-          endroit.
-        </Text>
+        <View style={styles.inset}>
+          <Text style={[styles.summary, { color: colors.text }]}>
+            Les calendriers, les résultats disponibles et vos équipes, au même
+            endroit.
+          </Text>
+        </View>
         <View
           accessible={false}
           importantForAccessibility="no-hide-descendants"
@@ -157,56 +160,66 @@ function SignInJourney() {
             </View>
           ))}
         </View>
-        {establishment.status === "error" &&
-          !(
-            establishment.error instanceof ApiError &&
-            establishment.error.kind === "cancelled"
-          ) && (
+        <View style={[styles.inset, styles.actions]}>
+          {establishment.status === "error" &&
+            !(
+              establishment.error instanceof ApiError &&
+              establishment.error.kind === "cancelled"
+            ) && (
+              <Button
+                label="Réessayer"
+                onPress={() => void signIn()}
+                loading={busy}
+              />
+            )}
+          {session.status === "initialization-error" ? (
+            <RequestError
+              message="La préparation de la connexion a échoué."
+              onRetry={session.retryInitialization}
+            />
+          ) : (
             <Button
-              label="Réessayer"
+              label="Se connecter"
               onPress={() => void signIn()}
               loading={busy}
+              fullWidth
             />
           )}
-        {session.status === "initialization-error" ? (
-          <RequestError
-            message="La préparation de la connexion a échoué."
-            onRetry={session.retryInitialization}
-          />
-        ) : (
-          <Button
-            label="Se connecter"
-            onPress={() => void signIn()}
-            loading={busy}
-            fullWidth
-          />
-        )}
-        {session.status === "authentication-error" &&
-          !(session.error instanceof WebAuthError) && (
-            <RequestError
-              message="La restauration de la connexion a échoué."
-              onRetry={session.retryAuthentication}
-            />
-          )}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Continuer en tant qu’invité"
-          onPress={() => void guest.continueAsGuest()}
-          disabled={guest.pending}
-          accessibilityState={{
-            busy: guest.pending,
-            disabled: guest.pending,
-          }}
-          style={[
-            styles.guest,
-            { backgroundColor: colors.subtle, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[tokens.typography.strong, { color: colors.text }]}>
-            Continuer en tant qu’invité
-          </Text>
-        </Pressable>
-        <PublicAccountLinks />
+          {session.status === "authentication-error" &&
+            !(session.error instanceof WebAuthError) && (
+              <RequestError
+                message="La restauration de la connexion a échoué."
+                onRetry={session.retryAuthentication}
+              />
+            )}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Continuer en tant qu’invité"
+            onPress={() => void guest.continueAsGuest()}
+            disabled={guest.pending}
+            accessibilityState={{
+              busy: guest.pending,
+              disabled: guest.pending,
+            }}
+            style={({ pressed }) => [
+              styles.guest,
+              {
+                backgroundColor: colors.subtle,
+                borderColor: colors.border,
+                opacity: pressed ? tokens.opacity.pressed : 1,
+              },
+            ]}
+          >
+            {guest.pending && <LoadingIndicator color={colors.icon} />}
+            <Text
+              numberOfLines={2}
+              style={[styles.guestLabel, { color: colors.text }]}
+            >
+              Continuer en tant qu’invité
+            </Text>
+          </Pressable>
+          <PublicAccountLinks />
+        </View>
       </SafeAreaView>
     </ScrollView>
   );
@@ -214,16 +227,16 @@ function SignInJourney() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: {
-    padding: tokens.spacing.lg,
     paddingVertical: tokens.spacing.section,
     gap: tokens.spacing.lg,
   },
-  summary: { ...tokens.typography.strong, fontSize: 18, lineHeight: 24 },
+  inset: { paddingHorizontal: tokens.spacing.lg },
+  actions: { gap: tokens.spacing.lg },
+  summary: tokens.typography.title,
   parade: {
     flexDirection: "row",
     gap: tokens.spacing.sm,
     overflow: "hidden",
-    marginHorizontal: -tokens.spacing.lg,
     height: 42,
   },
   mark: {
@@ -239,7 +252,14 @@ const styles = StyleSheet.create({
     padding: tokens.spacing.md,
     alignItems: "center",
     justifyContent: "center",
+    flexDirection: "row",
+    gap: tokens.spacing.sm,
     borderWidth: tokens.borderWidth,
     borderRadius: tokens.radius.control,
+  },
+  guestLabel: {
+    ...tokens.typography.strong,
+    flexShrink: 1,
+    textAlign: "center",
   },
 });

@@ -1,3 +1,4 @@
+import { PageHeader } from "../../../shared/components/page-header";
 import { useRouter } from "expo-router";
 import { Layers } from "lucide-react-native";
 import { FlatList, StyleSheet, Text, View } from "react-native";
@@ -13,7 +14,6 @@ import { ClassificationEntry } from "../../sporting-administration/entry";
 import { useSourceChildren } from "../api/use-source-preparation";
 import {
   CollectionAccessFeedback,
-  PreparationHeader,
   PreparationLink,
   preparationStyles,
 } from "../components/preparation-layout";
@@ -34,7 +34,7 @@ export function SourceChildrenScreen({
   const items = query.data?.pages.flatMap((page) => page.items) ?? [];
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
-      <PreparationHeader title="Groupes découverts" />
+      <PageHeader title="Groupes découverts" />
       <FlatList
         data={authority.enabled ? items : []}
         keyExtractor={(item) => item.id}

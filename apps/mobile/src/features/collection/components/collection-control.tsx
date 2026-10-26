@@ -1,3 +1,4 @@
+import { Surface } from "../../../shared/components/surface";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
 import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
@@ -12,7 +13,6 @@ import { Button } from "../../../shared/components/button";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import type { useCollectionControl } from "../api/use-collection-controls";
-import { PreparationCard } from "./preparation-layout";
 
 /** A selected control retains its own command boundary; season rereads are required only for competition controls. */
 export interface CollectionControlProps {
@@ -149,7 +149,7 @@ export function CollectionControl({
   }
 
   return (
-    <PreparationCard>
+    <Surface>
       <View style={styles.heading}>
         <Text style={[tokens.typography.strong, { color: colors.text }]}>
           Collecte
@@ -272,7 +272,7 @@ export function CollectionControl({
           onPress={() => void reread()}
         />
       )}
-    </PreparationCard>
+    </Surface>
   );
 }
 const styles = StyleSheet.create({

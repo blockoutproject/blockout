@@ -105,6 +105,9 @@ export function ImageField({
               onPress={() => {
                 setPreviewId(image.id);
               }}
+              style={({ pressed }) => ({
+                opacity: pressed ? tokens.opacity.pressed : 1,
+              })}
             >
               <Image
                 source={{ uri: image.uri }}
@@ -127,7 +130,10 @@ export function ImageField({
               accessibilityState={{ disabled: unavailable, busy }}
               disabled={unavailable}
               onPress={() => selection.select(image.id)}
-              style={styles.action}
+              style={({ pressed }) => [
+                styles.action,
+                { opacity: pressed ? tokens.opacity.pressed : 1 },
+              ]}
             >
               {busy && <LoadingIndicator color={colors.icon} />}
               <Text style={[styles.label, { color: colors.text }]}>
@@ -142,7 +148,11 @@ export function ImageField({
               accessibilityState={{ disabled: unavailable }}
               disabled={unavailable}
               onPress={() => onRemove?.(image.id)}
-              style={[styles.remove, compact && styles.compactRemove]}
+              style={({ pressed }) => [
+                styles.remove,
+                compact && styles.compactRemove,
+                { opacity: pressed ? tokens.opacity.pressed : 1 },
+              ]}
             >
               <Text
                 style={[styles.removeLabel, { color: colors.secondaryText }]}
@@ -161,12 +171,13 @@ export function ImageField({
           accessibilityState={{ disabled: unavailable, busy }}
           disabled={unavailable}
           onPress={() => selection.select()}
-          style={[
+          style={({ pressed }) => [
             styles.body,
             compact && styles.compact,
             {
               backgroundColor: colors.surface,
               borderColor: message ? colors.error : colors.border,
+              opacity: pressed ? tokens.opacity.pressed : 1,
             },
           ]}
         >

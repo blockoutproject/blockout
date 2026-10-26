@@ -45,7 +45,7 @@ export function MatchSetScores({ match, sets }: MatchSetScoresProps) {
                 },
               ].map(({ team, side, halo }, index) => (
                 <Fragment key={side}>
-                  {index > 0 && <View style={styles.columnGap} />}
+                  {index > 0 && <View style={styles.centerColumn} />}
                   <View style={styles.team}>
                     <Image
                       accessible={false}
@@ -60,6 +60,7 @@ export function MatchSetScores({ match, sets }: MatchSetScoresProps) {
                     />
                     <Text
                       numberOfLines={2}
+                      accessibilityLabel={team.name}
                       style={[styles.name, { color: colors.text }]}
                     >
                       {team.name}
@@ -101,7 +102,11 @@ export function MatchSetScores({ match, sets }: MatchSetScoresProps) {
                     {set.home}
                   </Text>
                   <Text
-                    style={[styles.number, { color: colors.secondaryText }]}
+                    style={[
+                      styles.number,
+                      styles.centerColumn,
+                      { color: colors.secondaryText },
+                    ]}
                   >
                     SET {index + 1}
                   </Text>
@@ -137,8 +142,9 @@ export function MatchSetScores({ match, sets }: MatchSetScoresProps) {
 const styles = StyleSheet.create({
   content: { padding: tokens.spacing.lg, gap: tokens.spacing.md },
   heading: { ...tokens.typography.heading },
-  teams: { flexDirection: "row", alignItems: "flex-start" },
-  columnGap: { width: tokens.sporting.setTeamGap },
+  teams: { flexDirection: "row", alignItems: "stretch" },
+  // Header identities and every score row use the same three-column proportions.
+  centerColumn: { width: "24%" },
   team: {
     flex: 1,
     minWidth: 0,
@@ -158,13 +164,12 @@ const styles = StyleSheet.create({
     ...tokens.typography.setTeam,
     textAlign: "center",
     alignSelf: "stretch",
-    minHeight: tokens.sporting.setNameMinHeight,
+    flexGrow: 1,
   },
   side: { ...tokens.typography.setLabel, textAlign: "center" },
   set: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: tokens.sporting.setRowInline,
     paddingVertical: tokens.spacing.md,
   },
   points: {
@@ -175,7 +180,6 @@ const styles = StyleSheet.create({
   },
   number: {
     ...tokens.typography.setNumber,
-    width: tokens.sporting.setLabelWidth,
     textAlign: "center",
   },
 });
