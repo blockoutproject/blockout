@@ -57,7 +57,7 @@ afterEach(async () => {
 });
 
 /** Composes actual providers; usable-account publication is synthetic and no backend is contacted. */
-async function mountAccount() {
+async function mountAccount(status: "inactive" | "unavailable" = "inactive") {
   await render(
     <ProHarness
       capture={(a, p) => {
@@ -74,7 +74,7 @@ async function mountAccount() {
       "00000000-0000-4000-8000-000000000001",
     ),
   );
-  await screen.findByText("Pro: inactive");
+  await screen.findByText(`Pro: ${status}`);
 }
 
 it("does not turn an initial read failure or a failed retry into inactivity", async () => {
@@ -107,7 +107,9 @@ it("does not turn an initial read failure or a failed retry into inactivity", as
   await act(() => retry.reject(new Error("private retry response")));
 
   // Then
-  expect(await screen.findByRole("alert")).toHaveTextContent(/indisponible/);
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Une erreur est survenue",
+  );
   expect(screen.getByText("Pro: unavailable")).toBeOnTheScreen();
   expect(screen.queryByText("Pro: inactive")).not.toBeOnTheScreen();
   expect(screen.queryByText(/acheter|annul/i)).not.toBeOnTheScreen();
@@ -140,9 +142,7 @@ it("keeps failed association unavailable, with explicit retry and independent su
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
-  expect(message).toHaveTextContent(
-    /La vérification de vos droits Pro est indisponible/,
-  );
+  expect(message).toHaveTextContent(/Une erreur est survenue/);
   expect(support).toHaveBeenCalledWith();
   expect(await screen.findByText("Pro: inactive")).toBeOnTheScreen();
   expect(screen.getByText("Public sport")).toBeOnTheScreen();
@@ -180,7 +180,7 @@ it.each([
 
     // Then
     expect(screen.getByText("Pro: active")).toBeOnTheScreen();
-    expect(screen.getByRole("alert")).toHaveTextContent(/indisponible/);
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
     expect(Sentry.captureException).toHaveBeenCalledTimes(1);
     expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error), {
       tags: { feature: "pro", operation: "read", outcome: "failed" },
@@ -238,33 +238,54 @@ it.each(["pending", "uncertain"] as const)(
   },
 );
 
-it("offers one rights verification after a failed purchase and failed read", async () => {
+it("preserves known rights without a persistent error block after a definite purchase failure", async () => {
   // Given
   await mountAccount();
   mockPurchases.getCustomerInfo.mockRejectedValue(new Error("unavailable"));
-  await act(() => pro.completeOperation("failed"));
-  expect(screen.getByRole("alert")).toHaveTextContent(
-    /L’achat n’a pas abouti\./,
-  );
-  mockPurchases.getCustomerInfo.mockClear().mockResolvedValue(
-    customerInfo({
-      active: {},
-      all: {},
-      verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
-    }),
-  );
 
-  // When
-  await userEvent.press(
-    screen.getByRole("button", { name: "Vérifier mes droits" }),
-  );
+  // When: the native presentation owns its failure toast, independently of retained SDK evidence.
+  await act(() => pro.completeOperation("failed"));
 
   // Then
-  await waitFor(() =>
-    expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(1),
-  );
+  expect(screen.getByText("Pro: inactive")).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   expect(
-    screen.queryByRole("button", { name: "Réessayer" }),
+    screen.queryByRole("button", { name: "Vérifier mes droits" }),
   ).not.toBeOnTheScreen();
   expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
 });
+
+it.each(["inactive", "unavailable"] as const)(
+  "toasts a failed explicit verification from %s while preserving its uncertain business outcome",
+  async (status) => {
+    // Given
+    if (status === "unavailable")
+      mockPurchases.getCustomerInfo.mockRejectedValue(
+        new Error("initial unavailable"),
+      );
+    await mountAccount(status);
+    await act(() => pro.completeOperation("uncertain"));
+    mockPurchases.getCustomerInfo.mockRejectedValue(
+      new Error("private provider response"),
+    );
+
+    // When
+    await userEvent.press(
+      screen.getByRole("button", { name: "Vérifier mes droits" }),
+    );
+
+    // Then
+    expect(
+      await screen.findByRole("alert", {
+        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText(/Le résultat de l’achat est incertain/),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Réessayer" }),
+    ).not.toBeOnTheScreen();
+    expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
+  },
+);

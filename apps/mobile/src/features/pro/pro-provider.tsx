@@ -19,10 +19,10 @@ export interface ProContext {
   state: ProState;
   refreshing: boolean;
   verificationFailed: boolean;
-  /** Reads current SDK information at entry/resume, without retrying failed association. */
-  refresh(): Promise<void>;
-  /** Explicitly retries current association or verification, never a purchase or restore. */
-  retry(): void;
+  /** Returns the current accepted read outcome, or undefined for an obsolete/unstarted attempt. */
+  refresh(): Promise<boolean | undefined>;
+  /** Retries association or verification, never payment; only an accepted verification returns an outcome. */
+  retry(): Promise<boolean | undefined>;
   /** Consumes an attributed native operation outcome and rereads ordinary SDK state. */
   completeOperation(
     operation: ProOperation,

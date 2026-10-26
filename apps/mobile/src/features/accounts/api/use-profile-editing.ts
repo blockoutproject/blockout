@@ -186,11 +186,10 @@ export function useProfilePhoto(accountId: string, enabled: boolean) {
         } catch (error) {
           if (signal.aborted || !session.isCurrent(session.generation))
             throw new ApiError("cancelled");
-          // Null discards only the URI and keeps Query's refused-read status through later failed rechecks.
+          // Null removes only the URI; Query's accepted-read timestamp distinguishes refresh from initial failure.
           if (isAccessDenied(error))
             client.getQueryCache().find({ queryKey, exact: true })?.setState({
               data: null,
-              dataUpdatedAt: 0,
             });
           throw isAccessDenied(previousError) ? previousError : error;
         }

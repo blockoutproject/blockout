@@ -161,7 +161,7 @@ it.each(["/support", "/legal", "/sign-in", "/administration"])(
     // Then
     expect(
       await screen.findByRole("alert", {
-        name: "L’accès à l’application n’a pas pu être vérifié.",
+        name: "Une erreur est survenue",
       }),
     ).toBeOnTheScreen();
     expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
@@ -420,7 +420,7 @@ it("recovers from an unavailable cold check only through an explicit successful 
   const user = userEvent.setup();
   await openRoute("/support");
   await screen.findByRole("alert", {
-    name: "L’accès à l’application n’a pas pu être vérifié.",
+    name: "Une erreur est survenue",
   });
 
   // When
@@ -487,7 +487,7 @@ it("keeps an unknown direct route behind the gate", async () => {
   // Then
   expect(
     await screen.findByRole("alert", {
-      name: "L’accès à l’application n’a pas pu être vérifié.",
+      name: "Une erreur est survenue",
     }),
   ).toBeOnTheScreen();
 });
@@ -502,7 +502,7 @@ it("keeps the framework sitemap behind ordinary admission", async () => {
   // Then
   expect(
     await screen.findByRole("alert", {
-      name: "L’accès à l’application n’a pas pu être vérifié.",
+      name: "Une erreur est survenue",
     }),
   ).toBeOnTheScreen();
 });

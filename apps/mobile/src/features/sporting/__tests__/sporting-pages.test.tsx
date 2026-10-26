@@ -357,7 +357,7 @@ it("keeps the pool season and phase independent of later standings and map conte
 });
 
 it.each([404, 503])(
-  "distinguishes unavailable resources from a failed read (%s)",
+  "presents unavailable and failed initial reads with opaque copy (%s)",
   async (status) => {
     // Given
     mockFetch.mockImplementation((url: string) =>
@@ -376,11 +376,7 @@ it.each([404, 503])(
     const error = await screen.findByRole("alert");
 
     // Then
-    expect(error).toHaveTextContent(
-      status === 404
-        ? "Cette ressource est introuvable."
-        : "Impossible de charger les informations.",
-    );
+    expect(error).toHaveTextContent("Une erreur est survenue");
     expect(screen.queryByText(team.team.team.name)).not.toBeOnTheScreen();
   },
 );
@@ -580,7 +576,7 @@ it("hides retained club teams when their parent becomes unavailable", async () =
 
   // Then
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "Cette ressource est introuvable.",
+    "Une erreur est survenue",
   );
   expect(screen.queryByText(team.team.team.name)).not.toBeOnTheScreen();
 });
@@ -635,7 +631,7 @@ it("suppresses a retained team after a current visibility refusal", async () => 
 
   // Then
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "Cette ressource est introuvable.",
+    "Une erreur est survenue",
   );
   expect(screen.queryByText(team.team.team.name)).not.toBeOnTheScreen();
   await user.press(screen.getByRole("button", { name: "Retour" }));
@@ -930,7 +926,7 @@ it.each(["network", "503"])(
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(
-        "Impossible de charger les informations.",
+        "Une erreur est survenue",
       ),
     );
 

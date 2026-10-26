@@ -1,12 +1,9 @@
+import { ErrorState } from "../shared/components/state-card";
 import { useState } from "react";
 import { ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../shared/components/button";
-import {
-  RequestError,
-  RequestLoading,
-} from "../shared/components/request-feedback";
-import { TextField } from "../shared/components/text-field";
+import { RequestLoading } from "../shared/components/request-feedback";
 import { useTheme } from "../shared/theme/theme-provider";
 import { tokens } from "../shared/theme/tokens";
 
@@ -17,7 +14,6 @@ export function RequestFeedbackExamplesScreen() {
   const [retrying, setRetrying] = useState(false);
   const [allowRetry, setAllowRetry] = useState(true);
   const [attempts, setAttempts] = useState(0);
-  const [draft, setDraft] = useState("");
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <ScrollView
@@ -28,21 +24,13 @@ export function RequestFeedbackExamplesScreen() {
           accessibilityRole="header"
           style={[tokens.typography.heading, { color: colors.text }]}
         >
-          Retours de requête
-        </Text>
-        <TextField
-          label="Brouillon conservé"
-          value={draft}
-          onChangeText={setDraft}
-        />
-        <Text style={[tokens.typography.body, { color: colors.text }]}>
-          Dernier résultat consultable
+          États de lecture initiale
         </Text>
         <View>
           {loading ? (
             <RequestLoading />
           ) : (
-            <RequestError
+            <ErrorState
               retrying={retrying}
               onRetry={
                 allowRetry

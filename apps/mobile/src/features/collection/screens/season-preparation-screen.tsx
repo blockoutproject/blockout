@@ -1,14 +1,11 @@
+import { ErrorState } from "../../../shared/components/state-card";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useRouter } from "expo-router";
 import { Globe, Trophy } from "lucide-react-native";
 import { Text } from "react-native";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
-import {
-  AccessDenied,
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { useCollectionSeason } from "../api/use-source-preparation";
@@ -40,11 +37,13 @@ export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
         !authority.enabled ? (
           <CollectionAccessFeedback authority={authority} />
         ) : isAccessDenied(season.error) ? (
-          <AccessDenied />
+          <ErrorState
+            onRetry={() => void season.refetch()}
+            retrying={season.isFetching}
+          />
         ) : !season.data ? (
           season.isError ? (
-            <RequestError
-              message="La saison est indisponible."
+            <ErrorState
               onRetry={() => void season.refetch()}
               retrying={season.isFetching}
             />

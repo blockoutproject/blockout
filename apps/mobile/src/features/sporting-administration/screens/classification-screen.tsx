@@ -1,10 +1,6 @@
-import { isAccessDenied } from "../../../shared/api/access-denied";
+import { ErrorState } from "../../../shared/components/state-card";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
-import {
-  AccessDenied,
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import {
   useClassification,
@@ -27,26 +23,17 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
       ? editing.query.data
       : undefined;
   const feedback = useActionFeedback();
-  const denied = isAccessDenied(editing.query.error);
   return (
     <EditorPage
       state={
         !current ? (
           !authority.enabled ? (
             <SportingAccessFeedback authority={authority} />
-          ) : denied ? (
-            <AccessDenied />
           ) : editing.query.isError ? (
-            <RequestError
-              message="La classification est indisponible."
+            <ErrorState
               onRetry={() =>
                 void editing.query.refetch().then((result) => {
-                  if (
-                    result.isError &&
-                    result.data &&
-                    !isAccessDenied(result.error)
-                  )
-                    feedback.error();
+                  if (result.isError && result.data) feedback.error();
                 })
               }
               retrying={editing.query.isFetching}
@@ -69,30 +56,15 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
               if (editing.save.isPending()) return;
               if (!authority.enabled) {
                 void authority.account.refetch().then((result) => {
-                  if (
-                    result.isError &&
-                    result.data &&
-                    !isAccessDenied(result.error)
-                  )
-                    feedback.error();
+                  if (result.isError && result.data) feedback.error();
                 });
                 return;
               }
               void editing.query.refetch().then((result) => {
-                if (
-                  result.isError &&
-                  result.data &&
-                  !isAccessDenied(result.error)
-                )
-                  feedback.error();
+                if (result.isError && result.data) feedback.error();
               });
               void divisions.query.refetch().then((result) => {
-                if (
-                  result.isError &&
-                  result.data &&
-                  !isAccessDenied(result.error)
-                )
-                  feedback.error();
+                if (result.isError && result.data) feedback.error();
               });
             }}
           />
@@ -104,8 +76,6 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
           : "Classification de la poule"
       }
     >
-      <SportingAccessFeedback authority={authority} />
-      {denied && <AccessDenied />}
       {current && (
         <ClassificationForm
           key={`${authority.session.generation}:${target.kind}:${target.id}`}

@@ -345,9 +345,7 @@ it.each(["/age-declaration", "/legal", "/support", "/sign-in"])(
 
     // Then
     expect(
-      await screen.findByText(
-        "L’accès à l’application n’a pas pu être vérifié.",
-      ),
+      await screen.findByText("Une erreur est survenue"),
     ).toBeOnTheScreen();
     expect(screen.queryByRole("adjustable")).toBeNull();
     expect(await readAgeDeclaration()).toBeNull();
@@ -411,7 +409,7 @@ it("offers an explicit storage-read retry without declaring a default age", asyn
   const user = userEvent.setup();
   await openEntry("/");
   await screen.findByRole("alert", {
-    name: "Votre déclaration n’a pas pu être chargée.",
+    name: "Une erreur est survenue",
   });
   expect(screen.queryByRole("adjustable")).toBeNull();
   expect(

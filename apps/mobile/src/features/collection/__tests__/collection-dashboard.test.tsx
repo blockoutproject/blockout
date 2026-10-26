@@ -330,7 +330,7 @@ it("refuses a held confirmation after current permission withdrawal", async () =
   // When
   peer.permissions = { manageSporting: true };
   await pressAction("Actualiser les permissions");
-  await screen.findByText("Cette action nécessite une permission dédiée.");
+  await screen.findByText("Une erreur est survenue");
   await confirm("Relancer");
 
   // Then
@@ -378,7 +378,7 @@ it.each(["control", "season"] as const)(
     await confirm("Relancer");
     await act(async () => credentialRequested.promise);
     await act(async () => read.resolve(refused(403)));
-    await screen.findByText("Accès refusé");
+    await waitFor(() => expect(peer.client.isFetching()).toBe(0));
     await act(async () =>
       credentials.resolve(credentialsFor("auth0|operator187")),
     );
@@ -621,7 +621,7 @@ it("rejects a malformed command acknowledgement and keeps the uncertain scope lo
   // Then
   expect(
     await screen.findByText(
-      "La relecture a échoué. Le périmètre est conservé.",
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
     ),
   ).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Relancer" })).toBeDisabled();

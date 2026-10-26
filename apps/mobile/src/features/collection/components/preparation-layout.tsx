@@ -1,4 +1,3 @@
-import { isAccessDenied } from "../../../shared/api/access-denied";
 import { Image } from "expo-image";
 import {
   CalendarDays,
@@ -16,13 +15,9 @@ import { PageHeader } from "../../../shared/components/page-header";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { Surface } from "../../../shared/components/surface";
-import {
-  RequestError,
-  RequestLoading,
-  AccessDenied,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { EmptyState } from "../../../shared/components/state-card";
+import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import type { useCollectionAuthority } from "../api/use-source-preparation";
@@ -68,7 +63,7 @@ export function PreparationPage({
   );
 }
 
-/** Explains current identification/grant failures without discarding a mounted read-only draft. */
+/** Initial authority feedback only; retained editor refresh failures use the owning event toast. */
 export function CollectionAccessFeedback({
   authority,
 }: {
@@ -79,16 +74,14 @@ export function CollectionAccessFeedback({
     (authority.sessionStatus === "authenticated" && authority.account.isPending)
   )
     return <RequestLoading />;
-  if (isAccessDenied(authority.account.error)) return <AccessDenied />;
   if (authority.account.isError)
     return (
-      <RequestError
-        message="Les permissions du compte sont indisponibles."
+      <ErrorState
         onRetry={() => void authority.account.refetch()}
         retrying={authority.account.isFetching}
       />
     );
-  return authority.enabled ? null : <AccessDenied />;
+  return authority.enabled ? null : <ErrorState />;
 }
 
 /** Supplies collection's approved 120-point illustration to the common empty-state anatomy. */

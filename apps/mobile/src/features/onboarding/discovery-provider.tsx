@@ -74,9 +74,7 @@ export function DiscoveryProvider({ children }: PropsWithChildren) {
         completion.current = undefined;
         if (mounted.current) {
           setPhase("incomplete");
-          feedback.error(
-            "La fin de la découverte n’a pas pu être enregistrée. Réessayez avec Passer ou Commencer.",
-          );
+          feedback.error();
         }
       },
     );

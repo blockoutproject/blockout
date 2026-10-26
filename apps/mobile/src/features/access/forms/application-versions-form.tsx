@@ -1,4 +1,3 @@
-import { isAccessDenied } from "../../../shared/api/access-denied";
 import {
   ActionFeedbackProvider,
   useActionFeedback,
@@ -144,10 +143,7 @@ export function ApplicationVersionsForm({
       if (mounted.current) setAcknowledged(undefined);
     } catch (error) {
       if (!session.isCurrent(session.generation)) return;
-      if (!requiresRevisionRead(error))
-        actionFeedback.error(
-          "L’enregistrement a été refusé. Vérifiez les valeurs et vos permissions.",
-        );
+      if (!requiresRevisionRead(error)) actionFeedback.error();
     }
   }
   /** Reads the actual outcome and keeps dirty fields, without submitting or merging conflicting input. */
@@ -169,10 +165,7 @@ export function ApplicationVersionsForm({
       result.isError ||
       result.data.revision < baseline.revision
     ) {
-      if (!isAccessDenied(result.error))
-        actionFeedback.error(
-          "La relecture a échoué. Votre brouillon est conservé.",
-        );
+      actionFeedback.error();
       return;
     }
     editor.update({

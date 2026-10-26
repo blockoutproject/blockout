@@ -248,7 +248,7 @@ it("offers explicit login when stored DPoP credentials cannot serve the Bearer c
 
 it.each([
   ["a0.session.user_cancelled", "Connexion annulée."],
-  ["access_denied", "Connexion refusée."],
+  ["access_denied", "Une erreur est survenue. Veuillez réessayer plus tard."],
   ["a0.network_error", TECHNICAL_ERROR],
 ])(
   "keeps guest access after native login outcome %s",
@@ -277,6 +277,34 @@ it.each([
   },
 );
 
+it("keeps an explicit login failure in the toast when native credential persistence fails", async () => {
+  // Given
+  mockAuth0.saveCredentials.mockRejectedValueOnce(
+    new Error("private native storage failure"),
+  );
+  const user = userEvent.setup();
+  await renderJourney();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled(),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+  expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled();
+  expect(
+    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
+  ).toBeEnabled();
+  expect(
+    mockFetch.mock.calls.some(([, request]) => request?.method === "POST"),
+  ).toBe(false);
+});
+
 it("retries missing initial email explicitly without asking for another valid login", async () => {
   // Given
   mockFetch.mockImplementation(async (_url, request) =>
@@ -288,7 +316,9 @@ it("retries missing initial email explicitly without asking for another valid lo
   await renderJourney();
   await user.press(screen.getByRole("button", { name: "Se connecter" }));
   expect(
-    await screen.findByText("L’adresse e-mail du compte est indisponible."),
+    await screen.findByText(
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
+    ),
   ).toBeOnTheScreen();
   expect(mockNavigate).not.toHaveBeenCalled();
   expect(
@@ -312,9 +342,7 @@ it("never bootstraps an absent account during restoration or a profile read retr
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   const user = userEvent.setup();
   await renderJourney(<ProfileScreen admitted proEntry={null} />);
-  expect(
-    await screen.findByText("Votre compte Blockout est introuvable."),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
 
   // When
   await user.press(screen.getByRole("button", { name: "Réessayer" }));

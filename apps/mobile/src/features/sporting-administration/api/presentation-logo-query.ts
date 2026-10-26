@@ -73,7 +73,6 @@ export function createPresentationLogoQueryOptions(
         if (isAccessDenied(error))
           client.getQueryCache().find({ queryKey, exact: true })?.setState({
             data: null,
-            dataUpdatedAt: 0,
           });
         throw isAccessDenied(previousError) ? previousError : error;
       }

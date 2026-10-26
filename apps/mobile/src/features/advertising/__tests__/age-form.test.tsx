@@ -114,7 +114,7 @@ it("keeps the editable choice after rejected persistence and allows explicit ret
   // Then
   expect(
     await screen.findByText(
-      "Votre choix n’a pas pu être enregistré. Réessayez.",
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
     ),
   ).toBeOnTheScreen();
   expect(screen.getByText("16")).toBeOnTheScreen();

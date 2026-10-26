@@ -1,10 +1,6 @@
-import { isAccessDenied } from "../../../shared/api/access-denied";
+import { ErrorState } from "../../../shared/components/state-card";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
-import {
-  AccessDenied,
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useCloseCollectionSeason } from "../api/use-collection-controls";
 import {
   CollectionAccessFeedback,
@@ -17,26 +13,17 @@ export function CloseSeasonScreen({ seasonId }: { seasonId: string }) {
   const editing = useCloseCollectionSeason(seasonId);
   const { authority, season } = editing;
   const feedback = useActionFeedback();
-  const denied = isAccessDenied(season.error);
   return (
     <PreparationPage
       state={
         !season.data ? (
           !authority.enabled ? (
             <CollectionAccessFeedback authority={authority} />
-          ) : denied ? (
-            <AccessDenied />
           ) : season.isError ? (
-            <RequestError
-              message="La saison est indisponible."
+            <ErrorState
               onRetry={() =>
                 void season.refetch().then((result) => {
-                  if (
-                    result.isError &&
-                    result.data &&
-                    !isAccessDenied(result.error)
-                  )
-                    feedback.error();
+                  if (result.isError && result.data) feedback.error();
                 })
               }
               retrying={season.isFetching}
@@ -57,29 +44,17 @@ export function CloseSeasonScreen({ seasonId }: { seasonId: string }) {
                 void authority.account
                   .refetch({ cancelRefetch: false })
                   .then((result) => {
-                    if (
-                      result.isError &&
-                      result.data &&
-                      !isAccessDenied(result.error)
-                    )
-                      feedback.error();
+                    if (result.isError && result.data) feedback.error();
                   });
               else {
                 void season.refetch({ cancelRefetch: false }).then((result) => {
-                  if (
-                    result.isError &&
-                    result.data &&
-                    !isAccessDenied(result.error)
-                  )
-                    feedback.error();
+                  if (result.isError && result.data) feedback.error();
                 });
               }
             }
           : undefined
       }
     >
-      <CollectionAccessFeedback authority={authority} />
-      {denied && <AccessDenied />}
       {season.data && (
         <CloseSeasonForm
           key={`${authority.session.generation}/${seasonId}`}

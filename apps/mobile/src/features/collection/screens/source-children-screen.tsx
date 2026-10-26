@@ -1,6 +1,6 @@
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { EmptyState } from "../../../shared/components/state-card";
+import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { PageHeader } from "../../../shared/components/page-header";
 import { useRouter } from "expo-router";
@@ -9,11 +9,7 @@ import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { Button } from "../../../shared/components/button";
-import {
-  AccessDenied,
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { ClassificationEntry } from "../../sporting-administration/entry";
@@ -110,12 +106,14 @@ export function SourceChildrenScreen({
             {!authority.enabled ? (
               <CollectionAccessFeedback authority={authority} />
             ) : denied ? (
-              <AccessDenied message="Ces groupes ne sont pas accessibles." />
+              <ErrorState
+                onRetry={() => void query.refetch()}
+                retrying={query.isFetching}
+              />
             ) : query.isPending ? (
               <RequestLoading />
             ) : query.isError && !query.data ? (
-              <RequestError
-                message="Les groupes sont indisponibles."
+              <ErrorState
                 onRetry={() => void query.refetch()}
                 retrying={query.isFetching}
               />

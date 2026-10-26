@@ -1,6 +1,6 @@
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { EmptyState } from "../../../shared/components/state-card";
+import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { PageHeader } from "../../../shared/components/page-header";
 import { useRouter } from "expo-router";
@@ -14,11 +14,7 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { Button } from "../../../shared/components/button";
-import {
-  AccessDenied,
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import {
@@ -120,10 +116,12 @@ export function CollectionDashboardScreen() {
             <EmptyState title="Aucune saison découverte" />
           )}
           {isAccessDenied(query.error) ? (
-            <AccessDenied message="Les saisons ne sont pas accessibles." />
+            <ErrorState
+              onRetry={() => void query.refetch()}
+              retrying={query.isFetching}
+            />
           ) : query.isError && !query.data ? (
-            <RequestError
-              message="Les saisons sont indisponibles."
+            <ErrorState
               onRetry={() =>
                 void query.refetch({ cancelRefetch: false }).then((result) => {
                   if (
@@ -203,11 +201,8 @@ function SeasonControlScope({
         state={
           !authority.enabled ? (
             <CollectionAccessFeedback authority={authority} />
-          ) : isAccessDenied(season.error) ? (
-            <AccessDenied />
           ) : season.isError ? (
-            <RequestError
-              message="La saison est indisponible."
+            <ErrorState
               onRetry={() =>
                 void season.refetch().then((result) => {
                   if (
@@ -299,11 +294,8 @@ function ControlScope({
         state={
           !authority.enabled ? (
             <CollectionAccessFeedback authority={authority} />
-          ) : isAccessDenied(query.error) ? (
-            <AccessDenied message="Ces contrôles ne sont pas accessibles." />
           ) : query.isError ? (
-            <RequestError
-              message="Les contrôles sont indisponibles."
+            <ErrorState
               onRetry={() =>
                 void query.refetch().then((result) => {
                   if (
@@ -317,7 +309,7 @@ function ControlScope({
               retrying={query.isFetching}
             />
           ) : query.data ? (
-            <RequestError message="Ce contrôle est indisponible pour le périmètre sélectionné." />
+            <ErrorState />
           ) : (
             <RequestLoading />
           )
@@ -440,9 +432,6 @@ function ControlDashboard({
               Saison clôturée · historique conservé
             </Text>
           )}
-          {seasonUnavailable && (
-            <RequestError message="L’état de la saison doit être relu avant une nouvelle action." />
-          )}
           {matches && current ? (
             <CollectionControl
               control={current}
@@ -453,8 +442,7 @@ function ControlDashboard({
               stateUnavailable={seasonUnavailable}
             />
           ) : query.isError ? (
-            <RequestError
-              message="Le contrôle est indisponible."
+            <ErrorState
               onRetry={() =>
                 void query.refetch({ cancelRefetch: false }).then((result) => {
                   if (
@@ -468,7 +456,7 @@ function ControlDashboard({
               retrying={query.isFetching}
             />
           ) : current ? (
-            <RequestError message="Le contrôle ne correspond pas au périmètre sélectionné." />
+            <ErrorState />
           ) : (
             <RequestLoading />
           )}
@@ -526,16 +514,13 @@ function ControlDashboard({
           <ScreenState>
             {!authority.enabled ? (
               <CollectionAccessFeedback authority={authority} />
-            ) : isAccessDenied(query.error) ? (
-              <AccessDenied />
             ) : query.isError ? (
-              <RequestError
-                message="Le contrôle est indisponible."
+              <ErrorState
                 onRetry={() => void query.refetch()}
                 retrying={query.isFetching}
               />
             ) : current ? (
-              <RequestError message="Le contrôle ne correspond pas au périmètre sélectionné." />
+              <ErrorState />
             ) : (
               <RequestLoading />
             )}
@@ -567,12 +552,14 @@ function ControlDashboard({
             authority.enabled && matches ? (
               <View style={styles.footer}>
                 {isAccessDenied(results.error) ? (
-                  <AccessDenied message="Ces résultats ne sont pas accessibles." />
+                  <ErrorState
+                    onRetry={() => void results.refetch()}
+                    retrying={results.isFetching}
+                  />
                 ) : (
                   results.isError &&
                   !results.data && (
-                    <RequestError
-                      message="Les résultats sont indisponibles."
+                    <ErrorState
                       onRetry={() =>
                         void results.refetch().then((result) => {
                           if (

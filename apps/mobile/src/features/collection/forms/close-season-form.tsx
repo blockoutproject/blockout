@@ -7,7 +7,7 @@ import type { CollectionSeasonResponse } from "../../../../.generated/schemas/in
 import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
-import { RequestError } from "../../../shared/components/request-feedback";
+
 import { Surface } from "../../../shared/components/surface";
 import { TextField } from "../../../shared/components/text-field";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
@@ -99,10 +99,7 @@ export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
           ...editor.getSnapshot(),
           feedback: "Le résultat doit être vérifié avant une nouvelle action.",
         });
-      else
-        actionFeedback.error(
-          "La clôture a été refusée. Votre saisie est conservée.",
-        );
+      else actionFeedback.error();
     }
   }
 
@@ -122,10 +119,7 @@ export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
       !read.data ||
       read.data.revision < baseline.revision
     ) {
-      editor.update({
-        ...editor.getSnapshot(),
-        feedback: "La relecture a échoué. Votre saisie est conservée.",
-      });
+      actionFeedback.error();
       return;
     }
     editor.update({
@@ -214,13 +208,7 @@ export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
           {feedback}
         </Text>
       )}
-      {editing.season.isError && !feedback && (
-        <RequestError
-          message="La relecture a échoué. Votre saisie est conservée."
-          onRetry={() => void editing.season.refetch({ cancelRefetch: false })}
-          retrying={editing.season.isFetching}
-        />
-      )}
+
       {!closed && needsRead && (
         <Button
           label="Relire l’état"

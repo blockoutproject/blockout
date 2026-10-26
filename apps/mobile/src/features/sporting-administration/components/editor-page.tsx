@@ -1,4 +1,4 @@
-import { isAccessDenied } from "../../../shared/api/access-denied";
+import { ErrorState } from "../../../shared/components/state-card";
 import type { PropsWithChildren, ReactNode } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,11 +7,7 @@ import {
   FormScrollView,
   type FormScrollViewProps,
 } from "../../../shared/components/form-scroll-view";
-import {
-  RequestError,
-  RequestLoading,
-  AccessDenied,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -48,7 +44,7 @@ export function EditorPage({
     </SafeAreaView>
   );
 }
-/** Failed account refresh suspends actions while the retained RHF draft remains read-only. */
+/** Initial authority feedback only; retained editor refresh failures use the owning event toast. */
 export function SportingAccessFeedback({
   authority,
 }: {
@@ -59,16 +55,14 @@ export function SportingAccessFeedback({
     (authority.sessionStatus === "authenticated" && authority.account.isPending)
   )
     return <RequestLoading />;
-  if (isAccessDenied(authority.account.error)) return <AccessDenied />;
   if (authority.account.isError)
     return (
-      <RequestError
-        message="Les permissions du compte sont indisponibles."
+      <ErrorState
         onRetry={() => void authority.account.refetch()}
         retrying={authority.account.isFetching}
       />
     );
-  return authority.enabled ? null : <AccessDenied />;
+  return authority.enabled ? null : <ErrorState />;
 }
 const styles = StyleSheet.create({
   screen: { flex: 1 },

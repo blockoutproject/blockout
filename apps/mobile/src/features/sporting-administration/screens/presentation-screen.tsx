@@ -1,4 +1,4 @@
-import { isAccessDenied } from "../../../shared/api/access-denied";
+import { ErrorState } from "../../../shared/components/state-card";
 import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 import {
   getGetClubLogoQueryKey,
@@ -7,11 +7,7 @@ import {
 } from "../../../../.generated/mobile";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
-import {
-  AccessDenied,
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { useAccountSession } from "../../accounts/current-account";
 import { useAdministrationCapabilities } from "../../access/api/use-administration-capabilities";
@@ -74,13 +70,14 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
     if (editing.save.isPending()) return;
     feedback.clear();
     if (!canRead) {
-      await account.refetch();
+      const result = await account.refetch();
+      if (result.isError && presentation) feedback.error();
       return;
     }
     const result = await editing.query.refetch();
     if (!session.isCurrent(session.generation)) return;
     if (result.isError) {
-      if (result.data && !isAccessDenied(result.error)) feedback.error();
+      if (result.data) feedback.error();
       return;
     }
     if (editing.save.isPending()) return;
@@ -92,54 +89,33 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
     const retainedFailure = client
       .getQueryCache()
       .findAll({ queryKey: logoKey, type: "active" })
-      .some(
-        ({ state }) =>
-          state.status === "error" &&
-          state.data &&
-          !isAccessDenied(state.error),
-      );
-    if (retainedFailure)
-      feedback.error(
-        "L’actualisation du logo a échoué. Le logo précédent reste affiché.",
-      );
+      .some(({ state }) => state.status === "error" && state.dataUpdatedAt > 0);
+    if (retainedFailure) feedback.error();
   }
   const accessState = pending ? (
     <RequestLoading />
-  ) : isAccessDenied(account.error) ? (
-    <AccessDenied />
   ) : account.isError ? (
-    <RequestError
-      message="Les permissions du compte sont indisponibles."
+    <ErrorState
       onRetry={() =>
         void account.refetch().then((result) => {
-          if (result.isError && result.data && !isAccessDenied(result.error))
-            feedback.error();
+          if (result.isError && result.data) feedback.error();
         })
       }
       retrying={account.isFetching}
     />
   ) : !canRead ? (
-    <AccessDenied message="Cette action nécessite une permission dédiée." />
+    <ErrorState />
   ) : undefined;
-  const denied = isAccessDenied(editing.query.error);
   return (
     <EditorPage
       state={
         !presentation
           ? (accessState ??
-            (denied ? (
-              <AccessDenied />
-            ) : editing.query.isError ? (
-              <RequestError
-                message="La présentation est indisponible."
+            (editing.query.isError ? (
+              <ErrorState
                 onRetry={() =>
                   void editing.query.refetch().then((result) => {
-                    if (
-                      result.isError &&
-                      result.data &&
-                      !isAccessDenied(result.error)
-                    )
-                      feedback.error();
+                    if (result.isError && result.data) feedback.error();
                   })
                 }
                 retrying={editing.query.isFetching}
@@ -165,8 +141,6 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
         ) : undefined
       }
     >
-      {accessState}
-      {presentation && denied && <AccessDenied />}
       {presentation && (
         <PresentationForm
           key={`${session.generation}:${target.kind}:${target.id}`}

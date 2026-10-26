@@ -2,10 +2,7 @@ import { isAccessDenied } from "../../../shared/api/access-denied";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
-import {
-  AccessDenied,
-  RequestError,
-} from "../../../shared/components/request-feedback";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -15,7 +12,7 @@ import { searchSchema, type SearchValues } from "../schemas/search-schema";
 import { searchValues } from "../forms/search-values";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { Button } from "../../../shared/components/button";
-import { EmptyState } from "../../../shared/components/state-card";
+import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { SearchField } from "../../../shared/components/search-field";
@@ -135,19 +132,12 @@ function TextSearchResults({
     if (result.isError && result.data && !isAccessDenied(result.error))
       feedback.error();
   }
-  const denied = isAccessDenied(query.error);
-  const missing = query.error instanceof ApiError && query.error.status === 404;
   const error =
     query.isError && !query.data ? (
-      denied ? (
-        <AccessDenied message="Cette recherche n’est pas accessible." />
-      ) : (
-        <RequestError
-          message={missing ? "Cette recherche est indisponible." : undefined}
-          onRetry={missing ? undefined : () => void query.refresh()}
-          retrying={query.isFetching}
-        />
-      )
+      <ErrorState
+        onRetry={() => void query.refresh()}
+        retrying={query.isFetching}
+      />
     ) : undefined;
   if (
     query.data?.pages.some((page) =>

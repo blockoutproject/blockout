@@ -1,3 +1,4 @@
+import { ErrorState } from "../../../shared/components/state-card";
 import { useEffect } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import {
@@ -13,10 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandMark } from "../../../shared/components/brand-mark";
 import { Surface } from "../../../shared/components/surface";
 import { ScreenState } from "../../../shared/components/screen-state";
-import {
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useReducedMotion } from "../../../shared/theme/use-reduced-motion";
@@ -85,10 +83,7 @@ export function AgeDeclarationScreen() {
             {age.loading ? (
               <RequestLoading />
             ) : (
-              <RequestError
-                message="Votre déclaration n’a pas pu être chargée."
-                onRetry={age.retryRead}
-              />
+              <ErrorState onRetry={age.retryRead} />
             )}
           </ScreenState>
         ) : (

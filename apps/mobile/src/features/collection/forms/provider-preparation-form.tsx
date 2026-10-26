@@ -13,7 +13,7 @@ import type {
   CollectionSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { Button } from "../../../shared/components/button";
-import { RequestError } from "../../../shared/components/request-feedback";
+
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import type { useSeasonPreparation } from "../api/use-source-preparation";
@@ -129,9 +129,7 @@ export function ProviderPreparationForm({
       });
     } else {
       editor.update({ ...editor.getSnapshot(), feedback: undefined });
-      actionFeedback.error(
-        "L’action a été refusée. Votre saisie est conservée.",
-      );
+      actionFeedback.error();
     }
   }
   /** Presents the actual selected labels; a native confirmation never broadens the atomic launch scope. */
@@ -206,10 +204,7 @@ export function ProviderPreparationForm({
       !sourcesResult.data ||
       seasonResult.data.revision < baseline.revision
     ) {
-      editor.update({
-        ...editor.getSnapshot(),
-        feedback: "La relecture a échoué. Votre saisie est conservée.",
-      });
+      actionFeedback.error();
       return;
     }
     editor.update({
@@ -317,16 +312,7 @@ export function ProviderPreparationForm({
           {feedback}
         </Text>
       )}
-      {(editing.season.isError || editing.sources.isError) && !feedback && (
-        <RequestError
-          message="La relecture a échoué. Votre saisie est conservée."
-          onRetry={() => {
-            void editing.season.refetch({ cancelRefetch: false });
-            void editing.sources.refetch({ cancelRefetch: false });
-          }}
-          retrying={editing.season.isFetching || editing.sources.isFetching}
-        />
-      )}
+
       {reconciliationRequired && (
         <Button
           label="Relire l’état"

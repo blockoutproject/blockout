@@ -1,7 +1,6 @@
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { EmptyState } from "../../../shared/components/state-card";
-import { SportingAccessFeedback } from "../components/editor-page";
+import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import {
   sportingGenderLabels,
   formatLabel,
@@ -10,11 +9,7 @@ import { useRouter } from "expo-router";
 import { useWatch } from "react-hook-form";
 import { Check } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import {
-  AccessDenied,
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { Sheet } from "../../../shared/components/sheet";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { tokens } from "../../../shared/theme/tokens";
@@ -42,7 +37,7 @@ export function ClassificationSelectionScreen({
     <Selection editor={editor} field={field} target={target} />
   ) : (
     <Sheet title="Classification" onClose={() => router.back()}>
-      <AccessDenied message="Ouvrez la classification avant de choisir une valeur." />
+      <ErrorState />
     </Sheet>
   );
 }
@@ -106,68 +101,34 @@ function Selection({
             onRefresh={() => {
               if (divisions.authority.enabled)
                 void divisions.query.refetch().then((result) => {
-                  if (
-                    result.isError &&
-                    result.data &&
-                    !isAccessDenied(result.error)
-                  )
-                    feedback.error();
+                  if (result.isError && result.data) feedback.error();
                 });
               else
                 void divisions.authority.account.refetch().then((result) => {
-                  if (
-                    result.isError &&
-                    result.data &&
-                    !isAccessDenied(result.error)
-                  )
-                    feedback.error();
+                  if (result.isError && result.data) feedback.error();
                 });
             }}
           />
         ) : undefined
       }
     >
-      <SportingAccessFeedback authority={divisions.authority} />
       {divisions.authority.enabled &&
         field === "divisionId" &&
         divisions.query.isPending && <RequestLoading />}
-      {denied ? (
-        <AccessDenied
-          message={
-            isAccessDenied(classification.query.error)
-              ? "Cette classification n’est pas accessible."
-              : "Ces divisions ne sont pas accessibles."
-          }
-        />
-      ) : classification.query.isError ? (
-        <RequestError message="La classification doit être relue avant de modifier une valeur." />
-      ) : (
-        divisions.authority.enabled &&
+      {divisions.authority.enabled &&
         field === "divisionId" &&
         divisions.query.isError &&
         !divisions.query.data && (
-          <RequestError
-            message="Les divisions sont indisponibles."
-            onRetry={() =>
-              void divisions.query.refetch().then((result) => {
-                if (
-                  result.isError &&
-                  result.data &&
-                  !isAccessDenied(result.error)
-                )
-                  feedback.error();
-              })
-            }
+          <ErrorState
+            onRetry={() => void divisions.query.refetch()}
             retrying={divisions.query.isFetching}
           />
-        )
-      )}
+        )}
       {divisions.authority.enabled &&
         field === "divisionId" &&
         divisions.query.isSuccess &&
         choices.length === 0 && <EmptyState title="Aucune division active" />}
-      {divisions.authority.enabled &&
-        !denied &&
+      {!(field === "divisionId" && isAccessDenied(divisions.query.error)) &&
         choices.map((choice) => (
           <Pressable
             key={choice.value}

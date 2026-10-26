@@ -1,3 +1,4 @@
+import { ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { useRouter } from "expo-router";
 import {
@@ -10,14 +11,9 @@ import { StyleSheet } from "react-native";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ApiError } from "../../../shared/api/api-fetch";
-import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
-import {
-  AccessDenied,
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { AdministrationEntry } from "../../access/entry";
@@ -61,7 +57,6 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
   const saving = useIsMutating({ mutationKey }) > 0;
   const missing =
     account.error instanceof ApiError && account.error.status === 404;
-  const denied = isAccessDenied(account.error);
   const photoKey = getSessionQueryKey(
     session.generation,
     getGetAccountPhotoQueryKey(account.data?.accountId ?? ""),
@@ -77,8 +72,7 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
     const result = await account.refetch({ cancelRefetch: false });
     if (!session.isCurrent(session.generation)) return;
     if (result.isError) {
-      if (result.data && !isAccessDenied(result.error))
-        feedback.error("L’actualisation a échoué. Votre profil est conservé.");
+      if (result.data) feedback.error();
       return;
     }
     if (client.isMutating({ mutationKey }) || !result.data?.hasPhoto) return;
@@ -95,12 +89,9 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
     if (
       session.isCurrent(session.generation) &&
       photo?.status === "error" &&
-      !isAccessDenied(photo.error) &&
-      photo.data
+      photo.dataUpdatedAt > 0
     )
-      feedback.error(
-        "L’actualisation de votre photo a échoué. La photo précédente reste affichée.",
-      );
+      feedback.error();
   }
 
   return (
@@ -120,7 +111,7 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
       >
         {!admitted ? (
           <ScreenState>
-            <AccessDenied message="L’accès à l’application doit être vérifié avant de continuer." />
+            <ErrorState />
           </ScreenState>
         ) : (
           <>
@@ -141,19 +132,10 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
               <>
                 {account.isError && !account.data && (
                   <ScreenState>
-                    {denied ? (
-                      <AccessDenied message="Votre profil n’est pas accessible." />
-                    ) : (
-                      <RequestError
-                        message={
-                          missing
-                            ? "Votre compte Blockout est introuvable."
-                            : "Votre profil Blockout est indisponible."
-                        }
-                        onRetry={() => void account.refetch()}
-                        retrying={account.isFetching}
-                      />
-                    )}
+                    <ErrorState
+                      onRetry={() => void account.refetch()}
+                      retrying={account.isFetching}
+                    />
                     {missing && (
                       <Button
                         label="Se connecter"
@@ -164,9 +146,6 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
                 )}
                 {account.data && (
                   <>
-                    {denied && (
-                      <AccessDenied message="Votre profil n’est pas accessible." />
-                    )}
                     {account.isSuccess &&
                       account.data.principalCreatedAt === null && (
                         <AccountAgeRetry
@@ -207,10 +186,10 @@ function AccountAgeRetry() {
   const establishment = useEstablishAccount();
   const feedback = useActionFeedback();
   return (
-    <RequestError
-      message="L’ancienneté de votre compte est indisponible."
-      retrying={establishment.pending}
-      onRetry={() => {
+    <Button
+      label="Réessayer"
+      loading={establishment.pending}
+      onPress={() => {
         feedback.clear();
         void establishment.start(session)?.catch(() => {
           if (session.isCurrent(session.generation)) feedback.error();

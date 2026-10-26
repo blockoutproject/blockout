@@ -39,7 +39,7 @@ export function AgeForm({ pending, onSubmit }: AgeFormProps) {
       feedback.clear();
       await operation;
     } catch {
-      feedback.error("Votre choix n’a pas pu être enregistré. Réessayez.");
+      feedback.error();
     }
   }
 

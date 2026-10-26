@@ -1,6 +1,6 @@
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { EmptyState } from "../../../shared/components/state-card";
+import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,10 +19,7 @@ import type { DivisionResponse } from "../../../../.generated/schemas/index.zod"
 import { IconButton } from "../../../shared/components/icon-button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { SearchField } from "../../../shared/components/search-field";
-import {
-  AccessDenied,
-  RequestError,
-} from "../../../shared/components/request-feedback";
+
 import { DivisionsLoading } from "../components/divisions-loading";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -230,10 +227,12 @@ export function DivisionsScreen() {
           ) : (
             <ScreenState>
               {denied ? (
-                <AccessDenied message="Ces divisions ne sont pas accessibles." />
+                <ErrorState
+                  onRetry={() => void query.refetch()}
+                  retrying={query.isFetching}
+                />
               ) : query.isError && !query.data ? (
-                <RequestError
-                  message="Les divisions sont indisponibles."
+                <ErrorState
                   onRetry={() =>
                     void query.refetch().then((result) => {
                       if (

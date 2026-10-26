@@ -127,8 +127,10 @@ export function ActionFeedbackProvider({
 /**
  * Supplies event-only technical/functional failure feedback for the mounted original interaction.
  * Pass safe product copy; field validation and uncertain outcomes remain inline at their owning form.
+ * A native handoff may retain an already-published notice after closing its route; late events
+ * remain ignored, and the root still owns session invalidation and the ordinary toast timeout.
  */
-export function useActionFeedback() {
+export function useActionFeedback({ retainOnUnmount = false } = {}) {
   const context = useContext(FeedbackContext);
   if (!context)
     throw new Error("Action feedback requires ActionFeedbackProvider");
@@ -140,9 +142,9 @@ export function useActionFeedback() {
     const identity = owner.current;
     return () => {
       mounted.current = false;
-      clear(identity);
+      if (!retainOnUnmount) clear(identity);
     };
-  }, [clear]);
+  }, [clear, retainOnUnmount]);
   return {
     /**
      * Replaces feedback for a live event. A session-changing continuation may supply its new scope

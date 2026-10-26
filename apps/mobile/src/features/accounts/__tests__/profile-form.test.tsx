@@ -312,7 +312,7 @@ it("reports an explicit failed refresh while keeping the profile and dirty input
   // Then
   expect(
     await screen.findByRole("alert", {
-      name: "L’actualisation a échoué. Votre profil est conservé.",
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
     }),
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Unsaved")).toBeOnTheScreen();
@@ -325,7 +325,7 @@ it("reports an explicit failed refresh while keeping the profile and dirty input
 });
 
 it.each([401, 403])(
-  "presents an initial account refusal %s without technical retry",
+  "presents an initial account refusal %s with opaque copy and owner-controlled retry",
   async (status) => {
     // Given
     mockFetch.mockResolvedValue(json({ title: "Denied", status }, status));
@@ -335,9 +335,9 @@ it.each([401, 403])(
 
     // Then
     expect(
-      await screen.findByRole("alert", { name: "Accès refusé" }),
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
     ).toBeOnTheScreen();
-    expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
     expect(screen.queryByLabelText("Pseudo")).toBeNull();
     expect(
       screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
@@ -359,7 +359,7 @@ it("keeps a refused profile draft read-only through a failed recheck until a suc
 
   // Then
   expect(
-    await screen.findByRole("alert", { name: "Accès refusé" }),
+    await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Unsaved")).toBeDisabled();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
@@ -379,12 +379,12 @@ it("keeps a refused profile draft read-only through a failed recheck until a suc
   );
 
   // Then
-  expect(screen.getByRole("alert", { name: "Accès refusé" })).toBeOnTheScreen();
+  expect(
+    screen.getByRole("alert", { name: TECHNICAL_ERROR }),
+  ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Unsaved")).toBeDisabled();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-  expect(
-    screen.queryByText("L’actualisation a échoué. Votre profil est conservé."),
-  ).toBeNull();
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
 
   // When
   mockFetch.mockResolvedValue(json({ ...account, username: "Remote_name" }));
@@ -395,7 +395,7 @@ it("keeps a refused profile draft read-only through a failed recheck until a suc
     expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
   );
   expect(screen.getByDisplayValue("Unsaved")).toBeEnabled();
-  expect(screen.queryByRole("alert", { name: "Accès refusé" })).toBeNull();
+  expect(screen.queryByRole("alert", { name: TECHNICAL_ERROR })).toBeNull();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method !== "GET"),
   ).toHaveLength(0);
@@ -417,7 +417,7 @@ it("refuses an unsent profile save when its account read is denied during creden
 
   // When
   await user.press(screen.getByRole("button", { name: "Relire le compte" }));
-  await screen.findByRole("alert", { name: "Accès refusé" });
+  await waitFor(() => expect(client.isFetching()).toBe(0));
   await act(async () => credentials.resolve(credentialsFor("auth0|one")));
 
   // Then
@@ -482,9 +482,7 @@ it("keeps the first photo read separate from native refresh progress", async () 
   await act(() => photoRead.resolve(new Response(null, { status: 503 })));
 
   // Then
-  expect(
-    await screen.findByText("Votre photo est indisponible."),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 });
 
@@ -677,13 +675,13 @@ it("removes a refused remote photo until a successful photo read without treatin
 
     // Then
     expect(
-      await screen.findByText("Votre photo n’est pas accessible."),
+      await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
     ).toBeOnTheScreen();
     expect(
       screen.queryByRole("button", { name: "Aperçu : Photo de profil" }),
     ).toBeNull();
     expect(screen.getByLabelText("Pseudo")).toBeEnabled();
-    expect(screen.queryByText("Votre photo est indisponible.")).toBeNull();
+    expect(screen.queryByText("Une erreur est survenue")).toBeNull();
 
     // When
     photoStatus = 503;
@@ -692,7 +690,7 @@ it("removes a refused remote photo until a successful photo read without treatin
 
     // Then
     expect(
-      screen.getByText("Votre photo n’est pas accessible."),
+      screen.getByRole("alert", { name: TECHNICAL_ERROR }),
     ).toBeOnTheScreen();
     expect(
       screen.queryByRole("button", { name: "Aperçu : Photo de profil" }),
@@ -706,7 +704,7 @@ it("removes a refused remote photo until a successful photo read without treatin
     expect(
       await screen.findByRole("button", { name: "Aperçu : Photo de profil" }),
     ).toBeOnTheScreen();
-    expect(screen.queryByText("Votre photo n’est pas accessible.")).toBeNull();
+    expect(screen.queryByText("Une erreur est survenue")).toBeNull();
   } finally {
     if (previousReader)
       Object.defineProperty(globalThis, "FileReader", previousReader);

@@ -213,9 +213,7 @@ it("shows loading without publishing defaults, then retries a failed initial rea
   );
 
   // Then
-  expect(
-    await screen.findByText("Les réglages de versions sont indisponibles."),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
   expect(screen.queryByLabelText("Message commun")).not.toBeOnTheScreen();
 
   // When
@@ -445,7 +443,7 @@ it.each([403, 422])(
     // Then
     expect(
       await screen.findByText(
-        "L’enregistrement a été refusé. Vérifiez les valeurs et vos permissions.",
+        "Une erreur est survenue. Veuillez réessayer plus tard.",
       ),
     ).toBeOnTheScreen();
     expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
@@ -572,7 +570,7 @@ it("keeps dirty values and blocks writes after a newer refetch and a failed rere
 
   // Then
   await screen.findByText(
-    "La relecture a échoué. Votre brouillon est conservé.",
+    "Une erreur est survenue. Veuillez réessayer plus tard.",
   );
   expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
     "Mon brouillon",
@@ -612,11 +610,12 @@ it.each(["revoked", "unavailable"])(
         predicate: (q) => q.queryKey.includes("/accounts/me"),
       }),
     );
-    await screen.findByText(
-      outcome === "revoked"
-        ? "Cette action nécessite une permission dédiée."
-        : "Les permissions du compte sont indisponibles.",
+    await waitFor(() =>
+      expect(screen.getByLabelText("Message commun")).toBeDisabled(),
     );
+    expect(
+      screen.queryByRole("alert", { name: "Une erreur est survenue" }),
+    ).not.toBeOnTheScreen();
     await act(async () => confirm?.());
 
     // Then
@@ -650,7 +649,9 @@ it("retains a read-only draft and rejects held confirmation after the settings e
 
   // When
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  await screen.findByRole("alert", { name: "Accès refusé" });
+  await screen.findByRole("alert", {
+    name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+  });
   await act(async () => confirm?.());
 
   // Then
@@ -658,6 +659,9 @@ it("retains a read-only draft and rejects held confirmation after the settings e
     "Mon brouillon",
   );
   expect(screen.getByLabelText("Message commun")).toBeDisabled();
+  expect(
+    screen.queryByRole("alert", { name: "Une erreur est survenue" }),
+  ).not.toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
@@ -683,8 +687,15 @@ it("retains a read-only draft and rejects held confirmation after the settings e
       expect.objectContaining({ busy: false }),
     ),
   );
-  expect(screen.getByRole("alert", { name: "Accès refusé" })).toBeOnTheScreen();
+  expect(
+    screen.getByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
   expect(screen.getByLabelText("Message commun")).toBeDisabled();
+  expect(
+    screen.queryByRole("alert", { name: "Une erreur est survenue" }),
+  ).not.toBeOnTheScreen();
 
   // When
   mockFetch.mockImplementation(async (url) =>
@@ -700,11 +711,13 @@ it("retains a read-only draft and rejects held confirmation after the settings e
     "Mon brouillon",
   );
   expect(
-    screen.queryByRole("alert", { name: "Accès refusé" }),
+    screen.queryByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
   ).not.toBeOnTheScreen();
 });
 
-it("presents an initial settings refusal without a technical retry or editable defaults", async () => {
+it("presents an initial settings refusal with an opaque retryable card and no editable defaults", async () => {
   // Given
   mockFetch.mockImplementation(async (url) =>
     String(url).endsWith("/accounts/me")
@@ -724,11 +737,9 @@ it("presents an initial settings refusal without a technical retry or editable d
 
   // Then
   expect(
-    await screen.findByRole("alert", { name: "Accès refusé" }),
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
   ).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("button", { name: "Réessayer" }),
-  ).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
   expect(screen.queryByLabelText("Message commun")).not.toBeOnTheScreen();
 });
 it("keeps the production route closed without operational admission", async () => {
@@ -736,9 +747,7 @@ it("keeps the production route closed without operational admission", async () =
   await renderSettings(<ApplicationVersionsRoute />);
 
   // Then
-  await screen.findByText(
-    "L’accès à l’application doit être vérifié avant de continuer.",
-  );
+  await screen.findByText("Une erreur est survenue");
   expect(screen.queryByLabelText("Message commun")).not.toBeOnTheScreen();
 });
 
@@ -804,7 +813,7 @@ it("rejects invalid or older rereads without replacing the accepted cache or dir
 
   // Then
   await screen.findByText(
-    "L’actualisation a échoué. Votre brouillon est conservé.",
+    "Une erreur est survenue. Veuillez réessayer plus tard.",
   );
   expect(client.getQueryData(key)).toEqual(initial);
   expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
@@ -979,7 +988,7 @@ it("keeps a delayed acknowledged write and older reread behind the latest public
   // Then
   expect(
     await screen.findByText(
-      "La relecture a échoué. Votre brouillon est conservé.",
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
     ),
   ).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();

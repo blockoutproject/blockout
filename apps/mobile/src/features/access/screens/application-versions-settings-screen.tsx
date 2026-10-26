@@ -1,3 +1,4 @@
+import { ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { isAccessDenied } from "../../../shared/api/access-denied";
@@ -6,11 +7,7 @@ import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PageHeader } from "../../../shared/components/page-header";
-import {
-  AccessDenied,
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useAccountSession } from "../../accounts/current-account";
@@ -38,33 +35,24 @@ export function ApplicationVersionsSettingsScreen() {
     if (editing.content.isPending()) return;
     feedback.clear();
     if (!canManage) {
-      await account.refetch();
+      const result = await account.refetch();
+      if (result.isError && settings) feedback.error();
       return;
     }
     const result = await editing.query.refetch();
-    if (
-      session.isCurrent(session.generation) &&
-      result.isError &&
-      result.data &&
-      !isAccessDenied(result.error)
-    )
-      feedback.error("L’actualisation a échoué. Votre brouillon est conservé.");
+    if (session.isCurrent(session.generation) && result.isError && result.data)
+      feedback.error();
   }
   let accessError = null;
-  if (denied) {
-    accessError = <AccessDenied />;
-  } else if (account.isError) {
+  if (account.isError) {
     accessError = (
-      <RequestError
-        message="Les permissions du compte sont indisponibles."
+      <ErrorState
         onRetry={() => void account.refetch()}
         retrying={account.isFetching}
       />
     );
   } else if (!canManage) {
-    accessError = (
-      <AccessDenied message="Cette action nécessite une permission dédiée." />
-    );
+    accessError = <ErrorState />;
   }
   let settingsContent = null;
   if (settings) {
@@ -78,8 +66,7 @@ export function ApplicationVersionsSettingsScreen() {
     );
   } else if (!accessError && editing.query.isError) {
     settingsContent = (
-      <RequestError
-        message="Les réglages de versions sont indisponibles."
+      <ErrorState
         onRetry={() => void editing.query.refetch()}
         retrying={editing.query.isFetching}
       />
@@ -123,10 +110,7 @@ export function ApplicationVersionsSettingsScreen() {
             )}
           </ScreenState>
         ) : (
-          <>
-            {accessError}
-            {settingsContent}
-          </>
+          settingsContent
         )}
       </FormScrollView>
     </SafeAreaView>

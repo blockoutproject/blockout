@@ -70,8 +70,10 @@ export function createProSession() {
     );
   }
 
-  /** Starts an SDK read per trigger; only its latest current-session result updates presentation. */
-  async function refresh(session: SessionSnapshot): Promise<void> {
+  /** Returns the accepted read outcome; obsolete or unstarted attempts return undefined. */
+  async function refresh(
+    session: SessionSnapshot,
+  ): Promise<boolean | undefined> {
     if (!isAssociated(session)) return;
     const request = Symbol();
     publish({ ...snapshot, read: request });
@@ -94,12 +96,14 @@ export function createProSession() {
           read: null,
           verificationFailed: false,
         });
+        return true;
       }
     } catch {
       diagnose("read", "failed");
       if (isAssociated(session) && snapshot.read === request) {
         // A failed refresh never withdraws independently known current rights.
         publish({ ...snapshot, read: null, verificationFailed: true });
+        return false;
       }
     }
   }
@@ -224,8 +228,8 @@ export function createProSession() {
 
     refresh,
 
-    /** Retries only an explicit, still-current request; ordinary refresh never retries identity. */
-    retry(session: SessionSnapshot) {
+    /** Returns a verification outcome when associated; association retry remains owned by its lifecycle. */
+    async retry(session: SessionSnapshot): Promise<boolean | undefined> {
       if (
         !sameSession(target, session) ||
         !session.accountId ||
@@ -233,8 +237,7 @@ export function createProSession() {
       )
         return;
       if (isAssociated(session)) {
-        void refresh(session);
-        return;
+        return refresh(session);
       }
       publish({
         ...snapshot,

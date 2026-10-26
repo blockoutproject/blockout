@@ -1,3 +1,4 @@
+import { ErrorState } from "../../../shared/components/state-card";
 import {
   useEffect,
   useRef,
@@ -15,15 +16,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { UseQueryResult } from "@tanstack/react-query";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { resourceUnavailable } from "../model/consultation-availability";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { PageHeader } from "../../../shared/components/page-header";
-import {
-  RequestError,
-  RequestLoading,
-  AccessDenied,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -83,7 +78,7 @@ export function ResourceText({ children }: PropsWithChildren) {
   );
 }
 
-/** Announces pending, failed and refused reads independently of still-usable content. */
+/** Initial or withdrawn resource feedback; a retained read failure belongs to its refresh event toast. */
 export function ResourceFeedback<T>({
   query,
 }: {
@@ -91,22 +86,9 @@ export function ResourceFeedback<T>({
 }) {
   if (query.isPending) return <RequestLoading />;
   if (!query.isError) return null;
-  const unavailable = resourceUnavailable(query.error);
-  if (
-    unavailable &&
-    query.error instanceof ApiError &&
-    query.error.status !== 404
-  )
-    return <AccessDenied message="Cette ressource n’est pas accessible." />;
-  const message = unavailable
-    ? "Cette ressource est introuvable."
-    : query.data
-      ? "L’actualisation a échoué. Les informations précédentes restent affichées."
-      : "Impossible de charger les informations.";
   return (
-    <RequestError
-      message={message}
-      onRetry={unavailable ? undefined : () => void query.refetch()}
+    <ErrorState
+      onRetry={() => void query.refetch()}
       retrying={query.isFetching}
     />
   );

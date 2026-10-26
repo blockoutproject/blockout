@@ -1,5 +1,5 @@
+import { ErrorState } from "../../../shared/components/state-card";
 import { ImageValidationError } from "../../../shared/images/image-validation-error";
-import { isAccessDenied } from "../../../shared/api/access-denied";
 import type { File } from "expo-file-system";
 import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
 import { useImageSelection } from "../../../shared/images/use-image-selection";
@@ -16,11 +16,7 @@ import {
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { ImageField } from "../../../shared/components/image-field";
-import {
-  AccessDenied,
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { TextField } from "../../../shared/components/text-field";
 import { Surface } from "../../../shared/components/surface";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -136,6 +132,18 @@ export function ProfileForm({
     };
   }, [getValues, generation, isCurrent, subscribe]);
 
+  /** Observes the original result without replaying a write; failed rereads preserve the draft and uncertainty guard. */
+  async function readOriginal() {
+    feedback.clear();
+    const { result, reconciled } = await reread();
+    if (
+      active.current &&
+      session.isCurrent(session.generation) &&
+      (!reconciled || result.isError)
+    )
+      feedback.error();
+  }
+
   /** Transfers a prepared copy to RHF and releases the replaced draft without touching an active upload. */
   function replacePhoto(next: ProfileValues["photo"]) {
     const previous = getValues("photo");
@@ -183,7 +191,7 @@ export function ProfileForm({
           message:
             "Cette photo ne peut pas être enregistrée. Choisissez une autre image.",
         });
-      else if (isUncertainMutationFailure(error)) await reread();
+      else if (isUncertainMutationFailure(error)) await readOriginal();
       else feedback.error();
     } finally {
       uploading.current = undefined;
@@ -208,16 +216,12 @@ export function ProfileForm({
           {draft.action === "keep" &&
             account.hasPhoto &&
             photo.isError &&
-            !photo.data &&
-            (isAccessDenied(photo.error) ? (
-              <AccessDenied message="Votre photo n’est pas accessible." />
-            ) : (
-              <RequestError
-                message="Votre photo est indisponible."
+            photo.dataUpdatedAt === 0 && (
+              <ErrorState
                 onRetry={() => void photo.refetch()}
                 retrying={photo.isFetching}
               />
-            ))}
+            )}
           <Controller
             control={control}
             name="photo"
@@ -267,7 +271,13 @@ export function ProfileForm({
       </Surface>
       {(uncertain || needsRead) &&
         (needsRead ? (
-          <RequestError message="Le résultat de la sauvegarde est incertain. Vérifiez votre profil avant de réessayer." />
+          <Text
+            accessibilityLiveRegion="polite"
+            style={[tokens.typography.body, { color: colors.text }]}
+          >
+            Le résultat de la sauvegarde est incertain. Vérifiez votre profil
+            avant de réessayer.
+          </Text>
         ) : (
           <Text
             accessibilityLiveRegion="polite"
@@ -281,7 +291,7 @@ export function ProfileForm({
         <Button
           label="Vérifier mon profil"
           loading={original.isFetching}
-          onPress={() => void reread()}
+          onPress={() => void readOriginal()}
         />
       )}
       <Button

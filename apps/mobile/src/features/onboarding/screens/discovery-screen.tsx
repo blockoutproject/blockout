@@ -1,3 +1,4 @@
+import { ErrorState } from "../../../shared/components/state-card";
 import { ArrowRight, ChevronLeft } from "lucide-react-native";
 import { useEffect, useRef, useState, type ComponentRef } from "react";
 import {
@@ -12,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandMark } from "../../../shared/components/brand-mark";
 import { Button } from "../../../shared/components/button";
 import { IconButton } from "../../../shared/components/icon-button";
-import { RequestError } from "../../../shared/components/request-feedback";
+
 import { ScreenState } from "../../../shared/components/screen-state";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -119,10 +120,7 @@ export function DiscoveryScreen() {
       >
         {discovery.error === "read" ? (
           <ScreenState>
-            <RequestError
-              message="La découverte n’a pas pu être chargée."
-              onRetry={discovery.retryRead}
-            />
+            <ErrorState onRetry={discovery.retryRead} />
           </ScreenState>
         ) : (
           <>

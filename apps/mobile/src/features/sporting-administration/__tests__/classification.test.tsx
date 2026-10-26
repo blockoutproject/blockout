@@ -482,9 +482,7 @@ it("does not grant classification reads or writes to a lifecycle-only operator",
   // When
   await renderEditor();
   // Then
-  expect(
-    await screen.findByText("Cette action nécessite une permission dédiée."),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.some(([url]) =>
       String(url).includes("/classification"),
@@ -540,7 +538,7 @@ it("keeps a failed recovery read blocking and never retries the uncertain write"
 
   // Then
   await screen.findByText(
-    "La relecture a échoué. Votre brouillon est conservé.",
+    "Une erreur est survenue. Veuillez réessayer plus tard.",
   );
   expect(
     screen.getByRole("button", { name: "Format" }),
@@ -861,9 +859,7 @@ it("reauthorizes a held native confirmation after the current classification gra
   await confirm();
 
   // Then
-  expect(
-    await screen.findByText("Cette action nécessite une permission dédiée."),
-  ).toBeOnTheScreen();
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
   );
@@ -1061,13 +1057,47 @@ it("keeps classification choices but disables editing after a current resource r
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
-  expect(await screen.findByText("Accès refusé")).toBeOnTheScreen();
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
   expect(screen.getByRole("button", { name: "Format" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
   expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
+});
+
+it("keeps an open selector's known choices visible and read-only after its grant is withdrawn", async () => {
+  // Given
+  stored.setting = classification;
+  const user = await renderEditor();
+  await choose(user, "Format", "4 × 4");
+  await user.press(screen.getByRole("button", { name: "Format" }));
+  await screen.findByRole("radio", { name: "4 × 4", checked: true });
+
+  // When
+  permissions = {};
+  await act(async () =>
+    client.refetchQueries({
+      predicate: ({ queryKey }) => queryKey.includes("/accounts/me"),
+    }),
+  );
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("radio", { name: "2 × 2" })).toBeDisabled(),
+  );
+  expect(
+    screen.getByRole("radio", { name: "4 × 4", checked: true }),
+  ).toBeDisabled();
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+  await user.press(screen.getByRole("radio", { name: "2 × 2" }));
+  expect(
+    screen.getByRole("radio", { name: "4 × 4", checked: true }),
+  ).toBeOnTheScreen();
 });
 
 it("keeps an open format selector unavailable through a refused then failed classification reread", async () => {
@@ -1093,11 +1123,10 @@ it("keeps an open format selector unavailable through a refused then failed clas
   );
 
   // Then
-  expect(await screen.findByText("Accès refusé")).toBeOnTheScreen();
-  expect(
-    screen.getByText("Cette classification n’est pas accessible."),
-  ).toBeOnTheScreen();
-  expect(screen.queryByRole("radio", { name: "2 × 2" })).toBeNull();
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+  await waitFor(() =>
+    expect(screen.getByRole("radio", { name: "2 × 2" })).toBeDisabled(),
+  );
 
   // When
   status = 503;
@@ -1109,15 +1138,13 @@ it("keeps an open format selector unavailable through a refused then failed clas
   await user.press(await screen.findByRole("radio", { name: "2 × 2" }));
 
   // Then
-  expect(screen.getByRole("radio", { name: "2 × 2" })).toBeDisabled();
+  await waitFor(() =>
+    expect(screen.getByRole("radio", { name: "2 × 2" })).toBeDisabled(),
+  );
   expect(
     screen.getByRole("radio", { name: "4 × 4", checked: true }),
   ).toBeOnTheScreen();
-  expect(
-    screen.getByText(
-      "La classification doit être relue avant de modifier une valeur.",
-    ),
-  ).toBeOnTheScreen();
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
 });
 
 it("refuses a held save confirmation after its current classification read is refused", async () => {
@@ -1133,7 +1160,9 @@ it("refuses a held save confirmation after its current classification read is re
       : respond(url, options),
   );
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  await screen.findByText("Accès refusé");
+  await screen.findByRole("alert", {
+    name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+  });
 
   // When
   await confirm();

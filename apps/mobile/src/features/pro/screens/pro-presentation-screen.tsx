@@ -8,6 +8,7 @@ import { usePro } from "../pro-provider";
 import { canPurchasePro } from "../pro-offering";
 import { purchaseErrorOutcome } from "../pro-operations";
 import { useProOffering } from "../api/use-pro-offering";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 
 /** F12 admission and explicit management intent; F10 supplies the real destination only when implemented. */
 export interface ProPresentationScreenProps {
@@ -24,6 +25,7 @@ export function ProPresentationScreen({
 }: ProPresentationScreenProps) {
   const account = useAccountSession();
   const router = useRouter();
+  const feedback = useActionFeedback({ retainOnUnmount: true });
   const {
     state,
     refresh,
@@ -116,7 +118,9 @@ export function ProPresentationScreen({
         }}
         onPurchaseError={({ error }) => {
           if (closed.current || !isCurrentPresentation()) return;
-          void completeOperation(purchaseErrorOutcome(error.code));
+          const outcome = purchaseErrorOutcome(error.code);
+          if (outcome === "failed") feedback.error();
+          void completeOperation(outcome);
           close();
         }}
         onDismiss={() => {

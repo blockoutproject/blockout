@@ -1,16 +1,15 @@
+import { ErrorState } from "../../../shared/components/state-card";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useRouter } from "expo-router";
 import { Check, Plus } from "lucide-react-native";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import type { SportingSeasonResponse } from "../../../../.generated/schemas/index.zod";
 import { isUncertainMutationFailure } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
-import {
-  AccessDenied,
-  RequestError,
-} from "../../../shared/components/request-feedback";
+
 import { tokens } from "../../../shared/theme/tokens";
+import { useTheme } from "../../../shared/theme/theme-provider";
 import { useFollowStateQuery } from "../api/use-follow-state-query";
 import {
   useFollowMutation,
@@ -36,6 +35,7 @@ export function FollowButton({
   const action = useFollowMutation(target, context);
   const router = useRouter();
   const feedback = useActionFeedback();
+  const { colors } = useTheme();
   const { query, profile, usable, sessionStatus } = context;
   const latest = action.latest;
   const failed = latest?.status === "error";
@@ -43,26 +43,20 @@ export function FollowButton({
     (error) => isAccessDenied(error) || isFollowRestriction(error),
   );
   const unavailable = restriction !== undefined;
-  if (unavailable)
+  /** A fresh read releases only the existing availability guard; it never repeats a write. */
+  async function reread() {
+    feedback.clear();
+    const result = await query.refetch();
+    if (
+      context.owner?.isCurrent(context.owner.generation) &&
+      result.isError &&
+      result.data
+    )
+      feedback.error();
+  }
+  if (query.isError && query.data === undefined)
     return (
-      <View style={styles.control}>
-        {isAccessDenied(restriction) ? (
-          <AccessDenied message="Le suivi est indisponible pour cette ressource." />
-        ) : (
-          <RequestError message="Le suivi est indisponible pour cette ressource." />
-        )}
-        {usable && (
-          <Button
-            label={
-              isAccessDenied(restriction)
-                ? "Vérifier l’accès"
-                : "Vérifier la disponibilité"
-            }
-            onPress={() => void query.refetch()}
-            loading={query.isFetching}
-          />
-        )}
-      </View>
+      <ErrorState onRetry={() => void reread()} retrying={query.isFetching} />
     );
   const provisional =
     action.pending && typeof latest?.variables === "boolean"
@@ -96,7 +90,8 @@ export function FollowButton({
         }
         disabled={
           !guest &&
-          (!usable ||
+          (unavailable ||
+            !usable ||
             following === undefined ||
             (query.isError && !canRepeatUncertain))
         }
@@ -117,30 +112,32 @@ export function FollowButton({
             } catch (error) {
               if (
                 context.owner?.isCurrent(context.owner.generation) &&
-                !isUncertainMutationFailure(error) &&
-                !isFollowRestriction(error)
+                !isUncertainMutationFailure(error)
               )
                 feedback.error();
             }
           }
         }}
       />
-      {isAccessDenied(profile.error) ? (
-        <AccessDenied message="Votre profil n’est pas accessible. Le suivi est suspendu." />
-      ) : profile.isError ? (
-        <RequestError
-          message="Votre profil est indisponible. Le suivi est suspendu."
+      {profile.isError && !profile.data ? (
+        <ErrorState
           onRetry={() => void profile.refetch()}
           retrying={profile.isFetching}
         />
       ) : query.isError && !canRepeatUncertain ? (
-        <RequestError
-          message="Impossible de lire le suivi."
-          onRetry={() => void query.refetch()}
-          retrying={query.isFetching}
+        <Button
+          label="Réessayer"
+          onPress={() => void reread()}
+          loading={query.isFetching}
         />
       ) : uncertain ? (
-        <RequestError message="Le résultat du suivi n’a pas pu être confirmé. Vous pouvez réessayer la même demande." />
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[tokens.typography.body, { color: colors.text }]}
+        >
+          Le résultat du suivi n’a pas pu être confirmé. Vous pouvez réessayer
+          la même demande.
+        </Text>
       ) : null}
     </View>
   );

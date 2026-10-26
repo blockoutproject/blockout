@@ -262,8 +262,9 @@ it("distinguishes initial waiting, retryable failure and established no matches 
   ).not.toBeOnTheScreen();
   await act(async () => pending.reject(new TypeError("private diagnostic")));
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "Une erreur est survenue. Veuillez réessayer plus tard.",
+    "Une erreur est survenue",
   );
+  expect(screen.getByText("Veuillez réessayer plus tard.")).toBeOnTheScreen();
   expect(
     screen.queryByText(/recherche est indisponible/),
   ).not.toBeOnTheScreen();
@@ -760,9 +761,7 @@ it.each([401, 403, 404])(
 
     // Then
     expect(
-      await screen.findByText(
-        status === 404 ? "Cette recherche est indisponible." : "Accès refusé",
-      ),
+      await screen.findByText("Une erreur est survenue"),
     ).toBeOnTheScreen();
     expect(
       screen.queryByText(
@@ -770,9 +769,7 @@ it.each([401, 403, 404])(
       ),
     ).not.toBeOnTheScreen();
     expect(screen.queryByText("Volley professionnel")).not.toBeOnTheScreen();
-    expect(
-      screen.queryByRole("button", { name: "Réessayer" }),
-    ).not.toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
     expect(
       screen.queryByText("Aucun résultat pour ces critères"),
     ).not.toBeOnTheScreen();

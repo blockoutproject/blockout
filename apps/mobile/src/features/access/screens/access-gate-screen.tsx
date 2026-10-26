@@ -1,3 +1,4 @@
+import { ErrorState } from "../../../shared/components/state-card";
 import { applicationUpdateMessage } from "../application-update-message";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -9,10 +10,7 @@ import type { PublicMaintenanceResponse } from "../../../../.generated/schemas/i
 import { IconButton } from "../../../shared/components/icon-button";
 import { Button } from "../../../shared/components/button";
 import { BrandMark } from "../../../shared/components/brand-mark";
-import {
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -103,11 +101,7 @@ function GateView({
             {gate === "checking" ? (
               <RequestLoading />
             ) : (
-              <RequestError
-                message="L’accès à l’application n’a pas pu être vérifié."
-                onRetry={onRefresh}
-                retrying={checking}
-              />
+              <ErrorState onRetry={onRefresh} retrying={checking} />
             )}
           </ScreenState>
         ) : (

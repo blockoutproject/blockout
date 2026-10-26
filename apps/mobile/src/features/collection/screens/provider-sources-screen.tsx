@@ -1,11 +1,7 @@
-import { isAccessDenied } from "../../../shared/api/access-denied";
+import { ErrorState } from "../../../shared/components/state-card";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import type { CollectionProviderEnum } from "../../../../.generated/schemas/index.zod";
-import {
-  AccessDenied,
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useSeasonPreparation } from "../api/use-source-preparation";
 import {
   CollectionAccessFeedback,
@@ -28,36 +24,19 @@ export function ProviderSourcesScreen({
   const { authority, season, sources } = editing;
   const current =
     authority.sessionStatus === "authenticated" ? season.data : undefined;
+  const retained = Boolean(current && sources.data);
   const feedback = useActionFeedback();
-  const denied = isAccessDenied(season.error) || isAccessDenied(sources.error);
   return (
     <PreparationPage
       state={
         !(current && sources.data) ? (
           !authority.enabled ? (
             <CollectionAccessFeedback authority={authority} />
-          ) : denied ? (
-            <AccessDenied />
           ) : season.isError || sources.isError ? (
-            <RequestError
-              message="Les sources sont indisponibles."
+            <ErrorState
               onRetry={() => {
-                void season.refetch().then((result) => {
-                  if (
-                    result.isError &&
-                    result.data &&
-                    !isAccessDenied(result.error)
-                  )
-                    feedback.error();
-                });
-                void sources.refetch().then((result) => {
-                  if (
-                    result.isError &&
-                    result.data &&
-                    !isAccessDenied(result.error)
-                  )
-                    feedback.error();
-                });
+                void season.refetch();
+                void sources.refetch();
               }}
               retrying={season.isFetching || sources.isFetching}
             />
@@ -81,39 +60,22 @@ export function ProviderSourcesScreen({
                 void authority.account
                   .refetch({ cancelRefetch: false })
                   .then((result) => {
-                    if (
-                      result.isError &&
-                      result.data &&
-                      !isAccessDenied(result.error)
-                    )
-                      feedback.error();
+                    if (result.isError && retained) feedback.error();
                   });
               else {
                 void season.refetch({ cancelRefetch: false }).then((result) => {
-                  if (
-                    result.isError &&
-                    result.data &&
-                    !isAccessDenied(result.error)
-                  )
-                    feedback.error();
+                  if (result.isError && retained) feedback.error();
                 });
                 void sources
                   .refetch({ cancelRefetch: false })
                   .then((result) => {
-                    if (
-                      result.isError &&
-                      result.data &&
-                      !isAccessDenied(result.error)
-                    )
-                      feedback.error();
+                    if (result.isError && retained) feedback.error();
                   });
               }
             }
           : undefined
       }
     >
-      <CollectionAccessFeedback authority={authority} />
-      {denied && <AccessDenied />}
       {current && sources.data && (
         <ProviderPreparationForm
           key={`${authority.session.generation}:${seasonId}:${provider}`}

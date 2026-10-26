@@ -574,7 +574,7 @@ it("keeps a dirty draft and the editing revision during background refetch", asy
 
   // Then
   await screen.findByText(
-    "La relecture a échoué. Votre brouillon est conservé.",
+    "Une erreur est survenue. Veuillez réessayer plus tard.",
   );
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 });
@@ -621,7 +621,7 @@ it("refreshes the displayed logo, retaining technical failures but removing refu
 
     // Then
     await screen.findByRole("alert", {
-      name: "L’actualisation du logo a échoué. Le logo précédent reste affiché.",
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
     });
     expect(
       screen.getByRole("button", { name: "Aperçu : Logo" }),
@@ -634,7 +634,10 @@ it("refreshes the displayed logo, retaining technical failures but removing refu
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
     // Then
-    await screen.findByText("Ce logo n’est pas accessible.");
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    });
+    expect(screen.queryByText("Une erreur est survenue")).toBeNull();
     expect(screen.queryByRole("button", { name: "Aperçu : Logo" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
     expect(screen.getByDisplayValue("Local name")).toBeEnabled();
@@ -645,7 +648,7 @@ it("refreshes the displayed logo, retaining technical failures but removing refu
     await waitFor(() => expect(client.isFetching()).toBe(0));
 
     // Then
-    expect(screen.getByText("Ce logo n’est pas accessible.")).toBeOnTheScreen();
+    expect(screen.queryByText("Une erreur est survenue")).toBeNull();
     expect(screen.queryByRole("button", { name: "Aperçu : Logo" })).toBeNull();
 
     // When
@@ -656,7 +659,7 @@ it("refreshes the displayed logo, retaining technical failures but removing refu
     expect(
       await screen.findByRole("button", { name: "Aperçu : Logo" }),
     ).toBeOnTheScreen();
-    expect(screen.queryByText("Ce logo n’est pas accessible.")).toBeNull();
+    expect(screen.queryByText("Une erreur est survenue")).toBeNull();
 
     // When
     jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
@@ -732,7 +735,7 @@ it.each([
   await renderEditor();
 
   // Then
-  await screen.findByText("Cette action nécessite une permission dédiée.");
+  await screen.findByText("Une erreur est survenue");
   expect(
     mockFetch.mock.calls.some(([url]) => String(url).includes("/presentation")),
   ).toBe(false);
@@ -754,7 +757,10 @@ it("retains a read-only draft when the current action grant is withdrawn", async
   );
 
   // Then
-  await screen.findByText("Cette action nécessite une permission dédiée.");
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
+  );
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
   expect(screen.getByLabelText("Nom complet personnalisé")).toHaveDisplayValue(
     "My draft",
   );
@@ -1804,7 +1810,10 @@ it("keeps the shared division read authorized when creation loses its separate l
 
   // When
   await user.press(screen.getByRole("button", { name: "Refresh permissions" }));
-  await screen.findByText("Cette action nécessite une permission dédiée.");
+  await waitFor(() =>
+    expect(screen.getByLabelText("Nom de la division")).toBeDisabled(),
+  );
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
   stored = {
     items: [
       {

@@ -1,5 +1,6 @@
+import { ErrorState } from "../../../shared/components/state-card";
 import { useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebAuthError, WebAuthErrorCodes } from "react-native-auth0";
@@ -7,10 +8,7 @@ import { ApiError } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { LoadingIndicator } from "../../../shared/components/loading-indicator";
-import {
-  AccessDenied,
-  RequestError,
-} from "../../../shared/components/request-feedback";
+
 import { ScreenState } from "../../../shared/components/screen-state";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -34,7 +32,7 @@ export function SignInScreen({ admitted }: SignInScreenProps) {
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <ScrollView contentContainerStyle={styles.stateContent}>
         <ScreenState>
-          <AccessDenied message="L’accès à l’application doit être vérifié avant de continuer." />
+          <ErrorState />
         </ScreenState>
       </ScrollView>
     </SafeAreaView>
@@ -50,6 +48,8 @@ function SignInJourney() {
   const feedback = useActionFeedback();
   const guest = useGuestNavigation();
   const mounted = useRef(false);
+  // This journey owns explicit login feedback; the SDK still owns the resulting session error.
+  const [loginAttempted, setLoginAttempted] = useState(false);
   const busy =
     session.status === "authenticating" ||
     session.status === "signing-out" ||
@@ -78,6 +78,7 @@ function SignInJourney() {
       let authenticated;
       if (session.status === "authenticated") authenticated = session;
       else {
+        setLoginAttempted(true);
         const login = session.signIn(audience ?? "");
         generation = session.getSnapshot().generation;
         authenticated = await login;
@@ -93,22 +94,13 @@ function SignInJourney() {
     } catch (error) {
       if (!mounted.current || !session.isCurrent(generation)) return;
       if (!authenticating) {
-        feedback.error(
-          error instanceof ApiError &&
-            error.problem?.type ===
-              "urn:blockout:problem:provider-email-unavailable"
-            ? "L’adresse e-mail du compte est indisponible."
-            : undefined,
-          generation,
-        );
+        feedback.error(undefined, generation);
         return;
       }
       let message: string | undefined;
       if (error instanceof WebAuthError) {
         if (error.type === WebAuthErrorCodes.USER_CANCELLED)
           message = "Connexion annulée.";
-        else if (error.type === WebAuthErrorCodes.ACCESS_DENIED)
-          message = "Connexion refusée.";
       }
       feedback.error(message, generation);
     }
@@ -170,10 +162,7 @@ function SignInJourney() {
         </View>
         <View style={[styles.inset, styles.actions]}>
           {session.status === "initialization-error" ? (
-            <RequestError
-              message="La préparation de la connexion a échoué."
-              onRetry={session.retryInitialization}
-            />
+            <ErrorState onRetry={session.retryInitialization} />
           ) : (
             <Button
               label={
@@ -190,13 +179,9 @@ function SignInJourney() {
               fullWidth
             />
           )}
-          {session.status === "authentication-error" &&
-            !(session.error instanceof WebAuthError) && (
-              <RequestError
-                message="La restauration de la connexion a échoué."
-                onRetry={session.retryAuthentication}
-              />
-            )}
+          {session.status === "authentication-error" && !loginAttempted && (
+            <ErrorState onRetry={session.retryAuthentication} />
+          )}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Continuer en tant qu’invité"

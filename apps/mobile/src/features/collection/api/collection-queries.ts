@@ -73,11 +73,18 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         ),
         enabled: authority.enabled,
         gcTime: 0,
-        queryFn: async ({ signal }) =>
-          getCollectionSeason(seasonId, {
-            ...(await authority.request()),
-            signal,
-          }),
+        queryFn: async ({ signal, client, queryKey }) => {
+          const previousError = client.getQueryState(queryKey)?.error;
+          try {
+            return await getCollectionSeason(seasonId, {
+              ...(await authority.request()),
+              signal,
+            });
+          } catch (error) {
+            // Shared editor data stays available to its draft, but navigation remains refused until a successful read.
+            throw isAccessDenied(previousError) ? previousError : error;
+          }
+        },
       }),
     /** Complete source configuration for the selected season. */
     sources: (seasonId: string) =>
