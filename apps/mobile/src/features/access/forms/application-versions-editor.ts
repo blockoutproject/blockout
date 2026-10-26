@@ -5,7 +5,7 @@ import type {
   SessionGeneration,
   SessionSnapshot,
 } from "../../accounts/session/session-generation";
-import type { ApplicationVersionsValues } from "../schemas/application-versions-settings";
+import type { ApplicationVersionsValues } from "../schemas/application-versions-schema";
 
 /** Original revision and explanatory feedback; sent-command recovery belongs to Query. */
 interface VersionsEditingState {
@@ -24,15 +24,14 @@ interface ApplicationVersionsEditor {
   subscribe(listener: () => void): () => void;
   /** Publishes an explicit accepted outcome or required recovery step. */
   update(state: VersionsEditingState): void;
-  /** Detaches the F05 lifetime observer when this editor is discarded. */
-  release(): void;
+  /** Resets and releases this exact draft, leaving a replacement and sent-command recovery untouched. */
+  discard(): void;
 }
 let current: ApplicationVersionsEditor | undefined;
 
 /** Discards the sole in-memory editor after explicit abandonment or a session/account boundary. */
 export function discardApplicationVersionsEditor() {
-  current?.release();
-  current = undefined;
+  current?.discard();
 }
 
 /** Retains RHF itself, rather than copying field values into another store or weakening route admission. */
@@ -48,6 +47,9 @@ export function applicationVersionsEditor(
   discardApplicationVersionsEditor();
   let state: VersionsEditingState = { baseline: settings };
   const listeners = new Set<() => void>();
+  const stopSession = session.subscribe(() => {
+    if (!session.isCurrent(editor.generation)) editor.discard();
+  });
   const editor: ApplicationVersionsEditor = {
     generation: session.generation,
     accountId: session.accountId,
@@ -67,12 +69,12 @@ export function applicationVersionsEditor(
       state = next;
       listeners.forEach((listener) => listener());
     },
-    release: session.subscribe(() => {
-      if (!session.isCurrent(editor.generation)) {
-        editor.release();
-        if (current === editor) current = undefined;
-      }
-    }),
+    /** Retained callbacks release only their original editor, even after another account has replaced it. */
+    discard() {
+      if (current === editor) current = undefined;
+      stopSession();
+      editor.form.reset(applicationVersionsValues(state.baseline));
+    },
   };
   current = editor;
   return editor;

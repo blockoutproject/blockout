@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ListClubsParams } from "../../../../.generated/schemas/index.zod";
+import { searchSchema, type SearchValues } from "../schemas/search-schema";
+import { searchValues } from "../forms/search-values";
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -17,8 +18,6 @@ import {
 } from "../components/search-results";
 import { SearchLoading } from "../components/search-loading";
 
-const searchSchema = ListClubsParams.pick({ q: true });
-
 /**
  * Public text-search entry with internal tabs and a single shared editable value. Empty-text
  * examples, filters, full continuation and sporting activation remain with their owning tasks.
@@ -27,15 +26,18 @@ const searchSchema = ListClubsParams.pick({ q: true });
 export function SearchScreen() {
   const { colors } = useTheme();
   const [resource, setResource] = useState<DiscoveryResource>("team");
-  const { control, setValue } = useForm<ListClubsParams>({
-    defaultValues: { q: "" },
+  const { control, reset } = useForm<SearchValues>({
+    defaultValues: searchValues(),
     resolver: zodResolver(searchSchema),
     mode: "onChange",
   });
-  const text = useWatch({ control, name: "q" }) ?? "";
+  const text = useWatch({ control, name: "q" });
   const valid = searchSchema.safeParse({ q: text }).success;
   const textual = /[^\p{White_Space}]/u.test(text);
-  const clearSearch = () => setValue("q", "", { shouldValidate: true });
+  /** Clearing resets the editable query and validation without altering the selected resource tab. */
+  function clearSearch() {
+    reset(searchValues());
+  }
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <View style={styles.controls}>
@@ -60,7 +62,7 @@ export function SearchScreen() {
             <SearchField
               ref={field.ref}
               label="Rechercher"
-              value={field.value ?? ""}
+              value={field.value}
               onChangeText={field.onChange}
               onBlur={field.onBlur}
               onClear={clearSearch}

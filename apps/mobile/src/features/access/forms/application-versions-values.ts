@@ -1,5 +1,5 @@
 import type { ApplicationVersionsResponse } from "../../../../.generated/schemas/index.zod";
-import type { ApplicationVersionsValues } from "../schemas/application-versions-settings";
+import type { ApplicationVersionsValues } from "../schemas/application-versions-schema";
 
 /** Maps absent transport values into explicit editing strings, without creating publishable defaults. */
 export function applicationVersionsValues(

@@ -5,14 +5,11 @@ import {
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
 import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
-import { applicationVersionsValues as values } from "./application-versions-values";
+import { applicationVersionsValues } from "./application-versions-values";
 import { toApplicationVersionsRequest } from "../api/application-versions-request";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  applicationVersionsEditor,
-  discardApplicationVersionsEditor,
-} from "./application-versions-editor";
+import { applicationVersionsEditor } from "./application-versions-editor";
 import { applicationUpdateMessage } from "../application-update-message";
 import { ChevronDown, ChevronRight, Check } from "lucide-react-native";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -38,22 +35,22 @@ import {
   applicationVersionsSchema,
   raisesMinimum,
   type ApplicationVersionsValues,
-} from "../schemas/application-versions-settings";
+} from "../schemas/application-versions-schema";
 import { ApplicationVersionsPreview } from "../screens/access-gate-screen";
 
 /** Keeps one editable group revision and a local draft; only explicit reread reconciles newer server data. */
-export interface ApplicationVersionsSettingsFormProps {
+export interface ApplicationVersionsFormProps {
   settings: ApplicationVersionsResponse;
   editing: ReturnType<typeof useApplicationVersionsSettings>;
   disabled?: boolean;
 }
 
 /** Publishes atomic dirty-field changes without changing maintenance or replaying uncertain writes. */
-export function ApplicationVersionsSettingsForm({
+export function ApplicationVersionsForm({
   settings,
   editing,
   disabled = false,
-}: ApplicationVersionsSettingsFormProps) {
+}: ApplicationVersionsFormProps) {
   const session = useAccountSession();
   const { colors } = useTheme();
   const confirmAction = useActionConfirmation();
@@ -76,12 +73,11 @@ export function ApplicationVersionsSettingsForm({
     formControl: editor.form.formControl,
     resolver: zodResolver(applicationVersionsSchema),
   });
-  const { errors, isDirty, dirtyFields } = useFormState({
+  const { isDirty, dirtyFields } = useFormState({
     control,
   });
   useDiscardChanges(isDirty, () => {
-    reset();
-    discardApplicationVersionsEditor();
+    editor.discard();
   });
   const [iosMinimum, iosStore, androidMinimum, androidStore, message] =
     useWatch({
@@ -143,7 +139,7 @@ export function ApplicationVersionsSettingsForm({
       editor.update({
         baseline: accepted,
       });
-      reset(values(accepted));
+      reset(applicationVersionsValues(accepted));
       if (mounted.current) setAcknowledged(undefined);
     } catch (error) {
       if (!session.isCurrent(session.generation)) return;
@@ -178,7 +174,10 @@ export function ApplicationVersionsSettingsForm({
       feedback:
         "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
     });
-    reset(values(result.data), { keepDirtyValues: true, keepDirty: true });
+    reset(applicationVersionsValues(result.data), {
+      keepDirtyValues: true,
+      keepDirty: true,
+    });
     setAcknowledged(undefined);
   }
   return (
@@ -232,17 +231,17 @@ export function ApplicationVersionsSettingsForm({
                   <Controller
                     control={control}
                     name={`${platform}.minimumVersion`}
-                    render={({ field: { onChange, onBlur, value, ref } }) => (
+                    render={({ field, fieldState }) => (
                       <TextField
-                        ref={ref}
+                        ref={field.ref}
                         label={`Version minimale ${name}`}
-                        value={value}
-                        onChangeText={onChange}
-                        onBlur={onBlur}
+                        value={field.value}
+                        onChangeText={field.onChange}
+                        onBlur={field.onBlur}
                         autoCapitalize="none"
                         autoCorrect={false}
                         editable={!busy}
-                        error={errors[platform]?.minimumVersion?.message}
+                        error={fieldState.error?.message}
                         helper="Facultatif. Trois nombres, par exemple 2.10.0. Videz le champ pour retirer le minimum."
                       />
                     )}
@@ -250,20 +249,20 @@ export function ApplicationVersionsSettingsForm({
                   <Controller
                     control={control}
                     name={`${platform}.storeUrl`}
-                    render={({ field: { onChange, onBlur, value, ref } }) => (
+                    render={({ field, fieldState }) => (
                       <TextField
-                        ref={ref}
+                        ref={field.ref}
                         label={
                           ios ? "URL App Store iOS" : "URL Google Play Android"
                         }
-                        value={value}
-                        onChangeText={onChange}
-                        onBlur={onBlur}
+                        value={field.value}
+                        onChangeText={field.onChange}
+                        onBlur={field.onBlur}
                         autoCapitalize="none"
                         autoCorrect={false}
                         inputMode="url"
                         editable={!busy}
-                        error={errors[platform]?.storeUrl?.message}
+                        error={fieldState.error?.message}
                         helper="Lien requis si une version minimale est imposée."
                       />
                     )}
@@ -285,15 +284,16 @@ export function ApplicationVersionsSettingsForm({
           <Controller
             control={control}
             name="message"
-            render={({ field: { onChange, onBlur, value, ref } }) => (
+            render={({ field, fieldState }) => (
               <TextField
-                ref={ref}
+                ref={field.ref}
                 label="Message commun"
                 multiline
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
+                value={field.value}
+                onChangeText={field.onChange}
+                onBlur={field.onBlur}
                 editable={!busy}
+                error={fieldState.error?.message}
                 helper={
                   current.message.trim()
                     ? "Facultatif. Videz le champ pour utiliser le message standard."
@@ -375,7 +375,7 @@ export function ApplicationVersionsSettingsForm({
                 disabled={
                   busy || rereadRequired || !isDirty || (raised && !checked)
                 }
-                loading={editing.content.pending}
+                loading={editing.content.executing}
                 onPress={() =>
                   void handleSubmit(submit, (errors) =>
                     setExpanded({

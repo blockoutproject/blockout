@@ -1,6 +1,6 @@
 import type { FieldNamesMarkedBoolean } from "react-hook-form";
 import type { ChangeApplicationVersionsRequest } from "../../../../.generated/schemas/index.zod";
-import type { ApplicationVersionsValues } from "../schemas/application-versions-settings";
+import type { ApplicationVersionsValues } from "../schemas/application-versions-schema";
 
 /** Preserves nested PATCH omission and encodes explicit empty editing values as removals. */
 export function toApplicationVersionsRequest(

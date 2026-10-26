@@ -5,7 +5,7 @@ import type {
   SetPoolPresentationBody,
   SetDivisionPresentationBody,
 } from "../../../../.generated/schemas/index.zod";
-import type { PresentationValues } from "../forms/presentation-values";
+import type { PresentationValues } from "../schemas/presentation-schema";
 
 /** Encodes division creation; three empty stops restore the automatic gradient and do not invent colors. */
 export function toCreateDivisionBody(

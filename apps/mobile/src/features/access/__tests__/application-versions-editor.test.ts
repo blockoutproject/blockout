@@ -50,3 +50,44 @@ it.each(["explicit discard", "new session", "other account"])(
     session.invalidate();
   },
 );
+
+it("keeps the replacement account draft after the original editor is discarded again", () => {
+  // Given
+  const session = createSessionGeneration();
+  const stored = applicationAccessResponse().versions;
+  session.setAccount(
+    session.getSnapshot().generation,
+    "00000000-0000-4000-8000-000000000185",
+  );
+  const original = applicationVersionsEditor(
+    { ...session, ...session.getSnapshot() },
+    stored,
+  );
+  session.setAccount(
+    session.getSnapshot().generation,
+    "00000000-0000-4000-8000-000000000186",
+  );
+  const replacement = applicationVersionsEditor(
+    { ...session, ...session.getSnapshot() },
+    stored,
+  );
+  const stop = replacement.form.subscribe({
+    formState: { values: true },
+    callback: () => {},
+  });
+  replacement.form.setValue("message", "Replacement account draft", {
+    shouldDirty: true,
+  });
+
+  // When
+  original.discard();
+  const reopened = applicationVersionsEditor(
+    { ...session, ...session.getSnapshot() },
+    stored,
+  );
+
+  // Then
+  expect(reopened.form.getValues("message")).toBe("Replacement account draft");
+  stop();
+  session.invalidate();
+});

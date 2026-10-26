@@ -10,7 +10,7 @@ import { TextField } from "../../../shared/components/text-field";
 import { Surface } from "../../../shared/components/surface";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
-import type { PresentationValues } from "../forms/presentation-values";
+import type { PresentationValues } from "../schemas/presentation-schema";
 import { divisionTextColor } from "../../sporting/presentation";
 import { DivisionPaint } from "../../sporting/components/division-paint";
 

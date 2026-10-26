@@ -6,10 +6,8 @@ import type {
   SessionGeneration,
   SessionSnapshot,
 } from "../../accounts/session/session-generation";
-import {
-  presentationValues,
-  type PresentationValues,
-} from "./presentation-values";
+import { presentationValues } from "./presentation-values";
+import type { PresentationValues } from "../schemas/presentation-schema";
 
 /** Revision and feedback accompany the original-target RHF draft; Query owns command recovery. */
 interface PresentationEditingState {

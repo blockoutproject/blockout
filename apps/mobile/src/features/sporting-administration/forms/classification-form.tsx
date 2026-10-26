@@ -8,9 +8,9 @@ import {
 } from "../../sporting/classification-presentation";
 import {
   classificationSchema,
-  classificationValues,
   type ClassificationValues,
-} from "./classification-values";
+} from "../schemas/classification-schema";
+import { classificationValues } from "./classification-values";
 import { toClassificationRequest } from "../api/classification-request";
 import { ClassificationSelect } from "../components/classification-select";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,12 +49,6 @@ export function ClassificationForm({
   const actionFeedback = useActionFeedback();
   const confirmAction = useActionConfirmation();
   const mounted = useRef(false);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
   const [editor] = useState(() =>
     classificationEditor(session, target, current),
   );
@@ -70,11 +64,10 @@ export function ClassificationForm({
       resolver: zodResolver(classificationSchema),
       formControl: editor.form.formControl,
     });
-  const { isDirty, errors, dirtyFields } = useFormState({
+  const { isDirty, dirtyFields } = useFormState({
     control,
   });
   useDiscardChanges(isDirty, () => {
-    reset();
     editor.discard();
   });
   void dirtyFields;
@@ -89,9 +82,37 @@ export function ClassificationForm({
     editing.save.needsRead || current.revision !== baseline.revision;
   const choices =
     divisions.query.data?.items.filter((item) => item.active) ?? [];
-  /** Sends the complete confirmed state once; every 409 or uncertain acknowledgement requires an explicit read. */
-  async function save(values: ClassificationValues) {
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  /** Validates active choices, awaits confirmation and sends the complete state against its original revision. */
+  async function submit(values: ClassificationValues) {
     if (busy || rereadRequired || !session.isCurrent(session.generation))
+      return;
+    if (
+      values.custom &&
+      (!divisions.query.isSuccess ||
+        !choices.some((choice) => choice.id === values.divisionId))
+    ) {
+      setError("divisionId", {
+        message: "Choisissez une division active disponible.",
+      });
+      return;
+    }
+    if (
+      !(await confirmAction({
+        title: "Confirmer la classification ?",
+        message:
+          "La correction est appliquée entièrement ou refusée. Retirer le réglage conserve les identités et la dernière classification publiée ; cela peut arrêter la collecte.",
+        confirmLabel: "Confirmer",
+      })) ||
+      !session.isCurrent(session.generation)
+    )
       return;
     try {
       const attempt = editing.save.start(
@@ -134,30 +155,6 @@ export function ClassificationForm({
         feedback: `${reason}${Array.isArray(conflictIds) && conflictIds.length > 0 ? ` Périmètres en conflit : ${conflictIds.join(", ")}.` : ""} Votre brouillon est conservé.`,
       });
     }
-  }
-  /** Validates all three fields and active choices before asking for a bounded native confirmation. */
-  async function confirm(values: ClassificationValues) {
-    if (busy || rereadRequired) return;
-    if (
-      values.custom &&
-      (!divisions.query.isSuccess ||
-        !choices.some((choice) => choice.id === values.divisionId))
-    ) {
-      setError("divisionId", {
-        message: "Choisissez une division active disponible.",
-      });
-      return;
-    }
-    if (
-      !(await confirmAction({
-        title: "Confirmer la classification ?",
-        message:
-          "La correction est appliquée entièrement ou refusée. Retirer le réglage conserve les identités et la dernière classification publiée ; cela peut arrêter la collecte.",
-        confirmLabel: "Confirmer",
-      }))
-    )
-      return;
-    await save(values);
   }
   /** Updates the revision and non-dirty values only after successful reads, without sending a write. */
   async function reread() {
@@ -232,7 +229,7 @@ export function ClassificationForm({
           <Controller
             control={control}
             name="divisionId"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <ClassificationSelect
                 target={target}
                 field="divisionId"
@@ -241,7 +238,7 @@ export function ClassificationForm({
                   choices.find((choice) => choice.id === field.value)?.name
                 }
                 disabled={busy}
-                error={errors.divisionId?.message}
+                error={fieldState.error?.message}
               />
             )}
           />
@@ -314,8 +311,8 @@ export function ClassificationForm({
         label="Enregistrer"
         fullWidth
         disabled={busy || rereadRequired}
-        loading={editing.save.pending}
-        onPress={() => void handleSubmit(confirm)()}
+        loading={editing.save.executing}
+        onPress={() => void handleSubmit(submit)()}
       />
     </View>
   );

@@ -11,7 +11,7 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useAccountSession } from "../../accounts/current-account";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
 import { useMaintenanceSettings } from "../api/use-maintenance-settings";
-import { MaintenanceSettingsForm } from "../forms/maintenance-settings-form";
+import { MaintenanceForm } from "../forms/maintenance-form";
 
 /** Loads only with current grants and retains an existing draft read-only when they become unavailable. */
 export function MaintenanceSettingsScreen() {
@@ -40,7 +40,7 @@ export function MaintenanceSettingsScreen() {
   let settingsContent = null;
   if (settings) {
     settingsContent = (
-      <MaintenanceSettingsForm
+      <MaintenanceForm
         key={`${session.generation}:${session.accountId}`}
         settings={settings}
         editing={editing}

@@ -844,6 +844,34 @@ it("filters division names within the selected activity catalogue without exposi
   ).toBe(false);
 });
 
+it("clears the division search without resetting the selected activity catalogue", async () => {
+  // Given
+  const user = await renderEditor("divisions");
+  await screen.findByRole("button", { name: "National 2" });
+  await user.type(screen.getByLabelText("Rechercher une division"), "national");
+  await user.press(screen.getByRole("tab", { name: "Inactives" }));
+  await screen.findByText("Aucune division ne correspond à votre recherche.");
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Effacer la recherche" }),
+  );
+
+  // Then
+  expect(screen.getByLabelText("Rechercher une division")).toHaveDisplayValue(
+    "",
+  );
+  expect(
+    screen.getByRole("tab", { name: "Inactives", selected: true }),
+  ).toBeOnTheScreen();
+  expect(
+    await screen.findByRole("button", { name: "Inactive" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "National 2" }),
+  ).not.toBeOnTheScreen();
+});
+
 it("opens division creation from the catalogue for a lifecycle-only operator", async () => {
   // Given
   permissions = { manageDivisionLifecycle: true };

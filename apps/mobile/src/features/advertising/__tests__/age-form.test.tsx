@@ -7,7 +7,7 @@ import {
   userEvent,
 } from "@testing-library/react-native";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { AgeForm } from "../components/age-form";
+import { AgeForm } from "../forms/age-form";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
   jest.requireActual(
