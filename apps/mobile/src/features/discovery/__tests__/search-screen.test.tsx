@@ -281,6 +281,63 @@ it("distinguishes initial waiting, retryable failure and established no matches 
   ).toBeOnTheScreen();
 });
 
+it("keeps the results clear action available through replacement reads and preserves the selected tab", async () => {
+  // Given: replacement text is pasted directly, without unmounting results through an empty draft.
+  const pending = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string) => {
+    const parsed = new URL(url);
+    if (parsed.pathname.endsWith("/clubs")) {
+      if (parsed.searchParams.get("q") === "None") return pending.promise;
+      if (parsed.searchParams.get("q") === "Failed")
+        return Promise.resolve(
+          Response.json({ title: "Unavailable", status: 503 }, { status: 503 }),
+        );
+    }
+    return publicReads(url);
+  });
+  const user = userEvent.setup();
+  await renderSearch();
+  const input = await screen.findByLabelText("Rechercher");
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await user.paste(input, "Volley");
+  await screen.findByRole("header", { name: "2 résultats chargés" });
+
+  // When
+  await user.paste(input, "None");
+
+  // Then: a new pending/error read has no accepted count, while successful emptiness has zero.
+  expect(
+    await screen.findByRole("header", { name: "Résultats" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Effacer" })).toBeEnabled();
+  expect(screen.queryByText("Lyon")).not.toBeOnTheScreen();
+  await act(async () => pending.resolve(Response.json({ clubs: [] })));
+  expect(
+    await screen.findByRole("header", { name: "0 résultats chargés" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText("Aucun résultat pour ces critères"),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Effacer" })).toBeEnabled();
+  await user.paste(input, "Failed");
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(screen.getByRole("header", { name: "Résultats" })).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Effacer" })).toBeEnabled();
+  mockFetch.mockImplementation(publicReads);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await screen.findByRole("header", { name: "2 résultats chargés" });
+  mockFetch.mockClear();
+  await user.press(screen.getByRole("button", { name: "Effacer" }));
+  expect(input).toHaveDisplayValue("");
+  expect(
+    screen.getByRole("tab", { name: "Clubs", selected: true }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Effacer" }),
+  ).not.toBeOnTheScreen();
+  expect(mockFetch).not.toHaveBeenCalled();
+});
+
 it("cancels superseded text and tab requests and never shows an older result as the new search", async () => {
   // Given: a transport that completes late even after cancellation.
   const old = Promise.withResolvers<Response>();

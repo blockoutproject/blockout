@@ -2,7 +2,7 @@ import { pageContentStyle } from "../../../shared/components/page";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import type { DiscoveryPage } from "../api/discovery-queries";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -11,25 +11,30 @@ import { searchResults } from "../model/search-result";
 
 /** Text results retain native read lifecycle and continuation supplied by their query owner. */
 export interface SearchResultsProps {
-  pages: readonly DiscoveryPage[];
+  /** Undefined means the current search has no accepted read, so its heading has no count yet. */
+  pages?: readonly DiscoveryPage[];
   onClear: () => void;
   refreshing: boolean;
   onRefresh: () => void;
+  emptyComponent: ReactElement;
   continuation?: ReactNode;
 }
 
-/** Virtualizes current summaries with stable UUIDs and a loaded count that never claims a total. */
+/** Keeps one native list/header through reads; the query owner supplies loading or empty feedback. */
 export function SearchResults({
   pages,
   onClear,
   refreshing,
   onRefresh,
+  emptyComponent,
   continuation,
 }: SearchResultsProps) {
   // A resource moved between pages keeps one row under its stable public identity.
   const items = [
     ...new Map(
-      pages.flatMap(searchResults).map((item) => [item.identity.id, item]),
+      (pages ?? [])
+        .flatMap(searchResults)
+        .map((item) => [item.identity.id, item]),
     ).values(),
   ];
   return (
@@ -39,7 +44,7 @@ export function SearchResults({
         <DataRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
       ListFooterComponent={
-        continuation ? (
+        items.length && continuation ? (
           <View style={styles.continuation}>{continuation}</View>
         ) : undefined
       }
@@ -47,12 +52,21 @@ export function SearchResults({
       keyExtractor={(item) => item.identity.id}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
-      contentContainerStyle={[pageContentStyle, searchResultsStartStyle]}
-      ListHeaderComponent={
-        <>
-          <SearchResultsHeading count={items.length} onClear={onClear} />
-        </>
+      contentContainerStyle={
+        items.length ? [pageContentStyle, searchResultsStartStyle] : styles.list
       }
+      ListHeaderComponentStyle={
+        !items.length
+          ? [pageContentStyle, searchResultsStartStyle, styles.header]
+          : undefined
+      }
+      ListHeaderComponent={
+        <SearchResultsHeading
+          count={pages ? items.length : undefined}
+          onClear={onClear}
+        />
+      }
+      ListEmptyComponent={emptyComponent}
       ItemSeparatorComponent={ListSeparator}
       renderItem={({ item }) => <SearchResultCard {...item} />}
     />
@@ -106,6 +120,8 @@ export function SearchResultsHeading({
 }
 
 const styles = StyleSheet.create({
+  list: { flexGrow: 1 },
+  header: { flexGrow: 0 },
   start: { paddingTop: tokens.spacing.xs },
   continuation: { paddingTop: tokens.spacing.lg },
   toolbar: {
@@ -123,4 +139,4 @@ const styles = StyleSheet.create({
 });
 
 /** The 4-point start combines with text leading for the search gap; full touch targets extend below. */
-export const searchResultsStartStyle = styles.start;
+const searchResultsStartStyle = styles.start;

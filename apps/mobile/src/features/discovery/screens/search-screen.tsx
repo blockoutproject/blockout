@@ -1,8 +1,4 @@
-import {
-  Page,
-  PageContent,
-  PageScrollView,
-} from "../../../shared/components/page";
+import { Page, PageContent } from "../../../shared/components/page";
 import { Tabs } from "../../../shared/components/tabs";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { ApiError } from "../../../shared/api/api-fetch";
@@ -16,7 +12,6 @@ import { StyleSheet, View } from "react-native";
 
 import { searchSchema, type SearchValues } from "../schemas/search-schema";
 import { searchValues } from "../forms/search-values";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { Button } from "../../../shared/components/button";
 import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { tokens } from "../../../shared/theme/tokens";
@@ -24,11 +19,7 @@ import { SearchField } from "../../../shared/components/search-field";
 
 import type { DiscoveryResource } from "../api/discovery-context";
 import { useDiscoveryQuery } from "../api/use-discovery-query";
-import {
-  SearchResults,
-  SearchResultsHeading,
-  searchResultsStartStyle,
-} from "../components/search-results";
+import { SearchResults } from "../components/search-results";
 import { SearchLoading } from "../components/search-loading";
 
 /**
@@ -143,67 +134,42 @@ function TextSearchResults({
     query.isError && !query.data ? (
       <ErrorState onRetry={() => void refresh()} retrying={query.isFetching} />
     ) : undefined;
-  if (
-    query.data?.pages.some((page) =>
-      "clubs" in page
-        ? page.clubs.length > 0
-        : "teams" in page
-          ? page.teams.length > 0
-          : page.pools.length > 0,
-    )
-  )
-    return (
-      <SearchResults
-        pages={query.data.pages}
-        onClear={onClear}
-        refreshing={query.isRefetching}
-        onRefresh={() => void refresh()}
-        continuation={
-          query.hasNextPage ? (
-            <Button
-              label={
-                query.isFetchNextPageError ? "Réessayer" : "Charger la suite"
-              }
-              variant="secondary"
-              disabled={query.isFetching}
-              loading={query.isFetchingNextPage}
-              onPress={() => void loadMore()}
-            />
-          ) : undefined
-        }
-      />
-    );
   return (
-    <PageScrollView
-      refreshControl={
-        <DataRefreshControl
-          refreshing={query.isRefetching}
-          onRefresh={() => void refresh()}
-        />
+    <SearchResults
+      pages={query.data?.pages}
+      onClear={onClear}
+      refreshing={query.isRefetching}
+      onRefresh={() => void refresh()}
+      emptyComponent={
+        query.isPending ? (
+          <PageContent>
+            <SearchLoading />
+          </PageContent>
+        ) : (
+          <ScreenState>
+            {error ?? (
+              <EmptyState
+                title="Aucun résultat pour ces critères"
+                description="Essayez un autre nom."
+              />
+            )}
+          </ScreenState>
+        )
       }
-      keyboardShouldPersistTaps="handled"
-    >
-      <PageContent style={[styles.heading, searchResultsStartStyle]}>
-        <SearchResultsHeading
-          count={query.data ? 0 : undefined}
-          onClear={onClear}
-        />
-      </PageContent>
-      {query.isPending ? (
-        <PageContent>
-          <SearchLoading />
-        </PageContent>
-      ) : (
-        <ScreenState>
-          {error ?? (
-            <EmptyState
-              title="Aucun résultat pour ces critères"
-              description="Essayez un autre nom."
-            />
-          )}
-        </ScreenState>
-      )}
-    </PageScrollView>
+      continuation={
+        query.hasNextPage ? (
+          <Button
+            label={
+              query.isFetchNextPageError ? "Réessayer" : "Charger la suite"
+            }
+            variant="secondary"
+            disabled={query.isFetching}
+            loading={query.isFetchingNextPage}
+            onPress={() => void loadMore()}
+          />
+        ) : undefined
+      }
+    />
   );
 }
 
@@ -214,5 +180,4 @@ const styles = StyleSheet.create({
     paddingTop: tokens.spacing.lg,
     gap: tokens.spacing.sm,
   },
-  heading: { flexGrow: 0 },
 });
