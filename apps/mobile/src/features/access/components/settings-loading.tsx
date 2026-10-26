@@ -98,7 +98,7 @@ function SettingsCard({ children }: PropsWithChildren) {
 }
 
 const styles = StyleSheet.create({
-  stack: { gap: tokens.spacing.md },
+  stack: { gap: tokens.layout.form.gap },
   card: {
     borderWidth: tokens.border.thin,
     borderRadius: tokens.radius.panel,

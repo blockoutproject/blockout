@@ -44,7 +44,7 @@ function DestinationLoading() {
 }
 
 const styles = StyleSheet.create({
-  rows: { gap: tokens.spacing.md },
+  rows: { gap: tokens.spacing.lg },
   card: {
     flexDirection: "row",
     alignItems: "center",
