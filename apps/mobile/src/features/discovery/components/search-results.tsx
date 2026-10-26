@@ -65,7 +65,10 @@ export interface SearchResultsHeadingProps {
   onClear: () => void;
 }
 
-/** Product Design collection toolbar 6294:170665; clearing is explicit and preserves the selected resource tab. */
+/**
+ * Product Design collection toolbar 6294:170665; clearing preserves the selected resource tab.
+ * The title wraps within the remaining row width while the clear action keeps its own target.
+ */
 export function SearchResultsHeading({
   count,
   onClear,
@@ -106,13 +109,11 @@ const styles = StyleSheet.create({
   continuation: { paddingTop: tokens.spacing.lg },
   toolbar: {
     flexDirection: "row",
-    flexWrap: "wrap",
     alignItems: "center",
-    justifyContent: "space-between",
     minHeight: tokens.layout.collection.toolbarMinHeight,
     gap: tokens.spacing.sm,
   },
-  heading: { ...tokens.typography.navigation, flexShrink: 1 },
+  heading: { ...tokens.typography.navigation, flex: 1, minWidth: 0 },
   clear: {
     minHeight: tokens.touch.minimum,
     minWidth: tokens.touch.minimum,
