@@ -47,7 +47,7 @@ export function SearchResults({
       keyExtractor={(item) => item.identity.id}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
-      contentContainerStyle={pageContentStyle}
+      contentContainerStyle={[pageContentStyle, searchResultsStartStyle]}
       ListHeaderComponent={
         <>
           <SearchResultsHeading count={items.length} onClear={onClear} />
@@ -106,10 +106,11 @@ export function SearchResultsHeading({
 }
 
 const styles = StyleSheet.create({
+  start: { paddingTop: tokens.spacing.xs },
   continuation: { paddingTop: tokens.spacing.lg },
   toolbar: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     minHeight: tokens.layout.collection.toolbarMinHeight,
     gap: tokens.spacing.sm,
   },
@@ -117,6 +118,9 @@ const styles = StyleSheet.create({
   clear: {
     minHeight: tokens.touch.minimum,
     minWidth: tokens.touch.minimum,
-    justifyContent: "center",
+    justifyContent: "flex-start",
   },
 });
+
+/** The 4-point start combines with text leading for the search gap; full touch targets extend below. */
+export const searchResultsStartStyle = styles.start;

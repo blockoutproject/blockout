@@ -27,6 +27,7 @@ import { useDiscoveryQuery } from "../api/use-discovery-query";
 import {
   SearchResults,
   SearchResultsHeading,
+  searchResultsStartStyle,
 } from "../components/search-results";
 import { SearchLoading } from "../components/search-loading";
 
@@ -182,7 +183,7 @@ function TextSearchResults({
       }
       keyboardShouldPersistTaps="handled"
     >
-      <PageContent style={styles.heading}>
+      <PageContent style={[styles.heading, searchResultsStartStyle]}>
         <SearchResultsHeading
           count={query.data ? 0 : undefined}
           onClear={onClear}
