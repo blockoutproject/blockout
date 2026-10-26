@@ -1,3 +1,4 @@
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { queryOptions } from "@tanstack/react-query";
 import {
   getClubPresentation,
@@ -40,8 +41,19 @@ export function createSportingAdministrationQueries(
         ),
         enabled: authority.enabled,
         gcTime: 0,
-        queryFn: async ({ signal }) =>
-          listDivisions(params, await authority.request(signal)),
+        queryFn: async ({ signal, client, queryKey }) => {
+          try {
+            return await listDivisions(params, await authority.request(signal));
+          } catch (error) {
+            // A later technical failure cannot restore a catalog whose current read was refused.
+            if (!signal.aborted && isAccessDenied(error))
+              client
+                .getQueryCache()
+                .find({ queryKey, exact: true })
+                ?.setState({ data: undefined, dataUpdatedAt: 0 });
+            throw error;
+          }
+        },
       });
     },
     /** One division DTO is shared by presentation and lifecycle consumers. */

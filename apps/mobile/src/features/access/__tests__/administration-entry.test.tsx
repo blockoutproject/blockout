@@ -303,7 +303,7 @@ it("removes a revoked command independently while retaining another current gran
   ).toBeOnTheScreen();
 });
 
-it("hides retained capabilities after a failed account refresh", async () => {
+it("hides retained capabilities after a refused account refresh without technical retry", async () => {
   // Given
   mockFetch.mockImplementation(async () =>
     json({ ...account, permissions: { manageMaintenance: true } }),
@@ -325,9 +325,8 @@ it("hides retained capabilities after a failed account refresh", async () => {
   await user.press(screen.getByRole("button", { name: "Relire le compte" }));
 
   // Then
-  expect(await screen.findByRole("alert")).toHaveTextContent(
-    "Les permissions du compte sont indisponibles.",
-  );
+  expect(await screen.findByRole("alert")).toHaveTextContent("Accès refusé");
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
   expect(
     screen.queryByRole("link", { name: "Maintenance" }),
   ).not.toBeOnTheScreen();
@@ -482,9 +481,12 @@ it("keeps direct route admission closed with no F12 composition, even with a man
   await screen.findByRole("link", { name: "Administration technique" });
 
   // Then
-  expect(screen.getByRole("alert")).toHaveTextContent(
-    "L’accès à l’application doit être vérifié avant de continuer.",
-  );
+  expect(screen.getByRole("alert", { name: "Accès refusé" })).toBeOnTheScreen();
+  expect(
+    screen.getByText(
+      "L’accès à l’application doit être vérifié avant de continuer.",
+    ),
+  ).toBeOnTheScreen();
   expect(
     screen.queryByRole("link", { name: "Maintenance" }),
   ).not.toBeOnTheScreen();

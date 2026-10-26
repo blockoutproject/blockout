@@ -1,3 +1,4 @@
+import { PreparationPage } from "../../../../features/collection/components/preparation-layout";
 import { useLocalSearchParams } from "expo-router";
 import { CollectionControlScreen } from "../../../../features/collection/screens/collection-dashboard-screen";
 import { RequestError } from "../../../../shared/components/request-feedback";
@@ -8,6 +9,11 @@ export default function ClubCollectionRoute() {
   return family === "club-sheets" || family === "geocoding" ? (
     <CollectionControlScreen family={family} />
   ) : (
-    <RequestError message="Ce périmètre de collecte est indisponible." />
+    <PreparationPage
+      title="Collectes"
+      state={
+        <RequestError message="Ce périmètre de collecte est indisponible." />
+      }
+    />
   );
 }

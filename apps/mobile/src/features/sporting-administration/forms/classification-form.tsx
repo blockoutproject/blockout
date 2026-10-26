@@ -1,3 +1,4 @@
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
@@ -20,7 +21,10 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ClassificationDetailResponse } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { Button } from "../../../shared/components/button";
-import { RequestError } from "../../../shared/components/request-feedback";
+import {
+  AccessDenied,
+  RequestError,
+} from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import type {
@@ -74,6 +78,7 @@ export function ClassificationForm({
   const custom = useWatch({ control, name: "custom" });
   const divisionId = useWatch({ control, name: "divisionId" });
   const busy =
+    editing.query.isError ||
     !editing.authority.enabled ||
     editing.save.pending ||
     editing.query.isFetching ||
@@ -219,12 +224,17 @@ export function ClassificationForm({
       />
       {custom && (
         <>
-          {divisions.query.isError && (
-            <RequestError
-              message="Les divisions sont indisponibles."
-              onRetry={() => void divisions.query.refetch()}
-              retrying={divisions.query.isFetching}
-            />
+          {isAccessDenied(divisions.query.error) ? (
+            <AccessDenied message="Ces divisions ne sont pas accessibles." />
+          ) : (
+            divisions.query.isError &&
+            !divisions.query.data && (
+              <RequestError
+                message="Les divisions sont indisponibles."
+                onRetry={() => void divisions.query.refetch()}
+                retrying={divisions.query.isFetching}
+              />
+            )
           )}
           <Controller
             control={control}
@@ -237,7 +247,7 @@ export function ClassificationForm({
                 value={
                   choices.find((choice) => choice.id === field.value)?.name
                 }
-                disabled={busy}
+                disabled={busy || isAccessDenied(divisions.query.error)}
                 error={fieldState.error?.message}
               />
             )}

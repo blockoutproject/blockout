@@ -5,9 +5,8 @@ import { Button } from "./button";
 import { LoadingIndicator } from "./loading-indicator";
 import { TECHNICAL_ERROR } from "./error-copy";
 
-// UI Library content slots: Spinner 212:11, Error State 216:25–27 and Button 156:5.
-// These are inline feedback, not a projection of the complete elevated Error State card.
-// The owner supplies its surrounding surface, retained content and navigation.
+// Shared feedback is content-sized. ScreenState owns blocking placement; retained
+// content and section feedback keep their original surface and navigation.
 
 /** Announces indeterminate waiting independently of the shared reduced-motion-aware glyph. */
 export function RequestLoading() {
@@ -62,6 +61,32 @@ export function RequestError({
   );
 }
 
+/** A permission or admission refusal is distinct from a failed read and offers no technical retry. */
+export interface AccessDeniedProps {
+  message?: string;
+}
+
+/** Explains a current access decision without treating it as a transient request failure. */
+export function AccessDenied({
+  message = "Cette action nécessite une permission dédiée.",
+}: AccessDeniedProps) {
+  const { colors } = useTheme();
+  return (
+    <View style={styles.error}>
+      <Text
+        accessibilityRole="alert"
+        accessibilityLiveRegion="polite"
+        style={[styles.title, { color: colors.text }]}
+      >
+        Accès refusé
+      </Text>
+      <Text style={[styles.message, { color: colors.secondaryText }]}>
+        {message}
+      </Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   loading: {
     flexDirection: "row",
@@ -69,5 +94,6 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   error: { gap: tokens.spacing.md },
+  title: { ...tokens.typography.heading },
   message: { ...tokens.typography.body, flexShrink: 1 },
 });

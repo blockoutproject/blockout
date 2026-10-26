@@ -73,6 +73,7 @@ export function ProviderPreparationForm({
     ) ?? [];
   const closed = season.state === "closed";
   const busy =
+    editing.sources.isError ||
     !authority.enabled ||
     editing.create.pending ||
     editing.season.isFetching ||

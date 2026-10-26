@@ -1,7 +1,11 @@
 import { render, screen, userEvent } from "@testing-library/react-native";
 import { Text } from "react-native";
 import { ThemeProvider } from "../../theme/theme-provider";
-import { RequestError, RequestLoading } from "../request-feedback";
+import {
+  AccessDenied,
+  RequestError,
+  RequestLoading,
+} from "../request-feedback";
 import { TextField } from "../text-field";
 
 it("names a busy request without relying on its decorative animation", async () => {
@@ -138,7 +142,7 @@ it("keeps retained content and editable input outside feedback while the caller 
     <ThemeProvider>
       <Text>Dernier résultat consultable</Text>
       <TextField label="Commentaire" defaultValue="" />
-      <RequestError message="Cette action n’est plus autorisée." />
+      <RequestError message="La relecture a échoué. Votre brouillon est conservé." />
     </ThemeProvider>,
   );
 
@@ -146,8 +150,30 @@ it("keeps retained content and editable input outside feedback while the caller 
   expect(screen.getByText("Dernier résultat consultable")).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Brouillon conservé")).toBeOnTheScreen();
   expect(
-    screen.getByRole("alert", { name: "Cette action n’est plus autorisée." }),
+    screen.getByRole("alert", {
+      name: "La relecture a échoué. Votre brouillon est conservé.",
+    }),
   ).toBeOnTheScreen();
   expect(screen.queryByRole("button")).not.toBeOnTheScreen();
   expect(onRetry).not.toHaveBeenCalled();
+});
+
+it("explains a denied permission without suggesting a technical retry", async () => {
+  // Given
+  await render(
+    <ThemeProvider>
+      <AccessDenied />
+    </ThemeProvider>,
+  );
+
+  // When
+  const refusal = screen.getByRole("alert", { name: "Accès refusé" });
+
+  // Then
+  expect(refusal).toBeOnTheScreen();
+  expect(
+    screen.getByText("Cette action nécessite une permission dédiée."),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("button")).not.toBeOnTheScreen();
+  expect(screen.queryByText(/Une erreur est survenue/)).not.toBeOnTheScreen();
 });

@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type PropsWithChildren } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type PropsWithChildren,
+  type ReactNode,
+} from "react";
 import {
   Platform,
   Pressable,
@@ -9,13 +15,16 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { UseQueryResult } from "@tanstack/react-query";
+import { ApiError } from "../../../shared/api/api-fetch";
 import { resourceUnavailable } from "../model/consultation-availability";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { PageHeader } from "../../../shared/components/page-header";
 import {
   RequestError,
   RequestLoading,
+  AccessDenied,
 } from "../../../shared/components/request-feedback";
+import { ScreenState } from "../../../shared/components/screen-state";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 
@@ -25,6 +34,8 @@ export interface ResourcePageProps extends PropsWithChildren {
   scroll?: boolean;
   refreshing?: boolean;
   onRefresh?: () => void;
+  /** Blocking feedback replaces content only when no usable representation remains. */
+  state?: ReactNode;
 }
 
 /** Native safe areas and the source-owned 48 px header; bounded content uses the 16 px section gap. */
@@ -34,15 +45,16 @@ export function ResourcePage({
   scroll = true,
   refreshing = false,
   onRefresh,
+  state,
 }: ResourcePageProps) {
   const { colors } = useTheme();
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <PageHeader title={title} />
-      {scroll ? (
+      {scroll || state ? (
         <ScrollView
           alwaysBounceVertical
-          contentContainerStyle={styles.content}
+          contentContainerStyle={state ? styles.stateContent : styles.content}
           refreshControl={
             onRefresh ? (
               <DataRefreshControl
@@ -52,7 +64,7 @@ export function ResourcePage({
             ) : undefined
           }
         >
-          {children}
+          {state ? <ScreenState>{state}</ScreenState> : children}
         </ScrollView>
       ) : (
         children
@@ -79,15 +91,22 @@ export function ResourceFeedback<T>({
 }) {
   if (query.isPending) return <RequestLoading />;
   if (!query.isError) return null;
-  const message = resourceUnavailable(query.error)
-    ? "Cette ressource est indisponible."
+  const unavailable = resourceUnavailable(query.error);
+  if (
+    unavailable &&
+    query.error instanceof ApiError &&
+    query.error.status !== 404
+  )
+    return <AccessDenied message="Cette ressource n’est pas accessible." />;
+  const message = unavailable
+    ? "Cette ressource est introuvable."
     : query.data
       ? "L’actualisation a échoué. Les informations précédentes restent affichées."
       : "Impossible de charger les informations.";
   return (
     <RequestError
       message={message}
-      onRetry={() => void query.refetch()}
+      onRetry={unavailable ? undefined : () => void query.refetch()}
       retrying={query.isFetching}
     />
   );
@@ -168,6 +187,7 @@ export function ResourceTabs({ items, selected, onSelect }: ResourceTabsProps) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  stateContent: { flexGrow: 1, padding: tokens.spacing.lg },
   content: {
     flexGrow: 1,
     padding: tokens.spacing.lg,

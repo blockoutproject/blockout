@@ -47,6 +47,13 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
   const queries = createCollectionQueries(authority);
   const controlOptions = queries.control(controlId);
   const key = controlOptions.queryKey;
+  const seasonKey = seasonId
+    ? getSessionQueryKey(
+        authority.session.generation,
+        getGetCollectionSeasonQueryKey(seasonId),
+      )
+    : undefined;
+  const requiredReads = seasonKey ? [key, seasonKey] : [key];
   const query = useQuery(controlOptions);
   const results = useInfiniteQuery(queries.results(controlId));
   /** Installs a confirmed command only when no same/newer revision was already read, preserving completion freshness. */
@@ -64,7 +71,11 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
     {
       mutationKey: [...key, ...getSetCollectionActivityMutationKey()],
       mutationFn: async (body: SetCollectionActivityRequest) =>
-        setCollectionActivity(controlId, body, await authority.request()),
+        setCollectionActivity(
+          controlId,
+          body,
+          await authority.request(requiredReads),
+        ),
       onSuccess: accept,
     },
     { groupKey: key, requiresRead: requiresRevisionRead },
@@ -75,7 +86,7 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
       // Orval's multi-success-status function supplies no decoder. Validate once at this consuming boundary.
       mutationFn: async (body: RequestCollectionRequest) =>
         requestCollection(controlId, body, {
-          ...(await authority.request()),
+          ...(await authority.request(requiredReads)),
           schema: CollectionControlResponse,
         }),
       onSuccess: accept,
@@ -89,12 +100,7 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
     activity,
     request,
     queryKey: key,
-    seasonKey: seasonId
-      ? getSessionQueryKey(
-          authority.session.generation,
-          getGetCollectionSeasonQueryKey(seasonId),
-        )
-      : undefined,
+    seasonKey,
   };
 }
 
@@ -123,7 +129,7 @@ export function useCloseCollectionSeason(seasonId: string) {
     {
       mutationKey: [...key, ...getCloseCollectionSeasonMutationKey()],
       mutationFn: async (body: CloseCollectionSeasonRequest) =>
-        closeCollectionSeason(seasonId, body, await authority.request()),
+        closeCollectionSeason(seasonId, body, await authority.request([key])),
       onSuccess: accept,
     },
     { groupKey: key, requiresRead: requiresRevisionRead },

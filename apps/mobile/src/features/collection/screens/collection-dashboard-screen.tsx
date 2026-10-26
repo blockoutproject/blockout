@@ -1,8 +1,12 @@
+import { isAccessDenied } from "../../../shared/api/access-denied";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { EmptyState } from "../../../shared/components/state-card";
+import { ScreenState } from "../../../shared/components/screen-state";
 import { PageHeader } from "../../../shared/components/page-header";
 import { useRouter } from "expo-router";
 import { CalendarDays, MapPin, Users } from "lucide-react-native";
 import { useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type {
   CollectionFamilyEnum,
@@ -11,6 +15,7 @@ import type {
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { Button } from "../../../shared/components/button";
 import {
+  AccessDenied,
   RequestError,
   RequestLoading,
 } from "../../../shared/components/request-feedback";
@@ -46,18 +51,41 @@ const familyLabels: Record<CollectionFamilyEnum, string> = {
 /** Lists competition seasons and independent club destinations; entering or refreshing performs only reads. */
 export function CollectionDashboardScreen() {
   const { authority, query } = useCollectionSeasons();
+  const feedback = useActionFeedback();
   const { colors } = useTheme();
   const router = useRouter();
   return (
     <PreparationPage
       title="Collectes"
-      refreshing={query.isFetching || authority.account.isFetching}
+      state={
+        !authority.enabled ? (
+          <CollectionAccessFeedback authority={authority} />
+        ) : undefined
+      }
+      refreshing={query.isRefetching || authority.account.isRefetching}
       onRefresh={
         authority.sessionStatus === "authenticated"
           ? () => {
               if (authority.enabled)
-                void query.refetch({ cancelRefetch: false });
-              else void authority.account.refetch({ cancelRefetch: false });
+                void query.refetch({ cancelRefetch: false }).then((result) => {
+                  if (
+                    result.isError &&
+                    result.data &&
+                    !isAccessDenied(result.error)
+                  )
+                    feedback.error();
+                });
+              else
+                void authority.account
+                  .refetch({ cancelRefetch: false })
+                  .then((result) => {
+                    if (
+                      result.isError &&
+                      result.data &&
+                      !isAccessDenied(result.error)
+                    )
+                      feedback.error();
+                  });
             }
           : undefined
       }
@@ -71,29 +99,40 @@ export function CollectionDashboardScreen() {
           >
             Compétitions
           </Text>
-          {query.data?.items.map((season) => (
-            <PreparationLink
-              key={season.id}
-              label={season.label}
-              detail={seasonStatus(season)}
-              icon={CalendarDays}
-              onPress={() =>
-                router.push({
-                  pathname: "/collection/[seasonId]",
-                  params: { seasonId: season.id },
-                })
-              }
-            />
-          ))}
-          {query.data?.items.length === 0 && (
-            <Text style={[tokens.typography.body, { color: colors.text }]}>
-              Aucune saison découverte
-            </Text>
+          {(!isAccessDenied(query.error) ? query.data?.items : undefined)?.map(
+            (season) => (
+              <PreparationLink
+                key={season.id}
+                label={season.label}
+                detail={seasonStatus(season)}
+                icon={CalendarDays}
+                onPress={() =>
+                  router.push({
+                    pathname: "/collection/[seasonId]",
+                    params: { seasonId: season.id },
+                  })
+                }
+              />
+            ),
           )}
-          {query.isError ? (
+          {!isAccessDenied(query.error) && query.data?.items.length === 0 && (
+            <EmptyState title="Aucune saison découverte" />
+          )}
+          {isAccessDenied(query.error) ? (
+            <AccessDenied message="Les saisons ne sont pas accessibles." />
+          ) : query.isError && !query.data ? (
             <RequestError
               message="Les saisons sont indisponibles."
-              onRetry={() => void query.refetch({ cancelRefetch: false })}
+              onRetry={() =>
+                void query.refetch({ cancelRefetch: false }).then((result) => {
+                  if (
+                    result.isError &&
+                    result.data &&
+                    !isAccessDenied(result.error)
+                  )
+                    feedback.error();
+                })
+              }
               retrying={query.isFetching}
             />
           ) : (
@@ -155,33 +194,65 @@ function SeasonControlScope({
   seasonId,
 }: Required<CollectionControlScreenProps>) {
   const { authority, season } = useCollectionSeason(seasonId);
-  if (!authority.enabled || !season.data)
+  const feedback = useActionFeedback();
+  if (!authority.enabled || !season.data || isAccessDenied(season.error))
     return (
       <PreparationPage
         title={familyLabels[family]}
-        refreshing={season.isFetching || authority.account.isFetching}
-        onRefresh={
-          authority.sessionStatus === "authenticated"
-            ? () => {
-                if (authority.enabled)
-                  void season.refetch({ cancelRefetch: false });
-                else void authority.account.refetch({ cancelRefetch: false });
-              }
-            : undefined
-        }
-      >
-        <CollectionAccessFeedback authority={authority} />
-        {authority.enabled &&
-          (season.isError ? (
+        state={
+          !authority.enabled ? (
+            <CollectionAccessFeedback authority={authority} />
+          ) : isAccessDenied(season.error) ? (
+            <AccessDenied />
+          ) : season.isError ? (
             <RequestError
               message="La saison est indisponible."
-              onRetry={() => void season.refetch()}
+              onRetry={() =>
+                void season.refetch().then((result) => {
+                  if (
+                    result.isError &&
+                    result.data &&
+                    !isAccessDenied(result.error)
+                  )
+                    feedback.error();
+                })
+              }
               retrying={season.isFetching}
             />
           ) : (
             <RequestLoading />
-          ))}
-      </PreparationPage>
+          )
+        }
+        refreshing={season.isRefetching || authority.account.isRefetching}
+        onRefresh={
+          authority.sessionStatus === "authenticated"
+            ? () => {
+                if (authority.enabled)
+                  void season
+                    .refetch({ cancelRefetch: false })
+                    .then((result) => {
+                      if (
+                        result.isError &&
+                        result.data &&
+                        !isAccessDenied(result.error)
+                      )
+                        feedback.error();
+                    });
+                else
+                  void authority.account
+                    .refetch({ cancelRefetch: false })
+                    .then((result) => {
+                      if (
+                        result.isError &&
+                        result.data &&
+                        !isAccessDenied(result.error)
+                      )
+                        feedback.error();
+                    });
+              }
+            : undefined
+        }
+      />
     );
   return (
     <ControlScope
@@ -191,6 +262,8 @@ function SeasonControlScope({
       seasonFetching={season.isFetching}
       rereadSeason={async () => {
         const read = await season.refetch({ cancelRefetch: false });
+        if (read.isError && read.data && !isAccessDenied(read.error))
+          feedback.error();
         return !read.isError && !!read.data;
       }}
     />
@@ -212,38 +285,72 @@ function ControlScope({
   rereadSeason?: () => Promise<boolean>;
 }) {
   const { authority, query } = useCollectionControls(season?.id);
-  const selected = query.data?.items.find(
-    (control) => control.family === family && control.seasonId === season?.id,
-  );
+  const feedback = useActionFeedback();
+  const selected =
+    !isAccessDenied(query.error) &&
+    query.data?.items.find(
+      (control) => control.family === family && control.seasonId === season?.id,
+    );
   if (!authority.enabled || !selected)
     return (
       <PreparationPage
         title={familyLabels[family]}
-        refreshing={query.isFetching || authority.account.isFetching}
-        onRefresh={
-          authority.sessionStatus === "authenticated"
-            ? () => {
-                if (authority.enabled)
-                  void query.refetch({ cancelRefetch: false });
-                else void authority.account.refetch({ cancelRefetch: false });
-              }
-            : undefined
-        }
-      >
-        <CollectionAccessFeedback authority={authority} />
-        {authority.enabled &&
-          (query.isError ? (
+        state={
+          !authority.enabled ? (
+            <CollectionAccessFeedback authority={authority} />
+          ) : isAccessDenied(query.error) ? (
+            <AccessDenied message="Ces contrôles ne sont pas accessibles." />
+          ) : query.isError ? (
             <RequestError
               message="Les contrôles sont indisponibles."
-              onRetry={() => void query.refetch()}
+              onRetry={() =>
+                void query.refetch().then((result) => {
+                  if (
+                    result.isError &&
+                    result.data &&
+                    !isAccessDenied(result.error)
+                  )
+                    feedback.error();
+                })
+              }
               retrying={query.isFetching}
             />
           ) : query.data ? (
             <RequestError message="Ce contrôle est indisponible pour le périmètre sélectionné." />
           ) : (
             <RequestLoading />
-          ))}
-      </PreparationPage>
+          )
+        }
+        refreshing={query.isRefetching || authority.account.isRefetching}
+        onRefresh={
+          authority.sessionStatus === "authenticated"
+            ? () => {
+                if (authority.enabled)
+                  void query
+                    .refetch({ cancelRefetch: false })
+                    .then((result) => {
+                      if (
+                        result.isError &&
+                        result.data &&
+                        !isAccessDenied(result.error)
+                      )
+                        feedback.error();
+                    });
+                else
+                  void authority.account
+                    .refetch({ cancelRefetch: false })
+                    .then((result) => {
+                      if (
+                        result.isError &&
+                        result.data &&
+                        !isAccessDenied(result.error)
+                      )
+                        feedback.error();
+                    });
+              }
+            : undefined
+        }
+      />
     );
   return (
     <ControlDashboard
@@ -276,17 +383,23 @@ function ControlDashboard({
 }) {
   const editing = useCollectionControl(controlId, season?.id);
   const { authority, query, results } = editing;
+  const feedback = useActionFeedback();
   const { colors } = useTheme();
   const router = useRouter();
   const [diagnostics, setDiagnostics] = useState(false);
   const refreshing =
-    query.isFetching ||
-    (results.isFetching && !results.isFetchingNextPage) ||
+    query.isRefetching ||
+    results.isRefetching ||
     seasonFetching ||
-    authority.account.isFetching;
+    authority.account.isRefetching;
   const current = query.data;
-  const matches = current?.family === family && current.seasonId === season?.id;
-  const rows = results.data?.pages.flatMap((page) => page.items) ?? [];
+  const matches =
+    !isAccessDenied(query.error) &&
+    current?.family === family &&
+    current.seasonId === season?.id;
+  const rows = isAccessDenied(results.error)
+    ? []
+    : (results.data?.pages.flatMap((page) => page.items) ?? []);
   /** Refresh reads each projection only; command reconciliation is released by its separate explicit reread action. */
   async function refresh() {
     if (
@@ -300,11 +413,20 @@ function ControlDashboard({
       await authority.account.refetch({ cancelRefetch: false });
       return;
     }
-    await Promise.all([
+    const [controlRead, resultRead] = await Promise.all([
       query.refetch({ cancelRefetch: false }),
       results.refetch({ cancelRefetch: false }),
       rereadSeason?.(),
     ]);
+    if (
+      (controlRead.isError &&
+        controlRead.data &&
+        !isAccessDenied(controlRead.error)) ||
+      (resultRead.isError &&
+        resultRead.data &&
+        !isAccessDenied(resultRead.error))
+    )
+      feedback.error();
   }
   const header = (
     <View style={styles.section}>
@@ -332,16 +454,22 @@ function ControlDashboard({
           ) : query.isError ? (
             <RequestError
               message="Le contrôle est indisponible."
-              onRetry={() => void query.refetch({ cancelRefetch: false })}
+              onRetry={() =>
+                void query.refetch({ cancelRefetch: false }).then((result) => {
+                  if (
+                    result.isError &&
+                    result.data &&
+                    !isAccessDenied(result.error)
+                  )
+                    feedback.error();
+                })
+              }
               retrying={query.isFetching}
             />
           ) : current ? (
             <RequestError message="Le contrôle ne correspond pas au périmètre sélectionné." />
           ) : (
             <RequestLoading />
-          )}
-          {query.isError && current && (
-            <RequestError message="L’actualisation a échoué. Le dernier état lu est conservé." />
           )}
           {season && (family === "ffvb" || family === "lnv") && (
             <Button
@@ -381,63 +509,121 @@ function ControlDashboard({
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <PageHeader title={familyLabels[family]} />
-      <FlatList
-        alwaysBounceVertical
-        refreshControl={
-          authority.sessionStatus === "authenticated" ? (
-            <DataRefreshControl
-              enabled={!editing.activity.pending && !results.isFetchingNextPage}
-              refreshing={refreshing}
-              onRefresh={() => void refresh()}
-            />
-          ) : undefined
-        }
-        data={authority.enabled && matches ? rows : []}
-        keyExtractor={(row) => `${row.scopeId}/${row.stage}/${row.phase}`}
-        contentContainerStyle={preparationStyles.content}
-        ListHeaderComponent={header}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        renderItem={({ item }) => (
-          <CollectionResult result={item} diagnostics={diagnostics} />
-        )}
-        ListFooterComponent={
-          authority.enabled && matches ? (
-            <View style={styles.footer}>
-              {results.isError && (
-                <RequestError
-                  message="Les résultats sont indisponibles. Les observations déjà lues sont conservées."
-                  onRetry={() => {
-                    if (results.isFetchNextPageError)
-                      void results.fetchNextPage();
-                    else void results.refetch();
-                  }}
-                  retrying={results.isFetching}
-                />
-              )}
-              {results.isPending && <RequestLoading />}
-              {results.data && rows.length === 0 && (
-                <Text style={[tokens.typography.body, { color: colors.text }]}>
-                  Aucun résultat observé. Aucun succès ne peut être confirmé.
-                </Text>
-              )}
-              {results.hasNextPage && !results.isFetchNextPageError && (
-                <Button
-                  label="Charger la suite"
-                  variant="secondary"
-                  disabled={results.isFetching}
-                  loading={results.isFetchingNextPage}
-                  onPress={() => void results.fetchNextPage()}
-                />
-              )}
-            </View>
-          ) : undefined
-        }
-      />
+      {!authority.enabled || !matches ? (
+        <ScrollView
+          contentContainerStyle={styles.state}
+          alwaysBounceVertical
+          refreshControl={
+            authority.sessionStatus === "authenticated" ? (
+              <DataRefreshControl
+                refreshing={refreshing}
+                onRefresh={() => void refresh()}
+              />
+            ) : undefined
+          }
+        >
+          <ScreenState>
+            {!authority.enabled ? (
+              <CollectionAccessFeedback authority={authority} />
+            ) : isAccessDenied(query.error) ? (
+              <AccessDenied />
+            ) : query.isError ? (
+              <RequestError
+                message="Le contrôle est indisponible."
+                onRetry={() => void query.refetch()}
+                retrying={query.isFetching}
+              />
+            ) : current ? (
+              <RequestError message="Le contrôle ne correspond pas au périmètre sélectionné." />
+            ) : (
+              <RequestLoading />
+            )}
+          </ScreenState>
+        </ScrollView>
+      ) : (
+        <FlatList
+          alwaysBounceVertical
+          refreshControl={
+            authority.sessionStatus === "authenticated" ? (
+              <DataRefreshControl
+                enabled={
+                  !editing.activity.pending && !results.isFetchingNextPage
+                }
+                refreshing={refreshing}
+                onRefresh={() => void refresh()}
+              />
+            ) : undefined
+          }
+          data={authority.enabled && matches ? rows : []}
+          keyExtractor={(row) => `${row.scopeId}/${row.stage}/${row.phase}`}
+          contentContainerStyle={preparationStyles.content}
+          ListHeaderComponent={header}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          renderItem={({ item }) => (
+            <CollectionResult result={item} diagnostics={diagnostics} />
+          )}
+          ListFooterComponent={
+            authority.enabled && matches ? (
+              <View style={styles.footer}>
+                {isAccessDenied(results.error) ? (
+                  <AccessDenied message="Ces résultats ne sont pas accessibles." />
+                ) : (
+                  results.isError &&
+                  !results.data && (
+                    <RequestError
+                      message="Les résultats sont indisponibles."
+                      onRetry={() =>
+                        void results.refetch().then((result) => {
+                          if (
+                            result.isError &&
+                            result.data &&
+                            !isAccessDenied(result.error)
+                          )
+                            feedback.error();
+                        })
+                      }
+                      retrying={results.isFetching}
+                    />
+                  )
+                )}
+                {results.isPending && <RequestLoading />}
+                {!isAccessDenied(results.error) &&
+                  results.data &&
+                  rows.length === 0 && (
+                    <EmptyState
+                      title="Aucun résultat observé"
+                      description="Aucun succès ne peut être confirmé."
+                    />
+                  )}
+                {!isAccessDenied(results.error) && results.hasNextPage && (
+                  <Button
+                    label={
+                      results.isFetchNextPageError
+                        ? "Réessayer"
+                        : "Charger la suite"
+                    }
+                    variant="secondary"
+                    disabled={results.isFetching}
+                    loading={results.isFetchingNextPage}
+                    onPress={() =>
+                      void results.fetchNextPage().then((result) => {
+                        if (result.isError && !isAccessDenied(result.error))
+                          feedback.error();
+                      })
+                    }
+                  />
+                )}
+              </View>
+            ) : undefined
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  state: { flexGrow: 1, padding: tokens.spacing.lg },
   section: { gap: tokens.spacing.lg, paddingBottom: tokens.spacing.lg },
   footer: { gap: tokens.spacing.lg, paddingTop: tokens.spacing.lg },
   separator: { height: tokens.spacing.lg },

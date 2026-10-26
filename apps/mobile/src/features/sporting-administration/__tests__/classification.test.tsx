@@ -1,6 +1,9 @@
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { getListClubTeamsQueryKey } from "../../../../.generated/mobile";
+import {
+  getGetPoolClassificationQueryKey,
+  getListClubTeamsQueryKey,
+} from "../../../../.generated/mobile";
 import {
   act,
   fireEvent,
@@ -1010,3 +1013,105 @@ function ActionFeedbackScope({ children }: PropsWithChildren) {
     </ActionFeedbackProvider>
   );
 }
+
+it("keeps classification choices but disables editing after a current resource refusal", async () => {
+  // Given
+  stored.setting = classification;
+  const user = await renderEditor();
+  await choose(user, "Format", "4 × 4");
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/classification")
+      ? Promise.resolve(json({ title: "Forbidden", status: 403 }, 403))
+      : respond(url, options),
+  );
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(await screen.findByText("Accès refusé")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+  expect(screen.getByRole("button", { name: "Format" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
+});
+
+it("keeps an open format selector unavailable through a refused then failed classification reread", async () => {
+  // Given
+  stored.setting = classification;
+  const user = await renderEditor();
+  await choose(user, "Format", "4 × 4");
+  await user.press(screen.getByRole("button", { name: "Format" }));
+  await screen.findByRole("radio", { name: "4 × 4", checked: true });
+  let status = 403;
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/classification")
+      ? Promise.resolve(json({ title: "Read unavailable", status }, status))
+      : respond(url, options),
+  );
+  const [classificationPath] = getGetPoolClassificationQueryKey(id);
+
+  // When
+  await act(async () =>
+    client.refetchQueries({
+      predicate: ({ queryKey }) => queryKey.includes(classificationPath),
+    }),
+  );
+
+  // Then
+  expect(await screen.findByText("Accès refusé")).toBeOnTheScreen();
+  expect(
+    screen.getByText("Cette classification n’est pas accessible."),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("radio", { name: "2 × 2" })).toBeNull();
+
+  // When
+  status = 503;
+  await act(async () =>
+    client.refetchQueries({
+      predicate: ({ queryKey }) => queryKey.includes(classificationPath),
+    }),
+  );
+  await user.press(await screen.findByRole("radio", { name: "2 × 2" }));
+
+  // Then
+  expect(screen.getByRole("radio", { name: "2 × 2" })).toBeDisabled();
+  expect(
+    screen.getByRole("radio", { name: "4 × 4", checked: true }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText(
+      "La classification doit être relue avant de modifier une valeur.",
+    ),
+  ).toBeOnTheScreen();
+});
+
+it("refuses a held save confirmation after its current classification read is refused", async () => {
+  // Given
+  jest.spyOn(Alert, "alert");
+  stored.setting = classification;
+  const user = await renderEditor();
+  await choose(user, "Format", "4 × 4");
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/classification")
+      ? Promise.resolve(json({ title: "Forbidden", status: 403 }, 403))
+      : respond(url, options),
+  );
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await screen.findByText("Accès refusé");
+
+  // When
+  await confirm();
+
+  // Then
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+  ).toHaveLength(0);
+  expect(
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+});

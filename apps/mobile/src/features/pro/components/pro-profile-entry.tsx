@@ -2,10 +2,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef } from "react";
 import { Text } from "react-native";
 import { Button } from "../../../shared/components/button";
-import {
-  RequestError,
-  RequestLoading,
-} from "../../../shared/components/request-feedback";
+import { RequestError } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import type { SessionSnapshot } from "../../accounts";
@@ -76,7 +73,6 @@ export function ProProfileEntry() {
       {connected && (
         <>
           <ProVerification />
-          {offering.isFetching && <RequestLoading />}
           {associated && (
             <Button
               label="Gérer ou restaurer mes achats"

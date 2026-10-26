@@ -16,6 +16,7 @@ import {
 } from "../../../../.generated/mobile";
 import { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { startCommand } from "../../../shared/query/use-command";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useOrdinaryRequest } from "../../access/ordinary-request";
@@ -40,7 +41,8 @@ export function useCurrentAccount() {
         getGetMyAccountQueryKey(),
       ),
       enabled: session.status === "authenticated",
-      queryFn: async ({ signal }) => {
+      queryFn: async ({ signal, client, queryKey }) => {
+        const previousError = client.getQueryState(queryKey)?.error;
         try {
           const credentials = await auth.getCredentials();
           if (!credentials) throw new ApiError("http", 401);
@@ -64,7 +66,8 @@ export function useCurrentAccount() {
             session.accountId
           )
             session.invalidate();
-          throw error;
+          // Only a successful account read can lift an observed refusal, never a later network failure.
+          throw isAccessDenied(previousError) ? previousError : error;
         }
       },
     }),

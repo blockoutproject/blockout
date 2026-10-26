@@ -7,7 +7,11 @@ import { ApiError } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { LoadingIndicator } from "../../../shared/components/loading-indicator";
-import { RequestError } from "../../../shared/components/request-feedback";
+import {
+  AccessDenied,
+  RequestError,
+} from "../../../shared/components/request-feedback";
+import { ScreenState } from "../../../shared/components/screen-state";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useEstablishAccount } from "../api/use-current-account";
@@ -28,7 +32,11 @@ export function SignInScreen({ admitted }: SignInScreenProps) {
     <SignInJourney />
   ) : (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
-      <RequestError message="L’accès à l’application doit être vérifié avant de continuer." />
+      <ScrollView contentContainerStyle={styles.stateContent}>
+        <ScreenState>
+          <AccessDenied message="L’accès à l’application doit être vérifié avant de continuer." />
+        </ScreenState>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -223,6 +231,7 @@ function SignInJourney() {
 }
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  stateContent: { flexGrow: 1, padding: tokens.spacing.lg },
   content: {
     paddingVertical: tokens.spacing.section,
     gap: tokens.spacing.lg,

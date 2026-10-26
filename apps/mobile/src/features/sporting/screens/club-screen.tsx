@@ -1,3 +1,6 @@
+import { isAccessDenied } from "../../../shared/api/access-denied";
+import { EmptyState } from "../../../shared/components/state-card";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Surface } from "../../../shared/components/surface";
 import { hashKey, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
@@ -47,6 +50,7 @@ function ClubPage({ clubId, renderCalendar }: ClubScreenProps) {
   const [selectedSeason, setSelectedSeason] = useState<string>();
   const [choosingSeason, setChoosingSeason] = useState(false);
   const data = club.data;
+  const feedback = useActionFeedback();
   const seasons = data?.seasons ?? [];
   const season =
     seasons.find((item) => item.id === selectedSeason) ?? seasons[0];
@@ -59,21 +63,32 @@ function ClubPage({ clubId, renderCalendar }: ClubScreenProps) {
     staleTime: Infinity,
   });
   const teamData = teams.data?.seasonId === season?.id ? teams.data : undefined;
+  /** Only the displayed scope refreshes; a failed read leaves authorized information visible. */
+  async function refresh() {
+    const result =
+      tab === "teams" && data && season
+        ? await teams.refetch({ cancelRefetch: false })
+        : await club.refetch({ cancelRefetch: false });
+    if (result.isError && result.data && !isAccessDenied(result.error))
+      feedback.error();
+  }
   return (
-    <ResourcePage title="Club" scroll={false}>
+    <ResourcePage
+      title="Club"
+      scroll={false}
+      state={!data ? <ResourceFeedback query={club} /> : undefined}
+      refreshing={club.isRefetching}
+      onRefresh={() => void refresh()}
+    >
       <FlatList
         alwaysBounceVertical
         refreshControl={
           tab === "info" || !data || (tab === "teams" && season) ? (
             <DataRefreshControl
               refreshing={
-                tab === "teams" && data ? teams.isFetching : club.isFetching
+                tab === "teams" && data ? teams.isRefetching : club.isRefetching
               }
-              onRefresh={() => {
-                if (tab === "teams" && data && season)
-                  void teams.refetch({ cancelRefetch: false });
-                else void club.refetch({ cancelRefetch: false });
-              }}
+              onRefresh={() => void refresh()}
             />
           ) : undefined
         }
@@ -97,7 +112,6 @@ function ClubPage({ clubId, renderCalendar }: ClubScreenProps) {
         )}
         ListHeaderComponent={
           <View style={styles.header}>
-            <ResourceFeedback query={club} />
             {data && (
               <>
                 <SportingIdentity
@@ -199,11 +213,9 @@ function ClubPage({ clubId, renderCalendar }: ClubScreenProps) {
                   season &&
                   (tab === "teams" ? (
                     <>
-                      <ResourceFeedback query={teams} />
+                      {!teamData && <ResourceFeedback query={teams} />}
                       {teamData?.items.length === 0 && (
-                        <ResourceText>
-                          Aucune équipe pour cette saison
-                        </ResourceText>
+                        <EmptyState title="Aucune équipe pour cette saison" />
                       )}
                     </>
                   ) : (

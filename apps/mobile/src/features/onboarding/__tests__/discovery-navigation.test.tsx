@@ -205,7 +205,11 @@ it.each(["/onboarding", "/sign-in", "/legal", "/support"])(
     await openInstallation(path);
 
     // Then
-    expect(await screen.findByText("Accès indisponible.")).toBeOnTheScreen();
+    expect(
+      await screen.findByText(
+        "L’accès à l’application n’a pas pu être vérifié.",
+      ),
+    ).toBeOnTheScreen();
     expect(screen.queryByRole("button", { name: "Passer" })).toBeNull();
     expect(
       screen.queryByText(/Ordinary sign-in|Legal route|Support route/),

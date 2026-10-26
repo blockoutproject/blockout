@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandMark } from "../../../shared/components/brand-mark";
 import { Surface } from "../../../shared/components/surface";
+import { ScreenState } from "../../../shared/components/screen-state";
 import {
   RequestError,
   RequestLoading,
@@ -53,7 +54,7 @@ function AgeBackdrop() {
 
 /**
  * Mandatory initial/renewal form; the router guards home and owns completion navigation.
- * Full-width artwork and inset content retain separate layout ownership.
+ * Initial storage feedback shares the useful-area placement; only the ready form owns artwork.
  */
 export function AgeDeclarationScreen() {
   const { colors } = useTheme();
@@ -73,30 +74,41 @@ export function AgeDeclarationScreen() {
           style={[styles.divider, { backgroundColor: colors.border }]}
         />
       </View>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.stage}>
-        <AgeBackdrop />
-        <Surface>
-          <View style={styles.form}>
-            <Text
-              accessibilityRole="header"
-              style={[tokens.typography.headingXl, { color: colors.text }]}
-            >
-              {age.renewal
-                ? "Quel âge avez-vous aujourd’hui ?"
-                : "Quel est votre âge ?"}
-            </Text>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={
+          age.loading || age.readFailed ? styles.stateContent : styles.stage
+        }
+      >
+        {age.loading || age.readFailed ? (
+          <ScreenState>
             {age.loading ? (
               <RequestLoading />
-            ) : age.readFailed ? (
+            ) : (
               <RequestError
                 message="Votre déclaration n’a pas pu être chargée."
                 onRetry={age.retryRead}
               />
-            ) : (
-              <AgeForm pending={age.pending} onSubmit={age.confirm} />
             )}
-          </View>
-        </Surface>
+          </ScreenState>
+        ) : (
+          <>
+            <AgeBackdrop />
+            <Surface>
+              <View style={styles.form}>
+                <Text
+                  accessibilityRole="header"
+                  style={[tokens.typography.headingXl, { color: colors.text }]}
+                >
+                  {age.renewal
+                    ? "Quel âge avez-vous aujourd’hui ?"
+                    : "Quel est votre âge ?"}
+                </Text>
+                <AgeForm pending={age.pending} onSubmit={age.confirm} />
+              </View>
+            </Surface>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -118,6 +130,7 @@ const styles = StyleSheet.create({
   },
   brand: { flexDirection: "row", gap: 9, alignItems: "center" },
   scroll: { flex: 1 },
+  stateContent: { flexGrow: 1, padding: tokens.spacing.lg },
   stage: {
     flexGrow: 1,
     justifyContent: "center",

@@ -1,3 +1,4 @@
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
@@ -144,6 +145,7 @@ export function MaintenanceForm({
   }
   /** Rereads the actual outcome without replay; dirty fields remain until an explicit new submit. */
   async function reread() {
+    actionFeedback.clear();
     const { result, reconciled } = await editing.content.reconcile(
       [editing.queryKey],
       () => editing.query.refetch(),
@@ -159,6 +161,10 @@ export function MaintenanceForm({
       result.isError ||
       result.data.revision < baseline.revision
     ) {
+      if (!isAccessDenied(result.error))
+        actionFeedback.error(
+          "La relecture a échoué. Votre brouillon est conservé.",
+        );
       return;
     }
     setState({

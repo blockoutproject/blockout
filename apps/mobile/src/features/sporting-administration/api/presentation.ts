@@ -9,7 +9,12 @@ import {
   toPoolPresentationBody,
   toDivisionPresentationBody,
 } from "./presentation-request";
-import { hashKey, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  hashKey,
+  useQuery,
+  useQueryClient,
+  type QueryKey,
+} from "@tanstack/react-query";
 import { useSportingAuthority } from "./classification";
 import { createSportingAdministrationQueries } from "./sporting-administration-queries";
 import {
@@ -87,8 +92,12 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
   );
   const { session } = authority;
   const client = useQueryClient();
-  /** Reads use canonical resource grants; only commands additionally require this editor's availability. */
-  async function request(signal?: AbortSignal, writing = false) {
+  /** Reads use canonical grants; commands also recheck their readable baseline before and after credentials. */
+  async function request(
+    signal?: AbortSignal,
+    writing = false,
+    readKey?: QueryKey,
+  ) {
     if (writing && !enabled) throw new ApiError("http", 403);
     return authority.request(
       signal,
@@ -97,6 +106,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
           ? "lifecycle"
           : "presentation"
         : undefined,
+      readKey,
     );
   }
   const queries = createSportingAdministrationQueries({
@@ -187,7 +197,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
         revision: string;
         values: PresentationValues;
       }): Promise<SavedPresentation> => {
-        const options = await request(undefined, true);
+        const options = await request(undefined, true, queryKey);
         let accepted: SavedPresentation;
         switch (target.kind) {
           case "division-creation":

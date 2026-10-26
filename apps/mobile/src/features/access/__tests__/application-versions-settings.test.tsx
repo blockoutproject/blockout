@@ -14,6 +14,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  fireEvent,
 } from "@testing-library/react-native";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
@@ -625,6 +626,108 @@ it.each(["revoked", "unavailable"])(
     );
   },
 );
+
+it("retains a read-only draft and rejects held confirmation after the settings endpoint refuses access", async () => {
+  // Given
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  const user = await editField("Message commun", "Mon brouillon");
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  const confirm = nativeAction("Appliquer").onPress;
+  mockFetch.mockClear().mockResolvedValue(
+    json(
+      {
+        type: "urn:blockout:problem:forbidden",
+        title: "Forbidden",
+        status: 403,
+      },
+      403,
+    ),
+  );
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await screen.findByRole("alert", { name: "Accès refusé" });
+  await act(async () => confirm?.());
+
+  // Then
+  expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
+    "Mon brouillon",
+  );
+  expect(screen.getByLabelText("Message commun")).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+  ).toBe(false);
+
+  // When
+  mockFetch.mockResolvedValue(
+    json(
+      {
+        type: "urn:blockout:problem:unavailable",
+        title: "Unavailable",
+        status: 503,
+      },
+      503,
+    ),
+  );
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByLabelText("Actualiser les données")).toHaveProp(
+      "accessibilityState",
+      expect.objectContaining({ busy: false }),
+    ),
+  );
+  expect(screen.getByRole("alert", { name: "Accès refusé" })).toBeOnTheScreen();
+  expect(screen.getByLabelText("Message commun")).toBeDisabled();
+
+  // When
+  mockFetch.mockImplementation(async (url) =>
+    json(String(url).endsWith("/accounts/me") ? account : stored),
+  );
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByLabelText("Message commun")).toBeEnabled(),
+  );
+  expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
+    "Mon brouillon",
+  );
+  expect(
+    screen.queryByRole("alert", { name: "Accès refusé" }),
+  ).not.toBeOnTheScreen();
+});
+
+it("presents an initial settings refusal without a technical retry or editable defaults", async () => {
+  // Given
+  mockFetch.mockImplementation(async (url) =>
+    String(url).endsWith("/accounts/me")
+      ? json(account)
+      : json(
+          {
+            type: "urn:blockout:problem:forbidden",
+            title: "Forbidden",
+            status: 403,
+          },
+          403,
+        ),
+  );
+
+  // When
+  await renderSettings();
+
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: "Accès refusé" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Message commun")).not.toBeOnTheScreen();
+});
 it("keeps the production route closed without operational admission", async () => {
   // Given / When
   await renderSettings(<ApplicationVersionsRoute />);
@@ -694,11 +797,11 @@ it("rejects invalid or older rereads without replacing the accepted cache or dir
   mockFetch.mockResolvedValue(
     json({ ...initial, revision: 1, message: "Older state" }),
   );
-  await act(async () => client.refetchQueries({ queryKey: key, exact: true }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
   await screen.findByText(
-    "La relecture a échoué. Votre brouillon est conservé.",
+    "L’actualisation a échoué. Votre brouillon est conservé.",
   );
   expect(client.getQueryData(key)).toEqual(initial);
   expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
@@ -707,9 +810,13 @@ it("rejects invalid or older rereads without replacing the accepted cache or dir
 
   // When
   mockFetch.mockResolvedValue(json({ revision: 5, ios: null }));
-  await act(async () => client.refetchQueries({ queryKey: key, exact: true }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
+  await waitFor(() =>
+    expect(client.getQueryState(key)?.fetchStatus).toBe("idle"),
+  );
+  expect(client.getQueryState(key)?.status).toBe("error");
   expect(client.getQueryData(key)).toEqual(initial);
   expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
     "Mon brouillon",

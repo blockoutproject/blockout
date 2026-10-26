@@ -1,4 +1,5 @@
 import { ImageValidationError } from "../../../shared/images/image-validation-error";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import type { File } from "expo-file-system";
 import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
 import { useImageSelection } from "../../../shared/images/use-image-selection";
@@ -16,6 +17,7 @@ import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { ImageField } from "../../../shared/components/image-field";
 import {
+  AccessDenied,
   RequestError,
   RequestLoading,
 } from "../../../shared/components/request-feedback";
@@ -34,6 +36,8 @@ import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 /** An editable snapshot of this original account; parent identity/generation changes remount it. */
 export interface ProfileFormProps {
   account: AccountResponse;
+  /** Keeps the local draft visible while the current account read cannot authorize personal edits. */
+  disabled: boolean;
   /** The screen keeps this operation alive while session removal disposes the private form. */
   onContinueAsGuest: () => Promise<void>;
   leaving: boolean;
@@ -42,6 +46,7 @@ export interface ProfileFormProps {
 /** Keeps drafts through refetch/refusal and requires original-target reconciliation before an explicit uncertain retry. */
 export function ProfileForm({
   account,
+  disabled,
   onContinueAsGuest,
   leaving,
 }: ProfileFormProps) {
@@ -65,7 +70,7 @@ export function ProfileForm({
       deleteOwnedImage(photo.prepared);
   });
   const selection = useImageSelection({
-    canSelect: () => !save.isPending(),
+    canSelect: () => !disabled && !save.isPending(),
     allowsEditing: true,
     aspect: [1, 1],
     onSelect: async (assets) => {
@@ -90,7 +95,7 @@ export function ProfileForm({
   const draft = useWatch({ control, name: "photo" });
   const photo = useProfilePhoto(
     account.accountId,
-    account.hasPhoto && draft.action === "keep",
+    !disabled && account.hasPhoto && draft.action === "keep",
   );
   const uncertain = isUncertainMutationFailure(save.error);
   const needsRead = save.needsRead;
@@ -146,6 +151,7 @@ export function ProfileForm({
   /** Sends supplied intent once; one original-target read may reconcile uncertainty without replay. */
   async function submit(values: ProfileValues) {
     if (
+      disabled ||
       needsRead ||
       selection.isPending() ||
       !active.current ||
@@ -196,16 +202,22 @@ export function ProfileForm({
     <View style={styles.form}>
       <Surface>
         <View style={styles.form}>
-          {draft.action === "keep" && account.hasPhoto && photo.isFetching && (
+          {draft.action === "keep" && account.hasPhoto && photo.isLoading && (
             <RequestLoading />
           )}
-          {draft.action === "keep" && account.hasPhoto && photo.isError && (
-            <RequestError
-              message="Votre photo est indisponible."
-              onRetry={() => void photo.refetch()}
-              retrying={photo.isFetching}
-            />
-          )}
+          {draft.action === "keep" &&
+            account.hasPhoto &&
+            photo.isError &&
+            !photo.data &&
+            (isAccessDenied(photo.error) ? (
+              <AccessDenied message="Votre photo n’est pas accessible." />
+            ) : (
+              <RequestError
+                message="Votre photo est indisponible."
+                onRetry={() => void photo.refetch()}
+                retrying={photo.isFetching}
+              />
+            ))}
           <Controller
             control={control}
             name="photo"
@@ -215,7 +227,7 @@ export function ProfileForm({
                 images={images}
                 selection={selection}
                 placeholderIcon={UserRound}
-                disabled={busy}
+                disabled={disabled || busy}
                 chooseLabel="Choisir une photo de profil"
                 helper="Facultatif. PNG/JPEG, jusqu’à 5 Mio."
                 error={fieldState.error?.message}
@@ -239,7 +251,7 @@ export function ProfileForm({
                 onBlur={field.onBlur}
                 autoCapitalize="none"
                 autoCorrect={false}
-                editable={!busy}
+                editable={!disabled && !busy}
                 helper="3 à 32 caractères : lettres sans accent, chiffres, point, tiret ou soulignement. Les espaces autour sont retirés."
                 error={fieldState.error?.message}
               />
@@ -275,7 +287,7 @@ export function ProfileForm({
       <Button
         label="Enregistrer"
         onPress={() => void handleSubmit(submit)()}
-        disabled={busy || needsRead}
+        disabled={disabled || busy || needsRead}
         loading={save.executing}
       />
       <Button

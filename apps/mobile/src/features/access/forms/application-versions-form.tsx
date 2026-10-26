@@ -1,3 +1,4 @@
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import {
   ActionFeedbackProvider,
   useActionFeedback,
@@ -151,6 +152,7 @@ export function ApplicationVersionsForm({
   }
   /** Reads the actual outcome and keeps dirty fields, without submitting or merging conflicting input. */
   async function reread() {
+    actionFeedback.clear();
     const { result, reconciled } = await editing.content.reconcile(
       [editing.queryKey],
       () => editing.query.refetch(),
@@ -167,6 +169,10 @@ export function ApplicationVersionsForm({
       result.isError ||
       result.data.revision < baseline.revision
     ) {
+      if (!isAccessDenied(result.error))
+        actionFeedback.error(
+          "La relecture a échoué. Votre brouillon est conservé.",
+        );
       return;
     }
     editor.update({

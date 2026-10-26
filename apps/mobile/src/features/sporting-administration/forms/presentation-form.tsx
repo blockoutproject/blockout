@@ -15,10 +15,12 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
 import { ApiError } from "../../../shared/api/api-fetch";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { DivisionActivityAction } from "../components/division-activity-action";
 import { Button } from "../../../shared/components/button";
 import { ImageField } from "../../../shared/components/image-field";
 import {
+  AccessDenied,
   RequestError,
   RequestLoading,
 } from "../../../shared/components/request-feedback";
@@ -448,16 +450,22 @@ export function PresentationForm({
         <View style={styles.form}>
           {target.kind !== "pool" && (
             <>
-              {draft.action !== "replace" && hasLogo && artwork.isFetching && (
+              {draft.action !== "replace" && hasLogo && artwork.isLoading && (
                 <RequestLoading />
               )}
-              {draft.action !== "replace" && hasLogo && artwork.isError && (
-                <RequestError
-                  message="Le logo est indisponible. Votre présentation est conservée."
-                  onRetry={() => void artwork.refetch()}
-                  retrying={artwork.isFetching}
-                />
-              )}
+              {draft.action !== "replace" &&
+                hasLogo &&
+                artwork.isError &&
+                !artwork.data &&
+                (isAccessDenied(artwork.error) ? (
+                  <AccessDenied message="Ce logo n’est pas accessible." />
+                ) : (
+                  <RequestError
+                    message="Le logo est indisponible. Votre présentation est conservée."
+                    onRetry={() => void artwork.refetch()}
+                    retrying={artwork.isFetching}
+                  />
+                ))}
               <Controller
                 control={control}
                 name="logo"

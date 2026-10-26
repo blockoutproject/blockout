@@ -18,7 +18,6 @@ import { searchResults } from "../model/search-result";
 export interface SearchResultsProps {
   pages: readonly DiscoveryPage[];
   onClear: () => void;
-  feedback?: ReactNode;
   refreshing: boolean;
   onRefresh: () => void;
   continuation?: ReactNode;
@@ -28,7 +27,6 @@ export interface SearchResultsProps {
 export function SearchResults({
   pages,
   onClear,
-  feedback,
   refreshing,
   onRefresh,
   continuation,
@@ -58,7 +56,6 @@ export function SearchResults({
       ListHeaderComponent={
         <>
           <SearchResultsHeading count={items.length} onClear={onClear} />
-          {feedback && <View style={styles.feedback}>{feedback}</View>}
         </>
       }
       ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -89,8 +86,6 @@ export function SearchResultsHeading({
         accessibilityRole="header"
         accessibilityLabel={title}
         accessibilityLiveRegion="polite"
-        numberOfLines={1}
-        ellipsizeMode="tail"
         style={[styles.heading, { color: colors.text }]}
       >
         {title}
@@ -120,7 +115,6 @@ const styles = StyleSheet.create({
   },
   continuation: { paddingTop: tokens.spacing.lg },
   separator: { height: tokens.spacing.md },
-  feedback: { paddingVertical: tokens.spacing.xl },
   toolbar: {
     flexDirection: "row",
     flexWrap: "wrap",

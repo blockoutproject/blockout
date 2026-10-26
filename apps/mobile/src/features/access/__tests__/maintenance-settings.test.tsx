@@ -173,6 +173,29 @@ it("shows loading before any known state can be saved", async () => {
   ).not.toBeOnTheScreen();
   await act(async () => finish(json(initial)));
 });
+
+it("reports one failed refresh while retaining the editable maintenance draft", async () => {
+  // Given
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await editMessage();
+  mockFetch.mockClear().mockRejectedValue(new Error("Network unavailable"));
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(
+    await screen.findByRole("alert", {
+      name: "L’actualisation a échoué. Votre brouillon est conservé.",
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Les réglages de maintenance sont indisponibles."),
+  ).not.toBeOnTheScreen();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+});
 it("does not publish defaults after an initial load failure", async () => {
   // Given
   mockFetch.mockImplementation(async (url) =>
@@ -677,6 +700,113 @@ it("retains a draft through a failed permission refresh", async () => {
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+});
+
+it("retains a read-only draft and rejects held confirmation after the settings endpoint refuses access", async () => {
+  // Given
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  const user = await editMessage();
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  const confirm = nativeAction("Enregistrer").onPress;
+  mockFetch.mockClear().mockResolvedValue(
+    json(
+      {
+        type: "urn:blockout:problem:forbidden",
+        title: "Forbidden",
+        status: 403,
+      },
+      403,
+    ),
+  );
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await screen.findByRole("alert", { name: "Accès refusé" });
+  await act(async () => confirm?.());
+
+  // Then
+  expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
+    "Mon brouillon",
+  );
+  expect(screen.getByLabelText("Message de maintenance")).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    screen.getByRole("button", { name: "Activer la maintenance" }),
+  ).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+  ).toBe(false);
+
+  // When
+  mockFetch.mockResolvedValue(
+    json(
+      {
+        type: "urn:blockout:problem:unavailable",
+        title: "Unavailable",
+        status: 503,
+      },
+      503,
+    ),
+  );
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByLabelText("Actualiser les données")).toHaveProp(
+      "accessibilityState",
+      expect.objectContaining({ busy: false }),
+    ),
+  );
+  expect(screen.getByRole("alert", { name: "Accès refusé" })).toBeOnTheScreen();
+  expect(screen.getByLabelText("Message de maintenance")).toBeDisabled();
+
+  // When
+  mockFetch.mockImplementation(async (url) =>
+    json(String(url).endsWith("/accounts/me") ? account : stored),
+  );
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByLabelText("Message de maintenance")).toBeEnabled(),
+  );
+  expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
+    "Mon brouillon",
+  );
+  expect(
+    screen.queryByRole("alert", { name: "Accès refusé" }),
+  ).not.toBeOnTheScreen();
+});
+
+it("presents an initial settings refusal without a technical retry or editable defaults", async () => {
+  // Given
+  mockFetch.mockImplementation(async (url) =>
+    String(url).endsWith("/accounts/me")
+      ? json(account)
+      : json(
+          {
+            type: "urn:blockout:problem:forbidden",
+            title: "Forbidden",
+            status: 403,
+          },
+          403,
+        ),
+  );
+
+  // When
+  await renderSettings();
+
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: "Accès refusé" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Message de maintenance"),
+  ).not.toBeOnTheScreen();
 });
 
 it.each([

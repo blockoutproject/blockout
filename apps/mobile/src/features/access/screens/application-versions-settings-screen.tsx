@@ -1,9 +1,13 @@
+import { ScreenState } from "../../../shared/components/screen-state";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { StyleSheet } from "react-native";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PageHeader } from "../../../shared/components/page-header";
 import {
+  AccessDenied,
   RequestError,
   RequestLoading,
 } from "../../../shared/components/request-feedback";
@@ -22,10 +26,33 @@ export function ApplicationVersionsSettingsScreen() {
   const canManage = permissions?.manageApplicationVersions === true;
   const editing = useApplicationVersionsSettings(canManage);
   const { colors } = useTheme();
+  const feedback = useActionFeedback();
+  const denied =
+    isAccessDenied(account.error) || isAccessDenied(editing.query.error);
   const settings =
     sessionStatus === "authenticated" ? editing.query.data : undefined;
+
+  /** Explicit refresh reports retained-data failure once and never resets the mounted draft. */
+  async function refresh() {
+    if (editing.content.isPending()) return;
+    feedback.clear();
+    if (!canManage) {
+      await account.refetch();
+      return;
+    }
+    const result = await editing.query.refetch();
+    if (
+      session.isCurrent(session.generation) &&
+      result.isError &&
+      result.data &&
+      !isAccessDenied(result.error)
+    )
+      feedback.error("L’actualisation a échoué. Votre brouillon est conservé.");
+  }
   let accessError = null;
-  if (account.isError) {
+  if (denied) {
+    accessError = <AccessDenied />;
+  } else if (account.isError) {
     accessError = (
       <RequestError
         message="Les permissions du compte sont indisponibles."
@@ -35,7 +62,7 @@ export function ApplicationVersionsSettingsScreen() {
     );
   } else if (!canManage) {
     accessError = (
-      <RequestError message="Cette action nécessite une permission dédiée." />
+      <AccessDenied message="Cette action nécessite une permission dédiée." />
     );
   }
   let settingsContent = null;
@@ -45,7 +72,7 @@ export function ApplicationVersionsSettingsScreen() {
         key={`${session.generation}:${session.accountId}`}
         settings={settings}
         editing={editing}
-        disabled={!canManage}
+        disabled={!canManage || denied}
       />
     );
   } else if (!accessError && editing.query.isError) {
@@ -68,26 +95,25 @@ export function ApplicationVersionsSettingsScreen() {
           sessionStatus === "authenticated" ? (
             <DataRefreshControl
               enabled={!editing.content.pending}
-              refreshing={editing.query.isFetching || account.isFetching}
-              onRefresh={() => {
-                if (editing.content.isPending()) return;
-                if (canManage) void editing.query.refetch();
-                else void account.refetch();
-              }}
+              refreshing={editing.query.isRefetching || account.isRefetching}
+              onRefresh={() => void refresh()}
             />
           ) : undefined
         }
       >
-        {sessionStatus === "restoring" ||
-        (sessionStatus === "authenticated" && account.isPending) ? (
-          <RequestLoading />
+        {!settings ? (
+          <ScreenState>
+            {sessionStatus === "restoring" ||
+            (sessionStatus === "authenticated" && account.isPending) ? (
+              <RequestLoading />
+            ) : (
+              (accessError ?? settingsContent)
+            )}
+          </ScreenState>
         ) : (
           <>
             {accessError}
             {settingsContent}
-            {settings && editing.query.isError && (
-              <RequestError message="La relecture a échoué. Votre brouillon est conservé." />
-            )}
           </>
         )}
       </FormScrollView>

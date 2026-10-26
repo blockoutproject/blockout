@@ -3,48 +3,17 @@ import type { ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
-import { Button } from "./button";
-import { TECHNICAL_ERROR_TITLE, TECHNICAL_ERROR_HELP } from "./error-copy";
 
 /** Empty content has contextual public copy; it never represents an unsuccessful read. */
 export interface EmptyStateProps {
   title: string;
   description?: string;
+  /** Feature-owned decorative illustration; omitted consumers use the shared volleyball artwork. */
+  artwork?: ReactNode;
 }
 
-/** Shared empty-state anatomy from Product Design 947:3712; the owner supplies its contextual copy. */
-export function EmptyState({ title, description }: EmptyStateProps) {
-  return <StateCard kind="empty" title={title} description={description} />;
-}
-
-/** A technical error stays opaque; only the read owner can authorize and execute another attempt. */
-export interface ErrorStateProps {
-  onRetry?: () => void;
-  retrying?: boolean;
-}
-
-/** Product Design 946:3807 with the owner-requested explicit recovery action; no transport details enter the copy. */
-export function ErrorState({ onRetry, retrying = false }: ErrorStateProps) {
-  return (
-    <StateCard
-      kind="error"
-      title={TECHNICAL_ERROR_TITLE}
-      description={TECHNICAL_ERROR_HELP}
-    >
-      {onRetry && (
-        <Button label="Réessayer" onPress={onRetry} loading={retrying} />
-      )}
-    </StateCard>
-  );
-}
-
-/** Preserves the approved artwork slots and content-driven surface; actions remain ordinary shared controls. */
-function StateCard({
-  kind,
-  title,
-  description,
-  children,
-}: EmptyStateProps & { kind: "empty" | "error"; children?: ReactNode }) {
+/** Shared empty-state anatomy; the feature supplies contextual copy and any approved illustration. */
+export function EmptyState({ title, description, artwork }: EmptyStateProps) {
   const { colors } = useTheme();
   return (
     <View
@@ -53,22 +22,18 @@ function StateCard({
         { backgroundColor: colors.raised, borderColor: colors.border },
       ]}
     >
-      <View
-        style={[
-          styles.artwork,
-          kind === "error" ? styles.errorArtwork : styles.emptyArtwork,
-          { backgroundColor: colors.subtle },
-        ]}
-      >
-        <Image
-          accessible={false}
-          source={require("../../../assets/feedback/volleyball.svg")}
-          contentFit="contain"
-          style={styles.illustration}
-        />
-      </View>
+      {artwork ?? (
+        <View style={[styles.artwork, { backgroundColor: colors.subtle }]}>
+          <Image
+            accessible={false}
+            source={require("../../../assets/feedback/volleyball.svg")}
+            contentFit="contain"
+            style={styles.illustration}
+          />
+        </View>
+      )}
       <Text
-        accessibilityRole={kind === "error" ? "alert" : "header"}
+        accessibilityRole="header"
         accessibilityLiveRegion="polite"
         style={[styles.title, { color: colors.text }]}
       >
@@ -79,7 +44,6 @@ function StateCard({
           {description}
         </Text>
       )}
-      {children && <View style={styles.actions}>{children}</View>}
     </View>
   );
 }
@@ -98,10 +62,9 @@ const styles = StyleSheet.create({
   },
   title: { ...tokens.typography.heading, textAlign: "center" },
   description: { ...tokens.typography.body, textAlign: "center" },
-  actions: { maxWidth: "100%", alignSelf: "center" },
-  emptyArtwork: { width: 120, height: 120 },
-  errorArtwork: { width: 86, height: 78 },
   artwork: {
+    width: 120,
+    height: 120,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: tokens.radius.panelInset,

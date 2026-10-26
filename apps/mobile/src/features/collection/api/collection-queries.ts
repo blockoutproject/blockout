@@ -1,4 +1,9 @@
-import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
+import { isAccessDenied } from "../../../shared/api/access-denied";
+import {
+  infiniteQueryOptions,
+  queryOptions,
+  type QueryFunctionContext,
+} from "@tanstack/react-query";
 import {
   getCollectionControl,
   getCollectionSeason,
@@ -29,6 +34,15 @@ export interface CollectionQueryAuthority {
 
 /** Defines every collection read once; native Query owns data, cancellation, pagination and status. */
 export function createCollectionQueries(authority: CollectionQueryAuthority) {
+  /** Removes a refused list or control snapshot so a later technical failure cannot resurrect it. */
+  function rejectDenied(error: unknown, context: QueryFunctionContext): never {
+    if (!context.signal.aborted && isAccessDenied(error))
+      context.client
+        .getQueryCache()
+        .find({ queryKey: context.queryKey, exact: true })
+        ?.setState({ data: undefined, dataUpdatedAt: 0 });
+    throw error;
+  }
   return {
     /** Canonical seasons, without provider calls or implicit season creation. */
     seasons: () =>
@@ -39,8 +53,16 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         ),
         enabled: authority.enabled,
         gcTime: 0,
-        queryFn: async ({ signal }) =>
-          listCollectionSeasons({ ...(await authority.request()), signal }),
+        queryFn: async (context) => {
+          try {
+            return await listCollectionSeasons({
+              ...(await authority.request()),
+              signal: context.signal,
+            });
+          } catch (error) {
+            return rejectDenied(error, context);
+          }
+        },
       }),
     /** One season shared by navigation, preparation and terminal closure. */
     season: (seasonId: string) =>
@@ -98,12 +120,17 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         enabled: authority.enabled,
         gcTime: 0,
         initialPageParam: 0,
-        queryFn: async ({ pageParam, signal }) =>
-          listCollectionSourceChildren(
-            sourceId,
-            { ...params, page: pageParam },
-            { ...(await authority.request()), signal },
-          ),
+        queryFn: async (context) => {
+          try {
+            return await listCollectionSourceChildren(
+              sourceId,
+              { ...params, page: context.pageParam },
+              { ...(await authority.request()), signal: context.signal },
+            );
+          } catch (error) {
+            return rejectDenied(error, context);
+          }
+        },
         getNextPageParam: (last) => (last.hasNext ? last.page + 1 : undefined),
       });
     },
@@ -117,11 +144,16 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         ),
         enabled: authority.enabled,
         gcTime: 0,
-        queryFn: async ({ signal }) =>
-          listCollectionControls(params, {
-            ...(await authority.request()),
-            signal,
-          }),
+        queryFn: async (context) => {
+          try {
+            return await listCollectionControls(params, {
+              ...(await authority.request()),
+              signal: context.signal,
+            });
+          } catch (error) {
+            return rejectDenied(error, context);
+          }
+        },
       });
     },
     /** Current control configuration shared by observation and explicit command reconciliation. */
@@ -133,11 +165,16 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         ),
         enabled: authority.enabled,
         gcTime: 0,
-        queryFn: async ({ signal }) =>
-          getCollectionControl(controlId, {
-            ...(await authority.request()),
-            signal,
-          }),
+        queryFn: async (context) => {
+          try {
+            return await getCollectionControl(controlId, {
+              ...(await authority.request()),
+              signal: context.signal,
+            });
+          } catch (error) {
+            return rejectDenied(error, context);
+          }
+        },
       }),
     /** Paged evidence includes response-shaping size in the key without creating one cache per page. */
     results: (controlId: string) => {
@@ -150,12 +187,17 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         enabled: authority.enabled,
         gcTime: 0,
         initialPageParam: 0,
-        queryFn: async ({ pageParam, signal }) =>
-          listCollectionResults(
-            controlId,
-            { ...params, page: pageParam },
-            { ...(await authority.request()), signal },
-          ),
+        queryFn: async (context) => {
+          try {
+            return await listCollectionResults(
+              controlId,
+              { ...params, page: context.pageParam },
+              { ...(await authority.request()), signal: context.signal },
+            );
+          } catch (error) {
+            return rejectDenied(error, context);
+          }
+        },
         getNextPageParam: (last) => (last.hasNext ? last.page + 1 : undefined),
       });
     },

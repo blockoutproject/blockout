@@ -55,18 +55,39 @@ export function createDiscoveryQueryOptions(
       context.params.q !== undefined &&
       /[^\p{White_Space}]/u.test(context.params.q),
     initialPageParam: undefined as string | undefined,
-    queryFn: async ({ signal, pageParam }): Promise<DiscoveryPage> => {
-      let headers: Record<string, string> | undefined;
-      if (intent) {
-        const credentials = await getCredentials();
-        if (!credentials?.accessToken) throw new ApiError("http", 401);
-        headers = { Authorization: `Bearer ${credentials.accessToken}` };
+    queryFn: async ({
+      signal,
+      pageParam,
+      client,
+      queryKey,
+    }): Promise<DiscoveryPage> => {
+      try {
+        let headers: Record<string, string> | undefined;
+        if (intent) {
+          const credentials = await getCredentials();
+          if (!credentials?.accessToken) throw new ApiError("http", 401);
+          headers = { Authorization: `Bearer ${credentials.accessToken}` };
+        }
+        const options = admission.request({ session, signal, headers });
+        const params = { ...context.params, cursor: pageParam };
+        if (resource === "club") return await listClubs(params, options);
+        if (resource === "team") return await listTeams(params, options);
+        return await listPools(params, options);
+      } catch (error) {
+        // An access or visibility refusal invalidates previously authorized pages without resetting the request lifecycle.
+        if (
+          !signal.aborted &&
+          error instanceof ApiError &&
+          error.kind === "http" &&
+          (error.status === 401 || error.status === 403 || error.status === 404)
+        ) {
+          client
+            .getQueryCache()
+            .find({ queryKey, exact: true })
+            ?.setState({ data: undefined, dataUpdatedAt: 0 });
+        }
+        throw error;
       }
-      const options = admission.request({ session, signal, headers });
-      const params = { ...context.params, cursor: pageParam };
-      if (resource === "club") return listClubs(params, options);
-      if (resource === "team") return listTeams(params, options);
-      return listPools(params, options);
     },
     getNextPageParam: (page) => page.nextCursor,
   });

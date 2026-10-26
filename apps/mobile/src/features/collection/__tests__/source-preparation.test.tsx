@@ -1032,7 +1032,9 @@ it("retries the failed next child page instead of only refreshing already loaded
   );
   await screen.findByText("Phase régulière");
   await user.press(screen.getByRole("button", { name: "Charger la suite" }));
-  await screen.findByText("Les groupes sont indisponibles.");
+  await screen.findByText(
+    "Une erreur est survenue. Veuillez réessayer plus tard.",
+  );
   fails = false;
 
   // When
@@ -1293,4 +1295,103 @@ it("preserves an edited source URL when pull-to-refresh reads a newer source rev
       ([, options]) => !options?.method || options.method === "GET",
     ),
   ).toBe(true);
+});
+
+it("hides retained source groups when the current catalog read is refused", async () => {
+  // Given
+  mockFetch.mockImplementation((url) =>
+    String(url).includes("/children")
+      ? Promise.resolve(
+          json({
+            items: [
+              {
+                id: "00000000-0000-4000-8000-000000000182",
+                label: "Groupe retenu",
+                kind: "pool",
+              },
+            ],
+            page: 0,
+            hasNext: false,
+          }),
+        )
+      : reads(url),
+  );
+  await renderPreparation(
+    <SourceChildrenScreen seasonId={seasonId} sourceId={sourceId} />,
+  );
+  await screen.findByText("Groupe retenu");
+  mockFetch.mockImplementation((url) =>
+    String(url).includes("/children")
+      ? Promise.resolve(refused(403))
+      : reads(url),
+  );
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(await screen.findByText("Accès refusé")).toBeOnTheScreen();
+  expect(screen.queryByText("Groupe retenu")).not.toBeOnTheScreen();
+  expect(screen.queryByText("Aucun groupe découvert")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  mockFetch.mockImplementation((url) =>
+    String(url).includes("/children")
+      ? Promise.resolve(refused(503))
+      : reads(url),
+  );
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  expect(
+    await screen.findByText("Les groupes sont indisponibles."),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Groupe retenu")).not.toBeOnTheScreen();
+  expect(screen.queryByText("Aucun groupe découvert")).not.toBeOnTheScreen();
+});
+
+it("explains missing collection permission without leaving a disabled catalog in loading", async () => {
+  // Given
+  permissions = {};
+
+  // When
+  await renderPreparation(
+    <SourceChildrenScreen seasonId={seasonId} sourceId={sourceId} />,
+  );
+
+  // Then
+  expect(await screen.findByText("Accès refusé")).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([url]) => String(url).includes("/children")),
+  ).toBe(false);
+});
+
+it("retains a source draft but disables its commands after the current source read is refused", async () => {
+  // Given
+  await renderPreparation();
+  await editCandidate();
+  mockFetch.mockImplementation((url) =>
+    String(url).endsWith(`/source-bindings/${sourceId}`)
+      ? Promise.resolve(refused(403))
+      : reads(url),
+  );
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(await screen.findByText("Accès refusé")).toBeOnTheScreen();
+  expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  mockFetch.mockImplementation((url) =>
+    String(url).endsWith(`/source-bindings/${sourceId}`)
+      ? Promise.resolve(refused(503))
+      : reads(url),
+  );
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await waitFor(() =>
+    expect(screen.queryByText("Accès refusé")).not.toBeOnTheScreen(),
+  );
+  expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 });

@@ -86,6 +86,7 @@ export function SourceCandidateForm({
   const closed = (editing.season.data ?? season).state === "closed";
   const readOnly = closed || current.locked || current.launched;
   const busy =
+    editing.source.isError ||
     !authority.enabled ||
     editing.candidate.pending ||
     editing.source.isFetching ||

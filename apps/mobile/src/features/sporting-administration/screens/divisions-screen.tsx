@@ -1,3 +1,7 @@
+import { isAccessDenied } from "../../../shared/api/access-denied";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { EmptyState } from "../../../shared/components/state-card";
+import { ScreenState } from "../../../shared/components/screen-state";
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -16,6 +20,7 @@ import { IconButton } from "../../../shared/components/icon-button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { SearchField } from "../../../shared/components/search-field";
 import {
+  AccessDenied,
   RequestError,
   RequestLoading,
 } from "../../../shared/components/request-feedback";
@@ -47,26 +52,70 @@ export function DivisionsScreen() {
   const canEdit =
     authority.permissions?.manageSportingPresentation === true ||
     authority.permissions?.manageDivisionLifecycle === true;
-  const items = authority.enabled
-    ? (query.data?.items.filter(
-        (division) =>
-          division.active === active &&
-          division.name
-            .toLocaleLowerCase()
-            .includes(search.trim().toLocaleLowerCase()),
-      ) ?? [])
-    : [];
+  const denied = isAccessDenied(query.error);
+  const items =
+    authority.enabled && !denied
+      ? (query.data?.items.filter(
+          (division) =>
+            division.active === active &&
+            division.name
+              .toLocaleLowerCase()
+              .includes(search.trim().toLocaleLowerCase()),
+        ) ?? [])
+      : [];
+  const feedback = useActionFeedback();
   return (
-    <EditorPage title="Divisions" scrollable={false}>
+    <EditorPage
+      title="Divisions"
+      scrollable={false}
+      state={
+        !authority.enabled ? (
+          <SportingAccessFeedback authority={authority} />
+        ) : undefined
+      }
+      refreshControl={
+        authority.sessionStatus === "authenticated" ? (
+          <DataRefreshControl
+            refreshing={authority.account.isRefetching}
+            onRefresh={() =>
+              void authority.account.refetch().then((result) => {
+                if (
+                  result.isError &&
+                  result.data &&
+                  !isAccessDenied(result.error)
+                )
+                  feedback.error();
+              })
+            }
+          />
+        ) : undefined
+      }
+    >
       <FlatList
         alwaysBounceVertical
         refreshControl={
           authority.sessionStatus === "authenticated" ? (
             <DataRefreshControl
-              refreshing={query.isFetching || authority.account.isFetching}
+              refreshing={query.isRefetching || authority.account.isRefetching}
               onRefresh={() => {
-                if (authority.enabled) void query.refetch();
-                else void authority.account.refetch();
+                if (authority.enabled)
+                  void query.refetch().then((result) => {
+                    if (
+                      result.isError &&
+                      result.data &&
+                      !isAccessDenied(result.error)
+                    )
+                      feedback.error();
+                  });
+                else
+                  void authority.account.refetch().then((result) => {
+                    if (
+                      result.isError &&
+                      result.data &&
+                      !isAccessDenied(result.error)
+                    )
+                      feedback.error();
+                  });
               }}
             />
           ) : undefined
@@ -75,7 +124,10 @@ export function DivisionsScreen() {
         keyboardDismissMode="on-drag"
         data={items}
         keyExtractor={(division) => division.id}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          items.length === 0 && styles.stateContent,
+        ]}
         ItemSeparatorComponent={Separator}
         ListHeaderComponent={
           <View style={styles.controls}>
@@ -170,28 +222,41 @@ export function DivisionsScreen() {
                 </Pressable>
               ))}
             </View>
-            {query.isError && (
-              <RequestError
-                message="Les divisions sont indisponibles."
-                onRetry={() => void query.refetch()}
-                retrying={query.isFetching}
-              />
-            )}
-            {authority.enabled && query.isPending && <RequestLoading />}
           </View>
         }
         ListEmptyComponent={
-          query.isSuccess && authority.enabled ? (
-            <Text
-              style={[tokens.typography.body, { color: colors.secondaryText }]}
-            >
-              {search.trim()
-                ? "Aucune division ne correspond à votre recherche."
-                : active
-                  ? "Aucune division active"
-                  : "Aucune division inactive"}
-            </Text>
-          ) : undefined
+          <ScreenState>
+            {denied ? (
+              <AccessDenied message="Ces divisions ne sont pas accessibles." />
+            ) : query.isPending ? (
+              <RequestLoading />
+            ) : query.isError && !query.data ? (
+              <RequestError
+                message="Les divisions sont indisponibles."
+                onRetry={() =>
+                  void query.refetch().then((result) => {
+                    if (
+                      result.isError &&
+                      result.data &&
+                      !isAccessDenied(result.error)
+                    )
+                      feedback.error();
+                  })
+                }
+                retrying={query.isFetching}
+              />
+            ) : (
+              <EmptyState
+                title={
+                  search.trim()
+                    ? "Aucune division ne correspond à votre recherche."
+                    : active
+                      ? "Aucune division active"
+                      : "Aucune division inactive"
+                }
+              />
+            )}
+          </ScreenState>
         }
         renderItem={({ item }) => (
           <DivisionCard
@@ -252,8 +317,8 @@ function DivisionCard({
           identity={division}
           kind="division"
           size={52}
-          uri={artwork.data}
-          loading={!!division.logo.effectiveUrl && artwork.isPending}
+          uri={artwork.data ?? undefined}
+          loading={!!division.logo.effectiveUrl && artwork.isLoading}
           error={!!division.logo.effectiveUrl && artwork.isError}
         />
       </View>
@@ -283,6 +348,7 @@ function DivisionCard({
   );
 }
 const styles = StyleSheet.create({
+  stateContent: { paddingVertical: tokens.spacing.lg },
   content: {
     flexGrow: 1,
     padding: tokens.spacing.lg,

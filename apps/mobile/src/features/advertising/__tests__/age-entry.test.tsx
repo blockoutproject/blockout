@@ -344,7 +344,11 @@ it.each(["/age-declaration", "/legal", "/support", "/sign-in"])(
     await openEntry(path);
 
     // Then
-    expect(await screen.findByText("Accès indisponible.")).toBeOnTheScreen();
+    expect(
+      await screen.findByText(
+        "L’accès à l’application n’a pas pu être vérifié.",
+      ),
+    ).toBeOnTheScreen();
     expect(screen.queryByRole("adjustable")).toBeNull();
     expect(await readAgeDeclaration()).toBeNull();
   },
@@ -406,6 +410,13 @@ it("offers an explicit storage-read retry without declaring a default age", asyn
     .mockRejectedValueOnce(new Error("Storage"));
   const user = userEvent.setup();
   await openEntry("/");
+  await screen.findByRole("alert", {
+    name: "Votre déclaration n’a pas pu être chargée.",
+  });
+  expect(screen.queryByRole("adjustable")).toBeNull();
+  expect(
+    screen.queryByRole("header", { name: "Quel est votre âge ?" }),
+  ).toBeNull();
 
   // When
   await user.press(await screen.findByRole("button", { name: "Réessayer" }));

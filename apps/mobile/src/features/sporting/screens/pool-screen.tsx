@@ -1,3 +1,5 @@
+import { isAccessDenied } from "../../../shared/api/access-denied";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { hashKey, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import type {
@@ -51,15 +53,20 @@ function PoolPage({
   const pool = useQuery(queries.pool(poolId));
   const [tab, setTab] = useState("standings");
   const data = pool.data;
+  const feedback = useActionFeedback();
+  /** A failed explicit refresh keeps authorized content and reports only the attempted read. */
+  async function refresh() {
+    const result = await pool.refetch({ cancelRefetch: false });
+    if (result.isError && result.data && !isAccessDenied(result.error))
+      feedback.error();
+  }
   return (
     <ResourcePage
+      state={!data ? <ResourceFeedback query={pool} /> : undefined}
       title="Poule"
-      refreshing={pool.isFetching}
-      onRefresh={
-        !data ? () => void pool.refetch({ cancelRefetch: false }) : undefined
-      }
+      refreshing={pool.isRefetching}
+      onRefresh={!data ? () => void refresh() : undefined}
     >
-      <ResourceFeedback query={pool} />
       {data && (
         <>
           <SportingIdentity

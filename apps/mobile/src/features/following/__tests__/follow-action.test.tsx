@@ -651,8 +651,16 @@ it.each([403, 404])(
       screen.queryByRole("button", { name: "Suivi" }),
     ).not.toBeOnTheScreen();
     expect(screen.queryByText(/Suivi confirmé/)).not.toBeOnTheScreen();
+    if (refusal === 403)
+      expect(screen.getAllByText("Accès refusé")).toHaveLength(2);
+    else expect(screen.queryByText("Accès refusé")).not.toBeOnTheScreen();
     hidden = false;
-    await user.press(screen.getAllByRole("button", { name: "Réessayer" })[0]);
+    await user.press(
+      screen.getAllByRole("button", {
+        name:
+          refusal === 403 ? "Vérifier l’accès" : "Vérifier la disponibilité",
+      })[0],
+    );
     await waitFor(() =>
       expect(
         screen.getAllByRole("button", { name: "Suivi", disabled: false }),

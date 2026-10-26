@@ -1,6 +1,9 @@
+import { isAccessDenied } from "../../../shared/api/access-denied";
+import { ScreenState } from "../../../shared/components/screen-state";
 import { ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
+  AccessDenied,
   RequestError,
   RequestLoading,
 } from "../../../shared/components/request-feedback";
@@ -33,13 +36,15 @@ export function AdministrationScreen({
   let content = null;
   if (!admitted) {
     content = (
-      <RequestError message="L’accès à l’application doit être vérifié avant de continuer." />
+      <AccessDenied message="L’accès à l’application doit être vérifié avant de continuer." />
     );
   } else if (
     sessionStatus === "restoring" ||
     (sessionStatus === "authenticated" && account.isPending)
   ) {
     content = <RequestLoading />;
+  } else if (isAccessDenied(account.error)) {
+    content = <AccessDenied />;
   } else if (sessionStatus === "authenticated" && account.isError) {
     content = (
       <RequestError
@@ -50,7 +55,7 @@ export function AdministrationScreen({
     );
   } else if (!hasCommands && !onBypass) {
     content = (
-      <RequestError message="Cette action nécessite une permission dédiée." />
+      <AccessDenied message="Cette action nécessite une permission dédiée." />
     );
   } else {
     content = (
@@ -85,6 +90,12 @@ export function AdministrationScreen({
       </>
     );
   }
+  const blocked =
+    !admitted ||
+    sessionStatus === "restoring" ||
+    (sessionStatus === "authenticated" &&
+      (account.isPending || account.isError)) ||
+    (!hasCommands && !onBypass);
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <PageHeader title="Administration technique" />
@@ -94,13 +105,13 @@ export function AdministrationScreen({
         refreshControl={
           admitted && sessionStatus === "authenticated" ? (
             <DataRefreshControl
-              refreshing={account.isFetching}
+              refreshing={account.isRefetching}
               onRefresh={() => void account.refetch()}
             />
           ) : undefined
         }
       >
-        {content}
+        {blocked ? <ScreenState>{content}</ScreenState> : content}
       </ScrollView>
     </SafeAreaView>
   );

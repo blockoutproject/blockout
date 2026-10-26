@@ -1,10 +1,11 @@
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { Image } from "expo-image";
 import {
   CalendarDays,
   ChevronRight,
   type LucideIcon,
 } from "lucide-react-native";
-import type { PropsWithChildren } from "react";
+import type { PropsWithChildren, ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type {
@@ -18,7 +19,10 @@ import { Surface } from "../../../shared/components/surface";
 import {
   RequestError,
   RequestLoading,
+  AccessDenied,
 } from "../../../shared/components/request-feedback";
+import { ScreenState } from "../../../shared/components/screen-state";
+import { EmptyState } from "../../../shared/components/state-card";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import type { useCollectionAuthority } from "../api/use-source-preparation";
@@ -30,19 +34,24 @@ export function PreparationPage({
   refreshing = false,
   refreshEnabled = true,
   onRefresh,
+  state,
 }: PropsWithChildren<{
   title: string;
   refreshing?: boolean;
   /** Keeps the native scroll tree mounted while a command temporarily suspends refresh. */
   refreshEnabled?: boolean;
   onRefresh?: () => void;
+  /** Blocking feedback replaces content only before a usable representation or draft exists. */
+  state?: ReactNode;
 }>) {
   const { colors } = useTheme();
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <PageHeader title={title} />
       <FormScrollView
-        contentContainerStyle={preparationStyles.content}
+        contentContainerStyle={
+          state ? styles.stateContent : preparationStyles.content
+        }
         refreshControl={
           onRefresh ? (
             <DataRefreshControl
@@ -53,7 +62,7 @@ export function PreparationPage({
           ) : undefined
         }
       >
-        {children}
+        {state ? <ScreenState>{state}</ScreenState> : children}
       </FormScrollView>
     </SafeAreaView>
   );
@@ -70,6 +79,7 @@ export function CollectionAccessFeedback({
     (authority.sessionStatus === "authenticated" && authority.account.isPending)
   )
     return <RequestLoading />;
+  if (isAccessDenied(authority.account.error)) return <AccessDenied />;
   if (authority.account.isError)
     return (
       <RequestError
@@ -78,40 +88,28 @@ export function CollectionAccessFeedback({
         retrying={authority.account.isFetching}
       />
     );
-  return authority.enabled ? null : (
-    <RequestError message="Cette action nécessite une permission dédiée." />
-  );
+  return authority.enabled ? null : <AccessDenied />;
 }
 
-/** Approved collection empty-state artwork, retained as an unchanged Figma asset at its 120-point slot. */
+/** Supplies collection's approved 120-point illustration to the common empty-state anatomy. */
 export function EmptySources({ label }: { label: string }) {
-  const { colors, scheme } = useTheme();
+  const { scheme } = useTheme();
   return (
-    <View
-      style={[
-        styles.empty,
-        { backgroundColor: colors.raised, borderColor: colors.border },
-      ]}
-    >
-      <Image
-        accessible={false}
-        source={
-          scheme === "dark"
-            ? require("../../../../assets/collection/empty-sources-dark.svg")
-            : require("../../../../assets/collection/empty-sources.svg")
-        }
-        contentFit="contain"
-        style={styles.emptyArtwork}
-      />
-      <Text
-        style={[
-          tokens.typography.heading,
-          { color: colors.text, textAlign: "center" },
-        ]}
-      >
-        {label}
-      </Text>
-    </View>
+    <EmptyState
+      title={label}
+      artwork={
+        <Image
+          accessible={false}
+          source={
+            scheme === "dark"
+              ? require("../../../../assets/collection/empty-sources-dark.svg")
+              : require("../../../../assets/collection/empty-sources.svg")
+          }
+          contentFit="contain"
+          style={styles.emptyArtwork}
+        />
+      }
+    />
   );
 }
 
@@ -280,14 +278,7 @@ export const preparationStyles = StyleSheet.create({
   },
 });
 const styles = StyleSheet.create({
-  empty: {
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
-    gap: tokens.spacing.md,
-    alignItems: "center",
-    paddingHorizontal: tokens.spacing.xl,
-    paddingVertical: tokens.spacing.section,
-  },
+  stateContent: { flexGrow: 1, padding: tokens.spacing.lg },
   emptyArtwork: { width: 120, height: 120 },
   screen: { flex: 1 },
   link: {

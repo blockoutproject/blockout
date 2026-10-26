@@ -1,3 +1,4 @@
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useRouter } from "expo-router";
 import { Check, Plus } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
@@ -5,7 +6,10 @@ import type { SportingSeasonResponse } from "../../../../.generated/schemas/inde
 import { isUncertainMutationFailure } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
-import { RequestError } from "../../../shared/components/request-feedback";
+import {
+  AccessDenied,
+  RequestError,
+} from "../../../shared/components/request-feedback";
 import { tokens } from "../../../shared/theme/tokens";
 import { useFollowStateQuery } from "../api/use-follow-state-query";
 import {
@@ -35,14 +39,30 @@ export function FollowButton({
   const { query, profile, usable, sessionStatus } = context;
   const latest = action.latest;
   const failed = latest?.status === "error";
-  const unavailable = [query.error, latest?.error].some(isFollowRestriction);
+  const restriction = [query.error, latest?.error].find(
+    (error) => isAccessDenied(error) || isFollowRestriction(error),
+  );
+  const unavailable = restriction !== undefined;
   if (unavailable)
     return (
-      <RequestError
-        message="Le suivi est indisponible pour cette ressource."
-        onRetry={usable ? () => void query.refetch() : undefined}
-        retrying={query.isFetching}
-      />
+      <View style={styles.control}>
+        {isAccessDenied(restriction) ? (
+          <AccessDenied message="Le suivi est indisponible pour cette ressource." />
+        ) : (
+          <RequestError message="Le suivi est indisponible pour cette ressource." />
+        )}
+        {usable && (
+          <Button
+            label={
+              isAccessDenied(restriction)
+                ? "Vérifier l’accès"
+                : "Vérifier la disponibilité"
+            }
+            onPress={() => void query.refetch()}
+            loading={query.isFetching}
+          />
+        )}
+      </View>
     );
   const provisional =
     action.pending && typeof latest?.variables === "boolean"
@@ -105,7 +125,9 @@ export function FollowButton({
           }
         }}
       />
-      {profile.isError ? (
+      {isAccessDenied(profile.error) ? (
+        <AccessDenied message="Votre profil n’est pas accessible. Le suivi est suspendu." />
+      ) : profile.isError ? (
         <RequestError
           message="Votre profil est indisponible. Le suivi est suspendu."
           onRetry={() => void profile.refetch()}

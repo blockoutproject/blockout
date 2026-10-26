@@ -19,6 +19,7 @@ import {
 } from "../../../shared/api/api-fetch";
 import { useCommand } from "../../../shared/query/use-command";
 import { binaryImagePreview } from "../../../shared/api/binary-image-preview";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useOrdinaryRequest } from "../../access/ordinary-request";
 import { useAccountSession } from "../session/account-session-provider";
@@ -37,6 +38,18 @@ export function useProfileEditing(accountId: string) {
     session.generation,
     getGetMyAccountQueryKey(),
   );
+
+  /** A delayed credential lookup cannot authorize edits after the current account read becomes unusable. */
+  function assertCurrentAccount() {
+    if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
+    const current = client.getQueryState<AccountResponse>(currentKey);
+    if (
+      current?.status !== "success" ||
+      current.data?.accountId !== accountId ||
+      session.accountId !== accountId
+    )
+      throw new ApiError("http", 403);
+  }
 
   /**
    * Admits current-session data after cancelling obsolete reads. A profile save preserves concurrent
@@ -107,7 +120,9 @@ export function useProfileEditing(accountId: string) {
     {
       mutationKey: groupKey,
       mutationFn: async (body: ChangeAccountProfileBody) => {
+        assertCurrentAccount();
         const credentials = await auth.getCredentials();
+        assertCurrentAccount();
         if (!credentials) throw new ApiError("http", 401);
         return changeAccountProfile(
           accountId,
@@ -146,26 +161,39 @@ export function useProfilePhoto(accountId: string, enabled: boolean) {
   const session = useAccountSession();
   const auth = useAuth0();
   return useQuery(
-    queryOptions({
+    queryOptions<string | null>({
       queryKey: getSessionQueryKey(
         session.generation,
         getGetAccountPhotoQueryKey(accountId),
       ),
       enabled: enabled && session.status === "authenticated",
       gcTime: 0,
-      queryFn: async ({ signal }) => {
-        const credentials = await auth.getCredentials();
-        if (!credentials) throw new ApiError("http", 401);
-        const options = request({
-          signal,
-          session,
-          headers: { Authorization: `Bearer ${credentials.accessToken}` },
-        });
-        const blob = await getAccountPhoto(accountId, options);
-        const uri = await binaryImagePreview(blob, options.signal);
-        if (!session.isCurrent(session.generation) || options.signal?.aborted)
-          throw new ApiError("cancelled");
-        return uri;
+      queryFn: async ({ signal, client, queryKey }) => {
+        const previousError = client.getQueryState(queryKey)?.error;
+        try {
+          const credentials = await auth.getCredentials();
+          if (!credentials) throw new ApiError("http", 401);
+          const options = request({
+            signal,
+            session,
+            headers: { Authorization: `Bearer ${credentials.accessToken}` },
+          });
+          const blob = await getAccountPhoto(accountId, options);
+          const uri = await binaryImagePreview(blob, options.signal);
+          if (!session.isCurrent(session.generation) || options.signal?.aborted)
+            throw new ApiError("cancelled");
+          return uri;
+        } catch (error) {
+          if (signal.aborted || !session.isCurrent(session.generation))
+            throw new ApiError("cancelled");
+          // Null discards only the URI and keeps Query's refused-read status through later failed rechecks.
+          if (isAccessDenied(error))
+            client.getQueryCache().find({ queryKey, exact: true })?.setState({
+              data: null,
+              dataUpdatedAt: 0,
+            });
+          throw isAccessDenied(previousError) ? previousError : error;
+        }
       },
     }),
   );

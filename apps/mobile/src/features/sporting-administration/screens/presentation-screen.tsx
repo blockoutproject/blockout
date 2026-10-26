@@ -1,4 +1,14 @@
+import { isAccessDenied } from "../../../shared/api/access-denied";
+import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 import {
+  getGetClubLogoQueryKey,
+  getGetTeamLogoQueryKey,
+  getGetDivisionLogoQueryKey,
+} from "../../../../.generated/mobile";
+import { getSessionQueryKey } from "../../../shared/query/query-client";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+import {
+  AccessDenied,
   RequestError,
   RequestLoading,
 } from "../../../shared/components/request-feedback";
@@ -18,6 +28,22 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
   const { permissions, account, sessionStatus } =
     useAdministrationCapabilities();
   const session = useAccountSession();
+  const client = useQueryClient();
+  const logoKey = getSessionQueryKey(
+    session.generation,
+    target.kind === "team"
+      ? getGetTeamLogoQueryKey(target.id)
+      : target.kind === "club"
+        ? getGetClubLogoQueryKey(target.id)
+        : target.kind === "division"
+          ? getGetDivisionLogoQueryKey(target.id)
+          : ["presentation-logo-unavailable", target.kind],
+  );
+  const logoRefreshing =
+    useIsFetching({
+      queryKey: logoKey,
+      predicate: ({ state }) => state.data !== undefined,
+    }) > 0;
   const canManage =
     target.kind === "division-creation"
       ? permissions?.manageDivisionLifecycle === true
@@ -42,54 +68,113 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
           : target.kind === "pool"
             ? "Modifier la poule"
             : "Personnaliser la division";
+  const feedback = useActionFeedback();
+  /** Native refresh rereads current presentation and only its mounted remote logo; a prepared local replacement stays untouched. */
+  async function refresh() {
+    if (editing.save.isPending()) return;
+    feedback.clear();
+    if (!canRead) {
+      await account.refetch();
+      return;
+    }
+    const result = await editing.query.refetch();
+    if (!session.isCurrent(session.generation)) return;
+    if (result.isError) {
+      if (result.data && !isAccessDenied(result.error)) feedback.error();
+      return;
+    }
+    if (editing.save.isPending()) return;
+    await client.refetchQueries(
+      { queryKey: logoKey, type: "active" },
+      { cancelRefetch: false },
+    );
+    if (!session.isCurrent(session.generation)) return;
+    const retainedFailure = client
+      .getQueryCache()
+      .findAll({ queryKey: logoKey, type: "active" })
+      .some(
+        ({ state }) =>
+          state.status === "error" &&
+          state.data &&
+          !isAccessDenied(state.error),
+      );
+    if (retainedFailure)
+      feedback.error(
+        "L’actualisation du logo a échoué. Le logo précédent reste affiché.",
+      );
+  }
+  const accessState = pending ? (
+    <RequestLoading />
+  ) : isAccessDenied(account.error) ? (
+    <AccessDenied />
+  ) : account.isError ? (
+    <RequestError
+      message="Les permissions du compte sont indisponibles."
+      onRetry={() =>
+        void account.refetch().then((result) => {
+          if (result.isError && result.data && !isAccessDenied(result.error))
+            feedback.error();
+        })
+      }
+      retrying={account.isFetching}
+    />
+  ) : !canRead ? (
+    <AccessDenied message="Cette action nécessite une permission dédiée." />
+  ) : undefined;
+  const denied = isAccessDenied(editing.query.error);
   return (
     <EditorPage
+      state={
+        !presentation
+          ? (accessState ??
+            (denied ? (
+              <AccessDenied />
+            ) : editing.query.isError ? (
+              <RequestError
+                message="La présentation est indisponible."
+                onRetry={() =>
+                  void editing.query.refetch().then((result) => {
+                    if (
+                      result.isError &&
+                      result.data &&
+                      !isAccessDenied(result.error)
+                    )
+                      feedback.error();
+                  })
+                }
+                retrying={editing.query.isFetching}
+              />
+            ) : (
+              <RequestLoading />
+            )))
+          : undefined
+      }
       title={title}
       refreshControl={
         sessionStatus === "authenticated" &&
         target.kind !== "division-creation" ? (
           <DataRefreshControl
             enabled={!editing.save.pending}
-            refreshing={editing.query.isFetching || account.isFetching}
-            onRefresh={() => {
-              if (editing.save.isPending()) return;
-              if (canRead) void editing.query.refetch();
-              else void account.refetch();
-            }}
+            refreshing={
+              editing.query.isRefetching ||
+              account.isRefetching ||
+              logoRefreshing
+            }
+            onRefresh={() => void refresh()}
           />
         ) : undefined
       }
     >
-      {pending ? (
-        <RequestLoading />
-      ) : account.isError ? (
-        <RequestError
-          message="Les permissions du compte sont indisponibles."
-          onRetry={() => void account.refetch()}
-          retrying={account.isFetching}
-        />
-      ) : !canRead ? (
-        <RequestError message="Cette action nécessite une permission dédiée." />
-      ) : null}
-      {presentation ? (
+      {accessState}
+      {presentation && denied && <AccessDenied />}
+      {presentation && (
         <PresentationForm
           key={`${session.generation}:${target.kind}:${target.id}`}
           presentation={presentation}
           target={target}
           editing={editing}
-          disabled={!canManage}
+          disabled={!canManage || editing.query.isError}
         />
-      ) : (
-        canRead &&
-        (editing.query.isError ? (
-          <RequestError
-            message="La présentation est indisponible."
-            onRetry={() => void editing.query.refetch()}
-            retrying={editing.query.isFetching}
-          />
-        ) : (
-          <RequestLoading />
-        ))
       )}
     </EditorPage>
   );

@@ -2,7 +2,7 @@ import { publishSportingRevision } from "./publish-sporting-revision";
 import { requiresPresentationReread } from "./presentation-recovery";
 import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { useCommand } from "../../../shared/query/use-command";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { createSportingAdministrationQueries } from "./sporting-administration-queries";
 import {
   invalidateSportingReads,
@@ -68,10 +68,12 @@ export function useSportingAuthority(action: SportingAction) {
   const enabled =
     hasSportingPermission(capabilities.permissions, action) &&
     version.satisfied;
-  /** A held confirmation or delayed credential promise cannot retain a revoked action grant. */
-  function assertCurrent(requestedAction: SportingAction) {
+  /** A held confirmation or delayed credential promise cannot retain a revoked grant or unreadable command baseline. */
+  function assertCurrent(requestedAction: SportingAction, readKey?: QueryKey) {
     if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
     version.assertCurrent();
+    if (readKey && client.getQueryState(readKey)?.status !== "success")
+      throw new ApiError("http", 403);
     const current = client.getQueryState<AccountResponse>(
       getSessionQueryKey(session.generation, getGetMyAccountQueryKey()),
     );
@@ -85,15 +87,16 @@ export function useSportingAuthority(action: SportingAction) {
   }
   /**
    * Supplies request-local credentials and cancellation after checking the selected action twice.
-   * Reads default to the observer's resource grant; an editor may request its stricter command grant.
+   * Reads default to the observer's resource grant; commands supply their stricter grant and required current read.
    */
   async function request(
     signal?: AbortSignal,
     requestedAction: SportingAction = action,
+    readKey?: QueryKey,
   ) {
-    assertCurrent(requestedAction);
+    assertCurrent(requestedAction, readKey);
     const credentials = await auth.getCredentials();
-    assertCurrent(requestedAction);
+    assertCurrent(requestedAction, readKey);
     if (!credentials) throw new ApiError("http", 401);
     return {
       session,
@@ -134,7 +137,11 @@ export function useClassification(target: ClassificationTarget) {
           : getSetPoolClassificationMutationKey()),
       ],
       mutationFn: async (body: SetClassificationRequest) => {
-        const options = await authority.request();
+        const options = await authority.request(
+          undefined,
+          "classification",
+          queryKey,
+        );
         return target.kind === "pack"
           ? setPackClassification(target.id, body, options)
           : setPoolClassification(target.id, body, options);
@@ -175,7 +182,11 @@ export function useDivisionActivity(id: string) {
     {
       mutationKey: [...queryKey, ...getSetDivisionActivityMutationKey()],
       mutationFn: async (body: SetDivisionActivityRequest) =>
-        setDivisionActivity(id, body, await authority.request()),
+        setDivisionActivity(
+          id,
+          body,
+          await authority.request(undefined, "lifecycle", queryKey),
+        ),
       onSuccess: accept,
     },
     { groupKey: queryKey, requiresRead: requiresPresentationReread },
