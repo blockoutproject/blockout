@@ -80,7 +80,7 @@ export interface SearchResultsHeadingProps {
 }
 
 /**
- * Product Design collection toolbar 6294:170665; clearing preserves the selected resource tab.
+ * Product Design Search Results Heading 7130:19183; clearing preserves the selected resource tab.
  * The title wraps within the remaining row width while the clear action keeps its own target.
  */
 export function SearchResultsHeading({
