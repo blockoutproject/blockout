@@ -49,7 +49,7 @@ This qualifies the scoped T019 restriction and sampled V1 iOS continuity. It doe
 
 ## Protected-logo rehearsal — T027/T028/T030
 
-The [bounded operations procedure](../../infra/operations/README.md#protected-club-logo-preservation-and-reassociation) prepares the private copy, exact target lookup and existing F02 multipart editor. No live V1 access, freeze, export or private inventory was performed for this rehearsal; those remain T029 / [#345](https://github.com/blockoutproject/blockout/issues/345).
+The [bounded operations procedure](../../infra/operations/README.md#protected-club-logo-preservation-and-reassociation) prepares the private copy, exact target lookup and existing F02 multipart editor. No live V1 access, freeze, export or private inventory was performed for this rehearsal; those remain T029 / [T029](tasks.md).
 
 On **2026-10-25**, all **11** `TransitionLogoIntegrationTest` cases passed with no failures, errors or skips at the source revision recorded with the full checks in [PR #486](https://github.com/blockoutproject/blockout/pull/486). The suite uses actual F02 identity, presentation, validation and read operations with the existing PostgreSQL 18.6 Testcontainers support and real Liquibase baseline. Its synthetic cases cover distinct `000339` / `339` identities despite identical club names, unmatched `0000339`, original PNG/JPEG bytes in PostgreSQL, a missing file, empty/corrupt content, current grant withdrawal, stale revision refusal, cross-season FFVB inheritance and a clubless LNV team with a coincident native reference. No image host, production identity, collector provider or native device is involved.
 
@@ -84,7 +84,7 @@ npm run bundle:contracts
 ./mvnw -B -ntp -pl apps/backend verify -Dtest='Legacy*WebMvcTest' -Dit.test='Legacy*IntegrationTest'
 ```
 
-This completes the repository integration of T037/T040 using the implementation already delivered by #405. No controller, mapper, deployment setting, security matcher or contract needed alteration. Synthetic retirement versions/listing IDs are fixtures, not qualified release inputs. MockMvc exercises the real servlet/security application without a live network listener; JWT signature validation retains its existing dedicated suite. Installed V1 binaries, native numeric-version comparison/update actions, network failures with retained configuration, compatible public host, signed V2 releases, actual store availability, writer retirement and production cutover remain unqualified here under T043 and their later owners.
+This completes the repository integration of [T037/T040](tasks.md) using the [existing F12 admission implementation](../013-administration-app-configuration/quickstart.md). No controller, mapper, deployment setting, security matcher or contract needed alteration. Synthetic retirement versions/listing IDs are fixtures, not qualified release inputs. MockMvc exercises the real servlet/security application without a live network listener; JWT signature validation retains its existing dedicated suite. Installed V1 binaries, native numeric-version comparison/update actions, network failures with retained configuration, compatible public host, signed V2 releases, actual store availability, writer retirement and production cutover remain unqualified here under T043 and their later owners.
 
 ## Common discovery construction — T006–T010
 
