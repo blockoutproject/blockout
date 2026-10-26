@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAuth0 } from "react-native-auth0";
 import type { ListTeamsParams } from "../../../../.generated/schemas/index.zod";
 import { useAccountSession } from "../../accounts/current-account";
@@ -14,7 +14,6 @@ export function useDiscoveryQuery(
   const session = useAccountSession();
   const admission = useOrdinaryRequest();
   const { getCredentials } = useAuth0();
-  const client = useQueryClient();
   const options = createDiscoveryQueryOptions(
     resource,
     input,
@@ -22,15 +21,5 @@ export function useDiscoveryQuery(
     admission,
     getCredentials,
   );
-  const query = useInfiniteQuery(options);
-
-  /** Cancels old pagination and replaces the traversal only after success; failures reject to the originating event. */
-  async function refresh() {
-    if (!options.enabled || !session.isCurrent(session.generation)) return;
-    await client.cancelQueries({ queryKey: options.queryKey, exact: true });
-    if (!session.isCurrent(session.generation)) return;
-    await client.infiniteQuery({ ...options, pages: 1, staleTime: 0 });
-  }
-
-  return { ...query, refresh };
+  return useInfiniteQuery(options);
 }

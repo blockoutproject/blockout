@@ -1,7 +1,6 @@
 import { Page, PageContent } from "../../../shared/components/page";
 import { Tabs } from "../../../shared/components/tabs";
 import { isAccessDenied } from "../../../shared/api/access-denied";
-import { ApiError } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 
@@ -111,19 +110,6 @@ function TextSearchResults({
 }) {
   const query = useDiscoveryQuery(resource, { q: text });
   const feedback = useActionFeedback();
-  /** Reports an explicit failed refresh without replacing retained results or their empty state. */
-  async function refresh() {
-    try {
-      await query.refresh();
-    } catch (error) {
-      if (
-        query.data &&
-        !isAccessDenied(error) &&
-        !(error instanceof ApiError && error.status === 404)
-      )
-        feedback.error();
-    }
-  }
   /** Continuation failure leaves loaded rows and the same continuation action available. */
   async function loadMore() {
     const result = await query.fetchNextPage({ cancelRefetch: false });
@@ -132,14 +118,15 @@ function TextSearchResults({
   }
   const error =
     query.isError && !query.data ? (
-      <ErrorState onRetry={() => void refresh()} retrying={query.isFetching} />
+      <ErrorState
+        onRetry={() => void query.refetch()}
+        retrying={query.isFetching}
+      />
     ) : undefined;
   return (
     <SearchResults
       pages={query.data?.pages}
       onClear={onClear}
-      refreshing={query.isRefetching}
-      onRefresh={() => void refresh()}
       emptyComponent={
         query.isPending ? (
           <PageContent>

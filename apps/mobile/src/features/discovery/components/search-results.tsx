@@ -1,7 +1,6 @@
 import { pageContentStyle } from "../../../shared/components/page";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import type { ReactElement, ReactNode } from "react";
 import type { DiscoveryPage } from "../api/discovery-queries";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -9,13 +8,11 @@ import { tokens } from "../../../shared/theme/tokens";
 import { SearchResultCard } from "./search-result-card";
 import { searchResults } from "../model/search-result";
 
-/** Text results retain native read lifecycle and continuation supplied by their query owner. */
+/** Text results expose clearing and continuation; changing the search starts a new read, without pull-to-refresh. */
 export interface SearchResultsProps {
   /** Undefined means the current search has no accepted read, so its heading has no count yet. */
   pages?: readonly DiscoveryPage[];
   onClear: () => void;
-  refreshing: boolean;
-  onRefresh: () => void;
   emptyComponent: ReactElement;
   continuation?: ReactNode;
 }
@@ -24,8 +21,6 @@ export interface SearchResultsProps {
 export function SearchResults({
   pages,
   onClear,
-  refreshing,
-  onRefresh,
   emptyComponent,
   continuation,
 }: SearchResultsProps) {
@@ -40,9 +35,6 @@ export function SearchResults({
   return (
     <FlatList
       alwaysBounceVertical
-      refreshControl={
-        <DataRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
       ListFooterComponent={
         items.length && continuation ? (
           <View style={styles.continuation}>{continuation}</View>
