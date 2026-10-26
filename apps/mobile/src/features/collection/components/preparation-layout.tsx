@@ -1,4 +1,3 @@
-import { Image } from "expo-image";
 import {
   CalendarDays,
   ChevronRight,
@@ -17,7 +16,7 @@ import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { Surface } from "../../../shared/components/surface";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { ErrorState, EmptyState } from "../../../shared/components/state-card";
+import { ErrorState } from "../../../shared/components/state-card";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import type { useCollectionAuthority } from "../api/use-source-preparation";
@@ -82,28 +81,6 @@ export function CollectionAccessFeedback({
       />
     );
   return authority.enabled ? null : <ErrorState />;
-}
-
-/** Supplies collection's approved 120-point illustration to the common empty-state anatomy. */
-export function EmptySources({ label }: { label: string }) {
-  const { scheme } = useTheme();
-  return (
-    <EmptyState
-      title={label}
-      artwork={
-        <Image
-          accessible={false}
-          source={
-            scheme === "dark"
-              ? require("../../../../assets/collection/empty-sources-dark.svg")
-              : require("../../../../assets/collection/empty-sources.svg")
-          }
-          contentFit="contain"
-          style={styles.emptyArtwork}
-        />
-      }
-    />
-  );
 }
 
 /** Navigation identity with an accessible action and decorative approved Lucide glyphs. */
@@ -272,7 +249,6 @@ export const preparationStyles = StyleSheet.create({
 });
 const styles = StyleSheet.create({
   stateContent: { flexGrow: 1, padding: tokens.spacing.lg },
-  emptyArtwork: { width: 120, height: 120 },
   screen: { flex: 1 },
   link: {
     flexDirection: "row",

@@ -13,12 +13,12 @@ import type {
   CollectionSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { Button } from "../../../shared/components/button";
+import { EmptyState } from "../../../shared/components/state-card";
 
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import type { useSeasonPreparation } from "../api/use-source-preparation";
 import {
-  EmptySources,
   SeasonIdentity,
   SourceBadge,
   preparationStyles,
@@ -222,8 +222,8 @@ export function ProviderPreparationForm({
         </Text>
       )}
       {sources.length === 0 && (
-        <EmptySources
-          label={
+        <EmptyState
+          title={
             provider === "lnv"
               ? "Aucun championnat découvert"
               : "Aucune source découverte"
