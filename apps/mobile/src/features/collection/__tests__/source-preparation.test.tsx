@@ -324,6 +324,36 @@ it("opens provider controls without loading unused source configuration", async 
   ).toBe(false);
 });
 
+it("announces pending collection navigation without inventing a season destination", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url) =>
+    String(url).endsWith("/collection-seasons") ? response.promise : reads(url),
+  );
+
+  // When
+  await renderPreparation(<CollectionDashboardScreen />);
+
+  // Then
+  expect(
+    await screen.findByRole("progressbar", {
+      name: "Chargement des collectes",
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: "2026/2027, Active" }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await act(() => response.resolve(json({ items: [season] })));
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: "2026/2027, Active" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+});
+
 it("shows an honest empty season list and recovers an initial read failure explicitly", async () => {
   // Given
   mockFetch.mockImplementation(async (url) =>

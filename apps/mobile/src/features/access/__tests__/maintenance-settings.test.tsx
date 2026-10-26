@@ -166,12 +166,23 @@ it("shows loading before any known state can be saved", async () => {
     ).toBe(true),
   );
   expect(
-    screen.getByRole("progressbar", { name: "Chargement en cours" }),
+    screen.getByRole("progressbar", {
+      name: "Chargement des réglages de maintenance",
+    }),
   ).toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Enregistrer" }),
   ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Message de maintenance"),
+  ).not.toBeOnTheScreen();
+
+  // When
   await act(async () => finish(json(initial)));
+
+  // Then
+  expect(await screen.findByDisplayValue(initial.message)).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 });
 
 it("reports one failed refresh while retaining the editable maintenance draft", async () => {

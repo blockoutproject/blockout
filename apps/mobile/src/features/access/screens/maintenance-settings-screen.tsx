@@ -17,6 +17,7 @@ import { useAccountSession } from "../../accounts/current-account";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
 import { useMaintenanceSettings } from "../api/use-maintenance-settings";
 import { MaintenanceForm } from "../forms/maintenance-form";
+import { MaintenanceLoading } from "../components/settings-loading";
 
 /** Loads only with current grants and retains an existing draft read-only when they become unavailable. */
 export function MaintenanceSettingsScreen() {
@@ -84,13 +85,22 @@ export function MaintenanceSettingsScreen() {
       />
     );
   } else if (!accessError) {
-    settingsContent = <RequestLoading />;
+    settingsContent = <MaintenanceLoading />;
   }
+  const loadingSettings =
+    sessionStatus === "authenticated" &&
+    !account.isPending &&
+    !accessError &&
+    !settings &&
+    editing.query.isPending;
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <PageHeader title="Administration technique" />
       <FormScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          loadingSettings && styles.loadingContent,
+        ]}
         refreshControl={
           sessionStatus === "authenticated" ? (
             <DataRefreshControl
@@ -101,7 +111,9 @@ export function MaintenanceSettingsScreen() {
           ) : undefined
         }
       >
-        {!settings ? (
+        {loadingSettings ? (
+          settingsContent
+        ) : !settings ? (
           <ScreenState>
             {sessionStatus === "restoring" ||
             (sessionStatus === "authenticated" && account.isPending) ? (
@@ -123,4 +135,5 @@ export function MaintenanceSettingsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { flexGrow: 1, padding: tokens.spacing.lg, gap: tokens.spacing.lg },
+  loadingContent: { paddingTop: tokens.spacing.md },
 });

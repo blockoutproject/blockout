@@ -189,7 +189,9 @@ it("shows loading without publishing defaults, then retries a failed initial rea
       ),
     ).toBe(true);
     expect(
-      screen.getByRole("progressbar", { name: "Chargement en cours" }),
+      screen.getByRole("progressbar", {
+        name: "Chargement des réglages de versions",
+      }),
     ).toBeOnTheScreen();
   });
   expect(
@@ -224,6 +226,7 @@ it("shows loading without publishing defaults, then retries a failed initial rea
 
   // Then
   expect(await screen.findByDisplayValue(initial.message)).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
   ).toBe(false);

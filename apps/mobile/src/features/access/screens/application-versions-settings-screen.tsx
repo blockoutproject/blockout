@@ -17,6 +17,7 @@ import { useAccountSession } from "../../accounts/current-account";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
 import { useApplicationVersionsSettings } from "../api/use-application-versions-settings";
 import { ApplicationVersionsForm } from "../forms/application-versions-form";
+import { ApplicationVersionsLoading } from "../components/settings-loading";
 
 /** Loads only with current grants and retains an existing draft read-only when they become unavailable. */
 export function ApplicationVersionsSettingsScreen() {
@@ -84,13 +85,22 @@ export function ApplicationVersionsSettingsScreen() {
       />
     );
   } else if (!accessError) {
-    settingsContent = <RequestLoading />;
+    settingsContent = <ApplicationVersionsLoading />;
   }
+  const loadingSettings =
+    sessionStatus === "authenticated" &&
+    !account.isPending &&
+    !accessError &&
+    !settings &&
+    editing.query.isPending;
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <PageHeader title="Administration technique" />
       <FormScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          loadingSettings && styles.loadingContent,
+        ]}
         refreshControl={
           sessionStatus === "authenticated" ? (
             <DataRefreshControl
@@ -101,7 +111,9 @@ export function ApplicationVersionsSettingsScreen() {
           ) : undefined
         }
       >
-        {!settings ? (
+        {loadingSettings ? (
+          settingsContent
+        ) : !settings ? (
           <ScreenState>
             {sessionStatus === "restoring" ||
             (sessionStatus === "authenticated" && account.isPending) ? (
@@ -123,4 +135,5 @@ export function ApplicationVersionsSettingsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { flexGrow: 1, padding: tokens.spacing.lg, gap: tokens.spacing.lg },
+  loadingContent: { paddingTop: tokens.spacing.md },
 });

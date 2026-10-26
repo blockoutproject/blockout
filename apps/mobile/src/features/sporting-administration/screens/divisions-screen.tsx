@@ -22,8 +22,8 @@ import { SearchField } from "../../../shared/components/search-field";
 import {
   AccessDenied,
   RequestError,
-  RequestLoading,
 } from "../../../shared/components/request-feedback";
+import { DivisionsLoading } from "../components/divisions-loading";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useDivisions } from "../api/classification";
@@ -126,7 +126,7 @@ export function DivisionsScreen() {
         keyExtractor={(division) => division.id}
         contentContainerStyle={[
           styles.content,
-          items.length === 0 && styles.stateContent,
+          items.length === 0 && !query.isPending && styles.stateContent,
         ]}
         ItemSeparatorComponent={Separator}
         ListHeaderComponent={
@@ -225,38 +225,40 @@ export function DivisionsScreen() {
           </View>
         }
         ListEmptyComponent={
-          <ScreenState>
-            {denied ? (
-              <AccessDenied message="Ces divisions ne sont pas accessibles." />
-            ) : query.isPending ? (
-              <RequestLoading />
-            ) : query.isError && !query.data ? (
-              <RequestError
-                message="Les divisions sont indisponibles."
-                onRetry={() =>
-                  void query.refetch().then((result) => {
-                    if (
-                      result.isError &&
-                      result.data &&
-                      !isAccessDenied(result.error)
-                    )
-                      feedback.error();
-                  })
-                }
-                retrying={query.isFetching}
-              />
-            ) : (
-              <EmptyState
-                title={
-                  search.trim()
-                    ? "Aucune division ne correspond à votre recherche."
-                    : active
-                      ? "Aucune division active"
-                      : "Aucune division inactive"
-                }
-              />
-            )}
-          </ScreenState>
+          query.isPending && !denied ? (
+            <DivisionsLoading />
+          ) : (
+            <ScreenState>
+              {denied ? (
+                <AccessDenied message="Ces divisions ne sont pas accessibles." />
+              ) : query.isError && !query.data ? (
+                <RequestError
+                  message="Les divisions sont indisponibles."
+                  onRetry={() =>
+                    void query.refetch().then((result) => {
+                      if (
+                        result.isError &&
+                        result.data &&
+                        !isAccessDenied(result.error)
+                      )
+                        feedback.error();
+                    })
+                  }
+                  retrying={query.isFetching}
+                />
+              ) : (
+                <EmptyState
+                  title={
+                    search.trim()
+                      ? "Aucune division ne correspond à votre recherche."
+                      : active
+                        ? "Aucune division active"
+                        : "Aucune division inactive"
+                  }
+                />
+              )}
+            </ScreenState>
+          )
         }
         renderItem={({ item }) => (
           <DivisionCard

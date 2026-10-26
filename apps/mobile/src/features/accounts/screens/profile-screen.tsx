@@ -27,6 +27,7 @@ import {
 } from "../api/use-current-account";
 import { ProfileForm } from "../forms/profile-form";
 import { PublicAccountLinks } from "../components/public-account-links";
+import { ProfileLoading } from "../components/profile-loading";
 import { useAccountSession } from "../session/account-session-provider";
 import { useGuestNavigation } from "../hooks/use-guest-navigation";
 import { PageHeader } from "../../../shared/components/page-header";
@@ -123,11 +124,12 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
           </ScreenState>
         ) : (
           <>
-            {session.status === "restoring" ||
-            (session.status === "authenticated" && account.isPending) ? (
+            {session.status === "restoring" ? (
               <ScreenState>
                 <RequestLoading />
               </ScreenState>
+            ) : session.status === "authenticated" && account.isPending ? (
+              <ProfileLoading />
             ) : session.status !== "authenticated" ? (
               <ScreenState>
                 <Button

@@ -31,6 +31,7 @@ import {
 } from "../api/use-source-preparation";
 import { CollectionControl } from "../components/collection-control";
 import { CollectionResult } from "../components/collection-result";
+import { CollectionLoading } from "../components/collection-loading";
 import {
   CollectionAccessFeedback,
   PreparationLink,
@@ -136,7 +137,7 @@ export function CollectionDashboardScreen() {
               retrying={query.isFetching}
             />
           ) : (
-            !query.data && <RequestLoading />
+            !query.data && <CollectionLoading />
           )}
           <Text
             accessibilityRole="header"

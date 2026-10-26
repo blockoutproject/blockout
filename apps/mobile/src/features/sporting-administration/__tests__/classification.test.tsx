@@ -218,6 +218,38 @@ async function renderEditor(
   );
   return userEvent.setup();
 }
+it("announces the pending division catalogue without inventing editable rows", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/divisions?")
+      ? response.promise
+      : respond(url, options),
+  );
+
+  // When
+  await renderEditor("divisions");
+
+  // Then
+  expect(
+    await screen.findByRole("progressbar", {
+      name: "Chargement des divisions",
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: division.name }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await act(() => response.resolve(Response.json({ items: [division] })));
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: division.name }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+});
+
 /** Chooses through the real native-stack selection route and returns to the original form. */
 async function choose(
   user: ReturnType<typeof userEvent.setup>,

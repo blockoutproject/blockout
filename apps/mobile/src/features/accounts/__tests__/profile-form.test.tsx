@@ -429,6 +429,34 @@ it("refuses an unsent profile save when its account read is denied during creden
   ).toHaveLength(0);
 });
 
+it("announces the initial profile read without exposing profile commands", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockReturnValue(response.promise);
+
+  // When
+  await mountProfile();
+
+  // Then
+  expect(
+    await screen.findByRole("progressbar", { name: "Chargement du profil" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Supprimer mon compte" }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await act(() => response.resolve(json(account)));
+
+  // Then
+  expect(await screen.findByDisplayValue("Original")).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+});
+
 it("keeps the first photo read separate from native refresh progress", async () => {
   // Given
   const photoRead = Promise.withResolvers<Response>();
