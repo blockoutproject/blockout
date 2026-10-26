@@ -20,6 +20,7 @@ import {
   RequestLoading,
 } from "../../../shared/components/request-feedback";
 import { TextField } from "../../../shared/components/text-field";
+import { Surface } from "../../../shared/components/surface";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useProfileEditing, useProfilePhoto } from "../api/use-profile-editing";
@@ -172,65 +173,59 @@ export function ProfileForm({ account }: ProfileFormProps) {
 
   return (
     <View style={styles.form}>
-      <View
-        style={[
-          styles.card,
-          { backgroundColor: colors.surface, borderColor: colors.border },
-        ]}
-      >
-        {draft.action === "keep" && account.hasPhoto && photo.isFetching && (
-          <RequestLoading />
-        )}
-        {draft.action === "keep" && account.hasPhoto && photo.isError && (
-          <RequestError
-            message="Votre photo est indisponible."
-            onRetry={() => void photo.refetch()}
-            retrying={photo.isFetching}
-          />
-        )}
-        <ImageField
-          label="Photo de profil"
-          images={images}
-          selection={selection}
-          placeholderIcon={UserRound}
-          disabled={busy}
-          chooseLabel="Choisir une photo de profil"
-          helper="Facultatif. PNG/JPEG, jusqu’à 5 Mio."
-          error={errors.photo?.message}
-          onRemove={() => replacePhoto({ action: "remove" })}
-        />
-      </View>
-      <View
-        style={[
-          styles.card,
-          { backgroundColor: colors.surface, borderColor: colors.border },
-        ]}
-      >
-        <Controller
-          control={control}
-          name="username"
-          render={({ field: { value, onChange, onBlur, ref } }) => (
-            <TextField
-              ref={ref}
-              label="Pseudo"
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!busy}
-              helper="3 à 32 caractères : lettres sans accent, chiffres, point, tiret ou soulignement. Les espaces autour sont retirés."
-              error={errors.username?.message}
+      <Surface>
+        <View style={styles.form}>
+          {draft.action === "keep" && account.hasPhoto && photo.isFetching && (
+            <RequestLoading />
+          )}
+          {draft.action === "keep" && account.hasPhoto && photo.isError && (
+            <RequestError
+              message="Votre photo est indisponible."
+              onRetry={() => void photo.refetch()}
+              retrying={photo.isFetching}
             />
           )}
-        />
-        <TextField
-          label="Adresse e-mail"
-          value={account.email}
-          readOnly
-          helper="L’adresse e-mail est liée au compte et ne peut pas être modifiée ici."
-        />
-      </View>
+          <ImageField
+            label="Photo de profil"
+            images={images}
+            selection={selection}
+            placeholderIcon={UserRound}
+            disabled={busy}
+            chooseLabel="Choisir une photo de profil"
+            helper="Facultatif. PNG/JPEG, jusqu’à 5 Mio."
+            error={errors.photo?.message}
+            onRemove={() => replacePhoto({ action: "remove" })}
+          />
+        </View>
+      </Surface>
+      <Surface>
+        <View style={styles.form}>
+          <Controller
+            control={control}
+            name="username"
+            render={({ field: { value, onChange, onBlur, ref } }) => (
+              <TextField
+                ref={ref}
+                label="Pseudo"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!busy}
+                helper="3 à 32 caractères : lettres sans accent, chiffres, point, tiret ou soulignement. Les espaces autour sont retirés."
+                error={errors.username?.message}
+              />
+            )}
+          />
+          <TextField
+            label="Adresse e-mail"
+            value={account.email}
+            readOnly
+            helper="L’adresse e-mail est liée au compte et ne peut pas être modifiée ici."
+          />
+        </View>
+      </Surface>
       {(uncertain || needsRead) &&
         (needsRead ? (
           <RequestError message="Le résultat de la sauvegarde est incertain. Vérifiez votre profil avant de réessayer." />
@@ -261,10 +256,4 @@ export function ProfileForm({ account }: ProfileFormProps) {
 }
 const styles = StyleSheet.create({
   form: { gap: tokens.spacing.lg },
-  card: {
-    gap: tokens.spacing.lg,
-    padding: tokens.spacing.lg,
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
-  },
 });

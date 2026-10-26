@@ -19,6 +19,7 @@ import { toMaintenanceRequest } from "../api/maintenance-request";
 import { Button } from "../../../shared/components/button";
 import { RequestError } from "../../../shared/components/request-feedback";
 import { TextField } from "../../../shared/components/text-field";
+import { Surface } from "../../../shared/components/surface";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useAccountSession } from "../../accounts/current-account";
@@ -176,136 +177,134 @@ export function MaintenanceSettingsForm({
   }
   return (
     <View style={styles.form}>
-      <View
-        style={[
-          styles.card,
-          { backgroundColor: colors.surface, borderColor: colors.border },
-        ]}
-      >
-        <View style={styles.heading}>
-          <Wrench
-            accessible={false}
-            size={tokens.size.actionIcon}
-            color={colors.icon}
+      <Surface>
+        <View style={styles.form}>
+          <View style={styles.heading}>
+            <Wrench
+              accessible={false}
+              size={tokens.size.actionIcon}
+              color={colors.icon}
+            />
+            <View style={styles.state}>
+              <Text style={[tokens.typography.strong, { color: colors.text }]}>
+                Mode maintenance
+              </Text>
+              <Text
+                accessibilityLabel={
+                  baseline.active
+                    ? "Maintenance active"
+                    : "Maintenance inactive"
+                }
+                style={[
+                  styles.badge,
+                  {
+                    color: baseline.active
+                      ? colors.onWarning
+                      : colors.onSuccessSubtle,
+                    backgroundColor: baseline.active
+                      ? colors.warning
+                      : colors.successSubtle,
+                  },
+                ]}
+              >
+                {baseline.active ? "Activé" : "Désactivé"}
+              </Text>
+            </View>
+          </View>
+          <Text style={[tokens.typography.body, { color: colors.text }]}>
+            {baseline.active
+              ? "L’accès ordinaire à l’application est bloqué."
+              : "Aucun blocage de maintenance."}
+          </Text>
+          <Text
+            style={[tokens.typography.body, { color: colors.secondaryText }]}
+          >
+            Cette action utilise le contenu enregistré et conserve votre
+            brouillon.
+          </Text>
+          <Button
+            variant={baseline.active ? "secondary" : "success"}
+            fullWidth
+            label={
+              baseline.active
+                ? "Désactiver la maintenance"
+                : "Activer la maintenance"
+            }
+            onPress={() => void activate()}
+            disabled={busy || rereadRequired}
+            loading={editing.activation.executing}
           />
-          <View style={styles.state}>
+        </View>
+      </Surface>
+      <Surface>
+        <View style={styles.form}>
+          <View style={styles.heading}>
+            <FileText
+              accessible={false}
+              size={tokens.size.actionIcon}
+              color={colors.icon}
+            />
             <Text style={[tokens.typography.strong, { color: colors.text }]}>
-              Mode maintenance
-            </Text>
-            <Text
-              accessibilityLabel={
-                baseline.active ? "Maintenance active" : "Maintenance inactive"
-              }
-              style={[
-                styles.badge,
-                {
-                  color: baseline.active
-                    ? colors.onWarning
-                    : colors.onSuccessSubtle,
-                  backgroundColor: baseline.active
-                    ? colors.warning
-                    : colors.successSubtle,
-                },
-              ]}
-            >
-              {baseline.active ? "Activé" : "Désactivé"}
+              Écran affiché
             </Text>
           </View>
-        </View>
-        <Text style={[tokens.typography.body, { color: colors.text }]}>
-          {baseline.active
-            ? "L’accès ordinaire à l’application est bloqué."
-            : "Aucun blocage de maintenance."}
-        </Text>
-        <Text style={[tokens.typography.body, { color: colors.secondaryText }]}>
-          Cette action utilise le contenu enregistré et conserve votre
-          brouillon.
-        </Text>
-        <Button
-          variant={baseline.active ? "secondary" : "success"}
-          fullWidth
-          label={
-            baseline.active
-              ? "Désactiver la maintenance"
-              : "Activer la maintenance"
-          }
-          onPress={() => void activate()}
-          disabled={busy || rereadRequired}
-          loading={editing.activation.executing}
-        />
-      </View>
-      <View
-        style={[
-          styles.card,
-          { backgroundColor: colors.surface, borderColor: colors.border },
-        ]}
-      >
-        <View style={styles.heading}>
-          <FileText
-            accessible={false}
-            size={tokens.size.actionIcon}
-            color={colors.icon}
+          <Controller
+            control={control}
+            name="message"
+            render={({ field: { onChange, onBlur, value, ref } }) => (
+              <TextField
+                ref={ref}
+                label="Message de maintenance"
+                multiline
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                editable={!busy}
+                error={errors.message?.message}
+              />
+            )}
           />
-          <Text style={[tokens.typography.strong, { color: colors.text }]}>
-            Écran affiché
-          </Text>
+          <Controller
+            control={control}
+            name="imageUrl"
+            render={({ field: { onChange, onBlur, value, ref } }) => (
+              <TextField
+                ref={ref}
+                label="URL de l’image"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                autoCapitalize="none"
+                autoCorrect={false}
+                inputMode="url"
+                editable={!busy}
+                error={errors.imageUrl?.message}
+                helper="Facultatif. Une image HTTPS publique, sans identifiant ni suivi personnalisé. Videz le champ pour la retirer."
+              />
+            )}
+          />
+          {validPreview && (
+            <MaintenanceImagePreview key={imageUrl} uri={imageUrl} />
+          )}
+          {isDirty && (
+            <Text
+              style={[
+                tokens.typography.metadata,
+                { color: colors.secondaryText },
+              ]}
+            >
+              Modifications non enregistrées
+            </Text>
+          )}
+          <Button
+            fullWidth
+            label="Enregistrer le contenu"
+            onPress={() => void handleSubmit(submit)()}
+            disabled={busy || rereadRequired}
+            loading={editing.content.executing}
+          />
         </View>
-        <Controller
-          control={control}
-          name="message"
-          render={({ field: { onChange, onBlur, value, ref } }) => (
-            <TextField
-              ref={ref}
-              label="Message de maintenance"
-              multiline
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              editable={!busy}
-              error={errors.message?.message}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="imageUrl"
-          render={({ field: { onChange, onBlur, value, ref } }) => (
-            <TextField
-              ref={ref}
-              label="URL de l’image"
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              autoCapitalize="none"
-              autoCorrect={false}
-              inputMode="url"
-              editable={!busy}
-              error={errors.imageUrl?.message}
-              helper="Facultatif. Une image HTTPS publique, sans identifiant ni suivi personnalisé. Videz le champ pour la retirer."
-            />
-          )}
-        />
-        {validPreview && (
-          <MaintenanceImagePreview key={imageUrl} uri={imageUrl} />
-        )}
-        {isDirty && (
-          <Text
-            style={[
-              tokens.typography.metadata,
-              { color: colors.secondaryText },
-            ]}
-          >
-            Modifications non enregistrées
-          </Text>
-        )}
-        <Button
-          fullWidth
-          label="Enregistrer le contenu"
-          onPress={() => void handleSubmit(submit)()}
-          disabled={busy || rereadRequired}
-          loading={editing.content.executing}
-        />
-      </View>
+      </Surface>
       {feedback && (
         <Text
           accessibilityLiveRegion="polite"
@@ -358,11 +357,5 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.badge,
   },
   form: { gap: tokens.spacing.lg },
-  card: {
-    padding: tokens.spacing.lg,
-    gap: tokens.spacing.lg,
-    borderRadius: tokens.radius.sheet,
-    borderWidth: tokens.borderWidth,
-  },
   preview: { width: "100%", height: tokens.size.multiline },
 } as const);

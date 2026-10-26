@@ -95,7 +95,17 @@ function Selection({
             });
             router.back();
           }}
-          style={[styles.option, { borderColor: colors.border }]}
+          style={({ pressed }) => [
+            styles.option,
+            {
+              borderColor: colors.border,
+              opacity: disabled
+                ? tokens.opacity.disabled
+                : pressed
+                  ? tokens.opacity.pressed
+                  : 1,
+            },
+          ]}
         >
           <Text style={[styles.label, { color: colors.text }]}>
             {choice.label}

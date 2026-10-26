@@ -1,10 +1,7 @@
 import { useRouter } from "expo-router";
 import { type ReactNode } from "react";
-import { Platform, ScrollView, StyleSheet, Text } from "react-native";
-import {
-  KeyboardAwareScrollView,
-  KeyboardProvider,
-} from "react-native-keyboard-controller";
+import { StyleSheet, Text } from "react-native";
+import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
@@ -32,23 +29,8 @@ export interface ProfileScreenProps {
   proEntry: ReactNode;
 }
 
-/** Each platform uses its accepted single keyboard mechanism for this ordinary bounded form. */
-const ProfileScrollView =
-  Platform.OS === "ios" ? ScrollView : KeyboardAwareScrollView;
-
-/** Current owner profile with an isolated editable draft; admission remains controlled by F12. */
-export function ProfileScreen(props: ProfileScreenProps) {
-  return Platform.OS === "android" ? (
-    <KeyboardProvider>
-      <ProfileContent {...props} />
-    </KeyboardProvider>
-  ) : (
-    <ProfileContent {...props} />
-  );
-}
-
 /** Retains confirmed profile content and its draft through a failed background refresh. */
-function ProfileContent({ admitted, proEntry }: ProfileScreenProps) {
+export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
   const session = useAccountSession();
   const account = useCurrentAccount();
   const router = useRouter();
@@ -59,11 +41,7 @@ function ProfileContent({ admitted, proEntry }: ProfileScreenProps) {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
-      <ProfileScrollView
-        automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.content}
-      >
+      <FormScrollView contentContainerStyle={styles.content}>
         {!admitted ? (
           <RequestError message="L’accès à l’application doit être vérifié avant de continuer." />
         ) : (
@@ -126,7 +104,7 @@ function ProfileContent({ admitted, proEntry }: ProfileScreenProps) {
             <PublicAccountLinks />
           </>
         )}
-      </ProfileScrollView>
+      </FormScrollView>
     </SafeAreaView>
   );
 }

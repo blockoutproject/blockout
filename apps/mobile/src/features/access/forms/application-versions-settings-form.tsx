@@ -29,6 +29,7 @@ import {
 import type { ApplicationVersionsResponse } from "../../../../.generated/schemas/index.zod";
 import { Button } from "../../../shared/components/button";
 import { TextField } from "../../../shared/components/text-field";
+import { Surface } from "../../../shared/components/surface";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useAccountSession } from "../../accounts/current-account";
@@ -203,7 +204,10 @@ export function ApplicationVersionsSettingsForm({
                 accessibilityLabel={name}
                 accessibilityState={{ expanded: open }}
                 onPress={() => setExpanded({ ...expanded, [platform]: !open })}
-                style={styles.disclosure}
+                style={({ pressed }) => [
+                  styles.disclosure,
+                  { opacity: pressed ? tokens.opacity.pressed : 1 },
+                ]}
               >
                 <Text style={[styles.platform, { color: colors.text }]}>
                   {name}
@@ -270,113 +274,121 @@ export function ApplicationVersionsSettingsForm({
           );
         })}
       </View>
-      <View
-        style={[
-          styles.card,
-          { backgroundColor: colors.surface, borderColor: colors.border },
-        ]}
-      >
-        <Text
-          accessibilityRole="header"
-          style={[tokens.typography.heading, { color: colors.text }]}
-        >
-          Contenu affiché
-        </Text>
-        <Controller
-          control={control}
-          name="message"
-          render={({ field: { onChange, onBlur, value, ref } }) => (
-            <TextField
-              ref={ref}
-              label="Message commun"
-              multiline
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              editable={!busy}
-              helper={
-                current.message.trim()
-                  ? "Facultatif. Videz le champ pour utiliser le message standard."
-                  : applicationUpdateMessage
-              }
-            />
-          )}
-        />
-        {raised && (
-          <Pressable
-            accessibilityRole="checkbox"
-            accessibilityLabel="J’ai vérifié que la version requise est disponible sur chaque store concerné."
-            accessibilityState={{ checked, disabled: busy }}
-            disabled={busy}
-            onPress={() => setAcknowledged(checked ? undefined : storeChoice)}
-            style={styles.acknowledgement}
+      <Surface>
+        <View style={styles.form}>
+          <Text
+            accessibilityRole="header"
+            style={[tokens.typography.heading, { color: colors.text }]}
           >
-            <View
-              style={[
-                styles.check,
+            Contenu affiché
+          </Text>
+          <Controller
+            control={control}
+            name="message"
+            render={({ field: { onChange, onBlur, value, ref } }) => (
+              <TextField
+                ref={ref}
+                label="Message commun"
+                multiline
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                editable={!busy}
+                helper={
+                  current.message.trim()
+                    ? "Facultatif. Videz le champ pour utiliser le message standard."
+                    : applicationUpdateMessage
+                }
+              />
+            )}
+          />
+          {raised && (
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityLabel="J’ai vérifié que la version requise est disponible sur chaque store concerné."
+              accessibilityState={{ checked, disabled: busy }}
+              disabled={busy}
+              onPress={() => setAcknowledged(checked ? undefined : storeChoice)}
+              style={({ pressed }) => [
+                styles.acknowledgement,
                 {
-                  borderColor: colors.border,
-                  backgroundColor: checked ? colors.text : colors.surface,
+                  opacity: busy
+                    ? tokens.opacity.disabled
+                    : pressed
+                      ? tokens.opacity.pressed
+                      : 1,
                 },
               ]}
             >
-              {checked && (
-                <Check
-                  accessible={false}
-                  size={tokens.size.controlIcon}
-                  color={colors.canvas}
-                />
-              )}
-            </View>
-            <Text style={[styles.acknowledgementText, { color: colors.text }]}>
-              J’ai vérifié que la version requise est disponible sur chaque
-              store concerné.
+              <View
+                style={[
+                  styles.check,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: checked ? colors.text : colors.surface,
+                  },
+                ]}
+              >
+                {checked && (
+                  <Check
+                    accessible={false}
+                    size={tokens.size.controlIcon}
+                    color={colors.canvas}
+                  />
+                )}
+              </View>
+              <Text
+                style={[styles.acknowledgementText, { color: colors.text }]}
+              >
+                J’ai vérifié que la version requise est disponible sur chaque
+                store concerné.
+              </Text>
+            </Pressable>
+          )}
+          {isDirty && (
+            <Text
+              style={[
+                tokens.typography.metadata,
+                { color: colors.secondaryText },
+              ]}
+            >
+              Modifications non enregistrées
             </Text>
-          </Pressable>
-        )}
-        {isDirty && (
-          <Text
-            style={[
-              tokens.typography.metadata,
-              { color: colors.secondaryText },
-            ]}
-          >
-            Modifications non enregistrées
-          </Text>
-        )}
-        <View style={styles.actions}>
-          <View style={[styles.action, largeText && styles.expandedCard]}>
-            <Button
-              fullWidth
-              variant="secondary"
-              label="Aperçu"
-              onPress={() => {
-                actionFeedback.clear();
-                setPreview(true);
-              }}
-              disabled={busy}
-            />
-          </View>
-          <View style={[styles.action, largeText && styles.expandedCard]}>
-            <Button
-              fullWidth
-              label="Appliquer les modifications"
-              disabled={
-                busy || rereadRequired || !isDirty || (raised && !checked)
-              }
-              loading={editing.content.pending}
-              onPress={() =>
-                void handleSubmit(submit, (errors) =>
-                  setExpanded({
-                    ios: !!errors.ios || expanded.ios,
-                    android: !!errors.android || expanded.android,
-                  }),
-                )()
-              }
-            />
+          )}
+          <View style={styles.actions}>
+            <View style={[styles.action, largeText && styles.expandedCard]}>
+              <Button
+                fullWidth
+                variant="secondary"
+                label="Aperçu"
+                onPress={() => {
+                  actionFeedback.clear();
+                  setPreview(true);
+                }}
+                disabled={busy}
+              />
+            </View>
+            <View style={[styles.action, largeText && styles.expandedCard]}>
+              <Button
+                fullWidth
+                label="Appliquer les modifications"
+                disabled={
+                  busy || rereadRequired || !isDirty || (raised && !checked)
+                }
+                loading={editing.content.pending}
+                onPress={() =>
+                  void handleSubmit(submit, (errors) =>
+                    setExpanded({
+                      ios: !!errors.ios || expanded.ios,
+                      android: !!errors.android || expanded.android,
+                    }),
+                  )()
+                }
+              />
+            </View>
           </View>
         </View>
-      </View>
+      </Surface>
       {feedback && (
         <Text
           accessibilityLiveRegion="polite"
@@ -436,12 +448,6 @@ const styles = StyleSheet.create({
   },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },
   action: { flexBasis: 128, flexGrow: 1 },
-  card: {
-    padding: tokens.spacing.lg,
-    gap: tokens.spacing.lg,
-    borderRadius: tokens.radius.sheet,
-    borderWidth: tokens.borderWidth,
-  },
   disclosure: {
     padding: tokens.spacing.lg,
     flexDirection: "row",

@@ -1,12 +1,7 @@
-import { useRouter } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
-import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
-import {
-  KeyboardAwareScrollView,
-  KeyboardProvider,
-} from "react-native-keyboard-controller";
+import { StyleSheet } from "react-native";
+import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { IconButton } from "../../../shared/components/icon-button";
+import { PageHeader } from "../../../shared/components/page-header";
 import {
   RequestError,
   RequestLoading,
@@ -18,27 +13,14 @@ import { useAdministrationCapabilities } from "../api/use-administration-capabil
 import { useMaintenanceSettings } from "../api/use-maintenance-settings";
 import { MaintenanceSettingsForm } from "../forms/maintenance-settings-form";
 
-const FormScrollView =
-  Platform.OS === "ios" ? ScrollView : KeyboardAwareScrollView;
-/** Isolated authorized maintenance component; production route admission remains with its route owner. */
-export function MaintenanceSettingsScreen() {
-  return Platform.OS === "android" ? (
-    <KeyboardProvider>
-      <MaintenanceContent />
-    </KeyboardProvider>
-  ) : (
-    <MaintenanceContent />
-  );
-}
 /** Loads only with current grants and retains an existing draft read-only when they become unavailable. */
-function MaintenanceContent() {
+export function MaintenanceSettingsScreen() {
   const { permissions, account, sessionStatus } =
     useAdministrationCapabilities();
   const session = useAccountSession();
   const canManage = permissions?.manageMaintenance === true;
   const editing = useMaintenanceSettings(canManage);
   const { colors } = useTheme();
-  const router = useRouter();
   const settings =
     sessionStatus === "authenticated" ? editing.query.data : undefined;
   let accessError = null;
@@ -78,26 +60,8 @@ function MaintenanceContent() {
   }
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
-      <View style={styles.header}>
-        <IconButton label="Retour" onPress={() => router.back()}>
-          <ChevronLeft
-            accessible={false}
-            size={tokens.size.actionIcon}
-            color={colors.icon}
-          />
-        </IconButton>
-        <Text
-          accessibilityRole="header"
-          style={[styles.title, { color: colors.text }]}
-        >
-          Administration technique
-        </Text>
-      </View>
-      <FormScrollView
-        automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.content}
-      >
+      <PageHeader title="Administration technique" />
+      <FormScrollView contentContainerStyle={styles.content}>
         {sessionStatus === "restoring" ||
         (sessionStatus === "authenticated" && account.isPending) ? (
           <RequestLoading />
@@ -116,12 +80,5 @@ function MaintenanceContent() {
 }
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: tokens.spacing.lg,
-    gap: tokens.spacing.sm,
-  },
-  title: { ...tokens.typography.heading, flex: 1 },
   content: { padding: tokens.spacing.lg, gap: tokens.spacing.lg },
 });

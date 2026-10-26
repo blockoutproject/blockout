@@ -142,7 +142,10 @@ function GateView({
               accessibilityRole="link"
               accessibilityLabel="Accès administrateur"
               onPress={onAdministration}
-              style={styles.operator}
+              style={({ pressed }) => [
+                styles.operator,
+                { opacity: pressed ? tokens.opacity.pressed : 1 },
+              ]}
             >
               <Text style={[tokens.typography.strong, { color: colors.text }]}>
                 Accès administrateur
@@ -261,7 +264,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: tokens.spacing.sm,
   },
-  brand: { ...tokens.typography.heading, fontSize: 16, lineHeight: 22 },
+  brand: tokens.typography.navigation,
   badge: {
     ...tokens.typography.metadata,
     borderWidth: tokens.borderWidth,

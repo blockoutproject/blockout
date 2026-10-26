@@ -40,6 +40,9 @@ export function Sheet({
         <View style={styles.titleRow}>
           <Text
             accessibilityRole="header"
+            accessibilityLabel={title}
+            numberOfLines={1}
+            ellipsizeMode="tail"
             style={[styles.title, { color: colors.text }]}
           >
             {title}

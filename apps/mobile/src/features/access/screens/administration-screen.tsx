@@ -1,6 +1,4 @@
-import { Link, useRouter } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   RequestError,
@@ -9,7 +7,8 @@ import {
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { Button } from "../../../shared/components/button";
-import { IconButton } from "../../../shared/components/icon-button";
+import { PageHeader } from "../../../shared/components/page-header";
+import { NavigationLink } from "../../../shared/components/navigation-link";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
 
 /** Admission is supplied by the route owner, independently of command visibility. */
@@ -30,15 +29,6 @@ export function AdministrationScreen({
   const { permissions, hasCommands, account, sessionStatus } =
     useAdministrationCapabilities();
   const { colors } = useTheme();
-  const router = useRouter();
-  const linkStyle = [
-    styles.command,
-    {
-      color: colors.text,
-      borderColor: colors.border,
-      backgroundColor: colors.surface,
-    },
-  ];
   let content = null;
   if (!admitted) {
     content = (
@@ -72,66 +62,37 @@ export function AdministrationScreen({
           />
         )}
         {permissions?.manageMaintenance === true && (
-          <Link href="/administration/maintenance" style={linkStyle}>
-            Maintenance
-          </Link>
+          <NavigationLink
+            href="/administration/maintenance"
+            label="Maintenance"
+          />
         )}
         {permissions?.manageApplicationVersions === true && (
-          <Link href="/administration/application-versions" style={linkStyle}>
-            Versions minimales
-          </Link>
+          <NavigationLink
+            href="/administration/application-versions"
+            label="Versions minimales"
+          />
         )}
         {(permissions?.manageSportingClassification === true ||
           permissions?.manageDivisionLifecycle === true ||
           permissions?.manageSportingPresentation === true) && (
-          <Link href="/administration/divisions" style={linkStyle}>
-            Divisions
-          </Link>
+          <NavigationLink href="/administration/divisions" label="Divisions" />
         )}
         {permissions?.manageCollection === true && (
-          <Link href="/collection" style={linkStyle}>
-            Collectes
-          </Link>
+          <NavigationLink href="/collection" label="Collectes" />
         )}
       </>
     );
   }
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
-      <View style={styles.header}>
-        <IconButton label="Retour" onPress={() => router.back()}>
-          <ChevronLeft
-            accessible={false}
-            size={tokens.size.actionIcon}
-            color={colors.icon}
-          />
-        </IconButton>
-        <Text
-          accessibilityRole="header"
-          style={[styles.title, { color: colors.text }]}
-        >
-          Administration technique
-        </Text>
-      </View>
+      <PageHeader title="Administration technique" />
       <ScrollView contentContainerStyle={styles.content}>{content}</ScrollView>
     </SafeAreaView>
   );
 }
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: tokens.spacing.lg,
-    gap: tokens.spacing.sm,
-  },
-  title: { ...tokens.typography.heading, flex: 1 },
   content: { padding: tokens.spacing.lg, gap: tokens.spacing.lg },
-  command: {
-    ...tokens.typography.strong,
-    minHeight: tokens.size.control,
-    padding: tokens.spacing.lg,
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.control,
-  },
 });

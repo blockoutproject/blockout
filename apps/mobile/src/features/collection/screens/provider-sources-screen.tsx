@@ -1,3 +1,4 @@
+import { Surface } from "../../../shared/components/surface";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
 import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
@@ -22,7 +23,6 @@ import { useSeasonPreparation } from "../api/use-source-preparation";
 import {
   CollectionAccessFeedback,
   EmptySources,
-  PreparationCard,
   PreparationPage,
   SeasonIdentity,
   SourceBadge,
@@ -290,7 +290,7 @@ function ProviderPreparation({
         />
       )}
       {sources.map((source) => (
-        <PreparationCard key={source.id}>
+        <Surface key={source.id}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Préparer ${source.label}`}
@@ -300,7 +300,10 @@ function ProviderPreparation({
                 params: { seasonId: season.id, sourceId: source.id },
               })
             }
-            style={styles.source}
+            style={({ pressed }) => [
+              styles.source,
+              { opacity: pressed ? tokens.opacity.pressed : 1 },
+            ]}
           >
             <Icon
               accessible={false}
@@ -319,7 +322,7 @@ function ProviderPreparation({
               size={tokens.size.controlIcon}
             />
           </Pressable>
-        </PreparationCard>
+        </Surface>
       ))}
       {!closed && (
         <>
@@ -349,14 +352,14 @@ function ProviderPreparation({
         </>
       )}
       {adding && (
-        <PreparationCard>
+        <Surface>
           <CreateSourceForm
             formControl={editor.form.formControl}
             disabled={busy || closed || rereadRequired}
             executing={editing.create.executing}
             onSubmit={create}
           />
-        </PreparationCard>
+        </Surface>
       )}
       {feedback && (
         <Text

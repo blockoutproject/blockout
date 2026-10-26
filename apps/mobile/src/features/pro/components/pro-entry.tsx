@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useAccountSession } from "../../accounts/current-account";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import { LoadingIndicator } from "../../../shared/components/loading-indicator";
 
 /** Profile command supplied by the native host owner; guests always take the ordinary F05 invitation. */
 export interface ProEntryProps {
@@ -47,16 +48,27 @@ export function ProEntry({
           {
             backgroundColor: colors.raised,
             borderColor: colors.border,
-            opacity: pressed ? tokens.opacity.pressed : 1,
+            opacity:
+              !available && !opening
+                ? tokens.opacity.disabled
+                : pressed
+                  ? tokens.opacity.pressed
+                  : 1,
           },
         ]}
       >
-        <Image
-          accessible={false}
-          source={require("../../../../assets/accounts/pro.png")}
-          style={styles.icon}
-          contentFit="contain"
-        />
+        <View style={styles.icon}>
+          {opening ? (
+            <LoadingIndicator color={colors.icon} />
+          ) : (
+            <Image
+              accessible={false}
+              source={require("../../../../assets/accounts/pro.png")}
+              style={styles.icon}
+              contentFit="contain"
+            />
+          )}
+        </View>
         <Text style={[styles.label, { color: colors.text }]}>Blockout Pro</Text>
       </Pressable>
     </View>
@@ -78,6 +90,8 @@ const styles = StyleSheet.create({
     width: tokens.size.actionIcon,
     height: tokens.size.actionIcon,
     borderRadius: tokens.radius.control / 2,
+    alignItems: "center",
+    justifyContent: "center",
   },
   label: { ...tokens.typography.strong, flex: 1 },
 });

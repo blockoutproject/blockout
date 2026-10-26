@@ -11,6 +11,7 @@ import {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandMark } from "../../../shared/components/brand-mark";
+import { Surface } from "../../../shared/components/surface";
 import {
   RequestError,
   RequestLoading,
@@ -50,7 +51,10 @@ function AgeBackdrop() {
   return <DiscoveryBackdrop artworkStyle={animatedStyle} />;
 }
 
-/** Mandatory initial/renewal surface; the router guards home and owns completion navigation. */
+/**
+ * Mandatory initial/renewal form; the router guards home and owns completion navigation.
+ * Full-width artwork and inset content retain separate layout ownership.
+ */
 export function AgeDeclarationScreen() {
   const { colors } = useTheme();
   const age = useAgeDeclaration();
@@ -71,39 +75,37 @@ export function AgeDeclarationScreen() {
       </View>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.stage}>
         <AgeBackdrop />
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.surface, outlineColor: colors.border },
-          ]}
-        >
-          <Text
-            accessibilityRole="header"
-            style={[tokens.typography.headingXl, { color: colors.text }]}
-          >
-            {age.renewal
-              ? "Quel âge avez-vous aujourd’hui ?"
-              : "Quel est votre âge ?"}
-          </Text>
-          {age.loading ? (
-            <RequestLoading />
-          ) : age.readFailed ? (
-            <RequestError
-              message="Votre déclaration n’a pas pu être chargée."
-              onRetry={age.retryRead}
-            />
-          ) : (
-            <AgeForm pending={age.pending} onSubmit={age.confirm} />
-          )}
-        </View>
+        <Surface>
+          <View style={styles.form}>
+            <Text
+              accessibilityRole="header"
+              style={[tokens.typography.headingXl, { color: colors.text }]}
+            >
+              {age.renewal
+                ? "Quel âge avez-vous aujourd’hui ?"
+                : "Quel est votre âge ?"}
+            </Text>
+            {age.loading ? (
+              <RequestLoading />
+            ) : age.readFailed ? (
+              <RequestError
+                message="Votre déclaration n’a pas pu être chargée."
+                onRetry={age.retryRead}
+              />
+            ) : (
+              <AgeForm pending={age.pending} onSubmit={age.confirm} />
+            )}
+          </View>
+        </Surface>
       </ScrollView>
     </SafeAreaView>
   );
 }
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: tokens.spacing.section },
+  screen: { flex: 1 },
   header: {
     minHeight: 69,
+    marginHorizontal: tokens.spacing.section,
     paddingBottom: tokens.spacing.lg,
     justifyContent: "center",
   },
@@ -115,18 +117,11 @@ const styles = StyleSheet.create({
     height: tokens.borderWidth,
   },
   brand: { flexDirection: "row", gap: 9, alignItems: "center" },
-  scroll: { flex: 1, marginHorizontal: -tokens.spacing.section },
+  scroll: { flex: 1 },
   stage: {
     flexGrow: 1,
     justifyContent: "center",
     padding: tokens.spacing.section,
   },
-  card: {
-    padding: tokens.spacing.lg,
-    // Figma Surface excludes its inside stroke from content layout; native outlines do the same.
-    outlineWidth: tokens.borderWidth,
-    outlineOffset: -tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
-    gap: tokens.spacing.sm,
-  },
+  form: { gap: tokens.spacing.sm },
 });

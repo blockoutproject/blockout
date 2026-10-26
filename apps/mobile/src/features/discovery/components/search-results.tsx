@@ -58,21 +58,30 @@ export function SearchResultsHeading({
   onClear,
 }: SearchResultsHeadingProps) {
   const { colors } = useTheme();
+  const title =
+    count === undefined
+      ? "Résultats"
+      : `${count} résultat${count === 1 ? "" : "s"} chargé${count === 1 ? "" : "s"}`;
   return (
     <View style={styles.toolbar}>
       <Text
         accessibilityRole="header"
+        accessibilityLabel={title}
         accessibilityLiveRegion="polite"
+        numberOfLines={1}
+        ellipsizeMode="tail"
         style={[styles.heading, { color: colors.text }]}
       >
-        {count === undefined
-          ? "Résultats"
-          : `${count} résultat${count === 1 ? "" : "s"} chargé${count === 1 ? "" : "s"}`}
+        {title}
       </Text>
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel="Effacer"
         onPress={onClear}
-        style={styles.clear}
+        style={({ pressed }) => [
+          styles.clear,
+          { opacity: pressed ? tokens.opacity.pressed : 1 },
+        ]}
       >
         <Text style={[tokens.typography.strong, { color: colors.text }]}>
           Effacer

@@ -1,30 +1,19 @@
-import { useRouter } from "expo-router";
 import { Image } from "expo-image";
 import {
   CalendarDays,
-  ChevronLeft,
   ChevronRight,
   type LucideIcon,
 } from "lucide-react-native";
 import type { PropsWithChildren } from "react";
-import {
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import {
-  KeyboardAwareScrollView,
-  KeyboardProvider,
-} from "react-native-keyboard-controller";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type {
   CollectionSeasonResponse,
   SourceBindingResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { IconButton } from "../../../shared/components/icon-button";
+import { PageHeader } from "../../../shared/components/page-header";
+import { FormScrollView } from "../../../shared/components/form-scroll-view";
+import { Surface } from "../../../shared/components/surface";
 import {
   RequestError,
   RequestLoading,
@@ -33,55 +22,19 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import type { useCollectionAuthority } from "../api/use-source-preparation";
 
-const FormScrollView =
-  Platform.OS === "ios" ? ScrollView : KeyboardAwareScrollView;
-
 /** Collection-only chrome for the active preparation destinations; safe areas and keyboard remain native-owned. */
 export function PreparationPage({
   title,
   children,
 }: PropsWithChildren<{ title: string }>) {
   const { colors } = useTheme();
-  const content = (
+  return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
-      <PreparationHeader title={title} />
-      <FormScrollView
-        automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={preparationStyles.content}
-      >
+      <PageHeader title={title} />
+      <FormScrollView contentContainerStyle={preparationStyles.content}>
         {children}
       </FormScrollView>
     </SafeAreaView>
-  );
-  return Platform.OS === "android" ? (
-    <KeyboardProvider>{content}</KeyboardProvider>
-  ) : (
-    content
-  );
-}
-
-/** Balanced approved top bar; the owning route supplies ordinary back navigation. */
-export function PreparationHeader({ title }: { title: string }) {
-  const router = useRouter();
-  const { colors } = useTheme();
-  return (
-    <View style={styles.header}>
-      <IconButton label="Retour" onPress={() => router.back()}>
-        <ChevronLeft
-          accessible={false}
-          size={tokens.size.actionIcon}
-          color={colors.icon}
-        />
-      </IconButton>
-      <Text
-        accessibilityRole="header"
-        style={[styles.title, { color: colors.text }]}
-      >
-        {title}
-      </Text>
-      <View style={styles.rail} />
-    </View>
   );
 }
 
@@ -109,28 +62,12 @@ export function CollectionAccessFeedback({
   );
 }
 
-/** Local flat source/season surface, using the existing semantic theme rather than a feature theme. */
-export function PreparationCard({ children }: PropsWithChildren) {
-  const { colors } = useTheme();
-  return (
-    <View
-      style={[
-        preparationStyles.card,
-        { backgroundColor: colors.surface, borderColor: colors.border },
-      ]}
-    >
-      {children}
-    </View>
-  );
-}
-
 /** Approved collection empty-state artwork, retained as an unchanged Figma asset at its 120-point slot. */
 export function EmptySources({ label }: { label: string }) {
   const { colors, scheme } = useTheme();
   return (
     <View
       style={[
-        preparationStyles.card,
         styles.empty,
         { backgroundColor: colors.raised, borderColor: colors.border },
       ]}
@@ -177,55 +114,57 @@ export function PreparationLink({
       accessibilityRole="button"
       accessibilityLabel={detail ? `${label}, ${detail}` : label}
       onPress={onPress}
-      style={[
-        preparationStyles.card,
-        styles.link,
-        { backgroundColor: colors.surface, borderColor: colors.border },
-      ]}
+      style={({ pressed }) => ({
+        opacity: pressed ? tokens.opacity.pressed : 1,
+      })}
     >
-      <Icon
-        accessible={false}
-        size={tokens.size.actionIcon}
-        color={colors.icon}
-      />
-      <View style={styles.identity}>
-        <Text style={[tokens.typography.strong, { color: colors.text }]}>
-          {label}
-        </Text>
-        {detail && (
-          <Text
-            style={[
-              tokens.typography.metadata,
-              statusTone && styles.badge,
-              {
-                color:
-                  statusTone === "warning"
-                    ? colors.onWarning
-                    : statusTone === "success"
-                      ? colors.onSuccessSubtle
-                      : statusTone === "error"
-                        ? colors.error
-                        : colors.secondaryText,
-                backgroundColor:
-                  statusTone === "warning"
-                    ? colors.warning
-                    : statusTone === "success"
-                      ? colors.successSubtle
-                      : statusTone === "error"
-                        ? colors.errorSubtle
-                        : undefined,
-              },
-            ]}
-          >
-            {detail}
-          </Text>
-        )}
-      </View>
-      <ChevronRight
-        accessible={false}
-        size={tokens.size.controlIcon}
-        color={colors.icon}
-      />
+      <Surface>
+        <View style={styles.link}>
+          <Icon
+            accessible={false}
+            size={tokens.size.actionIcon}
+            color={colors.icon}
+          />
+          <View style={styles.identity}>
+            <Text style={[tokens.typography.strong, { color: colors.text }]}>
+              {label}
+            </Text>
+            {detail && (
+              <Text
+                style={[
+                  tokens.typography.metadata,
+                  statusTone && styles.badge,
+                  {
+                    color:
+                      statusTone === "warning"
+                        ? colors.onWarning
+                        : statusTone === "success"
+                          ? colors.onSuccessSubtle
+                          : statusTone === "error"
+                            ? colors.error
+                            : colors.secondaryText,
+                    backgroundColor:
+                      statusTone === "warning"
+                        ? colors.warning
+                        : statusTone === "success"
+                          ? colors.successSubtle
+                          : statusTone === "error"
+                            ? colors.errorSubtle
+                            : undefined,
+                  },
+                ]}
+              >
+                {detail}
+              </Text>
+            )}
+          </View>
+          <ChevronRight
+            accessible={false}
+            size={tokens.size.controlIcon}
+            color={colors.icon}
+          />
+        </View>
+      </Surface>
     </Pressable>
   );
 }
@@ -310,12 +249,6 @@ export const preparationStyles = StyleSheet.create({
     paddingTop: tokens.spacing.sm,
     gap: tokens.spacing.lg,
   },
-  card: {
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
-    padding: tokens.spacing.lg,
-    gap: tokens.spacing.md,
-  },
   form: { gap: tokens.spacing.lg },
   row: {
     flexDirection: "row",
@@ -326,31 +259,19 @@ export const preparationStyles = StyleSheet.create({
 });
 const styles = StyleSheet.create({
   empty: {
+    borderWidth: tokens.borderWidth,
+    borderRadius: tokens.radius.sheet,
+    gap: tokens.spacing.md,
     alignItems: "center",
     paddingHorizontal: tokens.spacing.xl,
     paddingVertical: tokens.spacing.section,
   },
   emptyArtwork: { width: 120, height: 120 },
   screen: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: tokens.spacing.lg,
-    minHeight: tokens.size.control,
-    gap: tokens.spacing.sm,
-  },
-  title: { ...tokens.typography.navigation, flex: 1, textAlign: "center" },
-  rail: {
-    width:
-      Platform.OS === "ios"
-        ? tokens.touchTarget.ios
-        : tokens.touchTarget.android,
-  },
   link: {
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.lg,
-    minHeight: tokens.size.control,
   },
   identity: { flex: 1, gap: tokens.spacing.xs },
   badge: {

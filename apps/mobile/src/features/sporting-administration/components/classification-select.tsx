@@ -32,6 +32,7 @@ export function ClassificationSelect({
         accessibilityRole="button"
         accessibilityLabel={label}
         accessibilityValue={{ text: value ?? "Choisir…" }}
+        accessibilityHint={error}
         accessibilityState={{ disabled }}
         disabled={disabled}
         onPress={() =>
@@ -40,11 +41,12 @@ export function ClassificationSelect({
             params: { ...target, field },
           })
         }
-        style={[
+        style={({ pressed }) => [
           styles.control,
           {
             backgroundColor: colors.raised,
             borderColor: error ? colors.error : colors.border,
+            opacity: pressed ? tokens.opacity.pressed : 1,
           },
         ]}
       >
@@ -57,11 +59,16 @@ export function ClassificationSelect({
         >
           {value ?? "Choisir…"}
         </Text>
-        <ChevronDown accessible={false} size={16} color={colors.icon} />
+        <ChevronDown
+          accessible={false}
+          size={tokens.size.inlineIcon}
+          color={colors.icon}
+        />
       </Pressable>
       {error && (
         <Text
           accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
           style={[tokens.typography.metadata, { color: colors.error }]}
         >
           {error}

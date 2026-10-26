@@ -1,9 +1,8 @@
 import { genderLabel, formatLabel } from "../classification-presentation";
 import { hashKey, useQuery } from "@tanstack/react-query";
-import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type {
   SportingIdentityResponse,
@@ -15,7 +14,8 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { consultationOpeningPolicy } from "../api/consultation-queries";
 import { useConsultationQueries } from "../api/use-consultation-queries";
-import { ResourceText } from "./resource-page";
+import { SportingMedia, SportingCover } from "./sporting-media";
+import { DivisionPaint } from "./division-paint";
 
 /** Addressed public identity; artwork reads use the same generated admission boundary as JSON. */
 export interface SportingLogoProps {
@@ -51,132 +51,33 @@ export function SportingLogo({
   size = tokens.size.mediaRow,
 }: SportingLogoProps) {
   const { query: logo, queryKey } = useSportingLogo(identity, kind);
-  const { colors } = useTheme();
-  const data = identity.logoUrl ? logo.data : undefined;
-  const radius =
-    size === tokens.size.mediaRow ? tokens.radius.control : tokens.radius.media;
-  // Source artwork keeps an 8.33% white plate inset for team/club crests; division art fills its slot.
-  const imageSize = kind === "division" ? size : size * (5 / 6);
   return (
-    <View
-      style={[
-        styles.logo,
-        {
-          width: size,
-          borderRadius: radius,
-          backgroundColor: data
-            ? kind === "division"
-              ? "transparent"
-              : colors.logoSurface
-            : colors.mediaPlaceholder,
-        },
-      ]}
-    >
-      <View
-        style={[
-          styles.logo,
-          { width: size, height: size, borderRadius: radius },
-        ]}
-      >
-        {data ? (
-          <LogoImage
-            key={`${hashKey(queryKey)}:${logo.dataUpdatedAt}`}
-            uri={data}
-            size={imageSize}
-          />
-        ) : (
-          <Text
-            accessible={false}
-            style={[styles.initials, { color: colors.text }]}
-          >
-            {identity.shortName ??
-              identity.name.slice(0, 2).toLocaleUpperCase("fr")}
-          </Text>
-        )}
-      </View>
-      {identity.logoUrl && logo.isPending && (
-        <Text style={[styles.logoState, { color: colors.secondaryText }]}>
-          Chargement du logo
-        </Text>
-      )}
-      {identity.logoUrl && logo.isError && (
-        <Text style={[styles.logoState, { color: colors.secondaryText }]}>
-          {data ? "Logo non actualisé" : "Logo indisponible"}
-        </Text>
-      )}
-    </View>
+    <SportingMedia
+      key={`${hashKey(queryKey)}:${logo.dataUpdatedAt}`}
+      identity={identity}
+      kind={kind}
+      size={size}
+      uri={identity.logoUrl ? logo.data : undefined}
+      loading={!!identity.logoUrl && logo.isPending}
+      error={!!identity.logoUrl && logo.isError}
+    />
   );
 }
 
 /** An optional, noninteractive competition-logo cover; absence/loading/failure adds no fake artwork. */
 export function SportingArtwork({
-  identity,
-  kind,
-}: Pick<SportingLogoProps, "identity" | "kind">) {
-  const { query: logo, queryKey } = useSportingLogo(identity, kind);
-  return identity.logoUrl && logo.data ? (
-    <LogoImage
-      key={`${hashKey(queryKey)}:${logo.dataUpdatedAt}`}
-      uri={logo.data}
-      blurred
-    />
-  ) : null;
-}
-
-/** Query owns decoded data; a successful read starts a new native rendering attempt, including identical bytes. */
-function LogoImage({
-  uri,
-  size,
-  blurred = false,
-}: {
-  uri: string;
-  size?: number;
-  blurred?: boolean;
-}) {
-  const [failed, setFailed] = useState(false);
-  return failed && !blurred ? (
-    <ResourceText>Logo indisponible</ResourceText>
-  ) : !failed && uri ? (
-    <Image
-      accessible={false}
-      source={{ uri }}
-      cachePolicy="none"
-      contentFit="contain"
-      blurRadius={blurred ? tokens.sporting.coverBlur : 0}
-      onError={() => setFailed(true)}
-      style={
-        size === undefined
-          ? StyleSheet.absoluteFill
-          : { width: size, height: size }
-      }
-    />
-  ) : null;
-}
-
-/** Native three-stop paint; null gradients use the ordinary primary-to-shaded color treatment. */
-export function DivisionPaint({
   division,
 }: {
-  division?: SportingDivisionResponse;
+  division: SportingDivisionResponse;
 }) {
-  const { colors } = useTheme();
-  const color = division?.color ?? colors.subtle;
-  const gradient = division?.gradient;
-  return (
-    <View
-      pointerEvents="none"
-      accessible={false}
-      style={[
-        StyleSheet.absoluteFill,
-        {
-          backgroundColor: color,
-          backgroundImage: gradient
-            ? `linear-gradient(135deg, ${gradient[0]} 0%, ${gradient[1]} 50%, ${gradient[2]} 100%)`
-            : "linear-gradient(135deg, #00000000, #00000018)",
-        },
-      ]}
+  const { query: logo, queryKey } = useSportingLogo(division, "division");
+  return division.logoUrl && logo.data ? (
+    <SportingCover
+      key={`${hashKey(queryKey)}:${logo.dataUpdatedAt}`}
+      uri={logo.data}
+      primary={division.color}
     />
-  );
+  ) : null;
 }
 
 /** Common profile inputs; follow/actions remain supplied by their owner once available. */
@@ -299,7 +200,10 @@ export function SportingLink({ kind, id, label, identity }: SportingLinkProps) {
             params: { matchId: id },
           });
       }}
-      style={styles.link}
+      style={({ pressed }) => [
+        styles.link,
+        { opacity: pressed ? tokens.opacity.pressed : 1 },
+      ]}
     >
       {identity && kind !== "match" && (
         <SportingLogo
@@ -308,7 +212,11 @@ export function SportingLink({ kind, id, label, identity }: SportingLinkProps) {
         />
       )}
       <Text style={[styles.linkLabel, { color: colors.text }]}>{label}</Text>
-      <ChevronRight accessible={false} size={16} color={colors.icon} />
+      <ChevronRight
+        accessible={false}
+        size={tokens.size.inlineIcon}
+        color={colors.icon}
+      />
     </Pressable>
   );
 }
@@ -337,18 +245,6 @@ const styles = StyleSheet.create({
   name: { ...tokens.typography.heading },
   clubName: { ...tokens.typography.navigation },
   eyebrow: { ...tokens.typography.metadata },
-  logo: {
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: tokens.radius.media,
-    overflow: "hidden",
-  },
-  initials: { ...tokens.typography.navigation },
-  logoState: {
-    ...tokens.typography.metadata,
-    alignSelf: "stretch",
-    textAlign: "center",
-  },
   metadata: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },
   badge: {
     ...tokens.typography.metadata,

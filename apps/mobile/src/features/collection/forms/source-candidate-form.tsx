@@ -1,3 +1,4 @@
+import { Surface } from "../../../shared/components/surface";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useNativeHandoff } from "../../../shared/native/use-native-handoff";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
@@ -21,7 +22,6 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { type useSourcePreparation } from "../api/use-source-preparation";
 import {
-  PreparationCard,
   SeasonIdentity,
   SourceBadge,
   preparationStyles,
@@ -267,7 +267,7 @@ export function SourceCandidateForm({
           Saison clôturée
         </Text>
       )}
-      <PreparationCard>
+      <Surface>
         <View style={[preparationStyles.row, styles.heading]}>
           <Text style={[tokens.typography.strong, { color: colors.text }]}>
             Lien de découverte
@@ -284,7 +284,16 @@ export function SourceCandidateForm({
               disabled: handoff.pending,
               busy: handoff.pending,
             }}
-            style={styles.sourceLink}
+            style={({ pressed }) => [
+              styles.sourceLink,
+              {
+                opacity: handoff.pending
+                  ? tokens.opacity.disabled
+                  : pressed
+                    ? tokens.opacity.pressed
+                    : 1,
+              },
+            ]}
           >
             <Globe
               accessible={false}
@@ -406,7 +415,7 @@ export function SourceCandidateForm({
             )}
           </>
         )}
-      </PreparationCard>
+      </Surface>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={
@@ -415,7 +424,16 @@ export function SourceCandidateForm({
             : "Groupes découverts"
         }
         accessibilityState={{ disabled: !authority.enabled }}
-        style={styles.sourceLink}
+        style={({ pressed }) => [
+          styles.sourceLink,
+          {
+            opacity: !authority.enabled
+              ? tokens.opacity.disabled
+              : pressed
+                ? tokens.opacity.pressed
+                : 1,
+          },
+        ]}
         disabled={!authority.enabled}
         onPress={() =>
           router.push({

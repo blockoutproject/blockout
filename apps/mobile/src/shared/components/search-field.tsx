@@ -26,6 +26,8 @@ export function SearchField({
   error,
   onClear,
   value,
+  editable = true,
+  readOnly,
   onFocus,
   onBlur,
   style,
@@ -33,27 +35,43 @@ export function SearchField({
 }: SearchFieldProps) {
   const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
+  const isEditable = readOnly !== undefined ? !readOnly : editable;
+  // The clear action owns its own disabled paint; sibling layers receive the same opacity exactly once.
+  const opacity = isEditable ? 1 : tokens.opacity.disabled;
   return (
     <View style={styles.field}>
-      <View
-        style={[
-          styles.control,
-          {
-            backgroundColor: colors.surface,
-          },
-        ]}
-      >
+      <View style={styles.control}>
+        <View
+          pointerEvents="none"
+          accessible={false}
+          style={[
+            StyleSheet.absoluteFill,
+            styles.edge,
+            {
+              opacity,
+              backgroundColor: colors.surface,
+              borderColor: error
+                ? colors.error
+                : focused
+                  ? colors.focus
+                  : colors.border,
+            },
+          ]}
+        />
         <Search
           accessible={false}
           color={colors.icon}
           size={tokens.size.controlIcon}
+          opacity={opacity}
           nonScalingStroke
         />
         <TextInput
           {...input}
           value={value}
+          editable={isEditable}
           accessibilityLabel={label}
           accessibilityHint={error}
+          accessibilityState={{ disabled: !isEditable }}
           placeholderTextColor={colors.secondaryText}
           onFocus={(event) => {
             setFocused(true);
@@ -63,14 +81,14 @@ export function SearchField({
             setFocused(false);
             onBlur?.(event);
           }}
-          style={[styles.input, { color: colors.text }, style]}
+          style={[styles.input, { color: colors.text, opacity }, style]}
         />
         {!!value && (
           <IconButton
             label="Effacer la recherche"
             size="control"
             onPress={onClear}
-            disabled={input.editable === false || input.readOnly === true}
+            disabled={!isEditable}
           >
             <X
               accessible={false}
@@ -80,27 +98,12 @@ export function SearchField({
             />
           </IconButton>
         )}
-        <View
-          pointerEvents="none"
-          accessible={false}
-          style={[
-            StyleSheet.absoluteFill,
-            styles.edge,
-            {
-              borderColor: error
-                ? colors.error
-                : focused
-                  ? colors.focus
-                  : colors.border,
-            },
-          ]}
-        />
       </View>
       {error && (
         <Text
           accessibilityRole="alert"
           accessibilityLiveRegion="polite"
-          style={[styles.error, { color: colors.error }]}
+          style={[styles.error, { color: colors.error, opacity }]}
         >
           {error}
         </Text>

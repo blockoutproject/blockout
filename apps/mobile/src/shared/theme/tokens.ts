@@ -22,13 +22,12 @@ export const appearanceColors = {
     surface: reference.white,
     subtle: "#2021240F",
     mediaPlaceholder: "#EDEDEE",
-    // UI Library media/logo-surface stays white in both appearances; monograms retain neutral ink.
+    // UI Library media/logo-surface stays white in both appearances; fallback content retains neutral ink.
     logoSurface: reference.white,
     logoInk: reference.neutral900,
     skeleton: "#EDEDEE",
     onDarkAccent: reference.white,
     onLightAccent: "#000000",
-    onSporting: reference.white,
     raised: "#FFFFFFF7",
     // Semantic surface/inverse and text/on-inverse; Product Design follow action 1010:15711.
     inverse: reference.neutral900,
@@ -67,7 +66,6 @@ export const appearanceColors = {
     skeleton: "#2B2B2D",
     onDarkAccent: reference.white,
     onLightAccent: "#000000",
-    onSporting: reference.white,
     raised: "#181819F5",
     inverse: "#F7F7F8",
     onInverse: reference.neutral900,
@@ -180,14 +178,8 @@ export const tokens = {
     separatorOpacity: 0.2,
     informationLabelWidth: 76,
     setLogo: 44,
-    setTeamGap: 82.32,
-    setLabelWidth: 74.64,
-    setNameMinHeight: 31.2,
     setTeamBottom: 18,
-    setRowInline: 2,
     coverSize: 574,
-    coverOffsetX: -0.5,
-    coverOffsetY: 3,
     coverBlur: 20,
     coverOpacity: 0.32,
     coverVeilOpacity: 0.28,
@@ -198,6 +190,7 @@ export const tokens = {
   typography: {
     body: { fontFamily: "Outfit-Regular", fontSize: 14, lineHeight: 20 },
     strong: { fontFamily: "Outfit-SemiBold", fontSize: 14, lineHeight: 20 },
+    title: { fontFamily: "Outfit-SemiBold", fontSize: 18, lineHeight: 24 },
     heading: { fontFamily: "Outfit-Bold", fontSize: 20, lineHeight: 26 },
     // UI Library Heading/XL and Display/Age (3681:14), used by Product Design 6650:4930.
     headingXl: {

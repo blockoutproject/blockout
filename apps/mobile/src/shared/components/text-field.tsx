@@ -5,8 +5,6 @@ import {
   TextInput,
   View,
   type TextInputProps,
-  type StyleProp,
-  type TextStyle,
   type TextInputInstance,
 } from "react-native";
 import { useTheme } from "../theme/theme-provider";
@@ -17,8 +15,6 @@ export interface TextFieldProps extends TextInputProps {
   /** Forwards form-owned native focus to this input after validation errors. */
   ref?: Ref<TextInputInstance>;
   label: string;
-  /** Domain compositions may use the approved compact HEX-label treatment. */
-  labelStyle?: StyleProp<TextStyle>;
   helper?: string;
   error?: string;
 }
@@ -26,7 +22,6 @@ export interface TextFieldProps extends TextInputProps {
 /** Preserves the label and current draft while presenting helper/error and native focus semantics. */
 export function TextField({
   label,
-  labelStyle,
   helper,
   error,
   editable = true,
@@ -42,9 +37,7 @@ export function TextField({
   const isEditable = readOnly !== undefined ? !readOnly : editable;
   return (
     <View style={[styles.field, !isEditable && styles.disabled]}>
-      <Text style={[styles.label, { color: colors.text }, labelStyle]}>
-        {label}
-      </Text>
+      <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
       <TextInput
         {...input}
         accessibilityLabel={label}
