@@ -54,11 +54,13 @@ The [existing F04 evidence](spec.md#v1-sources) also identifies five examples, t
 
 ## Public contracts, choices and mobile state
 
-**Decision**: Add ordinary public collection GETs and one resource-type-qualified search-options GET to the existing API. Reuse F03 summaries and F02 enums. Use current PostgreSQL data for filter catalogues. Keep five stable-ID examples in visit memory; use native TanStack Query for textual pagination and explicit fresh-first-page replacement.
+**Decision**: Add ordinary public collection GETs and one resource-type-qualified search-options GET to the existing API. Reuse F03 summaries and F02 enums. Use current PostgreSQL data for filter catalogues. Keep five stable-ID examples in visit memory; use native TanStack Query for textual pagination, cancellation and safe read retry.
 
 **Rationale**: Three collection resources retain actual sporting identities and open existing detail routes. A separate options representation has a distinct purpose and lifecycle. Empty text is explicitly examples rather than a second exhaustive mode. Retained IDs let the same examples be revalidated without storing a server session or resampling on each refresh. Native [TanStack infinite queries](https://tanstack.com/query/latest/docs/framework/react/guides/infinite-queries) retain all pages under one context key and advance through `pageParam`; separate cursor-based cache keys would require unnecessary page assembly.
 
 **Alternatives considered**: One generic mixed-type search union adds generated-model complexity and does not match the three independent tabs. A global filter/list endpoint, random sampling on refresh, a server search session or a persistent mobile cache supplies no needed behavior. Snapshot totals and custom transient-state protocols are not required. Existing errors/ordinary retry cover dependency loss without a new screen.
+
+Search uses no pull-to-refresh or refresh button. Its native Query owner handles safe read retry, retained permitted data and pagination without a custom first-page refresh helper. Initial/new-read failures keep the illustrated card and pagination failures keep the shared toast; no background trigger or toast is introduced. An exhausted traversal removes continuation without a terminal-list message.
 
 **Generated binding**: The discovery operations use their own generator tag so the shared request boundary can be qualified without implementing unrelated sporting operations. The selected generators translate `maxLength` into UTF-16 length checks; the query schema instead expresses the same 200-code-point bound with a Unicode property pattern, including a strict end check. Java Pattern and Orval's generated Unicode RegExp enforce it natively. Spring query converters delegate exact wire values to the generated enums' `fromValue` methods. There is no handwritten transport schema or custom validation engine.
 

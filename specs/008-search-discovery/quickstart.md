@@ -62,7 +62,9 @@ Synthetic Compose checks also verify that a `2h` cadence supplied through `--env
 
 ## Mobile journey
 
-Using the existing Jest/native scenarios, change text/tabs/filters rapidly and deliver old requests late. Preserve independent filters, retained examples and valid scroll context. Check that successive cursors populate one infinite-query entry through `pageParam`; explicit refresh requests only the first page and preserves the prior list on failure. Fail refresh/next page, retry explicitly, reconnect and switch accounts. Expected: no mixed contexts, silent replay, private old-session data or false end; authorized previous content remains usable until successful replacement.
+Search has no pull-to-refresh or refresh button. Verify that initial/new-read card retry still works, continuation remains available after pagination failure, and established exhaustion adds no “Fin des résultats” message. Controlled Query rereads verify same-context retention, cancellation and refusal boundaries without qualifying a user gesture or introducing background feedback. The [F13 T113 follow-up](../003-shared-quality/tasks.md) owns revised native/Figma/prototype evidence; earlier gesture captures do not qualify this updated behavior.
+
+Using the existing Jest/native scenarios, change text/tabs/filters rapidly and deliver old requests late. Preserve independent filters, retained examples and valid scroll context. Check that successive cursors populate one infinite-query entry through `pageParam`; controlled rereads use standard Query traversal and preserve the prior authorized list on ordinary failure. Fail initial/next-page reads, retry explicitly, exercise controlled reread races, reconnect and switch accounts. Expected: no mixed contexts, silent replay, private old-session data or false end; authorized previous content remains usable until successful replacement.
 
 Open/close F03 sheets and exercise the existing F11 counter: filtering, scrolling, refresh and return add no advertising trigger. Check both themes, VoiceOver/TalkBack, enlarged text, selection/focus, retry and absent-context cards. No character counter, new index-lag screen or native-interface mockup is introduced.
 
@@ -79,3 +81,5 @@ Final `mobile:verify` passed lint/typecheck, 76 suites / 1,117 tests (one existi
 ## Evidence limits
 
 The evidence above qualifies T001–T007's foundation, T008–T011/T013–T018's named-search/projection backend boundaries and T039/T040's declared infrastructure/diagnostic construction. The bounded Android text-entry evidence is recorded above. Empty-text examples, options, complete F12/native journeys and accessibility, actual hosted isolation/alerting and restoration retain their owning tasks. Local synthetic evidence establishes no provider or production approval.
+
+The Search gesture exception is implemented at `09bab11c` and qualified through the [F13 native follow-up](../003-shared-quality/quickstart.md#shared-composition-qualification). Its error-card retry and continuation retain native Query ownership. Figma/prototype reconciliation remains under [T113](../003-shared-quality/tasks.md); the prior Search pull scenes are superseded.
