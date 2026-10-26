@@ -42,7 +42,7 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
-import type { PresentationValues } from "../forms/presentation-values";
+import type { PresentationValues } from "../schemas/presentation-schema";
 
 /** Stable original target; no identity, classification or activity can be changed by this editor. */
 export type PresentationTarget =

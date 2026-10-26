@@ -4,17 +4,16 @@ import Slider from "@react-native-community/slider";
 import { Minus, Plus } from "lucide-react-native";
 import { Controller, useForm } from "react-hook-form";
 import { Platform, StyleSheet, Text, View } from "react-native";
-import { z } from "zod";
 import { Button } from "../../../shared/components/button";
 import { IconButton } from "../../../shared/components/icon-button";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
-import { completedYearsSchema } from "../age-declaration";
-
-const valuesSchema = z.object({
-  age: completedYearsSchema.nullable().refine((age) => age !== null),
-});
-type AgeValues = z.input<typeof valuesSchema>;
+import {
+  ageSchema,
+  type AgeValues,
+  type AgeSubmission,
+} from "../schemas/age-schema";
+import { ageValues } from "./age-values";
 
 /** A confirmed explicit age is transient; the caller owns category/date persistence and subsequent navigation. */
 export interface AgeFormProps {
@@ -26,17 +25,13 @@ export interface AgeFormProps {
 export function AgeForm({ pending, onSubmit }: AgeFormProps) {
   const { colors } = useTheme();
   const feedback = useActionFeedback();
-  const { control, handleSubmit } = useForm<
-    AgeValues,
-    unknown,
-    z.output<typeof valuesSchema>
-  >({
-    defaultValues: { age: null },
-    resolver: zodResolver(valuesSchema),
+  const { control, handleSubmit } = useForm<AgeValues, unknown, AgeSubmission>({
+    defaultValues: ageValues(),
+    resolver: zodResolver(ageSchema),
   });
 
   /** A rejected write leaves the selected age editable; only an explicit new confirmation retries it. */
-  async function submit(values: z.output<typeof valuesSchema>) {
+  async function submit(values: AgeSubmission) {
     if (pending) return;
     try {
       const operation = onSubmit(values.age);

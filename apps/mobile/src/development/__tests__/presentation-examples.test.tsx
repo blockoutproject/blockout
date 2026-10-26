@@ -1,7 +1,7 @@
 import { act, render, screen, userEvent } from "@testing-library/react-native";
 import { Alert, Appearance, Text } from "react-native";
 import { ThemeProvider, useTheme } from "../../shared/theme/theme-provider";
-import { FormExampleScreen } from "../presentation-examples";
+import { ExampleForm } from "../forms/example-form";
 
 // Keep form behavior real; the installed library supplies its native keyboard double.
 jest.mock("react-native-keyboard-controller", () =>
@@ -25,7 +25,7 @@ it("keeps invalid fields editable without opening confirmation", async () => {
   const confirm = jest.fn();
   const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
   const user = userEvent.setup();
-  await render(<FormExampleScreen onConfirm={confirm} />, {
+  await render(<ExampleForm onConfirm={confirm} />, {
     wrapper: ThemeProvider,
   });
   await user.type(screen.getByLabelText("Nom du club"), "Volley");
@@ -47,7 +47,7 @@ it("waits for explicit native confirmation before passing the current values to 
   const confirm = jest.fn();
   const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
   const user = userEvent.setup();
-  await render(<FormExampleScreen onConfirm={confirm} />, {
+  await render(<ExampleForm onConfirm={confirm} />, {
     wrapper: ThemeProvider,
   });
   await user.type(screen.getByLabelText("Nom du club"), "Volley");
@@ -79,7 +79,7 @@ it("updates the mounted form's appearance without losing its draft", async () =>
   await render(
     <ThemeProvider>
       <AppearanceLabel />
-      <FormExampleScreen onConfirm={jest.fn()} />
+      <ExampleForm onConfirm={jest.fn()} />
     </ThemeProvider>,
   );
   await user.type(screen.getByLabelText("Nom du club"), "Valeur conservée");
@@ -95,4 +95,27 @@ it("updates the mounted form's appearance without losing its draft", async () =>
   expect(screen.getByLabelText("Apparence")).toHaveTextContent("dark");
   expect(screen.getByDisplayValue("Valeur conservée")).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Confirmer" })).toBeOnTheScreen();
+});
+
+it("declines a retained confirmation after the form is removed", async () => {
+  // Given
+  const confirm = jest.fn();
+  const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  const user = userEvent.setup();
+  const view = await render(<ExampleForm onConfirm={confirm} />, {
+    wrapper: ThemeProvider,
+  });
+  await user.type(screen.getByLabelText("Nom du club"), "Volley");
+  await user.type(screen.getByLabelText("Dernier champ"), "Paris");
+  await user.press(screen.getByRole("button", { name: "Confirmer" }));
+  const accept = alert.mock.calls[0][2]?.find(
+    (button) => button.text === "Confirmer",
+  )?.onPress;
+
+  // When
+  await view.unmount();
+  await act(() => accept?.());
+
+  // Then
+  expect(confirm).not.toHaveBeenCalled();
 });

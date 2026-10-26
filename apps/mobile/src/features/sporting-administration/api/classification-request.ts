@@ -1,5 +1,5 @@
 import type { SetClassificationRequest } from "../../../../.generated/schemas/index.zod";
-import type { ClassificationValues } from "../forms/classification-values";
+import type { ClassificationValues } from "../schemas/classification-schema";
 
 /** Encodes the explicitly selected classification or null inheritance without deciding eligibility. */
 export function toClassificationRequest(

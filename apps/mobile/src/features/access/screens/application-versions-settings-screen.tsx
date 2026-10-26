@@ -11,7 +11,7 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useAccountSession } from "../../accounts/current-account";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
 import { useApplicationVersionsSettings } from "../api/use-application-versions-settings";
-import { ApplicationVersionsSettingsForm } from "../forms/application-versions-settings-form";
+import { ApplicationVersionsForm } from "../forms/application-versions-form";
 
 /** Loads only with current grants and retains an existing draft read-only when they become unavailable. */
 export function ApplicationVersionsSettingsScreen() {
@@ -40,7 +40,7 @@ export function ApplicationVersionsSettingsScreen() {
   let settingsContent = null;
   if (settings) {
     settingsContent = (
-      <ApplicationVersionsSettingsForm
+      <ApplicationVersionsForm
         key={`${session.generation}:${session.accountId}`}
         settings={settings}
         editing={editing}

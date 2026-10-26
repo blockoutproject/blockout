@@ -17,7 +17,7 @@ import {
   useCurrentAccount,
   useEstablishAccount,
 } from "../api/use-current-account";
-import { ProfileForm } from "../components/profile-form";
+import { ProfileForm } from "../forms/profile-form";
 import { PublicAccountLinks } from "../components/public-account-links";
 import { useAccountSession } from "../session/account-session-provider";
 import { useGuestNavigation } from "../hooks/use-guest-navigation";

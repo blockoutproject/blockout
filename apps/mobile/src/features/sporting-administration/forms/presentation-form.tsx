@@ -36,9 +36,9 @@ import {
 import { prepareSportingLogo } from "../images/prepare-sporting-logo";
 import {
   presentationSchema,
-  presentationValues,
   type PresentationValues,
-} from "./presentation-values";
+} from "../schemas/presentation-schema";
+import { presentationValues } from "./presentation-values";
 import { presentationEditor } from "./presentation-editor";
 
 /** One original resource and session; background reads never replace this form's editable snapshot. */
@@ -101,7 +101,7 @@ export function PresentationForm({
     },
   });
   // Read the retained control's current state on remount; RHF remains the sole submission owner.
-  const { errors, isDirty, dirtyFields } = useFormState({
+  const { isDirty, dirtyFields } = useFormState({
     control,
   });
   useDiscardChanges(isDirty, () => {
@@ -458,25 +458,31 @@ export function PresentationForm({
                   retrying={artwork.isFetching}
                 />
               )}
-              <ImageField
-                label={isDivision ? undefined : "Photo ou logo"}
-                images={uri ? [{ id: "logo", uri, label: "Logo" }] : []}
-                contentFit="contain"
-                disabled={busy}
-                helper="PNG/JPEG, jusqu’à 5 Mio"
-                chooseLabel="Choisir un logo"
-                replaceLabel="Changer le logo"
-                removeLabel="Rétablir le logo automatique"
-                error={errors.logo?.message}
-                placeholderIcon={isDivision ? ImageOff : undefined}
-                onRemove={
-                  !isDivision ||
-                  currentLogo?.manualUrl != null ||
-                  draft.action === "replace"
-                    ? restoreLogo
-                    : undefined
-                }
-                selection={imageSelection}
+              <Controller
+                control={control}
+                name="logo"
+                render={({ fieldState }) => (
+                  <ImageField
+                    label={isDivision ? undefined : "Photo ou logo"}
+                    images={uri ? [{ id: "logo", uri, label: "Logo" }] : []}
+                    contentFit="contain"
+                    disabled={busy}
+                    helper="PNG/JPEG, jusqu’à 5 Mio"
+                    chooseLabel="Choisir un logo"
+                    replaceLabel="Changer le logo"
+                    removeLabel="Rétablir le logo automatique"
+                    error={fieldState.error?.message}
+                    placeholderIcon={isDivision ? ImageOff : undefined}
+                    onRemove={
+                      !isDivision ||
+                      currentLogo?.manualUrl != null ||
+                      draft.action === "replace"
+                        ? restoreLogo
+                        : undefined
+                    }
+                    selection={imageSelection}
+                  />
+                )}
               />
               {!uri && (currentLogo?.manualUrl != null || dirtyLogo) && (
                 <Button
@@ -491,9 +497,9 @@ export function PresentationForm({
           <Controller
             control={control}
             name="name"
-            render={({ field: { value, onChange, onBlur, ref } }) => (
+            render={({ field, fieldState }) => (
               <TextField
-                ref={ref}
+                ref={field.ref}
                 label={
                   isDivision
                     ? "Nom de la division"
@@ -501,11 +507,11 @@ export function PresentationForm({
                       ? "Nom personnalisé"
                       : "Nom complet personnalisé"
                 }
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
+                value={field.value}
+                onChangeText={field.onChange}
+                onBlur={field.onBlur}
                 editable={!busy}
-                error={errors.name?.message}
+                error={fieldState.error?.message}
                 helper={
                   names
                     ? `Laisser vide rétablit le nom automatique${names.sourceName ? ` : ${names.sourceName}` : ""}.`
@@ -518,15 +524,15 @@ export function PresentationForm({
             <Controller
               control={control}
               name="shortName"
-              render={({ field: { value, onChange, onBlur, ref } }) => (
+              render={({ field, fieldState }) => (
                 <TextField
-                  ref={ref}
+                  ref={field.ref}
                   label="Nom court personnalisé"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  onBlur={field.onBlur}
                   editable={!busy}
-                  error={errors.shortName?.message}
+                  error={fieldState.error?.message}
                   helper="Laisser vide rétablit le nom court automatique."
                 />
               )}

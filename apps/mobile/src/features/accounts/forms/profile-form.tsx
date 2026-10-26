@@ -5,7 +5,7 @@ import { useImageSelection } from "../../../shared/images/use-image-selection";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { UserRound } from "lucide-react-native";
 import { useEffect, useRef } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import {
@@ -25,7 +25,8 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useProfileEditing, useProfilePhoto } from "../api/use-profile-editing";
 import { prepareProfilePhoto } from "../profile/prepare-profile-photo";
-import { profileSchema, type ProfileValues } from "../forms/profile-values";
+import { profileSchema, type ProfileValues } from "../schemas/profile-schema";
+import { profileValues } from "./profile-values";
 import { toProfileBody } from "../api/profile-request";
 import { useAccountSession } from "../session/account-session-provider";
 
@@ -44,18 +45,12 @@ export function ProfileForm({ account }: ProfileFormProps) {
   const photo = useProfilePhoto(account.accountId, account.hasPhoto);
   const active = useRef(true);
   const uploading = useRef<File | undefined>(undefined);
-  const {
-    control,
-    handleSubmit,
-    setValue,
-    getValues,
-    setError,
-    reset,
-    formState: { errors, dirtyFields },
-  } = useForm<ProfileValues>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: { username: account.username, photo: { action: "keep" } },
-  });
+  const { control, handleSubmit, setValue, getValues, setError, reset } =
+    useForm<ProfileValues>({
+      resolver: zodResolver(profileSchema),
+      defaultValues: profileValues(account),
+    });
+  const { dirtyFields } = useFormState({ control });
   const selection = useImageSelection({
     canSelect: () => !save.isPending(),
     allowsEditing: true,
@@ -140,7 +135,7 @@ export function ProfileForm({ account }: ProfileFormProps) {
     try {
       const accepted = await attempt;
       if (active.current && session.isCurrent(session.generation))
-        reset({ username: accepted.username, photo: { action: "keep" } });
+        reset(profileValues(accepted));
     } catch (error) {
       if (!active.current || !session.isCurrent(session.generation)) return;
       if (
@@ -185,16 +180,22 @@ export function ProfileForm({ account }: ProfileFormProps) {
               retrying={photo.isFetching}
             />
           )}
-          <ImageField
-            label="Photo de profil"
-            images={images}
-            selection={selection}
-            placeholderIcon={UserRound}
-            disabled={busy}
-            chooseLabel="Choisir une photo de profil"
-            helper="Facultatif. PNG/JPEG, jusqu’à 5 Mio."
-            error={errors.photo?.message}
-            onRemove={() => replacePhoto({ action: "remove" })}
+          <Controller
+            control={control}
+            name="photo"
+            render={({ fieldState }) => (
+              <ImageField
+                label="Photo de profil"
+                images={images}
+                selection={selection}
+                placeholderIcon={UserRound}
+                disabled={busy}
+                chooseLabel="Choisir une photo de profil"
+                helper="Facultatif. PNG/JPEG, jusqu’à 5 Mio."
+                error={fieldState.error?.message}
+                onRemove={() => replacePhoto({ action: "remove" })}
+              />
+            )}
           />
         </View>
       </Surface>
@@ -203,18 +204,18 @@ export function ProfileForm({ account }: ProfileFormProps) {
           <Controller
             control={control}
             name="username"
-            render={({ field: { value, onChange, onBlur, ref } }) => (
+            render={({ field, fieldState }) => (
               <TextField
-                ref={ref}
+                ref={field.ref}
                 label="Pseudo"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
+                value={field.value}
+                onChangeText={field.onChange}
+                onBlur={field.onBlur}
                 autoCapitalize="none"
                 autoCorrect={false}
                 editable={!busy}
                 helper="3 à 32 caractères : lettres sans accent, chiffres, point, tiret ou soulignement. Les espaces autour sont retirés."
-                error={errors.username?.message}
+                error={fieldState.error?.message}
               />
             )}
           />

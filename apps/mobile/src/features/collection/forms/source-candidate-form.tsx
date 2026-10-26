@@ -30,11 +30,9 @@ import {
   candidateUrlSchema,
   sourceCandidateSchema,
   type SourceCandidateValues,
-} from "../schemas/source-candidate";
-import {
-  sourcePreparationEditor,
-  discardSourcePreparationEditor,
-} from "./preparation-editors";
+} from "../schemas/source-candidate-schema";
+import { sourceCandidateValues } from "./source-candidate-values";
+import { sourcePreparationEditor } from "./source-candidate-editor";
 
 /** One source editor snapshot; failures and current-state reads preserve its dirty URL until explicit submission. */
 export interface SourceCandidateFormProps {
@@ -70,13 +68,10 @@ export function SourceCandidateForm({
     resolver: zodResolver(sourceCandidateSchema),
     formControl: editor.form.formControl,
   });
-  const { isDirty, errors, dirtyFields } = useFormState({
+  const { isDirty, dirtyFields } = useFormState({
     control,
   });
-  useDiscardChanges(isDirty, () => {
-    reset();
-    discardSourcePreparationEditor();
-  });
+  useDiscardChanges(isDirty, editor.discard);
   // Subscribe to RHF's dirty fields so keepDirtyValues retains the editable snapshot on reread.
   void dirtyFields;
   const current = editing.source.data ?? source;
@@ -135,7 +130,7 @@ export function SourceCandidateForm({
       actionFeedback.clear();
       const accepted = await attempt;
       if (!session.isCurrent(session.generation)) return;
-      reset({ candidateUrl: accepted.candidateUrl ?? "" });
+      reset(sourceCandidateValues(accepted));
       editor.update({
         baseline: accepted,
         editingUrl: false,
@@ -249,10 +244,10 @@ export function SourceCandidateForm({
       });
       return;
     }
-    reset(
-      { candidateUrl: sourceResult.data.candidateUrl ?? "" },
-      { keepDirtyValues: true, keepDirty: true },
-    );
+    reset(sourceCandidateValues(sourceResult.data), {
+      keepDirtyValues: true,
+      keepDirty: true,
+    });
     editor.update({
       ...editor.getSnapshot(),
       baseline: sourceResult.data,
@@ -359,18 +354,18 @@ export function SourceCandidateForm({
                 <Controller
                   control={control}
                   name="candidateUrl"
-                  render={({ field: { ref, value, onChange, onBlur } }) => (
+                  render={({ field, fieldState }) => (
                     <TextField
-                      ref={ref}
+                      ref={field.ref}
                       label="URL officielle"
-                      value={value}
-                      onChangeText={onChange}
-                      onBlur={onBlur}
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      onBlur={field.onBlur}
                       editable={!busy && !readOnly}
                       autoCapitalize="none"
                       autoCorrect={false}
                       inputMode="url"
-                      error={errors.candidateUrl?.message}
+                      error={fieldState.error?.message}
                       helper="Formats officiels pris en charge uniquement. Modifier le lien efface sa validation précédente."
                     />
                   )}

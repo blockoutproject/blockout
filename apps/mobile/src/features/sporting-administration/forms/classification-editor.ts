@@ -1,7 +1,5 @@
-import {
-  classificationValues,
-  type ClassificationValues,
-} from "./classification-values";
+import { classificationValues } from "./classification-values";
+import type { ClassificationValues } from "../schemas/classification-schema";
 import { createFormControl } from "react-hook-form";
 import type { ClassificationDetailResponse } from "../../../../.generated/schemas/index.zod";
 import type {
@@ -70,6 +68,7 @@ export function classificationEditor(
     discard() {
       if (editors.get(key) === editor) editors.delete(key);
       stopSession();
+      editor.form.reset(classificationValues(state.baseline));
     },
   };
   editors.set(key, editor);

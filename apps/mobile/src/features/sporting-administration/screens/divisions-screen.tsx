@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { useRouter } from "expo-router";
 import { ChevronRight, Plus } from "lucide-react-native";
 import {
@@ -23,13 +25,23 @@ import { usePresentationLogo } from "../api/presentation";
 import { DivisionPaint } from "../../sporting/components/division-paint";
 import { SportingMedia } from "../../sporting/components/sporting-media";
 import { EditorPage, SportingAccessFeedback } from "../components/editor-page";
+import {
+  divisionSearchSchema,
+  type DivisionSearchValues,
+} from "../schemas/division-search-schema";
+import { divisionSearchValues } from "../forms/division-search-values";
 
 /** Product Design 1340:9338: searchable active/inactive catalogue; commands belong to its editor. */
 export function DivisionsScreen() {
   const { authority, query } = useDivisions();
   const { colors, membership } = useTheme();
   const router = useRouter();
-  const [search, setSearch] = useState("");
+  const { control, reset } = useForm<DivisionSearchValues>({
+    resolver: zodResolver(divisionSearchSchema),
+    defaultValues: divisionSearchValues(),
+    mode: "onChange",
+  });
+  const search = useWatch({ control, name: "search" });
   const [active, setActive] = useState(true);
   const canEdit =
     authority.permissions?.manageSportingPresentation === true ||
@@ -57,12 +69,21 @@ export function DivisionsScreen() {
             <SportingAccessFeedback authority={authority} />
             <View style={styles.toolbar}>
               <View style={styles.search}>
-                <SearchField
-                  label="Rechercher une division"
-                  placeholder="Rechercher une division…"
-                  value={search}
-                  onChangeText={setSearch}
-                  onClear={() => setSearch("")}
+                <Controller
+                  control={control}
+                  name="search"
+                  render={({ field, fieldState }) => (
+                    <SearchField
+                      ref={field.ref}
+                      label="Rechercher une division"
+                      placeholder="Rechercher une division…"
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      onBlur={field.onBlur}
+                      onClear={() => reset(divisionSearchValues())}
+                      error={fieldState.error?.message}
+                    />
+                  )}
                 />
               </View>
               {authority.permissions?.manageDivisionLifecycle === true && (

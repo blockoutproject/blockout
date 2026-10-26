@@ -6,15 +6,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
 import { FileText, Wrench } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
 import type { MaintenanceSettingsResponse } from "../../../../.generated/schemas/index.zod";
 import {
   maintenanceImageSchema,
   maintenanceSchema,
-  maintenanceValues,
   type MaintenanceValues,
-} from "./maintenance-values";
+} from "../schemas/maintenance-schema";
+import { maintenanceValues } from "./maintenance-values";
 import { toMaintenanceRequest } from "../api/maintenance-request";
 import { Button } from "../../../shared/components/button";
 import { RequestError } from "../../../shared/components/request-feedback";
@@ -26,18 +26,18 @@ import { useAccountSession } from "../../accounts/current-account";
 import { useMaintenanceSettings } from "../api/use-maintenance-settings";
 
 /** One editable snapshot; newer remote data cannot silently replace dirty input or its revision. */
-export interface MaintenanceSettingsFormProps {
+export interface MaintenanceFormProps {
   settings: MaintenanceSettingsResponse;
   editing: ReturnType<typeof useMaintenanceSettings>;
   disabled?: boolean;
 }
 
 /** Owns one route-local draft, separating content and activation with explicit conflict/uncertainty reconciliation. */
-export function MaintenanceSettingsForm({
+export function MaintenanceForm({
   settings,
   editing,
   disabled = false,
-}: MaintenanceSettingsFormProps) {
+}: MaintenanceFormProps) {
   const session = useAccountSession();
   const { colors } = useTheme();
   const confirmAction = useActionConfirmation();
@@ -53,15 +53,11 @@ export function MaintenanceSettingsForm({
       ? "Les réglages ont changé. Relisez-les avant une nouvelle soumission."
       : state.feedback;
   const mounted = useRef(false);
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { errors, isDirty, dirtyFields },
-  } = useForm<MaintenanceValues>({
+  const { control, handleSubmit, reset } = useForm<MaintenanceValues>({
     resolver: zodResolver(maintenanceSchema),
     defaultValues: maintenanceValues(settings),
   });
+  const { isDirty, dirtyFields } = useFormState({ control });
   useDiscardChanges(isDirty, () => reset());
   useEffect(() => {
     mounted.current = true;
@@ -251,34 +247,34 @@ export function MaintenanceSettingsForm({
           <Controller
             control={control}
             name="message"
-            render={({ field: { onChange, onBlur, value, ref } }) => (
+            render={({ field, fieldState }) => (
               <TextField
-                ref={ref}
+                ref={field.ref}
                 label="Message de maintenance"
                 multiline
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
+                value={field.value}
+                onChangeText={field.onChange}
+                onBlur={field.onBlur}
                 editable={!busy}
-                error={errors.message?.message}
+                error={fieldState.error?.message}
               />
             )}
           />
           <Controller
             control={control}
             name="imageUrl"
-            render={({ field: { onChange, onBlur, value, ref } }) => (
+            render={({ field, fieldState }) => (
               <TextField
-                ref={ref}
+                ref={field.ref}
                 label="URL de l’image"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
+                value={field.value}
+                onChangeText={field.onChange}
+                onBlur={field.onBlur}
                 autoCapitalize="none"
                 autoCorrect={false}
                 inputMode="url"
                 editable={!busy}
-                error={errors.imageUrl?.message}
+                error={fieldState.error?.message}
                 helper="Facultatif. Une image HTTPS publique, sans identifiant ni suivi personnalisé. Videz le champ pour la retirer."
               />
             )}
