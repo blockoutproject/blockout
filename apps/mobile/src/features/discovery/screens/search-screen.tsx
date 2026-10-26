@@ -207,6 +207,11 @@ function TextSearchResults({
 }
 
 const styles = StyleSheet.create({
-  controls: { padding: tokens.spacing.lg, gap: tokens.spacing.sm },
+  // Result content owns the following gap in loaded, pending, empty and error states.
+  controls: {
+    paddingHorizontal: tokens.spacing.screen,
+    paddingTop: tokens.spacing.lg,
+    gap: tokens.spacing.sm,
+  },
   heading: { flexGrow: 0 },
 });
