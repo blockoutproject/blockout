@@ -107,6 +107,8 @@ export function Button({
     >
       {({ pressed }) => (
         <View
+          // Keep gradient and label parentage stable when opacity changes during native screen removal.
+          collapsable={false}
           style={[
             styles.action,
             fullWidth ? styles.container : styles.content,
