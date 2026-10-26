@@ -1,15 +1,13 @@
+import { Page, PageContent } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { isAccessDenied } from "../../../shared/api/access-denied";
-import { StyleSheet } from "react-native";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { SafeAreaView } from "react-native-safe-area-context";
+
 import { PageHeader } from "../../../shared/components/page-header";
 import { RequestLoading } from "../../../shared/components/request-feedback";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
 import { useAccountSession } from "../../accounts/current-account";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
 import { useMaintenanceSettings } from "../api/use-maintenance-settings";
@@ -23,7 +21,6 @@ export function MaintenanceSettingsScreen() {
   const session = useAccountSession();
   const canManage = permissions?.manageMaintenance === true;
   const editing = useMaintenanceSettings(canManage);
-  const { colors } = useTheme();
   const feedback = useActionFeedback();
   const denied =
     isAccessDenied(account.error) || isAccessDenied(editing.query.error);
@@ -81,13 +78,9 @@ export function MaintenanceSettingsScreen() {
     !settings &&
     editing.query.isPending;
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
+    <Page>
       <PageHeader title="Administration technique" />
       <FormScrollView
-        contentContainerStyle={[
-          styles.content,
-          loadingSettings && styles.loadingContent,
-        ]}
         refreshControl={
           sessionStatus === "authenticated" ? (
             <DataRefreshControl
@@ -99,7 +92,7 @@ export function MaintenanceSettingsScreen() {
         }
       >
         {loadingSettings ? (
-          settingsContent
+          <PageContent>{settingsContent}</PageContent>
         ) : !settings ? (
           <ScreenState>
             {sessionStatus === "restoring" ||
@@ -110,14 +103,9 @@ export function MaintenanceSettingsScreen() {
             )}
           </ScreenState>
         ) : (
-          settingsContent
+          <PageContent>{settingsContent}</PageContent>
         )}
       </FormScrollView>
-    </SafeAreaView>
+    </Page>
   );
 }
-const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  content: { flexGrow: 1, padding: tokens.spacing.lg, gap: tokens.spacing.lg },
-  loadingContent: { paddingTop: tokens.spacing.md },
-});

@@ -81,8 +81,8 @@ export function SignInInvitation({
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.panel,
     overflow: "hidden",
   },
   hero: {

@@ -43,8 +43,8 @@ function DivisionLoading() {
 const styles = StyleSheet.create({
   rows: { gap: tokens.spacing.md },
   card: {
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.panel,
     padding: tokens.spacing.lg,
     gap: tokens.spacing.lg,
   },

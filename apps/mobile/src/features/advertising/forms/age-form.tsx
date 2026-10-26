@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Slider from "@react-native-community/slider";
 import { Minus, Plus } from "lucide-react-native";
 import { Controller, useForm } from "react-hook-form";
-import { Platform, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Button } from "../../../shared/components/button";
 import { IconButton } from "../../../shared/components/icon-button";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -77,7 +77,7 @@ export function AgeForm({ pending, onSubmit }: AgeFormProps) {
                   disabled={pending || value === 0}
                   onPress={() => onChange(Math.max(0, (value ?? 0) - 1))}
                 >
-                  <Minus size={24} color={colors.icon} />
+                  <Minus size={tokens.size.icon.lg} color={colors.icon} />
                 </IconButton>
                 <Slider
                   accessible
@@ -105,7 +105,8 @@ export function AgeForm({ pending, onSubmit }: AgeFormProps) {
                   minimumTrackTintColor={colors.border}
                   maximumTrackTintColor={colors.border}
                   thumbTintColor={colors.accentPrimary}
-                  thumbSize={tokens.size.controlIcon}
+                  // The native slider thumb is 20 points; its size is independent of icon roles.
+                  thumbSize={20}
                   style={styles.slider}
                 />
                 <IconButton
@@ -113,7 +114,7 @@ export function AgeForm({ pending, onSubmit }: AgeFormProps) {
                   disabled={pending || value === 100}
                   onPress={() => onChange(Math.min(100, (value ?? 0) + 1))}
                 >
-                  <Plus size={24} color={colors.icon} />
+                  <Plus size={tokens.size.icon.lg} color={colors.icon} />
                 </IconButton>
               </View>
             </View>
@@ -132,14 +133,14 @@ export function AgeForm({ pending, onSubmit }: AgeFormProps) {
 }
 
 const styles = StyleSheet.create({
-  form: { gap: tokens.spacing.lg },
-  fields: { gap: tokens.spacing.section },
+  form: { gap: tokens.layout.form.gap },
+  fields: { gap: tokens.layout.section.gap },
   selector: { gap: tokens.spacing.xs },
   value: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "baseline",
-    gap: tokens.spacing.label,
+    gap: tokens.layout.form.labelGap,
   },
   adjust: {
     flexDirection: "row",
@@ -148,9 +149,6 @@ const styles = StyleSheet.create({
   },
   slider: {
     flex: 1,
-    minHeight:
-      Platform.OS === "android"
-        ? tokens.touchTarget.android
-        : tokens.touchTarget.ios,
+    minHeight: tokens.touch.minimum,
   },
 });

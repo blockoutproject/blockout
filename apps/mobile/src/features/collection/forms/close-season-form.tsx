@@ -1,8 +1,9 @@
+import { SeasonIdentity } from "../components/source-summary";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
-import { Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import type { CollectionSeasonResponse } from "../../../../.generated/schemas/index.zod";
 import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
@@ -14,10 +15,7 @@ import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import type { useCloseCollectionSeason } from "../api/use-collection-controls";
-import {
-  SeasonIdentity,
-  preparationStyles,
-} from "../components/preparation-layout";
+
 import {
   closeSeasonSchema,
   type CloseSeasonValues,
@@ -130,7 +128,7 @@ export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
   }
 
   return (
-    <View style={preparationStyles.form}>
+    <View style={styles.form}>
       <SeasonIdentity season={current} />
       {closed ? (
         <Text style={[tokens.typography.strong, { color: colors.text }]}>
@@ -229,3 +227,5 @@ export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({ form: { gap: tokens.layout.form.gap } });

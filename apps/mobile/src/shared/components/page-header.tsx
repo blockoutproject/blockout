@@ -26,7 +26,7 @@ export function PageHeader({ title }: PageHeaderProps) {
           <ChevronLeft
             accessible={false}
             color={colors.icon}
-            size={tokens.size.actionIcon}
+            size={tokens.size.icon.lg}
           />
         </IconButton>
       </View>
@@ -52,9 +52,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: tokens.size.control,
+    minHeight: tokens.layout.header,
     paddingHorizontal: tokens.spacing.lg,
   },
-  rail: { width: tokens.size.control, alignItems: "center" },
+  rail: { width: tokens.size.control.default, alignItems: "center" },
   title: { ...tokens.typography.navigation, flex: 1, textAlign: "center" },
 });

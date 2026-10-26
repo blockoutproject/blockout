@@ -13,7 +13,8 @@ import {
 } from "../schemas/classification-schema";
 import { classificationValues } from "./classification-values";
 import { toClassificationRequest } from "../api/classification-request";
-import { ClassificationSelect } from "../components/classification-select";
+import { SelectField } from "../../../shared/components/select-field";
+import { useRouter } from "expo-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useForm, useFormState, useWatch, Controller } from "react-hook-form";
@@ -45,6 +46,7 @@ export function ClassificationForm({
   editing,
   divisions,
 }: ClassificationFormProps) {
+  const router = useRouter();
   const { session } = editing.authority;
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();
@@ -220,9 +222,13 @@ export function ClassificationForm({
             control={control}
             name="divisionId"
             render={({ field, fieldState }) => (
-              <ClassificationSelect
-                target={target}
-                field="divisionId"
+              <SelectField
+                onPress={() =>
+                  router.push({
+                    pathname: "/administration/classification-selection",
+                    params: { ...target, field: "divisionId" },
+                  })
+                }
                 label="Division"
                 value={
                   choices.find((choice) => choice.id === field.value)?.name
@@ -249,9 +255,13 @@ export function ClassificationForm({
               control={control}
               name="gender"
               render={({ field }) => (
-                <ClassificationSelect
-                  target={target}
-                  field="gender"
+                <SelectField
+                  onPress={() =>
+                    router.push({
+                      pathname: "/administration/classification-selection",
+                      params: { ...target, field: "gender" },
+                    })
+                  }
                   label="Genre"
                   value={genderLabel(field.value)}
                   disabled={busy}
@@ -262,9 +272,13 @@ export function ClassificationForm({
               control={control}
               name="format"
               render={({ field }) => (
-                <ClassificationSelect
-                  target={target}
-                  field="format"
+                <SelectField
+                  onPress={() =>
+                    router.push({
+                      pathname: "/administration/classification-selection",
+                      params: { ...target, field: "format" },
+                    })
+                  }
                   label="Format"
                   value={formatLabel(field.value)}
                   disabled={busy}
@@ -347,7 +361,7 @@ function Choice({
   );
 }
 const styles = StyleSheet.create({
-  form: { gap: tokens.spacing.md },
+  form: { gap: tokens.layout.form.gap },
   row: { flexDirection: "row", gap: tokens.spacing.md },
   segment: {
     flexDirection: "row",
@@ -359,9 +373,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: tokens.size.control,
+    minHeight: tokens.size.control.default,
     padding: tokens.spacing.md,
     borderRadius: tokens.radius.control,
-    borderWidth: tokens.borderWidth,
+    borderWidth: tokens.border.thin,
   },
 });

@@ -48,9 +48,9 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
-    padding: tokens.spacing.lg - tokens.borderWidth,
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.panel,
+    padding: tokens.spacing.lg - tokens.border.thin,
     gap: tokens.spacing.md,
   },
   copy: { flex: 1, minWidth: 0, gap: tokens.spacing.md },

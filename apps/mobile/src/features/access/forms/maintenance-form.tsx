@@ -178,7 +178,7 @@ export function MaintenanceForm({
           <View style={styles.heading}>
             <Wrench
               accessible={false}
-              size={tokens.size.actionIcon}
+              size={tokens.size.icon.lg}
               color={colors.icon}
             />
             <View style={styles.state}>
@@ -237,7 +237,7 @@ export function MaintenanceForm({
           <View style={styles.heading}>
             <FileText
               accessible={false}
-              size={tokens.size.actionIcon}
+              size={tokens.size.icon.lg}
               color={colors.icon}
             />
             <Text style={[tokens.typography.strong, { color: colors.text }]}>
@@ -350,8 +350,9 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     paddingHorizontal: tokens.spacing.sm,
     paddingVertical: tokens.spacing.xs,
-    borderRadius: tokens.radius.badge,
+    borderRadius: tokens.radius.sm,
   },
-  form: { gap: tokens.spacing.lg },
-  preview: { width: "100%", height: tokens.size.multiline },
+  form: { gap: tokens.layout.form.gap },
+  // The URL image preview has its own bounded 96-point viewport, independent of text-entry controls.
+  preview: { width: "100%", height: 96 },
 } as const);

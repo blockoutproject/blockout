@@ -215,7 +215,7 @@ function ErrorToast({ message }: { message: string }) {
       >
         <CircleAlert
           accessible={false}
-          size={tokens.size.controlIcon}
+          size={tokens.size.icon.md}
           color={colors.error}
         />
         <Text
@@ -234,8 +234,8 @@ const styles = StyleSheet.create({
   surface: {
     marginHorizontal: tokens.spacing.lg,
     marginTop: tokens.spacing.sm,
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.media,
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.lg,
     overflow: "hidden",
   },
   message: {

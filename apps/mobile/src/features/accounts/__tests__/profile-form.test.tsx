@@ -299,6 +299,41 @@ it("shows freshly read profile values when there is no local edit", async () => 
   expect(mockFetch.mock.calls[0][1]?.method).toBe("GET");
 });
 
+it("defers clean profile updates until native photo selection has settled", async () => {
+  // Given
+  const user = await renderProfile();
+  const selection = Promise.withResolvers<ImagePicker.ImagePickerResult>();
+  jest
+    .mocked(ImagePicker.launchImageLibraryAsync)
+    .mockReturnValue(selection.promise);
+  await user.press(
+    screen.getByRole("button", { name: "Choisir une photo de profil" }),
+  );
+  await waitFor(() =>
+    expect(ImagePicker.launchImageLibraryAsync).toHaveBeenCalledTimes(1),
+  );
+  const key = client
+    .getQueryCache()
+    .findAll()
+    .find(({ queryKey }) => queryKey.includes("/accounts/me"))?.queryKey;
+  if (!key) throw new Error("The real current-account query is missing");
+
+  // When
+  await act(() =>
+    client.setQueryData(key, { ...account, username: "Remote_name" }),
+  );
+
+  // Then: the native interaction retains the original editable snapshot.
+  expect(screen.getByDisplayValue("Original")).toBeOnTheScreen();
+  expect(screen.queryByDisplayValue("Remote_name")).not.toBeOnTheScreen();
+
+  // When
+  await act(() => selection.resolve({ canceled: true, assets: null }));
+
+  // Then: RHF admits the clean value after the picker releases its interaction.
+  expect(await screen.findByDisplayValue("Remote_name")).toBeOnTheScreen();
+});
+
 it("reports an explicit failed refresh while keeping the profile and dirty input", async () => {
   // Given
   const user = await renderProfile();
@@ -542,6 +577,33 @@ it("preserves the active save and suspends refresh and guest departure", async (
   expect(Alert.alert).toHaveBeenCalledTimes(1);
 });
 
+it("uses the accepted profile result and clears the draft before guest departure", async () => {
+  // Given
+  jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  const user = await renderProfile();
+  await user.clear(screen.getByLabelText("Pseudo"));
+  await user.type(screen.getByLabelText("Pseudo"), "Entered");
+  mockFetch.mockResolvedValue(json({ ...account, username: "Accepted" }));
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  expect(await screen.findByDisplayValue("Accepted")).toBeOnTheScreen();
+  expect(screen.queryByDisplayValue("Entered")).not.toBeOnTheScreen();
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
+  );
+
+  // Then: an accepted form is clean, so departure needs no discard confirmation.
+  await waitFor(() =>
+    expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1),
+  );
+  expect(Alert.alert).not.toHaveBeenCalled();
+});
+
 it.each(["keep", "replace"] as const)(
   "refreshes the displayed remote photo while preserving a %s draft",
   async (intent) => {
@@ -779,6 +841,15 @@ it("retains a dirty draft on background refetch and whole-save username refusal"
   await screen.findByText("Ce pseudo est déjà utilisé.");
   expect(screen.getByDisplayValue("My_draft")).toBeOnTheScreen();
   expect(client.getQueryData(key)).toMatchObject({ username: "Other_device" });
+
+  // When
+  await act(() =>
+    client.setQueryData(key, { ...account, username: "Newer_name" }),
+  );
+
+  // Then: a new accepted read does not erase the field refusal or dirty input.
+  expect(screen.getByText("Ce pseudo est déjà utilisé.")).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("My_draft")).toBeOnTheScreen();
 });
 
 it("preserves the draft when native crop is cancelled or permission is refused", async () => {
@@ -881,6 +952,7 @@ it("submits prepared replacement then explicit removal without a username edit",
       screen.getByRole("button", { name: "Enregistrer", busy: false }),
     ).toBeEnabled(),
   );
+  await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
   await user.press(
     screen.getByRole("button", { name: "Choisir une photo de profil" }),
   );

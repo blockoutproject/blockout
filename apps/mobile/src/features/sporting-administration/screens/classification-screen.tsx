@@ -1,3 +1,8 @@
+import { AccessFeedback } from "../../access/components/access-feedback";
+import { ScreenState } from "../../../shared/components/screen-state";
+import { FormScrollView } from "../../../shared/components/form-scroll-view";
+import { PageHeader } from "../../../shared/components/page-header";
+import { Page, PageContent } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { RequestLoading } from "../../../shared/components/request-feedback";
@@ -7,7 +12,7 @@ import {
   useDivisions,
   type ClassificationTarget,
 } from "../api/classification";
-import { EditorPage, SportingAccessFeedback } from "../components/editor-page";
+
 import { ClassificationForm } from "../forms/classification-form";
 /** Original route scope; the form owns unsaved-change prevention. */
 export interface ClassificationScreenProps {
@@ -23,68 +28,76 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
       ? editing.query.data
       : undefined;
   const feedback = useActionFeedback();
+  const blockingState = !current ? (
+    !authority.enabled ? (
+      <AccessFeedback {...authority} />
+    ) : editing.query.isError ? (
+      <ErrorState
+        onRetry={() =>
+          void editing.query.refetch().then((result) => {
+            if (result.isError && result.data) feedback.error();
+          })
+        }
+        retrying={editing.query.isFetching}
+      />
+    ) : (
+      <RequestLoading />
+    )
+  ) : undefined;
   return (
-    <EditorPage
-      state={
-        !current ? (
-          !authority.enabled ? (
-            <SportingAccessFeedback authority={authority} />
-          ) : editing.query.isError ? (
-            <ErrorState
-              onRetry={() =>
+    <Page>
+      <PageHeader
+        title={
+          target.kind === "pack"
+            ? "Classification du pack"
+            : "Classification de la poule"
+        }
+      />
+      <FormScrollView
+        refreshControl={
+          authority.sessionStatus === "authenticated" ? (
+            <DataRefreshControl
+              enabled={!editing.save.pending}
+              refreshing={
+                editing.query.isRefetching ||
+                divisions.query.isRefetching ||
+                authority.account.isRefetching
+              }
+              onRefresh={() => {
+                if (editing.save.isPending()) return;
+                if (!authority.enabled) {
+                  void authority.account.refetch().then((result) => {
+                    if (result.isError && result.data) feedback.error();
+                  });
+                  return;
+                }
                 void editing.query.refetch().then((result) => {
                   if (result.isError && result.data) feedback.error();
-                })
-              }
-              retrying={editing.query.isFetching}
-            />
-          ) : (
-            <RequestLoading />
-          )
-        ) : undefined
-      }
-      refreshControl={
-        authority.sessionStatus === "authenticated" ? (
-          <DataRefreshControl
-            enabled={!editing.save.pending}
-            refreshing={
-              editing.query.isRefetching ||
-              divisions.query.isRefetching ||
-              authority.account.isRefetching
-            }
-            onRefresh={() => {
-              if (editing.save.isPending()) return;
-              if (!authority.enabled) {
-                void authority.account.refetch().then((result) => {
+                });
+                void divisions.query.refetch().then((result) => {
                   if (result.isError && result.data) feedback.error();
                 });
-                return;
-              }
-              void editing.query.refetch().then((result) => {
-                if (result.isError && result.data) feedback.error();
-              });
-              void divisions.query.refetch().then((result) => {
-                if (result.isError && result.data) feedback.error();
-              });
-            }}
-          />
-        ) : undefined
-      }
-      title={
-        target.kind === "pack"
-          ? "Classification du pack"
-          : "Classification de la poule"
-      }
-    >
-      {current && (
-        <ClassificationForm
-          key={`${authority.session.generation}:${target.kind}:${target.id}`}
-          target={target}
-          current={current}
-          editing={editing}
-          divisions={divisions}
-        />
-      )}
-    </EditorPage>
+              }}
+            />
+          ) : undefined
+        }
+      >
+        {blockingState ? (
+          <ScreenState>{blockingState}</ScreenState>
+        ) : (
+          <PageContent>
+            {current && (
+              <ClassificationForm
+                key={`${authority.session.generation}:${target.kind}:${target.id}`}
+                target={target}
+                current={current}
+                editing={editing}
+                divisions={divisions}
+              />
+            )}
+          </PageContent>
+        )}
+      </FormScrollView>
+    </Page>
   );
 }

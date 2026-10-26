@@ -53,18 +53,6 @@ export function ProfileForm({
   const { save, original, reread } = useProfileEditing(account.accountId);
   const active = useRef(true);
   const uploading = useRef<File | undefined>(undefined);
-  const { control, handleSubmit, setValue, getValues, setError, reset } =
-    useForm<ProfileValues>({
-      resolver: zodResolver(profileSchema),
-      defaultValues: profileValues(account),
-    });
-  const { isDirty, dirtyFields } = useFormState({ control });
-  const confirmDiscard = useDiscardChanges(isDirty, () => {
-    const photo = getValues("photo");
-    reset(profileValues(account));
-    if (photo.action === "replace" && photo.prepared !== uploading.current)
-      deleteOwnedImage(photo.prepared);
-  });
   const selection = useImageSelection({
     canSelect: () => !disabled && !save.isPending(),
     allowsEditing: true,
@@ -88,6 +76,30 @@ export function ProfileForm({
       }
     },
   });
+  const busy = selection.pending || save.pending || original.isFetching;
+  const { control, handleSubmit, setValue, getValues, setError, reset } =
+    useForm<ProfileValues>({
+      resolver: zodResolver(profileSchema),
+      defaultValues: profileValues(account),
+      // RHF refreshes clean fields only after native preparation, writes and original-target reads settle.
+      values: busy ? undefined : profileValues(account),
+      resetOptions: {
+        keepDirtyValues: true,
+        keepDirty: true,
+        keepErrors: true,
+      },
+    });
+  const { isDirty, dirtyFields } = useFormState({ control });
+  const confirmDiscard = useDiscardChanges(isDirty, () => {
+    const photo = getValues("photo");
+    reset(profileValues(account), {
+      keepDirtyValues: false,
+      keepDirty: false,
+      keepErrors: false,
+    });
+    if (photo.action === "replace" && photo.prepared !== uploading.current)
+      deleteOwnedImage(photo.prepared);
+  });
   const draft = useWatch({ control, name: "photo" });
   const photo = useProfilePhoto(
     account.accountId,
@@ -95,16 +107,6 @@ export function ProfileForm({
   );
   const uncertain = isUncertainMutationFailure(save.error);
   const needsRead = save.needsRead;
-  const busy = selection.pending || save.pending || original.isFetching;
-  useEffect(() => {
-    if (busy) return;
-    // Fresh remote values update untouched fields while RHF retains the draft and any refused-field explanation.
-    reset(profileValues(account), {
-      keepDirtyValues: true,
-      keepDirty: true,
-      keepErrors: true,
-    });
-  }, [account, busy, reset]);
   let photoUri: string | undefined;
   if (draft.action === "replace") photoUri = draft.prepared.uri;
   else if (draft.action === "keep" && account.hasPhoto && photo.data)
@@ -175,7 +177,11 @@ export function ProfileForm({
     try {
       const accepted = await attempt;
       if (active.current && session.isCurrent(session.generation))
-        reset(profileValues(accepted));
+        reset(profileValues(accepted), {
+          keepDirtyValues: false,
+          keepDirty: false,
+          keepErrors: false,
+        });
     } catch (error) {
       if (!active.current || !session.isCurrent(session.generation)) return;
       if (
@@ -319,5 +325,5 @@ export function ProfileForm({
   );
 }
 const styles = StyleSheet.create({
-  form: { gap: tokens.spacing.lg },
+  form: { gap: tokens.layout.form.gap },
 });

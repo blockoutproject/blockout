@@ -100,9 +100,9 @@ function SettingsCard({ children }: PropsWithChildren) {
 const styles = StyleSheet.create({
   stack: { gap: tokens.spacing.md },
   card: {
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
-    padding: tokens.spacing.lg - tokens.borderWidth,
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.panel,
+    padding: tokens.spacing.lg - tokens.border.thin,
     gap: tokens.spacing.md,
   },
   controlHeading: {

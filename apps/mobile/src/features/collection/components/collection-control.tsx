@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     ...tokens.typography.metadata,
-    borderRadius: tokens.radius.badge,
+    borderRadius: tokens.radius.sm,
     padding: tokens.spacing.sm,
   },
   actions: {

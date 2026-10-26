@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
   status: {
     flexDirection: "row",
     alignItems: "center",
-    gap: tokens.spacing.label,
+    gap: tokens.spacing.tight,
   },
   dot: {
     width: tokens.sporting.statusDot,
@@ -178,18 +178,19 @@ const styles = StyleSheet.create({
   },
   teamName: { ...tokens.typography.navigation, flex: 1, minWidth: 0 },
   scoreCell: {
-    minWidth: tokens.size.mediaRow,
-    minHeight: tokens.size.mediaRow,
+    // The approved score cell is a 40-point minimum, independent of logo/media dimensions.
+    minWidth: 40,
+    minHeight: 40,
     paddingHorizontal: tokens.spacing.sm,
-    paddingVertical: tokens.spacing.label,
+    paddingVertical: tokens.spacing.tight,
     borderRadius: tokens.radius.control,
-    borderWidth: tokens.borderWidth,
+    borderWidth: tokens.border.thin,
     justifyContent: "center",
     alignItems: "center",
   },
   score: { ...tokens.typography.heading, textAlign: "center" },
   separator: {
-    height: tokens.borderWidth,
+    height: tokens.border.thin,
     opacity: tokens.sporting.separatorOpacity,
   },
   note: { ...tokens.typography.metadata, padding: tokens.spacing.md },

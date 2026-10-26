@@ -1,14 +1,15 @@
+import { tokens } from "../../../shared/theme/tokens";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSyncExternalStore } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import type { CollectionProviderEnum } from "../../../../.generated/schemas/index.zod";
 import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { TextField } from "../../../shared/components/text-field";
 import type { useSeasonPreparation } from "../api/use-source-preparation";
-import { preparationStyles } from "../components/preparation-layout";
+
 import {
   createSourceSchema,
   type CreateSourceValues,
@@ -80,7 +81,7 @@ export function CreateSourceForm({
   }
 
   return (
-    <View style={preparationStyles.form}>
+    <View style={styles.form}>
       <Controller
         control={control}
         name="organizerReference"
@@ -135,3 +136,5 @@ export function CreateSourceForm({
     </View>
   );
 }
+
+const styles = StyleSheet.create({ form: { gap: tokens.layout.form.gap } });

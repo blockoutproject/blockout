@@ -1,3 +1,11 @@
+import { ListSeparator } from "../../../shared/components/list-separator";
+import { AccessFeedback } from "../../access/components/access-feedback";
+import { PageHeader } from "../../../shared/components/page-header";
+import {
+  Page,
+  PageScrollView,
+  pageContentStyle,
+} from "../../../shared/components/page";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { ErrorState, EmptyState } from "../../../shared/components/state-card";
@@ -7,14 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useRouter } from "expo-router";
 import { ChevronRight, Plus } from "lucide-react-native";
-import {
-  FlatList,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
 import { IconButton } from "../../../shared/components/icon-button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
@@ -27,7 +28,7 @@ import { useDivisions } from "../api/classification";
 import { usePresentationLogo } from "../api/presentation";
 import { DivisionPaint } from "../../sporting/components/division-paint";
 import { SportingMedia } from "../../sporting/components/sporting-media";
-import { EditorPage, SportingAccessFeedback } from "../components/editor-page";
+
 import {
   divisionSearchSchema,
   type DivisionSearchValues,
@@ -61,50 +62,19 @@ export function DivisionsScreen() {
         ) ?? [])
       : [];
   const feedback = useActionFeedback();
+  const blockingState = !authority.enabled ? (
+    <AccessFeedback {...authority} />
+  ) : undefined;
   return (
-    <EditorPage
-      title="Divisions"
-      scrollable={false}
-      state={
-        !authority.enabled ? (
-          <SportingAccessFeedback authority={authority} />
-        ) : undefined
-      }
-      refreshControl={
-        authority.sessionStatus === "authenticated" ? (
-          <DataRefreshControl
-            refreshing={authority.account.isRefetching}
-            onRefresh={() =>
-              void authority.account.refetch().then((result) => {
-                if (
-                  result.isError &&
-                  result.data &&
-                  !isAccessDenied(result.error)
-                )
-                  feedback.error();
-              })
-            }
-          />
-        ) : undefined
-      }
-    >
-      <FlatList
-        alwaysBounceVertical
-        refreshControl={
-          authority.sessionStatus === "authenticated" ? (
-            <DataRefreshControl
-              refreshing={query.isRefetching || authority.account.isRefetching}
-              onRefresh={() => {
-                if (authority.enabled)
-                  void query.refetch().then((result) => {
-                    if (
-                      result.isError &&
-                      result.data &&
-                      !isAccessDenied(result.error)
-                    )
-                      feedback.error();
-                  });
-                else
+    <Page>
+      <PageHeader title="Divisions" />
+      {blockingState ? (
+        <PageScrollView
+          refreshControl={
+            authority.sessionStatus === "authenticated" ? (
+              <DataRefreshControl
+                refreshing={authority.account.isRefetching}
+                onRefresh={() =>
                   void authority.account.refetch().then((result) => {
                     if (
                       result.isError &&
@@ -112,172 +82,215 @@ export function DivisionsScreen() {
                       !isAccessDenied(result.error)
                     )
                       feedback.error();
-                  });
-              }}
-            />
-          ) : undefined
-        }
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        data={items}
-        keyExtractor={(division) => division.id}
-        contentContainerStyle={[
-          styles.content,
-          items.length === 0 && !query.isPending && styles.stateContent,
-        ]}
-        ItemSeparatorComponent={Separator}
-        ListHeaderComponent={
-          <View style={styles.controls}>
-            <SportingAccessFeedback authority={authority} />
-            <View style={styles.toolbar}>
-              <View style={styles.search}>
-                <Controller
-                  control={control}
-                  name="search"
-                  render={({ field, fieldState }) => (
-                    <SearchField
-                      ref={field.ref}
-                      label="Rechercher une division"
-                      placeholder="Rechercher une division…"
-                      value={field.value}
-                      onChangeText={field.onChange}
-                      onBlur={field.onBlur}
-                      onClear={() => reset(divisionSearchValues())}
-                      error={fieldState.error?.message}
-                    />
-                  )}
+                  })
+                }
+              />
+            ) : undefined
+          }
+        >
+          <ScreenState>{blockingState}</ScreenState>
+        </PageScrollView>
+      ) : (
+        <>
+          <FlatList
+            alwaysBounceVertical
+            refreshControl={
+              authority.sessionStatus === "authenticated" ? (
+                <DataRefreshControl
+                  refreshing={
+                    query.isRefetching || authority.account.isRefetching
+                  }
+                  onRefresh={() => {
+                    if (authority.enabled)
+                      void query.refetch().then((result) => {
+                        if (
+                          result.isError &&
+                          result.data &&
+                          !isAccessDenied(result.error)
+                        )
+                          feedback.error();
+                      });
+                    else
+                      void authority.account.refetch().then((result) => {
+                        if (
+                          result.isError &&
+                          result.data &&
+                          !isAccessDenied(result.error)
+                        )
+                          feedback.error();
+                      });
+                  }}
                 />
-              </View>
-              {authority.permissions?.manageDivisionLifecycle === true && (
-                <View
-                  style={[
-                    styles.add,
-                    {
-                      backgroundColor: colors.raised,
-                    },
-                  ]}
-                >
-                  <IconButton
-                    label="Créer une division"
-                    size="control"
-                    onPress={() => router.push("/administration/divisions/new")}
-                  >
-                    <Plus
-                      accessible={false}
-                      size={tokens.size.actionIcon}
-                      color={colors.icon}
+              ) : undefined
+            }
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            data={items}
+            keyExtractor={(division) => division.id}
+            contentContainerStyle={
+              items.length ? pageContentStyle : styles.list
+            }
+            ItemSeparatorComponent={ListSeparator}
+            ListHeaderComponent={
+              <View
+                style={[!items.length && pageContentStyle, styles.controls]}
+              >
+                <View style={styles.toolbar}>
+                  <View style={styles.search}>
+                    <Controller
+                      control={control}
+                      name="search"
+                      render={({ field, fieldState }) => (
+                        <SearchField
+                          ref={field.ref}
+                          label="Rechercher une division"
+                          placeholder="Rechercher une division…"
+                          value={field.value}
+                          onChangeText={field.onChange}
+                          onBlur={field.onBlur}
+                          onClear={() => reset(divisionSearchValues())}
+                          error={fieldState.error?.message}
+                        />
+                      )}
                     />
-                  </IconButton>
-                  <View
-                    pointerEvents="none"
-                    accessible={false}
-                    style={[styles.addBorder, { borderColor: colors.border }]}
-                  />
-                </View>
-              )}
-            </View>
-            <View style={styles.filters}>
-              {[true, false].map((value) => (
-                <Pressable
-                  key={String(value)}
-                  accessibilityRole="tab"
-                  accessibilityLabel={value ? "Actives" : "Inactives"}
-                  accessibilityState={{ selected: active === value }}
-                  onPress={() => setActive(value)}
-                  style={styles.filterTarget}
-                >
-                  {({ pressed }) => (
+                  </View>
+                  {authority.permissions?.manageDivisionLifecycle === true && (
                     <View
                       style={[
-                        styles.filter,
+                        styles.add,
                         {
-                          backgroundColor:
-                            active === value ? membership.fill : colors.subtle,
-                          borderColor:
-                            active === value
-                              ? membership.border
-                              : colors.border,
-                          opacity: pressed ? tokens.opacity.pressed : 1,
+                          backgroundColor: colors.raised,
                         },
                       ]}
                     >
-                      <Text
-                        style={[
-                          tokens.typography.metadata,
-                          {
-                            color:
-                              active === value
-                                ? membership.content
-                                : colors.secondaryText,
-                          },
-                        ]}
+                      <IconButton
+                        label="Créer une division"
+                        size="control"
+                        onPress={() =>
+                          router.push("/administration/divisions/new")
+                        }
                       >
-                        {value ? "Actives" : "Inactives"}
-                      </Text>
+                        <Plus
+                          accessible={false}
+                          size={tokens.size.icon.lg}
+                          color={colors.icon}
+                        />
+                      </IconButton>
+                      <View
+                        pointerEvents="none"
+                        accessible={false}
+                        style={[
+                          styles.addBorder,
+                          { borderColor: colors.border },
+                        ]}
+                      />
                     </View>
                   )}
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        }
-        ListEmptyComponent={
-          query.isPending && !denied ? (
-            <DivisionsLoading />
-          ) : (
-            <ScreenState>
-              {denied ? (
-                <ErrorState
-                  onRetry={() => void query.refetch()}
-                  retrying={query.isFetching}
-                />
-              ) : query.isError && !query.data ? (
-                <ErrorState
-                  onRetry={() =>
-                    void query.refetch().then((result) => {
-                      if (
-                        result.isError &&
-                        result.data &&
-                        !isAccessDenied(result.error)
-                      )
-                        feedback.error();
-                    })
-                  }
-                  retrying={query.isFetching}
-                />
-              ) : (
-                <EmptyState
-                  title={
-                    search.trim()
-                      ? "Aucune division ne correspond à votre recherche."
-                      : active
-                        ? "Aucune division active"
-                        : "Aucune division inactive"
-                  }
-                />
-              )}
-            </ScreenState>
-          )
-        }
-        renderItem={({ item }) => (
-          <DivisionCard
-            division={item}
-            canEdit={canEdit}
-            onPress={() =>
-              router.push({
-                pathname: "/administration/divisions/[id]",
-                params: { id: item.id },
-              })
+                </View>
+                <View style={styles.filters}>
+                  {[true, false].map((value) => (
+                    <Pressable
+                      key={String(value)}
+                      accessibilityRole="tab"
+                      accessibilityLabel={value ? "Actives" : "Inactives"}
+                      accessibilityState={{ selected: active === value }}
+                      onPress={() => setActive(value)}
+                      style={styles.filterTarget}
+                    >
+                      {({ pressed }) => (
+                        <View
+                          style={[
+                            styles.filter,
+                            {
+                              backgroundColor:
+                                active === value
+                                  ? membership.fill
+                                  : colors.subtle,
+                              borderColor:
+                                active === value
+                                  ? membership.border
+                                  : colors.border,
+                              opacity: pressed ? tokens.opacity.pressed : 1,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              tokens.typography.metadata,
+                              {
+                                color:
+                                  active === value
+                                    ? membership.content
+                                    : colors.secondaryText,
+                              },
+                            ]}
+                          >
+                            {value ? "Actives" : "Inactives"}
+                          </Text>
+                        </View>
+                      )}
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
             }
+            ListEmptyComponent={
+              query.isPending && !denied ? (
+                <View style={pageContentStyle}>
+                  <DivisionsLoading />
+                </View>
+              ) : (
+                <ScreenState>
+                  {denied ? (
+                    <ErrorState
+                      onRetry={() => void query.refetch()}
+                      retrying={query.isFetching}
+                    />
+                  ) : query.isError && !query.data ? (
+                    <ErrorState
+                      onRetry={() =>
+                        void query.refetch().then((result) => {
+                          if (
+                            result.isError &&
+                            result.data &&
+                            !isAccessDenied(result.error)
+                          )
+                            feedback.error();
+                        })
+                      }
+                      retrying={query.isFetching}
+                    />
+                  ) : (
+                    <EmptyState
+                      title={
+                        search.trim()
+                          ? "Aucune division ne correspond à votre recherche."
+                          : active
+                            ? "Aucune division active"
+                            : "Aucune division inactive"
+                      }
+                    />
+                  )}
+                </ScreenState>
+              )
+            }
+            renderItem={({ item }) => (
+              <DivisionCard
+                division={item}
+                canEdit={canEdit}
+                onPress={() =>
+                  router.push({
+                    pathname: "/administration/divisions/[id]",
+                    params: { id: item.id },
+                  })
+                }
+              />
+            )}
           />
-        )}
-      />
-    </EditorPage>
+        </>
+      )}
+    </Page>
   );
-}
-/** FlatList owns spacing without subscribing each row to command state. */
-function Separator() {
-  return <View style={styles.separator} />;
 }
 /** A row opens the single editor; presentation artwork remains a protected, generated binary read. */
 function DivisionCard({
@@ -349,41 +362,33 @@ function DivisionCard({
   );
 }
 const styles = StyleSheet.create({
-  stateContent: { paddingVertical: tokens.spacing.lg },
-  content: {
-    flexGrow: 1,
-    padding: tokens.spacing.lg,
-    paddingTop: tokens.spacing.sm,
-    paddingBottom: tokens.spacing.section,
-  },
-  controls: { gap: tokens.spacing.lg, marginBottom: tokens.spacing.section },
+  list: { flexGrow: 1 },
+  controls: { gap: tokens.spacing.lg, marginBottom: tokens.spacing["2xl"] },
   toolbar: { flexDirection: "row", gap: tokens.spacing.sm },
   search: { flex: 1, minWidth: 0 },
   add: {
-    width: tokens.size.control,
-    minHeight: tokens.size.control,
+    width: tokens.size.control.default,
+    minHeight: tokens.size.control.default,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: tokens.radius.control,
   },
   addBorder: {
     ...StyleSheet.absoluteFill,
-    borderWidth: tokens.borderWidth,
+    borderWidth: tokens.border.thin,
     borderRadius: tokens.radius.control,
   },
+  // Activity chips filter one catalogue; resource-section navigation uses the shared Tabs rail.
   filters: { flexDirection: "row", gap: tokens.spacing.sm },
   filterTarget: {
-    minHeight:
-      Platform.OS === "android"
-        ? tokens.touchTarget.android
-        : tokens.touchTarget.ios,
+    minHeight: tokens.touch.minimum,
     justifyContent: "center",
   },
   filter: {
     minHeight: 32,
     justifyContent: "center",
     paddingHorizontal: tokens.spacing.md,
-    borderWidth: tokens.borderWidth,
+    borderWidth: tokens.border.thin,
     borderRadius: tokens.radius.full,
   },
   card: {
@@ -393,8 +398,8 @@ const styles = StyleSheet.create({
     minHeight: 116,
     paddingRight: tokens.spacing.lg,
     overflow: "hidden",
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.panel,
   },
   artwork: {
     width: 76,
@@ -409,5 +414,4 @@ const styles = StyleSheet.create({
   },
   swatches: { flexDirection: "row", gap: tokens.spacing.xs },
   swatch: { width: 14, height: 14, borderRadius: tokens.spacing.xs },
-  separator: { height: tokens.spacing.md },
 });

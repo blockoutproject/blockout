@@ -1,11 +1,6 @@
-import {
-  FlatList,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { pageContentStyle } from "../../../shared/components/page";
+import { ListSeparator } from "../../../shared/components/list-separator";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import type { ReactNode } from "react";
 import type { DiscoveryPage } from "../api/discovery-queries";
@@ -52,13 +47,13 @@ export function SearchResults({
       keyExtractor={(item) => item.identity.id}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
-      contentContainerStyle={styles.content}
+      contentContainerStyle={pageContentStyle}
       ListHeaderComponent={
         <>
           <SearchResultsHeading count={items.length} onClear={onClear} />
         </>
       }
-      ItemSeparatorComponent={() => <View style={styles.separator} />}
+      ItemSeparatorComponent={ListSeparator}
       renderItem={({ item }) => <SearchResultCard {...item} />}
     />
   );
@@ -108,31 +103,19 @@ export function SearchResultsHeading({
 }
 
 const styles = StyleSheet.create({
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: tokens.spacing.lg,
-    paddingBottom: tokens.spacing.section,
-  },
   continuation: { paddingTop: tokens.spacing.lg },
-  separator: { height: tokens.spacing.md },
   toolbar: {
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "center",
     justifyContent: "space-between",
-    minHeight: tokens.size.collectionToolbar,
+    minHeight: tokens.layout.collection.toolbarMinHeight,
     gap: tokens.spacing.sm,
   },
   heading: { ...tokens.typography.navigation, flexShrink: 1 },
   clear: {
-    minHeight:
-      Platform.OS === "android"
-        ? tokens.touchTarget.android
-        : tokens.touchTarget.ios,
-    minWidth:
-      Platform.OS === "android"
-        ? tokens.touchTarget.android
-        : tokens.touchTarget.ios,
+    minHeight: tokens.touch.minimum,
+    minWidth: tokens.touch.minimum,
     justifyContent: "center",
   },
 });

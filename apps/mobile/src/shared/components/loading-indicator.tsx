@@ -43,7 +43,7 @@ export function LoadingIndicator({ color }: { color: string }) {
     <Animated.View style={[styles.slot, style]} accessible={false}>
       <LoaderCircle
         accessible={false}
-        size={tokens.size.loading}
+        size={tokens.size.icon.md}
         color={color}
         nonScalingStroke
       />
@@ -52,5 +52,5 @@ export function LoadingIndicator({ color }: { color: string }) {
 }
 
 const styles = StyleSheet.create({
-  slot: { width: tokens.size.loading, height: tokens.size.loading },
+  slot: { width: tokens.size.icon.md, height: tokens.size.icon.md },
 });

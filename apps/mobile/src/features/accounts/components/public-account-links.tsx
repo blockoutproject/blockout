@@ -1,7 +1,6 @@
 import { Link } from "expo-router";
 import { ShieldCheck, type LucideIcon } from "lucide-react-native";
 import {
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -50,7 +49,7 @@ function PublicLinkAction({
       {Icon && (
         <Icon
           accessible={false}
-          size={tokens.size.controlIcon}
+          size={tokens.size.icon.md}
           color={colors.icon}
           nonScalingStroke
         />
@@ -74,14 +73,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: tokens.spacing.xs,
     padding: tokens.spacing.sm,
-    minHeight:
-      Platform.OS === "android"
-        ? tokens.touchTarget.android
-        : tokens.touchTarget.ios,
-    minWidth:
-      Platform.OS === "android"
-        ? tokens.touchTarget.android
-        : tokens.touchTarget.ios,
+    minHeight: tokens.touch.minimum,
+    minWidth: tokens.touch.minimum,
     maxWidth: "100%",
   },
   label: {

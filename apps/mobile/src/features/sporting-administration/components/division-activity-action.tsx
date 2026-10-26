@@ -61,7 +61,7 @@ export function DivisionActivityAction({
 }
 const styles = StyleSheet.create({
   action: {
-    minHeight: tokens.size.control,
+    minHeight: tokens.size.control.default,
     flexDirection: "row",
     gap: tokens.spacing.sm,
     alignItems: "center",

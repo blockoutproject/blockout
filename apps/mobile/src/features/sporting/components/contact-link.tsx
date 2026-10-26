@@ -74,7 +74,7 @@ export function InformationRow({
         {Icon && (
           <Icon
             accessible={false}
-            size={tokens.size.inlineIcon}
+            size={tokens.size.icon.sm}
             color={colors.icon}
           />
         )}
@@ -90,7 +90,7 @@ export function InformationRow({
       {onPress && (
         <ChevronRight
           accessible={false}
-          size={tokens.size.inlineIcon}
+          size={tokens.size.icon.sm}
           color={colors.icon}
         />
       )}
@@ -162,7 +162,7 @@ function ContactHandoff({
         <View style={[styles.icon, { backgroundColor: colors.canvas }]}>
           <Icon
             accessible={false}
-            size={tokens.size.controlIcon}
+            size={tokens.size.icon.md}
             color={colors.icon}
           />
         </View>
@@ -183,7 +183,7 @@ function ContactHandoff({
       {destination && (
         <ChevronRight
           accessible={false}
-          size={tokens.size.inlineIcon}
+          size={tokens.size.icon.sm}
           color={colors.icon}
         />
       )}
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   informationRow: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: tokens.size.control,
+    minHeight: tokens.size.control.default,
     paddingHorizontal: tokens.spacing.lg,
     paddingVertical: tokens.spacing.compact,
     gap: tokens.spacing.compact,
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     top: 0,
-    height: tokens.borderWidth,
+    height: tokens.border.thin,
   },
   row: {
     minHeight: 72,

@@ -1,7 +1,6 @@
 import { Image } from "expo-image";
 import type { LucideIcon } from "lucide-react-native";
 import {
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -82,11 +81,7 @@ export function Button({
     (loading ? (
       <LoadingIndicator color={foreground} />
     ) : (
-      <Icon
-        accessible={false}
-        size={tokens.size.controlIcon}
-        color={foreground}
-      />
+      <Icon accessible={false} size={tokens.size.icon.md} color={foreground} />
     ));
   const gradient = fullWidth ? containerGradient : contentGradient;
   const background = `<svg xmlns="http://www.w3.org/2000/svg" width="${gradient.width}" height="48" viewBox="0 0 ${gradient.width} 48" preserveAspectRatio="none">
@@ -127,7 +122,7 @@ export function Button({
                       : colors.raised,
               borderWidth:
                 variant === "secondary" || variant === "inverse"
-                  ? tokens.borderWidth
+                  ? tokens.border.thin
                   : 0,
               borderColor:
                 variant === "inverse" && contextColor
@@ -179,21 +174,18 @@ export function Button({
 
 const styles = StyleSheet.create({
   compactTarget: {
-    minHeight:
-      Platform.OS === "android"
-        ? tokens.touchTarget.android
-        : tokens.touchTarget.ios,
+    minHeight: tokens.touch.minimum,
     justifyContent: "center",
   },
   compact: {
-    minHeight: tokens.size.compactControl,
+    minHeight: tokens.size.control.compact,
     // Figma strokes are inset; native padding excludes the border to preserve the 36-point visual.
-    paddingHorizontal: tokens.spacing.md - tokens.borderWidth,
-    paddingVertical: tokens.spacing.sm - tokens.borderWidth,
+    paddingHorizontal: tokens.spacing.md - tokens.border.thin,
+    paddingVertical: tokens.spacing.sm - tokens.border.thin,
     borderRadius: tokens.radius.full,
   },
   action: {
-    minHeight: tokens.size.control,
+    minHeight: tokens.size.control.default,
     paddingHorizontal: tokens.spacing.lg,
     paddingVertical: tokens.spacing.sm,
     borderRadius: tokens.radius.control,

@@ -1,10 +1,19 @@
+import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { ScreenState } from "../../../shared/components/screen-state";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
+import { PageHeader } from "../../../shared/components/page-header";
+import {
+  Page,
+  PageScrollView,
+  PageContent,
+} from "../../../shared/components/page";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
 import { useConsultationQueries } from "../api/use-consultation-queries";
-import { ResourceFeedback, ResourcePage } from "../components/resource-page";
+
 import { MatchSummary } from "../components/match-summary";
 import { MatchSetScores } from "../components/match-set-scores";
 import { MatchInformation } from "../components/match-information";
@@ -41,25 +50,38 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
     if (result.isError && result.data && !isAccessDenied(result.error))
       feedback.error();
   }
+  const blockingState = !data ? <ReadFeedback query={match} /> : undefined;
   return (
-    <ResourcePage
-      state={!data ? <ResourceFeedback query={match} /> : undefined}
-      refreshing={match.isRefetching}
-      onRefresh={() => void refresh()}
-    >
-      {data && (
-        <>
-          <MatchSummary
-            match={data.match}
-            displayTimeZone={presentation.timeZone}
+    <Page>
+      <PageHeader />
+      <PageScrollView
+        refreshControl={
+          <DataRefreshControl
+            refreshing={match.isRefetching}
+            onRefresh={() => void refresh()}
           />
-          <MatchSetScores match={data.match} sets={data.sets} />
-          <MatchInformation
-            detail={data}
-            displayTimeZone={presentation.timeZone}
-          />
-        </>
-      )}
-    </ResourcePage>
+        }
+      >
+        {blockingState ? (
+          <ScreenState>{blockingState}</ScreenState>
+        ) : (
+          <PageContent>
+            {data && (
+              <>
+                <MatchSummary
+                  match={data.match}
+                  displayTimeZone={presentation.timeZone}
+                />
+                <MatchSetScores match={data.match} sets={data.sets} />
+                <MatchInformation
+                  detail={data}
+                  displayTimeZone={presentation.timeZone}
+                />
+              </>
+            )}
+          </PageContent>
+        )}
+      </PageScrollView>
+    </Page>
   );
 }

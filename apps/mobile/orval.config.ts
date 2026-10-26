@@ -14,32 +14,32 @@ export default defineConfig({
         operations: {
           setClubPresentation: {
             formData: {
-              path: "src/features/sporting-administration/api/presentation-form-data.ts",
-              name: "presentationFormData",
+              path: "src/shared/api/image-form-data.ts",
+              name: "imageFormData",
             },
           },
           setTeamPresentation: {
             formData: {
-              path: "src/features/sporting-administration/api/presentation-form-data.ts",
-              name: "presentationFormData",
+              path: "src/shared/api/image-form-data.ts",
+              name: "imageFormData",
             },
           },
           createDivision: {
             formData: {
-              path: "src/features/sporting-administration/api/presentation-form-data.ts",
-              name: "presentationFormData",
+              path: "src/shared/api/image-form-data.ts",
+              name: "imageFormData",
             },
           },
           setDivisionPresentation: {
             formData: {
-              path: "src/features/sporting-administration/api/presentation-form-data.ts",
-              name: "presentationFormData",
+              path: "src/shared/api/image-form-data.ts",
+              name: "imageFormData",
             },
           },
           changeAccountProfile: {
             formData: {
-              path: "src/features/accounts/api/profile-form-data.ts",
-              name: "profileFormData",
+              path: "src/shared/api/image-form-data.ts",
+              name: "imageFormData",
             },
           },
           createSupportRequest: {

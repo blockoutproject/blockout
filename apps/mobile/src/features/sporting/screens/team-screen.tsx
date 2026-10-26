@@ -1,3 +1,14 @@
+import { ResourceText } from "../components/resource-text";
+import { Tabs } from "../../../shared/components/tabs";
+import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { ScreenState } from "../../../shared/components/screen-state";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
+import { PageHeader } from "../../../shared/components/page-header";
+import {
+  Page,
+  PageScrollView,
+  PageContent,
+} from "../../../shared/components/page";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Surface } from "../../../shared/components/surface";
@@ -8,12 +19,7 @@ import type {
   SportingSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { useConsultationQueries } from "../api/use-consultation-queries";
-import {
-  ResourceFeedback,
-  ResourcePage,
-  ResourceTabs,
-  ResourceText,
-} from "../components/resource-page";
+
 import {
   SportingIdentity,
   SportingLink,
@@ -76,68 +82,84 @@ function TeamPage({
   const participation = data?.participations.find(
     (item) => item.pool.id === tab,
   );
+  const blockingState = !data ? <ReadFeedback query={team} /> : undefined;
   return (
-    <ResourcePage
-      state={!data ? <ResourceFeedback query={team} /> : undefined}
-      title="Équipe"
-      refreshing={team.isRefetching}
-      onRefresh={!data ? () => void refresh() : undefined}
-    >
-      {data && (
-        <>
-          <SportingIdentity
-            identity={data.team.team}
-            kind="team"
-            classification={data.team.classification}
-            season={data.team.season}
-          >
-            {data.team.club && (
-              <SportingLink
-                kind="club"
-                id={data.team.club.id}
-                label={`Voir le club ${data.team.club.name}`}
-              />
-            )}
-            {renderFollow?.(
-              data.team.team,
-              data.team.season,
-              data.team.classification.division?.color,
-            )}
-          </SportingIdentity>
-          <ResourceTabs
-            selected={tab ?? "upcoming"}
-            onSelect={setSelected}
-            items={tabs}
-          />
-          {participation ? (
-            <>
-              <Surface>
-                <SportingLink
-                  kind="pool"
-                  id={participation.pool.id}
-                  label={poolLabel(participation)}
-                  identity={participation.classification.division}
+    <Page>
+      <PageHeader title="Équipe" />
+      <PageScrollView
+        refreshControl={
+          !data ? (
+            <DataRefreshControl
+              refreshing={team.isRefetching}
+              onRefresh={() => void refresh()}
+            />
+          ) : undefined
+        }
+      >
+        {blockingState ? (
+          <ScreenState>{blockingState}</ScreenState>
+        ) : (
+          <PageContent>
+            {data && (
+              <>
+                <SportingIdentity
+                  identity={data.team.team}
+                  kind="team"
+                  classification={data.team.classification}
+                  season={data.team.season}
+                >
+                  {data.team.club && (
+                    <SportingLink
+                      kind="club"
+                      id={data.team.club.id}
+                      label={`Voir le club ${data.team.club.name}`}
+                    />
+                  )}
+                  {renderFollow?.(
+                    data.team.team,
+                    data.team.season,
+                    data.team.classification.division?.color,
+                  )}
+                </SportingIdentity>
+                <Tabs
+                  selected={tab ?? "upcoming"}
+                  onSelect={setSelected}
+                  items={tabs}
                 />
-                <ResourceText>{participation.competitionName}</ResourceText>
-              </Surface>
-              {renderStandings?.(participation) ?? (
-                <ResourceText>
-                  Classement indisponible pour le moment
-                </ResourceText>
-              )}
-            </>
-          ) : (
-            (renderCalendar?.({
-              teamId,
-              category: tab === "completed" ? "completed" : "upcoming",
-            }) ?? (
-              <ResourceText>
-                Calendrier indisponible pour le moment
-              </ResourceText>
-            ))
-          )}
-        </>
-      )}
-    </ResourcePage>
+                {participation ? (
+                  <>
+                    <Surface>
+                      <SportingLink
+                        kind="pool"
+                        id={participation.pool.id}
+                        label={poolLabel(participation)}
+                        identity={participation.classification.division}
+                      />
+                      <ResourceText>
+                        {participation.competitionName}
+                      </ResourceText>
+                    </Surface>
+                    {renderStandings?.(participation) ?? (
+                      <ResourceText>
+                        Classement indisponible pour le moment
+                      </ResourceText>
+                    )}
+                  </>
+                ) : (
+                  (renderCalendar?.({
+                    teamId,
+                    category: tab === "completed" ? "completed" : "upcoming",
+                  }) ?? (
+                    <ResourceText>
+                      Calendrier indisponible pour le moment
+                    </ResourceText>
+                  ))
+                )}
+              </>
+            )}
+          </PageContent>
+        )}
+      </PageScrollView>
+    </Page>
   );
 }

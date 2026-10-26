@@ -16,6 +16,9 @@ import { useConsultationQueries } from "../../sporting/api/use-consultation-quer
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
+/** Entity Card metadata uses a 24-point badge minimum; its loading representation shares this owner. */
+export const resultBadgeSize = 24;
+
 /** Product Design Entity Card 354:565; activation and its disclosure remain with US4. */
 export function SearchResultCard({
   kind,
@@ -63,7 +66,7 @@ export function SearchResultCard({
             <SportingMedia
               identity={identity}
               kind="division"
-              size={tokens.size.entityMedia}
+              size={tokens.size.media.entity}
               presentation="entity"
             />
           )
@@ -162,7 +165,7 @@ function ResultArtwork({
       key={`${hashKey(options.queryKey)}:${query.dataUpdatedAt}`}
       identity={identity}
       kind={kind}
-      size={tokens.size.entityMedia}
+      size={tokens.size.media.entity}
       presentation="entity"
       uri={identity.logoUrl ? query.data : undefined}
       loading={!!identity.logoUrl && query.isPending}
@@ -173,13 +176,13 @@ function ResultArtwork({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: tokens.radius.sheet,
+    borderRadius: tokens.radius.panel,
     overflow: "hidden",
   },
   // Figma's inside stroke overlays the content without changing the header or classification geometry.
   edge: {
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.panel,
   },
   identity: {
     flexDirection: "row",
@@ -198,11 +201,11 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.tight,
   },
   badge: {
-    minHeight: tokens.size.badge,
+    minHeight: resultBadgeSize,
     justifyContent: "center",
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.badge,
-    paddingVertical: tokens.spacing.xs - tokens.borderWidth,
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.sm,
+    paddingVertical: tokens.spacing.xs - tokens.border.thin,
     paddingHorizontal: tokens.spacing.sm,
     flexShrink: 1,
   },

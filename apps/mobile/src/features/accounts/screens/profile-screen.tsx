@@ -1,3 +1,4 @@
+import { Page, PageContent } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { useRouter } from "expo-router";
@@ -9,13 +10,11 @@ import {
 import { type ReactNode } from "react";
 import { StyleSheet } from "react-native";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
-import { SafeAreaView } from "react-native-safe-area-context";
+
 import { ApiError } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { RequestLoading } from "../../../shared/components/request-feedback";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
 import { AdministrationEntry } from "../../access/entry";
 import {
   useCurrentAccount,
@@ -47,7 +46,6 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
   const account = useCurrentAccount();
   const client = useQueryClient();
   const router = useRouter();
-  const { colors } = useTheme();
   const guest = useGuestNavigation();
   const feedback = useActionFeedback();
   const mutationKey = getSessionQueryKey(
@@ -95,10 +93,9 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
   }
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
+    <Page>
       <PageHeader title="Modifier mon profil" />
       <FormScrollView
-        contentContainerStyle={styles.content}
         refreshControl={
           admitted && session.status === "authenticated" ? (
             <DataRefreshControl
@@ -120,7 +117,9 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
                 <RequestLoading />
               </ScreenState>
             ) : session.status === "authenticated" && account.isPending ? (
-              <ProfileLoading />
+              <PageContent>
+                <ProfileLoading />
+              </PageContent>
             ) : session.status !== "authenticated" ? (
               <ScreenState>
                 <Button
@@ -145,7 +144,7 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
                   </ScreenState>
                 )}
                 {account.data && (
-                  <>
+                  <PageContent>
                     {account.isSuccess &&
                       account.data.principalCreatedAt === null && (
                         <AccountAgeRetry
@@ -159,24 +158,26 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
                       onContinueAsGuest={guest.continueAsGuest}
                       leaving={guest.pending}
                     />
-                  </>
+                  </PageContent>
                 )}
               </>
             )}
-            <AdministrationEntry />
-            {!(session.status === "authenticated" && account.data) && (
-              <Button
-                label="Continuer en tant qu’invité"
-                onPress={() => void guest.continueAsGuest()}
-                loading={guest.pending}
-              />
-            )}
-            {proEntry}
-            <PublicAccountLinks />
+            <PageContent style={styles.footer}>
+              <AdministrationEntry />
+              {!(session.status === "authenticated" && account.data) && (
+                <Button
+                  label="Continuer en tant qu’invité"
+                  onPress={() => void guest.continueAsGuest()}
+                  loading={guest.pending}
+                />
+              )}
+              {proEntry}
+              <PublicAccountLinks />
+            </PageContent>
           </>
         )}
       </FormScrollView>
-    </SafeAreaView>
+    </Page>
   );
 }
 
@@ -200,6 +201,6 @@ function AccountAgeRetry() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  content: { flexGrow: 1, padding: tokens.spacing.lg, gap: tokens.spacing.lg },
+  // Auxiliary destinations remain below the useful state area at their natural height.
+  footer: { flexGrow: 0 },
 });

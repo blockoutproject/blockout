@@ -1,5 +1,8 @@
+import { ScreenState } from "../../../../shared/components/screen-state";
+import { PageHeader } from "../../../../shared/components/page-header";
+import { Page, PageScrollView } from "../../../../shared/components/page";
 import { ErrorState } from "../../../../shared/components/state-card";
-import { EditorPage } from "../../../../features/sporting-administration/components/editor-page";
+
 import { useOperationalAdmission } from "../../../../features/access/queries/use-access-admission";
 import { DivisionsScreen } from "../../../../features/sporting-administration/screens/divisions-screen";
 
@@ -8,6 +11,13 @@ export default function DivisionsRoute() {
   return useOperationalAdmission() ? (
     <DivisionsScreen />
   ) : (
-    <EditorPage title="Administration technique" state={<ErrorState />} />
+    <Page>
+      <PageHeader title="Administration technique" />
+      <PageScrollView>
+        <ScreenState>
+          <ErrorState />
+        </ScreenState>
+      </PageScrollView>
+    </Page>
   );
 }

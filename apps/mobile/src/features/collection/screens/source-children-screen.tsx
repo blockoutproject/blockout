@@ -1,3 +1,7 @@
+import { ListSeparator } from "../../../shared/components/list-separator";
+import { Page, pageContentStyle } from "../../../shared/components/page";
+import { PreparationLink } from "../components/preparation-link";
+import { AccessFeedback } from "../../access/components/access-feedback";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { ErrorState, EmptyState } from "../../../shared/components/state-card";
@@ -6,7 +10,7 @@ import { PageHeader } from "../../../shared/components/page-header";
 import { useRouter } from "expo-router";
 import { Layers } from "lucide-react-native";
 import { FlatList, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { Button } from "../../../shared/components/button";
 import { RequestLoading } from "../../../shared/components/request-feedback";
@@ -14,11 +18,6 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { ClassificationEntry } from "../../sporting-administration/entry";
 import { useSourceChildren } from "../api/use-source-preparation";
-import {
-  CollectionAccessFeedback,
-  PreparationLink,
-  preparationStyles,
-} from "../components/preparation-layout";
 
 /** Read-only native catalog context; pack navigation never grants mapping or acquisition readiness. */
 export function SourceChildrenScreen({
@@ -53,7 +52,7 @@ export function SourceChildrenScreen({
     if (result.isError && !isAccessDenied(result.error)) feedback.error();
   }
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
+    <Page>
       <PageHeader title="Groupes découverts" />
       <FlatList
         alwaysBounceVertical
@@ -68,14 +67,16 @@ export function SourceChildrenScreen({
         }
         data={authority.enabled ? items : []}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={[
-          preparationStyles.content,
-          (!authority.enabled || items.length === 0) && styles.stateContent,
-        ]}
+        contentContainerStyle={
+          authority.enabled && items.length ? pageContentStyle : styles.list
+        }
+        ItemSeparatorComponent={ListSeparator}
         ListHeaderComponent={
           <>
             {parentId && authority.enabled && (
-              <ClassificationEntry target={{ kind: "pack", id: parentId }} />
+              <View style={[!items.length && pageContentStyle, styles.header]}>
+                <ClassificationEntry target={{ kind: "pack", id: parentId }} />
+              </View>
             )}
           </>
         }
@@ -104,7 +105,7 @@ export function SourceChildrenScreen({
         ListEmptyComponent={
           <ScreenState>
             {!authority.enabled ? (
-              <CollectionAccessFeedback authority={authority} />
+              <AccessFeedback {...authority} />
             ) : denied ? (
               <ErrorState
                 onRetry={() => void query.refetch()}
@@ -124,22 +125,25 @@ export function SourceChildrenScreen({
         }
         ListFooterComponent={
           authority.enabled && !denied && query.hasNextPage ? (
-            <Button
-              label={
-                query.isFetchNextPageError ? "Réessayer" : "Charger la suite"
-              }
-              variant="secondary"
-              onPress={() => void loadMore()}
-              disabled={query.isFetching}
-              loading={query.isFetchingNextPage}
-            />
+            <View style={styles.footer}>
+              <Button
+                label={
+                  query.isFetchNextPageError ? "Réessayer" : "Charger la suite"
+                }
+                variant="secondary"
+                onPress={() => void loadMore()}
+                disabled={query.isFetching}
+                loading={query.isFetchingNextPage}
+              />
+            </View>
           ) : undefined
         }
       />
-    </SafeAreaView>
+    </Page>
   );
 }
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  stateContent: { paddingVertical: tokens.spacing.lg },
+  list: { flexGrow: 1 },
+  header: { paddingBottom: tokens.spacing.lg },
+  footer: { paddingTop: tokens.spacing.lg },
 });

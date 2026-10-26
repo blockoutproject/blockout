@@ -23,7 +23,7 @@ export function SportingActions(props: SportingActionsProps) {
 
 const styles = StyleSheet.create({
   actions: {
-    borderTopWidth: tokens.borderWidth,
+    borderTopWidth: tokens.border.thin,
     paddingTop: tokens.spacing.md,
   },
 });

@@ -26,7 +26,7 @@ export function SportingMedia({
   loading = false,
   error = false,
   kind,
-  size = tokens.size.mediaRow,
+  size = tokens.size.media.row,
   presentation = "logo",
 }: SportingMediaProps) {
   const { colors } = useTheme();
@@ -50,7 +50,7 @@ export function SportingMedia({
         ? "Logo indisponible"
         : "Logo absent";
   const borderRadius =
-    presentation === "entity" ? tokens.radius.entityMedia : tokens.radius.badge;
+    presentation === "entity" ? tokens.radius.media : tokens.radius.sm;
   return (
     <View
       style={[
@@ -108,8 +108,8 @@ export function SportingMedia({
             color={colors.logoInk}
             size={
               presentation === "entity"
-                ? tokens.size.actionIcon
-                : tokens.size.controlIcon
+                ? tokens.size.icon.lg
+                : tokens.size.icon.md
             }
           />
         )}

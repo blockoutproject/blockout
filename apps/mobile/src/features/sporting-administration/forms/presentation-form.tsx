@@ -372,7 +372,7 @@ export function PresentationForm({
         >
           <ImageOff
             accessible={false}
-            size={tokens.size.actionIcon}
+            size={tokens.size.icon.lg}
             color={colors.icon}
           />
         </View>
@@ -607,18 +607,22 @@ export function PresentationForm({
   );
 }
 const styles = StyleSheet.create({
-  form: { gap: tokens.spacing.lg },
+  form: { gap: tokens.layout.form.gap },
   context: {
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.md,
   },
-  contextLogo: { width: 64, height: 64, borderRadius: tokens.radius.media },
+  contextLogo: {
+    width: 64,
+    height: 64,
+    borderRadius: tokens.media.radius.preview,
+  },
   contextName: { flex: 1, gap: tokens.spacing.xs },
   divisionContext: {
     padding: tokens.spacing.compact,
     borderRadius: tokens.radius.control,
-    borderWidth: tokens.borderWidth,
+    borderWidth: tokens.border.thin,
   },
   divisionLogo: { width: 38, height: 38 },
   divisionPlaceholder: {

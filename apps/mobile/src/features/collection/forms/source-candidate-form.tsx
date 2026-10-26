@@ -1,3 +1,4 @@
+import { SeasonIdentity, SourceBadge } from "../components/source-summary";
 import { Surface } from "../../../shared/components/surface";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useNativeHandoff } from "../../../shared/native/use-native-handoff";
@@ -21,11 +22,7 @@ import { TextField } from "../../../shared/components/text-field";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { type useSourcePreparation } from "../api/use-source-preparation";
-import {
-  SeasonIdentity,
-  SourceBadge,
-  preparationStyles,
-} from "../components/preparation-layout";
+
 import {
   candidateUrlSchema,
   sourceCandidateSchema,
@@ -272,7 +269,7 @@ export function SourceCandidateForm({
     });
   }
   return (
-    <View style={preparationStyles.form}>
+    <View style={styles.form}>
       <SeasonIdentity season={editing.season.data ?? season} />
       {closed && (
         <Text style={[tokens.typography.strong, { color: colors.text }]}>
@@ -280,7 +277,7 @@ export function SourceCandidateForm({
         </Text>
       )}
       <Surface>
-        <View style={[preparationStyles.row, styles.heading]}>
+        <View style={[styles.row, styles.heading]}>
           <Text style={[tokens.typography.strong, { color: colors.text }]}>
             Lien de découverte
           </Text>
@@ -310,7 +307,7 @@ export function SourceCandidateForm({
             <Globe
               accessible={false}
               color={colors.icon}
-              size={tokens.size.controlIcon}
+              size={tokens.size.icon.md}
             />
             <View style={styles.url}>
               <Text
@@ -334,7 +331,7 @@ export function SourceCandidateForm({
             <ChevronRight
               accessible={false}
               color={colors.icon}
-              size={tokens.size.controlIcon}
+              size={tokens.size.icon.md}
             />
           </Pressable>
         ) : (
@@ -474,7 +471,7 @@ export function SourceCandidateForm({
         </Text>
         <ChevronRight
           accessible={false}
-          size={tokens.size.controlIcon}
+          size={tokens.size.icon.md}
           color={colors.icon}
         />
       </Pressable>
@@ -508,12 +505,19 @@ export function SourceCandidateForm({
   );
 }
 const styles = StyleSheet.create({
+  form: { gap: tokens.layout.form.gap },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.compact,
+    flexWrap: "wrap",
+  },
   heading: { justifyContent: "space-between" },
   sourceLink: {
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.compact,
-    minHeight: tokens.size.control,
+    minHeight: tokens.size.control.default,
   },
   url: { flex: 1, gap: tokens.spacing.xs },
 });

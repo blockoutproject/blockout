@@ -1,5 +1,5 @@
 import { ActionFeedbackProvider } from "../action-feedback";
-import { TECHNICAL_ERROR } from "../error-copy";
+import { TECHNICAL_ERROR, TECHNICAL_ERROR_TITLE } from "../error-copy";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createQueryClient } from "../../query/query-client";
 import { useCommand } from "../../query/use-command";
@@ -629,7 +629,7 @@ it("shows accepted caller values and removes them only when the owner updates", 
 
 it("keeps preview dismissal available when native image decoding fails", async () => {
   // Given
-  const { user } = await renderField({ images: [logo] });
+  const { user, onSelect, onRemove } = await renderField({ images: [logo] });
   await user.press(
     screen.getByRole("button", { name: "Aperçu : Logo du club" }),
   );
@@ -641,10 +641,20 @@ it("keeps preview dismissal available when native image decoding fails", async (
 
   // Then
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "Impossible d’afficher l’image.",
+    TECHNICAL_ERROR_TITLE,
   );
   expect(screen.getByRole("button", { name: "Fermer" })).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(screen.getByRole("image", { name: "Logo du club" })).toBeOnTheScreen();
   expect(screen.queryByText(/private file path/)).not.toBeOnTheScreen();
+  expect(onSelect).not.toHaveBeenCalled();
+  expect(onRemove).not.toHaveBeenCalled();
 });
 
 it("starts a new preview attempt when an image URI returns or the viewer reopens", async () => {
@@ -663,7 +673,7 @@ it("starts a new preview attempt when an image URI returns or the viewer reopens
     "error",
     { nativeEvent: { error: "Native decoding failed" } },
   );
-  expect(screen.getByText("Impossible d’afficher l’image.")).toBeOnTheScreen();
+  expect(screen.getByText(TECHNICAL_ERROR_TITLE)).toBeOnTheScreen();
 
   // When
   await view.rerender(
@@ -674,18 +684,14 @@ it("starts a new preview attempt when an image URI returns or the viewer reopens
   );
 
   // Then
-  expect(
-    screen.queryByText("Impossible d’afficher l’image."),
-  ).not.toBeOnTheScreen();
+  expect(screen.queryByText(TECHNICAL_ERROR_TITLE)).not.toBeOnTheScreen();
   expect(screen.getByRole("image", { name: "Logo du club" })).toBeOnTheScreen();
 
   // When the same original URI returns, its previous error belongs to an unmounted attempt.
   await view.rerender(<ImageField images={[logo]} onSelect={onSelect} />);
 
   // Then
-  expect(
-    screen.queryByText("Impossible d’afficher l’image."),
-  ).not.toBeOnTheScreen();
+  expect(screen.queryByText(TECHNICAL_ERROR_TITLE)).not.toBeOnTheScreen();
   expect(screen.getByRole("image", { name: "Logo du club" })).toBeOnTheScreen();
 
   // When the current attempt fails and the user closes and reopens it.
@@ -700,9 +706,7 @@ it("starts a new preview attempt when an image URI returns or the viewer reopens
   );
 
   // Then
-  expect(
-    screen.queryByText("Impossible d’afficher l’image."),
-  ).not.toBeOnTheScreen();
+  expect(screen.queryByText(TECHNICAL_ERROR_TITLE)).not.toBeOnTheScreen();
 });
 
 it("retains the caller's image choice after an empty-field validation error", async () => {

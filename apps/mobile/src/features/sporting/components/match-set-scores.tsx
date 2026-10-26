@@ -83,7 +83,7 @@ export function MatchSetScores({ match, sets }: MatchSetScoresProps) {
                   style={[
                     styles.set,
                     index > 0 && {
-                      borderTopWidth: tokens.borderWidth,
+                      borderTopWidth: tokens.border.thin,
                       borderTopColor: colors.border,
                     },
                   ]}
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     alignItems: "center",
-    gap: tokens.spacing.label,
+    gap: tokens.spacing.tight,
     paddingTop: tokens.spacing.md,
     paddingBottom: tokens.sporting.setTeamBottom,
   },

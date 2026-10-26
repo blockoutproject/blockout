@@ -53,7 +53,7 @@ function EntryCard(props: PressableProps) {
         <View style={[styles.tile, { backgroundColor: colors.subtle }]}>
           <Trophy
             accessible={false}
-            size={20}
+            size={tokens.size.icon.md}
             color={colors.icon}
             nonScalingStroke
           />
@@ -75,8 +75,8 @@ function EntryCard(props: PressableProps) {
 const styles = StyleSheet.create({
   group: { gap: tokens.spacing.md },
   card: {
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.panel,
     padding: tokens.spacing.md,
     gap: tokens.spacing.sm,
   },
