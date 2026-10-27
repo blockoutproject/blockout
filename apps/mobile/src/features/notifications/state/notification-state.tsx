@@ -5,7 +5,12 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useEffect, useEffectEvent, type PropsWithChildren } from "react";
+import {
+  useEffect,
+  useEffectEvent,
+  useState,
+  type PropsWithChildren,
+} from "react";
 import { AppState } from "react-native";
 import { useInboxQueries } from "../api/use-inbox-queries";
 import {
@@ -58,6 +63,11 @@ function InboxExpiry({
   queries: ReturnType<typeof createInboxQueries>;
 }) {
   const client = useQueryClient();
+  const [active, setActive] = useState(
+    () =>
+      AppState.currentState !== "background" &&
+      AppState.currentState !== "inactive",
+  );
   const inbox = useInfiniteQuery({ ...queries.inbox, enabled: false });
   const summary = useQuery({ ...queries.summary, enabled: false });
   const expiries =
@@ -83,18 +93,26 @@ function InboxExpiry({
     await client.fetchQuery(queries.summary).catch(() => undefined);
   });
   useEffect(() => {
-    if (nextExpiry === undefined) return;
-    const timer = setTimeout(
-      () => {
-        void onExpiry();
-      },
-      Math.max(0, Math.min(nextExpiry - Date.now(), 2_147_483_647)),
-    );
+    if (!active || nextExpiry === undefined) return;
+    const deadline = nextExpiry;
+    let timer: ReturnType<typeof setTimeout>;
+    /** The platform bounds one wait; a long retention deadline needs another wait, never an early refresh. */
+    function arm() {
+      timer = setTimeout(
+        () => {
+          if (Date.now() < deadline) arm();
+          else void onExpiry();
+        },
+        Math.max(0, Math.min(deadline - Date.now(), 2_147_483_647)),
+      );
+    }
+    arm();
     return () => clearTimeout(timer);
-  }, [nextExpiry, client]);
+  }, [nextExpiry, active]);
   useEffect(() => {
     void expire();
     const listener = AppState.addEventListener("change", (state) => {
+      setActive(state === "active");
       if (state === "active") void refresh();
     });
     return () => listener.remove();

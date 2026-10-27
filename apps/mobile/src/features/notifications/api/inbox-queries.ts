@@ -1,5 +1,6 @@
 import {
   infiniteQueryOptions,
+  hashKey,
   queryOptions,
   type InfiniteData,
   type QueryClient,
@@ -55,28 +56,6 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
     return { ...options, session: owner, signal: options.signal ?? signal };
   }
 
-  /** Known account refusals remove private content; a later network error cannot reveal it again. */
-  function rejectAccess(
-    client: QueryClient,
-    error: unknown,
-    signal: AbortSignal,
-    otherKey: QueryKey,
-  ): never {
-    if (
-      !signal.aborted &&
-      owner.isCurrent(owner.generation) &&
-      isAccessDenied(error)
-    ) {
-      void client.cancelQueries({ queryKey: otherKey, exact: true });
-      for (const queryKey of [keys.inbox, keys.summary])
-        client
-          .getQueryCache()
-          .find({ queryKey, exact: true })
-          ?.setState({ data: undefined, dataUpdatedAt: 0 });
-    }
-    throw error;
-  }
-
   return {
     request: currentRequest,
     inbox: infiniteQueryOptions({
@@ -110,7 +89,9 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
               ),
           };
         } catch (error) {
-          return rejectAccess(client, error, signal, keys.summary);
+          if (!signal.aborted)
+            refuseInboxAccess(client, owner, error, keys.inbox);
+          throw error;
         }
       },
       getNextPageParam: (page) => page.nextCursor,
@@ -129,7 +110,9 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
             throw new ApiError("cancelled");
           return summary;
         } catch (error) {
-          return rejectAccess(client, error, signal, keys.inbox);
+          if (!signal.aborted)
+            refuseInboxAccess(client, owner, error, keys.summary);
+          throw error;
         }
       },
     }),
@@ -138,6 +121,7 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
       queryOptions({
         queryKey: keys.detail(id),
         staleTime: 0,
+        gcTime: 0,
         queryFn: async ({ signal }): Promise<NotificationResponse> => {
           const row = await getNotification(
             accountId,
@@ -176,4 +160,36 @@ export async function refreshNotificationSummary(
     exact: true,
   });
   return client.fetchQuery({ ...queries.summary, staleTime: 0 });
+}
+
+/**
+ * Applies a known current owner refusal across private list/count observers. Older reads are
+ * cancelled; both representations enter ordinary error state so an initial read can be retried.
+ * The failing query finishes its own native error transition when its key is supplied.
+ */
+export function refuseInboxAccess(
+  client: QueryClient,
+  owner: InboxOwner,
+  error: unknown,
+  failingKey?: QueryKey,
+) {
+  if (
+    !owner.isCurrent(owner.generation) ||
+    !(error instanceof ApiError) ||
+    !isAccessDenied(error)
+  )
+    return;
+  const keys = getNotificationKeys(owner);
+  for (const queryKey of [keys.inbox, keys.summary]) {
+    if (!failingKey || hashKey(failingKey) !== hashKey(queryKey))
+      void client.cancelQueries({ queryKey, exact: true });
+    client.getQueryCache().find({ queryKey, exact: true })?.setState({
+      data: undefined,
+      dataUpdatedAt: 0,
+      error,
+      errorUpdatedAt: Date.now(),
+      status: "error",
+      fetchStatus: "idle",
+    });
+  }
 }

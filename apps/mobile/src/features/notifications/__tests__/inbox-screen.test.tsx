@@ -381,3 +381,71 @@ it("retains loaded cards and the same cursor through next-page failure and expli
       .map(([url]) => new URL(url).searchParams.get("cursor")),
   ).toEqual(["same-boundary", "same-boundary"]);
 });
+
+it("keeps the 29-day deadline armed beyond the platform timeout limit without premature network refresh", async () => {
+  // Given
+  rows = [{ ...row, createdAt: new Date(Date.now()).toISOString() }];
+  nextExpiry = new Date(Date.now() + 29 * 86_400_000).toISOString();
+  await showInbox();
+  await screen.findByRole("link", { name: /non lue$/ });
+  await waitFor(() => expect(setBadgeCountAsync).toHaveBeenLastCalledWith(7));
+  mockFetch.mockClear().mockRejectedValue(new TypeError("offline"));
+
+  // When
+  await act(async () => {
+    await jest.advanceTimersByTimeAsync(2_147_483_647);
+  });
+
+  // Then
+  expect(mockFetch).not.toHaveBeenCalled();
+  expect(screen.getByRole("link", { name: /non lue$/ })).toBeOnTheScreen();
+
+  // When
+  await act(async () => {
+    await jest.advanceTimersByTimeAsync(29 * 86_400_000 - 2_147_483_647);
+  });
+
+  // Then
+  expect(screen.queryByRole("link", { name: /non lue$/ })).toBeNull();
+  expect(setBadgeCountAsync).toHaveBeenLastCalledWith(0);
+});
+
+it("waits for foreground before refreshing an expired background inbox", async () => {
+  // Given
+  rows = [
+    {
+      ...row,
+      createdAt: new Date(Date.now() - 29 * 86_400_000 + 1000).toISOString(),
+    },
+  ];
+  nextExpiry = new Date(Date.now() + 1000).toISOString();
+  const listeners: ((state: AppStateStatus) => void)[] = [];
+  jest.spyOn(AppState, "addEventListener").mockImplementation((_, callback) => {
+    listeners.push(callback);
+    return { remove: jest.fn() };
+  });
+  await showInbox();
+  await screen.findByRole("link", { name: /non lue$/ });
+  await act(async () => {
+    listeners.forEach((listener) => listener("background"));
+  });
+  mockFetch.mockClear().mockRejectedValue(new TypeError("offline"));
+
+  // When
+  await act(async () => {
+    await jest.advanceTimersByTimeAsync(1000);
+  });
+
+  // Then
+  expect(mockFetch).not.toHaveBeenCalled();
+
+  // When
+  await act(async () => {
+    listeners.forEach((listener) => listener("active"));
+    await jest.advanceTimersByTimeAsync(0);
+  });
+
+  // Then
+  expect(screen.queryByRole("link", { name: /non lue$/ })).toBeNull();
+  expect(setBadgeCountAsync).toHaveBeenLastCalledWith(0);
+});

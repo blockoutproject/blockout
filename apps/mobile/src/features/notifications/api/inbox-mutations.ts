@@ -8,6 +8,7 @@ import {
 import { notificationExpiry } from "../state/inbox-expiry";
 import {
   refreshInbox,
+  refuseInboxAccess,
   type InboxOwner,
   type InboxData,
   type createInboxQueries,
@@ -60,16 +61,11 @@ export function createReadNotificationOptions(
           })),
         },
     );
-    if (retained)
-      client.setQueryData(queries.detail(id).queryKey, {
-        ...confirmed,
-        read: true,
-      });
-    else
-      client.removeQueries({
-        queryKey: queries.detail(id).queryKey,
-        exact: true,
-      });
+    // The member observation has no screen consumer; keep no redundant per-entry read copy.
+    client.removeQueries({
+      queryKey: queries.detail(id).queryKey,
+      exact: true,
+    });
     client
       .getQueryCache()
       .find({ queryKey: queries.summary.queryKey, exact: true })
@@ -111,11 +107,13 @@ export function createReadNotificationOptions(
           await reconcile(id);
           throw error;
         }
+        refuseInboxAccess(client, owner, error);
         if (!isUncertainMutationFailure(error)) throw error;
         try {
           const current = await client.fetchQuery(queries.detail(id));
           if (current.read) return current;
         } catch (observation) {
+          refuseInboxAccess(client, owner, observation);
           if (observation instanceof ApiError && observation.status === 404)
             await reconcile(id);
         }

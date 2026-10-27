@@ -249,3 +249,77 @@ it("does not restore a badge from a delayed summary after a current owner refusa
   // Then
   expect(client.getQueryData(queries.summary.queryKey)).toBeUndefined();
 });
+
+it.each([401, 403])(
+  "removes retained private content and count when the read command receives %s",
+  async (status) => {
+    // Given
+    const { owner, queries } = context();
+    client.setQueryData(queries.inbox.queryKey, {
+      pages: [{ notifications: [row] }],
+      pageParams: [undefined],
+    });
+    client.setQueryData(queries.summary.queryKey, {
+      unreadCount: 7,
+      nextExpiryAt: "2026-11-01T00:00:00Z",
+    });
+    mockFetch.mockResolvedValueOnce(new Response(null, { status }));
+    const command = new MutationObserver(
+      client,
+      createReadNotificationOptions(client, owner, queries),
+    );
+
+    // When
+    await command.mutate(row.id).catch(() => undefined);
+
+    // Then
+    expect(client.getQueryData(queries.inbox.queryKey)).toBeUndefined();
+    expect(client.getQueryData(queries.summary.queryKey)).toBeUndefined();
+    expect(client.getQueryState(queries.inbox.queryKey)?.status).toBe("error");
+  },
+);
+
+it("honors a member refusal after a lost read acknowledgement", async () => {
+  // Given
+  const { owner, queries } = context();
+  client.setQueryData(queries.inbox.queryKey, {
+    pages: [{ notifications: [row] }],
+    pageParams: [undefined],
+  });
+  mockFetch.mockRejectedValueOnce(new TypeError("lost acknowledgement"));
+  mockFetch.mockResolvedValueOnce(new Response(null, { status: 403 }));
+  const command = new MutationObserver(
+    client,
+    createReadNotificationOptions(client, owner, queries),
+  );
+
+  // When
+  await command.mutate(row.id).catch(() => undefined);
+
+  // Then
+  expect(client.getQueryData(queries.inbox.queryKey)).toBeUndefined();
+  expect(client.getQueryState(queries.inbox.queryKey)?.status).toBe("error");
+});
+
+it("presents an initial list error when the summary refuses access during its pending first page", async () => {
+  // Given
+  const { queries } = context();
+  const delayed = Promise.withResolvers<Response>();
+  mockFetch.mockReturnValueOnce(delayed.promise);
+  const observer = new InfiniteQueryObserver(client, queries.inbox);
+  const list = observer.refetch();
+  await jest.advanceTimersByTimeAsync(0);
+  mockFetch.mockResolvedValueOnce(new Response(null, { status: 403 }));
+
+  // When
+  await client.fetchQuery(queries.summary).catch(() => undefined);
+  delayed.resolve(Response.json({ notifications: [row] }));
+  await list;
+
+  // Then
+  expect(observer.getCurrentResult()).toMatchObject({
+    status: "error",
+    isFetching: false,
+    data: undefined,
+  });
+});
