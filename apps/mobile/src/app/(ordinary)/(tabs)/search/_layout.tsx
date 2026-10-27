@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
-import { SearchVisitProvider } from "../../../features/discovery/forms/search-visit";
-import { sheetScreenOptions } from "../../../shared/components/sheet";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { SearchVisitProvider } from "../../../../features/discovery/forms/search-visit";
+import { sheetScreenOptions } from "../../../../shared/components/sheet";
+import { useTheme } from "../../../../shared/theme/theme-provider";
 
 /** Deep links retain the search page behind either native modal route. */
 export const unstable_settings = { anchor: "index" };

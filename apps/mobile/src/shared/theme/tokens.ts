@@ -40,6 +40,9 @@ export const appearanceColors = {
     secondaryText: "#62646A",
     icon: "#1C1C1E",
     error: "#B42340",
+    // UI Library action/danger and text/on-strong-color own count badge contrast in both appearances.
+    dangerAction: "#B42340",
+    onDangerAction: reference.white,
     focus: "#555555",
     overlayScrim: "#1010127A",
     onScrim: reference.white,
@@ -77,6 +80,8 @@ export const appearanceColors = {
     secondaryText: "#B8B8BC",
     icon: "#F7F7F8",
     error: "#FFB3C3",
+    dangerAction: "#B42340",
+    onDangerAction: reference.white,
     focus: "#F7F7F8",
     overlayScrim: "#1010127A",
     onScrim: reference.white,
@@ -216,6 +221,12 @@ export const tokens = {
       lineHeight: 50.4,
     },
     navigation: { fontFamily: "Outfit-Bold", fontSize: 16, lineHeight: 22 },
+    // UI Library bottom navigation 223:415 / 3305:1849; native text scaling supplies enlarged variants.
+    navigationLabel: {
+      fontFamily: "Outfit-Medium",
+      fontSize: 11,
+      lineHeight: 15,
+    },
     // Figma letter spacing is percent; React Native uses logical points (13 × 1%, 12 × 2%).
     label: {
       fontFamily: "Outfit-SemiBold",

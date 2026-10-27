@@ -1,3 +1,4 @@
+import { NotificationState } from "../../features/notifications/state/notification-state";
 import { Stack } from "expo-router";
 import { useTheme } from "../../shared/theme/theme-provider";
 import { sheetScreenOptions } from "../../shared/components/sheet";
@@ -6,16 +7,22 @@ import { sheetScreenOptions } from "../../shared/components/sheet";
 export default function OrdinaryLayout() {
   const { colors } = useTheme();
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="pro" options={{ presentation: "fullScreenModal" }} />
-      <Stack.Screen
-        name="sign-in-invitation"
-        options={{
-          ...sheetScreenOptions,
-          sheetAllowedDetents: "fitToContents",
-          contentStyle: { backgroundColor: colors.surface },
-        }}
-      />
-    </Stack>
+    <NotificationState>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="pro"
+          options={{ presentation: "fullScreenModal" }}
+        />
+        <Stack.Screen
+          name="sign-in-invitation"
+          options={{
+            ...sheetScreenOptions,
+            sheetAllowedDetents: "fitToContents",
+            contentStyle: { backgroundColor: colors.surface },
+          }}
+        />
+      </Stack>
+    </NotificationState>
   );
 }

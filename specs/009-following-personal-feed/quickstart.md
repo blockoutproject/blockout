@@ -112,9 +112,9 @@ blocking across a subsequent network failure until a successful read. The select
 event owns refresh feedback inside its Modal surface; retained Query errors emit no toast by effect.
 These tests establish neither native networking nor provider qualification.
 
-The existing `apps/mobile/src/app/(ordinary)/index.tsx` retains its entry/age guards and composes
-only the personal context and controls. Its current route replaces the earlier planned `(tabs)` path;
-no additional navigation owner is needed for this minimal Home. US3/US4 still own the business
+The existing `apps/mobile/src/app/(ordinary)/(tabs)/index.tsx` retains its entry/age guards and composes
+only the personal context and controls. F07 owns its ordinary tab placement;
+the personal context and controls remain with F06. US3/US4 still own the business
 lists/calendar and their scrolling. T021 supplies the bounded read boundary; T022/T029/T037 retain
 qualification through those actual views and endpoints.
 

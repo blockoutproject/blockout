@@ -1,7 +1,7 @@
 import { router, Stack } from "expo-router";
 import { Text } from "react-native";
 import { renderRouter } from "expo-router/testing-library";
-import SearchLayout from "../../../app/(ordinary)/search/_layout";
+import SearchLayout from "../../../app/(ordinary)/(tabs)/search/_layout";
 import { SearchFilters } from "../components/search-filters";
 import { SearchFilterChoice } from "../components/search-filter-choice";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";

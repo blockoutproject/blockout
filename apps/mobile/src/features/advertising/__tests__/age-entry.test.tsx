@@ -24,7 +24,7 @@ import { AccessibilityInfo, DeviceEventEmitter, Text } from "react-native";
 import { readAgeDeclaration, submitAgeDeclaration } from "../age-declaration";
 import RootLayout from "../../../app/_layout";
 import AgeRoute from "../../../app/age-declaration";
-import HomeRoute from "../../../app/(ordinary)/index";
+import HomeRoute from "../../../app/(ordinary)/(tabs)/index";
 import OnboardingRoute from "../../../app/onboarding";
 import SignInRoute from "../../../app/(ordinary)/sign-in";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
@@ -153,6 +153,7 @@ async function openEntry(initialUrl = "/sign-in") {
       "(operations)/administration/index": () => <Text>Operations</Text>,
       "(ordinary)/_layout": () => <Stack />,
       "(ordinary)/index": HomeRoute,
+      "(ordinary)/search": () => <Text>Public search</Text>,
       "(ordinary)/sign-in": SignInRoute,
       "(ordinary)/session": SessionProbe,
       "(ordinary)/legal": () => <Text>Public legal reading</Text>,
@@ -394,7 +395,7 @@ it("persists confirmation across a later launch without annual adult prompts or 
 
   // When
   await user.press(screen.getByRole("button", { name: "Continuer" }));
-  await waitFor(() => expect(screen).toHavePathname("/"));
+  await waitFor(() => expect(screen).toHavePathname("/search"));
   await view.unmount();
   await openEntry("/");
 
