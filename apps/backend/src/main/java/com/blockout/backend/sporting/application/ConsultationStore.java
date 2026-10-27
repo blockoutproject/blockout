@@ -5,6 +5,8 @@ import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -14,6 +16,29 @@ import java.util.UUID;
  * composition.
  */
 public interface ConsultationStore {
+  /**
+   * Selects up to eight nonempty days, including one lookahead, under the caller's transaction.
+   *
+   * @param request admitted selector and captured grouping context
+   * @param now common classification instant
+   * @return distinct ordered display days after the exclusive continuation
+   */
+  List<LocalDate> calendarDays(ConsultationRequest.CalendarRequest request, Instant now);
+
+  /**
+   * Reads every eligible row in the selected complete days without a match-count cap.
+   *
+   * @param request same admitted selector/category/zone used for day selection
+   * @param days at most seven selected nonempty display days
+   * @param now same classification instant as day selection
+   * @return ordered detached entries from the same repeatable-read snapshot
+   */
+  List<CalendarEntry> calendarMatches(
+      ConsultationRequest.CalendarRequest request, List<LocalDate> days, Instant now);
+
+  /** One accepted match and its PostgreSQL-derived display day, without a fabricated instant. */
+  record CalendarEntry(LocalDate day, MatchInput match) {}
+
   /**
    * Reads current metadata for an already selected set of sporting divisions without image bytes.
    *

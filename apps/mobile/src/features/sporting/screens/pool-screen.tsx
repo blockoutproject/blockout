@@ -1,3 +1,4 @@
+import { SportingCalendars } from "../components/sporting-calendar";
 import { ResourceText } from "../components/resource-text";
 import { Tabs } from "../../../shared/components/tabs";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
@@ -66,77 +67,95 @@ function PoolPage({
     if (result.isError && result.data && !isAccessDenied(result.error))
       feedback.error();
   }
+  const category = tab === "upcoming" || tab === "completed" ? tab : undefined;
+  const identity = data ? (
+    <SportingIdentity
+      identity={data.pool.pool}
+      kind="pool"
+      classification={data.pool.classification}
+      season={data.pool.season}
+      subtitle={[data.pool.competitionName, data.pool.phaseName]
+        .filter(Boolean)
+        .join(" · ")}
+    >
+      {renderFollow?.(
+        data.pool.pool,
+        data.pool.season,
+        data.pool.classification.division?.color,
+      )}
+    </SportingIdentity>
+  ) : undefined;
+  const toolbar = (
+    <Tabs
+      selected={tab}
+      onSelect={setTab}
+      items={[
+        { id: "standings", label: "Classement" },
+        { id: "upcoming", label: "À venir" },
+        { id: "completed", label: "Terminés" },
+        { id: "map", label: "Carte" },
+      ]}
+    />
+  );
   const blockingState = !data ? <ReadFeedback query={pool} /> : undefined;
   return (
     <Page>
       <PageHeader title="Poule" />
-      <PageScrollView
-        refreshControl={
-          !data ? (
-            <DataRefreshControl
-              refreshing={pool.isRefetching}
-              onRefresh={() => void refresh()}
-            />
-          ) : undefined
-        }
-      >
-        {blockingState ? (
-          <ScreenState>{blockingState}</ScreenState>
-        ) : (
-          <PageContent>
-            {data && (
-              <>
-                <SportingIdentity
-                  identity={data.pool.pool}
-                  kind="pool"
-                  classification={data.pool.classification}
-                  season={data.pool.season}
-                  subtitle={[data.pool.competitionName, data.pool.phaseName]
-                    .filter(Boolean)
-                    .join(" · ")}
-                >
-                  {renderFollow?.(
-                    data.pool.pool,
-                    data.pool.season,
-                    data.pool.classification.division?.color,
-                  )}
-                </SportingIdentity>
-                <Tabs
-                  selected={tab}
-                  onSelect={setTab}
-                  items={[
-                    { id: "standings", label: "Classement" },
-                    { id: "upcoming", label: "À venir" },
-                    { id: "completed", label: "Terminés" },
-                    { id: "map", label: "Carte" },
-                  ]}
-                />
-                {tab === "standings"
-                  ? (renderStandings?.(data.pool) ?? (
-                      <ResourceText>
-                        Classement indisponible pour le moment
-                      </ResourceText>
-                    ))
-                  : tab === "map"
-                    ? (renderMap?.(data.pool) ?? (
+      {(!category || renderCalendar || !data) && (
+        <PageScrollView
+          refreshControl={
+            !data ? (
+              <DataRefreshControl
+                refreshing={pool.isRefetching}
+                onRefresh={() => void refresh()}
+              />
+            ) : undefined
+          }
+        >
+          {blockingState ? (
+            <ScreenState>{blockingState}</ScreenState>
+          ) : (
+            <PageContent>
+              {data && (
+                <>
+                  {identity}
+                  {toolbar}
+                  {tab === "standings"
+                    ? (renderStandings?.(data.pool) ?? (
                         <ResourceText>
-                          Carte indisponible pour le moment
+                          Classement indisponible pour le moment
                         </ResourceText>
                       ))
-                    : (renderCalendar?.({
-                        poolId,
-                        category:
-                          tab === "completed" ? "completed" : "upcoming",
-                      }) ?? (
-                        <ResourceText>
-                          Calendrier indisponible pour le moment
-                        </ResourceText>
-                      ))}
-              </>
-            )}
-          </PageContent>
-        )}
-      </PageScrollView>
+                    : tab === "map"
+                      ? (renderMap?.(data.pool) ?? (
+                          <ResourceText>
+                            Carte indisponible pour le moment
+                          </ResourceText>
+                        ))
+                      : (renderCalendar?.({
+                          poolId,
+                          category:
+                            tab === "completed" ? "completed" : "upcoming",
+                        }) ?? (
+                          <ResourceText>
+                            Calendrier indisponible pour le moment
+                          </ResourceText>
+                        ))}
+                </>
+              )}
+            </PageContent>
+          )}
+        </PageScrollView>
+      )}
+      {data && !renderCalendar && (
+        <SportingCalendars
+          selector={{ poolId }}
+          category={category}
+          header={identity}
+          toolbar={toolbar}
+          onSelect={setTab}
+        />
+      )}
     </Page>
   );
 }

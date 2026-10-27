@@ -242,13 +242,13 @@ export function createConsultationQueries(
         throw new Error("Calendar requires a club/season, team or pool");
       // Native Intl validates the selected grouping zone without a second time-zone registry.
       new Intl.DateTimeFormat("en", { timeZone: params.timeZone });
-      return queryOptions({
+      return {
         queryKey: key(getListMatchesQueryKey(params)),
-        queryFn: async (context) =>
+        queryFn: async (context: QueryFunctionContext) =>
           listMatches(params, await request(context)).catch((error: unknown) =>
             rejectUnavailable(error, context),
           ),
-      });
+      };
     },
     /** Current dated match facts on opening; foreground refresh belongs to the match story. */
     match: (matchId: string) =>
