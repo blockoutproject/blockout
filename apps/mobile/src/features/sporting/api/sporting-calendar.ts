@@ -3,6 +3,7 @@ import {
   infiniteQueryOptions,
   type InfiniteData,
   type QueryClient,
+  type QueryKey,
 } from "@tanstack/react-query";
 import type {
   ListMatchesParams,
@@ -94,6 +95,46 @@ export async function refreshCalendar(
 ) {
   await client.cancelQueries({ queryKey: options.queryKey, exact: true });
   return client.infiniteQuery({ ...options, staleTime: 0, pages: 1 });
+}
+
+/**
+ * Applies a known match refusal to retained calendars in the captured session/bypass context.
+ * Cancels older reads without reverting their data, then removes only that identity; source times,
+ * grouping and continuation remain unchanged. No refusal registry or new network read is created.
+ */
+export async function removeUnavailableCalendarMatch(
+  client: QueryClient,
+  queryKey: QueryKey,
+  matchId: string,
+) {
+  await client.cancelQueries({ queryKey }, { revert: false });
+  for (const query of client.getQueryCache().findAll({ queryKey })) {
+    const data = client.getQueryData<InfiniteData<MatchCalendarResponse>>(
+      query.queryKey,
+    );
+    if (data)
+      query.setState({
+        data: {
+          ...data,
+          pages: data.pages.map((page) => ({
+            ...page,
+            days: page.days
+              .map((day) => ({
+                ...day,
+                pools: day.pools
+                  .map((pool) => ({
+                    ...pool,
+                    matches: pool.matches.filter(
+                      (match) => match.id !== matchId,
+                    ),
+                  }))
+                  .filter((pool) => pool.matches.length > 0),
+              }))
+              .filter((day) => day.pools.length > 0),
+          })),
+        },
+      });
+  }
 }
 
 /** Deduplicates moved encounters for rendering without mutating the server's retained pages. */

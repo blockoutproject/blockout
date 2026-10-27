@@ -26,11 +26,7 @@ import {
   SportingIdentity,
   SportingLink,
 } from "../components/sporting-identity";
-import {
-  poolLabel,
-  type RenderStandings,
-  type TeamCalendarSelection,
-} from "../model/resource-sections";
+import { poolLabel, type RenderStandings } from "../model/resource-sections";
 
 /** Optional F06/later-story owner compositions receive stable identities, independently of public reads. */
 export interface TeamScreenProps {
@@ -40,7 +36,6 @@ export interface TeamScreenProps {
     season: SportingSeasonResponse,
     contextColor?: string,
   ) => ReactNode;
-  renderCalendar?: (selection: TeamCalendarSelection) => ReactNode;
   renderStandings?: RenderStandings;
 }
 
@@ -53,12 +48,7 @@ export function TeamScreen(props: TeamScreenProps) {
 }
 
 /** One follow region and aggregate calendars remain attached to the team while phase tabs change. */
-function TeamPage({
-  teamId,
-  renderFollow,
-  renderCalendar,
-  renderStandings,
-}: TeamScreenProps) {
+function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
   const queries = useConsultationQueries();
   const team = useQuery(queries.team(teamId));
   const [selected, setSelected] = useState<string>();
@@ -134,51 +124,41 @@ function TeamPage({
                 : undefined;
             return {
               id: item.id,
-              content:
-                category && !renderCalendar ? (
-                  <SportingCalendar
-                    selection={{ teamId, category }}
-                    header={identity}
-                    toolbar={toolbar}
-                    active={tab === item.id}
-                  />
-                ) : (
-                  <PageScrollView>
-                    <PageContent>
-                      {identity}
-                      {toolbar}
-                      {participation ? (
-                        <>
-                          <Surface>
-                            <SportingLink
-                              kind="pool"
-                              id={participation.pool.id}
-                              label={poolLabel(participation)}
-                              identity={participation.classification.division}
-                            />
-                            <ResourceText>
-                              {participation.competitionName}
-                            </ResourceText>
-                          </Surface>
-                          {renderStandings?.(participation) ?? (
-                            <ResourceText>
-                              Classement indisponible pour le moment
-                            </ResourceText>
-                          )}
-                        </>
-                      ) : (
-                        (renderCalendar?.({
-                          teamId,
-                          category: category ?? "upcoming",
-                        }) ?? (
+              content: category ? (
+                <SportingCalendar
+                  selection={{ teamId, category }}
+                  header={identity}
+                  toolbar={toolbar}
+                  active={tab === item.id}
+                />
+              ) : (
+                <PageScrollView>
+                  <PageContent>
+                    {identity}
+                    {toolbar}
+                    {participation && (
+                      <>
+                        <Surface>
+                          <SportingLink
+                            kind="pool"
+                            id={participation.pool.id}
+                            label={poolLabel(participation)}
+                            identity={participation.classification.division}
+                          />
                           <ResourceText>
-                            Calendrier indisponible pour le moment
+                            {participation.competitionName}
                           </ResourceText>
-                        ))
-                      )}
-                    </PageContent>
-                  </PageScrollView>
-                ),
+                        </Surface>
+                        {renderStandings?.(participation) ?? (
+                          <ResourceText>
+                            Classement indisponible pour le moment
+                          </ResourceText>
+                        )}
+                      </>
+                    )}
+                  </PageContent>
+                </PageScrollView>
+              ),
             };
           })}
         />

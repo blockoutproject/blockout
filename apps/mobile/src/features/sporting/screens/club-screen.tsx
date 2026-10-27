@@ -16,7 +16,7 @@ import { EmptyState } from "../../../shared/components/state-card";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Surface } from "../../../shared/components/surface";
 import { hashKey, useQuery } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Globe, Mail, MapPin, Phone } from "lucide-react-native";
 import { FlatList, StyleSheet, View } from "react-native";
 import { tokens } from "../../../shared/theme/tokens";
@@ -34,12 +34,10 @@ import {
   phoneDestination,
   safeWebsite,
 } from "../components/contact-link";
-import type { ClubCalendarSelection } from "../model/resource-sections";
 
-/** Resource identity plus the calendar owner's optional active-tab composition boundary. */
+/** Exact club identity; the page composes the single native calendar owner. */
 export interface ClubScreenProps {
   clubId: string;
-  renderCalendar?: (selection: ClubCalendarSelection) => ReactNode;
 }
 
 /** Opens public club information without waiting for an account or entitlement. */
@@ -51,7 +49,7 @@ export function ClubScreen(props: ClubScreenProps) {
 }
 
 /** Retains a valid season across common reads; only successful disappearance derives the fallback. */
-function ClubPage({ clubId, renderCalendar }: ClubScreenProps) {
+function ClubPage({ clubId }: ClubScreenProps) {
   const queries = useConsultationQueries();
   const club = useQuery(queries.club(clubId));
   const [tab, setTab] = useState("info");
@@ -151,9 +149,7 @@ function ClubPage({ clubId, renderCalendar }: ClubScreenProps) {
             (value) => ({
               id: value,
               content:
-                (value === "upcoming" || value === "completed") &&
-                season &&
-                !renderCalendar ? (
+                (value === "upcoming" || value === "completed") && season ? (
                   <SportingCalendar
                     key={season.id}
                     selection={{ clubId, seasonId: season.id, category: value }}
@@ -269,23 +265,14 @@ function ClubPage({ clubId, renderCalendar }: ClubScreenProps) {
                               </>
                             ) : (
                               season &&
-                              (value === "teams" ? (
+                              value === "teams" && (
                                 <>
                                   {!teamData && <ReadFeedback query={teams} />}
                                   {teamData?.items.length === 0 && (
                                     <EmptyState title="Aucune équipe pour cette saison" />
                                   )}
                                 </>
-                              ) : (
-                                (renderCalendar?.({
-                                  clubId,
-                                  seasonId: season.id,
-                                  category:
-                                    value === "completed"
-                                      ? "completed"
-                                      : "upcoming",
-                                }) ?? null)
-                              ))
+                              )
                             )}
                           </>
                         )}

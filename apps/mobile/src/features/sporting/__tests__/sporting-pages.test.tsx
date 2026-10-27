@@ -171,14 +171,7 @@ async function renderPage(content: ReactElement) {
 it("shares the newest/selected club season between teams and both calendar entries", async () => {
   // Given
   const user = userEvent.setup();
-  await renderPage(
-    <ClubScreen
-      clubId={sportingId}
-      renderCalendar={(selection) => (
-        <Text>{`Calendar ${selection.seasonId} ${selection.category}`}</Text>
-      )}
-    />,
-  );
+  await renderPage(<ClubScreen clubId={sportingId} />);
   await screen.findByText(club.club.name);
 
   // When
@@ -189,15 +182,24 @@ it("shares the newest/selected club season between teams and both calendar entri
   await user.press(screen.getByRole("tab", { name: "À venir" }));
 
   // Then
-  expect(
-    screen.getByText(`Calendar ${olderSeason.id} upcoming`),
-  ).toBeOnTheScreen();
+  await screen.findByText("Aucun match pour cette sélection");
   // When
   await user.press(screen.getByRole("tab", { name: "Terminés" }));
   // Then
-  expect(
-    screen.getByText(`Calendar ${olderSeason.id} completed`),
-  ).toBeOnTheScreen();
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls
+        .map(([url]) => new URL(url))
+        .filter((url) => url.pathname === "/matches")
+        .map((url) => [
+          url.searchParams.get("seasonId"),
+          url.searchParams.get("category"),
+        ]),
+    ).toEqual([
+      [olderSeason.id, "upcoming"],
+      [olderSeason.id, "completed"],
+    ]),
+  );
   expect(
     mockFetch.mock.calls.some(([url]) =>
       String(url).includes(`seasonId=${olderSeason.id}`),

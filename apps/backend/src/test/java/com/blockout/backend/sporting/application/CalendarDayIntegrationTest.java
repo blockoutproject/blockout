@@ -5,6 +5,7 @@ import static org.mockito.Mockito.when;
 
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
 import com.blockout.backend.sporting.application.ConsultationRequest.CalendarRequest;
+import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.support.MatchCalendarFixture;
 import com.blockout.backend.sporting.support.SportingIdentityFixture;
@@ -51,7 +52,7 @@ class CalendarDayIntegrationTest {
   @DisplayName("Only a definitive result classifies a future match as completed early")
   void classifiesEarlyResults(String state, CalendarCategoryEnum category) {
     // Given
-    var match =
+    MatchView match =
         fixtures.match(
             scope.pool(),
             "FUTURE",

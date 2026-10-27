@@ -23,10 +23,7 @@ import type {
 import { useConsultationQueries } from "../api/use-consultation-queries";
 
 import { SportingIdentity } from "../components/sporting-identity";
-import type {
-  PoolCalendarSelection,
-  RenderStandings,
-} from "../model/resource-sections";
+import type { RenderStandings } from "../model/resource-sections";
 
 /** Independent pool content comes from its owning stories; absence creates no invented table/map. */
 export interface PoolScreenProps {
@@ -36,7 +33,6 @@ export interface PoolScreenProps {
     season: SportingSeasonResponse,
     contextColor?: string,
   ) => ReactNode;
-  renderCalendar?: (selection: PoolCalendarSelection) => ReactNode;
   renderStandings?: RenderStandings;
   renderMap?: (pool: PoolSummaryResponse) => ReactNode;
 }
@@ -53,7 +49,6 @@ export function PoolScreen(props: PoolScreenProps) {
 function PoolPage({
   poolId,
   renderFollow,
-  renderCalendar,
   renderStandings,
   renderMap,
 }: PoolScreenProps) {
@@ -120,8 +115,7 @@ function PoolPage({
             (value) => ({
               id: value,
               content:
-                (value === "upcoming" || value === "completed") &&
-                !renderCalendar ? (
+                value === "upcoming" || value === "completed" ? (
                   <SportingCalendar
                     selection={{ poolId, category: value }}
                     header={identity}
@@ -140,20 +134,11 @@ function PoolPage({
                                 Classement indisponible pour le moment
                               </ResourceText>
                             ))
-                          : value === "map"
-                            ? (renderMap?.(data.pool) ?? (
-                                <ResourceText>
-                                  Carte indisponible pour le moment
-                                </ResourceText>
-                              ))
-                            : (renderCalendar?.({
-                                poolId,
-                                category: value,
-                              }) ?? (
-                                <ResourceText>
-                                  Calendrier indisponible pour le moment
-                                </ResourceText>
-                              )))}
+                          : (renderMap?.(data.pool) ?? (
+                              <ResourceText>
+                                Carte indisponible pour le moment
+                              </ResourceText>
+                            )))}
                     </PageContent>
                   </PageScrollView>
                 ),

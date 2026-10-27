@@ -268,6 +268,42 @@ it("removes known forbidden data before a later transport failure can redisplay 
   expect(client.getQueryData(options.queryKey)).toBeUndefined();
 });
 
+it("removes a refused match detail from retained calendars without reclassifying other rows", async () => {
+  // Given: actual generated detail/calendar requests share the current session and Query cache.
+  const options = createCalendarOptions(queries, selection);
+  const first = page("2026-09-20", sportingId, "2026-09-20");
+  const otherId = "00000000-0000-4000-8000-000000000003";
+  first.days[0].pools[0].matches.push({ ...matchDetail().match, id: otherId });
+  mockFetch.mockResolvedValueOnce(Response.json(first));
+  const observer = new InfiniteQueryObserver(client, options);
+  const unsubscribe = observer.subscribe(() => {});
+  await waitFor(() => expect(observer.getCurrentResult().isSuccess).toBe(true));
+  const late = Promise.withResolvers<Response>();
+  mockFetch.mockReturnValueOnce(late.promise);
+  const append = observer.fetchNextPage();
+  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
+  mockFetch.mockResolvedValueOnce(Response.json({}, { status: 404 }));
+
+  // When: a late calendar response deliberately ignores abort after current detail refuses the match.
+  await expect(client.query(queries.match(sportingId))).rejects.toBeDefined();
+  late.resolve(Response.json(page("2026-09-21")));
+  await append;
+
+  // Then
+  expect(
+    calendarDays(observer.getCurrentResult().data).flatMap((day) =>
+      day.pools.flatMap((pool) => pool.matches.map((match) => match.id)),
+    ),
+  ).toEqual([otherId]);
+  expect(observer.getCurrentResult().data?.pages[0].evaluatedAt).toBe(
+    first.evaluatedAt,
+  );
+  expect(observer.getCurrentResult().data?.pages[0].nextDay).toBe(
+    first.nextDay,
+  );
+  unsubscribe();
+});
+
 it("deduplicates appended identities while preserving server day pool and category order", () => {
   // Given
   const first = page("2026-09-20");
