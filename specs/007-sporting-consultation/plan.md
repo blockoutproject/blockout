@@ -71,6 +71,8 @@ apps/mobile/                        # Thin routes, sporting queries/maps/PDF rea
 
 ## Backend reads and ownership
 
+`ReadSportingResources` composes detached batch summaries for direct reads, relationship lists and Search using the same owner rules. Scalar projections supply current names and logo presence without loading image bytes; actual binary reads retain their own authorization and storage boundary. The [shared composition plan](../003-shared-quality/plan.md#common-backend-composition) owns the technical pattern and verification requirements.
+
 The backend supplies the mobile API. F02 owns identities, classifications, source/manual effective values, result interpretation, visibility and stored references. F03 owns presentation projections and calendar categories. Return public summaries needed by cards and relationships in their read response; do not expose editing revisions, source contact fallbacks or user follow state in public data.
 
 Use resource reads for club detail, club teams by season, team detail, pool detail, pool standings, pool participants, filtered matches and match detail. Document and logo subresources deliver their binary content. The [contract notes](contracts/README.md) identify canonical sources and consumers; no endpoint is added merely for an individual screen.
@@ -78,6 +80,8 @@ Use resource reads for club detail, club teams by season, team detail, pool deta
 An ordinary request is public and must not wait for account/Pro state. The optional explicit maintenance bypass uses the existing F12 header and valid authorized account; invalid bypass credentials do not silently become public admission. Unknown/hidden resources return ordinary NotFound without revealing retained data. Known restrictions apply to reads, relationships, images and PDF delivery. Return `Cache-Control: no-store`; mobile memory retention is explicitly governed by F03/F05 rather than HTTP caching.
 
 ## Calendar selection and consistency
+
+`MatchPresentation` owns the elapsed completion delay and date-only civil zone used by both Java classification and native database selection. They share these domain thresholds without replacing SQL predicates with in-memory filtering.
 
 Each request selects exactly one club, team or pool; a club includes its selected season. Category and IANA grouping zone are explicit. Select seven complete nonempty display days, then their matches in one short read-only repeatable-read transaction. Use JPA/Hibernate projections with PostgreSQL time-zone functions where needed; no alternate SQL subsystem is selected.
 

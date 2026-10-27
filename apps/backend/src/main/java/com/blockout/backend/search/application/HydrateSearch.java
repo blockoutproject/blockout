@@ -8,7 +8,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -34,28 +36,40 @@ public class HydrateSearch {
     Map<UUID, String> cities = new HashMap<>();
     for (SearchEngine.Candidate candidate : candidates)
       cities.put(candidate.position().id(), candidate.city());
+    List<SportingPublicInput> admitted =
+        owners
+            .publicInputs(
+                switch (context.resource()) {
+                  case CLUB -> Kind.CLUB;
+                  case TEAM -> Kind.TEAM;
+                  case POOL -> Kind.POOL;
+                },
+                cities.keySet())
+            .stream()
+            .filter(
+                input ->
+                    Objects.equals(cities.get(input.id()), input.city()) && matches(context, input))
+            .toList();
+    Set<UUID> ids = admitted.stream().map(SportingPublicInput::id).collect(Collectors.toSet());
     Map<UUID, SearchPage.Summary> result = new HashMap<>();
-    for (SportingPublicInput input :
-        owners.publicInputs(
-            switch (context.resource()) {
-              case CLUB -> Kind.CLUB;
-              case TEAM -> Kind.TEAM;
-              case POOL -> Kind.POOL;
-            },
-            cities.keySet())) {
-      if (!Objects.equals(cities.get(input.id()), input.city()) || !matches(context, input))
-        continue;
-      SearchPage.Summary summary =
-          switch (context.resource()) {
-            case CLUB ->
-                new SearchPage.Summary(
-                    new SearchPage.Club(resources.clubIdentity(input.id()), input.city()),
-                    null,
-                    null);
-            case TEAM -> new SearchPage.Summary(null, resources.teamSummary(input.id()), null);
-            case POOL -> new SearchPage.Summary(null, null, resources.pool(input.id()).pool());
-          };
-      result.put(input.id(), summary);
+    switch (context.resource()) {
+      case CLUB ->
+          resources
+              .clubIdentities(ids)
+              .forEach(
+                  (id, club) ->
+                      result.put(
+                          id,
+                          new SearchPage.Summary(
+                              new SearchPage.Club(club, cities.get(id)), null, null)));
+      case TEAM ->
+          resources
+              .teamSummaries(ids)
+              .forEach((id, team) -> result.put(id, new SearchPage.Summary(null, team, null)));
+      case POOL ->
+          resources
+              .poolSummaries(ids)
+              .forEach((id, pool) -> result.put(id, new SearchPage.Summary(null, null, pool)));
     }
     return Map.copyOf(result);
   }

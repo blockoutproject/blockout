@@ -16,10 +16,14 @@ import com.blockout.backend.search.application.SearchUnavailableException;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import com.blockout.backend.sporting.api.ConsultationApiMapperImpl;
 import com.blockout.backend.sporting.application.ConsultationViews;
+import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -36,7 +40,6 @@ import org.springframework.test.web.servlet.ResultActions;
 @AutoConfigureMockMvc(addFilters = false)
 @Import({
   DiscoveryRequest.class,
-  DiscoveryWebConfiguration.class,
   DiscoveryApiMapperImpl.class,
   ConsultationApiMapperImpl.class,
   DiscoveryExceptionHandler.class,
@@ -77,17 +80,16 @@ class DiscoveryWebMvcTest {
         .andExpect(jsonPath("$.nextCursor").doesNotExist());
   }
 
-  @org.junit.jupiter.params.ParameterizedTest
-  @org.junit.jupiter.params.provider.ValueSource(strings = {"teams", "pools"})
+  @ParameterizedTest
+  @ValueSource(strings = {"teams", "pools"})
   @DisplayName("Serializes current sporting summaries through each generated collection")
   void returnsSportingSummary(String resource) throws Exception {
     // Given
     UUID id = UUID.fromString("00000000-0000-4000-8000-000000000002");
     ConsultationViews.Identity identity =
         new ConsultationViews.Identity(id, "Current Eagles", "Eagles", "/current/logo");
-    com.blockout.backend.sporting.application.model.SportingViews.SeasonView season =
-        new com.blockout.backend.sporting.application.model.SportingViews.SeasonView(
-            UUID.fromString("00000000-0000-4000-8000-000000000003"), 2040L, "2040/2041");
+    SeasonView season =
+        new SeasonView(UUID.fromString("00000000-0000-4000-8000-000000000003"), 2040L, "2040/2041");
     ConsultationViews.Classification classification =
         new ConsultationViews.Classification(null, null, null);
     SearchPage.Summary summary =
@@ -149,5 +151,33 @@ class DiscoveryWebMvcTest {
     // Then
     response.andExpect(status().isBadRequest());
     verifyNoInteractions(reads);
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "format,_6X6",
+    "format,' 6x6 '",
+    "format,''",
+    "gender,FEMALE",
+    "gender,' female '",
+    "gender,''"
+  })
+  @DisplayName("Rejects noncanonical filter values before search evaluation")
+  void rejectsNoncanonicalFilters(String parameter, String value) throws Exception {
+    // Given
+    String path = "/teams";
+
+    // When
+    ResultActions response = mvc.perform(get(path).param(parameter, value));
+
+    // Then
+    response
+        .andExpect(status().isBadRequest())
+        .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:invalid-request"))
+        .andExpect(jsonPath("$.detail").doesNotExist())
+        .andExpect(jsonPath("$.instance").doesNotExist());
+    verifyNoInteractions(reads, options);
   }
 }

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.backend.generated.mobile.model.SupportRequestKindEnum;
+import com.blockout.backend.shared.image.ImageFixture;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -167,6 +168,22 @@ class SupportValidationTest {
         .isInstanceOf(SupportValidation.InvalidSubmission.class)
         .extracting("reason")
         .isEqualTo(SupportValidation.Reason.UNSUPPORTED_IMAGE);
+    assertEmptyTemporaryDirectory();
+  }
+
+  @Test
+  @DisplayName("Preserves valid original pixels without interpreting ancillary text metadata")
+  void ignoresMalformedOriginalMetadata() throws Exception {
+    // Given
+    SupportValidation validation = new SupportValidation(temporaryDirectory);
+    byte[] image = ImageFixture.pngWithMalformedCompressedText();
+
+    // When
+    try (SupportSubmission submission = validation.validate(metadata(), List.of(image))) {
+      // Then
+      assertThat(Files.readAllBytes(submission.images().getFirst().path())).isEqualTo(image);
+      assertThat(submission.images().getFirst().mediaType()).isEqualTo("image/png");
+    }
     assertEmptyTemporaryDirectory();
   }
 

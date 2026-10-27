@@ -8,7 +8,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.ffvb.FfvbDiscovery;
-import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import java.io.IOException;
@@ -21,6 +20,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -35,7 +35,7 @@ class DiscoverSeasonSourcesTest {
     URI root = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/seniors/2026-2027/index.htm");
     URI selector = root.resolve("pbscript.htm");
     URI missing = root.resolve("unavailable.htm");
-    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    ProviderPages http = mock(ProviderPages.class);
     when(http.page(root))
         .thenReturn(
             response(
@@ -89,7 +89,7 @@ class DiscoverSeasonSourcesTest {
     try (InputStream input = getClass().getResourceAsStream("/acquisition/ffvb/round.html")) {
       html = new String(input.readAllBytes(), Charset.forName("windows-1252"));
     }
-    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    ProviderPages http = mock(ProviderPages.class);
     when(http.page(round)).thenReturn(response(round, html));
     DiscoverSeasonSources service =
         new DiscoverSeasonSources(
@@ -109,7 +109,7 @@ class DiscoverSeasonSourcesTest {
             .build();
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action = () -> service.catalog(target);
+    ThrowingCallable action = () -> service.catalog(target);
 
     // Then
     assertThatThrownBy(action).isInstanceOf(FfvbAcquisitionException.class);
@@ -120,7 +120,7 @@ class DiscoverSeasonSourcesTest {
   void validatesBeforeConsumption() {
     // Given
     URI url = URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
-    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    ProviderPages http = mock(ProviderPages.class);
     when(http.page(url))
         .thenReturn(
             response(
@@ -145,8 +145,7 @@ class DiscoverSeasonSourcesTest {
     List<DiscoverSeasonSources.PageRead> consumed = new ArrayList<>();
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> service.catalog(target, () -> 1, consumed::add);
+    ThrowingCallable action = () -> service.catalog(target, () -> 1, consumed::add);
 
     // Then
     assertThatThrownBy(action).isInstanceOf(IllegalArgumentException.class);
@@ -158,7 +157,7 @@ class DiscoverSeasonSourcesTest {
   void retainsChampionshipStandings() {
     // Given
     URI url = URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
-    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    ProviderPages http = mock(ProviderPages.class);
     when(http.page(url))
         .thenReturn(
             response(
@@ -196,7 +195,7 @@ class DiscoverSeasonSourcesTest {
     URI entry = URI.create("https://www.ffvb.org/120-37-1-Championnats-Regionaux");
     URI broken = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/broken.htm");
     URI valid = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/valid.htm");
-    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    ProviderPages http = mock(ProviderPages.class);
     when(http.page(any()))
         .thenReturn(CompletableFuture.failedFuture(new IOException("Unavailable fixture")));
     when(http.page(entry))
@@ -237,8 +236,8 @@ class DiscoverSeasonSourcesTest {
    * @param html synthetic native markup
    * @return completed bounded transport response
    */
-  private CompletableFuture<ProviderHttpClient.Response> response(URI url, String html) {
+  private CompletableFuture<ProviderResponse> response(URI url, String html) {
     return CompletableFuture.completedFuture(
-        new ProviderHttpClient.Response(html.getBytes(Charset.forName("windows-1252")), url, true));
+        new ProviderResponse(html.getBytes(Charset.forName("windows-1252")), url, true));
   }
 }

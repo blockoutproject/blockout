@@ -2,13 +2,14 @@ package com.blockout.backend.sporting.infrastructure;
 
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
-import com.blockout.backend.shared.mapping.TemporalMapping;
 import com.blockout.backend.sporting.application.ConsultationMatchSelection;
 import com.blockout.backend.sporting.application.ConsultationRequest.CalendarRequest;
 import com.blockout.backend.sporting.application.ConsultationStore;
-import com.blockout.backend.sporting.application.ConsultationViews;
-import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.MatchPresentation;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
+import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
+import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
+import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Tuple;
 import jakarta.persistence.criteria.CommonAbstractCriteria;
@@ -23,7 +24,6 @@ import jakarta.persistence.criteria.Subquery;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +41,9 @@ import org.springframework.stereotype.Repository;
 public class JpaConsultationStore implements ConsultationStore, ConsultationMatchSelection {
   private final MatchRepository matches;
   private final DivisionRepository divisions;
+  private final TeamRepository teams;
+  private final PoolRepository pools;
+  private final SeasonRepository seasons;
   private final SportingPersistenceMapper mapper;
   private final EntityManager entityManager;
 
@@ -100,7 +103,8 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
         .map(
             row ->
                 new CalendarEntry(
-                    row.get(0, LocalDate.class), input(row.get(1, MatchEntity.class))))
+                    row.get(0, LocalDate.class),
+                    mapper.toMatchInput(row.get(1, MatchEntity.class))))
         .toList();
   }
 
@@ -175,11 +179,13 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
             builder.and(
                 builder.isNotNull(match.get("reliableStart")),
                 builder.lessThanOrEqualTo(
-                    match.get("reliableStart"), now.minusSeconds(6 * 60 * 60))),
+                    match.get("reliableStart"),
+                    now.minus(MatchPresentation.TIMED_COMPLETION_DELAY))),
             builder.and(
                 builder.isNull(match.get("reliableStart")),
                 builder.lessThan(
-                    match.get("localDate"), now.atZone(ZoneId.of("Europe/Paris")).toLocalDate())));
+                    match.get("localDate"),
+                    now.atZone(MatchPresentation.DATE_ONLY_ZONE).toLocalDate())));
     conditions.add(
         request.category() == CalendarCategoryEnum.COMPLETED ? completed : builder.not(completed));
     if (request.nextDay() != null)
@@ -214,9 +220,7 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
         .where(
             builder.isTrue(match.get("present")),
             builder.isNotNull(match.get("localDate")),
-            builder.isTrue(match.get("pool").get("catalogEligible")),
-            builder.isFalse(match.get("pool").get("calendarEmpty")),
-            builder.isTrue(match.get("pool").get("division").get("active")),
+            SportingVisibilityPredicates.pool(match.get("pool"), builder),
             builder.isTrue(match.get("homeTeam").get("division").get("active")),
             builder.isTrue(match.get("awayTeam").get("division").get("active")),
             builder.exists(home),
@@ -235,34 +239,34 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
 
   /** {@inheritDoc} */
   @Override
+  public Map<UUID, TeamView> teams(Set<UUID> ids) {
+    if (ids.isEmpty()) return Map.of();
+    return teams.findViews(ids).stream()
+        .collect(Collectors.toUnmodifiableMap(TeamView::id, value -> value));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Map<UUID, PoolView> pools(Set<UUID> ids) {
+    if (ids.isEmpty()) return Map.of();
+    return pools.findViews(ids).stream()
+        .collect(Collectors.toUnmodifiableMap(PoolView::id, value -> value));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Map<UUID, SeasonView> seasons(Set<UUID> ids) {
+    if (ids.isEmpty()) return Map.of();
+    return seasons.findAllById(ids).stream()
+        .map(mapper::toView)
+        .collect(Collectors.toUnmodifiableMap(SeasonView::id, value -> value));
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public Map<UUID, MatchInput> matches(Set<UUID> ids) {
     if (ids.isEmpty()) return Map.of();
     return matches.findPresentationByIdIn(ids).stream()
-        .collect(Collectors.toUnmodifiableMap(MatchEntity::getId, this::input));
-  }
-
-  /**
-   * Detaches the fetched match graph while preserving independent source observation times.
-   *
-   * @param match already selected dated match with its to-one owner graph
-   * @return accepted values without visibility or presentation decisions
-   */
-  private MatchInput input(MatchEntity match) {
-    PoolEntity pool = match.getPool();
-    return new MatchInput(
-        match.getId(),
-        pool.getId(),
-        match.getHomeTeam().getId(),
-        match.getAwayTeam().getId(),
-        mapper.toView(pool.getSeason()),
-        new SportingClassification(pool.getDivision().getId(), pool.getFormat(), pool.getGender()),
-        mapper.toDetail(pool.getDivision()),
-        new ConsultationViews.Schedule(
-            match.getLocalDate(),
-            TemporalMapping.toDate(match.getReliableStart()),
-            match.getTimeZone(),
-            TemporalMapping.toDate(match.getScheduleObservedAt())),
-        mapper.toResult(match),
-        match.getResultObservedAt());
+        .collect(Collectors.toUnmodifiableMap(MatchEntity::getId, mapper::toMatchInput));
   }
 }

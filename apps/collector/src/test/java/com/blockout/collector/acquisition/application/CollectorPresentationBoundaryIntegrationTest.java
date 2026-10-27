@@ -39,12 +39,14 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.imageio.ImageIO;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -66,6 +68,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -213,9 +216,15 @@ class CollectorPresentationBoundaryIntegrationTest {
     try {
       if (transport != null) transport.close();
     } finally {
-      if (imageHttp != null) imageHttp.close();
-      if (imagePeer != null) imagePeer.stop(0);
-      if (mobileHttp != null) mobileHttp.close();
+      try {
+        if (imageHttp != null) imageHttp.close();
+      } finally {
+        try {
+          if (imagePeer != null) imagePeer.stop(0);
+        } finally {
+          if (mobileHttp != null) mobileHttp.close();
+        }
+      }
     }
   }
 
@@ -224,11 +233,12 @@ class CollectorPresentationBoundaryIntegrationTest {
   void acquiresEachDistinctTeamOnce() {
     // Given
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
-    LnvAcquisition lnv = professional();
+    LnvAcquisition lnv = stubProfessionalWithNativeImages();
 
     // When
     boolean completed =
-        passage(lnv, mock(ClubSheets.class), mock(MunicipalGeocoder.class)).execute(cycle);
+        passageWithStubbedDiscovery(lnv, mock(ClubSheets.class), mock(MunicipalGeocoder.class))
+            .execute(cycle);
 
     // Then
     assertThat(completed).isTrue();
@@ -274,7 +284,10 @@ class CollectorPresentationBoundaryIntegrationTest {
     CollectorLifecycle.AdmittedCycle first = lifecycle.admit(CONTROL, null, 0, firstRequest);
     imageStatus = 404;
     assertThat(
-            passage(professional(), mock(ClubSheets.class), mock(MunicipalGeocoder.class))
+            passageWithStubbedDiscovery(
+                    stubProfessionalWithNativeImages(),
+                    mock(ClubSheets.class),
+                    mock(MunicipalGeocoder.class))
                 .execute(first))
         .isTrue();
     UUID selected =
@@ -310,7 +323,10 @@ class CollectorPresentationBoundaryIntegrationTest {
     CollectorLifecycle.AdmittedCycle retry = lifecycle.admit(CONTROL, null, revision, retryRequest);
     CollectionBackend.TargetPage targets = backend.targets(retry.getCycle().id(), 0);
     boolean completed =
-        passage(professional(), mock(ClubSheets.class), mock(MunicipalGeocoder.class))
+        passageWithStubbedDiscovery(
+                stubProfessionalWithNativeImages(),
+                mock(ClubSheets.class),
+                mock(MunicipalGeocoder.class))
             .execute(retry);
 
     // Then
@@ -378,7 +394,10 @@ class CollectorPresentationBoundaryIntegrationTest {
 
     // When
     boolean completed =
-        passage(professional(), mock(ClubSheets.class), mock(MunicipalGeocoder.class))
+        passageWithStubbedDiscovery(
+                stubProfessionalWithNativeImages(),
+                mock(ClubSheets.class),
+                mock(MunicipalGeocoder.class))
             .execute(cycle);
 
     // Then
@@ -431,7 +450,8 @@ class CollectorPresentationBoundaryIntegrationTest {
 
     // When
     boolean completed =
-        passage(mock(LnvAcquisition.class), mock(ClubSheets.class), geocoder).execute(cycle);
+        passageWithStubbedDiscovery(mock(LnvAcquisition.class), mock(ClubSheets.class), geocoder)
+            .execute(cycle);
 
     // Then
     assertThat(completed).isTrue();
@@ -470,7 +490,8 @@ class CollectorPresentationBoundaryIntegrationTest {
 
     // When
     boolean completed =
-        passage(mock(LnvAcquisition.class), mock(ClubSheets.class), geocoder).execute(cycle);
+        passageWithStubbedDiscovery(mock(LnvAcquisition.class), mock(ClubSheets.class), geocoder)
+            .execute(cycle);
 
     // Then
     assertThat(completed).isTrue();
@@ -506,7 +527,8 @@ class CollectorPresentationBoundaryIntegrationTest {
 
     // When
     boolean completed =
-        passage(mock(LnvAcquisition.class), mock(ClubSheets.class), geocoder).execute(cycle);
+        passageWithStubbedDiscovery(mock(LnvAcquisition.class), mock(ClubSheets.class), geocoder)
+            .execute(cycle);
 
     // Then
     assertThat(completed).isTrue();
@@ -541,7 +563,8 @@ class CollectorPresentationBoundaryIntegrationTest {
 
     // When
     boolean completed =
-        passage(mock(LnvAcquisition.class), mock(ClubSheets.class), geocoder).execute(cycle);
+        passageWithStubbedDiscovery(mock(LnvAcquisition.class), mock(ClubSheets.class), geocoder)
+            .execute(cycle);
 
     // Then
     assertThat(completed).isTrue();
@@ -590,7 +613,9 @@ class CollectorPresentationBoundaryIntegrationTest {
 
     // When
     boolean completed =
-        passage(mock(LnvAcquisition.class), sheets, mock(MunicipalGeocoder.class)).execute(cycle);
+        passageWithStubbedDiscovery(
+                mock(LnvAcquisition.class), sheets, mock(MunicipalGeocoder.class))
+            .execute(cycle);
 
     // Then
     assertThat(completed).isTrue();
@@ -633,8 +658,12 @@ class CollectorPresentationBoundaryIntegrationTest {
     presentation(team, "replace", "Manual team", manual);
     String revision = presentation(team).path("revision").asString();
 
-    // When / Then
-    assertThatThrownBy(() -> presentation(team, "replace", "Rejected name", new byte[] {1, 2, 3}))
+    // When
+    ThrowingCallable replace =
+        () -> presentation(team, "replace", "Rejected name", new byte[] {1, 2, 3});
+
+    // Then
+    assertThatThrownBy(replace)
         .isInstanceOfSatisfying(
             HttpClientErrorException.class,
             failure -> assertThat(failure.getStatusCode().value()).isEqualTo(422));
@@ -721,7 +750,7 @@ class CollectorPresentationBoundaryIntegrationTest {
    * @param geocoder controlled municipal response or failure
    * @return production orchestration with real backend clients
    */
-  private CollectPassage passage(
+  private CollectPassage passageWithStubbedDiscovery(
       LnvAcquisition lnv, ClubSheets sheets, MunicipalGeocoder geocoder) {
     DiscoverSeasonSources discovery = mock(DiscoverSeasonSources.class);
     when(discovery.catalog(any(), any(), any()))
@@ -745,7 +774,7 @@ class CollectorPresentationBoundaryIntegrationTest {
    *
    * @return controlled interpretation with actual bounded HTTP image reads
    */
-  private LnvAcquisition professional() {
+  private LnvAcquisition stubProfessionalWithNativeImages() {
     LnvAcquisition lnv = mock(LnvAcquisition.class);
     LnvAcquisition.Resource resource = mock(LnvAcquisition.Resource.class);
     when(lnv.read(any())).thenReturn(resource);
@@ -755,14 +784,7 @@ class CollectorPresentationBoundaryIntegrationTest {
             call ->
                 new LnvAcquisition.Calendar(
                     calendar(), Map.of("HOME", imageUrl, "AWAY", imageUrl), clock.instant(), null));
-    when(lnv.image(any()))
-        .thenAnswer(
-            call -> {
-              LnvTeamImages.Image image = images.read(call.getArgument(0));
-              return image == null
-                  ? null
-                  : new LnvAcquisition.Read<>(image.bytes(), image.observedAt());
-            });
+    when(lnv.image(any())).thenAnswer(call -> images.read(call.getArgument(0)));
     return lnv;
   }
 
@@ -799,7 +821,12 @@ class CollectorPresentationBoundaryIntegrationTest {
         cycle.getCycle().id(), cycle.nextReadOrdinal(), clock.instant(), null);
   }
 
-  /** Reads the canonical current contact response without a parallel transport model. */
+  /**
+   * Reads the canonical current contact response without a parallel transport model.
+   *
+   * @return current contact choices and their opaque revision
+   * @throws RestClientException when the local backend refuses or cannot complete the read
+   */
   private JsonNode contacts() {
     return mobile
         .get()
@@ -812,9 +839,10 @@ class CollectorPresentationBoundaryIntegrationTest {
    * Applies only supplied contact choices using the real current revision and controller.
    *
    * @param fields scenario-owned canonical field modes and values
+   * @throws RestClientException when the local backend refuses or cannot complete the correction
    */
   private void correct(Map<String, Object> fields) {
-    Map<String, Object> request = new java.util.LinkedHashMap<>(fields);
+    Map<String, Object> request = new LinkedHashMap<>(fields);
     request.put("revision", contacts().path("revision").asString());
     mobile
         .patch()
@@ -830,6 +858,7 @@ class CollectorPresentationBoundaryIntegrationTest {
    *
    * @param team original team UUID
    * @return current canonical presentation projection
+   * @throws RestClientException when the local backend refuses or cannot complete the read
    */
   private JsonNode presentation(UUID team) {
     return mobile
@@ -846,12 +875,14 @@ class CollectorPresentationBoundaryIntegrationTest {
    * @param action canonical keep/replace/automatic logo instruction
    * @param name desired manual full name
    * @param bytes image part only for replacement
+   * @throws RestClientException when the local backend rejects the multipart change or is
+   *     unavailable
    */
   private void presentation(UUID team, String action, String name, byte[] bytes) {
     MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
     HttpHeaders json = new HttpHeaders();
     json.setContentType(MediaType.APPLICATION_JSON);
-    Map<String, Object> metadata = new java.util.LinkedHashMap<>();
+    Map<String, Object> metadata = new LinkedHashMap<>();
     metadata.put("revision", presentation(team).path("revision").asString());
     metadata.put("logoAction", action);
     metadata.put("manualName", name);

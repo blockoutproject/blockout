@@ -1,7 +1,6 @@
 package com.blockout.collector.acquisition.application;
 
 import com.blockout.collector.acquisition.ffvb.FfvbDiscovery;
-import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import java.net.URI;
@@ -53,8 +52,8 @@ public class DiscoverSeasonSources {
               "lnv-men-first", URI.create("https://www.lnv.fr/competitions/alterna-volstar")),
           new CurrentEntry(
               "lnv-men-second", URI.create("https://www.lnv.fr/competitions/volstar-masculine-2")));
-  private final ProviderHttpClient ffvbHttp;
-  private final ProviderHttpClient lnvHttp;
+  private final ProviderPages ffvbHttp;
+  private final ProviderPages lnvHttp;
   private final FfvbDiscovery ffvb;
   private final LnvDiscovery lnv;
   private final CollectionBackend backend;
@@ -65,7 +64,7 @@ public class DiscoverSeasonSources {
   public record Read(SportingObservation.Catalog catalog, Instant observedAt) {}
 
   /** One bounded response consumed immediately, never retained as a passage page cache. */
-  public record PageRead(ProviderHttpClient.Response response, Instant observedAt, long ordinal) {}
+  public record PageRead(ProviderResponse response, Instant observedAt, long ordinal) {}
 
   /**
    * Composes the existing budgets, native interpreters and generated proposal boundary.
@@ -79,8 +78,8 @@ public class DiscoverSeasonSources {
    * @param clock actual read times
    */
   public DiscoverSeasonSources(
-      @Qualifier("ffvbProviderClient") ProviderHttpClient ffvbHttp,
-      @Qualifier("lnvProviderClient") ProviderHttpClient lnvHttp,
+      @Qualifier("ffvbProviderClient") ProviderPages ffvbHttp,
+      @Qualifier("lnvProviderClient") ProviderPages lnvHttp,
       FfvbDiscovery ffvb,
       LnvDiscovery lnv,
       CollectionBackend backend,
@@ -108,7 +107,7 @@ public class DiscoverSeasonSources {
       boolean complete = true;
       try {
         lifecycle.requireActive();
-        ProviderHttpClient.Response page = lnvHttp.page(entry.url()).join();
+        ProviderResponse page = lnvHttp.page(entry.url()).join();
         for (Element frame :
             Jsoup.parse(new String(page.body(), StandardCharsets.UTF_8), page.url().toString())
                 .select("iframe[src]")) {
@@ -116,7 +115,7 @@ public class DiscoverSeasonSources {
           if (!"lnv-web.dataproject.com".equalsIgnoreCase(candidate.getHost())) continue;
           String competition = query(candidate).get("ID");
           if (competition == null) continue;
-          ProviderHttpClient.Response source = lnvHttp.page(candidate).join();
+          ProviderResponse source = lnvHttp.page(candidate).join();
           String season = lnv.qualify(source.body(), source.url(), competition);
           usable = true;
           if (season != null)
@@ -169,7 +168,7 @@ public class DiscoverSeasonSources {
       lifecycle.requireActive();
       try {
         long ordinal = nextOrdinal.getAsLong();
-        ProviderHttpClient.Response response = ffvbHttp.page(url).join();
+        ProviderResponse response = ffvbHttp.page(url).join();
         observedAt = clock.instant();
         ffvb.requireContext(response.url(), target.seasonLabel(), target.organizerReference());
         consume.accept(new PageRead(response, observedAt, ordinal));
@@ -216,7 +215,7 @@ public class DiscoverSeasonSources {
   private Read lnvCatalog(
       CollectionBackend.Target target, LongSupplier nextOrdinal, Consumer<PageRead> consume) {
     long rootOrdinal = nextOrdinal.getAsLong();
-    ProviderHttpClient.Response root = lnvHttp.page(target.url()).join();
+    ProviderResponse root = lnvHttp.page(target.url()).join();
     Instant observedAt = clock.instant();
     String season = lnv.qualify(root.body(), root.url(), target.organizerReference());
     if (season != null && !season.equals(target.seasonLabel()))
@@ -227,7 +226,7 @@ public class DiscoverSeasonSources {
     for (URI phase : lnv.phaseLinks(root.body(), root.url(), target.organizerReference())) {
       lifecycle.requireActive();
       try {
-        ProviderHttpClient.Response page = root;
+        ProviderResponse page = root;
         if (!phase.equals(root.url())) {
           long ordinal = nextOrdinal.getAsLong();
           page = lnvHttp.page(phase).join();
@@ -291,7 +290,7 @@ public class DiscoverSeasonSources {
     boolean usable = false;
     boolean complete = true;
     try {
-      ProviderHttpClient.Response page = ffvbHttp.page(entry).join();
+      ProviderResponse page = ffvbHttp.page(entry).join();
       Set<URI> seen = new LinkedHashSet<>();
       ArrayDeque<URI> pending = new ArrayDeque<>(ffvb.navigation(page.body(), page.url()));
       while (!pending.isEmpty()) {
@@ -300,7 +299,7 @@ public class DiscoverSeasonSources {
         if (seen.size() > 512) throw new IllegalArgumentException("Discovery navigation bound");
         lifecycle.requireActive();
         try {
-          ProviderHttpClient.Response source = ffvbHttp.page(candidate).join();
+          ProviderResponse source = ffvbHttp.page(candidate).join();
           List<URI> links = ffvb.navigation(source.body(), source.url());
           List<String> organizers =
               links.stream()

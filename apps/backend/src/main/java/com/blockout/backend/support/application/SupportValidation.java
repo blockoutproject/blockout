@@ -1,32 +1,29 @@
 package com.blockout.backend.support.application;
 
-import java.io.ByteArrayInputStream;
+import com.blockout.backend.shared.image.ImageDecoder;
+import com.blockout.backend.shared.image.ImageDecoder.DecodedImage;
+import com.blockout.backend.shared.image.ImageDecoder.UnsupportedFormatException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.stream.MemoryCacheImageInputStream;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 /** Completes file validation before creating private originals or admitting a provider effect. */
+@RequiredArgsConstructor
 public final class SupportValidation {
   private static final int MAX_FILE_BYTES = 5_242_880;
   private static final long MAX_DECODED_BYTES = 64L * 1024 * 1024;
-  private final Path temporaryDirectory;
 
   /**
-   * Selects the process-owned temporary directory; callers never supply user filenames or paths.
-   *
-   * @param temporaryDirectory existing private runtime temporary storage, with no durable volume
+   * Existing process-owned private temporary storage, without a durable volume or user-supplied
+   * filenames and paths.
    */
-  public SupportValidation(Path temporaryDirectory) {
-    this.temporaryDirectory = temporaryDirectory;
-  }
+  private final Path temporaryDirectory;
 
   /**
    * Freezes and validates every selected file, then stores private originals with generated names.
@@ -77,35 +74,29 @@ public final class SupportValidation {
    * Uses the native decoder after inspecting dimensions. Eight bytes per pixel covers PNG 16-bit
    * RGBA; three source rows cover the PNG filter/raster buffers. This conservative 64 MiB decoded
    * buffer budget is independent of the compressed-file limit and is not a total JVM heap promise.
+   * Native decoding ignores ancillary text metadata while storage retains the original bytes.
    *
    * @param bytes compressed original already within the canonical file bound
    * @return content-detected PNG/JPEG media type
    * @throws InvalidSubmission for unrecognized, unsupported, excessive or undecodable content
    */
   private static String validateImage(byte[] bytes) {
-    try (MemoryCacheImageInputStream input =
-        new MemoryCacheImageInputStream(new ByteArrayInputStream(bytes))) {
-      Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
-      if (!readers.hasNext()) throw new InvalidSubmission(Reason.INVALID_IMAGE);
-      ImageReader reader = readers.next();
-      try {
-        String format = reader.getFormatName();
-        String mediaType;
-        if ("PNG".equalsIgnoreCase(format)) mediaType = "image/png";
-        else if ("JPEG".equalsIgnoreCase(format)) mediaType = "image/jpeg";
-        else throw new InvalidSubmission(Reason.UNSUPPORTED_IMAGE);
-        reader.setInput(input, true, true);
-        int width = reader.getWidth(0);
-        int height = reader.getHeight(0);
-        // Divide the budget before multiplication to avoid overflowing on hostile dimensions.
-        if (width <= 0 || height <= 0 || (long) width * (height + 3L) > MAX_DECODED_BYTES / 8) {
-          throw new InvalidSubmission(Reason.INVALID_IMAGE);
-        }
-        reader.read(0).flush();
-        return mediaType;
-      } finally {
-        reader.dispose();
-      }
+    try {
+      DecodedImage image =
+          ImageDecoder.decode(
+              bytes,
+              true,
+              header -> {
+                // Divide first to avoid overflowing on hostile source dimensions.
+                if (header.width() <= 0
+                    || header.height() <= 0
+                    || (long) header.width() * (header.height() + 3L) > MAX_DECODED_BYTES / 8)
+                  throw new InvalidSubmission(Reason.INVALID_IMAGE);
+              });
+      image.pixels().flush();
+      return image.mediaType();
+    } catch (UnsupportedFormatException exception) {
+      throw new InvalidSubmission(Reason.UNSUPPORTED_IMAGE);
     } catch (IOException exception) {
       throw new InvalidSubmission(Reason.INVALID_IMAGE);
     }
@@ -121,7 +112,7 @@ public final class SupportValidation {
 
   /** Whole-input rejection, safe to classify without rendering submitted values. */
   public static final class InvalidSubmission extends RuntimeException {
-    private final Reason reason;
+    @Getter private final Reason reason;
 
     /**
      * Creates a refusal containing only its safe classification.
@@ -131,10 +122,6 @@ public final class SupportValidation {
     public InvalidSubmission(Reason reason) {
       super("Invalid support submission");
       this.reason = reason;
-    }
-
-    public Reason getReason() {
-      return reason;
     }
   }
 }

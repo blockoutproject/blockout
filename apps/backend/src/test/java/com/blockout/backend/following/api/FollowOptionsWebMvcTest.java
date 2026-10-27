@@ -18,10 +18,9 @@ import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
+import com.blockout.backend.following.application.FollowState;
 import com.blockout.backend.following.application.ReadFollowOptions;
 import com.blockout.backend.following.application.ReadFollowOptions.Options;
-import com.blockout.backend.following.application.ReadFollowState;
-import com.blockout.backend.following.application.ReplaceFollowState;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import com.blockout.backend.sporting.api.ConsultationApiMapperImpl;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
@@ -66,8 +65,7 @@ class FollowOptionsWebMvcTest {
   private static final UUID ACCOUNT = UUID.fromString(FollowingContractWebMvcTest.ACCOUNT);
   private static final UUID SEASON = UUID.fromString(FollowingContractWebMvcTest.TARGET);
   @Autowired private MockMvc mvc;
-  @MockitoBean private ReadFollowState reads;
-  @MockitoBean private ReplaceFollowState changes;
+  @MockitoBean private FollowState state;
   @MockitoBean private ReadFollowOptions options;
   @MockitoBean private AccountAccess accounts;
   @MockitoBean private AccessSettingsStore settings;
@@ -168,7 +166,7 @@ class FollowOptionsWebMvcTest {
 
   @Test
   @DisplayName("Returns an opaque unavailable response instead of an empty catalogue")
-  void safeFailure() throws Exception {
+  void reportsUnavailableOptions() throws Exception {
     // Given
     when(accounts.currentId("https://identity.example.invalid/", "subject"))
         .thenReturn(Optional.of(ACCOUNT));

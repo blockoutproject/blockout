@@ -25,8 +25,10 @@ import com.blockout.backend.generated.mobile.model.TeamFollowsResponse;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,7 +53,6 @@ import org.springframework.web.bind.annotation.RestController;
   HttpConfiguration.class,
   ApiExceptionHandler.class,
   FollowingRequest.class,
-  FollowingWebConfiguration.class,
   FollowingContractWebMvcTest.Adapter.class
 })
 @DisplayName("Following generated contract boundary")
@@ -89,9 +90,14 @@ public class FollowingContractWebMvcTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.following").value(true))
         .andExpect(header().string("Cache-Control", "no-store"));
-    mvc.perform(put(path).contentType(MediaType.APPLICATION_JSON).content("{\"following\":false}"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.following").value(false));
+
+    // When
+    ResultActions unfollowing =
+        mvc.perform(
+            put(path).contentType(MediaType.APPLICATION_JSON).content("{\"following\":false}"));
+
+    // Then
+    unfollowing.andExpect(status().isOk()).andExpect(jsonPath("$.following").value(false));
   }
 
   @ParameterizedTest
@@ -136,8 +142,13 @@ public class FollowingContractWebMvcTest {
         .andExpect(jsonPath("$.nextPage").doesNotExist());
     assertThat(adapter.page).isZero();
     assertThat(adapter.season).isNull();
-    mvc.perform(get(path).param("page", "107374182").param("seasonId", TARGET))
-        .andExpect(status().isOk());
+
+    // When
+    ResultActions selected =
+        mvc.perform(get(path).param("page", "107374182").param("seasonId", TARGET));
+
+    // Then
+    selected.andExpect(status().isOk());
     assertThat(adapter.page).isEqualTo(107374182L);
     assertThat(adapter.season).isEqualTo(UUID.fromString(TARGET));
   }
@@ -169,6 +180,8 @@ public class FollowingContractWebMvcTest {
         "/team-follows?page=",
         "/follow-options?seasonId=",
         "/matches?category=unknown&timeZone=Europe/Paris",
+        "/matches?category=UPCOMING&timeZone=Europe/Paris",
+        "/matches?category=COMPLETED&timeZone=Europe/Paris",
         "/matches?category=upcoming&timeZone=invalid",
         "/matches?category=upcoming&timeZone=Europe/Paris&nextDay=2026-02-30",
         "/matches?category=upcoming&timeZone=Europe/Paris&unknown=1",
@@ -189,8 +202,8 @@ public class FollowingContractWebMvcTest {
   }
 
   @Test
-  @DisplayName("Preserves generated options omission and exact safe integer counts")
-  void serializesOptionsAndCount() throws Exception {
+  @DisplayName("Omits the default season from empty generated options")
+  void omitsDefaultForEmptyOptions() throws Exception {
     // Given
     MockHttpServletRequestBuilder request = get("/accounts/" + ACCOUNT + "/follow-options");
 
@@ -202,9 +215,19 @@ public class FollowingContractWebMvcTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.seasons").isEmpty())
         .andExpect(jsonPath("$.defaultSeasonId").doesNotExist());
-    mvc.perform(get("/teams/" + TARGET + "/follower-count"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.count").value(9007199254740991L));
+  }
+
+  @Test
+  @DisplayName("Serializes the exact maximum safe integer follower count")
+  void serializesSafeIntegerCount() throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request = get("/teams/" + TARGET + "/follower-count");
+
+    // When
+    ResultActions count = mvc.perform(request);
+
+    // Then
+    count.andExpect(status().isOk()).andExpect(jsonPath("$.count").value(9007199254740991L));
   }
 
   @Test
@@ -249,22 +272,12 @@ public class FollowingContractWebMvcTest {
 
   /** Test-only provider of the real generated interface; no production endpoint is registered. */
   @RestController
+  @RequiredArgsConstructor
   public static class Adapter implements FollowingApi {
     private final HttpServletRequest request;
     private final FollowingRequest requests;
     Long page;
     UUID season;
-
-    /**
-     * Supplies the feature binder and current request; endpoint responses remain controlled.
-     *
-     * @param request native current request used to inspect uncollapsed query values
-     * @param requests production original-owner and query binding
-     */
-    public Adapter(HttpServletRequest request, FollowingRequest requests) {
-      this.request = request;
-      this.requests = requests;
-    }
 
     /**
      * Adds the canonical cache policy to a controlled generated response.
@@ -374,7 +387,7 @@ public class FollowingContractWebMvcTest {
               new MatchCalendarResponse(
                   CalendarCategoryEnum.UPCOMING,
                   "Europe/Paris",
-                  java.time.OffsetDateTime.parse("2026-10-24T00:00:00Z"),
+                  OffsetDateTime.parse("2026-10-24T00:00:00Z"),
                   List.of())));
     }
   }

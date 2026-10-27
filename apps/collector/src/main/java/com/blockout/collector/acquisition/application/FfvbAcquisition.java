@@ -1,6 +1,5 @@
 package com.blockout.collector.acquisition.application;
 
-import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import java.net.URI;
 import java.time.Instant;
 
@@ -13,6 +12,7 @@ public interface FfvbAcquisition {
    *
    * @param target admitted source context
    * @return full-calendar URL, without changing its native scope parameters
+   * @throws FfvbAcquisitionException when the full source reference cannot be constructed
    */
   URI resourceUrl(CollectionBackend.Target target);
 
@@ -21,6 +21,7 @@ public interface FfvbAcquisition {
    *
    * @param url full resource URL
    * @return resource retained only while its selected targets are processed
+   * @throws FfvbAcquisitionException when origin admission, capacity or source acquisition fails
    */
   Resource read(URI url);
 
@@ -31,7 +32,7 @@ public interface FfvbAcquisition {
    * @param observedAt actual response completion time
    * @return transient resource without another page request
    */
-  Resource fromPage(ProviderHttpClient.Response page, Instant observedAt);
+  Resource fromPage(ProviderResponse page, Instant observedAt);
 
   /** One sequentially consumed HTML resource and optional export, discarded after its scopes. */
   interface Resource {
@@ -40,6 +41,7 @@ public interface FfvbAcquisition {
      *
      * @param target admitted pool context
      * @return interpreted calendar with the actual export completion time
+     * @throws FfvbAcquisitionException when the context or export is unavailable or uninterpretable
      */
     Read<SportingObservation.Calendar> calendar(CollectionBackend.Target target);
 
@@ -48,6 +50,7 @@ public interface FfvbAcquisition {
      *
      * @param target admitted pool context
      * @return official publication with the original HTML completion time
+     * @throws FfvbAcquisitionException when the source context or table cannot be interpreted
      */
     Read<SportingObservation.Standings> standings(CollectionBackend.Target target);
   }

@@ -1,6 +1,5 @@
 package com.blockout.collector.acquisition.application;
 
-import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
@@ -12,7 +11,7 @@ import org.springframework.stereotype.Service;
 /** Qualifies the exact admitted candidate and uses the existing one-attempt terminal handoff. */
 @Service
 public class QualifySource {
-  private final ProviderHttpClient lnvHttp;
+  private final ProviderPages lnvHttp;
   private final DiscoverSeasonSources discovery;
   private final LnvDiscovery lnv;
   private final CollectionBackend backend;
@@ -34,7 +33,7 @@ public class QualifySource {
    * @param clock actual read completion time
    */
   public QualifySource(
-      @Qualifier("lnvProviderClient") ProviderHttpClient lnvHttp,
+      @Qualifier("lnvProviderClient") ProviderPages lnvHttp,
       LnvDiscovery lnv,
       DiscoverSeasonSources discovery,
       CollectionBackend backend,
@@ -99,7 +98,7 @@ public class QualifySource {
               URI.create("urn:blockout:acquisition:structure"));
         season = candidate.seasonLabel();
       } else {
-        ProviderHttpClient.Response response = lnvHttp.page(candidate.candidateUrl()).join();
+        ProviderResponse response = lnvHttp.page(candidate.candidateUrl()).join();
         season = lnv.qualify(response.body(), response.url(), candidate.organizerReference());
       }
       if (season == null)

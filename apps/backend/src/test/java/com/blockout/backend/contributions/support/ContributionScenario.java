@@ -9,7 +9,7 @@ import com.blockout.backend.contributions.application.ContributionStore;
 import com.blockout.backend.contributions.application.ReadOwnContributions;
 import com.blockout.backend.contributions.application.SubmitContribution;
 import com.blockout.backend.following.application.FollowContext;
-import com.blockout.backend.following.application.ReplaceFollowState;
+import com.blockout.backend.following.application.FollowState;
 import com.blockout.backend.generated.ingestion.model.MatchFactsInternalRequest;
 import com.blockout.backend.generated.ingestion.model.MatchResultInternalRequest;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
@@ -24,6 +24,7 @@ import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.net.URI;
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -64,7 +65,7 @@ public abstract class ContributionScenario {
   @Autowired protected SubmitContribution submissions;
   @Autowired protected ReadOwnContributions reads;
   @Autowired protected ContributionStore contributions;
-  @Autowired protected ReplaceFollowState follows;
+  @Autowired protected FollowState follows;
   @Autowired protected ProcessDueLinkAnnouncements due;
   @Autowired protected PlatformTransactionManager transactions;
   @MockitoBean protected Clock clock;
@@ -89,7 +90,7 @@ public abstract class ContributionScenario {
     matchId = sql.queryForObject("SELECT id FROM sporting_match WHERE reference='M1'", UUID.class);
     sql.update(
         "UPDATE sporting_match SET reliable_start=?,local_time='14:00',time_zone='Europe/Paris' WHERE id=?",
-        java.sql.Timestamp.from(NOW),
+        Timestamp.from(NOW),
         matchId);
     for (UUID account : List.of(AUTHOR, FOLLOWER, OTHER)) {
       sql.update(
@@ -167,10 +168,10 @@ public abstract class ContributionScenario {
   }
 
   /**
-   * Reads committed counts from fixed local test table names only.
+   * Reads current row counts from fixed local test table names, joining any caller transaction.
    *
    * @param table fixed table owned by this test's disposable schema
-   * @return current committed row count
+   * @return current row count
    */
   protected long count(String table) {
     return sql.queryForObject("SELECT COUNT(*) FROM " + table, Long.class);

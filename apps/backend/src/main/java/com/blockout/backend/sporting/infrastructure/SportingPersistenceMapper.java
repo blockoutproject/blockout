@@ -3,6 +3,9 @@ package com.blockout.backend.sporting.infrastructure;
 import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
+import com.blockout.backend.shared.mapping.TemporalMapping;
+import com.blockout.backend.sporting.application.ConsultationStore.MatchInput;
+import com.blockout.backend.sporting.application.ConsultationViews.Schedule;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
 import com.blockout.backend.sporting.application.model.ClubAcquisitionReference;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
@@ -42,7 +45,7 @@ import org.mapstruct.Named;
 import org.mapstruct.NullValueMappingStrategy;
 
 /** Maps persistence values inside their transaction without exporting managed relationships. */
-@Mapper(config = MappingConfiguration.class)
+@Mapper(config = MappingConfiguration.class, uses = TemporalMapping.class)
 interface SportingPersistenceMapper {
   /**
    * Exposes native grouping identity without any mapping state.
@@ -200,6 +203,32 @@ interface SportingPersistenceMapper {
   MatchView toView(MatchEntity source);
 
   /**
+   * Detaches the fetched match graph while preserving independent source observation times.
+   *
+   * @param source already selected dated match with its to-one owner graph
+   * @return accepted consultation inputs without visibility or presentation decisions
+   */
+  @Mapping(target = "poolId", source = "pool.id")
+  @Mapping(target = "homeTeamId", source = "homeTeam.id")
+  @Mapping(target = "awayTeamId", source = "awayTeam.id")
+  @Mapping(target = "season", source = "pool.season")
+  @Mapping(target = "classification", source = "pool")
+  @Mapping(target = "division", source = "pool.division")
+  @Mapping(target = "schedule", source = "source")
+  @Mapping(target = "result", source = "source")
+  MatchInput toMatchInput(MatchEntity source);
+
+  /**
+   * Projects the accepted schedule independently of the result's observation time.
+   *
+   * @param source current managed match in the caller's consistent read
+   * @return detached schedule preserving an absent reliable instant
+   */
+  @Mapping(target = "instant", source = "reliableStart")
+  @Mapping(target = "observedAt", source = "scheduleObservedAt")
+  Schedule toConsultationSchedule(MatchEntity source);
+
+  /**
    * Detaches a complete acquisition setting without inventing an absent value.
    *
    * @param source persisted complete setting, or null
@@ -248,7 +277,7 @@ interface SportingPersistenceMapper {
   ParticipationView toView(ParticipationEntity source);
 
   /**
-   * Detaches the currently accepted schedule under its match lock.
+   * Detaches the currently accepted schedule within the caller's read or mutation transaction.
    *
    * @param source current match entity
    * @return immutable schedule and independent attribution
@@ -278,7 +307,7 @@ interface SportingPersistenceMapper {
   /**
    * Maps accepted enrichment without exposing persistent collections.
    *
-   * @param source locked current match
+   * @param source current managed match in the caller's read or mutation transaction
    * @return detached current enrichment
    */
   @Mapping(target = "result", source = "source")
@@ -551,63 +580,116 @@ interface SportingPersistenceMapper {
   }
 
   /**
-   * Detaches club presentation with its current manual artwork route.
+   * Maps managed club state for editor reads/writes, calendar admission and fetched-graph
+   * composition. Already loaded state needs no additional scalar presentation query.
    *
-   * @param source loaded club inside the owning transaction
-   * @return current editor state with independent name and image choices
+   * @param source managed club in the caller's transaction
+   * @return detached presentation using the common scalar presentation rule
    */
   default SportingPresentation.View toPresentation(ClubEntity source) {
-    String manual = source.getLogo() == null ? null : "/clubs/" + source.getId() + "/logo";
-    return new SportingPresentation.View(
-        source.getId(),
-        Kind.CLUB,
-        Long.toString(source.getPresentationRevision()),
-        SportingPresentation.Names.resolve(
-            source.getSourceName(), source.getManualName(), null, false),
-        new SportingPresentation.Logo(manual, manual, null));
+    return toPresentation(
+        new SportingPresentationRow(
+            source.getId(),
+            source.getSourceName(),
+            source.getManualName(),
+            null,
+            source.getPresentationRevision(),
+            null,
+            source.getLogo() != null,
+            false,
+            null,
+            false,
+            0),
+        Kind.CLUB);
   }
 
   /**
-   * Detaches the current team and inherited artwork while retaining its composite revision.
+   * Maps managed team/club state for editor reads/writes, calendar admission and fetched-graph
+   * composition. A fetched graph needs no additional scalar presentation query per encounter.
    *
-   * @param source loaded team with its optional club in the same transaction
-   * @return effective/manual/automatic choices without image bytes
+   * @param source managed team and optional club in the caller's transaction
+   * @return detached presentation using the common scalar presentation rule
    */
   default SportingPresentation.View toPresentation(TeamEntity source) {
     ClubEntity club = source.getClub();
-    String manual = source.getLogo() == null ? null : "/teams/" + source.getId() + "/logo";
-    String automatic =
-        source.getProvider() == CollectionProviderEnum.LNV && source.getSourceLogo() != null
-            ? "/teams/"
-                + source.getId()
-                + "/logo?selection="
-                + TeamLogoSelectionEnum.AUTOMATIC.getValue()
-            : club != null && club.getLogo() != null ? "/clubs/" + club.getId() + "/logo" : null;
-    String revision =
-        source.getPresentationRevision() + "." + (club == null ? 0 : club.getLogoRevision());
-    return new SportingPresentation.View(
-        source.getId(),
-        Kind.TEAM,
-        revision,
-        SportingPresentation.Names.resolve(
-            source.getSourceName(), source.getManualName(), source.getManualShortName(), true),
-        new SportingPresentation.Logo(manual == null ? automatic : manual, manual, automatic));
+    return toPresentation(
+        new SportingPresentationRow(
+            source.getId(),
+            source.getSourceName(),
+            source.getManualName(),
+            source.getManualShortName(),
+            source.getPresentationRevision(),
+            source.getProvider(),
+            source.getLogo() != null,
+            source.getSourceLogo() != null,
+            club == null ? null : club.getId(),
+            club != null && club.getLogo() != null,
+            club == null ? 0 : club.getLogoRevision()),
+        Kind.TEAM);
   }
 
   /**
-   * Detaches names-only pool presentation without inventing a pool artwork concept.
+   * Maps managed pool names for editor reads/writes, calendar admission and fetched-graph
+   * composition, without inventing artwork or re-querying an already loaded presentation.
    *
-   * @param source loaded pool inside the owning transaction
-   * @return current independent name choices
+   * @param source managed pool in the caller's transaction
+   * @return detached presentation using the common scalar presentation rule
    */
   default SportingPresentation.View toPresentation(PoolEntity source) {
+    return toPresentation(
+        new SportingPresentationRow(
+            source.getId(),
+            source.getSourceName(),
+            source.getManualName(),
+            source.getManualShortName(),
+            source.getPresentationRevision(),
+            null,
+            false,
+            false,
+            null,
+            false,
+            0),
+        Kind.POOL);
+  }
+
+  /**
+   * Resolves the same current names and artwork precedence for editor and public batch reads.
+   *
+   * @param source scalar owner facts, including image presence without its bytes
+   * @param kind club, team or pool presentation owner
+   * @return detached presentation with its original resource/inherited artwork revision
+   */
+  default SportingPresentation.View toPresentation(SportingPresentationRow source, Kind kind) {
+    SportingPresentation.Logo logo = null;
+    String revision = Long.toString(source.revision());
+    switch (kind) {
+      case CLUB -> {
+        String manual = source.hasLogo() ? "/clubs/" + source.id() + "/logo" : null;
+        logo = new SportingPresentation.Logo(manual, manual, null);
+      }
+      case TEAM -> {
+        String manual = source.hasLogo() ? "/teams/" + source.id() + "/logo" : null;
+        String automatic =
+            source.provider() == CollectionProviderEnum.LNV && source.hasSourceLogo()
+                ? "/teams/"
+                    + source.id()
+                    + "/logo?selection="
+                    + TeamLogoSelectionEnum.AUTOMATIC.getValue()
+                : source.clubHasLogo() ? "/clubs/" + source.clubId() + "/logo" : null;
+        logo =
+            new SportingPresentation.Logo(manual == null ? automatic : manual, manual, automatic);
+        revision += "." + source.clubLogoRevision();
+      }
+      case POOL -> {}
+      default -> throw new IllegalArgumentException("Unsupported presentation kind");
+    }
     return new SportingPresentation.View(
-        source.getId(),
-        Kind.POOL,
-        Long.toString(source.getPresentationRevision()),
+        source.id(),
+        kind,
+        revision,
         SportingPresentation.Names.resolve(
-            source.getSourceName(), source.getManualName(), source.getManualShortName(), true),
-        null);
+            source.sourceName(), source.manualName(), source.manualShortName(), kind != Kind.CLUB),
+        logo);
   }
 
   /**

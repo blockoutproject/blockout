@@ -98,8 +98,8 @@ live Dynamic Type [F13 native qualification](../003-shared-quality/quickstart.md
 ### Shared personal season boundary (T017–T021)
 
 `FollowOptionsIntegrationTest` exercises the migrated PostgreSQL projection, current F02 visibility,
-original-account isolation and the followed-versus-catalog default. Sporting repositories and F06
-use the same [F02 visibility clauses](../../apps/backend/src/main/java/com/blockout/backend/sporting/infrastructure/SportingVisibilityPredicates.java).
+original-account isolation and the followed-versus-catalog default. F06 composes its own relations
+with the [F02 scalar selection API](../../apps/backend/src/main/java/com/blockout/backend/sporting/application/SportingSeasonSelection.java), keeping private sporting predicates at their owner.
 `FollowOptionsWebMvcTest` exercises the production generated route and mapper, no-store, strict
 queries and safe access/storage failures with controlled application reads and identity/admission inputs.
 

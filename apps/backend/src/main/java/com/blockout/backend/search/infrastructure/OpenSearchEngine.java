@@ -49,13 +49,7 @@ public class OpenSearchEngine implements SearchEngine {
     try {
       SearchRequest.Builder request =
           new SearchRequest.Builder()
-              .index(
-                  indexes.prefix()
-                      + switch (context.resource()) {
-                        case CLUB -> "-clubs";
-                        case TEAM -> "-teams";
-                        case POOL -> "-pools";
-                      })
+              .index(indexes.alias(context.resource()))
               .size(size)
               .allowPartialSearchResults(false)
               .trackTotalHits(track -> track.enabled(false))
@@ -91,6 +85,7 @@ public class OpenSearchEngine implements SearchEngine {
               failure instanceof SearchUnavailableException
                   ? "incomplete_response"
                   : "engine_failed")
+          .addKeyValue("error.type", failure.getClass().getName())
           .log("Native search unavailable");
       // Engine exceptions can contain query/source values. The shared HTTP owner receives only
       // this safe failure and never logs the raw payload or treats failure as successful empty.
