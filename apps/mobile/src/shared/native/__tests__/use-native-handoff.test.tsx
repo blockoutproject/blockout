@@ -2,12 +2,17 @@ import { ThemeProvider } from "../../theme/theme-provider";
 import { ActionFeedbackProvider } from "../../components/action-feedback";
 import { TECHNICAL_ERROR } from "../../components/error-copy";
 import type { PropsWithChildren } from "react";
-import { act, renderHook, screen } from "@testing-library/react-native";
+import {
+  act,
+  cleanup,
+  renderHook,
+  screen,
+} from "@testing-library/react-native";
 import { Linking } from "react-native";
 import { useNativeHandoff } from "../use-native-handoff";
 
 /** Provides the real transient presentation owner for native handoff events. */
-function Wrapper({ children }: PropsWithChildren) {
+function HandoffProviders({ children }: PropsWithChildren) {
   return (
     <ThemeProvider>
       <ActionFeedbackProvider scopeKey="test">
@@ -18,19 +23,22 @@ function Wrapper({ children }: PropsWithChildren) {
 }
 
 beforeEach(() => jest.spyOn(Linking, "openURL"));
-afterEach(() => jest.restoreAllMocks());
+afterEach(async () => {
+  await cleanup();
+  jest.restoreAllMocks();
+});
 
 it("opens a pending destination once and permits only an explicit attempt after rejection", async () => {
   // Given
+  const destination = "https://example.invalid/resource";
   const opening = Promise.withResolvers<void>();
   jest
     .mocked(Linking.openURL)
     .mockReturnValueOnce(opening.promise)
     .mockResolvedValue(undefined);
-  const { result } = await renderHook(
-    () => useNativeHandoff("https://example.invalid"),
-    { wrapper: Wrapper },
-  );
+  const { result } = await renderHook(() => useNativeHandoff(destination), {
+    wrapper: HandoffProviders,
+  });
 
   // When
   await act(() => {
@@ -40,6 +48,7 @@ it("opens a pending destination once and permits only an explicit attempt after 
 
   // Then
   expect(Linking.openURL).toHaveBeenCalledTimes(1);
+  expect(Linking.openURL).toHaveBeenCalledWith(destination);
   expect(result.current.pending).toBe(true);
 
   // When
@@ -54,7 +63,10 @@ it("opens a pending destination once and permits only an explicit attempt after 
   await act(() => result.current.open());
 
   // Then
-  expect(Linking.openURL).toHaveBeenCalledTimes(2);
+  expect(jest.mocked(Linking.openURL).mock.calls).toEqual([
+    [destination],
+    [destination],
+  ]);
   expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
 });
 
@@ -64,7 +76,10 @@ it("does not restore old feedback after a destination changes away and back", as
   jest.mocked(Linking.openURL).mockReturnValueOnce(opening.promise);
   const { result, rerender } = await renderHook(
     ({ url }: { url: string }) => useNativeHandoff(url),
-    { wrapper: Wrapper, initialProps: { url: "https://one.example.invalid" } },
+    {
+      wrapper: HandoffProviders,
+      initialProps: { url: "https://one.example.invalid" },
+    },
   );
   await act(() => result.current.open());
 

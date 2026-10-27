@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react-native";
+import { cleanup, act, render, screen } from "@testing-library/react-native";
 import { AccessibilityInfo, Text } from "react-native";
 import { useReducedMotion } from "../use-reduced-motion";
 
@@ -7,7 +7,10 @@ function MotionPreference() {
   return <Text>{useReducedMotion() ? "Static" : "Animated"}</Text>;
 }
 
-afterEach(() => jest.restoreAllMocks());
+afterEach(async () => {
+  await cleanup();
+  jest.restoreAllMocks();
+});
 
 it("keeps a live native change when the initial preference read finishes late", async () => {
   // Given
@@ -20,7 +23,8 @@ it("keeps a live native change when the initial preference read finishes late", 
   await render(<MotionPreference />);
   const changeMotion = subscribe.mock.calls.find(
     ([event]) => event === "reduceMotionChanged",
-  )?.[1] as (enabled: boolean) => void;
+  )?.[1];
+  if (!changeMotion) throw new Error("Missing native motion subscription");
 
   // When
   await act(async () => changeMotion(true));
@@ -36,22 +40,22 @@ it("keeps a live native change when the initial preference read finishes late", 
   expect(screen.getByText("Animated")).toBeOnTheScreen();
 });
 
-it("does not publish an old read into a remounted consumer", async () => {
+it("releases the native subscription when its consumer unmounts", async () => {
   // Given
-  const previous = Promise.withResolvers<boolean>();
+  const initial = Promise.withResolvers<boolean>();
   jest
     .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
-    .mockReturnValueOnce(previous.promise)
-    .mockResolvedValueOnce(false);
+    .mockReturnValue(initial.promise);
+  const remove = jest.fn();
+  jest.spyOn(AccessibilityInfo, "addEventListener").mockReturnValue({ remove });
   const view = await render(<MotionPreference />);
 
   // When
   await view.unmount();
-  await render(<MotionPreference />);
-  await act(async () => previous.resolve(true));
+  await act(async () => initial.resolve(false));
 
   // Then
-  expect(screen.getByText("Animated")).toBeOnTheScreen();
+  expect(remove).toHaveBeenCalledTimes(1);
 });
 
 it("keeps motion disabled when the native preference cannot be read", async () => {

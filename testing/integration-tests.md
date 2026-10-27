@@ -2664,7 +2664,7 @@ All ordinary suites run in the existing Jest Expo process. Actual React componen
 
 The root-level [app-config.test.ts](../apps/mobile/__tests__/app-config.test.ts) also remains a direct configuration/unit suite: its eight authored scenarios inspect Expo configuration with isolated environment values. It starts no native build or provider client.
 
-The following files contain presentation/control/formatting tests with no relevant transport, session or external-client boundary and remain in their existing component/unit family: [presentation-examples.test.tsx](../apps/mobile/src/development/__tests__/presentation-examples.test.tsx), [sporting-time.test.ts](../apps/mobile/src/features/sporting/__tests__/sporting-time.test.ts), [division-colors.test.ts](../apps/mobile/src/features/sporting-administration/__tests__/division-colors.test.ts), [button.test.tsx](../apps/mobile/src/shared/components/__tests__/button.test.tsx), [icon-button.test.tsx](../apps/mobile/src/shared/components/__tests__/icon-button.test.tsx), [request-feedback.test.tsx](../apps/mobile/src/shared/components/__tests__/request-feedback.test.tsx), [sheet.test.tsx](../apps/mobile/src/shared/components/__tests__/sheet.test.tsx), [state-card.test.tsx](../apps/mobile/src/shared/components/__tests__/state-card.test.tsx), [text-field.test.tsx](../apps/mobile/src/shared/components/__tests__/text-field.test.tsx), [theme-provider.test.tsx](../apps/mobile/src/shared/theme/__tests__/theme-provider.test.tsx). No visual or native result is inferred from them.
+The complete [React suite inventory](README.md#react-suite-inventory) owns the current component, form, screen and hook families. Component-only examples such as [Button](../apps/mobile/src/shared/components/__tests__/button.test.tsx), [Sheet](../apps/mobile/src/shared/components/__tests__/sheet.test.tsx) and [request feedback](../apps/mobile/src/shared/components/__tests__/request-feedback.test.tsx) are classified there; the sections below detail the documented integration scenarios. No visual or native result is inferred from a component suite.
 
 ### Mobile: access-contract.test.ts
 
@@ -2691,22 +2691,22 @@ Source: [apps/mobile/src/features/access/**tests**/access-gates.test.tsx](../app
 - **Controlled:** `expo-constants`; `expo-application`; Sentry SDK entry/capture double; RevenueCat public SDK operations replaced by controlled doubles; installation initialization outside this scenario; Auth0 native bridge only; SDK provider/hooks/error classes remain real; Fetch response/abort double (no socket); official AsyncStorage Jest in-memory double
 - **Isolation/cleanup:** scenario doubles reset before each case; environment restored by the declared teardown; RNTL unmount cleanup owns mounted component effects.
 
-| Asserted behavior / regression if violated (parameter rows included)                                     | Actual proof family                               |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| starts the public request while F14 initialization has not completed                                     | React component/provider integration (JavaScript) |
-| refuses the direct route %s after an unavailable public check (parameterized)                            | React component/provider integration (JavaScript) |
-| does not rerun a complete check on foreground or reconnect                                               | React component/provider integration (JavaScript) |
-| keeps legal/support/sign-in routes and back behind the %s gate (parameterized)                           | React component/provider integration (JavaScript) |
-| admits a current maintenance manager without personal bypass only into operations                        | React component/provider integration (JavaScript) |
-| displays maintenance first but refuses an outdated operator and every minimum bypass                     | React component/provider integration (JavaScript) |
-| retries existing-account identification with native credentials independently of a complete public retry | React component/provider integration (JavaScript) |
-| keeps ordinary public admission independent of an account 503                                            | React component/provider integration (JavaScript) |
-| recovers from an unavailable cold check only through an explicit successful retry                        | React component/provider integration (JavaScript) |
-| a bypass-only account makes its explicit personal choice before ordinary access                          | React component/provider integration (JavaScript) |
-| keeps an unknown direct route behind the gate                                                            | React component/provider integration (JavaScript) |
-| keeps the framework sitemap behind ordinary admission                                                    | React component/provider integration (JavaScript) |
-| refreshes only the existing account on authentication return                                             | React component/provider integration (JavaScript) |
-| retries failed Auth0 restoration without clearing credentials or starting interactive sign-in            | React component/provider integration (JavaScript) |
+| Asserted behavior / regression if violated (parameter rows included)                          | Actual proof family                               |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| starts the public request while F14 initialization has not completed                          | React component/provider integration (JavaScript) |
+| refuses the direct route %s after an unavailable public check (parameterized)                 | React component/provider integration (JavaScript) |
+| does not rerun a complete check on foreground or reconnect                                    | React component/provider integration (JavaScript) |
+| keeps legal/support/sign-in routes and back behind the %s gate (parameterized)                | React component/provider integration (JavaScript) |
+| admits a current maintenance manager without personal bypass only into operations             | React component/provider integration (JavaScript) |
+| displays maintenance first but refuses an outdated operator and every minimum bypass          | React component/provider integration (JavaScript) |
+| refreshes maintenance and retries existing-account identification without interactive sign-in | React component/provider integration (JavaScript) |
+| keeps ordinary public admission independent of an account 503                                 | React component/provider integration (JavaScript) |
+| recovers from an unavailable cold check only through an explicit successful retry             | React component/provider integration (JavaScript) |
+| a bypass-only account makes its explicit personal choice before ordinary access               | React component/provider integration (JavaScript) |
+| keeps an unknown direct route behind the gate                                                 | React component/provider integration (JavaScript) |
+| keeps the framework sitemap behind ordinary admission                                         | React component/provider integration (JavaScript) |
+| refreshes only the existing account on authentication return                                  | React component/provider integration (JavaScript) |
+| retries failed Auth0 restoration without clearing credentials or starting interactive sign-in | React component/provider integration (JavaScript) |
 
 ### Mobile: access-observations.test.ts
 
@@ -2739,7 +2739,7 @@ Source: [apps/mobile/src/features/access/**tests**/administration-entry.test.tsx
 | presents only the dedicated command granted by %s (parameterized)                            | React component/provider integration (JavaScript) |
 | does not coerce malformed capabilities (%s) into grants (parameterized)                      | React component/provider integration (JavaScript) |
 | removes a revoked command independently while retaining another current grant                | React component/provider integration (JavaScript) |
-| hides retained capabilities after a failed account refresh                                   | React component/provider integration (JavaScript) |
+| hides retained capabilities after a refused account refresh behind an opaque read card       | React component/provider integration (JavaScript) |
 | discards an account response completed after the F05 generation ends                         | React component/provider integration (JavaScript) |
 | offers no commands to a guest and performs no current-account read                           | React component/provider integration (JavaScript) |
 | does not restore an old grant after returning to the same account in a new F05 generation    | React component/provider integration (JavaScript) |
@@ -2775,7 +2775,7 @@ Source: [apps/mobile/src/features/access/**tests**/application-versions-route.te
 | refuses version editing when only maintenance management and personal bypass are granted             | React component/provider integration (JavaScript) |
 | refuses an outdated versions manager without a minimum-version exception                             | React component/provider integration (JavaScript) |
 | preserves a dirty draft when departure is cancelled, and leaves only after explicit discard          | React component/provider integration (JavaScript) |
-| retains the same-session draft when a pending permission refresh removes the operational route       | React component/provider integration (JavaScript) |
+| retains the draft through protected-route removal and ignores an obsolete discard confirmation       | React component/provider integration (JavaScript) |
 | keeps a resumed draft locked until its earlier pending save settles                                  | React component/provider integration (JavaScript) |
 | invalidates a native confirmation when its protected route is removed                                | React component/provider integration (JavaScript) |
 | keeps explicit reread required when route removal cancels a recovery read                            | React component/provider integration (JavaScript) |
@@ -2800,11 +2800,16 @@ Source: [apps/mobile/src/features/access/**tests**/application-versions-settings
 | rereads after %s and requires explicit resubmission without merging dirty fields (parameterized)        | React component/provider integration (JavaScript) |
 | keeps dirty values and blocks writes after a newer refetch and a failed reread                          | React component/provider integration (JavaScript) |
 | retains read-only input and rejects a held confirmation when permissions are %s (parameterized)         | React component/provider integration (JavaScript) |
+| retains a read-only draft and rejects held confirmation after the settings endpoint refuses access      | React component/provider integration (JavaScript) |
+| presents an initial settings refusal with an opaque retryable card and no editable defaults             | React component/provider integration (JavaScript) |
 | keeps the production route closed without operational admission                                         | React component/provider integration (JavaScript) |
 | advances only versions observations after a successful partial save and requires another complete check | React component/provider integration (JavaScript) |
 | rejects invalid or older rereads without replacing the accepted cache or dirty input                    | React component/provider integration (JavaScript) |
 | previews absent optional copy with the same fallback and preserves the draft on close                   | React component/provider integration (JavaScript) |
 | hands the validated current-platform preview link to the existing native store action without saving    | React component/provider integration (JavaScript) |
+| shows a store failure in the native preview and retires it when the preview closes                      | React component/provider integration (JavaScript) |
+| ignores a late store failure from a previously closed native preview                                    | React component/provider integration (JavaScript) |
+| keeps a delayed acknowledged write and older reread behind the latest public revision                   | React component/provider integration (JavaScript) |
 
 ### Mobile: installed-version.test.ts
 
@@ -2842,6 +2847,8 @@ Source: [apps/mobile/src/features/access/**tests**/maintenance-bypass.test.tsx](
 | rechecks the minimum version after native credential preparation                                | React component/provider integration (JavaScript) |
 | discards an old session's refusal before publishing access observations                         | React component/provider integration (JavaScript) |
 | clears current personal intent after its HTTP %i refusal (parameterized)                        | React component/provider integration (JavaScript) |
+| aborts the captured bypass intent when its provider is removed                                  | React component/provider integration (JavaScript) |
+| cancels a profile photo conversion when its captured bypass intent ends                         | React component/provider integration (JavaScript) |
 
 ### Mobile: maintenance-problem.test.ts
 
@@ -2861,17 +2868,19 @@ Source: [apps/mobile/src/features/access/**tests**/maintenance-problem.test.ts](
 
 Source: [apps/mobile/src/features/access/**tests**/maintenance-settings-provider.test.tsx](../apps/mobile/src/features/access/__tests__/maintenance-settings-provider.test.tsx).
 
-- **Real:** Handwritten apiFetch and the generated client/response schemas reached by the scenario. TanStack Query and the application Query setup. Auth0 JavaScript SDK and the real account/session provider. React and the actual components/providers mounted in the scenario through React Native Testing Library/Jest Expo. Owning handwritten modules: `use-application-access`, `query-client`, `theme-provider`, `account-session-provider`, `api-fetch`, `maintenance-settings-screen`. Selected backend process, HTTP, migrations/JPA/PostgreSQL and real commit boundaries when opt-in execution is authorized.
-- **Controlled:** react-native-keyboard-controller upstream native test double; installation initialization outside this scenario; Auth0 native bridge only; SDK provider/hooks/error classes remain real; selected router/Stack navigation boundary (see declared mock); Expo native networking replaced by real node-fetch to an explicitly supplied backend; controlled post-commit response loss
+- **Real:** Handwritten apiFetch and the generated client/response schemas reached by the scenario. TanStack Query and the application Query setup. Auth0 JavaScript SDK and the real account/session provider. React and the actual components/providers mounted in the scenario through React Native Testing Library/Jest Expo. Owning handwritten modules: `use-application-access`, `query-client`, `theme-provider`, `account-session-provider`, `api-fetch`, `maintenance-settings-screen`. Real HTTP requests reach the explicitly configured backend when opt-in execution is authorized. This suite does not start the provider or inspect its database, migrations or transaction implementation.
+- **Controlled:** react-native-keyboard-controller upstream native test double; installation initialization outside this scenario; Auth0 native bridge only; SDK provider/hooks/error classes remain real; selected router/Stack navigation boundary (see declared mock); Expo native networking replaced by real node-fetch to an explicitly supplied backend; controlled response loss after the provider has returned from the write
+- **Limit:** The provider URL and editor credentials are required. Skipped cases are unavailable evidence. Configured-backend behavior is separate from native networking and external-provider qualification.
 - **Isolation/cleanup:** scenario doubles reset before each case; fresh Query client per case; Query client cleared in teardown; spies/property replacements restored; environment restored by the declared teardown; RNTL unmount cleanup owns mounted component effects.
 
-| Asserted behavior / regression if violated (parameter rows included)                  | Actual proof family                 |
-| ------------------------------------------------------------------------------------- | ----------------------------------- |
-| returns complete public state and publishes content only after explicit activation    | Opt-in process/HTTP/SQL integration |
-| allows independent groups while excluding simultaneous same-group edits               | Opt-in process/HTTP/SQL integration |
-| shares one platform revision and refuses invalid complete results atomically          | Opt-in process/HTTP/SQL integration |
-| preserves a real conflicting draft through reread and explicit resubmission           | Opt-in process/HTTP/SQL integration |
-| retains a committed lost-response draft and closes admission without a public refetch | Opt-in process/HTTP/SQL integration |
+| Asserted behavior / regression if violated (parameter rows included)                  | Actual proof family                        |
+| ------------------------------------------------------------------------------------- | ------------------------------------------ |
+| returns complete public state and publishes content only after explicit activation    | Opt-in configured backend HTTP integration |
+| allows independent groups while excluding simultaneous same-group edits               | Opt-in configured backend HTTP integration |
+| shares one platform revision and refuses invalid complete results atomically          | Opt-in configured backend HTTP integration |
+| refuses an insecure maintenance image without changing saved settings                 | Opt-in configured backend HTTP integration |
+| preserves a real conflicting draft through reread and explicit resubmission           | Opt-in configured backend HTTP integration |
+| retains a committed lost-response draft and closes admission without a public refetch | Opt-in configured backend HTTP integration |
 
 ### Mobile: maintenance-settings.test.tsx
 
@@ -2881,25 +2890,32 @@ Source: [apps/mobile/src/features/access/**tests**/maintenance-settings.test.tsx
 - **Controlled:** react-native-keyboard-controller upstream native test double; installation initialization outside this scenario; Auth0 native bridge only; SDK provider/hooks/error classes remain real; selected router/Stack navigation boundary (see declared mock); Fetch response/abort double (no socket)
 - **Isolation/cleanup:** scenario doubles reset before each case; fresh Query client per case; Query client cleared in teardown; spies/property replacements restored; environment restored by the declared teardown; scenario-local resources also use finally where declared; RNTL unmount cleanup owns mounted component effects.
 
-| Asserted behavior / regression if violated (parameter rows included)                         | Actual proof family                               |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| shows loading before any known state can be saved                                            | React component/provider integration (JavaScript) |
-| does not publish defaults after an initial load failure                                      | React component/provider integration (JavaScript) |
-| separates content preparation from explicit activation                                       | React component/provider integration (JavaScript) |
-| sends the desired active state independently of dirty content                                | React component/provider integration (JavaScript) |
-| preserves a dirty draft after a background query update                                      | React component/provider integration (JavaScript) |
-| refuses blank text before sending any mutation                                               | React component/provider integration (JavaScript) |
-| refuses an invalid image URL without losing the draft                                        | React component/provider integration (JavaScript) |
-| clears the optional image using explicit null                                                | React component/provider integration (JavaScript) |
-| keeps text and actions usable when preview display fails                                     | React component/provider integration (JavaScript) |
-| retains the draft after a confirmed %i refusal (parameterized)                               | React component/provider integration (JavaScript) |
-| requires reread and explicit resubmission after %s (parameterized)                           | React component/provider integration (JavaScript) |
-| keeps the production route closed until native admission is composed                         | React component/provider integration (JavaScript) |
-| cancels content confirmation without sending a mutation                                      | React component/provider integration (JavaScript) |
-| cancels activation confirmation without changing the saved state                             | React component/provider integration (JavaScript) |
-| retains a draft through a failed permission refresh                                          | React component/provider integration (JavaScript) |
-| retains a read-only draft and blocks a held %s confirmation after revocation (parameterized) | React component/provider integration (JavaScript) |
-| keeps a conflicting draft blocked through a failed settings reread                           | React component/provider integration (JavaScript) |
+| Asserted behavior / regression if violated (parameter rows included)                               | Actual proof family                               |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| shows loading before any known state can be saved                                                  | React component/provider integration (JavaScript) |
+| reports one failed refresh while retaining the editable maintenance draft                          | React component/provider integration (JavaScript) |
+| does not publish defaults after an initial load failure                                            | React component/provider integration (JavaScript) |
+| separates content preparation from explicit activation                                             | React component/provider integration (JavaScript) |
+| sends the desired active state independently of dirty content                                      | React component/provider integration (JavaScript) |
+| preserves a dirty draft after a newer background response                                          | React component/provider integration (JavaScript) |
+| refuses blank text before sending any mutation                                                     | React component/provider integration (JavaScript) |
+| refuses an invalid image URL without losing the draft                                              | React component/provider integration (JavaScript) |
+| clears the optional image using explicit null                                                      | React component/provider integration (JavaScript) |
+| keeps text and actions usable when preview display fails                                           | React component/provider integration (JavaScript) |
+| starts a fresh draft image preview when a previously failed URL returns                            | React component/provider integration (JavaScript) |
+| retains the draft after a confirmed %i refusal (parameterized)                                     | React component/provider integration (JavaScript) |
+| requires reread and explicit resubmission after %s (parameterized)                                 | React component/provider integration (JavaScript) |
+| keeps the production route closed until native admission is composed                               | React component/provider integration (JavaScript) |
+| cancels content confirmation without sending a mutation                                            | React component/provider integration (JavaScript) |
+| retains an uncertain command after its route-local draft is discarded                              | React component/provider integration (JavaScript) |
+| cancels activation confirmation without changing the saved state                                   | React component/provider integration (JavaScript) |
+| retains a draft through a failed permission refresh                                                | React component/provider integration (JavaScript) |
+| retains a read-only draft and rejects held confirmation after the settings endpoint refuses access | React component/provider integration (JavaScript) |
+| presents an initial settings refusal with an opaque retryable card and no editable defaults        | React component/provider integration (JavaScript) |
+| retains a read-only draft and blocks a held %s confirmation after revocation (parameterized)       | React component/provider integration (JavaScript) |
+| keeps a conflicting draft blocked through a failed settings reread                                 | React component/provider integration (JavaScript) |
+| rechecks live authority after delayed credentials for %s before React renders (parameterized)      | React component/provider integration (JavaScript) |
+| keeps a delayed acknowledged write and older reread behind the latest public revision              | React component/provider integration (JavaScript) |
 
 ### Mobile: store-action.test.tsx
 
@@ -2952,6 +2968,9 @@ Source: [apps/mobile/src/features/accounts/**tests**/account-session-provider.te
 | retries SDK restoration explicitly after a network failure without clearing credentials or logging in | React component/provider integration (JavaScript) |
 | leaves a second restoration failure visible until another explicit retry                              | React component/provider integration (JavaScript) |
 | invalidates private work immediately even when native credential clearing is still pending            | React component/provider integration (JavaScript) |
+| keeps a newer local sign-out pending when an older hosted login completes                             | React component/provider integration (JavaScript) |
+| suppresses same-turn native login duplicates and captures the successful business generation          | React component/provider integration (JavaScript) |
+| suppresses same-turn local logout duplicates without releasing the pending operation                  | React component/provider integration (JavaScript) |
 
 ### Mobile: native-session.test.tsx
 
@@ -2995,18 +3014,35 @@ Source: [apps/mobile/src/features/accounts/**tests**/profile-form.test.tsx](../a
 - **Controlled:** react-native-keyboard-controller upstream native test double; installation initialization outside this scenario; Auth0 native bridge only; SDK provider/hooks/error classes remain real; selected router/Stack navigation boundary (see declared mock); Fetch response/abort double (no socket); `expo-image-picker`; `expo-image-manipulator`; `expo-file-system`
 - **Isolation/cleanup:** scenario doubles reset before each case; fresh Query client per case; Query client cleared in teardown; environment restored by the declared teardown; scenario-local resources also use finally where declared; RNTL unmount cleanup owns mounted component effects.
 
-| Asserted behavior / regression if violated (parameter rows included)                         | Actual proof family                               |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| sends one atomic multipart save with JSON metadata and no omitted photo                      | React component/provider integration (JavaScript) |
-| retains a dirty draft on background refetch and whole-save username refusal                  | React component/provider integration (JavaScript) |
-| preserves the draft when native crop is cancelled or permission is refused                   | React component/provider integration (JavaScript) |
-| rereads only the original account after an uncertain save and requires explicit resubmission | React component/provider integration (JavaScript) |
-| does not replay while the original account reread is unavailable                             | React component/provider integration (JavaScript) |
-| submits prepared replacement then explicit removal without a username edit                   | React component/provider integration (JavaScript) |
-| sends only the current dirty username with photo replacement: $username (parameterized)      | React component/provider integration (JavaScript) |
-| retains the previous prepared choice and username when another preparation fails             | React component/provider integration (JavaScript) |
-| rejects delayed %s results after returning to the same account (parameterized)               | React component/provider integration (JavaScript) |
-| cancels an initial photo read before refreshing the accepted replacement                     | React component/provider integration (JavaScript) |
+| Asserted behavior / regression if violated (parameter rows included)                                      | Actual proof family                               |
+| --------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| keeps the profile draft and session until departure is explicitly confirmed                               | React component/provider integration (JavaScript) |
+| refreshes the profile without changing a dirty draft or replaying a save                                  | React component/provider integration (JavaScript) |
+| shows freshly read profile values when there is no local edit                                             | React component/provider integration (JavaScript) |
+| defers clean profile updates until native photo selection has settled                                     | React component/provider integration (JavaScript) |
+| reports an explicit failed refresh while keeping the profile and dirty input                              | React component/provider integration (JavaScript) |
+| presents an initial account refusal %s with opaque copy and owner-controlled retry (parameterized)        | React component/provider integration (JavaScript) |
+| keeps a refused profile draft read-only through a failed recheck until a successful account read          | React component/provider integration (JavaScript) |
+| refuses an unsent profile save when its account read is denied during credential retrieval                | React component/provider integration (JavaScript) |
+| announces the initial profile read without exposing profile commands                                      | React component/provider integration (JavaScript) |
+| keeps the first photo read separate from native refresh progress                                          | React component/provider integration (JavaScript) |
+| preserves the active save and suspends refresh and guest departure                                        | React component/provider integration (JavaScript) |
+| uses the accepted profile result and clears the draft before guest departure                              | React component/provider integration (JavaScript) |
+| refreshes the displayed remote photo while preserving a %s draft (parameterized)                          | React component/provider integration (JavaScript) |
+| removes a refused remote photo until a successful photo read without treating failure as an empty profile | React component/provider integration (JavaScript) |
+| sends one atomic multipart save with JSON metadata and no omitted photo                                   | React component/provider integration (JavaScript) |
+| retains a dirty draft on background refetch and whole-save username refusal                               | React component/provider integration (JavaScript) |
+| preserves the draft when native crop is cancelled or permission is refused                                | React component/provider integration (JavaScript) |
+| rereads only the original account after an uncertain save and requires explicit resubmission              | React component/provider integration (JavaScript) |
+| does not replay while the original account reread is unavailable                                          | React component/provider integration (JavaScript) |
+| submits prepared replacement then explicit removal without a username edit                                | React component/provider integration (JavaScript) |
+| sends only the current dirty username with photo replacement: $username (parameterized)                   | React component/provider integration (JavaScript) |
+| retains the previous prepared choice and username when another preparation fails                          | React component/provider integration (JavaScript) |
+| rejects delayed %s results after returning to the same account (parameterized)                            | React component/provider integration (JavaScript) |
+| cancels an initial photo read before refreshing the accepted replacement                                  | React component/provider integration (JavaScript) |
+| deletes a prepared profile draft on %s (parameterized)                                                    | React component/provider integration (JavaScript) |
+| deletes the replaced profile copy while preserving the new draft                                          | React component/provider integration (JavaScript) |
+| keeps a sent profile file until its upload settles after sign-out                                         | React component/provider integration (JavaScript) |
 
 ### Mobile: session-generation.test.ts
 
@@ -3035,13 +3071,16 @@ Source: [apps/mobile/src/features/accounts/**tests**/sign-in.test.tsx](../apps/m
 | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
 | allows guest continuation without opening Auth0 or establishing an account                                | React component/provider integration (JavaScript) |
 | establishes explicitly after successful hosted login without replaying a protected action                 | React component/provider integration (JavaScript) |
+| publishes established identity without mounting a current-account reader                                  | React component/provider integration (JavaScript) |
 | offers explicit login when stored DPoP credentials cannot serve the Bearer configuration                  | React component/provider integration (JavaScript) |
 | keeps guest access after native login outcome %s (parameterized)                                          | React component/provider integration (JavaScript) |
+| keeps an explicit login failure in the toast when native credential persistence fails                     | React component/provider integration (JavaScript) |
 | retries missing initial email explicitly without asking for another valid login                           | React component/provider integration (JavaScript) |
 | never bootstraps an absent account during restoration or a profile read retry                             | React component/provider integration (JavaScript) |
 | renders the local editable profile after ordinary restoration                                             | React component/provider integration (JavaScript) |
 | enters guest mode from an authenticated %s screen without retaining private account state (parameterized) | React component/provider integration (JavaScript) |
 | does not announce guest mode when native clearing fails on %s (parameterized)                             | React component/provider integration (JavaScript) |
+| does not navigate from an obsolete guest handoff on %s (parameterized)                                    | React component/provider integration (JavaScript) |
 | does not admit login or profile navigation through a controlled F12 refusal                               | React component/provider integration (JavaScript) |
 | requires an explicit retry when interrupted login finishes %s (parameterized)                             | React component/provider integration (JavaScript) |
 | allows a new login after admission withdrawal and completed local sign-out                                | React component/provider integration (JavaScript) |
@@ -3100,6 +3139,8 @@ Source: [apps/mobile/src/features/advertising/**tests**/age-entry.test.tsx](../a
 
 | Asserted behavior / regression if violated (parameter rows included)                             | Actual proof family                               |
 | ------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| persists the first explicit age once and suppresses a concurrent different age without success   | React component/provider integration (JavaScript) |
+| keeps a remounted age form busy while installation storage survives a session change             | React component/provider integration (JavaScript) |
 | guards ordinary home after guest selection even when discovery was skipped                       | React component/provider integration (JavaScript) |
 | keeps back/restart unconfirmed and preserves completed discovery                                 | React component/provider integration (JavaScript) |
 | leaves independent %s available without a declaration (parameterized)                            | React component/provider integration (JavaScript) |
@@ -3112,6 +3153,7 @@ Source: [apps/mobile/src/features/advertising/**tests**/age-entry.test.tsx](../a
 | retains the unconfirmed choice across a live reduced-motion change                               | React component/provider integration (JavaScript) |
 | guards a signed-in free account’s home independently of its account identity                     | React component/provider integration (JavaScript) |
 | keeps public legal navigation available while local age storage is pending                       | React component/provider integration (JavaScript) |
+| ignores an obsolete installation read after a new tree loads the current declaration             | React component/provider integration (JavaScript) |
 
 ### Mobile: age-form.test.tsx
 
@@ -3216,25 +3258,27 @@ Source: [apps/mobile/src/features/collection/**tests**/collection-dashboard.test
 - **Controlled:** react-native-keyboard-controller upstream native test double; installation initialization outside this scenario; Auth0 native bridge only; SDK provider/hooks/error classes remain real; selected router/Stack navigation boundary (see declared mock); Fetch response/abort double (no socket)
 - **Isolation/cleanup:** scenario doubles reset before each case; Query client cleared in teardown; spies/property replacements restored; environment restored by the declared teardown.
 
-| Asserted behavior / regression if violated (parameter rows included)                                    | Actual proof family                               |
-| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| separates competition seasons from the two seasonless controls                                          | React component/provider integration (JavaScript) |
-| refreshes only reads and retains uncertain integration and absent measurements while paused             | React component/provider integration (JavaScript) |
-| distinguishes accepted pending intent from a confirmed running cycle (%s) (parameterized)               | React component/provider integration (JavaScript) |
-| pauses only the selected control and explicitly resumes before relaunch                                 | React component/provider integration (JavaScript) |
-| requires explicit successful reread after %s and retains the scope across removal (parameterized)       | React component/provider integration (JavaScript) |
-| shows partial acquisition separately from failed integration and a previous success                     | React component/provider integration (JavaScript) |
-| refuses a held confirmation after current permission withdrawal                                         | React component/provider integration (JavaScript) |
-| ignores an old-session command response without presenting a new success                                | React component/provider integration (JavaScript) |
-| keeps a closed season navigable with no collection command                                              | React component/provider integration (JavaScript) |
-| commands the %s family without a season query or setting (parameterized)                                | React component/provider integration (JavaScript) |
-| retains running evidence while pause cancels an unstarted request                                       | React component/provider integration (JavaScript) |
-| retains earlier rows and retries the failed next results page                                           | React component/provider integration (JavaScript) |
-| rejects a malformed command acknowledgement and keeps the uncertain scope locked after a failed reread  | React component/provider integration (JavaScript) |
-| invalidates a held native confirmation when its screen is removed                                       | React component/provider integration (JavaScript) |
-| retains an uncertain %s command through A → B → A navigation (parameterized)                            | React component/provider integration (JavaScript) |
-| keeps a newer running read when an older accepted pending acknowledgement arrives                       | React component/provider integration (JavaScript) |
-| keeps completion freshness already read at the same editing revision as a delayed pause acknowledgement | React component/provider integration (JavaScript) |
+| Asserted behavior / regression if violated (parameter rows included)                                          | Actual proof family                               |
+| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| separates competition seasons from the two seasonless controls                                                | React component/provider integration (JavaScript) |
+| refreshes only reads and retains uncertain integration and absent measurements while paused                   | React component/provider integration (JavaScript) |
+| distinguishes accepted pending intent from a confirmed running cycle (%s) (parameterized)                     | React component/provider integration (JavaScript) |
+| pauses only the selected control and explicitly resumes before relaunch                                       | React component/provider integration (JavaScript) |
+| requires explicit successful reread after %s and retains the scope across removal (parameterized)             | React component/provider integration (JavaScript) |
+| shows partial acquisition separately from failed integration and a previous success                           | React component/provider integration (JavaScript) |
+| refuses a held confirmation after current permission withdrawal                                               | React component/provider integration (JavaScript) |
+| refuses a confirmed collection request when its %s read is denied during credential retrieval (parameterized) | React component/provider integration (JavaScript) |
+| ignores an old-session command response without presenting a new success                                      | React component/provider integration (JavaScript) |
+| keeps a closed season navigable with no collection command                                                    | React component/provider integration (JavaScript) |
+| commands the %s family without a season query or setting (parameterized)                                      | React component/provider integration (JavaScript) |
+| retains running evidence while pause cancels an unstarted request                                             | React component/provider integration (JavaScript) |
+| retains earlier rows and retries the failed next results page                                                 | React component/provider integration (JavaScript) |
+| rejects a malformed command acknowledgement and keeps the uncertain scope locked after a failed reread        | React component/provider integration (JavaScript) |
+| invalidates a held native confirmation when its screen is removed                                             | React component/provider integration (JavaScript) |
+| retains an uncertain %s command through A → B → A navigation (parameterized)                                  | React component/provider integration (JavaScript) |
+| keeps a newer running read when an older accepted pending acknowledgement arrives                             | React component/provider integration (JavaScript) |
+| keeps completion freshness already read at the same editing revision as a delayed pause acknowledgement       | React component/provider integration (JavaScript) |
+| disables pull-to-refresh while a collection command is awaiting acknowledgement                               | React component/provider integration (JavaScript) |
 
 ### Mobile: preparation-editors.test.ts
 
@@ -3277,34 +3321,43 @@ Source: [apps/mobile/src/features/collection/**tests**/source-preparation.test.t
 - **Controlled:** react-native-keyboard-controller upstream native test double; installation initialization outside this scenario; Auth0 native bridge only; SDK provider/hooks/error classes remain real; selected router/Stack navigation boundary (see declared mock); Fetch response/abort double (no socket)
 - **Isolation/cleanup:** scenario doubles reset before each case; fresh Query client per case; Query client cleared in teardown; spies/property replacements restored; environment restored by the declared teardown; RNTL unmount cleanup owns mounted component effects.
 
-| Asserted behavior / regression if violated (parameter rows included)                            | Actual proof family                               |
-| ----------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| lists canonical seasons in the production collection overview                                   | React component/provider integration (JavaScript) |
-| opens provider controls without loading unused source configuration                             | React component/provider integration (JavaScript) |
-| shows an honest empty season list and recovers an initial read failure explicitly               | React component/provider integration (JavaScript) |
-| requires the dedicated collection grant: %j (parameterized)                                     | React component/provider integration (JavaScript) |
-| shows missing source coverage without inventing seasonal evidence or mapping readiness          | React component/provider integration (JavaScript) |
-| saves an inline candidate and clears old qualification before another explicit validation       | React component/provider integration (JavaScript) |
-| preserves qualified feedback when saving an %s candidate (parameterized)                        | React component/provider integration (JavaScript) |
-| preserves dirty input through a background refetch and requires an explicit reread              | React component/provider integration (JavaScript) |
-| keeps the candidate after a confirmed %i refusal (parameterized)                                | React component/provider integration (JavaScript) |
-| rereads before explicit candidate resubmission after %s (parameterized)                         | React component/provider integration (JavaScript) |
-| keeps an uncertain candidate blocked when reread fails                                          | React component/provider integration (JavaScript) |
-| keeps 202 pending distinct from qualification and only rereads on demand                        | React component/provider integration (JavaScript) |
-| confirms only missing seasonal attribution with the exact canonical season                      | React component/provider integration (JavaScript) |
-| never offers confirmation to override invalid evidence                                          | React component/provider integration (JavaScript) |
-| keeps %s sources read-only (parameterized)                                                      | React component/provider integration (JavaScript) |
-| preserves the launch selection after %s without replay (parameterized)                          | React component/provider integration (JavaScript) |
-| rereads a failed launch without discarding selections before a new explicit launch              | React component/provider integration (JavaScript) |
-| rejects credential-bearing candidate input locally without losing it or sending a write         | React component/provider integration (JavaScript) |
-| adds only an unqualified candidate for the explicit provider and current season revision        | React component/provider integration (JavaScript) |
-| keeps a manual draft read-only when the reread establishes terminal season closure              | React component/provider integration (JavaScript) |
-| launches an initial-import-locked qualified binding unchanged                                   | React component/provider integration (JavaScript) |
-| reads bounded direct children and their next page without exposing mapping or an invented total | React component/provider integration (JavaScript) |
-| retries the failed next child page instead of only refreshing already loaded children           | React component/provider integration (JavaScript) |
-| retains the manual supported-source draft after a duplicate conflict                            | React component/provider integration (JavaScript) |
-| blocks a held confirmation after grant revocation while retaining a read-only draft             | React component/provider integration (JavaScript) |
-| rejects a source mutation arriving after the original F05 session ended                         | React component/provider integration (JavaScript) |
+| Asserted behavior / regression if violated (parameter rows included)                              | Actual proof family                               |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| cancels the %s draft only after native discard confirmation (parameterized)                       | React component/provider integration (JavaScript) |
+| lists canonical seasons in the production collection overview                                     | React component/provider integration (JavaScript) |
+| opens provider controls without loading unused source configuration                               | React component/provider integration (JavaScript) |
+| announces pending collection navigation without inventing a season destination                    | React component/provider integration (JavaScript) |
+| shows an honest empty season list and recovers an initial read failure explicitly                 | React component/provider integration (JavaScript) |
+| requires the dedicated collection grant: %j (parameterized)                                       | React component/provider integration (JavaScript) |
+| shows missing source coverage without inventing seasonal evidence or mapping readiness            | React component/provider integration (JavaScript) |
+| saves an inline candidate and clears old qualification before another explicit validation         | React component/provider integration (JavaScript) |
+| preserves qualified feedback when saving an %s candidate (parameterized)                          | React component/provider integration (JavaScript) |
+| preserves dirty input through a background refetch and requires an explicit reread                | React component/provider integration (JavaScript) |
+| keeps the candidate after a confirmed %i refusal (parameterized)                                  | React component/provider integration (JavaScript) |
+| rereads before explicit candidate resubmission after %s (parameterized)                           | React component/provider integration (JavaScript) |
+| keeps an uncertain candidate blocked when reread fails                                            | React component/provider integration (JavaScript) |
+| keeps 202 pending distinct from qualification and only rereads on demand                          | React component/provider integration (JavaScript) |
+| confirms only missing seasonal attribution with the exact canonical season                        | React component/provider integration (JavaScript) |
+| never offers confirmation to override invalid evidence                                            | React component/provider integration (JavaScript) |
+| keeps %s sources read-only (parameterized)                                                        | React component/provider integration (JavaScript) |
+| preserves the launch selection after %s without replay (parameterized)                            | React component/provider integration (JavaScript) |
+| rereads a failed launch without discarding selections before a new explicit launch                | React component/provider integration (JavaScript) |
+| rejects credential-bearing candidate input locally without losing it or sending a write           | React component/provider integration (JavaScript) |
+| adds only an unqualified candidate for the explicit provider and current season revision          | React component/provider integration (JavaScript) |
+| keeps a manual draft read-only when the reread establishes terminal season closure                | React component/provider integration (JavaScript) |
+| launches an initial-import-locked qualified binding unchanged                                     | React component/provider integration (JavaScript) |
+| reads bounded direct children and their next page without exposing mapping or an invented total   | React component/provider integration (JavaScript) |
+| retries the failed next child page instead of only refreshing already loaded children             | React component/provider integration (JavaScript) |
+| retains the manual supported-source draft after a duplicate conflict                              | React component/provider integration (JavaScript) |
+| blocks a held confirmation after grant revocation while retaining a read-only draft               | React component/provider integration (JavaScript) |
+| rejects a source mutation arriving after the original F05 session ended                           | React component/provider integration (JavaScript) |
+| preserves a newer source read when an older accepted candidate response arrives later             | React component/provider integration (JavaScript) |
+| keeps every provider blocked when an acknowledged source invalidates a season whose refresh fails | React component/provider integration (JavaScript) |
+| preserves an edited source URL when pull-to-refresh reads a newer source revision                 | React component/provider integration (JavaScript) |
+| hides retained source groups when the current catalog read is refused                             | React component/provider integration (JavaScript) |
+| explains missing collection permission without leaving a disabled catalog in loading              | React component/provider integration (JavaScript) |
+| retains a source draft but disables its commands after the current source read is refused         | React component/provider integration (JavaScript) |
+| keeps refused season navigation hidden through a failed reread until a successful owner retry     | React component/provider integration (JavaScript) |
 
 ### Mobile: contribution-context.test.ts
 
@@ -3404,17 +3457,24 @@ Source: [apps/mobile/src/features/discovery/**tests**/search-screen.test.tsx](..
 - **Controlled:** installation initialization outside this scenario; Auth0 native bridge only; SDK provider/hooks/error classes remain real; Fetch response/abort double (no socket); `../../../shared/api/binary-image-preview`
 - **Isolation/cleanup:** scenario doubles reset before each case; fresh Query client per case; Query client cleared in teardown; spies/property replacements restored; environment restored by the declared teardown; RNTL unmount cleanup owns mounted component effects.
 
-| Asserted behavior / regression if violated (parameter rows included)                               | Actual proof family                               |
-| -------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| allows all three public tabs for %s without waiting for Pro (parameterized)                        | React component/provider integration (JavaScript) |
-| keeps distinct namesakes and presents only available public context without logo reads             | React component/provider integration (JavaScript) |
-| clears the shared query through the approved search action without fetching empty text             | React component/provider integration (JavaScript) |
-| accepts 200 Unicode code points and rejects longer input without truncation, counter or limit hint | React component/provider integration (JavaScript) |
-| distinguishes initial waiting, retryable failure and established no matches while retaining text   | React component/provider integration (JavaScript) |
-| cancels superseded text and tab requests and never shows an older result as the new search         | React component/provider integration (JavaScript) |
-| does not replay a failed read on focus, reconnect or a visited-tab return                          | React component/provider integration (JavaScript) |
-| leaves empty and whitespace-only text unqueried until the examples owner is delivered              | React component/provider integration (JavaScript) |
-| does not replay a logo read after status %i when returning to its tab (parameterized)              | React component/provider integration (JavaScript) |
+| Asserted behavior / regression if violated (parameter rows included)                                      | Actual proof family                               |
+| --------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| allows all three public tabs for %s without waiting for Pro (parameterized)                               | React component/provider integration (JavaScript) |
+| keeps distinct namesakes and presents only available public context without logo reads                    | React component/provider integration (JavaScript) |
+| clears the shared query through the approved search action without fetching empty text                    | React component/provider integration (JavaScript) |
+| accepts 200 Unicode code points and rejects longer input without truncation, counter or limit hint        | React component/provider integration (JavaScript) |
+| distinguishes initial waiting, retryable failure and established no matches while retaining text          | React component/provider integration (JavaScript) |
+| keeps clearing available without pull-to-refresh through replacement reads and preserves the selected tab | React component/provider integration (JavaScript) |
+| cancels superseded text and tab requests and never shows an older result as the new search                | React component/provider integration (JavaScript) |
+| does not replay a failed read on focus, reconnect or a visited-tab return                                 | React component/provider integration (JavaScript) |
+| leaves empty and whitespace-only text unqueried until the examples owner is delivered                     | React component/provider integration (JavaScript) |
+| does not replay a logo read after status %i when returning to its tab (parameterized)                     | React component/provider integration (JavaScript) |
+| retries native rendering after a successful logo reread with identical bytes                              | React component/provider integration (JavaScript) |
+| retains the draft and selected tab when an %s search is read again (parameterized)                        | React component/provider integration (JavaScript) |
+| retries only the failed continuation and keeps one row per resource                                       | React component/provider integration (JavaScript) |
+| retains loaded pages after a failed background read and accepts the next traversal: %s (parameterized)    | React component/provider integration (JavaScript) |
+| cancels pending pagination before a background read and rejects its late response                         | React component/provider integration (JavaScript) |
+| replaces retained search results after a current access or visibility refusal (%s) (parameterized)        | React component/provider integration (JavaScript) |
 
 ### Mobile: follow-action.test.tsx
 
@@ -3424,27 +3484,29 @@ Source: [apps/mobile/src/features/following/**tests**/follow-action.test.tsx](..
 - **Controlled:** installation initialization outside this scenario; Auth0 native bridge only; SDK provider/hooks/error classes remain real; selected router/Stack navigation boundary (see declared mock); Fetch response/abort double (no socket)
 - **Isolation/cleanup:** scenario doubles reset before each case; fresh Query client per case; Query client cleared in teardown; spies/property replacements restored; environment restored by the declared teardown; fake timers returned to real timers; RNTL unmount cleanup owns mounted component effects.
 
-| Asserted behavior / regression if violated (parameter rows included)                                                  | Actual proof family                               |
-| --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| shares the requested value and busy state across tabs, ignores repeated taps and keeps another target usable          | React component/provider integration (JavaScript) |
-| invites a guest without retaining a command to replay after authentication                                            | React component/provider integration (JavaScript) |
-| suspends the action after profile retrieval fails while public content remains usable                                 | React component/provider integration (JavaScript) |
-| composes the %s route with its exact target and sporting season (parameterized)                                       | React component/provider integration (JavaScript) |
-| distinguishes a failed initial member read from false and offers an explicit read retry                               | React component/provider integration (JavaScript) |
-| rereads a temporarily hidden target when its public page is reopened after restoration                                | React component/provider integration (JavaScript) |
-| does not resurrect a superseded failure when the successful second control unmounts                                   | React component/provider integration (JavaScript) |
-| keeps the confirmed member state when returning from an explicit maintenance bypass                                   | React component/provider integration (JavaScript) |
-| retires an obsolete mutation refusal %s after a current read on another reopened control (parameterized)              | React component/provider integration (JavaScript) |
-| keeps a newer current read refusal %s when an earlier saved write response arrives late (parameterized)               | React component/provider integration (JavaScript) |
-| keeps refusal %s after native collection of a detached mutation while another control remains mounted (parameterized) | React component/provider integration (JavaScript) |
-| applies authoritative success after the initiating control unmounts                                                   | React component/provider integration (JavaScript) |
-| resets affected retained selections and invalidates options/count without touching another owner                      | React component/provider integration (JavaScript) |
-| cancels old list traversal and reloads only visible first pages, keeping write success when that read fails           | React component/provider integration (JavaScript) |
-| preserves a confirmed write when the subsequent profile read fails                                                    | React component/provider integration (JavaScript) |
-| keeps the prior state after a definite refusal of following=%s and repeats only on explicit press (parameterized)     | React component/provider integration (JavaScript) |
-| observes current state once after losing a write response without announcing a confirmed write                        | React component/provider integration (JavaScript) |
-| does not invent an outcome when both write response and reconciliation are lost                                       | React component/provider integration (JavaScript) |
-| rejects late completion after switching to %s (parameterized)                                                         | React component/provider integration (JavaScript) |
+| Asserted behavior / regression if violated (parameter rows included)                                              | Actual proof family                               |
+| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| shares the requested value and busy state across tabs, ignores repeated taps and keeps another target usable      | React component/provider integration (JavaScript) |
+| invites a guest without retaining a command to replay after authentication                                        | React component/provider integration (JavaScript) |
+| suspends the action after profile retrieval fails while public content remains usable                             | React component/provider integration (JavaScript) |
+| composes the %s route with its exact target and sporting season (parameterized)                                   | React component/provider integration (JavaScript) |
+| distinguishes a failed initial member read from false and offers an explicit read retry                           | React component/provider integration (JavaScript) |
+| rereads a temporarily hidden target when its public page is reopened after restoration                            | React component/provider integration (JavaScript) |
+| does not resurrect a superseded failure when the successful second control unmounts                               | React component/provider integration (JavaScript) |
+| keeps the confirmed member state when returning from an explicit maintenance bypass                               | React component/provider integration (JavaScript) |
+| retires an obsolete mutation refusal %s after a current read on another reopened control (parameterized)          | React component/provider integration (JavaScript) |
+| keeps a newer current read refusal %s when an earlier saved write response arrives late (parameterized)           | React component/provider integration (JavaScript) |
+| keeps refusal %s after the settled command is retired and its initiating control leaves (parameterized)           | React component/provider integration (JavaScript) |
+| applies authoritative success after the initiating control unmounts                                               | React component/provider integration (JavaScript) |
+| resets affected retained selections and invalidates options/count without touching another owner                  | React component/provider integration (JavaScript) |
+| cancels old list traversal and reloads only visible first pages, keeping write success when that read fails       | React component/provider integration (JavaScript) |
+| preserves a confirmed write when the subsequent profile read fails                                                | React component/provider integration (JavaScript) |
+| keeps the prior state after a definite refusal of following=%s and repeats only on explicit press (parameterized) | React component/provider integration (JavaScript) |
+| observes current state once after losing a write response without announcing a confirmed write                    | React component/provider integration (JavaScript) |
+| shares an uncertain-write observation with an explicit member reread and cancels both through Query               | React component/provider integration (JavaScript) |
+| retains an uncertain follow across route disposal and cache expiry until a deliberate same-command retry          | React component/provider integration (JavaScript) |
+| rejects late completion after switching to %s (parameterized)                                                     | React component/provider integration (JavaScript) |
+| suspends the canonical confirmed relation when its maintenance bypass is cleared                                  | React component/provider integration (JavaScript) |
 
 ### Mobile: following-context.test.ts
 
@@ -3538,15 +3600,16 @@ Source: [apps/mobile/src/features/onboarding/**tests**/discovery-navigation.test
 - **Controlled:** Sentry SDK entry/capture double; `expo-application`; official AsyncStorage Jest in-memory double; installation initialization outside this scenario; RevenueCat public SDK operations replaced by controlled doubles; Auth0 native bridge only; SDK provider/hooks/error classes remain real; Fetch response/abort double (no socket)
 - **Isolation/cleanup:** scenario doubles reset before each case; official storage fake cleared before each case; spies/property replacements restored; environment restored by the declared teardown; RNTL unmount cleanup owns mounted component effects.
 
-| Asserted behavior / regression if violated (parameter rows included)                             | Actual proof family                               |
-| ------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
-| presents common discovery before ordinary access, then keeps sign-out and foreground independent | React component/provider integration (JavaScript) |
-| keeps completed discovery and ordinary guest/support access after %s sign-in (parameterized)     | React component/provider integration (JavaScript) |
-| keeps %s behind current F12 blocking (parameterized)                                             | React component/provider integration (JavaScript) |
-| preserves a completed installation’s deep link while its local flag is being read                | React component/provider integration (JavaScript) |
-| keeps the root loading gate during an explicit installation-read retry                           | React component/provider integration (JavaScript) |
-| suppresses discovery under %s (parameterized)                                                    | React component/provider integration (JavaScript) |
-| leaves completed discovery unchanged after restart and a later V2 release                        | React component/provider integration (JavaScript) |
+| Asserted behavior / regression if violated (parameter rows included)                               | Actual proof family                               |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| presents common discovery before ordinary access, then keeps sign-out and foreground independent   | React component/provider integration (JavaScript) |
+| keeps completed discovery and ordinary guest/support access after %s sign-in (parameterized)       | React component/provider integration (JavaScript) |
+| keeps %s behind current F12 blocking (parameterized)                                               | React component/provider integration (JavaScript) |
+| preserves a completed installation’s deep link while its local flag is being read                  | React component/provider integration (JavaScript) |
+| keeps the root loading gate during an explicit installation-read retry                             | React component/provider integration (JavaScript) |
+| suppresses discovery under %s (parameterized)                                                      | React component/provider integration (JavaScript) |
+| leaves completed discovery unchanged after restart and a later V2 release                          | React component/provider integration (JavaScript) |
+| keeps the public store action and its error available while installation initialization is pending | React component/provider integration (JavaScript) |
 
 ### Mobile: discovery-screen.test.tsx
 
@@ -3563,6 +3626,9 @@ Source: [apps/mobile/src/features/onboarding/**tests**/discovery-screen.test.tsx
 | keeps interruption and back navigation incomplete                                       | React component/provider integration (JavaScript) |
 | waits for persistence and retains the journey on write failure before an explicit retry | React component/provider integration (JavaScript) |
 | offers explicit recovery when the installation flag cannot be read                      | React component/provider integration (JavaScript) |
+| ignores a previous mount's unfinished read after the installation is completed          | React component/provider integration (JavaScript) |
+| preserves an acknowledged installation write when the submitting tree is removed        | React component/provider integration (JavaScript) |
+| dispatches explicit completion once even when its tree leaves in the same event         | React component/provider integration (JavaScript) |
 
 ### Mobile: discovery-state.test.ts
 
@@ -3633,17 +3699,18 @@ Source: [apps/mobile/src/features/pro/**tests**/pro-appearance.test.tsx](../apps
 Source: [apps/mobile/src/features/pro/**tests**/pro-entry.test.tsx](../apps/mobile/src/features/pro/__tests__/pro-entry.test.tsx).
 
 - **Real:** TanStack Query and the application Query setup. Auth0 JavaScript SDK and the real account/session provider. React and the actual components/providers mounted in the scenario through React Native Testing Library/Jest Expo. Owning handwritten modules: `account-session-provider`, `profile-screen`, `sign-in-invitation-screen`, `query-client`, `theme-provider`, `pro-entry`, `pro-profile-entry`, `pro-provider`.
-- **Controlled:** react-native-keyboard-controller upstream native test double; RevenueCat public SDK operations replaced by controlled doubles; installation initialization outside this scenario; Auth0 native bridge only; SDK provider/hooks/error classes remain real; selected router/Stack navigation boundary (see declared mock); Sentry SDK entry/capture double
+- **Controlled:** react-native-keyboard-controller upstream native test double; RevenueCat public SDK operations replaced by controlled doubles; installation initialization outside this scenario; Auth0 native bridge only; SDK provider/hooks/error classes remain real; real Router context/focus with controlled navigation commands; Sentry SDK entry/capture double
+- **Limit:** Navigation assertions establish requested commands; the separate profile-navigation suite proves route departure. SDK UI doubles do not establish native paywall or customer-center presentation.
 - **Isolation/cleanup:** scenario doubles reset before each case; fresh Query client per case; Query client cleared in teardown; spies/property replacements restored; environment restored by the declared teardown; RNTL unmount cleanup owns mounted component effects.
 
-| Asserted behavior / regression if violated (parameter rows included)                                     | Actual proof family                               |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| places a distinct Pro action before Privacy in the existing admitted profile                             | React component/provider integration (JavaScript) |
-| keeps Pro and its direct invitation behind ordinary F12 admission                                        | React component/provider integration (JavaScript) |
-| dismisses the price-free invitation without changing the originating context or consulting native offers | React component/provider integration (JavaScript) |
-| replaces the invitation with ordinary sign-in, without any continuation parameter                        | React component/provider integration (JavaScript) |
-| removes the guest presentation immediately when its F05 generation changes                               | React component/provider integration (JavaScript) |
-| requires a new explicit press after ordinary sign-in before calling a native host command                | React component/provider integration (JavaScript) |
+| Asserted behavior / regression if violated (parameter rows included)                | Actual proof family                               |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------- |
+| places a distinct Pro action before Privacy in the existing admitted profile        | React component/provider integration (JavaScript) |
+| keeps Pro and its direct invitation behind ordinary F12 admission                   | React component/provider integration (JavaScript) |
+| requests dismissal of the price-free invitation without consulting native offers    | React component/provider integration (JavaScript) |
+| replaces the invitation with ordinary sign-in, without any continuation parameter   | React component/provider integration (JavaScript) |
+| removes the guest presentation immediately when its F05 generation changes          | React component/provider integration (JavaScript) |
+| requires a new explicit press after ordinary sign-in before requesting presentation | React component/provider integration (JavaScript) |
 
 ### Mobile: pro-offering.test.ts
 
@@ -3665,29 +3732,42 @@ Source: [apps/mobile/src/features/pro/**tests**/pro-offering.test.ts](../apps/mo
 Source: [apps/mobile/src/features/pro/**tests**/pro-presentation.test.tsx](../apps/mobile/src/features/pro/__tests__/pro-presentation.test.tsx).
 
 - **Real:** TanStack Query and the application Query setup. Auth0 JavaScript SDK and the real account/session provider. React and the actual components/providers mounted in the scenario through React Native Testing Library/Jest Expo. Owning handwritten modules: `account-session-provider`, `query-client`, `theme-provider`, `pro-provider`, `pro-profile-entry`, `pro-presentation-screen`.
-- **Controlled:** `expo-constants`; selected router/Stack navigation boundary (see declared mock); RevenueCat public SDK operations replaced by controlled doubles; Paywall/native management component callbacks controlled by a React test component; Sentry SDK entry/capture double; installation initialization outside this scenario; Auth0 native bridge only; SDK provider/hooks/error classes remain real
+- **Controlled:** `expo-constants`; real Router context/focus with controlled navigation commands; RevenueCat public SDK operations replaced by controlled doubles; Paywall/native management component callbacks controlled by a React test component; Sentry SDK entry/capture double; installation initialization outside this scenario; Auth0 native bridge only; SDK provider/hooks/error classes remain real
+- **Limit:** Navigation assertions establish requested commands; the separate profile-navigation suite proves route departure. SDK UI doubles do not establish native paywall or customer-center presentation.
 - **Isolation/cleanup:** scenario doubles reset before each case; fresh Query client per case; Query client cleared in teardown; spies/property replacements restored; environment restored by the declared teardown; RNTL unmount cleanup owns mounted component effects.
 
 | Asserted behavior / regression if violated (parameter rows included)                                         | Actual proof family                               |
 | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
-| hosts the explicit V2 offering unchanged and dismisses to the originating profile                            | React component/provider integration (JavaScript) |
+| passes the explicit V2 offering to the native host and requests dismissal once                               | React component/provider integration (JavaScript) |
 | refuses a repeated native initiation and shows confirmed payment without claiming inactive rights are active | React component/provider integration (JavaScript) |
 | routes %s rights to native management without looking up an offer (parameterized)                            | React component/provider integration (JavaScript) |
-| removes old-session native content and rejects old purchase, dismissal and support callbacks                 | React component/provider integration (JavaScript) |
+| removes old-session native content and rejects old purchase and dismissal callbacks                          | React component/provider integration (JavaScript) |
 | prepares only the identified F10 Custom Action with close-before-navigation and no attached payload          | React component/provider integration (JavaScript) |
 | keeps an %s offer on the profile with honest feedback and no fallback (parameterized)                        | React component/provider integration (JavaScript) |
 | keeps management independently reachable and leaves absent F10 integration unbound                           | React component/provider integration (JavaScript) |
 | rejects a late offering response after the opening session changes                                           | React component/provider integration (JavaScript) |
 | presents native outcome %s without retrying payment (parameterized)                                          | React component/provider integration (JavaScript) |
 | announces only current SDK-active ad-free activation from the completion callback                            | React component/provider integration (JavaScript) |
-| keeps navigation usable while the offer loads and drops presentation intent on leaving the profile           | React component/provider integration (JavaScript) |
 | explicitly retries a failed offer from the profile and then opens the official component                     | React component/provider integration (JavaScript) |
 | does not reopen a cached paywall when a new explicit offering read fails                                     | React component/provider integration (JavaScript) |
+| keeps a successfully empty offer visible when the next explicit read fails                                   | React component/provider integration (JavaScript) |
 | allows B's explicit entry while A's abandoned offering read is still pending                                 | React component/provider integration (JavaScript) |
 
-### Mobile: pro-purchase.test.tsx
+### Mobile: pro-profile-navigation.test.tsx
 
-Source: [apps/mobile/src/features/pro/**tests**/pro-purchase.test.tsx](../apps/mobile/src/features/pro/__tests__/pro-purchase.test.tsx).
+Source: [apps/mobile/src/features/pro/**tests**/pro-profile-navigation.test.tsx](../apps/mobile/src/features/pro/__tests__/pro-profile-navigation.test.tsx).
+
+- **Real:** Expo Router Stack/Link, actual route focus, Query client, Auth0 JavaScript SDK, account/Pro providers and ProProfileEntry.
+- **Controlled:** Auth0 native bridge, installation initialization, RevenueCat public SDK I/O, Expo configuration and Sentry capture. A deferred offering read holds the native SDK boundary.
+- **Limit/cleanup:** The route must remain /sporting after the held offer resolves. This proves JavaScript navigation/focus, not device gestures or RevenueCat compatibility. Unmount before clearing the client/restoring native doubles and environment; release the held read in finally.
+
+| Asserted behavior / regression if violated (parameter rows included)                             | Actual proof family                               |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| keeps navigation usable during offering lookup and abandons the opening when profile loses focus | React component/provider integration (JavaScript) |
+
+### Mobile: pro-purchase.test.ts
+
+Source: [apps/mobile/src/features/pro/**tests**/pro-purchase.test.ts](../apps/mobile/src/features/pro/__tests__/pro-purchase.test.ts).
 
 - **Real:** Owning handwritten modules: `pro-session`, `pro-operations`.
 - **Controlled:** `expo-constants`; RevenueCat public SDK operations replaced by controlled doubles; Sentry SDK entry/capture double
@@ -3714,7 +3794,8 @@ Source: [apps/mobile/src/features/pro/**tests**/pro-refresh.test.tsx](../apps/mo
 
 | Asserted behavior / regression if violated (parameter rows included)                                       | Actual proof family                               |
 | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| reads on association, ordinary entry, foreground, retry and operation completion, cleaning subscriptions   | React component/provider integration (JavaScript) |
+| publishes newly read rights after %s (parameterized)                                                       | React component/provider integration (JavaScript) |
+| removes native subscriptions when the provider unmounts                                                    | React component/provider integration (JavaScript) |
 | rejects a detached read and callbacks after provider remount into the same business account                | React component/provider integration (JavaScript) |
 | reads operation completion without waiting for an earlier read and rejects its late result                 | React component/provider integration (JavaScript) |
 | keeps current verification busy when an older read fails                                                   | React component/provider integration (JavaScript) |
@@ -3723,9 +3804,9 @@ Source: [apps/mobile/src/features/pro/**tests**/pro-refresh.test.tsx](../apps/mo
 | ignores events during association and reads once after the current login settles                           | React component/provider integration (JavaScript) |
 | clears local rights before native logout settles, without waiting for RevenueCat                           | React component/provider integration (JavaScript) |
 
-### Mobile: pro-session.test.tsx
+### Mobile: pro-session.test.ts
 
-Source: [apps/mobile/src/features/pro/**tests**/pro-session.test.tsx](../apps/mobile/src/features/pro/__tests__/pro-session.test.tsx).
+Source: [apps/mobile/src/features/pro/**tests**/pro-session.test.ts](../apps/mobile/src/features/pro/__tests__/pro-session.test.ts).
 
 - **Real:** Owning handwritten modules: `accounts`, `pro-session`.
 - **Controlled:** `expo-constants`; RevenueCat public SDK operations replaced by controlled doubles; Sentry SDK entry/capture double
@@ -3773,13 +3854,15 @@ Source: [apps/mobile/src/features/pro/**tests**/pro-verification.test.tsx](../ap
 - **Controlled:** `expo-constants`; RevenueCat public SDK operations replaced by controlled doubles; Sentry SDK entry/capture double; installation initialization outside this scenario; Auth0 native bridge only; SDK provider/hooks/error classes remain real
 - **Isolation/cleanup:** spies/property replacements restored; environment restored by the declared teardown; RNTL unmount cleanup owns mounted component effects.
 
-| Asserted behavior / regression if violated (parameter rows included)                                    | Actual proof family                               |
-| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| does not turn an initial read failure or a failed retry into inactivity                                 | React component/provider integration (JavaScript) |
-| keeps failed association unavailable, with explicit retry and independent support                       | React component/provider integration (JavaScript) |
-| preserves SDK-active $label through failed verification and ordinary cancellation (parameterized)       | React component/provider integration (JavaScript) |
-| accepts an SDK-inactive result without reconstructing historical rights                                 | React component/provider integration (JavaScript) |
-| keeps %s operation feedback separate from active rights and never repeats a transaction (parameterized) | React component/provider integration (JavaScript) |
+| Asserted behavior / regression if violated (parameter rows included)                                          | Actual proof family                               |
+| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| does not turn an initial read failure or a failed retry into inactivity                                       | React component/provider integration (JavaScript) |
+| keeps failed association unavailable, with explicit retry and independent support                             | React component/provider integration (JavaScript) |
+| preserves SDK-active $label through failed verification and ordinary cancellation (parameterized)             | React component/provider integration (JavaScript) |
+| accepts an SDK-inactive result without reconstructing historical rights                                       | React component/provider integration (JavaScript) |
+| keeps %s operation feedback separate from active rights and never repeats a transaction (parameterized)       | React component/provider integration (JavaScript) |
+| preserves known rights without a persistent error block after a definite purchase failure                     | React component/provider integration (JavaScript) |
+| toasts a failed explicit verification from %s while preserving its uncertain business outcome (parameterized) | React component/provider integration (JavaScript) |
 
 ### Mobile: consultation-context.test.ts
 
@@ -3843,7 +3926,7 @@ Source: [apps/mobile/src/features/sporting/**tests**/sporting-pages.test.tsx](..
 | keeps a clubless professional team and one follow action across distinct phase tabs                       | React component/provider integration (JavaScript) |
 | opens exact club and pool identities without substituting a namesake                                      | React component/provider integration (JavaScript) |
 | keeps the pool season and phase independent of later standings and map content                            | React component/provider integration (JavaScript) |
-| distinguishes unavailable resources from a failed read (%s) (parameterized)                               | React component/provider integration (JavaScript) |
+| presents unavailable and failed initial reads with opaque copy (%s) (parameterized)                       | React component/provider integration (JavaScript) |
 | keeps match identities and independent missing sections without a zero score or guessed venue             | React component/provider integration (JavaScript) |
 | opens only effective safe contacts and labels the club municipality separately                            | React component/provider integration (JavaScript) |
 | preserves the %s result, published zero and special notation independently of absent sets (parameterized) | React component/provider integration (JavaScript) |
@@ -3861,6 +3944,8 @@ Source: [apps/mobile/src/features/sporting/**tests**/sporting-pages.test.tsx](..
 | rereads common club information on a fresh opening while retaining the same QueryClient                   | React component/provider integration (JavaScript) |
 | retries a previous common read failure on a fresh resource opening                                        | React component/provider integration (JavaScript) |
 | does not resurrect a forbidden club after a later %s failure (parameterized)                              | React component/provider integration (JavaScript) |
+| refreshes the active club team tab only and preserves the selected season                                 | React component/provider integration (JavaScript) |
+| omits pull-to-refresh from a club calendar placeholder with no rechargeable content                       | React component/provider integration (JavaScript) |
 
 ### Mobile: sporting-resource-queries.test.ts
 
@@ -3916,7 +4001,10 @@ Source: [apps/mobile/src/features/sporting-administration/**tests**/classificati
 
 | Asserted behavior / regression if violated (parameter rows included)                                       | Actual proof family                               |
 | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| announces the pending division catalogue without inventing editable rows                                   | React component/provider integration (JavaScript) |
 | submits a complete pool override after confirmation and excludes inactive choices                          | React component/provider integration (JavaScript) |
+| refreshes classification data without replacing dirty choices or accepting a newer editing baseline        | React component/provider integration (JavaScript) |
+| refreshes an empty division catalogue without changing its search or activity filter                       | React component/provider integration (JavaScript) |
 | removes the complete pack default with explicit null                                                       | React component/provider integration (JavaScript) |
 | retains dirty choices and displays conflicting scopes without applying a subset                            | React component/provider integration (JavaScript) |
 | requires a successful current-state read after an uncertain write and preserves the draft                  | React component/provider integration (JavaScript) |
@@ -3932,7 +4020,15 @@ Source: [apps/mobile/src/features/sporting-administration/**tests**/classificati
 | reauthorizes a held native confirmation after the current classification grant is revoked                  | React component/provider integration (JavaScript) |
 | shows current activity on reentry for an operator with classification permission only                      | React component/provider integration (JavaScript) |
 | filters division names within the selected activity catalogue without exposing lifecycle commands on cards | React component/provider integration (JavaScript) |
+| clears the division search without resetting the selected activity catalogue                               | React component/provider integration (JavaScript) |
 | opens division creation from the catalogue for a lifecycle-only operator                                   | React component/provider integration (JavaScript) |
+| discards a held classification confirmation when its protected route is removed                            | React component/provider integration (JavaScript) |
+| keeps classification choices but disables editing after a current resource refusal                         | React component/provider integration (JavaScript) |
+| keeps an open selector's known choices visible and read-only after its grant is withdrawn                  | React component/provider integration (JavaScript) |
+| keeps a refused division selector explicit when its authority is $authority (parameterized)                | React component/provider integration (JavaScript) |
+| retains an empty division selector and reports an ordinary refresh failure through a toast                 | React component/provider integration (JavaScript) |
+| keeps an open format selector unavailable through a refused then failed classification reread              | React component/provider integration (JavaScript) |
+| refuses a held save confirmation after its current classification read is refused                          | React component/provider integration (JavaScript) |
 
 ### Mobile: prepare-sporting-logo.test.ts
 
@@ -3954,32 +4050,44 @@ Source: [apps/mobile/src/features/sporting-administration/**tests**/presentation
 - **Controlled:** react-native-safe-area-context upstream native test double; react-native-keyboard-controller upstream native test double; Sentry SDK entry/capture double; RevenueCat public SDK operations replaced by controlled doubles; installation initialization outside this scenario; Auth0 native bridge only; SDK provider/hooks/error classes remain real; Fetch response/abort double (no socket); `expo-image-picker`; `expo-image-manipulator`; `expo-file-system`; official AsyncStorage Jest in-memory double
 - **Isolation/cleanup:** scenario doubles reset before each case; fresh Query client per case; Query client cleared in teardown; spies/property replacements restored; environment restored by the declared teardown; RNTL unmount cleanup owns mounted component effects.
 
-| Asserted behavior / regression if violated (parameter rows included)                                        | Actual proof family                               |
-| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| saves independent names and a nonsquare logo in one generated multipart PATCH                               | React component/provider integration (JavaScript) |
-| restores automatic artwork and clears only the selected name customization atomically                       | React component/provider integration (JavaScript) |
-| edits pool names with complete JSON and no logo or contacts                                                 | React component/provider integration (JavaScript) |
-| saves club presentation without a short-name field                                                          | React component/provider integration (JavaScript) |
-| validates and saves division colors, gradient and name without touching activity                            | React component/provider integration (JavaScript) |
-| preserves dirty fields after %s and requires a successful read before explicit retry (parameterized)        | React component/provider integration (JavaScript) |
-| keeps a dirty draft and the editing revision during background refetch                                      | React component/provider integration (JavaScript) |
-| retains input and shows the invalid-image field refusal                                                     | React component/provider integration (JavaScript) |
-| does not admit another action's permission %j (parameterized)                                               | React component/provider integration (JavaScript) |
-| retains a read-only draft when the current action grant is withdrawn                                        | React component/provider integration (JavaScript) |
-| ignores a held native selection after the session is invalidated                                            | React component/provider integration (JavaScript) |
-| opens the delivered administration entry for a presentation-only account during maintenance                 | React component/provider integration (JavaScript) |
-| keeps a presentation-only original-target editor admitted during maintenance                                | React component/provider integration (JavaScript) |
-| enters the real protected route with only the presentation grant and confirms dirty departure               | React component/provider integration (JavaScript) |
-| retains the draft and uncertain outcome when a failed permission refresh removes the actual route           | React component/provider integration (JavaScript) |
-| keeps an outstanding save busy across protected-route removal and records its later uncertainty             | React component/provider integration (JavaScript) |
-| rejects an invalid generated response before it replaces the accepted cache or dirty draft                  | React component/provider integration (JavaScript) |
-| rejects a delayed save result after the session has ended                                                   | React component/provider integration (JavaScript) |
-| creates an active division through the existing atomic presentation form with the lifecycle grant alone     | React component/provider integration (JavaScript) |
-| rereads divisions after an uncertain creation and keeps the draft while identifying an existing name        | React component/provider integration (JavaScript) |
-| keeps lifecycle independent at the end of the division editor for a lifecycle-only operator                 | React component/provider integration (JavaScript) |
-| preserves unsaved presentation values while an independent activity response advances the division revision | React component/provider integration (JavaScript) |
-| restores automatic division paint without sending a separate color or lifecycle command                     | React component/provider integration (JavaScript) |
-| preserves an empty invalid gradient stop when another stop changes                                          | React component/provider integration (JavaScript) |
+| Asserted behavior / regression if violated (parameter rows included)                                            | Actual proof family                               |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| saves independent names and a nonsquare logo in one generated multipart PATCH                                   | React component/provider integration (JavaScript) |
+| restores automatic artwork and clears only the selected name customization atomically                           | React component/provider integration (JavaScript) |
+| edits pool names with complete JSON and no logo or contacts                                                     | React component/provider integration (JavaScript) |
+| saves club presentation without a short-name field                                                              | React component/provider integration (JavaScript) |
+| validates and saves division colors, gradient and name without touching activity                                | React component/provider integration (JavaScript) |
+| preserves dirty fields after %s and requires a successful read before explicit retry (parameterized)            | React component/provider integration (JavaScript) |
+| keeps a dirty draft and the editing revision during background refetch                                          | React component/provider integration (JavaScript) |
+| refreshes the displayed logo, retaining technical failures but removing refused artwork until a successful read | React component/provider integration (JavaScript) |
+| retains input and shows the invalid-image field refusal                                                         | React component/provider integration (JavaScript) |
+| does not admit another action's permission %j (parameterized)                                                   | React component/provider integration (JavaScript) |
+| retains a read-only draft when the current action grant is withdrawn                                            | React component/provider integration (JavaScript) |
+| ignores a held native selection after the session is invalidated                                                | React component/provider integration (JavaScript) |
+| opens the delivered administration entry for a presentation-only account during maintenance                     | React component/provider integration (JavaScript) |
+| keeps a presentation-only original-target editor admitted during maintenance                                    | React component/provider integration (JavaScript) |
+| enters the real protected route with only the presentation grant and confirms dirty departure                   | React component/provider integration (JavaScript) |
+| retains the draft and uncertain outcome when a failed permission refresh removes the actual route               | React component/provider integration (JavaScript) |
+| keeps an outstanding save busy across protected-route removal and records its later uncertainty                 | React component/provider integration (JavaScript) |
+| rejects an invalid generated response before it replaces the accepted cache or dirty draft                      | React component/provider integration (JavaScript) |
+| rejects a delayed save result after the session has ended                                                       | React component/provider integration (JavaScript) |
+| creates an active division through the existing atomic presentation form with the lifecycle grant alone         | React component/provider integration (JavaScript) |
+| rereads divisions after an uncertain creation and keeps the draft while identifying an existing name            | React component/provider integration (JavaScript) |
+| keeps lifecycle independent at the end of the division editor for a lifecycle-only operator                     | React component/provider integration (JavaScript) |
+| preserves unsaved presentation values while an independent activity response advances the division revision     | React component/provider integration (JavaScript) |
+| restores automatic division paint without sending a separate color or lifecycle command                         | React component/provider integration (JavaScript) |
+| preserves an empty invalid gradient stop when another stop changes                                              | React component/provider integration (JavaScript) |
+| deletes a removed logo copy after the picker loan was released                                                  | React component/provider integration (JavaScript) |
+| keeps a sent logo until upload settlement after session invalidation                                            | React component/provider integration (JavaScript) |
+| deletes a prepared logo completed after its form unmounts                                                       | React component/provider integration (JavaScript) |
+| ignores the retained %s confirmation after protected-route removal and readmission (parameterized)              | React component/provider integration (JavaScript) |
+| releases only the replaced logo copy while the new draft remains usable                                         | React component/provider integration (JavaScript) |
+| shares one raw division list across creation and navigation and refreshes it after creation                     | React component/provider integration (JavaScript) |
+| keeps the shared division read authorized when creation loses its separate lifecycle grant                      | React component/provider integration (JavaScript) |
+| keeps an uncertain save blocked after explicitly discarding its draft and opening a fresh editor                | React component/provider integration (JavaScript) |
+| executes a confirmed division activity once when the native callback is delivered twice                         | React component/provider integration (JavaScript) |
+| preserves a different opaque revision read during a delayed accepted presentation save                          | React component/provider integration (JavaScript) |
+| retains a replacement division draft when the abandoned creation succeeds later                                 | React component/provider integration (JavaScript) |
 
 ### Mobile: sporting-contract.test.ts
 
@@ -4048,30 +4156,49 @@ Source: [apps/mobile/src/shared/api/**tests**/api-fetch.test.ts](../apps/mobile/
 | rejects an invalid timeout of %s before sending (parameterized)                | Generated/handwritten transport integration     |
 | bounds an uncertain write without replay                                       | Generated/handwritten transport integration     |
 
+### Mobile: image-field-examples.test.tsx
+
+Source: [apps/mobile/src/development/**tests**/image-field-examples.test.tsx](../apps/mobile/src/development/__tests__/image-field-examples.test.tsx).
+
+- **Real:** ImageFieldExamplesScreen, theme/feedback, image selection, prepared-preview state and owned-image disposal.
+- **Controlled:** Expo image-picker and File read/delete I/O; Sentry capture. The native byte read is a controlled promise.
+- **Limit/cleanup:** The example retains its preview after releasing the picker copy and forwards a data URI to the native image renderer. Jest does not decode native pixels or read/delete actual files. RNTL unmount cleanup disposes the mounted tree.
+
+| Asserted behavior / regression if violated (parameter rows included)              | Actual proof family                               |
+| --------------------------------------------------------------------------------- | ------------------------------------------------- |
+| keeps the demonstration preview in memory after its picker cache copy is released | React component/provider integration (JavaScript) |
+
 ### Mobile: image-field.test.tsx
 
 Source: [apps/mobile/src/shared/components/**tests**/image-field.test.tsx](../apps/mobile/src/shared/components/__tests__/image-field.test.tsx).
 
-- **Real:** React and the actual components/providers mounted in the scenario through React Native Testing Library/Jest Expo. Owning handwritten modules: `theme-provider`, `image-field`.
-- **Controlled:** `expo-image-picker`
+- **Real:** React and the actual components/providers mounted in the scenario through React Native Testing Library/Jest Expo. Owning handwritten modules: `theme-provider`, `image-field`, `use-image-selection` and owned-image disposal. The local controlled owner only forwards the public value and selection contract.
+- **Controlled:** Expo image-picker and File I/O; Sentry capture. Native selection results, file existence and deletion are controlled.
+- **Limit:** Caller validation is supplied as a public error, not reimplemented in the test. Image source/event assertions do not decode native pixels or prove filesystem behavior.
 - **Isolation/cleanup:** scenario doubles reset before each case; RNTL unmount cleanup owns mounted component effects.
 
-| Asserted behavior / regression if violated (parameter rows included)                                      | Actual proof family                               |
-| --------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| selects original native images without imposing cropping or persistence                                   | React component/provider integration (JavaScript) |
-| forwards caller-owned native cropping for $operation (parameterized)                                      | React component/provider integration (JavaScript) |
-| preserves the existing image when native selection is cancelled                                           | React component/provider integration (JavaScript) |
-| keeps selection usable after native refusal/failure %s without disclosing provider text (parameterized)   | React component/provider integration (JavaScript) |
-| opens a full-screen preview and closes it without changing caller values                                  | React component/provider integration (JavaScript) |
-| replaces a specific image and delegates automatic-logo restoration meaning                                | React component/provider integration (JavaScript) |
-| prioritizes multiple additions over native cropping but allows cropping a single replacement              | React component/provider integration (JavaScript) |
-| retains the old image and caller validation error when preparation rejects unsupported or oversized bytes | React component/provider integration (JavaScript) |
-| blocks reselection during owner preparation and recovers safely from rejection                            | React component/provider integration (JavaScript) |
-| prevents all image actions when the caller disables the field                                             | React component/provider integration (JavaScript) |
-| ignores a native selection returned after the field unmounts                                              | React component/provider integration (JavaScript) |
-| shows accepted caller values and removes them only when the owner updates                                 | React component/provider integration (JavaScript) |
-| keeps preview dismissal available when native image decoding fails                                        | React component/provider integration (JavaScript) |
-| offers the caller's retry meaning after an empty-field validation error                                   | React component/provider integration (JavaScript) |
+| Asserted behavior / regression if violated (parameter rows included)                                    | Actual proof family                               |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| keeps image selection explicit after validation instead of promising a retry                            | React component/provider integration (JavaScript) |
+| loans native image copies without imposing cropping and releases them after acceptance                  | React component/provider integration (JavaScript) |
+| forwards caller-owned native cropping for $operation (parameterized)                                    | React component/provider integration (JavaScript) |
+| opens one native picker when selection is requested twice before a render                               | React component/provider integration (JavaScript) |
+| respects the caller's selection admission and allows a later explicit attempt                           | React component/provider integration (JavaScript) |
+| preserves the existing image when native selection is cancelled                                         | React component/provider integration (JavaScript) |
+| keeps selection usable after native refusal/failure %s without disclosing provider text (parameterized) | React component/provider integration (JavaScript) |
+| opens a full-screen preview and closes it without changing caller values                                | React component/provider integration (JavaScript) |
+| replaces a specific image and delegates automatic-logo restoration meaning                              | React component/provider integration (JavaScript) |
+| prioritizes multiple additions over native cropping but allows cropping a single replacement            | React component/provider integration (JavaScript) |
+| preserves the controlled image when its owner supplies a validation error                               | React component/provider integration (JavaScript) |
+| blocks reselection during owner preparation and recovers safely from rejection                          | React component/provider integration (JavaScript) |
+| prevents all image actions when the caller disables the field                                           | React component/provider integration (JavaScript) |
+| ignores a native selection returned after the field unmounts                                            | React component/provider integration (JavaScript) |
+| shows accepted caller values and removes them only when the owner updates                               | React component/provider integration (JavaScript) |
+| keeps preview dismissal available when native image decoding fails                                      | React component/provider integration (JavaScript) |
+| starts a new preview attempt when an image URI returns or the viewer reopens                            | React component/provider integration (JavaScript) |
+| retains the caller's image choice after an empty-field validation error                                 | React component/provider integration (JavaScript) |
+| preserves a borrowed or non-cache picker source: %s (parameterized)                                     | React component/provider integration (JavaScript) |
+| releases every delivered cache copy after preparation settles even if the field unmounted               | React component/provider integration (JavaScript) |
 
 ### Mobile: sentry-native.test.ts
 

@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   act,
+  cleanup,
   fireEvent,
   screen,
   userEvent,
@@ -134,7 +135,8 @@ beforeEach(async () => {
     .mockReset()
     .mockImplementation(async () => Response.json(applicationAccessResponse()));
 });
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
@@ -251,7 +253,11 @@ it("keeps a remounted age form busy while installation storage survives a sessio
   expect(
     screen.getByRole("button", { name: "Augmenter l’âge" }),
   ).toBeDisabled();
+
+  // When
   await user.press(screen.getByRole("button", { name: "Augmenter l’âge" }));
+
+  // Then
   expect(write).toHaveBeenCalledTimes(1);
 
   // When

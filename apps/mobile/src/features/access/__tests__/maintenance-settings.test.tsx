@@ -1,9 +1,12 @@
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
+import { accountResponse } from "../../accounts/test-support/account-response";
+import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../queries/use-application-access";
-import { Alert, type AlertButton } from "react-native";
+import { Alert } from "react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
+  cleanup,
   act,
   render,
   screen,
@@ -63,14 +66,12 @@ const initial = {
   message: "Message préparé",
   imageUrl: null,
 };
-const account = {
+const account = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000175",
   username: "Operator_175",
   email: "operator@example.invalid",
-  principalCreatedAt: null,
-  hasPhoto: false,
   permissions: { manageMaintenance: true },
-};
+});
 let stored: import("../../../../.generated/schemas/index.zod").MaintenanceSettingsResponse =
   { ...initial };
 beforeEach(() => {
@@ -95,7 +96,8 @@ beforeEach(() => {
       json(String(url).endsWith("/accounts/me") ? account : stored),
     );
 });
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   client.clear();
   process.env = { ...environment };
   jest.restoreAllMocks();
@@ -107,11 +109,11 @@ async function renderSettings(content = <MaintenanceSettingsScreen />) {
     wrapper: ({ children }) => (
       <QueryClientProvider client={client}>
         <ThemeProvider>
-          <ActionFeedbackProvider scopeKey="test">
-            <ApplicationAccessProvider>
-              <AccountSessionProvider>{children}</AccountSessionProvider>
-            </ApplicationAccessProvider>
-          </ActionFeedbackProvider>
+          <ApplicationAccessProvider>
+            <AccountSessionProvider>
+              <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+            </AccountSessionProvider>
+          </ApplicationAccessProvider>
         </ThemeProvider>
       </QueryClientProvider>
     ),
@@ -127,31 +129,14 @@ function json(value: unknown, status = 200) {
     },
   });
 }
-/** Finds a named choice in the displayed native alert without accepting it during setup. */
-function nativeAction(label: string): AlertButton {
-  const button = jest
-    .mocked(Alert.alert)
-    .mock.lastCall?.[2]?.find((choice) => choice.text === label);
-  if (!button) throw new Error(`The native action ${label} is missing`);
-  return button;
-}
-/** Changes the actual native text field without replacing form state. */
-async function editMessage(message = "Mon brouillon") {
-  const user = userEvent.setup();
-  await user.clear(screen.getByLabelText("Message de maintenance"));
-  await user.type(screen.getByLabelText("Message de maintenance"), message);
-  return user;
-}
 
 it("shows loading before any known state can be saved", async () => {
   // Given
-  let finish: (value: Response) => void = () => {};
+  const response = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url) =>
     String(url).endsWith("/accounts/me")
       ? Promise.resolve(json(account))
-      : new Promise((resolve) => {
-          finish = resolve;
-        }),
+      : response.promise,
   );
 
   // When
@@ -178,7 +163,7 @@ it("shows loading before any known state can be saved", async () => {
   ).not.toBeOnTheScreen();
 
   // When
-  await act(async () => finish(json(initial)));
+  await act(async () => response.resolve(json(initial)));
 
   // Then
   expect(await screen.findByDisplayValue(initial.message)).toBeOnTheScreen();
@@ -187,9 +172,14 @@ it("shows loading before any known state can be saved", async () => {
 
 it("reports one failed refresh while retaining the editable maintenance draft", async () => {
   // Given
+  const user = userEvent.setup();
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
-  await editMessage();
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
   mockFetch.mockClear().mockRejectedValue(new Error("Network unavailable"));
 
   // When
@@ -231,9 +221,14 @@ it("does not publish defaults after an initial load failure", async () => {
 });
 it("separates content preparation from explicit activation", async () => {
   // Given
+  const user = userEvent.setup();
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
-  const user = await editMessage();
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
   const response = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url, options) =>
     options?.method === "PATCH"
@@ -243,7 +238,7 @@ it("separates content preparation from explicit activation", async () => {
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAction("Enregistrer").onPress?.());
+  await act(async () => nativeAlertAction("Enregistrer")());
 
   try {
     // Then
@@ -284,9 +279,14 @@ it("separates content preparation from explicit activation", async () => {
 });
 it("sends the desired active state independently of dirty content", async () => {
   // Given
+  const user = userEvent.setup();
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
-  const user = await editMessage();
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
   mockFetch.mockImplementation(async (url, options) =>
     options?.method === "PUT"
       ? json({ ...stored, revision: 3, active: true })
@@ -297,7 +297,7 @@ it("sends the desired active state independently of dirty content", async () => 
   await user.press(
     screen.getByRole("button", { name: "Activer la maintenance" }),
   );
-  await act(async () => nativeAction("Activer").onPress?.());
+  await act(async () => nativeAlertAction("Activer")());
 
   // Then
   await screen.findByLabelText("Maintenance active");
@@ -308,34 +308,39 @@ it("sends the desired active state independently of dirty content", async () => 
     active: true,
   });
 });
-it("preserves a dirty draft after a background query update", async () => {
+it("preserves a dirty draft after a newer background response", async () => {
   // Given
+  const user = userEvent.setup();
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
-  await editMessage();
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
   const query = client
     .getQueryCache()
     .findAll()
     .find((q) => q.queryKey.includes(getGetMaintenanceSettingsQueryKey()[0]));
   if (!query) throw new Error("The real settings query is missing");
+  stored = { ...initial, revision: 3, message: "Autre éditeur" };
 
   // When
   await act(async () => {
-    client.setQueryData(query.queryKey, {
-      ...initial,
-      revision: 3,
-      message: "Autre éditeur",
-    });
+    await client.refetchQueries({ queryKey: query.queryKey, exact: true });
   });
 
   // Then
   expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 });
 it("refuses blank text before sending any mutation", async () => {
   // Given
+  const user = userEvent.setup();
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
-  const user = await editMessage("   ");
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(screen.getByLabelText("Message de maintenance"), "   ");
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
@@ -350,9 +355,14 @@ it("refuses blank text before sending any mutation", async () => {
 });
 it("refuses an invalid image URL without losing the draft", async () => {
   // Given
+  const user = userEvent.setup();
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
-  const user = await editMessage();
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
   await user.type(
     screen.getByLabelText("URL de l’image"),
     "http://unsafe.example.invalid/image.png",
@@ -383,7 +393,7 @@ it("clears the optional image using explicit null", async () => {
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAction("Enregistrer").onPress?.());
+  await act(async () => nativeAlertAction("Enregistrer")());
 
   // Then
   await waitFor(() =>
@@ -455,9 +465,14 @@ it.each([400, 403, 422])(
   "retains the draft after a confirmed %i refusal",
   async (status) => {
     // Given
+    const user = userEvent.setup();
     await renderSettings();
     await screen.findByDisplayValue(initial.message);
-    const user = await editMessage();
+    await user.clear(screen.getByLabelText("Message de maintenance"));
+    await user.type(
+      screen.getByLabelText("Message de maintenance"),
+      "Mon brouillon",
+    );
     mockFetch.mockImplementation(async () =>
       json(
         {
@@ -471,7 +486,7 @@ it.each([400, 403, 422])(
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAction("Enregistrer").onPress?.());
+    await act(async () => nativeAlertAction("Enregistrer")());
 
     // Then
     expect(
@@ -486,9 +501,14 @@ it.each(["conflict", "lost"])(
   "requires reread and explicit resubmission after %s",
   async (outcome) => {
     // Given
+    const user = userEvent.setup();
     await renderSettings();
     await screen.findByDisplayValue(initial.message);
-    const user = await editMessage();
+    await user.clear(screen.getByLabelText("Message de maintenance"));
+    await user.type(
+      screen.getByLabelText("Message de maintenance"),
+      "Mon brouillon",
+    );
     let writes = 0;
     mockFetch.mockImplementation(async (url, options) => {
       if (options?.method === "PATCH") {
@@ -511,7 +531,7 @@ it.each(["conflict", "lost"])(
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAction("Enregistrer").onPress?.());
+    await act(async () => nativeAlertAction("Enregistrer")());
 
     // Then
     expect(
@@ -538,7 +558,7 @@ it.each(["conflict", "lost"])(
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAction("Enregistrer").onPress?.());
+    await act(async () => nativeAlertAction("Enregistrer")());
 
     // Then
     await waitFor(() =>
@@ -554,8 +574,11 @@ it.each(["conflict", "lost"])(
   },
 );
 it("keeps the production route closed until native admission is composed", async () => {
-  // Given / When
-  await renderSettings(<MaintenanceRoute />);
+  // Given
+  const route = <MaintenanceRoute />;
+
+  // When
+  await renderSettings(route);
 
   // Then
   expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
@@ -566,13 +589,18 @@ it("keeps the production route closed until native admission is composed", async
 
 it("cancels content confirmation without sending a mutation", async () => {
   // Given
+  const user = userEvent.setup();
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
-  const user = await editMessage();
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAction("Annuler").onPress?.());
+  await act(async () => nativeAlertAction("Annuler")());
 
   // Then
   await waitFor(() =>
@@ -591,19 +619,24 @@ it("cancels content confirmation without sending a mutation", async () => {
 
 it("retains an uncertain command after its route-local draft is discarded", async () => {
   // Given
+  const user = userEvent.setup();
   const response = Promise.withResolvers<Response>();
   const view = await renderSettings();
   await screen.findByDisplayValue(initial.message);
-  const user = await editMessage();
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
   mockFetch.mockImplementation(async (url, options) => {
     if (options?.method === "PATCH") return response.promise;
     return json(String(url).endsWith("/accounts/me") ? account : stored);
   });
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  const confirm = nativeAction("Enregistrer");
+  const confirm = nativeAlertAction("Enregistrer");
   await act(async () => {
-    confirm.onPress?.();
-    confirm.onPress?.();
+    confirm();
+    confirm();
   });
 
   // When
@@ -645,7 +678,7 @@ it("cancels activation confirmation without changing the saved state", async () 
   await user.press(
     screen.getByRole("button", { name: "Activer la maintenance" }),
   );
-  await act(async () => nativeAction("Annuler").onPress?.());
+  await act(async () => nativeAlertAction("Annuler")());
 
   // Then
   expect(Alert.alert).toHaveBeenCalledWith(
@@ -661,9 +694,14 @@ it("cancels activation confirmation without changing the saved state", async () 
 });
 it("retains a draft through a failed permission refresh", async () => {
   // Given
+  const user = userEvent.setup();
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
-  await editMessage();
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
   const accountQuery = client
     .getQueryCache()
     .findAll()
@@ -703,11 +741,16 @@ it("retains a draft through a failed permission refresh", async () => {
 
 it("retains a read-only draft and rejects held confirmation after the settings endpoint refuses access", async () => {
   // Given
+  const user = userEvent.setup();
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
-  const user = await editMessage();
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  const confirm = nativeAction("Enregistrer").onPress;
+  const confirm = nativeAlertAction("Enregistrer");
   mockFetch.mockClear().mockResolvedValue(
     json(
       {
@@ -724,7 +767,7 @@ it("retains a read-only draft and rejects held confirmation after the settings e
   await screen.findByRole("alert", {
     name: "Une erreur est survenue. Veuillez réessayer plus tard.",
   });
-  await act(async () => confirm?.());
+  await act(async () => confirm());
 
   // Then
   expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
@@ -757,10 +800,7 @@ it("retains a read-only draft and rejects held confirmation after the settings e
 
   // Then
   await waitFor(() =>
-    expect(screen.getByLabelText("Actualiser les données")).toHaveProp(
-      "accessibilityState",
-      expect.objectContaining({ busy: false }),
-    ),
+    expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
   );
   expect(
     screen.getByRole("alert", {
@@ -827,11 +867,16 @@ it.each([
   "retains a read-only draft and blocks a held %s confirmation after revocation",
   async (action, confirmation) => {
     // Given
+    const user = userEvent.setup();
     await renderSettings();
     await screen.findByDisplayValue(initial.message);
-    const user = await editMessage();
+    await user.clear(screen.getByLabelText("Message de maintenance"));
+    await user.type(
+      screen.getByLabelText("Message de maintenance"),
+      "Mon brouillon",
+    );
     await user.press(screen.getByRole("button", { name: action }));
-    const confirm = nativeAction(confirmation).onPress;
+    const confirm = nativeAlertAction(confirmation);
     if (!confirm) throw new Error("The native confirmation is missing");
     const accountQuery = client
       .getQueryCache()
@@ -880,9 +925,14 @@ it.each([
 
 it("keeps a conflicting draft blocked through a failed settings reread", async () => {
   // Given
+  const user = userEvent.setup();
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
-  const user = await editMessage();
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
   let rereadFails = true;
   mockFetch.mockImplementation(async (_url, options) => {
     if (options?.method === "PATCH")
@@ -908,7 +958,7 @@ it("keeps a conflicting draft blocked through a failed settings reread", async (
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAction("Enregistrer").onPress?.());
+  await act(async () => nativeAlertAction("Enregistrer")());
   await screen.findByRole("button", { name: "Relire les réglages" });
   await user.press(screen.getByRole("button", { name: "Relire les réglages" }));
 
@@ -942,14 +992,19 @@ it.each([
   "rechecks live authority after delayed credentials for %s before React renders",
   async (action, confirmation) => {
     // Given
+    const user = userEvent.setup();
     await renderSettings();
     await screen.findByDisplayValue(initial.message);
-    const user = await editMessage();
+    await user.clear(screen.getByLabelText("Message de maintenance"));
+    await user.type(
+      screen.getByLabelText("Message de maintenance"),
+      "Mon brouillon",
+    );
     const credentials =
       Promise.withResolvers<ReturnType<typeof credentialsFor>>();
     mockAuth0.getCredentials.mockReturnValueOnce(credentials.promise);
     await user.press(screen.getByRole("button", { name: action }));
-    await act(async () => nativeAction(confirmation).onPress?.());
+    await act(async () => nativeAlertAction(confirmation)());
     const accountQuery = client
       .getQueryCache()
       .findAll()
@@ -983,15 +1038,20 @@ it.each([
 
 it("keeps a delayed acknowledged write and older reread behind the latest public revision", async () => {
   // Given
+  const user = userEvent.setup();
   await renderSettings();
   await screen.findByLabelText("Message de maintenance");
-  const user = await editMessage();
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
   const response = Promise.withResolvers<Response>();
   mockFetch.mockImplementation(async (_url, options) =>
     options?.method === "PATCH" ? response.promise : json(stored),
   );
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAction("Enregistrer").onPress?.());
+  await act(async () => nativeAlertAction("Enregistrer")());
 
   // When
   mockAccessResponse = {

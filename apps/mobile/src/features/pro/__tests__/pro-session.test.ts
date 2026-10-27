@@ -114,7 +114,11 @@ it("finishes configuration before logging out when its account is erased", async
   // Then
   expect(owner.getSnapshot().evidence).toBeNull();
   expect(Purchases.logOut).not.toHaveBeenCalled();
+
+  // When
   configured.resolve(true);
+
+  // Then
   await waitFor(() => expect(Purchases.logOut).toHaveBeenCalledTimes(1));
   expect(Purchases.getCustomerInfo).not.toHaveBeenCalled();
 });
@@ -171,7 +175,11 @@ it("clears immediately on accepted erasure and waits for login before native log
   // Then
   expect(owner.getSnapshot().evidence).toBeNull();
   expect(Purchases.logOut).not.toHaveBeenCalled();
+
+  // When
   login.resolve({ customerInfo: info, created: false });
+
+  // Then
   await waitFor(() => expect(Purchases.logOut).toHaveBeenCalledTimes(1));
   expect(owner.getSnapshot().evidence).toBeNull();
 });

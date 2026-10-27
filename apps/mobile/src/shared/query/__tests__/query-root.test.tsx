@@ -1,5 +1,10 @@
 import { skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
-import { render, screen, userEvent } from "@testing-library/react-native";
+import {
+  cleanup,
+  render,
+  screen,
+  userEvent,
+} from "@testing-library/react-native";
 import { Stack } from "expo-router";
 import { useState, type ComponentType } from "react";
 import { Pressable, Text } from "react-native";
@@ -41,7 +46,6 @@ const originalConfiguration = {
   EXPO_PUBLIC_AUTH0_CLIENT_ID: process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID,
 };
 beforeEach(() => {
-  jest.useFakeTimers();
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
   mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(false);
@@ -49,8 +53,7 @@ beforeEach(() => {
   mockAuth0.webAuthLogout.mockReset().mockResolvedValue();
 });
 afterEach(async () => {
-  await jest.runOnlyPendingTimersAsync();
-  jest.useRealTimers();
+  await cleanup();
   for (const [key, value] of Object.entries(originalConfiguration)) {
     if (value === undefined) delete process.env[key];
     else process.env[key] = value;
@@ -66,6 +69,8 @@ function CacheConsumer() {
     queryKey: ["root-cache-probe"],
     initialData: 3,
     queryFn: skipToken,
+    // This probe has no collection policy; avoid detached five-minute GC timers in Jest.
+    gcTime: Infinity,
   });
 
   return (

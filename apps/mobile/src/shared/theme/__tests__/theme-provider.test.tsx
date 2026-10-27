@@ -1,4 +1,10 @@
-import { act, render, screen, userEvent } from "@testing-library/react-native";
+import {
+  cleanup,
+  act,
+  render,
+  screen,
+  userEvent,
+} from "@testing-library/react-native";
 import { useState } from "react";
 import {
   DefaultTheme,
@@ -20,7 +26,8 @@ jest.unmock(
   "react-native/Libraries/Components/AccessibilityInfo/AccessibilityInfo",
 );
 
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   jest.restoreAllMocks();
 });
 

@@ -5,6 +5,7 @@ import {
   onlineManager,
 } from "@tanstack/react-query";
 import {
+  cleanup,
   act,
   fireEvent,
   render,
@@ -105,12 +106,13 @@ beforeEach(() => {
     .mockResolvedValue(credentialsFor("synthetic-user"));
   mockFetch.mockReset().mockImplementation(publicReads);
 });
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   client.clear();
+  process.env = { ...environment };
+  focusManager.setFocused(undefined);
+  onlineManager.setOnline(true);
   jest.restoreAllMocks();
-});
-afterAll(() => {
-  process.env = environment;
 });
 
 /** Supplies the actual required owners; the membership input only selects F13 presentation. */
@@ -134,33 +136,39 @@ it.each(["guest", "free", "Pro", "unresolved"])(
   "allows all three public tabs for %s without waiting for Pro",
   async (access) => {
     // Given: no RevenueCat dependency is mounted; unresolved native restoration must not block public reads.
+    const restoration = Promise.withResolvers<boolean>();
     if (access === "unresolved")
-      mockAuth0.hasValidCredentials.mockReturnValue(new Promise(() => {}));
+      mockAuth0.hasValidCredentials.mockReturnValue(restoration.promise);
     else mockAuth0.hasValidCredentials.mockResolvedValue(access !== "guest");
     const user = userEvent.setup();
-    await renderSearch(access === "Pro");
+    try {
+      await renderSearch(access === "Pro");
 
-    // When
-    await user.type(await screen.findByLabelText("Rechercher"), "Volley");
-    await user.press(screen.getByRole("tab", { name: "Clubs" }));
-    await screen.findByText("Lyon");
-    await user.press(screen.getByRole("tab", { name: "Poules" }));
-    await screen.findByText("Championnat public · Phase finale");
-    await user.press(screen.getByRole("tab", { name: "Équipes" }));
+      // When
+      await user.type(await screen.findByLabelText("Rechercher"), "Volley");
+      await user.press(screen.getByRole("tab", { name: "Clubs" }));
+      await screen.findByText("Lyon");
+      await user.press(screen.getByRole("tab", { name: "Poules" }));
+      await screen.findByText("Championnat public · Phase finale");
+      await user.press(screen.getByRole("tab", { name: "Équipes" }));
 
-    // Then
-    expect(await screen.findByText("Volley professionnel")).toBeOnTheScreen();
-    expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
-    expect(
-      screen.getByRole("tab", { name: "Équipes", selected: true }),
-    ).toBeOnTheScreen();
-    expect(
-      mockFetch.mock.calls
-        .filter(([url]) => /\/(clubs|teams|pools)\?/.test(String(url)))
-        .every(
-          ([, options]) => !new Headers(options.headers).has("Authorization"),
-        ),
-    ).toBe(true);
+      // Then
+      expect(await screen.findByText("Volley professionnel")).toBeOnTheScreen();
+      expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
+      expect(
+        screen.getByRole("tab", { name: "Équipes", selected: true }),
+      ).toBeOnTheScreen();
+      expect(
+        mockFetch.mock.calls
+          .filter(([url]) => /\/(clubs|teams|pools)\?/.test(String(url)))
+          .every(
+            ([, options]) => !new Headers(options.headers).has("Authorization"),
+          ),
+      ).toBe(true);
+    } finally {
+      await cleanup();
+      await act(async () => restoration.resolve(false));
+    }
   },
 );
 
@@ -177,7 +185,9 @@ it("keeps distinct namesakes and presents only available public context without 
   expect(await screen.findAllByText("Volley")).toHaveLength(2);
   expect(screen.getByText("Lyon")).toBeOnTheScreen();
   expect(screen.getByText("Niort")).toBeOnTheScreen();
+  // When
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
+  // Then
   expect(await screen.findByText("Volley professionnel")).toBeOnTheScreen();
   expect(screen.getByText("2026/2027")).toBeOnTheScreen();
   expect(screen.getByText("Féminin")).toBeOnTheScreen();
@@ -230,9 +240,11 @@ it("accepts 200 Unicode code points and rejects longer input without truncation,
   // Then
   expect(screen.getByDisplayValue(accepted)).toBeOnTheScreen();
   expect(screen.queryByText(/200|caractères/)).not.toBeOnTheScreen();
-  expect(input.props.accessibilityHint).toBeUndefined();
+  expect(screen.queryByHintText(/200|caractères/)).not.toBeOnTheScreen();
   mockFetch.mockClear();
+  // When
   await user.paste(input, accepted + "🏐");
+  // Then
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "La recherche est limitée à 200 caractères.",
   );
@@ -260,7 +272,9 @@ it("distinguishes initial waiting, retryable failure and established no matches 
   expect(
     screen.queryByText("Aucun résultat pour ces critères"),
   ).not.toBeOnTheScreen();
+  // When
   await act(async () => pending.reject(new TypeError("private diagnostic")));
+  // Then
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "Une erreur est survenue",
   );
@@ -275,7 +289,9 @@ it("distinguishes initial waiting, retryable failure and established no matches 
       ? Promise.resolve(Response.json({ teams: [] }))
       : publicReads(url),
   );
+  // When
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  // Then
   expect(
     await screen.findByText("Aucun résultat pour ces critères"),
   ).toBeOnTheScreen();
@@ -317,7 +333,9 @@ it("keeps clearing available without pull-to-refresh through replacement reads a
     screen.queryByLabelText("Actualiser les données"),
   ).not.toBeOnTheScreen();
   expect(screen.queryByText("Lyon")).not.toBeOnTheScreen();
+  // When
   await act(async () => pending.resolve(Response.json({ clubs: [] })));
+  // Then
   expect(
     await screen.findByRole("header", { name: "0 résultats chargés" }),
   ).toBeOnTheScreen();
@@ -328,7 +346,9 @@ it("keeps clearing available without pull-to-refresh through replacement reads a
   expect(
     screen.queryByLabelText("Actualiser les données"),
   ).not.toBeOnTheScreen();
+  // When
   await user.paste(input, "Failed");
+  // Then
   await screen.findByRole("button", { name: "Réessayer" });
   expect(screen.getByRole("header", { name: "Résultats" })).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Effacer" })).toBeEnabled();
@@ -336,10 +356,14 @@ it("keeps clearing available without pull-to-refresh through replacement reads a
     screen.queryByLabelText("Actualiser les données"),
   ).not.toBeOnTheScreen();
   mockFetch.mockImplementation(publicReads);
+  // When
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  // Then
   await screen.findByRole("header", { name: "2 résultats chargés" });
   mockFetch.mockClear();
+  // When
   await user.press(screen.getByRole("button", { name: "Effacer" }));
+  // Then
   expect(input).toHaveDisplayValue("");
   expect(
     screen.getByRole("tab", { name: "Clubs", selected: true }),

@@ -1,4 +1,7 @@
+import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
+import { createQueryClient } from "../../../shared/query/query-client";
 import {
+  cleanup,
   act,
   fireEvent,
   screen,
@@ -18,10 +21,8 @@ import {
 import {
   AccountActions,
   collectionPeer,
-  confirm,
   control,
   json,
-  pressAction,
   refused,
   renderCollection,
   result,
@@ -56,8 +57,10 @@ const mockPush = jest.fn();
 const mockBack = jest.fn();
 const environment = { ...process.env };
 let peer: ReturnType<typeof collectionPeer>;
+let client = createQueryClient();
 beforeEach(() => {
   peer = collectionPeer();
+  client = createQueryClient();
   Object.assign(process.env, {
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
     EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
@@ -73,14 +76,16 @@ beforeEach(() => {
   mockFetch.mockReset().mockImplementation(peer.reads);
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
 });
-afterEach(() => {
-  peer.client.clear();
+afterEach(async () => {
+  await cleanup();
+  client.clear();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
 
 it("separates competition seasons from the two seasonless controls", async () => {
   // Given
+  const user = userEvent.setup();
   peer.controls = [
     control({ family: "club-sheets", seasonId: undefined }),
     control({
@@ -89,12 +94,10 @@ it("separates competition seasons from the two seasonless controls", async () =>
       seasonId: undefined,
     }),
   ];
-  await renderCollection(<CollectionDashboardScreen />, peer.client);
+  await renderCollection(<CollectionDashboardScreen />, client);
 
   // When
-  await userEvent
-    .setup()
-    .press(await screen.findByRole("link", { name: "Fiches clubs" }));
+  await user.press(await screen.findByRole("link", { name: "Fiches clubs" }));
 
   // Then
   expect(
@@ -114,11 +117,12 @@ it("separates competition seasons from the two seasonless controls", async () =>
 
 it("refreshes only reads and retains uncertain integration and absent measurements while paused", async () => {
   // Given
+  const user = userEvent.setup();
   peer.controls = [control({ enabled: false })];
   peer.results = [result()];
   await renderCollection(
     <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-    peer.client,
+    client,
   );
   expect(
     await screen.findByText("Intégration non confirmée"),
@@ -126,7 +130,9 @@ it("refreshes only reads and retains uncertain integration and absent measuremen
 
   // When
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  await pressAction("Afficher les diagnostics");
+  await user.press(
+    await screen.findByRole("button", { name: "Afficher les diagnostics" }),
+  );
 
   // Then
   expect(screen.getByText("En pause")).toBeOnTheScreen();
@@ -149,6 +155,7 @@ it.each([202, 200])(
   "distinguishes accepted pending intent from a confirmed running cycle (%s)",
   async (status) => {
     // Given
+    const user = userEvent.setup();
     const running = {
       id: "00000000-0000-4000-8000-000000000192",
       state: "running" as const,
@@ -171,12 +178,12 @@ it.each([202, 200])(
     );
     await renderCollection(
       <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-      peer.client,
+      client,
     );
 
     // When
-    await pressAction("Relancer");
-    await confirm("Relancer");
+    await user.press(await screen.findByRole("button", { name: "Relancer" }));
+    await act(async () => nativeAlertAction("Relancer")());
 
     // Then
     expect(
@@ -203,6 +210,7 @@ it.each([202, 200])(
 
 it("pauses only the selected control and explicitly resumes before relaunch", async () => {
   // Given
+  const user = userEvent.setup();
   mockFetch.mockImplementation((url, options) =>
     options?.method === "PUT"
       ? Promise.resolve(json(control({ revision: 4, enabled: false })))
@@ -210,12 +218,14 @@ it("pauses only the selected control and explicitly resumes before relaunch", as
   );
   await renderCollection(
     <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-    peer.client,
+    client,
   );
 
   // When
-  await pressAction("Mettre en pause");
-  await confirm("Mettre en pause");
+  await user.press(
+    await screen.findByRole("button", { name: "Mettre en pause" }),
+  );
+  await act(async () => nativeAlertAction("Mettre en pause")());
 
   // Then
   expect(
@@ -239,6 +249,7 @@ it.each([409, "lost"])(
   "requires explicit successful reread after %s and retains the scope across removal",
   async (failure) => {
     // Given
+    const user = userEvent.setup();
     mockFetch.mockImplementation((url, options) =>
       options?.method === "POST"
         ? failure === "lost"
@@ -248,12 +259,12 @@ it.each([409, "lost"])(
     );
     const view = await renderCollection(
       <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-      peer.client,
+      client,
     );
 
     // When
-    await pressAction("Relancer");
-    await confirm("Relancer");
+    await user.press(await screen.findByRole("button", { name: "Relancer" }));
+    await act(async () => nativeAlertAction("Relancer")());
     expect(
       await screen.findByText(
         "Le résultat doit être vérifié avant une nouvelle action.",
@@ -269,15 +280,21 @@ it.each([409, "lost"])(
       await screen.findByRole("button", { name: "Relancer" }),
     ).toBeDisabled();
     peer.controls = [control({ revision: 9 })];
-    await pressAction("Relire l’état");
+    // When
+    await user.press(
+      await screen.findByRole("button", { name: "Relire l’état" }),
+    );
+    // Then
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Relancer" })).toBeEnabled(),
     );
     expect(
       mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
     ).toHaveLength(1);
-    await pressAction("Relancer");
-    await confirm("Relancer");
+    // When
+    await user.press(await screen.findByRole("button", { name: "Relancer" }));
+    await act(async () => nativeAlertAction("Relancer")());
+    // Then
     await screen.findByText(
       "Le résultat doit être vérifié avant une nouvelle action.",
     );
@@ -291,6 +308,7 @@ it.each([409, "lost"])(
 
 it("shows partial acquisition separately from failed integration and a previous success", async () => {
   // Given
+  const user = userEvent.setup();
   peer.results = [
     result({
       phase: "acquisition",
@@ -303,11 +321,13 @@ it("shows partial acquisition separately from failed integration and a previous 
   ];
   await renderCollection(
     <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-    peer.client,
+    client,
   );
 
   // When
-  await pressAction("Afficher les diagnostics");
+  await user.press(
+    await screen.findByRole("button", { name: "Afficher les diagnostics" }),
+  );
 
   // Then
   expect(screen.getByText("Acquisition partielle")).toBeOnTheScreen();
@@ -318,20 +338,23 @@ it("shows partial acquisition separately from failed integration and a previous 
 
 it("refuses a held confirmation after current permission withdrawal", async () => {
   // Given
+  const user = userEvent.setup();
   await renderCollection(
     <>
       <CollectionControlScreen family="ffvb" seasonId={seasonId} />
       <AccountActions />
     </>,
-    peer.client,
+    client,
   );
-  await pressAction("Relancer");
+  await user.press(await screen.findByRole("button", { name: "Relancer" }));
 
   // When
   peer.permissions = { manageSporting: true };
-  await pressAction("Actualiser les permissions");
+  await user.press(
+    await screen.findByRole("button", { name: "Actualiser les permissions" }),
+  );
   await screen.findByText("Une erreur est survenue");
-  await confirm("Relancer");
+  await act(async () => nativeAlertAction("Relancer")());
 
   // Then
   expect(
@@ -343,15 +366,16 @@ it.each(["control", "season"] as const)(
   "refuses a confirmed collection request when its %s read is denied during credential retrieval",
   async (scope) => {
     // Given
+    const user = userEvent.setup();
     const read = Promise.withResolvers<Response>();
     const credentials =
       Promise.withResolvers<ReturnType<typeof credentialsFor>>();
     const credentialRequested = Promise.withResolvers<void>();
     const mounted = await renderCollection(
       <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-      peer.client,
+      client,
     );
-    await pressAction("Relancer");
+    await user.press(await screen.findByRole("button", { name: "Relancer" }));
     const refusedPath =
       scope === "control"
         ? `/collection-controls/${control().id}`
@@ -364,10 +388,7 @@ it.each(["control", "season"] as const)(
     );
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
     await waitFor(() =>
-      expect(screen.getByLabelText("Actualiser les données")).toHaveProp(
-        "accessibilityState",
-        expect.objectContaining({ busy: true }),
-      ),
+      expect(screen.getByLabelText("Actualiser les données")).toBeBusy(),
     );
     mockAuth0.getCredentials.mockImplementationOnce(() => {
       credentialRequested.resolve();
@@ -375,14 +396,14 @@ it.each(["control", "season"] as const)(
     });
 
     // When
-    await confirm("Relancer");
+    await act(async () => nativeAlertAction("Relancer")());
     await act(async () => credentialRequested.promise);
     await act(async () => read.resolve(refused(403)));
-    await waitFor(() => expect(peer.client.isFetching()).toBe(0));
+    await waitFor(() => expect(client.isFetching()).toBe(0));
     await act(async () =>
       credentials.resolve(credentialsFor("auth0|operator187")),
     );
-    await waitFor(() => expect(peer.client.isMutating()).toBe(0));
+    await waitFor(() => expect(client.isMutating()).toBe(0));
 
     // Then
     expect(
@@ -395,6 +416,7 @@ it.each(["control", "season"] as const)(
 
 it("ignores an old-session command response without presenting a new success", async () => {
   // Given
+  const user = userEvent.setup();
   const pending = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url, options) =>
     options?.method === "POST" ? pending.promise : peer.reads(url, options),
@@ -404,10 +426,10 @@ it("ignores an old-session command response without presenting a new success", a
       <CollectionControlScreen family="ffvb" seasonId={seasonId} />
       <AccountActions />
     </>,
-    peer.client,
+    client,
   );
-  await pressAction("Relancer");
-  await confirm("Relancer");
+  await user.press(await screen.findByRole("button", { name: "Relancer" }));
+  await act(async () => nativeAlertAction("Relancer")());
   await waitFor(() =>
     expect(mockFetch).toHaveBeenCalledWith(
       expect.anything(),
@@ -416,7 +438,7 @@ it("ignores an old-session command response without presenting a new success", a
   );
 
   // When
-  await pressAction("Déconnexion");
+  await user.press(await screen.findByRole("button", { name: "Déconnexion" }));
   await screen.findByText("Session : guest");
   await act(async () =>
     pending.resolve(
@@ -426,7 +448,7 @@ it("ignores an old-session command response without presenting a new success", a
       ),
     ),
   );
-  await waitFor(() => expect(peer.client.isMutating()).toBe(0));
+  await waitFor(() => expect(client.isMutating()).toBe(0));
 
   // Then
   expect(
@@ -440,7 +462,7 @@ it("keeps a closed season navigable with no collection command", async () => {
   peer.results = [result({ phase: "acquisition", outcome: "success" })];
   await renderCollection(
     <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-    peer.client,
+    client,
   );
 
   // When
@@ -456,6 +478,7 @@ it.each(["club-sheets", "geocoding"] as const)(
   "commands the %s family without a season query or setting",
   async (family) => {
     // Given
+    const user = userEvent.setup();
     peer.controls = [control({ family, seasonId: undefined, enabled: false })];
     mockFetch.mockImplementation((url, options) =>
       options?.method === "PUT"
@@ -471,14 +494,11 @@ it.each(["club-sheets", "geocoding"] as const)(
           )
         : peer.reads(url, options),
     );
-    await renderCollection(
-      <CollectionControlScreen family={family} />,
-      peer.client,
-    );
+    await renderCollection(<CollectionControlScreen family={family} />, client);
 
     // When
-    await pressAction("Reprendre");
-    await confirm("Reprendre");
+    await user.press(await screen.findByRole("button", { name: "Reprendre" }));
+    await act(async () => nativeAlertAction("Reprendre")());
 
     // Then
     await waitFor(() =>
@@ -499,6 +519,7 @@ it.each(["club-sheets", "geocoding"] as const)(
 
 it("retains running evidence while pause cancels an unstarted request", async () => {
   // Given
+  const user = userEvent.setup();
   peer.controls = [
     control({ pendingRequestId: "00000000-0000-4000-8000-000000000192" }),
   ];
@@ -523,15 +544,17 @@ it("retains running evidence while pause cancels an unstarted request", async ()
   );
   await renderCollection(
     <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-    peer.client,
+    client,
   );
   expect(
     await screen.findByText("Collecte demandée · en attente de démarrage"),
   ).toBeOnTheScreen();
 
   // When
-  await pressAction("Mettre en pause");
-  await confirm("Mettre en pause");
+  await user.press(
+    await screen.findByRole("button", { name: "Mettre en pause" }),
+  );
+  await act(async () => nativeAlertAction("Mettre en pause")());
 
   // Then
   expect(await screen.findByText("Mise en pause en cours")).toBeOnTheScreen();
@@ -544,6 +567,7 @@ it("retains running evidence while pause cancels an unstarted request", async ()
 
 it("retains earlier rows and retries the failed next results page", async () => {
   // Given
+  const user = userEvent.setup();
   let pageAvailable = false;
   mockFetch.mockImplementation((url, options) => {
     const target = new URL(String(url));
@@ -570,16 +594,18 @@ it("retains earlier rows and retries the failed next results page", async () => 
   });
   await renderCollection(
     <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-    peer.client,
+    client,
   );
 
   // When
-  await pressAction("Charger la suite");
+  await user.press(
+    await screen.findByRole("button", { name: "Charger la suite" }),
+  );
   await screen.findByText(
     "Une erreur est survenue. Veuillez réessayer plus tard.",
   );
   pageAvailable = true;
-  await pressAction("Réessayer");
+  await user.press(await screen.findByRole("button", { name: "Réessayer" }));
 
   // Then
   expect(
@@ -595,6 +621,7 @@ it("retains earlier rows and retries the failed next results page", async () => 
 
 it("rejects a malformed command acknowledgement and keeps the uncertain scope locked after a failed reread", async () => {
   // Given
+  const user = userEvent.setup();
   let readAvailable = true;
   mockFetch.mockImplementation((url, options) =>
     options?.method === "POST"
@@ -606,17 +633,19 @@ it("rejects a malformed command acknowledgement and keeps the uncertain scope lo
   );
   await renderCollection(
     <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-    peer.client,
+    client,
   );
 
   // When
-  await pressAction("Relancer");
-  await confirm("Relancer");
+  await user.press(await screen.findByRole("button", { name: "Relancer" }));
+  await act(async () => nativeAlertAction("Relancer")());
   await screen.findByText(
     "Le résultat doit être vérifié avant une nouvelle action.",
   );
   readAvailable = false;
-  await pressAction("Relire l’état");
+  await user.press(
+    await screen.findByRole("button", { name: "Relire l’état" }),
+  );
 
   // Then
   expect(
@@ -635,15 +664,16 @@ it("rejects a malformed command acknowledgement and keeps the uncertain scope lo
 
 it("invalidates a held native confirmation when its screen is removed", async () => {
   // Given
+  const user = userEvent.setup();
   const view = await renderCollection(
     <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-    peer.client,
+    client,
   );
-  await pressAction("Relancer");
+  await user.press(await screen.findByRole("button", { name: "Relancer" }));
 
   // When
   await view.rerender(<></>);
-  await confirm("Relancer");
+  await act(async () => nativeAlertAction("Relancer")());
 
   // Then
   expect(
@@ -655,6 +685,7 @@ it.each(["settled", "in-flight"])(
   "retains an uncertain %s command through A → B → A navigation",
   async (timing) => {
     // Given
+    const user = userEvent.setup();
     peer.controls = [
       control(),
       control({
@@ -673,12 +704,12 @@ it.each(["settled", "in-flight"])(
     );
     const view = await renderCollection(
       <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-      peer.client,
+      client,
     );
 
     // When
-    await pressAction("Relancer");
-    await confirm("Relancer");
+    await user.press(await screen.findByRole("button", { name: "Relancer" }));
+    await act(async () => nativeAlertAction("Relancer")());
     if (timing === "settled")
       await screen.findByText(
         "Le résultat doit être vérifié avant une nouvelle action.",
@@ -687,7 +718,7 @@ it.each(["settled", "in-flight"])(
     await screen.findByRole("header", { name: "Géocodage" });
     if (timing === "in-flight") {
       await act(async () => pending.resolve(refused(409)));
-      await waitFor(() => expect(peer.client.isMutating()).toBe(0));
+      await waitFor(() => expect(client.isMutating()).toBe(0));
     }
     await view.rerender(
       <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
@@ -711,6 +742,7 @@ it.each(["settled", "in-flight"])(
 
 it("keeps a newer running read when an older accepted pending acknowledgement arrives", async () => {
   // Given
+  const user = userEvent.setup();
   const pending = Promise.withResolvers<Response>();
   const geocoding = control({
     id: "00000000-0000-4000-8000-000000000195",
@@ -723,12 +755,12 @@ it("keeps a newer running read when an older accepted pending acknowledgement ar
   );
   const view = await renderCollection(
     <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-    peer.client,
+    client,
   );
 
   // When
-  await pressAction("Relancer");
-  await confirm("Relancer");
+  await user.press(await screen.findByRole("button", { name: "Relancer" }));
+  await act(async () => nativeAlertAction("Relancer")());
   await view.rerender(<CollectionControlScreen family="geocoding" />);
   await screen.findByRole("header", { name: "Géocodage" });
   peer.controls = [
@@ -758,7 +790,7 @@ it("keeps a newer running read when an older accepted pending acknowledgement ar
       ),
     ),
   );
-  await waitFor(() => expect(peer.client.isMutating()).toBe(0));
+  await waitFor(() => expect(client.isMutating()).toBe(0));
 
   // Then
   expect(screen.getByText("Collecte en cours")).toBeOnTheScreen();
@@ -770,6 +802,7 @@ it("keeps a newer running read when an older accepted pending acknowledgement ar
 
 it("keeps completion freshness already read at the same editing revision as a delayed pause acknowledgement", async () => {
   // Given
+  const user = userEvent.setup();
   const cycle = {
     id: "00000000-0000-4000-8000-000000000193",
     state: "running" as const,
@@ -788,12 +821,14 @@ it("keeps completion freshness already read at the same editing revision as a de
   );
   const view = await renderCollection(
     <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-    peer.client,
+    client,
   );
 
   // When
-  await pressAction("Mettre en pause");
-  await confirm("Mettre en pause");
+  await user.press(
+    await screen.findByRole("button", { name: "Mettre en pause" }),
+  );
+  await act(async () => nativeAlertAction("Mettre en pause")());
   await view.rerender(<CollectionControlScreen family="geocoding" />);
   await screen.findByRole("header", { name: "Géocodage" });
   peer.controls = [
@@ -815,7 +850,7 @@ it("keeps completion freshness already read at the same editing revision as a de
   await act(async () =>
     pending.resolve(json(control({ revision: 4, enabled: false, cycle }))),
   );
-  await waitFor(() => expect(peer.client.isMutating()).toBe(0));
+  await waitFor(() => expect(client.isMutating()).toBe(0));
 
   // Then
   expect(screen.getByText("Dernier cycle terminé")).toBeOnTheScreen();
@@ -824,24 +859,21 @@ it("keeps completion freshness already read at the same editing revision as a de
 
 it("disables pull-to-refresh while a collection command is awaiting acknowledgement", async () => {
   // Given
-  let acknowledge: (response: Response) => void = () => {
-    throw new Error("No pending command");
-  };
+  const user = userEvent.setup();
+  const acknowledgement = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url, options) =>
     options?.method === "POST"
-      ? new Promise<Response>((resolve) => {
-          acknowledge = resolve;
-        })
+      ? acknowledgement.promise
       : peer.reads(url, options),
   );
   await renderCollection(
     <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-    peer.client,
+    client,
   );
 
   // When
-  await pressAction("Relancer");
-  await confirm("Relancer");
+  await user.press(await screen.findByRole("button", { name: "Relancer" }));
+  await act(async () => nativeAlertAction("Relancer")());
   await waitFor(() =>
     expect(
       mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
@@ -853,12 +885,14 @@ it("disables pull-to-refresh while a collection command is awaiting acknowledgem
     expect(screen.getByLabelText("Actualiser les données")).toBeDisabled(),
   );
   mockFetch.mockClear();
+  // When
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  // Then
   expect(mockFetch).not.toHaveBeenCalled();
 
   // When
   await act(async () =>
-    acknowledge(
+    acknowledgement.resolve(
       json(
         control({
           revision: 4,

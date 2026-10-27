@@ -5,7 +5,7 @@ import {
   userEvent,
 } from "@testing-library/react-native";
 import { useState } from "react";
-import { Switch } from "react-native";
+import { Switch, Text } from "react-native";
 import { ThemeProvider } from "../../theme/theme-provider";
 import { Button } from "../button";
 import { Sheet } from "../sheet";
@@ -35,19 +35,29 @@ function ChoiceSheet({
   );
 }
 
+/** Keeps visibility in the caller so the shared sheet must request dismissal through its public action. */
+function DismissibleChoice() {
+  const [open, setOpen] = useState(true);
+  return open ? (
+    <ChoiceSheet onConfirm={jest.fn()} onClose={() => setOpen(false)} />
+  ) : (
+    <Text>Filtres fermés</Text>
+  );
+}
+
 it("requests dismissal through the accessible close action", async () => {
   // Given
-  const dismiss = jest.fn();
   const user = userEvent.setup();
-  await render(<ChoiceSheet onConfirm={jest.fn()} onClose={dismiss} />, {
-    wrapper: ThemeProvider,
-  });
+  await render(<DismissibleChoice />, { wrapper: ThemeProvider });
 
   // When
   await user.press(screen.getByRole("button", { name: "Fermer" }));
 
   // Then
-  expect(dismiss).toHaveBeenCalledTimes(1);
+  expect(screen.getByText("Filtres fermés")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("header", { name: "Filtres" }),
+  ).not.toBeOnTheScreen();
 });
 
 it("lets the caller apply the current choice without implicitly dismissing", async () => {

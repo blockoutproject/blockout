@@ -1,9 +1,11 @@
+import { accountResponse } from "../test-support/account-response";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
+  cleanup,
   render,
   screen,
   userEvent,
@@ -84,23 +86,11 @@ const mockFetch = jest.fn<
   [RequestInfo | URL, RequestInit?]
 >();
 let client = createQueryClient();
-const account = {
+const account = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000172",
   username: "Original",
-  email: "owner@example.invalid",
-  principalCreatedAt: null,
-  hasPhoto: false,
-  permissions: {
-    manageMaintenance: true,
-    manageApplicationVersions: false,
-    bypassMaintenance: false,
-    manageSportingPresentation: false,
-    manageSportingClassification: false,
-    manageDivisionLifecycle: false,
-    manageCollection: false,
-    moderateStreamLinks: false,
-  },
-};
+  permissions: { manageMaintenance: true },
+});
 const retryLabel = "Réessayer";
 const previousEnvironment = { ...process.env };
 
@@ -136,9 +126,11 @@ beforeEach(() => {
     .mockResolvedValue({ uri: "file:///prepared.png", width: 64, height: 64 });
   mockFetch.mockReset().mockImplementation(async () => json(account));
 });
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   client.clear();
   process.env = { ...previousEnvironment };
+  jest.restoreAllMocks();
 });
 
 /** Real profile/account owners and F12 admission; the unrelated F09 composition is explicitly omitted. */
@@ -157,8 +149,6 @@ async function renderProfile(admitted = true) {
       </ThemeProvider>
     </QueryClientProvider>,
   );
-  if (admitted) await screen.findByDisplayValue("Original");
-  return userEvent.setup();
 }
 
 /** Invokes the actual session commands around an uncancellable old HTTP response. */
@@ -194,6 +184,7 @@ function json(value: unknown) {
 it("keeps profile editing and current administration access usable while age is unknown", async () => {
   // Given
   await renderProfile();
+  await screen.findByDisplayValue("Original");
 
   // When
   const retry = screen.getByRole("button", { name: retryLabel });
@@ -218,6 +209,7 @@ it("does not offer an age retry when reliable evidence is already available", as
 
   // When
   await renderProfile();
+  await screen.findByDisplayValue("Original");
 
   // Then
   expect(
@@ -231,7 +223,9 @@ it("does not offer an age retry when reliable evidence is already available", as
 
 it("retries the existing POST with valid credentials while preserving the username and prepared photo draft", async () => {
   // Given
-  const user = await renderProfile();
+  const user = userEvent.setup();
+  await renderProfile();
+  await screen.findByDisplayValue("Original");
   await user.clear(screen.getByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "My_draft");
   await user.press(
@@ -286,7 +280,9 @@ it.each(["network", "missing", "invalid"])(
   "keeps an explicit retry and editable draft after %s evidence",
   async (outcome) => {
     // Given
-    const user = await renderProfile();
+    const user = userEvent.setup();
+    await renderProfile();
+    await screen.findByDisplayValue("Original");
     await user.clear(screen.getByLabelText("Pseudo"));
     await user.type(screen.getByLabelText("Pseudo"), "My_draft");
     mockFetch.mockImplementation(async () => {
@@ -336,7 +332,9 @@ it.each(["success", "failure"])(
   "discards late %s from an old generation after A returns to the same account",
   async (outcome) => {
     // Given
-    const user = await renderProfile();
+    const user = userEvent.setup();
+    await renderProfile();
+    await screen.findByDisplayValue("Original");
     const response = Promise.withResolvers<Response>();
     mockFetch.mockImplementation(async (_url, request) =>
       request?.method === "POST" ? response.promise : json(account),
@@ -418,7 +416,9 @@ it.each(["age", "profile"])(
     const age = Promise.withResolvers<Response>();
     const profile = Promise.withResolvers<Response>();
     try {
-      const user = await renderProfile();
+      const user = userEvent.setup();
+      await renderProfile();
+      await screen.findByDisplayValue("Original");
       await user.clear(screen.getByLabelText("Pseudo"));
       await user.type(screen.getByLabelText("Pseudo"), "My_draft");
       await user.press(
@@ -505,6 +505,7 @@ it.each(["age", "profile"])(
           profile.resolve(json(account));
         });
       } finally {
+        await cleanup();
         if (previousReader)
           Object.defineProperty(globalThis, "FileReader", previousReader);
         else Reflect.deleteProperty(globalThis, "FileReader");

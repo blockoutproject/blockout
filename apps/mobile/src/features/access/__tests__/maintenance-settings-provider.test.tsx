@@ -1,11 +1,13 @@
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
+import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import {
   ApplicationAccessProvider,
   useApplicationAccess,
 } from "../queries/use-application-access";
-import { Alert, Text, type AlertButton } from "react-native";
+import { Alert, Text } from "react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
+  cleanup,
   act,
   render,
   screen,
@@ -29,7 +31,6 @@ import {
   getApplicationAccess,
   getGetApplicationAccessQueryKey,
 } from "../../../../.generated/mobile";
-import { ApiError } from "../../../shared/api/api-fetch";
 import { MaintenanceSettingsScreen } from "../screens/maintenance-settings-screen";
 
 jest.mock("react-native-keyboard-controller", () =>
@@ -83,7 +84,7 @@ const two = {
 };
 const suite = provider ? describe : describe.skip;
 
-suite("real PostgreSQL/provider/generated consumer integration", () => {
+suite("configured provider and generated consumer integration", () => {
   beforeEach(async () => {
     jest.spyOn(Alert, "alert").mockImplementation(() => {});
     Object.assign(process.env, {
@@ -123,9 +124,10 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
     );
     mockPatchCount = 0;
   });
-  afterEach(() => {
-    jest.restoreAllMocks();
+  afterEach(async () => {
+    await cleanup();
     client.clear();
+    jest.restoreAllMocks();
     process.env = { ...environment };
   });
 
@@ -219,60 +221,84 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
       one,
     );
 
-    // When / Then
-    await expect(
-      changeApplicationVersionSettings(
-        {
-          revision: current.revision,
-          android: {
-            minimumVersion: "2.0.0",
-            storeUrl:
-              "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout",
-          },
+    // When
+    const staleWrite = changeApplicationVersionSettings(
+      {
+        revision: current.revision,
+        android: {
+          minimumVersion: "2.0.0",
+          storeUrl:
+            "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout",
         },
-        two,
-      ),
-    ).rejects.toMatchObject({ status: 409 });
-    await expect(
-      changeApplicationVersionSettings(
-        {
-          revision: ios.revision,
-          ios: { storeUrl: null },
-          message: "Rejected atomically",
+      },
+      two,
+    );
+
+    // Then
+    await expect(staleWrite).rejects.toMatchObject({ status: 409 });
+
+    // When
+    const missingStoreWrite = changeApplicationVersionSettings(
+      {
+        revision: ios.revision,
+        ios: { storeUrl: null },
+        message: "Rejected atomically",
+      },
+      two,
+    );
+
+    // Then
+    await expect(missingStoreWrite).rejects.toMatchObject({ status: 422 });
+
+    // When
+    const unsafeVersionWrite = changeApplicationVersionSettings(
+      {
+        revision: ios.revision,
+        android: {
+          minimumVersion: "9007199254740992.0.0",
+          storeUrl:
+            "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout",
         },
-        two,
-      ),
-    ).rejects.toMatchObject({ status: 422 });
-    await expect(
-      changeApplicationVersionSettings(
-        {
-          revision: ios.revision,
-          android: {
-            minimumVersion: "9007199254740992.0.0",
-            storeUrl:
-              "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout",
-          },
-        },
-        two,
-      ),
-    ).rejects.toMatchObject({ status: 422 });
+      },
+      two,
+    );
+
+    // Then
+    await expect(unsafeVersionWrite).rejects.toMatchObject({ status: 422 });
     expect(await getApplicationVersionSettings(one)).toEqual(ios);
+  });
+
+  it("refuses an insecure maintenance image without changing saved settings", async () => {
+    // Given
     const maintenance = await getMaintenanceSettings(one);
-    await expect(
-      changeMaintenanceSettings(
-        {
-          revision: maintenance.revision,
-          imageUrl: "http://assets.example.invalid/a.png",
-        },
-        one,
-      ),
-    ).rejects.toBeInstanceOf(ApiError);
+
+    // When
+    const insecureImageWrite = changeMaintenanceSettings(
+      {
+        revision: maintenance.revision,
+        imageUrl: "http://assets.example.invalid/a.png",
+      },
+      one,
+    );
+
+    // Then
+    await expect(insecureImageWrite).rejects.toMatchObject({
+      kind: "http",
+      status: 422,
+      problem: { type: "urn:blockout:problem:unprocessable-content" },
+    });
     expect(await getMaintenanceSettings(one)).toEqual(maintenance);
   });
   it("preserves a real conflicting draft through reread and explicit resubmission", async () => {
     // Given
+    const user = userEvent.setup();
     await renderEditor();
-    const user = await draft("First editor draft");
+    await screen.findByLabelText("Message de maintenance");
+    await user.clear(screen.getByLabelText("Message de maintenance"));
+    await user.type(
+      screen.getByLabelText("Message de maintenance"),
+      "First editor draft",
+    );
     const current = await getMaintenanceSettings(two);
     await changeMaintenanceSettings(
       { revision: current.revision, message: "Other editor" },
@@ -281,7 +307,7 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAction("Enregistrer").onPress?.());
+    await act(async () => nativeAlertAction("Enregistrer")());
 
     // Then
     await screen.findByRole("button", { name: "Relire les réglages" });
@@ -303,7 +329,7 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAction("Enregistrer").onPress?.());
+    await act(async () => nativeAlertAction("Enregistrer")());
 
     // Then
     await waitFor(() =>
@@ -317,17 +343,23 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
   });
   it("retains a committed lost-response draft and closes admission without a public refetch", async () => {
     // Given
+    const user = userEvent.setup();
     const publicKey = getGetApplicationAccessQueryKey();
     await renderEditor();
+    await screen.findByLabelText("Message de maintenance");
     await screen.findByText("Admission verified");
     const full = client.getQueryData(publicKey);
     const publicReads = mockPublicReads;
-    const user = await draft("Committed despite lost response");
+    await user.clear(screen.getByLabelText("Message de maintenance"));
+    await user.type(
+      screen.getByLabelText("Message de maintenance"),
+      "Committed despite lost response",
+    );
     mockLoseNextResponse = true;
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAction("Enregistrer").onPress?.());
+    await act(async () => nativeAlertAction("Enregistrer")());
 
     // Then
     await screen.findByRole("button", { name: "Relire les réglages" });
@@ -352,7 +384,7 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAction("Enregistrer").onPress?.());
+    await act(async () => nativeAlertAction("Enregistrer")());
 
     // Then
     await waitFor(() =>
@@ -367,14 +399,6 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
     expect(mockPublicReads).toBe(publicReads);
   });
 });
-/** Finds a named choice in the displayed native alert without accepting it during setup. */
-function nativeAction(label: string): AlertButton {
-  const button = jest
-    .mocked(Alert.alert)
-    .mock.lastCall?.[2]?.find((choice) => choice.text === label);
-  if (!button) throw new Error(`The native action ${label} is missing`);
-  return button;
-}
 /** Mounts the actual form component with its real F05/Query owners, outside production route admission. */
 async function renderEditor() {
   await render(
@@ -386,24 +410,16 @@ async function renderEditor() {
       wrapper: ({ children }) => (
         <QueryClientProvider client={client}>
           <ThemeProvider>
-            <ActionFeedbackProvider scopeKey="test">
-              <ApplicationAccessProvider>
-                <AccountSessionProvider>{children}</AccountSessionProvider>
-              </ApplicationAccessProvider>
-            </ActionFeedbackProvider>
+            <ApplicationAccessProvider>
+              <AccountSessionProvider>
+                <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+              </AccountSessionProvider>
+            </ApplicationAccessProvider>
           </ThemeProvider>
         </QueryClientProvider>
       ),
     },
   );
-  await screen.findByLabelText("Message de maintenance");
-}
-/** Edits the real RHF-controlled native input; the server receives only the generated mutation. */
-async function draft(message: string) {
-  const user = userEvent.setup();
-  await user.clear(screen.getByLabelText("Message de maintenance"));
-  await user.type(screen.getByLabelText("Message de maintenance"), message);
-  return user;
 }
 
 /** Renders actual process admission evidence independently of the retained public query cache. */

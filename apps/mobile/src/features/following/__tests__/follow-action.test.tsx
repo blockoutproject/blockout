@@ -112,8 +112,8 @@ function SessionProbe({ children }: { children: ReactNode }) {
 }
 
 /** Real Query, theme, F12 and F05 providers; only native identity I/O and HTTP are controlled. */
-async function mount(children: ReactElement, status = "authenticated") {
-  const rendered = await render(children, {
+async function renderFollowing(children: ReactElement) {
+  return render(children, {
     wrapper: ({ children }) => (
       <QueryClientProvider client={client}>
         <ThemeProvider>
@@ -128,8 +128,6 @@ async function mount(children: ReactElement, status = "authenticated") {
       </QueryClientProvider>
     ),
   });
-  await waitFor(() => expect(session.status).toBe(status));
-  return rendered;
 }
 
 /** Default synthetic transport uses the actual generated validation and explicit member replacement. */
@@ -166,11 +164,9 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  process.env = { ...environment };
   jest.restoreAllMocks();
   jest.useRealTimers();
-});
-afterAll(() => {
-  process.env = environment;
 });
 
 it("shares the requested value and busy state across tabs, ignores repeated taps and keeps another target usable", async () => {
@@ -182,7 +178,7 @@ it("shares the requested value and busy state across tabs, ignores repeated taps
       : transport(url, request),
   );
   const user = userEvent.setup();
-  await mount(
+  await renderFollowing(
     <>
       <View accessibilityLabel="First tab">
         <FollowButton target={team} season={season} />
@@ -193,6 +189,7 @@ it("shares the requested value and busy state across tabs, ignores repeated taps
       <FollowButton target={pool} season={season} />
     </>,
   );
+  await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
     expect(
       screen.getAllByRole("button", { name: "Suivre", disabled: false }),
@@ -228,7 +225,9 @@ it("shares the requested value and busy state across tabs, ignores repeated taps
       "Saison 2026/2027. Retrouvez ce suivi dans cette saison ou Toutes les saisons.",
     ),
   ).toBeOnTheScreen();
+  // When
   await act(async () => response.resolve(Response.json({ following: true })));
+  // Then
   await waitFor(() =>
     expect(
       screen.getAllByRole("button", { name: "Suivi", busy: false }),
@@ -240,7 +239,8 @@ it("invites a guest without retaining a command to replay after authentication",
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(false);
   const user = userEvent.setup();
-  await mount(<FollowButton target={team} season={season} />, "guest");
+  await renderFollowing(<FollowButton target={team} season={season} />);
+  await waitFor(() => expect(session.status).toBe("guest"));
 
   // When
   await user.press(await screen.findByRole("button", { name: "Suivre" }));
@@ -255,9 +255,11 @@ it("invites a guest without retaining a command to replay after authentication",
   ).toHaveLength(0);
   mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|demo"));
   mockAuth0.saveCredentials.mockResolvedValue();
+  // When
   await act(async () => {
     await session.signIn("https://api.example.invalid");
   });
+  // Then
   await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
@@ -274,12 +276,13 @@ it("suspends the action after profile retrieval fails while public content remai
       ? Promise.resolve(new Response(null, { status: 503 }))
       : transport(url, request),
   );
-  await mount(
+  await renderFollowing(
     <>
       <Text>Public sport</Text>
       <FollowButton target={team} season={season} />
     </>,
   );
+  await waitFor(() => expect(session.status).toBe("authenticated"));
 
   // When
   await screen.findByText("Une erreur est survenue");
@@ -319,7 +322,8 @@ it.each(["team", "pool"] as const)(
       return transport(url, request);
     });
     const user = userEvent.setup();
-    await mount(type === "team" ? <TeamRoute /> : <PoolRoute />);
+    await renderFollowing(type === "team" ? <TeamRoute /> : <PoolRoute />);
+    await waitFor(() => expect(session.status).toBe("authenticated"));
     await screen.findByText(type === "team" ? "Volley Démo" : "Phase 01");
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
@@ -355,7 +359,8 @@ it("distinguishes a failed initial member read from false and offers an explicit
       : transport(url, request),
   );
   const user = userEvent.setup();
-  await mount(<FollowButton target={team} season={season} />);
+  await renderFollowing(<FollowButton target={team} season={season} />);
+  await waitFor(() => expect(session.status).toBe("authenticated"));
 
   // When
   await screen.findByText("Une erreur est survenue");
@@ -366,7 +371,9 @@ it("distinguishes a failed initial member read from false and offers an explicit
     mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
   ).toHaveLength(0);
   available = true;
+  // When
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  // Then
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
   );
@@ -380,7 +387,10 @@ it("rereads a temporarily hidden target when its public page is reopened after r
       ? Promise.resolve(new Response(null, { status: 404 }))
       : transport(url, request),
   );
-  const rendered = await mount(<FollowButton target={team} season={season} />);
+  const rendered = await renderFollowing(
+    <FollowButton target={team} season={season} />,
+  );
+  await waitFor(() => expect(session.status).toBe("authenticated"));
   await screen.findByText("Une erreur est survenue");
 
   // When
@@ -413,12 +423,13 @@ it("does not resurrect a superseded failure when the successful second control u
       : transport(url, request);
   });
   const user = userEvent.setup();
-  const rendered = await mount(
+  const rendered = await renderFollowing(
     <>
       <FollowButton key="first" target={team} season={season} />
       <FollowButton key="second" target={team} season={season} />
     </>,
   );
+  await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
     expect(
       screen.getAllByRole("button", { name: "Suivre", disabled: false }),
@@ -443,16 +454,20 @@ it("does not resurrect a superseded failure when the successful second control u
 
   // Then
   // Exercise later collection of the detached success while the first control remains mounted.
+  // When
   await act(async () => {
     const cache = client.getMutationCache();
     cache
       .findAll({ status: "success" })
       .forEach((completed) => cache.remove(completed));
   });
+  // Then
   expect(
     screen.queryByText("La demande de suivi a échoué. Vous pouvez réessayer."),
   ).not.toBeOnTheScreen();
+  // When
   await user.press(screen.getByRole("button", { name: "Suivi" }));
+  // Then
   await screen.findByRole("button", { name: "Suivre", busy: false });
   expect(
     mockFetch.mock.calls
@@ -494,7 +509,8 @@ it("keeps the confirmed member state when returning from an explicit maintenance
     return transport(url, request);
   });
   const user = userEvent.setup();
-  await mount(<FollowButton target={team} season={season} />);
+  await renderFollowing(<FollowButton target={team} season={season} />);
+  await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
   );
@@ -521,7 +537,9 @@ it("keeps the confirmed member state when returning from an explicit maintenance
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
   );
+  // When
   await user.press(screen.getByRole("button", { name: "Suivi" }));
+  // Then
   await screen.findByRole("button", { name: "Suivre", busy: false });
   const writes = mockFetch.mock.calls.filter(
     ([, request]) => request?.method === "PUT",
@@ -555,11 +573,12 @@ it.each([403, 404])(
         : transport(url, request);
     });
     const user = userEvent.setup();
-    const rendered = await mount(
+    const rendered = await renderFollowing(
       <>
         <FollowButton key="first" target={team} season={season} />
       </>,
     );
+    await waitFor(() => expect(session.status).toBe("authenticated"));
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
     );
@@ -589,7 +608,9 @@ it.each([403, 404])(
       ).toHaveLength(2),
     );
     expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen();
+    // When
     await user.press(screen.getAllByRole("button", { name: "Suivi" })[1]);
+    // Then
     await waitFor(() =>
       expect(
         screen.getAllByRole("button", { name: "Suivre", busy: false }),
@@ -620,11 +641,12 @@ it.each([403, 404])(
       return transport(url, request);
     });
     const user = userEvent.setup();
-    const rendered = await mount(
+    const rendered = await renderFollowing(
       <>
         <FollowButton key="first" target={team} season={season} />
       </>,
     );
+    await waitFor(() => expect(session.status).toBe("authenticated"));
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
     );
@@ -653,11 +675,13 @@ it.each([403, 404])(
     expect(screen.queryByText(/Suivi confirmé/)).not.toBeOnTheScreen();
     expect(screen.queryByText("Accès refusé")).not.toBeOnTheScreen();
     hidden = false;
+    // When
     await user.press(
       screen.getAllByRole("button", {
         name: "Réessayer",
       })[0],
     );
+    // Then
     await waitFor(() =>
       expect(
         screen.getAllByRole("button", { name: "Suivi", disabled: false }),
@@ -676,12 +700,13 @@ it.each([403, 404])(
         : transport(url, request),
     );
     const user = userEvent.setup();
-    const rendered = await mount(
+    const rendered = await renderFollowing(
       <>
         <FollowButton key="first" target={team} season={season} />
         <FollowButton key="second" target={team} season={season} />
       </>,
     );
+    await waitFor(() => expect(session.status).toBe("authenticated"));
     await waitFor(() =>
       expect(
         screen.getAllByRole("button", { name: "Suivre", disabled: false }),
@@ -724,7 +749,10 @@ it("applies authoritative success after the initiating control unmounts", async 
     request?.method === "PUT" ? response.promise : transport(url, request),
   );
   const user = userEvent.setup();
-  const rendered = await mount(<FollowButton target={team} season={season} />);
+  const rendered = await renderFollowing(
+    <FollowButton target={team} season={season} />,
+  );
+  await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
   );
@@ -746,7 +774,8 @@ it("applies authoritative success after the initiating control unmounts", async 
 it("resets affected retained selections and invalidates options/count without touching another owner", async () => {
   // Given
   const user = userEvent.setup();
-  await mount(<FollowButton target={team} season={season} />);
+  await renderFollowing(<FollowButton target={team} season={season} />);
+  await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
   );
@@ -836,7 +865,10 @@ it("cancels old list traversal and reloads only visible first pages, keeping wri
     .mockRejectedValueOnce(new Error("unavailable"))
     .mockResolvedValue(["fresh first page"]);
   const user = userEvent.setup();
-  const rendered = await mount(<FollowButton target={team} season={season} />);
+  const rendered = await renderFollowing(
+    <FollowButton target={team} season={season} />,
+  );
+  await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
   );
@@ -868,14 +900,18 @@ it("cancels old list traversal and reloads only visible first pages, keeping wri
   expect(client.getQueryData(followStateKey(owner, team))).toEqual({
     following: true,
   });
+  // When
   await rendered.rerender(
     <DependentList owner={owner} visible={false} read={read} />,
   );
   await act(async () => {
     await client.resetQueries({ queryKey: listKey, exact: true });
   });
+  // Then
   expect(read).toHaveBeenCalledTimes(2);
+  // When
   await rendered.rerender(<DependentList owner={owner} visible read={read} />);
+  // Then
   expect(await screen.findByText("fresh first page")).toBeOnTheScreen();
   expect(read.mock.calls.map(([page]) => page)).toEqual([2, 0, 0]);
 });
@@ -883,7 +919,8 @@ it("cancels old list traversal and reloads only visible first pages, keeping wri
 it("preserves a confirmed write when the subsequent profile read fails", async () => {
   // Given
   const user = userEvent.setup();
-  await mount(<FollowButton target={team} season={season} />);
+  await renderFollowing(<FollowButton target={team} season={season} />);
+  await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
   );
@@ -931,7 +968,8 @@ it.each([true, false])(
         : transport(url, request);
     });
     const user = userEvent.setup();
-    await mount(<FollowButton target={team} season={season} />);
+    await renderFollowing(<FollowButton target={team} season={season} />);
+    await waitFor(() => expect(session.status).toBe("authenticated"));
     const label = following ? "Suivre" : "Suivi";
     await waitFor(() =>
       expect(screen.getByRole("button", { name: label })).toBeEnabled(),
@@ -944,7 +982,9 @@ it.each([true, false])(
     // Then
     expect(writes).toBe(1);
     expect(screen.getByRole("button", { name: label })).toBeEnabled();
+    // When
     await user.press(screen.getByRole("button", { name: label }));
+    // Then
     await screen.findByRole("button", {
       name: following ? "Suivi" : "Suivre",
       busy: false,
@@ -972,7 +1012,8 @@ it("observes current state once after losing a write response without announcing
       : transport(url, request);
   });
   const user = userEvent.setup();
-  await mount(<FollowButton target={team} season={season} />);
+  await renderFollowing(<FollowButton target={team} season={season} />);
+  await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
   );
@@ -1015,7 +1056,8 @@ it("shares an uncertain-write observation with an explicit member reread and can
     return transport(url, request);
   });
   const user = userEvent.setup();
-  await mount(<FollowButton target={team} season={season} />);
+  await renderFollowing(<FollowButton target={team} season={season} />);
+  await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
   );
@@ -1072,7 +1114,10 @@ it("retains an uncertain follow across route disposal and cache expiry until a d
     return transport(url, request);
   });
   const user = userEvent.setup();
-  const rendered = await mount(<FollowButton target={team} season={season} />);
+  const rendered = await renderFollowing(
+    <FollowButton target={team} season={season} />,
+  );
+  await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
   );
@@ -1129,7 +1174,9 @@ it("retains an uncertain follow across route disposal and cache expiry until a d
     mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
   ).toHaveLength(1);
   mockFetch.mockImplementation(transport);
+  // When
   await user.press(screen.getByRole("button", { name: "Réessayer le suivi" }));
+  // Then
   await screen.findByRole("button", { name: "Suivi", busy: false });
   expect(
     mockFetch.mock.calls
@@ -1154,7 +1201,8 @@ it.each(["guest", "other", "same"] as const)(
           : transport(url, request),
     );
     const user = userEvent.setup();
-    await mount(<FollowButton target={team} season={season} />);
+    await renderFollowing(<FollowButton target={team} season={season} />);
+    await waitFor(() => expect(session.status).toBe("authenticated"));
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
     );
@@ -1164,38 +1212,41 @@ it.each(["guest", "other", "same"] as const)(
       session.subscribe,
       session.isCurrent,
     );
-    await user.press(screen.getByRole("button", { name: "Suivre" }));
+    try {
+      await user.press(screen.getByRole("button", { name: "Suivre" }));
 
-    // When
-    await act(async () => {
-      await session.clearCredentials();
-      if (destination !== "guest") {
-        currentAccountId =
-          destination === "same"
-            ? accountId
-            : "00000000-0000-4000-8000-000000000099";
-        mockAuth0.webAuth.mockResolvedValue(
-          credentialsFor(`auth0|${destination}`),
-        );
-        mockAuth0.saveCredentials.mockResolvedValue();
-        await session.signIn("https://api.example.invalid");
-      }
-      response.resolve(Response.json({ following: true }));
-    });
+      // When
+      await act(async () => {
+        await session.clearCredentials();
+        if (destination !== "guest") {
+          currentAccountId =
+            destination === "same"
+              ? accountId
+              : "00000000-0000-4000-8000-000000000099";
+          mockAuth0.webAuth.mockResolvedValue(
+            credentialsFor(`auth0|${destination}`),
+          );
+          mockAuth0.saveCredentials.mockResolvedValue();
+          await session.signIn("https://api.example.invalid");
+        }
+        response.resolve(Response.json({ following: true }));
+      });
 
-    // Then
-    await waitFor(() => expect(client.isMutating()).toBe(0));
-    await waitFor(() =>
-      expect(session.status).toBe(
-        destination === "guest" ? "guest" : "authenticated",
-      ),
-    );
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
-    );
-    expect(client.getQueryData(followStateKey(owner, team))).toBeUndefined();
-    expect(screen.queryByText(/Suivi confirmé/)).not.toBeOnTheScreen();
-    unsubscribe();
+      // Then
+      await waitFor(() => expect(client.isMutating()).toBe(0));
+      await waitFor(() =>
+        expect(session.status).toBe(
+          destination === "guest" ? "guest" : "authenticated",
+        ),
+      );
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+      );
+      expect(client.getQueryData(followStateKey(owner, team))).toBeUndefined();
+      expect(screen.queryByText(/Suivi confirmé/)).not.toBeOnTheScreen();
+    } finally {
+      unsubscribe();
+    }
   },
 );
 
@@ -1226,7 +1277,8 @@ it("suspends the canonical confirmed relation when its maintenance bypass is cle
     return transport(url, request);
   });
   const user = userEvent.setup();
-  await mount(<FollowButton target={team} season={season} />);
+  await renderFollowing(<FollowButton target={team} season={season} />);
+  await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() => expect(session.accountId).toBe(accountId));
   await act(async () => {
     access.bypass.request(session.getSnapshot(), true);

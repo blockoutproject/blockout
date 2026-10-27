@@ -1,7 +1,8 @@
-import type { PropsWithChildren } from "react";
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
+import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
+  cleanup,
   act,
   fireEvent,
   render,
@@ -170,7 +171,8 @@ beforeEach(() => {
   mockFetch.mockReset().mockImplementation(reads);
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
 });
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   client.clear();
   process.env = { ...environment };
   jest.restoreAllMocks();
@@ -186,31 +188,13 @@ async function renderPreparation(
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              <ActionFeedbackScope>{children}</ActionFeedbackScope>
+              <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
       </QueryClientProvider>
     ),
   });
-}
-/** Chooses an actual displayed native confirmation; setup never accepts the command. */
-async function confirm(label: string) {
-  const action = jest
-    .mocked(Alert.alert)
-    .mock.lastCall?.[2]?.find((choice) => choice.text === label);
-  if (!action?.onPress) throw new Error(`Missing native action ${label}`);
-  await act(async () => action.onPress?.());
-}
-/** Opens the ordinary inline URL editor and types through the native input. */
-async function editCandidate() {
-  const user = userEvent.setup();
-  await user.press(
-    await screen.findByRole("button", { name: "Modifier le lien" }),
-  );
-  await user.clear(screen.getByLabelText("URL officielle"));
-  await user.type(screen.getByLabelText("URL officielle"), draftUrl);
-  return user;
 }
 
 it.each(["candidate", "creation"] as const)(
@@ -233,14 +217,14 @@ it.each(["candidate", "creation"] as const)(
 
     // When
     await user.press(screen.getByRole("button", { name: "Annuler" }));
-    await confirm("Continuer la saisie");
+    await act(async () => nativeAlertAction("Continuer la saisie")());
 
     // Then
     expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
 
     // When
     await user.press(screen.getByRole("button", { name: "Annuler" }));
-    await confirm("Abandonner");
+    await act(async () => nativeAlertAction("Abandonner")());
 
     // Then
     expect(screen.queryByLabelText("URL officielle")).toBeNull();
@@ -419,7 +403,12 @@ it("saves an inline candidate and clears old qualification before another explic
   // Given
   source = binding({ validation: "qualified", seasonEvidence: "2026/2027" });
   await renderPreparation();
-  const user = await editCandidate();
+  const user = userEvent.setup();
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  await user.clear(screen.getByLabelText("URL officielle"));
+  await user.type(screen.getByLabelText("URL officielle"), draftUrl);
   mockFetch.mockImplementation(async (url, options) =>
     options?.method === "PUT"
       ? json((source = binding({ revision: 3, candidateUrl: draftUrl })))
@@ -485,8 +474,13 @@ it.each(["unchanged", "trimmed"])(
 
 it("preserves dirty input through a background refetch and requires an explicit reread", async () => {
   // Given
+  const user = userEvent.setup();
   await renderPreparation();
-  await editCandidate();
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  await user.clear(screen.getByLabelText("URL officielle"));
+  await user.type(screen.getByLabelText("URL officielle"), draftUrl);
   const query = client
     .getQueryCache()
     .findAll()
@@ -513,7 +507,12 @@ it.each([400, 403, 422])(
   async (status) => {
     // Given
     await renderPreparation();
-    const user = await editCandidate();
+    const user = userEvent.setup();
+    await user.press(
+      await screen.findByRole("button", { name: "Modifier le lien" }),
+    );
+    await user.clear(screen.getByLabelText("URL officielle"));
+    await user.type(screen.getByLabelText("URL officielle"), draftUrl);
     mockFetch.mockImplementation(async (url, options) =>
       options?.method === "PUT" ? refused(status) : reads(url),
     );
@@ -537,7 +536,12 @@ it.each(["conflict", "uncertain", "invalid-response"])(
   async (outcome) => {
     // Given
     await renderPreparation();
-    const user = await editCandidate();
+    const user = userEvent.setup();
+    await user.press(
+      await screen.findByRole("button", { name: "Modifier le lien" }),
+    );
+    await user.clear(screen.getByLabelText("URL officielle"));
+    await user.type(screen.getByLabelText("URL officielle"), draftUrl);
     let writes = 0;
     mockFetch.mockImplementation(async (url, options) => {
       if (options?.method === "PUT") {
@@ -585,7 +589,12 @@ it.each(["conflict", "uncertain", "invalid-response"])(
 it("keeps an uncertain candidate blocked when reread fails", async () => {
   // Given
   await renderPreparation();
-  const user = await editCandidate();
+  const user = userEvent.setup();
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  await user.clear(screen.getByLabelText("URL officielle"));
+  await user.type(screen.getByLabelText("URL officielle"), draftUrl);
   mockFetch.mockImplementation(async (_url, options) =>
     options?.method === "PUT" ? refused(409) : refused(503),
   );
@@ -668,7 +677,7 @@ it("confirms only missing seasonal attribution with the exact canonical season",
     expect.any(Array),
     expect.objectContaining({ cancelable: true }),
   );
-  await confirm("Confirmer la saison");
+  await act(async () => nativeAlertAction("Confirmer la saison")());
 
   // Then
   expect(await screen.findByText("Prête")).toBeOnTheScreen();
@@ -754,7 +763,7 @@ it.each([409, 422, "lost"])(
     await user.press(
       screen.getByRole("button", { name: "Lancer les sources prêtes" }),
     );
-    await confirm("Lancer");
+    await act(async () => nativeAlertAction("Lancer")());
 
     // Then
     await screen.findByText(
@@ -799,7 +808,7 @@ it("rereads a failed launch without discarding selections before a new explicit 
   await user.press(
     screen.getByRole("button", { name: "Lancer les sources prêtes" }),
   );
-  await confirm("Lancer");
+  await act(async () => nativeAlertAction("Lancer")());
   await screen.findByText(
     "Le résultat doit être vérifié avant une nouvelle action.",
   );
@@ -829,7 +838,7 @@ it("rereads a failed launch without discarding selections before a new explicit 
   await user.press(
     screen.getByRole("button", { name: "Lancer les sources prêtes" }),
   );
-  await confirm("Lancer");
+  await act(async () => nativeAlertAction("Lancer")());
 
   // Then
   await screen.findByText("Sources sélectionnées lancées.");
@@ -845,7 +854,12 @@ it("rereads a failed launch without discarding selections before a new explicit 
 it("rejects credential-bearing candidate input locally without losing it or sending a write", async () => {
   // Given
   await renderPreparation();
-  const user = await editCandidate();
+  const user = userEvent.setup();
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  await user.clear(screen.getByLabelText("URL officielle"));
+  await user.type(screen.getByLabelText("URL officielle"), draftUrl);
   const invalid = "https://operator:password@example.invalid/source";
   await user.clear(screen.getByLabelText("URL officielle"));
   await user.type(screen.getByLabelText("URL officielle"), invalid);
@@ -979,7 +993,7 @@ it("launches an initial-import-locked qualified binding unchanged", async () => 
   await user.press(
     screen.getByRole("button", { name: "Lancer les sources prêtes" }),
   );
-  await confirm("Lancer");
+  await act(async () => nativeAlertAction("Lancer")());
 
   // Then
   await screen.findByText("Sources sélectionnées lancées.");
@@ -1136,7 +1150,7 @@ it("blocks a held confirmation after grant revocation while retaining a read-onl
     ).toBeDisabled(),
   );
   expect(screen.queryByText("Une erreur est survenue")).toBeNull();
-  await confirm("Confirmer la saison");
+  await act(async () => nativeAlertAction("Confirmer la saison")());
 
   // Then
   expect(
@@ -1152,7 +1166,12 @@ it("rejects a source mutation arriving after the original F05 session ended", as
       <AccountActions />
     </>,
   );
-  const user = await editCandidate();
+  const user = userEvent.setup();
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  await user.clear(screen.getByLabelText("URL officielle"));
+  await user.type(screen.getByLabelText("URL officielle"), draftUrl);
   const originalQueryKey = client
     .getQueryCache()
     .findAll()
@@ -1192,7 +1211,12 @@ it("preserves a newer source read when an older accepted candidate response arri
   // Given
   const response = Promise.withResolvers<Response>();
   await renderPreparation();
-  const user = await editCandidate();
+  const user = userEvent.setup();
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  await user.clear(screen.getByLabelText("URL officielle"));
+  await user.type(screen.getByLabelText("URL officielle"), draftUrl);
   const accepted = binding({ revision: 3, candidateUrl: draftUrl });
   mockFetch.mockImplementation((url, options) =>
     options?.method === "PUT" ? response.promise : reads(url),
@@ -1240,16 +1264,6 @@ it("preserves a newer source read when an older accepted candidate response arri
   ).toHaveLength(1);
 });
 
-/** Uses the real F05 generation so a previous session cannot retain action feedback in this fixture. */
-function ActionFeedbackScope({ children }: PropsWithChildren) {
-  const { generation } = useAccountSession();
-  return (
-    <ActionFeedbackProvider scopeKey={generation}>
-      {children}
-    </ActionFeedbackProvider>
-  );
-}
-
 it("keeps every provider blocked when an acknowledged source invalidates a season whose refresh fails", async () => {
   // Given
   const user = userEvent.setup();
@@ -1295,9 +1309,11 @@ it("keeps every provider blocked when an acknowledged source invalidates a seaso
   );
 
   // Then
+  // When
   await user.press(
     await screen.findByRole("button", { name: "Ajouter une source" }),
   );
+  // Then
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
   expect(screen.queryByText("Une erreur est survenue")).toBeNull();
   expect(
@@ -1307,8 +1323,13 @@ it("keeps every provider blocked when an acknowledged source invalidates a seaso
 
 it("preserves an edited source URL when pull-to-refresh reads a newer source revision", async () => {
   // Given
+  const user = userEvent.setup();
   await renderPreparation();
-  await editCandidate();
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  await user.clear(screen.getByLabelText("URL officielle"));
+  await user.type(screen.getByLabelText("URL officielle"), draftUrl);
   expect(screen.queryByRole("button", { name: "Relire l’état" })).toBeNull();
   source = binding({ revision: 3, label: "D1 actualisée" });
   mockFetch.mockClear();
@@ -1370,7 +1391,9 @@ it("hides retained source groups when the current catalog read is refused", asyn
       ? Promise.resolve(refused(503))
       : reads(url),
   );
+  // When
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  // Then
   expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
   expect(screen.queryByText("Groupe retenu")).not.toBeOnTheScreen();
   expect(screen.queryByText("Aucun groupe découvert")).not.toBeOnTheScreen();
@@ -1395,8 +1418,13 @@ it("explains missing collection permission without leaving a disabled catalog in
 
 it("retains a source draft but disables its commands after the current source read is refused", async () => {
   // Given
+  const user = userEvent.setup();
   await renderPreparation();
-  await editCandidate();
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  await user.clear(screen.getByLabelText("URL officielle"));
+  await user.type(screen.getByLabelText("URL officielle"), draftUrl);
   mockFetch.mockImplementation((url) =>
     String(url).endsWith(`/source-bindings/${sourceId}`)
       ? Promise.resolve(refused(403))
@@ -1420,7 +1448,9 @@ it("retains a source draft but disables its commands after the current source re
       ? Promise.resolve(refused(503))
       : reads(url),
   );
+  // When
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  // Then
   await waitFor(() =>
     expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen(),
   );
@@ -1456,7 +1486,9 @@ it("keeps refused season navigation hidden through a failed reread until a succe
     screen.queryByRole("button", { name: "Clôturer la saison" }),
   ).toBeNull();
   status = 503;
+  // When
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  // Then
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled(),
   );
@@ -1466,7 +1498,9 @@ it("keeps refused season navigation hidden through a failed reread until a succe
     }),
   ).toBeNull();
   status = 200;
+  // When
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  // Then
   expect(
     await screen.findByRole("link", {
       name: "LNV, Les trois championnats professionnels",

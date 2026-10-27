@@ -1,5 +1,6 @@
 import {
   act,
+  cleanup,
   render,
   renderHook,
   screen,
@@ -44,7 +45,8 @@ beforeEach(() => {
   mockAuth0.webAuth.mockReset().mockResolvedValue(credentialsFor("auth0|a"));
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   jest.restoreAllMocks();
   for (const [key, value] of Object.entries(originalConfiguration)) {
     if (value === undefined) delete process.env[key];
@@ -53,7 +55,7 @@ afterEach(() => {
 });
 
 /** Exercises native actions from an ordinary app descendant, invalidating old work before logout. */
-function MockNativeAuthenticationControls() {
+function NativeAuthenticationControls() {
   const auth = useAuth0();
   const session = useAccountSession();
   return (
@@ -63,10 +65,7 @@ function MockNativeAuthenticationControls() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Native sign in"
-        onPress={() => {
-          session.invalidate();
-          void auth.authorize();
-        }}
+        onPress={() => void session.signIn("https://api.example.invalid")}
       >
         <Text>Sign in</Text>
       </Pressable>
@@ -87,7 +86,7 @@ function SessionConsumer({ work }: { work?: Promise<string> }) {
   const [draft, setDraft] = useState("");
   return (
     <>
-      <MockNativeAuthenticationControls />
+      <NativeAuthenticationControls />
       <Text>Public content</Text>
       <TextInput
         accessibilityLabel="Public draft"
@@ -147,7 +146,7 @@ it("finishes local initialization before mounting application consumers or resto
   // Then
   expect(screen.getByText("Public content")).toBeOnTheScreen();
   expect(screen.getByText("Authentication: guest")).toBeOnTheScreen();
-  expect(mockAuth0.hasValidCredentials).toHaveBeenCalled();
+  expect(mockAuth0.hasValidCredentials).toHaveBeenCalledTimes(1);
 });
 
 it("retains guest access after initialization failures and replaces that navigation on successful retry", async () => {
@@ -443,10 +442,14 @@ it("keeps a newer local sign-out pending when an older hosted login completes", 
   // Then: completing old native work cannot reopen business admission during the current command.
   expect(hook.result.current.status).toBe("signing-out");
   expect(hook.result.current.accountId).toBeNull();
+
+  // When
   await act(async () => {
     clearing.resolve();
     await signingOut;
   });
+
+  // Then
   expect(hook.result.current.status).toBe("guest");
 });
 

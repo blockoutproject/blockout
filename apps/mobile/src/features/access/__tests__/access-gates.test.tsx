@@ -1,5 +1,7 @@
+import { accountResponse } from "../../accounts/test-support/account-response";
 import { focusManager, onlineManager } from "@tanstack/react-query";
 import {
+  cleanup,
   act,
   fireEvent,
   screen,
@@ -95,7 +97,10 @@ beforeEach(async () => {
   mockAuth0.webAuth.mockReset();
   mockFetch.mockReset();
 });
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
+  focusManager.setFocused(undefined);
+  onlineManager.setOnline(true);
   process.env = { ...environment };
 });
 
@@ -124,29 +129,36 @@ async function openRoute(path: string) {
 
 it("starts the public request while F14 initialization has not completed", async () => {
   // Given
-  jest.mocked(initializeV2Installation).mockReturnValue(new Promise(() => {}));
+  const initialization = Promise.withResolvers<void>();
+  jest.mocked(initializeV2Installation).mockReturnValue(initialization.promise);
   mockFetch.mockResolvedValue(
     new Response(JSON.stringify(applicationAccessResponse()), {
       headers: { "Content-Type": "application/json" },
     }),
   );
 
-  // When
-  await openRoute("/support");
+  try {
+    // When
+    await openRoute("/support");
 
-  // Then
-  await waitFor(() =>
-    expect(mockFetch).toHaveBeenCalledWith(
-      "https://api.example.invalid/application-access",
-      expect.anything(),
-    ),
-  );
-  expect(mockAuth0.getCredentials).not.toHaveBeenCalled();
-  expect(
-    screen.getByRole("progressbar", { name: "Chargement en cours" }),
-  ).toBeOnTheScreen();
-  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
-  expect(screen.queryByText("Illustration à définir")).toBeNull();
+    // Then
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://api.example.invalid/application-access",
+        expect.anything(),
+      ),
+    );
+    expect(mockAuth0.getCredentials).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("progressbar", { name: "Chargement en cours" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+    expect(screen.queryByText("Illustration à définir")).toBeNull();
+  } finally {
+    // Cleanup: release initialization only after consumers have unmounted.
+    await cleanup();
+    await act(async () => initialization.resolve());
+  }
 });
 
 it.each(["/support", "/legal", "/sign-in", "/administration"])(
@@ -205,14 +217,12 @@ function json(value: unknown, status = 200) {
   });
 }
 
-const operator = {
+const operator = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000180",
   username: "Operator_180",
   email: "operator@example.invalid",
-  hasPhoto: false,
-  principalCreatedAt: null,
   permissions: { manageMaintenance: true },
-};
+});
 
 it.each(["maintenance", "update"] as const)(
   "keeps legal/support/sign-in routes and back behind the %s gate",

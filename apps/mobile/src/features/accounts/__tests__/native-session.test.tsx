@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react-native";
+import { act, cleanup, renderHook } from "@testing-library/react-native";
 import { CredentialsManagerErrorCodes, useAuth0 } from "react-native-auth0";
 import { eraseAccount } from "../../../../.generated/mobile";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
@@ -34,7 +34,6 @@ const originalConfiguration = {
 };
 
 beforeEach(() => {
-  jest.useFakeTimers();
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
@@ -51,8 +50,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  await jest.runOnlyPendingTimersAsync();
-  jest.useRealTimers();
+  await cleanup();
   jest.restoreAllMocks();
   for (const [key, value] of Object.entries(originalConfiguration)) {
     if (value === undefined) delete process.env[key];

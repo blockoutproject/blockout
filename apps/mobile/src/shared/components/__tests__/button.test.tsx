@@ -1,4 +1,5 @@
 import { render, screen, userEvent } from "@testing-library/react-native";
+import { useState } from "react";
 import { Check, ChevronRight } from "lucide-react-native";
 import { ThemeProvider } from "../../theme/theme-provider";
 import { Button } from "../button";
@@ -55,23 +56,26 @@ it.each([
   expect(onPress).not.toHaveBeenCalled();
 });
 
-it("exposes a compact selected action and its season without adding a second control", async () => {
-  // Given
-  const onPress = jest.fn();
-  const user = userEvent.setup();
-  await render(
-    <ThemeProvider>
-      <Button
-        label="Suivi"
-        size="compact"
-        variant="inverse"
-        leadingIcon={Check}
-        selected
-        accessibilityHint="Saison 2026/2027"
-        onPress={onPress}
-      />
-    </ThemeProvider>,
+/** The caller owns selection; the control must announce the updated state after the same action. */
+function FollowChoice() {
+  const [selected, setSelected] = useState(true);
+  return (
+    <Button
+      label={selected ? "Suivi" : "Suivre"}
+      size="compact"
+      variant="inverse"
+      leadingIcon={Check}
+      selected={selected}
+      accessibilityHint="Saison 2026/2027"
+      onPress={() => setSelected((current) => !current)}
+    />
   );
+}
+
+it("updates its caller-owned selection without adding a second control", async () => {
+  // Given
+  const user = userEvent.setup();
+  await render(<FollowChoice />, { wrapper: ThemeProvider });
 
   // When
   await user.press(
@@ -79,7 +83,9 @@ it("exposes a compact selected action and its season without adding a second con
   );
 
   // Then
-  expect(onPress).toHaveBeenCalledTimes(1);
+  expect(
+    screen.getByRole("button", { name: "Suivre", selected: false }),
+  ).toBeOnTheScreen();
   expect(screen.getAllByRole("button")).toHaveLength(1);
   expect(screen.getByHintText("Saison 2026/2027")).toBeOnTheScreen();
 });

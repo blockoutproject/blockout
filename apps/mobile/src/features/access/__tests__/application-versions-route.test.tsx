@@ -1,4 +1,6 @@
+import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
 import {
+  cleanup,
   act,
   screen,
   waitFor,
@@ -98,7 +100,8 @@ beforeEach(async () => {
   mockAuth0.webAuth.mockReset();
   mockFetch.mockReset();
 });
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
@@ -129,7 +132,10 @@ async function openRoute(path: string) {
 }
 
 /** Canonical HTTP demonstrations; no real identity or store availability is established. */
-function responses(permissions: Record<string, boolean>, outdated = false) {
+function accessResponses(
+  permissions: Record<string, boolean>,
+  outdated = false,
+) {
   const access = applicationAccessResponse();
   access.maintenance = {
     revision: 2,
@@ -162,12 +168,14 @@ function responses(permissions: Record<string, boolean>, outdated = false) {
             }
           : access.versions,
     );
-  mockFetch.mockImplementation(serve);
   return serve;
 }
+
 it("admits the current versions manager during maintenance without personal bypass or maintenance rights", async () => {
   // Given
-  responses({ manageApplicationVersions: true });
+  mockFetch.mockImplementation(
+    accessResponses({ manageApplicationVersions: true }),
+  );
 
   // When
   await openRoute("/access");
@@ -185,7 +193,9 @@ it("admits the current versions manager during maintenance without personal bypa
 });
 it("refuses version editing when only maintenance management and personal bypass are granted", async () => {
   // Given
-  responses({ manageMaintenance: true, bypassMaintenance: true });
+  mockFetch.mockImplementation(
+    accessResponses({ manageMaintenance: true, bypassMaintenance: true }),
+  );
 
   // When
   await openRoute("/access");
@@ -203,7 +213,12 @@ it("refuses version editing when only maintenance management and personal bypass
 });
 it("refuses an outdated versions manager without a minimum-version exception", async () => {
   // Given
-  responses({ manageApplicationVersions: true, bypassMaintenance: true }, true);
+  mockFetch.mockImplementation(
+    accessResponses(
+      { manageApplicationVersions: true, bypassMaintenance: true },
+      true,
+    ),
+  );
 
   // When
   await openRoute("/administration/application-versions");
@@ -219,13 +234,17 @@ it("refuses an outdated versions manager without a minimum-version exception", a
 });
 it("preserves a dirty draft when departure is cancelled, and leaves only after explicit discard", async () => {
   // Given
-  responses({ manageApplicationVersions: true });
+  mockFetch.mockImplementation(
+    accessResponses({ manageApplicationVersions: true }),
+  );
   await openRoute("/access");
   const user = userEvent.setup();
   await user.press(
     await screen.findByRole("link", { name: "Accès administrateur" }),
   );
-  await user.press(await screen.findByText("Versions minimales"));
+  await user.press(
+    await screen.findByRole("link", { name: "Versions minimales" }),
+  );
   const message = await screen.findByLabelText("Message commun");
   await user.type(message, "Mon brouillon");
 
@@ -246,12 +265,7 @@ it("preserves a dirty draft when departure is cancelled, and leaves only after e
   );
 
   // When
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.lastCall?.[2]?.find((a) => a.text === "Continuer la saisie")
-      ?.onPress?.(),
-  );
+  await act(async () => nativeAlertAction("Continuer la saisie")());
 
   // Then
   expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
@@ -260,15 +274,12 @@ it("preserves a dirty draft when departure is cancelled, and leaves only after e
 
   // When
   await user.press(screen.getByRole("button", { name: "Retour" }));
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.lastCall?.[2]?.find((a) => a.text === "Abandonner")
-      ?.onPress?.(),
-  );
+  await act(async () => nativeAlertAction("Abandonner")());
 
   // Then
-  expect(await screen.findByText("Versions minimales")).toBeOnTheScreen();
+  expect(
+    await screen.findByRole("link", { name: "Versions minimales" }),
+  ).toBeOnTheScreen();
   expect(mockFetch.mock.calls.some(([, o]) => o?.method === "PATCH")).toBe(
     false,
   );
@@ -276,7 +287,8 @@ it("preserves a dirty draft when departure is cancelled, and leaves only after e
 
 it("retains the draft through protected-route removal and ignores an obsolete discard confirmation", async () => {
   // Given
-  const serve = responses({ manageApplicationVersions: true });
+  const serve = accessResponses({ manageApplicationVersions: true });
+  mockFetch.mockImplementation(serve);
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });
   const user = userEvent.setup();
@@ -288,18 +300,15 @@ it("retains the draft through protected-route removal and ignores an obsolete di
   await user.press(
     await screen.findByRole("link", { name: "Accès administrateur" }),
   );
-  await user.press(await screen.findByText("Versions minimales"));
+  await user.press(
+    await screen.findByRole("link", { name: "Versions minimales" }),
+  );
   await user.type(
     await screen.findByLabelText("Message commun"),
     "Mon brouillon",
   );
   await user.press(screen.getByRole("button", { name: "Retour" }));
-  const discard = jest
-    .mocked(Alert.alert)
-    .mock.lastCall?.[2]?.find(
-      (action) => action.text === "Abandonner",
-    )?.onPress;
-  if (!discard) throw new Error("Missing native discard confirmation");
+  const discard = nativeAlertAction("Abandonner");
 
   // When
   await act(async () =>
@@ -328,7 +337,9 @@ it("retains the draft through protected-route removal and ignores an obsolete di
   await user.press(
     await screen.findByRole("link", { name: "Accès administrateur" }),
   );
-  await user.press(await screen.findByText("Versions minimales"));
+  await user.press(
+    await screen.findByRole("link", { name: "Versions minimales" }),
+  );
   await screen.findByLabelText("Message commun");
   await act(async () => discard());
 
@@ -345,7 +356,8 @@ it("retains the draft through protected-route removal and ignores an obsolete di
 
 it("keeps a resumed draft locked until its earlier pending save settles", async () => {
   // Given
-  const serve = responses({ manageApplicationVersions: true });
+  const serve = accessResponses({ manageApplicationVersions: true });
+  mockFetch.mockImplementation(serve);
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });
   const user = userEvent.setup();
@@ -362,18 +374,15 @@ it("keeps a resumed draft locked until its earlier pending save settles", async 
   await user.press(
     await screen.findByRole("link", { name: "Accès administrateur" }),
   );
-  await user.press(await screen.findByText("Versions minimales"));
+  await user.press(
+    await screen.findByRole("link", { name: "Versions minimales" }),
+  );
   await user.type(
     await screen.findByLabelText("Message commun"),
     "First draft",
   );
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.lastCall?.[2]?.find((a) => a.text === "Appliquer")
-      ?.onPress?.(),
-  );
+  await act(async () => nativeAlertAction("Appliquer")());
   await screen.findByRole("button", {
     name: "Enregistrer",
     busy: true,
@@ -403,7 +412,9 @@ it("keeps a resumed draft locked until its earlier pending save settles", async 
   await user.press(
     await screen.findByRole("link", { name: "Accès administrateur" }),
   );
-  await user.press(await screen.findByText("Versions minimales"));
+  await user.press(
+    await screen.findByRole("link", { name: "Versions minimales" }),
+  );
 
   try {
     // Then
@@ -438,7 +449,8 @@ it("keeps a resumed draft locked until its earlier pending save settles", async 
 
 it("invalidates a native confirmation when its protected route is removed", async () => {
   // Given
-  const serve = responses({ manageApplicationVersions: true });
+  const serve = accessResponses({ manageApplicationVersions: true });
+  mockFetch.mockImplementation(serve);
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });
   const user = userEvent.setup();
@@ -450,16 +462,15 @@ it("invalidates a native confirmation when its protected route is removed", asyn
   await user.press(
     await screen.findByRole("link", { name: "Accès administrateur" }),
   );
-  await user.press(await screen.findByText("Versions minimales"));
+  await user.press(
+    await screen.findByRole("link", { name: "Versions minimales" }),
+  );
   await user.type(
     await screen.findByLabelText("Message commun"),
     "Unconfirmed draft",
   );
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  const confirm = jest
-    .mocked(Alert.alert)
-    .mock.lastCall?.[2]?.find((a) => a.text === "Appliquer")?.onPress;
-  if (!confirm) throw new Error("The native apply confirmation is missing");
+  const confirm = nativeAlertAction("Appliquer");
 
   // When
   await act(async () =>
@@ -488,7 +499,8 @@ it("invalidates a native confirmation when its protected route is removed", asyn
 
 it("keeps explicit reread required when route removal cancels a recovery read", async () => {
   // Given
-  const serve = responses({ manageApplicationVersions: true });
+  const serve = accessResponses({ manageApplicationVersions: true });
+  mockFetch.mockImplementation(serve);
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });
   const user = userEvent.setup();
@@ -513,18 +525,15 @@ it("keeps explicit reread required when route removal cancels a recovery read", 
   await user.press(
     await screen.findByRole("link", { name: "Accès administrateur" }),
   );
-  await user.press(await screen.findByText("Versions minimales"));
+  await user.press(
+    await screen.findByRole("link", { name: "Versions minimales" }),
+  );
   await user.type(
     await screen.findByLabelText("Message commun"),
     "Retained uncertain draft",
   );
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.lastCall?.[2]?.find((a) => a.text === "Appliquer")
-      ?.onPress?.(),
-  );
+  await act(async () => nativeAlertAction("Appliquer")());
   await screen.findByRole("button", { name: "Relire les réglages" });
   holdRead = true;
   await user.press(screen.getByRole("button", { name: "Relire les réglages" }));
@@ -553,7 +562,9 @@ it("keeps explicit reread required when route removal cancels a recovery read", 
     await user.press(
       await screen.findByRole("link", { name: "Accès administrateur" }),
     );
-    await user.press(await screen.findByText("Versions minimales"));
+    await user.press(
+      await screen.findByRole("link", { name: "Versions minimales" }),
+    );
 
     // Then
     await screen.findByRole("button", { name: "Relire les réglages" });
@@ -565,6 +576,7 @@ it("keeps explicit reread required when route removal cancels a recovery read", 
       mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
     ).toHaveLength(1);
   } finally {
+    // Cleanup: release the cancelled transport without publishing obsolete data.
     await act(async () =>
       reread.resolve(Response.json(applicationAccessResponse().versions)),
     );

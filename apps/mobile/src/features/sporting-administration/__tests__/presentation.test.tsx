@@ -1,6 +1,8 @@
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
+import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
+  cleanup,
   act,
   fireEvent,
   screen,
@@ -12,7 +14,7 @@ import { File } from "expo-file-system";
 import { Alert, Pressable, Text } from "react-native";
 import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
-import type { ComponentType, ReactNode, PropsWithChildren } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { useDivisions } from "../api/classification";
 import { getListDivisionsQueryKey } from "../../../../.generated/mobile";
 import RootLayout from "../../../app/_layout";
@@ -164,9 +166,15 @@ beforeEach(async () => {
           ? mockFile
           : mockPickedFile) as unknown as File,
     );
-  mockFile.delete.mockReset();
+  mockFile.exists = true;
+  mockFile.delete.mockReset().mockImplementation(() => {
+    mockFile.exists = false;
+  });
+  mockPickedFile.exists = true;
   mockPickedFile.copy.mockReset();
-  mockPickedFile.delete.mockReset();
+  mockPickedFile.delete.mockReset().mockImplementation(() => {
+    mockPickedFile.exists = false;
+  });
   await completeDiscovery();
   client = createQueryClient();
   stored = initial;
@@ -193,7 +201,8 @@ beforeEach(async () => {
     .mockResolvedValue({ canceled: true, assets: null });
   mockFetch.mockReset().mockImplementation(respond);
 });
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   client.clear();
   process.env = { ...environment };
   jest.restoreAllMocks();
@@ -211,7 +220,7 @@ async function renderEditor(
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              <ActionFeedbackScope>
+              <AccountFeedbackProvider>
                 {peers}
                 <PresentationScreen
                   target={
@@ -221,14 +230,13 @@ async function renderEditor(
                   }
                 />
                 <SessionAction />
-              </ActionFeedbackScope>
+              </AccountFeedbackProvider>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
       </QueryClientProvider>
     ),
   });
-  return userEvent.setup();
 }
 /** Exercises the existing F05 lifecycle rather than replacing session state. */
 function SessionAction() {
@@ -253,18 +261,14 @@ function json(value: unknown, status = 200) {
     },
   });
 }
-/** User typing stays visible at each scenario; only the repetitive native input gesture is named. */
-async function edit(label: string, value: string) {
-  const user = userEvent.setup();
-  await user.clear(screen.getByLabelText(label));
-  if (value) await user.type(screen.getByLabelText(label), value);
-}
 
 it("saves independent names and a nonsquare logo in one generated multipart PATCH", async () => {
   // Given
-  const user = await renderEditor();
+  const user = userEvent.setup();
+  await renderEditor();
   await screen.findByDisplayValue("Current name");
-  await edit("Nom complet personnalisé", "Chosen");
+  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+  await user.type(screen.getByLabelText("Nom complet personnalisé"), "Chosen");
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
     assets: [
@@ -324,9 +328,10 @@ it("restores automatic artwork and clears only the selected name customization a
       effectiveUrl: `/teams/${resourceId}/logo`,
     },
   };
-  const user = await renderEditor();
+  const user = userEvent.setup();
+  await renderEditor();
   await screen.findByDisplayValue("Current name");
-  await edit("Nom complet personnalisé", "");
+  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
   await user.press(
     screen.getByRole("button", { name: "Rétablir le logo automatique" }),
   );
@@ -354,9 +359,14 @@ it("restores automatic artwork and clears only the selected name customization a
 it("edits pool names with complete JSON and no logo or contacts", async () => {
   // Given
   stored = { id: resourceId, revision: "r1", names };
-  const user = await renderEditor("pool");
+  const user = userEvent.setup();
+  await renderEditor("pool");
   await screen.findByDisplayValue("Current name");
-  await edit("Nom court personnalisé", "Custom short");
+  await user.clear(screen.getByLabelText("Nom court personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom court personnalisé"),
+    "Custom short",
+  );
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
@@ -380,9 +390,11 @@ it("edits pool names with complete JSON and no logo or contacts", async () => {
 it("saves club presentation without a short-name field", async () => {
   // Given
   stored = { ...initial, kind: "club" };
-  const user = await renderEditor("club");
+  const user = userEvent.setup();
+  await renderEditor("club");
   await screen.findByDisplayValue("Current name");
-  await edit("Nom personnalisé", "Club chosen");
+  await user.clear(screen.getByLabelText("Nom personnalisé"));
+  await user.type(screen.getByLabelText("Nom personnalisé"), "Club chosen");
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
@@ -416,9 +428,11 @@ it("validates and saves division colors, gradient and name without touching acti
     logo,
     active: false,
   };
-  const user = await renderEditor("division");
+  const user = userEvent.setup();
+  await renderEditor("division");
   await screen.findByDisplayValue("Division");
-  await edit("Couleur HEX", "invalid");
+  await user.clear(screen.getByLabelText("Couleur HEX"));
+  await user.type(screen.getByLabelText("Couleur HEX"), "invalid");
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
@@ -430,10 +444,14 @@ it("validates and saves division colors, gradient and name without touching acti
   );
 
   // When
-  await edit("Couleur HEX", "#abcdef");
-  await edit("Départ", "#111111");
-  await edit("Milieu", "#222222");
-  await edit("Fin", "#333333");
+  await user.clear(screen.getByLabelText("Couleur HEX"));
+  await user.type(screen.getByLabelText("Couleur HEX"), "#abcdef");
+  await user.clear(screen.getByLabelText("Départ"));
+  await user.type(screen.getByLabelText("Départ"), "#111111");
+  await user.clear(screen.getByLabelText("Milieu"));
+  await user.type(screen.getByLabelText("Milieu"), "#222222");
+  await user.clear(screen.getByLabelText("Fin"));
+  await user.type(screen.getByLabelText("Fin"), "#333333");
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
@@ -457,9 +475,14 @@ it.each(["conflict", "network", "schema"])(
   "preserves dirty fields after %s and requires a successful read before explicit retry",
   async (outcome) => {
     // Given
-    const user = await renderEditor();
+    const user = userEvent.setup();
+    await renderEditor();
     await screen.findByDisplayValue("Current name");
-    await edit("Nom complet personnalisé", "My draft");
+    await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+    await user.type(
+      screen.getByLabelText("Nom complet personnalisé"),
+      "My draft",
+    );
     mockFetch.mockImplementation(async (_url, options) => {
       if (options?.method === "PATCH") {
         if (outcome === "network") throw new TypeError("Lost response");
@@ -541,9 +564,14 @@ it.each(["conflict", "network", "schema"])(
 
 it("keeps a dirty draft and the editing revision during background refetch", async () => {
   // Given
-  const user = await renderEditor();
+  const user = userEvent.setup();
+  await renderEditor();
   await screen.findByDisplayValue("Current name");
-  await edit("Nom complet personnalisé", "My draft");
+  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom complet personnalisé"),
+    "My draft",
+  );
   stored = {
     ...initial,
     revision: "r2",
@@ -611,9 +639,14 @@ it("refreshes the displayed logo, retaining technical failures but removing refu
       : json({ title: "Logo unavailable", status: logoStatus }, logoStatus);
   });
   try {
-    const user = await renderEditor();
+    const user = userEvent.setup();
+    await renderEditor();
     await screen.findByRole("button", { name: "Aperçu : Logo" });
-    await edit("Nom complet personnalisé", "Local name");
+    await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+    await user.type(
+      screen.getByLabelText("Nom complet personnalisé"),
+      "Local name",
+    );
 
     // When
     logoStatus = 503;
@@ -696,9 +729,14 @@ it("refreshes the displayed logo, retaining technical failures but removing refu
 
 it("retains input and shows the invalid-image field refusal", async () => {
   // Given
-  const user = await renderEditor();
+  const user = userEvent.setup();
+  await renderEditor();
   await screen.findByDisplayValue("Current name");
-  await edit("Nom complet personnalisé", "My draft");
+  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom complet personnalisé"),
+    "My draft",
+  );
   mockFetch.mockResolvedValue(
     json(
       {
@@ -743,9 +781,14 @@ it.each([
 
 it("retains a read-only draft when the current action grant is withdrawn", async () => {
   // Given
+  const user = userEvent.setup();
   await renderEditor();
   await screen.findByDisplayValue("Current name");
-  await edit("Nom complet personnalisé", "My draft");
+  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom complet personnalisé"),
+    "My draft",
+  );
   permissions = { manageCollection: true };
 
   // When
@@ -769,7 +812,8 @@ it("retains a read-only draft when the current action grant is withdrawn", async
 
 it("ignores a held native selection after the session is invalidated", async () => {
   // Given
-  const user = await renderEditor();
+  const user = userEvent.setup();
+  await renderEditor();
   await screen.findByDisplayValue("Current name");
   const selection = Promise.withResolvers<ImagePicker.ImagePickerResult>();
   jest
@@ -926,7 +970,8 @@ it("enters the real protected route with only the presentation grant and confirm
   );
 
   // When
-  await edit("Nom complet personnalisé", "Unsaved");
+  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+  await user.type(screen.getByLabelText("Nom complet personnalisé"), "Unsaved");
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
     assets: [
@@ -952,15 +997,12 @@ it("enters the real protected route with only the presentation grant and confirm
   );
 
   // When
-  const actions = jest.mocked(Alert.alert).mock.calls.at(-1)?.[2];
-  await act(async () =>
-    actions?.find((action) => action.text === "Abandonner")?.onPress?.(),
-  );
+  await act(async () => nativeAlertAction("Abandonner")());
 
   // Then
   await screen.findByText("Modifier la présentation");
   expect(mockFile.delete).toHaveBeenCalledTimes(1);
-  expect(mockPickedFile.delete).toHaveBeenCalled();
+  expect(mockPickedFile.delete).toHaveBeenCalledTimes(1);
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
   ).toBe(false);
@@ -983,7 +1025,11 @@ it("retains the draft and uncertain outcome when a failed permission refresh rem
   );
   await user.press(screen.getByText("Modifier la présentation"));
   await screen.findByDisplayValue("Current name");
-  await edit("Nom complet personnalisé", "Retained draft");
+  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom complet personnalisé"),
+    "Retained draft",
+  );
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
     assets: [
@@ -1055,7 +1101,11 @@ it("keeps an outstanding save busy across protected-route removal and records it
   );
   await user.press(screen.getByText("Modifier la présentation"));
   await screen.findByDisplayValue("Current name");
-  await edit("Nom complet personnalisé", "Pending draft");
+  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom complet personnalisé"),
+    "Pending draft",
+  );
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await waitFor(() =>
     expect(
@@ -1108,9 +1158,14 @@ it("keeps an outstanding save busy across protected-route removal and records it
 
 it("rejects an invalid generated response before it replaces the accepted cache or dirty draft", async () => {
   // Given
+  const user = userEvent.setup();
   await renderEditor();
   await screen.findByDisplayValue("Current name");
-  await edit("Nom complet personnalisé", "My draft");
+  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom complet personnalisé"),
+    "My draft",
+  );
   const query = client.getQueryCache().findAll({
     predicate: ({ queryKey }) =>
       JSON.stringify(queryKey).includes("/presentation"),
@@ -1134,9 +1189,14 @@ it("rejects an invalid generated response before it replaces the accepted cache 
 
 it("rejects a delayed save result after the session has ended", async () => {
   // Given
-  const user = await renderEditor();
+  const user = userEvent.setup();
+  await renderEditor();
   await screen.findByDisplayValue("Current name");
-  await edit("Nom complet personnalisé", "My draft");
+  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom complet personnalisé"),
+    "My draft",
+  );
   const saveResponse = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((_url, options) =>
     options?.method === "PATCH"
@@ -1188,22 +1248,22 @@ it("creates an active division through the existing atomic presentation form wit
       ? Promise.resolve(json(created, 201))
       : initialFetch(url, options),
   );
-  const user = await renderEditor("division-creation");
+  const user = userEvent.setup();
+  await renderEditor("division-creation");
   await screen.findByLabelText("Nom de la division");
-  await edit("Nom de la division", "National 2");
-  await edit("Couleur HEX", "#123456");
+  await user.clear(screen.getByLabelText("Nom de la division"));
+  await user.type(screen.getByLabelText("Nom de la division"), "National 2");
+  await user.clear(screen.getByLabelText("Couleur HEX"));
+  await user.type(screen.getByLabelText("Couleur HEX"), "#123456");
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
   ).toBe(false);
-  const confirm = jest
-    .mocked(Alert.alert)
-    .mock.calls.at(-1)?.[2]
-    ?.find((button) => button.text === "Créer la division");
+  const confirm = nativeAlertAction("Créer la division");
   await act(async () => {
-    confirm?.onPress?.();
+    confirm();
   });
 
   // Then
@@ -1237,19 +1297,19 @@ it("rereads divisions after an uncertain creation and keeps the draft while iden
       ? Promise.reject(new TypeError("Lost response"))
       : initialFetch(url, options),
   );
-  const user = await renderEditor("division-creation");
+  const user = userEvent.setup();
+  await renderEditor("division-creation");
   await screen.findByLabelText("Nom de la division");
-  await edit("Nom de la division", "National 2");
-  await edit("Couleur HEX", "#123456");
+  await user.clear(screen.getByLabelText("Nom de la division"));
+  await user.type(screen.getByLabelText("Nom de la division"), "National 2");
+  await user.clear(screen.getByLabelText("Couleur HEX"));
+  await user.type(screen.getByLabelText("Couleur HEX"), "#123456");
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  const confirm = jest
-    .mocked(Alert.alert)
-    .mock.calls.at(-1)?.[2]
-    ?.find((button) => button.text === "Créer la division");
+  const confirm = nativeAlertAction("Créer la division");
   await act(async () => {
-    confirm?.onPress?.();
+    confirm();
   });
   await screen.findByRole("button", { name: "Relire la présentation" });
   stored = {
@@ -1269,12 +1329,9 @@ it("rereads divisions after an uncertain creation and keeps the draft while iden
     screen.getByRole("button", { name: "Relire la présentation" }),
   );
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  const retry = jest
-    .mocked(Alert.alert)
-    .mock.calls.at(-1)?.[2]
-    ?.find((button) => button.text === "Créer la division");
+  const retry = nativeAlertAction("Créer la division");
   await act(async () => {
-    retry?.onPress?.();
+    retry();
   });
 
   // Then
@@ -1304,22 +1361,20 @@ it("keeps lifecycle independent at the end of the division editor for a lifecycl
     active: true,
   };
   stored = division;
-  const user = await renderEditor("division");
+  const user = userEvent.setup();
+  await renderEditor("division");
   jest.spyOn(Alert, "alert");
 
   // When
   await user.press(
     await screen.findByRole("button", { name: "Désactiver la division" }),
   );
-  const confirmation = jest
-    .mocked(Alert.alert)
-    .mock.calls.at(-1)?.[2]
-    ?.find((button) => button.text === "Désactiver");
+  const confirmation = nativeAlertAction("Désactiver");
   mockFetch.mockResolvedValue(
     json({ ...division, revision: "d2", active: false }),
   );
   await act(async () => {
-    confirmation?.onPress?.();
+    confirmation();
   });
 
   // Then
@@ -1364,20 +1419,22 @@ it("preserves unsaved presentation values while an independent activity response
     return originalFetch(url, options);
   });
   jest.spyOn(Alert, "alert");
-  const user = await renderEditor("division");
+  const user = userEvent.setup();
+  await renderEditor("division");
   await screen.findByDisplayValue("Division");
-  await edit("Nom de la division", "Unsaved presentation");
+  await user.clear(screen.getByLabelText("Nom de la division"));
+  await user.type(
+    screen.getByLabelText("Nom de la division"),
+    "Unsaved presentation",
+  );
 
   // When
   await user.press(
     screen.getByRole("button", { name: "Désactiver la division" }),
   );
-  const confirmation = jest
-    .mocked(Alert.alert)
-    .mock.calls.at(-1)?.[2]
-    ?.find((button) => button.text === "Désactiver");
+  const confirmation = nativeAlertAction("Désactiver");
   await act(async () => {
-    confirmation?.onPress?.();
+    confirmation();
   });
   await screen.findByRole("button", { name: "Réactiver la division" });
   await waitFor(() =>
@@ -1413,7 +1470,8 @@ it("restores automatic division paint without sending a separate color or lifecy
     logo,
     active: false,
   };
-  const user = await renderEditor("division");
+  const user = userEvent.setup();
+  await renderEditor("division");
 
   // When
   await user.press(
@@ -1451,12 +1509,14 @@ it("preserves an empty invalid gradient stop when another stop changes", async (
     logo,
     active: true,
   };
-  const user = await renderEditor("division");
+  const user = userEvent.setup();
+  await renderEditor("division");
   await screen.findByDisplayValue("Division");
 
   // When
-  await edit("Départ", "");
-  await edit("Milieu", "#ABCDEF");
+  await user.clear(screen.getByLabelText("Départ"));
+  await user.clear(screen.getByLabelText("Milieu"));
+  await user.type(screen.getByLabelText("Milieu"), "#ABCDEF");
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
@@ -1473,7 +1533,8 @@ it("preserves an empty invalid gradient stop when another stop changes", async (
 
 it("deletes a removed logo copy after the picker loan was released", async () => {
   // Given
-  const user = await renderEditor();
+  const user = userEvent.setup();
+  await renderEditor();
   await screen.findByDisplayValue("Current name");
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
@@ -1491,7 +1552,7 @@ it("deletes a removed logo copy after the picker loan was released", async () =>
 
   // Then
   expect(mockFile.delete).toHaveBeenCalledTimes(1);
-  expect(mockPickedFile.delete).toHaveBeenCalled();
+  expect(mockPickedFile.delete).toHaveBeenCalledTimes(1);
   expect(
     screen.queryByRole("button", { name: "Aperçu : Logo" }),
   ).not.toBeOnTheScreen();
@@ -1499,7 +1560,8 @@ it("deletes a removed logo copy after the picker loan was released", async () =>
 
 it("keeps a sent logo until upload settlement after session invalidation", async () => {
   // Given
-  const user = await renderEditor();
+  const user = userEvent.setup();
+  await renderEditor();
   await screen.findByDisplayValue("Current name");
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
@@ -1531,12 +1593,13 @@ it("keeps a sent logo until upload settlement after session invalidation", async
 
   // Then
   await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
-  expect(mockPickedFile.delete).toHaveBeenCalled();
+  expect(mockPickedFile.delete).toHaveBeenCalledTimes(1);
 });
 
 it("deletes a prepared logo completed after its form unmounts", async () => {
   // Given
-  const user = await renderEditor();
+  const user = userEvent.setup();
+  await renderEditor();
   await screen.findByDisplayValue("Current name");
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
@@ -1556,7 +1619,7 @@ it("deletes a prepared logo completed after its form unmounts", async () => {
   }>();
   mockImage.saveAsync.mockReturnValue(output.promise);
   await user.press(screen.getByRole("button", { name: "Choisir un logo" }));
-  await waitFor(() => expect(mockImage.saveAsync).toHaveBeenCalled());
+  await waitFor(() => expect(mockImage.saveAsync).toHaveBeenCalledTimes(1));
 
   // When
   await screen.unmount();
@@ -1566,7 +1629,7 @@ it("deletes a prepared logo completed after its form unmounts", async () => {
 
   // Then
   expect(mockFile.delete).toHaveBeenCalledTimes(1);
-  expect(mockPickedFile.delete).toHaveBeenCalled();
+  expect(mockPickedFile.delete).toHaveBeenCalledTimes(1);
 });
 
 it.each(["division-creation", "division"] as const)(
@@ -1606,22 +1669,21 @@ it.each(["division-creation", "division"] as const)(
     await act(async () => router.push(path));
     if (kind === "division-creation") {
       await screen.findByLabelText("Nom de la division");
-      await edit("Nom de la division", "National 2");
-      await edit("Couleur HEX", "#123456");
+      await user.clear(screen.getByLabelText("Nom de la division"));
+      await user.type(
+        screen.getByLabelText("Nom de la division"),
+        "National 2",
+      );
+      await user.clear(screen.getByLabelText("Couleur HEX"));
+      await user.type(screen.getByLabelText("Couleur HEX"), "#123456");
       await user.press(screen.getByRole("button", { name: "Enregistrer" }));
     } else
       await user.press(
         await screen.findByRole("button", { name: "Désactiver la division" }),
       );
-    const confirm = jest
-      .mocked(Alert.alert)
-      .mock.calls.at(-1)?.[2]
-      ?.find(
-        (button) =>
-          button.text ===
-          (kind === "division-creation" ? "Créer la division" : "Désactiver"),
-      );
-    expect(confirm).toBeDefined();
+    const confirm = nativeAlertAction(
+      kind === "division-creation" ? "Créer la division" : "Désactiver",
+    );
 
     // When
     await act(async () =>
@@ -1654,7 +1716,7 @@ it.each(["division-creation", "division"] as const)(
     );
     await act(async () => router.push(path));
     await screen.findByLabelText("Nom de la division");
-    await act(async () => confirm?.onPress?.());
+    await act(async () => confirm());
 
     // Then
     expect(
@@ -1667,12 +1729,16 @@ it.each(["division-creation", "division"] as const)(
 
 it("releases only the replaced logo copy while the new draft remains usable", async () => {
   // Given
-  const user = await renderEditor();
+  const user = userEvent.setup();
+  await renderEditor();
   await screen.findByDisplayValue("Current name");
   const replacement = Object.assign(
     new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" }),
     { uri: "file:///replacement.png", exists: true, delete: jest.fn() },
   );
+  replacement.delete.mockImplementation(() => {
+    replacement.exists = false;
+  });
   jest.mocked(File).mockImplementation((...parts) => {
     if (
       parts.length === 1 &&
@@ -1683,12 +1749,22 @@ it("releases only the replaced logo copy while the new draft remains usable", as
       ? mockFile
       : replacement) as unknown as File;
   });
-  jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
-    canceled: false,
-    assets: [
-      { uri: "file:///cache/ImagePicker/source.png", width: 120, height: 60 },
-    ],
-  });
+  jest
+    .mocked(ImagePicker.launchImageLibraryAsync)
+    .mockImplementation(async () => {
+      // Each native selection delivers a fresh loan, even when the picker reuses its cache URI.
+      mockPickedFile.exists = true;
+      return {
+        canceled: false,
+        assets: [
+          {
+            uri: "file:///cache/ImagePicker/source.png",
+            width: 120,
+            height: 60,
+          },
+        ],
+      };
+    });
   await user.press(screen.getByRole("button", { name: "Choisir un logo" }));
   await screen.findByRole("button", { name: "Aperçu : Logo" });
 
@@ -1700,7 +1776,7 @@ it("releases only the replaced logo copy while the new draft remains usable", as
   // Then
   await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
   expect(replacement.delete).not.toHaveBeenCalled();
-  expect(mockPickedFile.delete).toHaveBeenCalled();
+  expect(mockPickedFile.delete).toHaveBeenCalledTimes(2);
   expect(
     screen.getByRole("button", { name: "Aperçu : Logo" }),
   ).toBeOnTheScreen();
@@ -1751,10 +1827,8 @@ it("shares one raw division list across creation and navigation and refreshes it
     return respond(url, options);
   });
   jest.spyOn(Alert, "alert");
-  const user = await renderEditor(
-    "division-creation",
-    <DivisionListObserver />,
-  );
+  const user = userEvent.setup();
+  await renderEditor("division-creation", <DivisionListObserver />);
   await screen.findByLabelText("Nom de la division");
   expect(
     mockFetch.mock.calls.filter(([url]) =>
@@ -1767,17 +1841,16 @@ it("shares one raw division list across creation and navigation and refreshes it
     .findAll({ predicate: ({ queryKey }) => queryKey.includes(listPath) });
   expect(entries).toHaveLength(1);
   expect(entries[0]?.state.data).toEqual({ items: [] });
-  await edit("Nom de la division", "National 2");
-  await edit("Couleur HEX", "#123456");
+  await user.clear(screen.getByLabelText("Nom de la division"));
+  await user.type(screen.getByLabelText("Nom de la division"), "National 2");
+  await user.clear(screen.getByLabelText("Couleur HEX"));
+  await user.type(screen.getByLabelText("Couleur HEX"), "#123456");
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  const confirm = jest
-    .mocked(Alert.alert)
-    .mock.calls.at(-1)?.[2]
-    ?.find((button) => button.text === "Créer la division");
+  const confirm = nativeAlertAction("Créer la division");
   await act(async () => {
-    confirm?.onPress?.();
+    confirm();
   });
 
   // Then
@@ -1801,10 +1874,8 @@ it("keeps the shared division read authorized when creation loses its separate l
     manageSportingPresentation: true,
   };
   stored = { items: [] };
-  const user = await renderEditor(
-    "division-creation",
-    <DivisionListObserver />,
-  );
+  const user = userEvent.setup();
+  await renderEditor("division-creation", <DivisionListObserver />);
   await screen.findByLabelText("Nom de la division");
   permissions = { manageSportingPresentation: true };
 
@@ -1849,17 +1920,18 @@ it("keeps an uncertain save blocked after explicitly discarding its draft and op
   await openRoutes();
   await user.press(await screen.findByText("Modifier la présentation"));
   await screen.findByDisplayValue("Current name");
-  await edit("Nom complet personnalisé", "Discarded pending draft");
+  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom complet personnalisé"),
+    "Discarded pending draft",
+  );
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await screen.findByRole("button", { name: "Enregistrer", busy: true });
 
   // When
   await act(async () => router.back());
-  const discard = jest
-    .mocked(Alert.alert)
-    .mock.lastCall?.[2]?.find((choice) => choice.text === "Abandonner");
-  if (!discard?.onPress) throw new Error("Missing native discard confirmation");
-  await act(async () => discard.onPress?.());
+  const discard = nativeAlertAction("Abandonner");
+  await act(async () => discard());
   await user.press(await screen.findByText("Modifier la présentation"));
   await screen.findByRole("button", { name: "Enregistrer", busy: true });
   await act(async () => response.reject(new TypeError("Lost acknowledgement")));
@@ -1898,20 +1970,17 @@ it("executes a confirmed division activity once when the native callback is deli
     options?.method === "PUT" ? response.promise : respond(url, options),
   );
   jest.spyOn(Alert, "alert");
-  const user = await renderEditor("division");
+  const user = userEvent.setup();
+  await renderEditor("division");
   await user.press(
     await screen.findByRole("button", { name: "Désactiver la division" }),
   );
-  const confirmation = jest
-    .mocked(Alert.alert)
-    .mock.lastCall?.[2]?.find((choice) => choice.text === "Désactiver");
-  if (!confirmation?.onPress)
-    throw new Error("Missing native activity confirmation");
+  const confirmation = nativeAlertAction("Désactiver");
 
   // When
   await act(async () => {
-    confirmation.onPress?.();
-    confirmation.onPress?.();
+    confirmation();
+    confirmation();
   });
 
   // Then
@@ -1922,9 +1991,13 @@ it("executes a confirmed division activity once when the native callback is deli
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
   ).toHaveLength(1);
+
+  // When
   await act(async () =>
     response.resolve(json({ ...division, revision: "d2", active: false })),
   );
+
+  // Then
   await waitFor(() =>
     expect(
       screen.getByRole("button", { name: "Réactiver la division" }),
@@ -1935,9 +2008,14 @@ it("executes a confirmed division activity once when the native callback is deli
 it("preserves a different opaque revision read during a delayed accepted presentation save", async () => {
   // Given
   const response = Promise.withResolvers<Response>();
-  const user = await renderEditor();
+  const user = userEvent.setup();
+  await renderEditor();
   await screen.findByDisplayValue("Current name");
-  await edit("Nom complet personnalisé", "Accepted draft");
+  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom complet personnalisé"),
+    "Accepted draft",
+  );
   mockFetch.mockImplementation((url, options) =>
     options?.method === "PATCH" ? response.promise : respond(url, options),
   );
@@ -1988,24 +2066,18 @@ it("preserves a different opaque revision read during a delayed accepted present
       screen.getByRole("button", { name: "Relire la présentation" }),
     ).toBeEnabled(),
   );
+
+  // When
   await user.press(
     screen.getByRole("button", { name: "Relire la présentation" }),
   );
+
+  // Then
   expect(await screen.findByDisplayValue("Concurrent")).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
   ).toHaveLength(1);
 });
-
-/** Uses the real F05 generation so a previous session cannot retain action feedback in this fixture. */
-function ActionFeedbackScope({ children }: PropsWithChildren) {
-  const { generation } = useAccountSession();
-  return (
-    <ActionFeedbackProvider scopeKey={generation}>
-      {children}
-    </ActionFeedbackProvider>
-  );
-}
 
 it("retains a replacement division draft when the abandoned creation succeeds later", async () => {
   // Given
@@ -2031,21 +2103,20 @@ it("retains a replacement division draft when the abandoned creation succeeds la
   await screen.findByRole("button", { name: "Relire les permissions" });
   await act(async () => router.push("/administration/divisions/new"));
   await screen.findByLabelText("Nom de la division");
-  await edit("Nom de la division", "Original division");
-  await edit("Couleur HEX", "#123456");
+  await user.clear(screen.getByLabelText("Nom de la division"));
+  await user.type(
+    screen.getByLabelText("Nom de la division"),
+    "Original division",
+  );
+  await user.clear(screen.getByLabelText("Couleur HEX"));
+  await user.type(screen.getByLabelText("Couleur HEX"), "#123456");
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  const confirm = jest
-    .mocked(Alert.alert)
-    .mock.lastCall?.[2]?.find((choice) => choice.text === "Créer la division");
-  if (!confirm?.onPress) throw new Error("Missing creation confirmation");
-  await act(async () => confirm.onPress?.());
+  const confirm = nativeAlertAction("Créer la division");
+  await act(async () => confirm());
   await screen.findByRole("button", { name: "Enregistrer", busy: true });
   await act(async () => router.back());
-  const discard = jest
-    .mocked(Alert.alert)
-    .mock.lastCall?.[2]?.find((choice) => choice.text === "Abandonner");
-  if (!discard?.onPress) throw new Error("Missing discard confirmation");
-  await act(async () => discard.onPress?.());
+  const discard = nativeAlertAction("Abandonner");
+  await act(async () => discard());
   mockFetch.mockImplementation((url, options) =>
     String(url).endsWith("/accounts/me")
       ? permissionRead.promise
@@ -2065,8 +2136,13 @@ it("retains a replacement division draft when the abandoned creation succeeds la
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
   );
-  await edit("Nom de la division", "Replacement division");
-  await edit("Couleur HEX", "#654321");
+  await user.clear(screen.getByLabelText("Nom de la division"));
+  await user.type(
+    screen.getByLabelText("Nom de la division"),
+    "Replacement division",
+  );
+  await user.clear(screen.getByLabelText("Couleur HEX"));
+  await user.type(screen.getByLabelText("Couleur HEX"), "#654321");
   await act(async () =>
     permissionRead.resolve(
       json(

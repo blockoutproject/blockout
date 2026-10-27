@@ -2,7 +2,7 @@ import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import * as Application from "expo-application";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { focusManager } from "@tanstack/react-query";
-import { act, screen, userEvent } from "@testing-library/react-native";
+import { act, cleanup, screen, userEvent } from "@testing-library/react-native";
 import { Stack } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType } from "react";
@@ -78,7 +78,9 @@ beforeEach(async () => {
     .mockReset()
     .mockImplementation(async () => Response.json(applicationAccessResponse()));
 });
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
+  focusManager.setFocused(undefined);
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
@@ -341,5 +343,12 @@ it("keeps the public store action and its error available while installation ini
   expect(
     screen.getByRole("button", { name: "Mettre à jour l’application" }),
   ).toBeEnabled();
+
+  // When
   await act(() => initialization.resolve());
+
+  // Then
+  expect(
+    screen.getByRole("button", { name: "Mettre à jour l’application" }),
+  ).toBeEnabled();
 });

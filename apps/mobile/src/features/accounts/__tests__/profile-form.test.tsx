@@ -1,3 +1,5 @@
+import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
+import { accountResponse } from "../test-support/account-response";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
@@ -5,6 +7,7 @@ import { ApplicationAccessProvider } from "../../access/queries/use-application-
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
+  cleanup,
   fireEvent,
   render,
   screen,
@@ -87,26 +90,15 @@ const mockFetch = jest.fn<
   [RequestInfo | URL, RequestInit?]
 >();
 let client = createQueryClient();
-const account = {
+const account = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000173",
   username: "Original",
   email: "one@example.invalid",
-  principalCreatedAt: null,
-  hasPhoto: false,
-  permissions: {
-    manageMaintenance: false,
-    manageApplicationVersions: false,
-    bypassMaintenance: false,
-    manageSportingPresentation: false,
-    manageSportingClassification: false,
-    manageDivisionLifecycle: false,
-    manageCollection: false,
-    moderateStreamLinks: false,
-  },
-};
+});
 const previousEnvironment = { ...process.env };
 
 beforeEach(() => {
+  mockFile.exists = true;
   mockFile.delete.mockReset();
   mockPickedFile.delete.mockReset();
   jest
@@ -142,7 +134,8 @@ beforeEach(() => {
     .mockResolvedValue({ uri: "file:///prepared.png", width: 64, height: 64 });
   mockFetch.mockReset().mockImplementation(async () => json(account));
 });
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   client.clear();
   process.env = { ...previousEnvironment };
   jest.restoreAllMocks();
@@ -164,13 +157,6 @@ async function mountProfile() {
       </ThemeProvider>
     </QueryClientProvider>,
   );
-}
-
-/** Waits for the ordinary editable profile; refused initial reads use the same mount without inventing a profile. */
-async function renderProfile() {
-  await mountProfile();
-  await screen.findByDisplayValue("Original");
-  return userEvent.setup();
 }
 
 /** Exercises actual lifecycle commands around delayed preparation/saves without a production bypass. */
@@ -218,7 +204,9 @@ function json(value: unknown, status = 200) {
 it("keeps the profile draft and session until departure is explicitly confirmed", async () => {
   // Given
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
-  const user = await renderProfile();
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
   await user.clear(screen.getByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
 
@@ -237,7 +225,7 @@ it("keeps the profile draft and session until departure is explicitly confirmed"
   ]);
 
   // When
-  await act(() => choices?.[0].onPress?.());
+  await act(() => nativeAlertAction("Continuer la saisie")());
 
   // Then
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
@@ -247,7 +235,7 @@ it("keeps the profile draft and session until departure is explicitly confirmed"
   await user.press(
     screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
   );
-  await act(() => jest.mocked(Alert.alert).mock.lastCall?.[2]?.[1].onPress?.());
+  await act(() => nativeAlertAction("Abandonner")());
 
   // Then
   await waitFor(() =>
@@ -258,7 +246,9 @@ it("keeps the profile draft and session until departure is explicitly confirmed"
 
 it("refreshes the profile without changing a dirty draft or replaying a save", async () => {
   // Given
-  const user = await renderProfile();
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
   await user.clear(screen.getByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
   mockFetch.mockClear().mockImplementation(async () =>
@@ -283,7 +273,8 @@ it("refreshes the profile without changing a dirty draft or replaying a save", a
 
 it("shows freshly read profile values when there is no local edit", async () => {
   // Given
-  await renderProfile();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
   mockFetch
     .mockClear()
     .mockImplementation(async () =>
@@ -301,7 +292,9 @@ it("shows freshly read profile values when there is no local edit", async () => 
 
 it("defers clean profile updates until native photo selection has settled", async () => {
   // Given
-  const user = await renderProfile();
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
   const selection = Promise.withResolvers<ImagePicker.ImagePickerResult>();
   jest
     .mocked(ImagePicker.launchImageLibraryAsync)
@@ -318,10 +311,12 @@ it("defers clean profile updates until native photo selection has settled", asyn
     .find(({ queryKey }) => queryKey.includes("/accounts/me"))?.queryKey;
   if (!key) throw new Error("The real current-account query is missing");
 
-  // When
-  await act(() =>
-    client.setQueryData(key, { ...account, username: "Remote_name" }),
+  mockFetch.mockResolvedValueOnce(
+    json({ ...account, username: "Remote_name" }),
   );
+
+  // When
+  await act(() => client.refetchQueries({ queryKey: key, exact: true }));
 
   // Then: the native interaction retains the original editable snapshot.
   expect(screen.getByDisplayValue("Original")).toBeOnTheScreen();
@@ -336,7 +331,9 @@ it("defers clean profile updates until native photo selection has settled", asyn
 
 it("reports an explicit failed refresh while keeping the profile and dirty input", async () => {
   // Given
-  const user = await renderProfile();
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
   await user.clear(screen.getByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
   mockFetch.mockClear().mockRejectedValue(new Error("Network unavailable"));
@@ -382,7 +379,9 @@ it.each([401, 403])(
 
 it("keeps a refused profile draft read-only through a failed recheck until a successful account read", async () => {
   // Given
-  const user = await renderProfile();
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
   await user.clear(screen.getByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
   mockFetch
@@ -407,10 +406,7 @@ it("keeps a refused profile draft read-only through a failed recheck until a suc
   mockFetch.mockResolvedValue(json({ title: "Unavailable", status: 503 }, 503));
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await waitFor(() =>
-    expect(screen.getByLabelText("Actualiser les données")).toHaveProp(
-      "accessibilityState",
-      expect.objectContaining({ busy: false }),
-    ),
+    expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
   );
 
   // Then
@@ -440,7 +436,9 @@ it("refuses an unsent profile save when its account read is denied during creden
   // Given
   const credentials =
     Promise.withResolvers<ReturnType<typeof credentialsFor>>();
-  const user = await renderProfile();
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
   await user.clear(screen.getByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
   mockAuth0.getCredentials.mockReturnValueOnce(credentials.promise);
@@ -502,16 +500,14 @@ it("keeps the first photo read separate from native refresh progress", async () 
   );
 
   // When
-  await renderProfile();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
 
   // Then
   expect(
     screen.getByRole("progressbar", { name: "Chargement en cours" }),
   ).toBeOnTheScreen();
-  expect(screen.getByLabelText("Actualiser les données")).toHaveProp(
-    "accessibilityState",
-    expect.objectContaining({ busy: false }),
-  );
+  expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
 
   // When
   await act(() => photoRead.resolve(new Response(null, { status: 503 })));
@@ -524,7 +520,9 @@ it("keeps the first photo read separate from native refresh progress", async () 
 it("preserves the active save and suspends refresh and guest departure", async () => {
   // Given
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
-  const user = await renderProfile();
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
   await user.clear(screen.getByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "Chosen");
   mockFetch.mockImplementation(async () =>
@@ -535,7 +533,7 @@ it("preserves the active save and suspends refresh and guest departure", async (
   await user.press(
     screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
   );
-  await act(() => jest.mocked(Alert.alert).mock.lastCall?.[2]?.[0].onPress?.());
+  await act(() => nativeAlertAction("Continuer la saisie")());
   const save = Promise.withResolvers<Response>();
   mockFetch.mockClear().mockReturnValue(save.promise);
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
@@ -580,7 +578,9 @@ it("preserves the active save and suspends refresh and guest departure", async (
 it("uses the accepted profile result and clears the draft before guest departure", async () => {
   // Given
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
-  const user = await renderProfile();
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
   await user.clear(screen.getByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "Entered");
   mockFetch.mockResolvedValue(json({ ...account, username: "Accepted" }));
@@ -634,7 +634,9 @@ it.each(["keep", "replace"] as const)(
       value: PhotoReader,
     });
     try {
-      const user = await renderProfile();
+      const user = userEvent.setup();
+      await mountProfile();
+      await screen.findByDisplayValue("Original");
       await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
       if (intent === "replace") {
         jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
@@ -666,10 +668,7 @@ it.each(["keep", "replace"] as const)(
         "refresh",
       );
       await waitFor(() =>
-        expect(screen.getByLabelText("Actualiser les données")).toHaveProp(
-          "accessibilityState",
-          expect.objectContaining({ busy: false }),
-        ),
+        expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
       );
       await user.press(
         screen.getByRole("button", { name: "Aperçu : Photo de profil" }),
@@ -693,6 +692,7 @@ it.each(["keep", "replace"] as const)(
       ).toBe(true);
       expect(mockFile.delete).not.toHaveBeenCalled();
     } finally {
+      await cleanup();
       if (previousReader)
         Object.defineProperty(globalThis, "FileReader", previousReader);
       else delete (globalThis as { FileReader?: unknown }).FileReader;
@@ -728,7 +728,8 @@ it("removes a refused remote photo until a successful photo read without treatin
       : json({ title: "Unavailable", status: photoStatus }, photoStatus);
   });
   try {
-    await renderProfile();
+    await mountProfile();
+    await screen.findByDisplayValue("Original");
     await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
 
     // When
@@ -768,6 +769,7 @@ it("removes a refused remote photo until a successful photo read without treatin
     ).toBeOnTheScreen();
     expect(screen.queryByText("Une erreur est survenue")).toBeNull();
   } finally {
+    await cleanup();
     if (previousReader)
       Object.defineProperty(globalThis, "FileReader", previousReader);
     else delete (globalThis as { FileReader?: unknown }).FileReader;
@@ -776,7 +778,9 @@ it("removes a refused remote photo until a successful photo read without treatin
 
 it("sends one atomic multipart save with JSON metadata and no omitted photo", async () => {
   // Given
-  const user = await renderProfile();
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
   mockFetch.mockImplementation(async (_url, request) =>
     json(
       request?.method === "PATCH"
@@ -812,7 +816,9 @@ it("sends one atomic multipart save with JSON metadata and no omitted photo", as
 
 it("retains a dirty draft on background refetch and whole-save username refusal", async () => {
   // Given
-  const user = await renderProfile();
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
   await user.clear(screen.getByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "My_draft");
   const key = client
@@ -820,9 +826,10 @@ it("retains a dirty draft on background refetch and whole-save username refusal"
     .findAll()
     .find(({ queryKey }) => queryKey.includes("/accounts/me"))?.queryKey;
   if (!key) throw new Error("The real current-account query is missing");
-  await act(() =>
-    client.setQueryData(key, { ...account, username: "Other_device" }),
+  mockFetch.mockResolvedValueOnce(
+    json({ ...account, username: "Other_device" }),
   );
+  await act(() => client.refetchQueries({ queryKey: key, exact: true }));
   mockFetch.mockImplementation(async () =>
     json(
       {
@@ -843,9 +850,8 @@ it("retains a dirty draft on background refetch and whole-save username refusal"
   expect(client.getQueryData(key)).toMatchObject({ username: "Other_device" });
 
   // When
-  await act(() =>
-    client.setQueryData(key, { ...account, username: "Newer_name" }),
-  );
+  mockFetch.mockResolvedValueOnce(json({ ...account, username: "Newer_name" }));
+  await act(() => client.refetchQueries({ queryKey: key, exact: true }));
 
   // Then: a new accepted read does not erase the field refusal or dirty input.
   expect(screen.getByText("Ce pseudo est déjà utilisé.")).toBeOnTheScreen();
@@ -854,7 +860,9 @@ it("retains a dirty draft on background refetch and whole-save username refusal"
 
 it("preserves the draft when native crop is cancelled or permission is refused", async () => {
   // Given
-  const user = await renderProfile();
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
   await user.clear(screen.getByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "My_draft");
 
@@ -882,7 +890,9 @@ it("preserves the draft when native crop is cancelled or permission is refused",
 
 it("rereads only the original account after an uncertain save and requires explicit resubmission", async () => {
   // Given
-  const user = await renderProfile();
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
   await user.clear(screen.getByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "My_draft");
   mockFetch.mockImplementation(async (url, request) => {
@@ -909,7 +919,9 @@ it("rereads only the original account after an uncertain save and requires expli
 
 it("does not replay while the original account reread is unavailable", async () => {
   // Given
-  const user = await renderProfile();
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
   mockFetch.mockRejectedValue(new TypeError("Offline"));
 
   // When
@@ -918,7 +930,11 @@ it("does not replay while the original account reread is unavailable", async () 
   // Then
   await screen.findByRole("button", { name: "Vérifier mon profil" });
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+
+  // When
   await user.press(screen.getByRole("button", { name: "Vérifier mon profil" }));
+
+  // Then
   await waitFor(() =>
     expect(
       mockFetch.mock.calls.filter(([, request]) => request?.method === "PATCH"),
@@ -928,7 +944,9 @@ it("does not replay while the original account reread is unavailable", async () 
 
 it("submits prepared replacement then explicit removal without a username edit", async () => {
   // Given
-  const user = await renderProfile();
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
     assets: [
@@ -989,7 +1007,9 @@ it.each([
   "sends only the current dirty username with photo replacement: $username",
   async ({ username, metadata }) => {
     // Given
-    const user = await renderProfile();
+    const user = userEvent.setup();
+    await mountProfile();
+    await screen.findByDisplayValue("Original");
     await user.clear(screen.getByLabelText("Pseudo"));
     await user.type(screen.getByLabelText("Pseudo"), "Temporary");
     await user.clear(screen.getByLabelText("Pseudo"));
@@ -1026,7 +1046,9 @@ it.each([
 
 it("retains the previous prepared choice and username when another preparation fails", async () => {
   // Given
-  const user = await renderProfile();
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
     assets: [
@@ -1057,7 +1079,9 @@ it.each(["preparation", "save"])(
   "rejects delayed %s results after returning to the same account",
   async (operation) => {
     // Given
-    const user = await renderProfile();
+    const user = userEvent.setup();
+    await mountProfile();
+    await screen.findByDisplayValue("Original");
     let finish: () => void = () => {
       throw new Error("Deferred native/HTTP boundary not reached");
     };
@@ -1148,7 +1172,9 @@ it("cancels an initial photo read before refreshing the accepted replacement", a
     value: PhotoReader,
   });
   try {
-    const user = await renderProfile();
+    const user = userEvent.setup();
+    await mountProfile();
+    await screen.findByDisplayValue("Original");
     await waitFor(() => expect(reads).toHaveLength(1));
     jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
       canceled: false,
@@ -1172,6 +1198,8 @@ it("cancels an initial photo read before refreshing the accepted replacement", a
     // Then
     await waitFor(() => expect(reads).toHaveLength(2));
     expect(reads[0].signal?.aborted).toBe(true);
+
+    // When
     await act(async () =>
       reads[1].resolve(
         new Response(png, { headers: { "Content-Type": "image/png" } }),
@@ -1183,6 +1211,8 @@ it("cancels an initial photo read before refreshing the accepted replacement", a
         new Response(png, { headers: { "Content-Type": "image/png" } }),
       ),
     );
+
+    // Then
     expect(
       screen.getByRole("button", { name: "Aperçu : Photo de profil" }),
     ).toBeOnTheScreen();
@@ -1196,6 +1226,7 @@ it("cancels an initial photo read before refreshing the accepted replacement", a
         ),
       ),
     );
+    await cleanup();
     if (previousReader)
       Object.defineProperty(globalThis, "FileReader", previousReader);
     else Reflect.deleteProperty(globalThis, "FileReader");
@@ -1206,7 +1237,13 @@ it.each(["unmount", "session"])(
   "deletes a prepared profile draft on %s",
   async (exit) => {
     // Given
-    const user = await renderProfile();
+    // Native File.exists changes after deletion; repeated cleanup must not delete an absent file.
+    mockFile.delete.mockImplementation(() => {
+      mockFile.exists = false;
+    });
+    const user = userEvent.setup();
+    await mountProfile();
+    await screen.findByDisplayValue("Original");
     jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
       canceled: false,
       assets: [
@@ -1226,13 +1263,15 @@ it.each(["unmount", "session"])(
       );
 
     // Then
-    expect(mockFile.delete).toHaveBeenCalled();
+    expect(mockFile.delete.mock.calls).toEqual([[]]);
   },
 );
 
 it("deletes the replaced profile copy while preserving the new draft", async () => {
   // Given
-  const user = await renderProfile();
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
   const replacement = Object.assign(new Blob([png], { type: "image/png" }), {
     uri: "file:///replacement.png",
     exists: true,
@@ -1277,7 +1316,9 @@ it("deletes the replaced profile copy while preserving the new draft", async () 
 
 it("keeps a sent profile file until its upload settles after sign-out", async () => {
   // Given
-  const user = await renderProfile();
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
     assets: [

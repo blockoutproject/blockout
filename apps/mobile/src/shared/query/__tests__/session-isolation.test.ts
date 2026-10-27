@@ -26,6 +26,7 @@ const account: AccountResponse = {
   permissions: {},
 };
 let client: ReturnType<typeof createQueryClient>;
+let unsubscribe: (() => void) | undefined;
 const mockFetch = jest.fn<
   Promise<Response>,
   [RequestInfo | URL, RequestInit?]
@@ -43,6 +44,8 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  unsubscribe?.();
+  unsubscribe = undefined;
   client.clear();
   await jest.runOnlyPendingTimersAsync();
   jest.useRealTimers();
@@ -58,7 +61,7 @@ it.each(["B", "A"] as const)(
     const session = createSessionGeneration();
     session.setAccount(session.getSnapshot().generation, "A");
     const captured = { ...session.getSnapshot(), isCurrent: session.isCurrent };
-    const unsubscribe = bindSessionQueries(
+    unsubscribe = bindSessionQueries(
       client,
       session.subscribe,
       session.isCurrent,
@@ -101,7 +104,6 @@ it.each(["B", "A"] as const)(
     expect(client.getQueryData(currentKey)).toEqual(currentData);
     expect(client.getQueryData(publicKey)).toEqual(applicationAccessResponse());
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    unsubscribe();
   },
 );
 
@@ -196,7 +198,7 @@ it.each(["B", "A"] as const)(
     const session = createSessionGeneration();
     session.setAccount(session.getSnapshot().generation, "A");
     const generation = session.getSnapshot().generation;
-    const unsubscribe = bindSessionQueries(
+    unsubscribe = bindSessionQueries(
       client,
       session.subscribe,
       session.isCurrent,
@@ -245,6 +247,5 @@ it.each(["B", "A"] as const)(
       cache.find({ mutationKey: ["public-operation"], exact: true })?.state
         .data,
     ).toBe("public");
-    unsubscribe();
   },
 );

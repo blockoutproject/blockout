@@ -1,7 +1,13 @@
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import type { PropsWithChildren } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, waitFor } from "@testing-library/react-native";
+import {
+  cleanup,
+  act,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 import { AppState } from "react-native";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
@@ -56,7 +62,8 @@ beforeEach(() => {
   mockAuth0.hasValidCredentials.mockResolvedValue(false);
   mockFetch.mockReset();
 });
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   client.clear();
   jest.restoreAllMocks();
   jest.useRealTimers();

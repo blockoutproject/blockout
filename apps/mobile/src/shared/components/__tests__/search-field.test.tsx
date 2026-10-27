@@ -1,14 +1,17 @@
 import { render, screen, userEvent } from "@testing-library/react-native";
 import { useState } from "react";
 import { ThemeProvider } from "../../theme/theme-provider";
-import { SearchField } from "../search-field";
+import { SearchField, type SearchFieldProps } from "../search-field";
 
 /** The feature retains the search draft and clears it only after the shared action. */
-function SearchExample() {
+function SearchExample(
+  availability: Pick<SearchFieldProps, "editable" | "readOnly">,
+) {
   const [value, setValue] = useState("Volley");
   return (
     <SearchField
       label="Rechercher une division"
+      {...availability}
       value={value}
       onChangeText={setValue}
       onClear={() => setValue("")}
@@ -77,28 +80,28 @@ it.each([{ editable: false }, { editable: true, readOnly: true }])(
 it("uses native readOnly precedence for input and clear availability", async () => {
   // Given
   const user = userEvent.setup();
-  const onChangeText = jest.fn();
-  const onClear = jest.fn();
   await render(
     <ThemeProvider>
-      <SearchField
-        label="Rechercher une division"
-        value="Volley"
-        editable={false}
-        readOnly={false}
-        onChangeText={onChangeText}
-        onClear={onClear}
-      />
+      <SearchExample editable={false} readOnly={false} />
     </ThemeProvider>,
   );
 
   // When
-  await user.type(screen.getByLabelText("Rechercher une division"), "V");
+  await user.type(screen.getByLabelText("Rechercher une division"), " Club");
+
+  // Then
+  expect(screen.getByDisplayValue("Volley Club")).toBeEnabled();
+
+  // When
   await user.press(
     screen.getByRole("button", { name: "Effacer la recherche" }),
   );
 
   // Then
-  expect(onChangeText).toHaveBeenCalled();
-  expect(onClear).toHaveBeenCalledTimes(1);
+  expect(screen.getByLabelText("Rechercher une division")).toHaveDisplayValue(
+    "",
+  );
+  expect(
+    screen.queryByRole("button", { name: "Effacer la recherche" }),
+  ).not.toBeOnTheScreen();
 });

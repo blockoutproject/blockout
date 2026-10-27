@@ -1,9 +1,4 @@
-import {
-  fireEvent,
-  render,
-  screen,
-  userEvent,
-} from "@testing-library/react-native";
+import { render, screen, userEvent } from "@testing-library/react-native";
 import { useState } from "react";
 import { ThemeProvider } from "../../theme/theme-provider";
 import { TextField } from "../text-field";
@@ -66,6 +61,7 @@ it("forwards native focus and blur to the owning form", async () => {
   // Given
   const onFocus = jest.fn();
   const onBlur = jest.fn();
+  const user = userEvent.setup();
   await render(
     <ThemeProvider>
       <TextField label="Nom du club" onFocus={onFocus} onBlur={onBlur} />
@@ -73,12 +69,7 @@ it("forwards native focus and blur to the owning form", async () => {
   );
 
   // When
-  await fireEvent(screen.getByLabelText("Nom du club"), "focus", {
-    nativeEvent: {},
-  });
-  await fireEvent(screen.getByLabelText("Nom du club"), "blur", {
-    nativeEvent: {},
-  });
+  await user.type(screen.getByLabelText("Nom du club"), "Volley");
 
   // Then
   expect(onFocus).toHaveBeenCalledTimes(1);

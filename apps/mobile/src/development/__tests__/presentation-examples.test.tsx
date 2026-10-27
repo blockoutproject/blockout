@@ -1,4 +1,11 @@
-import { act, render, screen, userEvent } from "@testing-library/react-native";
+import { nativeAlertAction } from "../../shared/native/test-support/native-alert";
+import {
+  cleanup,
+  act,
+  render,
+  screen,
+  userEvent,
+} from "@testing-library/react-native";
 import { Alert, Appearance, Text } from "react-native";
 import { ThemeProvider, useTheme } from "../../shared/theme/theme-provider";
 import { ExampleForm } from "../forms/example-form";
@@ -10,7 +17,8 @@ jest.mock("react-native-keyboard-controller", () =>
 
 jest.unmock("react-native/Libraries/Utilities/useColorScheme");
 
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   jest.restoreAllMocks();
 });
 
@@ -63,9 +71,12 @@ it("waits for explicit native confirmation before passing the current values to 
   expect(buttons?.find((button) => button.text === "Annuler")?.style).toBe(
     "cancel",
   );
-  await act(() =>
-    buttons?.find((button) => button.text === "Confirmer")?.onPress?.(),
-  );
+
+  // When
+  const accept = nativeAlertAction("Confirmer");
+  await act(() => accept());
+
+  // Then
   expect(confirm).toHaveBeenCalledTimes(1);
   expect(confirm).toHaveBeenCalledWith({ name: "Volley", last: "Paris" });
   expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
@@ -100,7 +111,7 @@ it("updates the mounted form's appearance without losing its draft", async () =>
 it("declines a retained confirmation after the form is removed", async () => {
   // Given
   const confirm = jest.fn();
-  const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
   const user = userEvent.setup();
   const view = await render(<ExampleForm onConfirm={confirm} />, {
     wrapper: ThemeProvider,
@@ -108,13 +119,11 @@ it("declines a retained confirmation after the form is removed", async () => {
   await user.type(screen.getByLabelText("Nom du club"), "Volley");
   await user.type(screen.getByLabelText("Dernier champ"), "Paris");
   await user.press(screen.getByRole("button", { name: "Confirmer" }));
-  const accept = alert.mock.calls[0][2]?.find(
-    (button) => button.text === "Confirmer",
-  )?.onPress;
+  const accept = nativeAlertAction("Confirmer");
 
   // When
   await view.unmount();
-  await act(() => accept?.());
+  await act(() => accept());
 
   // Then
   expect(confirm).not.toHaveBeenCalled();
