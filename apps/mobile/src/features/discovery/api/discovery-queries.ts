@@ -1,7 +1,14 @@
-import { infiniteQueryOptions } from "@tanstack/react-query";
-import { listClubs, listTeams, listPools } from "../../../../.generated/mobile";
+import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
+import {
+  listClubs,
+  listTeams,
+  listPools,
+  getSportingSearchOptions,
+  getGetSportingSearchOptionsQueryKey,
+} from "../../../../.generated/mobile";
 import type {
   ListTeamsParams,
+  SearchResourceTypeEnum,
   ClubSearchResponse,
   TeamSearchResponse,
   PoolSearchResponse,
@@ -90,5 +97,40 @@ export function createDiscoveryQueryOptions(
       }
     },
     getNextPageParam: (page) => page.nextCursor,
+  });
+}
+
+/** Current choices have their own generated key and captured admission, independently of search text. */
+export function createSearchOptionsQueryOptions(
+  resourceType: SearchResourceTypeEnum,
+  session: DiscoverySession,
+  admission: DiscoveryAdmission,
+  getCredentials: () => Promise<{ accessToken: string } | undefined>,
+) {
+  const intent = admission.bypass;
+  const generatedKey = getGetSportingSearchOptionsQueryKey({ resourceType });
+  return queryOptions({
+    queryKey: intent
+      ? getSessionQueryKey(session.generation, [
+          "discovery-options-bypass",
+          intent.accountId,
+          intent.intentId,
+          ...generatedKey,
+        ])
+      : ["discovery-options", session.generation, ...generatedKey],
+    // Entering a new visit reads current choices before selecting its default; sheets retain this observer.
+    refetchOnMount: "always",
+    queryFn: async ({ signal }) => {
+      let headers: Record<string, string> | undefined;
+      if (intent) {
+        const credentials = await getCredentials();
+        if (!credentials?.accessToken) throw new ApiError("http", 401);
+        headers = { Authorization: `Bearer ${credentials.accessToken}` };
+      }
+      return getSportingSearchOptions(
+        { resourceType },
+        admission.request({ session, signal, headers }),
+      );
+    },
   });
 }

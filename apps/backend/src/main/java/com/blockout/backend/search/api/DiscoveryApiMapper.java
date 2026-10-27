@@ -5,8 +5,10 @@ import com.blockout.backend.generated.mobile.model.ClubSearchResponse;
 import com.blockout.backend.generated.mobile.model.ClubSummaryResponse;
 import com.blockout.backend.generated.mobile.model.PoolSearchResponse;
 import com.blockout.backend.generated.mobile.model.PoolSummaryResponse;
+import com.blockout.backend.generated.mobile.model.SportingSearchOptionsResponse;
 import com.blockout.backend.generated.mobile.model.TeamSearchResponse;
 import com.blockout.backend.generated.mobile.model.TeamSummaryResponse;
+import com.blockout.backend.search.application.SearchOptions;
 import com.blockout.backend.search.application.SearchPage;
 import com.blockout.backend.sporting.api.ConsultationApiMapper;
 import com.blockout.backend.sporting.application.ConsultationViews;
@@ -17,6 +19,15 @@ import org.mapstruct.Mapping;
 /** Canonical public club mapping; F03 retains complete team/pool and identity mapping. */
 @Mapper(config = MappingConfiguration.class, uses = ConsultationApiMapper.class)
 public interface DiscoveryApiMapper {
+  /**
+   * Maps current option identities and presentation through their sporting owner.
+   *
+   * @param source current detached choices
+   * @return generated public options, or null for a null source
+   */
+  @Mapping(target = "additionalProperties", ignore = true)
+  SportingSearchOptionsResponse toDto(SearchOptions source);
+
   /**
    * Projects a current club page while preserving its opaque continuation.
    *

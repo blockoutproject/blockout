@@ -1,3 +1,4 @@
+import { SearchVisitProvider } from "../forms/search-visit";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import {
   QueryClientProvider,
@@ -55,6 +56,16 @@ function publicReads(url: string): Promise<Response> {
   const path = new URL(url).pathname;
   if (path.endsWith("/application-access"))
     return Promise.resolve(Response.json(applicationAccessResponse()));
+  if (path.endsWith("/sporting-search-options"))
+    return Promise.resolve(
+      Response.json({
+        resourceType: new URL(url).searchParams.get("resourceType"),
+        seasons: [season],
+        divisions: [],
+        formats: ["6x6", "4x4", "2x2"],
+        genders: ["female", "male", "mixed"],
+      }),
+    );
   if (path.endsWith("/clubs"))
     return Promise.resolve(
       Response.json({
@@ -123,7 +134,9 @@ async function renderSearch(proAccent = false) {
         <ThemeProvider proAccent={proAccent}>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+              <AccountFeedbackProvider>
+                <SearchVisitProvider>{children}</SearchVisitProvider>
+              </AccountFeedbackProvider>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>

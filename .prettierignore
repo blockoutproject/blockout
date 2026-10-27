@@ -19,6 +19,7 @@ apps/mobile/assets/fonts/
 apps/mobile/assets/collection/
 apps/mobile/assets/onboarding/community-backdrop-*.svg
 apps/mobile/assets/sporting/
+apps/mobile/assets/discovery/
 mvnw
 mvnw.cmd
 *.java

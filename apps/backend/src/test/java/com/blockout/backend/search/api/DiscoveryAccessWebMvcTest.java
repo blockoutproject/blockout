@@ -20,6 +20,7 @@ import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.search.application.ReadSearch;
+import com.blockout.backend.search.application.ReadSearchOptions;
 import com.blockout.backend.search.application.SearchPage;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import com.blockout.backend.sporting.api.ConsultationApiMapperImpl;
@@ -75,6 +76,7 @@ class DiscoveryAccessWebMvcTest {
   @MockitoBean private AccessSettingsStore settings;
   @MockitoBean private PlatformTransactionManager transactions;
   @MockitoBean private ReadSearch reads;
+  @MockitoBean private ReadSearchOptions options;
 
   /** Runs the real admission callback without claiming database transaction semantics. */
   @BeforeEach
