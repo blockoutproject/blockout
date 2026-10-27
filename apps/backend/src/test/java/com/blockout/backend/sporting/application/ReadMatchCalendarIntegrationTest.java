@@ -12,12 +12,14 @@ import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
 import com.blockout.backend.sporting.application.ConsultationRequest.CalendarRequest;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.CalendarObservation;
+import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.service.AcceptCalendar;
+import com.blockout.backend.sporting.application.service.AcceptCatalog;
 import com.blockout.backend.sporting.application.service.AcceptMatchObservation;
 import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
 import com.blockout.backend.sporting.support.MatchCalendarFixture;
@@ -62,6 +64,7 @@ class ReadMatchCalendarIntegrationTest {
   @Autowired private SportingIdentityFixture identities;
   @Autowired private PlatformTransactionManager transactions;
   @Autowired private AcceptCalendar acceptance;
+  @Autowired private AcceptCatalog catalogs;
   @Autowired private AcceptMatchObservation observations;
   @MockitoSpyBean private ConsultationStore store;
   private Scope scope;
@@ -351,6 +354,28 @@ class ReadMatchCalendarIntegrationTest {
             accepted.days().getFirst().pools().getFirst().matches().getFirst().result().homeSets())
         .isEqualTo(3);
     assertThat(withdrawn.days()).isEmpty();
+  }
+
+  @Test
+  @DisplayName(
+      "Qualified source catalog absence hides retained calendar facts through the real F02 owner")
+  void appliesQualifiedSourceAbsence() {
+    // Given
+    fixtures.match(scope.pool(), "RETAINED", FIRST, null);
+    assertThat(calendars.read(request(null)).days()).hasSize(1);
+
+    // When
+    catalogs.accept(
+        com.blockout.backend.sporting.support.SportingIngestionFixture.SOURCE,
+        new CatalogObservation(
+            new MatchObservation.Context(
+                scope.cycle().id(), 2, Instant.parse("2026-10-19T12:00:00Z"), null),
+            true,
+            List.of()));
+
+    // Then
+    assertThatThrownBy(() -> calendars.read(request(null)))
+        .isInstanceOf(SportingResourceNotFoundException.class);
   }
 
   /** Supplies one exact completed traversal with a scenario-selected exclusive boundary. */

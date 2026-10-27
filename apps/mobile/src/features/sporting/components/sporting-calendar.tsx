@@ -138,6 +138,7 @@ export function SportingCalendar({
   return (
     <FlatList
       ref={list}
+      style={styles.list}
       alwaysBounceVertical
       contentContainerStyle={pageContentStyle}
       data={groups}
@@ -381,6 +382,8 @@ export function SportingCalendars({
 }
 
 const styles = StyleSheet.create({
+  // A vertical list inside native horizontal paging must retain the page's constrained width.
+  list: { width: "100%" },
   visible: { flex: 1 },
   pagerPage: { height: "100%", flexShrink: 0 },
   hidden: { display: "none" },
