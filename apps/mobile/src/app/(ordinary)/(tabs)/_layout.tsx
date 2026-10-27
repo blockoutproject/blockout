@@ -128,8 +128,9 @@ function TabButton({
           : label
       }
       style={(state) => [
-        styles.button,
         typeof style === "function" ? style(state) : style,
+        // Router sizing survives; this composition owns vertical icon/label alignment.
+        styles.button,
         {
           backgroundColor: isFocused ? membership.fill : "transparent",
           opacity: state.pressed ? tokens.opacity.pressed : 1,
@@ -178,6 +179,7 @@ const styles = StyleSheet.create({
     borderWidth: tokens.border.thin,
   },
   button: {
+    flexDirection: "column",
     minHeight: 56,
     alignItems: "center",
     justifyContent: "center",
