@@ -193,6 +193,7 @@ public class LnvObservationReader implements LnvAcquisition {
    *
    * @param response bounded provider response
    * @param target admitted seasonal scope
+   * @throws LnvAcquisitionException when source context is unreadable or contradicts the season
    */
   private void requireSeason(ProviderResponse response, CollectionBackend.Target target) {
     String season = LnvPage.season(LnvPage.parse(response.body(), response.url()));
@@ -204,6 +205,7 @@ public class LnvObservationReader implements LnvAcquisition {
    *
    * @param url actual page or form-action URL
    * @param target admitted native match/championship and optional phase/group
+   * @throws LnvAcquisitionException when the URL contradicts an admitted identity
    */
   private void requireMatch(URI url, CollectionBackend.Target target) {
     Map<String, String> fields = LnvPage.query(url);
@@ -217,7 +219,6 @@ public class LnvObservationReader implements LnvAcquisition {
   /** {@inheritDoc} */
   @Override
   public Read<byte[]> image(URI uri) {
-    LnvTeamImages.Image image = images.read(uri);
-    return image == null ? null : new Read<>(image.bytes(), image.observedAt());
+    return images.read(uri);
   }
 }

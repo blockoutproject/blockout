@@ -7,6 +7,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
@@ -14,20 +15,13 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Cross-parameter binding for generated discovery adapters; shared access admission stays external.
+ * Cross-parameter binding for generated discovery adapters using the configured strict HTTP mapper
+ * for cursors; shared access admission stays external.
  */
 @Component
+@RequiredArgsConstructor
 public class DiscoveryRequest {
   private final JsonMapper json;
-
-  /**
-   * Uses the existing strict HTTP mapper for ordinary cursor serialization.
-   *
-   * @param json configured application mapper
-   */
-  public DiscoveryRequest(JsonMapper json) {
-    this.json = json;
-  }
 
   /**
    * Rejects undeclared/repeated scalar parameters, malformed continuations and incompatible modes.
@@ -101,6 +95,7 @@ public class DiscoveryRequest {
    * @param cursor opaque wire input
    * @param context current admitted selection
    * @return validated native boundary
+   * @throws ResponseStatusException for malformed input or a different original selection
    */
   private SearchContinuation decode(String cursor, SearchContext context) {
     try {
@@ -123,6 +118,7 @@ public class DiscoveryRequest {
    *
    * @param raw supplied wire value, null only when omitted
    * @param identity UUID produced by native binding
+   * @throws ResponseStatusException for blank, shortened or mismatched UUID representations
    */
   private static void validateIdentity(String raw, UUID identity) {
     if (raw != null && (identity == null || !identity.toString().equalsIgnoreCase(raw)))

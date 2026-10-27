@@ -3,6 +3,9 @@ package com.blockout.backend.sporting.infrastructure;
 import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
+import com.blockout.backend.shared.mapping.TemporalMapping;
+import com.blockout.backend.sporting.application.ConsultationStore.MatchInput;
+import com.blockout.backend.sporting.application.ConsultationViews.Schedule;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
 import com.blockout.backend.sporting.application.model.ClubAcquisitionReference;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
@@ -42,7 +45,7 @@ import org.mapstruct.Named;
 import org.mapstruct.NullValueMappingStrategy;
 
 /** Maps persistence values inside their transaction without exporting managed relationships. */
-@Mapper(config = MappingConfiguration.class)
+@Mapper(config = MappingConfiguration.class, uses = TemporalMapping.class)
 interface SportingPersistenceMapper {
   /**
    * Exposes native grouping identity without any mapping state.
@@ -200,6 +203,32 @@ interface SportingPersistenceMapper {
   MatchView toView(MatchEntity source);
 
   /**
+   * Detaches the fetched match graph while preserving independent source observation times.
+   *
+   * @param source already selected dated match with its to-one owner graph
+   * @return accepted consultation inputs without visibility or presentation decisions
+   */
+  @Mapping(target = "poolId", source = "pool.id")
+  @Mapping(target = "homeTeamId", source = "homeTeam.id")
+  @Mapping(target = "awayTeamId", source = "awayTeam.id")
+  @Mapping(target = "season", source = "pool.season")
+  @Mapping(target = "classification", source = "pool")
+  @Mapping(target = "division", source = "pool.division")
+  @Mapping(target = "schedule", source = "source")
+  @Mapping(target = "result", source = "source")
+  MatchInput toMatchInput(MatchEntity source);
+
+  /**
+   * Projects the accepted schedule independently of the result's observation time.
+   *
+   * @param source current managed match in the caller's consistent read
+   * @return detached schedule preserving an absent reliable instant
+   */
+  @Mapping(target = "instant", source = "reliableStart")
+  @Mapping(target = "observedAt", source = "scheduleObservedAt")
+  Schedule toConsultationSchedule(MatchEntity source);
+
+  /**
    * Detaches a complete acquisition setting without inventing an absent value.
    *
    * @param source persisted complete setting, or null
@@ -248,7 +277,7 @@ interface SportingPersistenceMapper {
   ParticipationView toView(ParticipationEntity source);
 
   /**
-   * Detaches the currently accepted schedule under its match lock.
+   * Detaches the currently accepted schedule within the caller's read or mutation transaction.
    *
    * @param source current match entity
    * @return immutable schedule and independent attribution
@@ -278,7 +307,7 @@ interface SportingPersistenceMapper {
   /**
    * Maps accepted enrichment without exposing persistent collections.
    *
-   * @param source locked current match
+   * @param source current managed match in the caller's read or mutation transaction
    * @return detached current enrichment
    */
   @Mapping(target = "result", source = "source")

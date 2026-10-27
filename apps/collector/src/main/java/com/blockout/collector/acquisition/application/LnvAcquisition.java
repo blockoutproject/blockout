@@ -3,7 +3,9 @@ package com.blockout.collector.acquisition.application;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 import java.util.function.LongSupplier;
+import org.springframework.core.task.TaskRejectedException;
 
 /** Explicit professional-page boundary, with independent sporting and media observations. */
 public interface LnvAcquisition {
@@ -14,6 +16,7 @@ public interface LnvAcquisition {
      *
      * @param target admitted group
      * @return independently interpreted calendar
+     * @throws RuntimeException when source context is contradictory or cannot be interpreted
      */
     Calendar calendar(CollectionBackend.Target target);
 
@@ -22,6 +25,7 @@ public interface LnvAcquisition {
      *
      * @param target admitted group
      * @return independently interpreted standings
+     * @throws RuntimeException when source context or the official table cannot be interpreted
      */
     Read<SportingObservation.Standings> standings(CollectionBackend.Target target);
 
@@ -30,6 +34,7 @@ public interface LnvAcquisition {
      *
      * @param target admitted match
      * @return independently interpreted sporting detail
+     * @throws RuntimeException when the source contradicts the admitted match or is uninterpretable
      */
     Read<SportingObservation.Facts> detail(CollectionBackend.Target target);
 
@@ -39,6 +44,7 @@ public interface LnvAcquisition {
      * @param target admitted match and championship context
      * @param label published Scoresheet or DataVolley tab
      * @return document-only facts, or null when unpublished
+     * @throws RuntimeException when the source contradicts the admitted context or cannot be read
      */
     Read<SportingObservation.Facts> document(CollectionBackend.Target target, String label);
   }
@@ -48,6 +54,9 @@ public interface LnvAcquisition {
    *
    * @param uri admitted page
    * @return one shared source read, without a durable page cache
+   * @throws IllegalArgumentException when the source URL is outside the configured origins
+   * @throws TaskRejectedException when the shared provider capacity is full
+   * @throws CompletionException when the asynchronous page acquisition fails
    */
   Resource read(URI uri);
 
@@ -76,6 +85,8 @@ public interface LnvAcquisition {
      * @param calendar actual sporting evidence
      * @return qualified codes with the original index read time, or null without configured
      *     associations
+     * @throws RuntimeException when the index cannot be read or interpreted; a failed read is not
+     *     retried by another scope of this passage
      */
     DocumentRead informationSheets(CollectionBackend.Target target, Calendar calendar);
   }
@@ -112,6 +123,9 @@ public interface LnvAcquisition {
    *
    * @param uri published URL
    * @return new source bytes or null for cache reuse
+   * @throws IllegalArgumentException when the source URL is outside the configured origins
+   * @throws TaskRejectedException when the shared provider capacity is full
+   * @throws CompletionException when the asynchronous image acquisition fails
    */
   Read<byte[]> image(URI uri);
 }

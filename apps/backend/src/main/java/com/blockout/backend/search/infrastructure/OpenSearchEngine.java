@@ -85,6 +85,7 @@ public class OpenSearchEngine implements SearchEngine {
               failure instanceof SearchUnavailableException
                   ? "incomplete_response"
                   : "engine_failed")
+          .addKeyValue("error.type", failure.getClass().getName())
           .log("Native search unavailable");
       // Engine exceptions can contain query/source values. The shared HTTP owner receives only
       // this safe failure and never logs the raw payload or treats failure as successful empty.

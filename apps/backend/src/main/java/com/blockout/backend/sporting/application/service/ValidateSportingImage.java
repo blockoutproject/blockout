@@ -5,7 +5,6 @@ import com.blockout.backend.shared.image.ImageDecoder.DecodedImage;
 import com.blockout.backend.sporting.application.exception.SportingValidationException;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import java.io.IOException;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
  * Bounded content validation outside database transactions, shared by source and manual uploads.
  */
 @Service
-@RequiredArgsConstructor
 public class ValidateSportingImage {
   public static final int MAX_BYTES = 5_242_880;
   private static final long MAX_DECODED_PIXELS = 4_194_304L;

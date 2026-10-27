@@ -166,7 +166,7 @@ class FollowOptionsWebMvcTest {
 
   @Test
   @DisplayName("Returns an opaque unavailable response instead of an empty catalogue")
-  void safeFailure() throws Exception {
+  void reportsUnavailableOptions() throws Exception {
     // Given
     when(accounts.currentId("https://identity.example.invalid/", "subject"))
         .thenReturn(Optional.of(ACCOUNT));

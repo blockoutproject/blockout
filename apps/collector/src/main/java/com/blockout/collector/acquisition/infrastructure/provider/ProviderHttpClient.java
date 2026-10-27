@@ -55,7 +55,10 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
    * Reads an image through native origin-directed caching; cache hits are explicitly identified.
    *
    * @param uri qualified published image URL
-   * @return bounded response without treating cache reuse as a new provider observation
+   * @return bounded response without treating cache reuse as a new observation, or an exceptional
+   *     future on acquisition failure
+   * @throws IllegalArgumentException for an unsupported origin or embedded credentials
+   * @throws TaskRejectedException when active/pending capacity is full
    */
   public CompletableFuture<ProviderResponse> image(URI uri) {
     requireOrigin(uri, origins);
@@ -85,7 +88,10 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
    * statuses retain the ordinary transport failure and native retry/redirect behavior.
    *
    * @param uri official provider URL, subject to the same origin checks and shared budget
-   * @return complete bounded body with 200 or 400 status; never an archived error payload
+   * @return complete bounded body with 200 or 400 status, or an exceptional future on acquisition
+   *     failure; never an archived error payload
+   * @throws IllegalArgumentException for an unsupported origin or embedded credentials
+   * @throws TaskRejectedException when active/pending capacity is full
    */
   public CompletableFuture<StatusResponse> getWithBadRequest(URI uri) {
     requireOrigin(uri, origins);
@@ -111,7 +117,9 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
    *
    * @param uri official form action
    * @param fields qualified source form fields, never copied to diagnostics
-   * @return complete decompressed response, or acquisition failure
+   * @return complete decompressed response, or an exceptional future on acquisition failure
+   * @throws IllegalArgumentException for an unsupported origin or embedded credentials
+   * @throws TaskRejectedException when active/pending capacity is full
    */
   public CompletableFuture<byte[]> post(URI uri, List<? extends NameValuePair> fields) {
     requireOrigin(uri, origins);
@@ -121,11 +129,14 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
   }
 
   /**
-   * Reads a native document form response as HTML, refusing PDF entities before body consumption.
+   * Reads a native document form response, refusing declared PDF or octet-stream entities before
+   * body consumption.
    *
    * @param uri qualified match form action
    * @param fields ephemeral published form state
-   * @return final HTML response context, never a downloaded PDF
+   * @return final allowed response context, or an exceptional future on acquisition failure
+   * @throws IllegalArgumentException for an unsupported origin or embedded credentials
+   * @throws TaskRejectedException when active/pending capacity is full
    */
   public CompletableFuture<ProviderResponse> postPage(
       URI uri, List<? extends NameValuePair> fields) {
@@ -143,6 +154,8 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
    *
    * @param uri absolute source URI
    * @param origins this provider's configured native HTTP origins
+   * @throws IllegalArgumentException for credentials, a fragment, a non-HTTP URL or a foreign
+   *     origin
    */
   public static void requireOrigin(URI uri, Set<HttpHost> origins) {
     if (uri.getUserInfo() != null
@@ -250,7 +263,13 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
     }
   }
 
-  /** Stops bounded pending work and releases native HTTP resources when the application closes. */
+  /**
+   * {@inheritDoc}
+   *
+   * <p>Stops bounded pending work and releases native HTTP resources when the application closes.
+   *
+   * @throws IOException when native HTTP resource shutdown fails
+   */
   @Override
   public void close() throws IOException {
     executor.shutdown();

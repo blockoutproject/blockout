@@ -8,7 +8,8 @@ import org.springframework.core.task.TaskRejectedException;
 public interface ProviderPages {
   /**
    * Reads a complete source page with its final redirect context, without durable page caching.
-   * Binary document bodies are refused before consumption; transport failures remain exceptional.
+   * Responses declared as PDF or octet-stream are refused before body consumption; transport
+   * failures remain exceptional.
    *
    * @param uri published page URL within the provider's permitted origins
    * @return bounded complete content and provenance, or an exceptional future on acquisition

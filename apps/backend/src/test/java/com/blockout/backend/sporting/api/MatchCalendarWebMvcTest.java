@@ -153,8 +153,11 @@ class MatchCalendarWebMvcTest {
       })
   @DisplayName("Rejects invalid category IANA zone and day without leaking submitted values")
   void rejectsInvalidParameters(String params) throws Exception {
-    // Given / When
-    ResultActions response = mvc.perform(get("/matches?poolId=" + ID + "&" + params));
+    // Given
+    String path = "/matches?poolId=" + ID + "&" + params;
+
+    // When
+    ResultActions response = mvc.perform(get(path));
 
     // Then
     response.andExpect(status().isBadRequest()).andExpect(jsonPath("$.detail").doesNotExist());
@@ -174,13 +177,17 @@ class MatchCalendarWebMvcTest {
                 List.of(),
                 null));
 
-    // When / Then
-    mvc.perform(
+    // When
+    ResultActions response =
+        mvc.perform(
             get("/matches")
                 .param("clubId", ID.toString())
                 .param("seasonId", ID.toString())
                 .param("category", "upcoming")
-                .param("timeZone", "Europe/Paris"))
+                .param("timeZone", "Europe/Paris"));
+
+    // Then
+    response
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.days").isEmpty())
         .andExpect(jsonPath("$.nextDay").doesNotExist());
@@ -192,12 +199,16 @@ class MatchCalendarWebMvcTest {
     // Given
     when(calendars.read(any())).thenThrow(new SportingResourceNotFoundException());
 
-    // When / Then
-    mvc.perform(
+    // When
+    ResultActions response =
+        mvc.perform(
             get("/matches")
                 .param("poolId", ID.toString())
                 .param("category", "upcoming")
-                .param("timeZone", "Europe/Paris"))
+                .param("timeZone", "Europe/Paris"));
+
+    // Then
+    response
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:not-found"));
   }

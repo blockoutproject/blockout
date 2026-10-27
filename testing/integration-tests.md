@@ -481,7 +481,7 @@ The [canonical patterns](README.md) own setup, naming and lifecycle conventions.
 
 ### `FollowingContractWebMvcTest`
 
-[Source](../apps/backend/src/test/java/com/blockout/backend/following/api/FollowingContractWebMvcTest.java) — 8 scenario methods.
+[Source](../apps/backend/src/test/java/com/blockout/backend/following/api/FollowingContractWebMvcTest.java) — 9 scenario methods.
 
 **Real:** MVC dispatcher, Jackson/Bean Validation, generated DTO/interface mappings; `HttpConfiguration`, `ApiExceptionHandler`, `FollowingRequest`, `ContractEnumBinding`.
 
@@ -489,16 +489,17 @@ The [canonical patterns](README.md) own setup, naming and lifecycle conventions.
 
 **Limit/cleanup:** No database/commit/servlet socket/provider proof.
 
-| Method                      | Regression detected by its assertions                                     | Shape         |
-| --------------------------- | ------------------------------------------------------------------------- | ------------- |
-| `bindsBoolean`              | Binds required complete true and false state through generated interfaces | parameterized |
-| `rejectsBody`               | Rejects missing, null, coerced or additive request state                  | parameterized |
-| `preservesAbsence`          | Keeps absent season and exhausted continuation distinct from values       | parameterized |
-| `rejectsPage`               | Rejects pages outside the generated native offset bound                   | parameterized |
-| `rejectsQuery`              | Rejects undeclared, repeated or coerced query shapes                      | parameterized |
-| `serializesOptionsAndCount` | Preserves generated options omission and exact safe integer counts        | test          |
-| `rejectsMediaType`          | Rejects unsupported mutation media types                                  | test          |
-| `bindsCalendar`             | Binds the reused personal calendar without losing its required envelope   | test          |
+| Method                        | Regression detected by its assertions                                     | Shape         |
+| ----------------------------- | ------------------------------------------------------------------------- | ------------- |
+| `bindsBoolean`                | Binds required complete true and false state through generated interfaces | parameterized |
+| `rejectsBody`                 | Rejects missing, null, coerced or additive request state                  | parameterized |
+| `preservesAbsence`            | Keeps absent season and exhausted continuation distinct from values       | parameterized |
+| `rejectsPage`                 | Rejects pages outside the generated native offset bound                   | parameterized |
+| `rejectsQuery`                | Rejects undeclared, repeated or coerced query shapes                      | parameterized |
+| `omitsDefaultForEmptyOptions` | Omits the default season from empty generated options                     | test          |
+| `serializesSafeIntegerCount`  | Serializes the exact maximum safe integer follower count                  | test          |
+| `rejectsMediaType`            | Rejects unsupported mutation media types                                  | test          |
+| `bindsCalendar`               | Binds the reused personal calendar without losing its required envelope   | test          |
 
 ### `LegacyApplicationStatusUnavailableWebMvcTest`
 
@@ -1668,17 +1669,17 @@ Source: [apps/backend/src/test/java/com/blockout/backend/search/application/Sear
 
 Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `HydrateSearch`, `ConsultationStore`; real ReadSportingResources spy, current SQL hydration and Hibernate statement counts for one versus twenty distinct candidates. Controlled/absent boundaries: synthetic stale engine candidates; engine retrieval not exercised.
 
-| Scenario (all declared parameter values) | Protected behavior / detectable regression                                                                                                                    |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `omitsStaleCity`                         | Omits a stale city even when the resource name matches.                                                                                                       |
-| `hydratesCurrentClub`                    | Returns the current public identity and logo of a club without teams.                                                                                         |
-| `hydratesProfessionalTeam`               | Preserves clubless professional identity across published past and future seasons.                                                                            |
-| `respectsCurrentRestrictions`            | Current sporting restrictions remove teams and affected pool reads.                                                                                           |
-| `respectsCurrentFilter`                  | Rechecks exact filters against current classification.                                                                                                        |
-| `attachesClub`                           | A verified club attachment supplies current context without changing team identity.                                                                           |
-| `omitsUnknownClassification`             | An unknown current pool classification cannot satisfy a stale exact filter.                                                                                   |
-| `hydratesUnknownClassification`          | Preserves unknown current pool classification when no exact filter is requested.                                                                              |
-| `readsSummariesInBatches`                | Twenty distinct club, team or pool summaries require the same number of SQL statements as one, while preserving current presentation and absent club context. |
+| Scenario (all declared parameter values) | Protected behavior / detectable regression                                                                                                                                      |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `omitsStaleCity`                         | Omits a stale city even when the resource name matches.                                                                                                                         |
+| `hydratesCurrentClub`                    | Returns the current public identity and logo of a club without teams.                                                                                                           |
+| `hydratesProfessionalTeam`               | Preserves clubless professional identity across published past and future seasons.                                                                                              |
+| `respectsCurrentRestrictions`            | Current sporting restrictions remove teams and affected pool reads.                                                                                                             |
+| `respectsCurrentFilter`                  | Rechecks exact filters against current classification.                                                                                                                          |
+| `attachesClub`                           | A verified club attachment supplies current context without changing team identity.                                                                                             |
+| `omitsUnknownClassification`             | An unknown current pool classification cannot satisfy a stale exact filter.                                                                                                     |
+| `hydratesUnknownClassification`          | Preserves unknown current pool classification when no exact filter is requested.                                                                                                |
+| `readsSummariesInBatches`                | Twenty distinct summaries with distinct seasons, divisions and clubs require the same number of SQL statements as one; current presentation and a clubless team remain correct. |
 
 ### ResultAnnouncementIntegrationTest
 

@@ -128,7 +128,7 @@ class SearchCurrentDataIntegrationTest {
   @DisplayName("Preserves clubless professional identity across published past and future seasons")
   void hydratesProfessionalTeam(int year) {
     // Given
-    Fixture fixture = professionalTeam(year);
+    Fixture fixture = insertProfessionalTeam(year);
     SearchContext context =
         new SearchContext(
             SearchContext.Resource.TEAM,
@@ -155,10 +155,10 @@ class SearchCurrentDataIntegrationTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"participation", "division", "pool"})
-  @DisplayName("Current sporting restrictions remove teams and affected pool reads")
+  @DisplayName("Omits teams whose current participation, division or pool becomes unavailable")
   void respectsCurrentRestrictions(String restriction) {
     // Given
-    Fixture fixture = professionalTeam(2026);
+    Fixture fixture = insertProfessionalTeam(2026);
     switch (restriction) {
       case "participation" ->
           sql.update(
@@ -187,7 +187,7 @@ class SearchCurrentDataIntegrationTest {
   @DisplayName("Rechecks exact filters against current classification")
   void respectsCurrentFilter() {
     // Given
-    Fixture fixture = professionalTeam(2026);
+    Fixture fixture = insertProfessionalTeam(2026);
     SearchContext context =
         new SearchContext(
             SearchContext.Resource.TEAM,
@@ -210,7 +210,7 @@ class SearchCurrentDataIntegrationTest {
   @DisplayName("A verified club attachment supplies current context without changing team identity")
   void attachesClub() {
     // Given
-    Fixture fixture = professionalTeam(2026);
+    Fixture fixture = insertProfessionalTeam(2026);
     UUID club = UUID.fromString("00000000-0000-4000-8000-000000000060");
     sql.update(
         "INSERT INTO sporting_club(id, provider, reference, source_name, municipality) VALUES (?, 'FFVB', ?, 'Club Eagles', 'Lyon')",
@@ -238,7 +238,7 @@ class SearchCurrentDataIntegrationTest {
   @DisplayName("An unknown current pool classification cannot satisfy a stale exact filter")
   void omitsUnknownClassification() {
     // Given
-    Fixture fixture = professionalTeam(2026);
+    Fixture fixture = insertProfessionalTeam(2026);
     sql.update(
         "UPDATE sporting_pool SET format = NULL, gender = NULL WHERE id = ?", fixture.pool());
     SearchContext context =
@@ -263,7 +263,7 @@ class SearchCurrentDataIntegrationTest {
   @DisplayName("Preserves unknown current pool classification when no exact filter is requested")
   void hydratesUnknownClassification() {
     // Given
-    Fixture fixture = professionalTeam(2026);
+    Fixture fixture = insertProfessionalTeam(2026);
     sql.update(
         "UPDATE sporting_pool SET format = NULL, gender = NULL WHERE id = ?", fixture.pool());
     SearchContext context =
@@ -283,41 +283,73 @@ class SearchCurrentDataIntegrationTest {
 
   @ParameterizedTest
   @EnumSource(SearchContext.Resource.class)
-  @DisplayName("Hydrates twenty distinct current summaries without per-candidate SQL reads")
+  @DisplayName("Hydrates twenty summaries with distinct parents without per-candidate SQL reads")
   void readsSummariesInBatches(SearchContext.Resource resource, TestReporter reporter) {
-    // Given: each candidate has its own sporting identity; the shared graph is already committed.
-    Fixture fixture = professionalTeam(2026);
+    // Given: distinct parents prevent the persistence context from hiding per-parent reads.
     List<Candidate> candidates = new ArrayList<>();
     for (int number = 1; number <= 20; number++) {
-      UUID id = UUID.fromString("10000000-0000-4000-8000-" + String.format("%012d", number));
-      switch (resource) {
-        case CLUB ->
+      String suffix = String.format("%012d", number);
+      UUID id = UUID.fromString("10000000-0000-4000-8000-" + suffix);
+      if (resource == SearchContext.Resource.CLUB) {
+        sql.update(
+            "INSERT INTO sporting_club(id, provider, reference, source_name, manual_name, logo, logo_media_type) VALUES (?, 'FFVB', ?, 'Source', 'Current', ?, 'image/png')",
+            id,
+            id.toString(),
+            new byte[] {1});
+      } else {
+        UUID season = UUID.fromString("20000000-0000-4000-8000-" + suffix);
+        UUID division = UUID.fromString("30000000-0000-4000-8000-" + suffix);
+        UUID pack = UUID.fromString("40000000-0000-4000-8000-" + suffix);
+        UUID pool =
+            resource == SearchContext.Resource.POOL
+                ? id
+                : UUID.fromString("50000000-0000-4000-8000-" + suffix);
+        int year = 2000 + number;
+        sql.update(
+            "INSERT INTO sporting_season(id, start_year, label) VALUES (?, ?, ?)",
+            season,
+            year,
+            year + "/" + (year + 1));
+        sql.update(
+            "INSERT INTO sporting_division(id, name, active, color) VALUES (?, ?, TRUE, '#112233')",
+            division,
+            "Synthetic division " + number);
+        sql.update(
+            "INSERT INTO sporting_pack(id, season_id, provider, organizer_reference, reference) VALUES (?, ?, 'LNV', 'synthetic', ?)",
+            pack,
+            season,
+            pack.toString());
+        sql.update(
+            "INSERT INTO sporting_pool(id, season_id, pack_id, provider, organizer_reference, competition_reference, reference, source_name, manual_name, division_id, format, gender) VALUES (?, ?, ?, 'LNV', 'synthetic', 'competition', ?, 'Source', 'Current', ?, '_6X6', 'FEMALE')",
+            pool,
+            season,
+            pack,
+            pool.toString(),
+            division);
+        if (resource == SearchContext.Resource.TEAM) {
+          UUID club = number == 20 ? null : UUID.fromString("60000000-0000-4000-8000-" + suffix);
+          if (club != null)
             sql.update(
-                "INSERT INTO sporting_club(id, provider, reference, source_name, manual_name, logo, logo_media_type) VALUES (?, 'FFVB', ?, 'Source', 'Current', ?, 'image/png')",
-                id,
-                id.toString(),
+                "INSERT INTO sporting_club(id, provider, reference, source_name, manual_name, logo, logo_media_type) VALUES (?, 'FFVB', ?, 'Source club', ?, ?, 'image/png')",
+                club,
+                club.toString(),
+                "Current club " + number,
                 new byte[] {1});
-        case TEAM -> {
           sql.update(
-              "INSERT INTO sporting_team(id, season_id, provider, organizer_reference, competition_reference, native_reference, source_name, comparison_name, manual_name, division_id, format, gender, source_logo, source_logo_media_type) VALUES (?, ?, 'LNV', 'synthetic', 'competition', ?, 'Source', ?, 'Current', ?, '_6X6', 'FEMALE', ?, 'image/png')",
+              "INSERT INTO sporting_team(id, season_id, provider, organizer_reference, competition_reference, native_reference, source_name, comparison_name, manual_name, club_id, division_id, format, gender, source_logo, source_logo_media_type) VALUES (?, ?, 'LNV', 'synthetic', 'competition', ?, 'Source', ?, 'Current', ?, ?, '_6X6', 'FEMALE', ?, 'image/png')",
               id,
-              fixture.season(),
+              season,
               id.toString(),
               id.toString(),
-              fixture.division(),
+              club,
+              division,
               new byte[] {1});
           sql.update(
               "INSERT INTO sporting_participation(id, team_id, pool_id, current) VALUES (?, ?, ?, TRUE)",
               id,
               id,
-              fixture.pool());
+              pool);
         }
-        case POOL ->
-            sql.update(
-                "INSERT INTO sporting_pool(id, season_id, pack_id, provider, organizer_reference, competition_reference, reference, source_name, manual_name, division_id, format, gender) SELECT ?, season_id, pack_id, provider, organizer_reference, competition_reference, ?, 'Source', 'Current', division_id, format, gender FROM sporting_pool WHERE id = ?",
-                id,
-                id.toString(),
-                fixture.pool());
       }
       candidates.add(new Candidate(new Position(number, id), null));
     }
@@ -352,9 +384,18 @@ class SearchCurrentDataIntegrationTest {
         case TEAM -> {
           assertThat(first.team().team().name()).isEqualTo("Current");
           assertThat(first.team().team().logoUrl()).endsWith("/logo?selection=automatic");
-          assertThat(first.team().club()).isNull();
+          assertThat(first.team().season().startYear()).isEqualTo(2001);
+          assertThat(first.team().club().name()).isEqualTo("Current club 1");
+          assertThat(first.team().club().logoUrl()).endsWith("/logo");
+          SearchPage.Summary clubless = current.get(candidates.getLast().position().id());
+          assertThat(clubless.team().season().startYear()).isEqualTo(2020);
+          assertThat(clubless.team().club()).isNull();
+          assertThat(clubless.team().team().logoUrl()).endsWith("/logo?selection=automatic");
         }
-        case POOL -> assertThat(first.pool().pool().name()).isEqualTo("Current");
+        case POOL -> {
+          assertThat(first.pool().pool().name()).isEqualTo("Current");
+          assertThat(first.pool().season().startYear()).isEqualTo(2001);
+        }
       }
     } finally {
       statistics.setStatisticsEnabled(enabled);
@@ -362,13 +403,13 @@ class SearchCurrentDataIntegrationTest {
   }
 
   /**
-   * Creates one viewable professional team and pool under explicit sporting year and
-   * classification.
+   * Inserts a committed viewable professional team and pool into the disposable database under the
+   * scenario's sporting year and classification.
    *
    * @param year canonical sporting start year used by this scenario
    * @return stable identities of the current synthetic participation graph
    */
-  private Fixture professionalTeam(int year) {
+  private Fixture insertProfessionalTeam(int year) {
     UUID season = UUID.fromString("00000000-0000-4000-8000-000000000010");
     UUID division = UUID.fromString("00000000-0000-4000-8000-000000000020");
     UUID pack = UUID.fromString("00000000-0000-4000-8000-000000000030");

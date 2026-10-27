@@ -110,6 +110,7 @@ class LnvHttpCachingIntegrationTest {
       // When
       ProviderResponse first = http.image(origin.resolve("/logo")).join();
       ProviderResponse second = http.image(origin.resolve("/logo")).join();
+
       // Then
       assertThat(first.supplierRead()).isTrue();
       assertThat(second.supplierRead()).isFalse();
@@ -157,6 +158,7 @@ class LnvHttpCachingIntegrationTest {
       // When
       http.page(origin.resolve("/page")).join();
       http.page(origin.resolve("/page")).join();
+
       // Then
       assertThat(reads).hasValue(2);
       assertThat(cookie).hasValue("timezoneoffset=0");

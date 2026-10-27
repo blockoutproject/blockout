@@ -24,6 +24,8 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -196,10 +198,20 @@ class DiscoveryContractWebMvcTest {
     // Then
     same.andExpect(status().isOk());
     assertThat(adapter.bound.continuation().score()).isEqualTo(1.5);
-    mvc.perform(get("/pools").param("q", "étoile volley").param("cursor", cursor))
-        .andExpect(status().isBadRequest());
-    mvc.perform(get("/teams").param("q", "different").param("cursor", cursor))
-        .andExpect(status().isBadRequest());
+
+    // When
+    ResultActions differentResource =
+        mvc.perform(get("/pools").param("q", "étoile volley").param("cursor", cursor));
+
+    // Then
+    differentResource.andExpect(status().isBadRequest());
+
+    // When
+    ResultActions differentText =
+        mvc.perform(get("/teams").param("q", "different").param("cursor", cursor));
+
+    // Then
+    differentText.andExpect(status().isBadRequest());
   }
 
   @ParameterizedTest
@@ -250,21 +262,11 @@ class DiscoveryContractWebMvcTest {
 
   /** Test-only story adapter exercises the actual generated interface and handwritten binder. */
   @RestController
+  @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
   static class Adapter implements DiscoveryApi {
     private final DiscoveryRequest requests;
     private final HttpServletRequest request;
     DiscoveryRequest.Bound bound;
-
-    /**
-     * Supplies production binding and the current native request; responses remain controlled.
-     *
-     * @param requests production request binder
-     * @param request MVC request proxy
-     */
-    Adapter(DiscoveryRequest requests, HttpServletRequest request) {
-      this.requests = requests;
-      this.request = request;
-    }
 
     /** {@inheritDoc} */
     @Override

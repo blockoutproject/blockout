@@ -605,9 +605,9 @@ public interface SportingStore {
       MatchObservation.Context context);
 
   /**
-   * Reads current enrichment within the retained match transaction.
+   * Reads current enrichment within the caller's read or mutation transaction.
    *
-   * @param matchId already locked match
+   * @param matchId existing match; the mutation owner acquires any required lock separately
    * @return detached facts and attribution
    */
   MatchDetails matchDetails(UUID matchId);

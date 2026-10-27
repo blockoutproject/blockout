@@ -76,7 +76,8 @@ public class FfvbClubSheets implements ClubSheets {
    *
    * @param body complete Windows-1252 sheet, held only for this interpretation
    * @param reference exact expected encountered identity
-   * @return source proposals, or a technical interpretation failure without a withdrawal
+   * @return qualified source proposals without an inferred withdrawal
+   * @throws FfvbAcquisitionException when labels or identity cannot establish an attributable sheet
    */
   static SportingObservation.Club parse(byte[] body, String reference) {
     Document page = Jsoup.parse(new String(body, FfvbPage.CHARSET));

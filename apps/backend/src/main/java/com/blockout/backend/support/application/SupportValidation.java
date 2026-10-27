@@ -10,21 +10,20 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 /** Completes file validation before creating private originals or admitting a provider effect. */
+@RequiredArgsConstructor
 public final class SupportValidation {
   private static final int MAX_FILE_BYTES = 5_242_880;
   private static final long MAX_DECODED_BYTES = 64L * 1024 * 1024;
-  private final Path temporaryDirectory;
 
   /**
-   * Selects the process-owned temporary directory; callers never supply user filenames or paths.
-   *
-   * @param temporaryDirectory existing private runtime temporary storage, with no durable volume
+   * Existing process-owned private temporary storage, without a durable volume or user-supplied
+   * filenames and paths.
    */
-  public SupportValidation(Path temporaryDirectory) {
-    this.temporaryDirectory = temporaryDirectory;
-  }
+  private final Path temporaryDirectory;
 
   /**
    * Freezes and validates every selected file, then stores private originals with generated names.
@@ -113,7 +112,7 @@ public final class SupportValidation {
 
   /** Whole-input rejection, safe to classify without rendering submitted values. */
   public static final class InvalidSubmission extends RuntimeException {
-    private final Reason reason;
+    @Getter private final Reason reason;
 
     /**
      * Creates a refusal containing only its safe classification.
@@ -123,10 +122,6 @@ public final class SupportValidation {
     public InvalidSubmission(Reason reason) {
       super("Invalid support submission");
       this.reason = reason;
-    }
-
-    public Reason getReason() {
-      return reason;
     }
   }
 }

@@ -1,11 +1,13 @@
 package com.blockout.collector.acquisition.lnv;
 
+import com.blockout.collector.acquisition.application.LnvAcquisition.Read;
 import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import java.net.URI;
 import java.time.Clock;
-import java.time.Instant;
+import java.util.concurrent.CompletionException;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Component;
 
 /** Reads published logos with the shared LNV budget and native bounded in-memory cache. */
@@ -13,9 +15,6 @@ import org.springframework.stereotype.Component;
 public class LnvTeamImages {
   private final ProviderHttpClient http;
   private final Clock clock;
-
-  /** Original bounded bytes and their actual supplier-read time, never a cache-hit timestamp. */
-  public record Image(byte[] bytes, Instant observedAt) {}
 
   /**
    * Binds the existing provider budget; no independent image scheduler is introduced.
@@ -32,10 +31,13 @@ public class LnvTeamImages {
    * Returns bytes only for a new supplier response; the passage deduplicates native team IDs.
    *
    * @param uri qualified published image reference
-   * @return new observation or null on native cache reuse
+   * @return new observation timestamped after the supplier read, or null on native cache reuse
+   * @throws IllegalArgumentException when the source URL is outside the configured origins
+   * @throws TaskRejectedException when the shared provider capacity is full
+   * @throws CompletionException when the asynchronous image acquisition fails
    */
-  public Image read(URI uri) {
+  public Read<byte[]> read(URI uri) {
     ProviderResponse response = http.image(uri).join();
-    return response.supplierRead() ? new Image(response.body(), clock.instant()) : null;
+    return response.supplierRead() ? new Read<>(response.body(), clock.instant()) : null;
   }
 }

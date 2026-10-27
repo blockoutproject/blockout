@@ -237,6 +237,8 @@ class FollowRelationsIntegrationTest {
     // Then
     assertThat(secondFailure).isInstanceOf(FollowUnavailableTargetException.class);
     assertThat(relation(type).id()).isEqualTo(original);
+
+    // Given
     sql.update(
         "UPDATE sporting_pool SET catalog_eligible=TRUE, calendar_empty=FALSE WHERE id=?", TARGET);
     sql.update("UPDATE sporting_division SET active=FALSE WHERE id=?", DIVISION);
@@ -246,8 +248,15 @@ class FollowRelationsIntegrationTest {
 
     // Then
     assertThat(thirdFailure).isInstanceOf(FollowUnavailableTargetException.class);
+
+    // Given
     sql.update("UPDATE sporting_division SET active=TRUE WHERE id=?", DIVISION);
-    assertThat(state.read(context(type))).isTrue();
+
+    // When
+    boolean restored = state.read(context(type));
+
+    // Then
+    assertThat(restored).isTrue();
     assertThat(relation(type).id()).isEqualTo(original);
   }
 
@@ -350,9 +359,10 @@ class FollowRelationsIntegrationTest {
               });
 
       // When
-      assertThat(waiting.get(15, TimeUnit.SECONDS)).isEqualTo(last);
+      boolean confirmed = waiting.get(15, TimeUnit.SECONDS);
 
       // Then
+      assertThat(confirmed).isEqualTo(last);
       assertThat(state.read(context(TargetType.TEAM))).isEqualTo(last);
       assertThat(sql.queryForObject("SELECT COUNT(*) FROM team_follow", Long.class))
           .isEqualTo(last ? 1L : 0L);

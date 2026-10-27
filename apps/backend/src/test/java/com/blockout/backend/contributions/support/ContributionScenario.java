@@ -168,10 +168,10 @@ public abstract class ContributionScenario {
   }
 
   /**
-   * Reads committed counts from fixed local test table names only.
+   * Reads current row counts from fixed local test table names, joining any caller transaction.
    *
    * @param table fixed table owned by this test's disposable schema
-   * @return current committed row count
+   * @return current row count
    */
   protected long count(String table) {
     return sql.queryForObject("SELECT COUNT(*) FROM " + table, Long.class);
