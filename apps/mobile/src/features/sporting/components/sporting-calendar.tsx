@@ -169,21 +169,30 @@ export function SportingCalendar({
               fontScale >= 1.6 && styles.stacked,
             ]}
           >
-            <View style={fontScale >= 1.6 ? styles.stackedDate : styles.rail}>
+            <View
+              style={
+                fontScale >= 1.6
+                  ? styles.stackedDate
+                  : [styles.rail, { width: 40 * fontScale }]
+              }
+            >
               {item.first && (
-                <Text
+                <View
+                  accessible
                   accessibilityRole="header"
                   accessibilityLabel={formatSportingDay(item.day.date, zone)}
-                  style={[styles.date, { color: colors.text }]}
+                  style={styles.dateHeading}
                 >
-                  {new Intl.DateTimeFormat("fr-FR", {
-                    timeZone: "UTC",
-                    day: "numeric",
-                  }).format(new Date(`${item.day.date}T12:00:00Z`))}
+                  <Text style={[styles.date, { color: colors.text }]}>
+                    {new Intl.DateTimeFormat("fr-FR", {
+                      timeZone: "UTC",
+                      day: "numeric",
+                    }).format(new Date(`${item.day.date}T12:00:00Z`))}
+                  </Text>
                   <Text
                     style={[styles.dateMeta, { color: colors.secondaryText }]}
-                  >{`\n${new Intl.DateTimeFormat("fr-FR", { timeZone: "UTC", weekday: "short" }).format(new Date(`${item.day.date}T12:00:00Z`))}\n${new Intl.DateTimeFormat("fr-FR", { timeZone: "UTC", month: "short" }).format(new Date(`${item.day.date}T12:00:00Z`))}`}</Text>
-                </Text>
+                  >{`${new Intl.DateTimeFormat("fr-FR", { timeZone: "UTC", weekday: "short" }).format(new Date(`${item.day.date}T12:00:00Z`))}\n${new Intl.DateTimeFormat("fr-FR", { timeZone: "UTC", month: "short" }).format(new Date(`${item.day.date}T12:00:00Z`))}`}</Text>
+                </View>
               )}
             </View>
             <View style={styles.group}>
@@ -379,14 +388,15 @@ const styles = StyleSheet.create({
   toolbar: { gap: tokens.spacing.md, paddingVertical: tokens.spacing.sm },
   day: {
     flexDirection: "row",
-    gap: tokens.spacing.md,
+    gap: tokens.spacing.xs,
     marginBottom: tokens.spacing.md,
   },
   newDay: { marginTop: tokens.spacing.md },
-  rail: { width: 32 },
+  rail: { width: 40 },
   stacked: { flexDirection: "column" },
   stackedDate: { alignSelf: "flex-start" },
-  date: { ...tokens.typography.heading },
+  dateHeading: { gap: tokens.spacing.xs },
+  date: { ...tokens.typography.headingXl },
   dateMeta: { ...tokens.typography.metadata },
   group: { flex: 1, minWidth: 0 },
   groupInset: { padding: tokens.spacing.xs },

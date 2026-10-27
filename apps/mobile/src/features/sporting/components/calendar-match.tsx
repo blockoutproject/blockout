@@ -1,6 +1,12 @@
 import { useRouter } from "expo-router";
 import { CircleAlert } from "lucide-react-native";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import type { MatchSummaryResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -17,6 +23,7 @@ export interface CalendarMatchProps {
 /** Approved Match Row: full-width result indication, team rows, then time or supplied scores. */
 export function CalendarMatch({ match, displayTimeZone }: CalendarMatchProps) {
   const { colors, context } = useTheme();
+  const { fontScale } = useWindowDimensions();
   const router = useRouter();
   const division = match.pool.classification.division;
   const accent = division?.color ?? context.primary;
@@ -104,7 +111,12 @@ export function CalendarMatch({ match, displayTimeZone }: CalendarMatchProps) {
           ))}
         </View>
         {!hasScore && (
-          <View style={[styles.time, { backgroundColor: accent }]}>
+          <View
+            style={[
+              styles.time,
+              { backgroundColor: accent, width: 56 * fontScale },
+            ]}
+          >
             <Text style={[styles.timeText, { color: foreground }]}>
               {match.schedule.instant ? schedule.time : "À définir"}
             </Text>
