@@ -130,6 +130,17 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
   Optional<PoolVisibilityRow> findVisibility(UUID id);
 
   /**
+   * Selects canonical seasons from currently visible pools without loading their cards.
+   *
+   * @return distinct seasons in descending start-year and ascending UUID order
+   */
+  @Query(
+      "SELECT DISTINCT s FROM PoolEntity p JOIN p.season s WHERE "
+          + VISIBLE
+          + " ORDER BY s.startYear DESC, s.id")
+  List<SeasonEntity> findVisibleSeasons();
+
+  /**
    * Selects visible search roots before bounded hydration.
    *
    * @param page bounded projection request
