@@ -53,7 +53,10 @@ export function NotificationItem({
           <SportingArtwork division={division} />
           <SportingLogo kind="division" identity={division} />
           <View style={styles.identity}>
-            <Text style={[tokens.typography.strong, { color: foreground }]}>
+            <Text
+              numberOfLines={1}
+              style={[tokens.typography.strong, { color: foreground }]}
+            >
               {row.match.pool.pool.name}
             </Text>
             <Text style={[tokens.typography.metadata, { color: foreground }]}>
@@ -125,7 +128,8 @@ const styles = StyleSheet.create({
     minWidth: tokens.size.control.compact,
     minHeight: tokens.size.control.compact,
     borderRadius: tokens.radius.sm,
-    padding: tokens.spacing.sm,
+    paddingHorizontal: tokens.spacing.sm,
+    paddingVertical: tokens.spacing.xs,
     alignItems: "center",
     justifyContent: "center",
   },

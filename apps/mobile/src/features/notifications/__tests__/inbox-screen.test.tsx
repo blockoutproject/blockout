@@ -8,7 +8,7 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { AppState, type AppStateStatus } from "react-native";
+import { AppState, Text, type AppStateStatus } from "react-native";
 import { NotificationsScreen } from "../screens/notifications-screen";
 import { NotificationState } from "../state/notification-state";
 import {
@@ -448,4 +448,22 @@ it("waits for foreground before refreshing an expired background inbox", async (
   // Then
   expect(screen.queryByRole("link", { name: /non lue$/ })).toBeNull();
   expect(setBadgeCountAsync).toHaveBeenLastCalledWith(0);
+});
+
+it("excludes a previously cached expired card on the first offline reopening render", async () => {
+  // Given
+  const view = await showInbox();
+  await screen.findByRole("link", { name: /non lue$/ });
+  await view.rerender(<Text>Autre écran</Text>);
+  jest.setSystemTime(new Date("2026-11-23T12:00:00Z"));
+  mockFetch.mockRejectedValue(new TypeError("offline"));
+
+  // When
+  await view.rerender(<NotificationsScreen />);
+
+  // Then
+  expect(screen.queryByRole("link", { name: /non lue$/ })).toBeNull();
+  expect(
+    await screen.findByText("Aucune notification pour le moment"),
+  ).toBeOnTheScreen();
 });

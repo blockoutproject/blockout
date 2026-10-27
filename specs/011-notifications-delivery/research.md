@@ -81,3 +81,26 @@ with [T052 and T051](tasks.md).
 **Rationale.** F07 adds a private domain capability to the same backend. Existing projections have the same public sporting meaning; private ownership/read/family data stays in F07. A read-only true intent is repeatable, and the connection association is a resource with PUT/DELETE semantics. No task resource is needed for best-effort push.
 
 **Evidence limits.** Official documentation and accepted source plans support the design. Generated boundary checks do not qualify F07 business integration, native push, restoration or provider configuration. The [quickstart](quickstart.md) names those qualifications. Design approvals are recorded separately in the plan and cannot be inferred from these sources.
+
+## Native inbox navigation composition
+
+**Decision.** Use the installed `expo-router/ui` Tabs, TabSlot, TabList and TabTrigger
+for the newly introduced ordinary tab group. Native flex wrapping supplies the enlarged-text
+rows; the Router supplies selection, focus, history and trigger events. Query remains the sole
+badge owner. No navigation state mirror, event dispatcher or scroll mechanism is introduced.
+
+**Rationale and alternative.** The standard styled tab bar fits the ordinary single row, but its
+public styles do not expose wrapping of its inner item container. The approved [200% notification
+screen](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=1072-24724)
+and prototype `.scaled .bottom-nav` require two rows. The documented headless composition provides
+that layout without a second navigation implementation or dependency. It also preserves the
+[two-entry guest variant](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/Blockout-UI-Library?node-id=3305-1849).
+Keep route definitions for hidden personal triggers so guest initial entry still reaches the
+existing independent age/discovery gates before public search.
+
+**Evidence and limits.** [Expo's custom tab documentation](https://docs.expo.dev/router/advanced/custom-tabs/)
+documents these components and their focus/press forwarding, and labels the API experimental.
+The installed SDK 58 declarations and real Router integration tests establish the consumed API;
+this choice changes no dependency or accepted behavior. Native layout, safe-area and accessibility
+inspection remain separate from those tests. Existing UI Library navigation labels and
+strong-color badge roles supply the semantic token values.

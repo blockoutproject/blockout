@@ -9,7 +9,7 @@ import {
 } from "@testing-library/react-native";
 import { renderRouter } from "expo-router/testing-library";
 import { Stack } from "expo-router";
-import { Text } from "react-native";
+import { Dimensions, Text } from "react-native";
 import { useLayoutEffect } from "react";
 import TabsLayout from "../../../app/(ordinary)/(tabs)/_layout";
 import NotificationsRoute from "../../../app/(ordinary)/(tabs)/notifications";
@@ -245,4 +245,36 @@ it("restarts from newest on tab return while a continuation is still in flight",
   expect(
     screen.getByRole("link", { name: /^Nouvelle information/ }),
   ).toBeOnTheScreen();
+});
+
+it("retains every native tab action and its full accessible name with enlarged text in a narrow window", async () => {
+  // Given: native window metrics are controlled; Router selection and trigger events remain real.
+  const window = Dimensions.get("window");
+  jest
+    .spyOn(Dimensions, "get")
+    .mockReturnValue({ ...window, width: 320, fontScale: 2 });
+  await openInbox();
+  const user = userEvent.setup();
+  await screen.findByRole("link", { name: /non lue$/ });
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Profil" }));
+  await waitFor(() => expect(screen).toHavePathname("/profile"));
+  await user.press(screen.getByRole("button", { name: "Rechercher" }));
+  await waitFor(() => expect(screen).toHavePathname("/search"));
+  await user.press(
+    screen.getByRole("button", { name: "Notifications, 7 non lues" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("button", {
+      name: "Notifications, 7 non lues",
+      selected: true,
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Accueil" })).toBeOnTheScreen();
+  expect(mockFetch.mock.calls.some(([, init]) => init.method === "PATCH")).toBe(
+    false,
+  );
 });
