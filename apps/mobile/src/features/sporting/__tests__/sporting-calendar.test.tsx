@@ -10,7 +10,7 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { AppState } from "react-native";
+import { AppState, Dimensions } from "react-native";
 import { Tabs } from "react-native-collapsible-tab";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -203,6 +203,61 @@ it("opens the exact match while keeping final special notation and supplied tota
   });
   expect(screen.getByText("Forfait")).toBeOnTheScreen();
   expect(screen.queryByText("Résultat indisponible")).not.toBeOnTheScreen();
+});
+
+it("retains loaded calendar data and its active context through native font-size changes without a reread", async () => {
+  // Given: native metrics and the real calendar owner; Legend's geometry remains native evidence.
+  const original = {
+    window: Dimensions.get("window"),
+    screen: Dimensions.get("screen"),
+  };
+  try {
+    await act(async () => {
+      Dimensions.set({
+        window: { ...original.window, fontScale: 1 },
+        screen: { ...original.screen, fontScale: 1 },
+      });
+    });
+    await render(
+      <CalendarTab>
+        <SportingCalendar
+          selection={{ teamId: sportingId, category: "upcoming" }}
+        />
+      </CalendarTab>,
+      { wrapper: Providers },
+    );
+    await layoutNativeTabs();
+    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+
+    // When: the native Dimensions change event enters the stacked layout, then restores ordinary text.
+    for (const fontScale of [1.7, 1]) {
+      await act(async () => {
+        Dimensions.set({
+          window: { ...original.window, fontScale },
+          screen: { ...original.screen, fontScale },
+        });
+      });
+      await layoutNativeTabs();
+
+      // Then: data and current-tab actions stay usable throughout both transitions.
+      expect(
+        screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.getByRole("tab", { name: "calendar", selected: true }),
+      ).toBeOnTheScreen();
+      expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
+    }
+    const reads = mockFetch.mock.calls
+      .map(([url]) => new URL(url))
+      .filter((url) => url.pathname === "/matches");
+    expect(reads).toHaveLength(1);
+    expect(reads[0].searchParams.get("teamId")).toBe(sportingId);
+    expect(reads[0].searchParams.get("category")).toBe("upcoming");
+  } finally {
+    // Restore global native metrics even if an assertion fails; other scenarios own their viewport.
+    await act(async () => Dimensions.set(original));
+  }
 });
 
 it("retains calendar rows through an ordinary refresh failure and replaces them after success", async () => {

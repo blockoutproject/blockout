@@ -27,6 +27,7 @@ import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { pageContentStyle } from "../../../shared/components/page";
+import { pagedListDefaults } from "../../../shared/components/paged-tabs";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { isAccessDenied } from "../../../shared/api/access-denied";
@@ -126,6 +127,9 @@ export function SportingCalendar({
   }
   return (
     <TabLegendList<CalendarRow>
+      {...pagedListDefaults}
+      // Replace the native grid when its column count changes; Query and RNCT retain their owners.
+      key={columns}
       ref={list}
       alwaysBounceVertical
       contentContainerStyle={pageContentStyle}

@@ -1,4 +1,5 @@
 import { pageContentStyle } from "../../../shared/components/page";
+import { pagedListDefaults } from "../../../shared/components/paged-tabs";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ReactElement, ReactNode } from "react";
@@ -23,6 +24,7 @@ export function SearchResults({
 }: SearchResultsProps) {
   return (
     <TabLegendList
+      {...pagedListDefaults}
       alwaysBounceVertical
       ListFooterComponent={
         items.length && continuation ? (

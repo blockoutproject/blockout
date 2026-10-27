@@ -30,6 +30,11 @@ import { useReducedMotion } from "../theme/use-reduced-motion";
 import { tokens } from "../theme/tokens";
 import { ScrollBackdrop, type ScrollBlurTarget } from "./scroll-backdrop";
 
+/** RNCT owns offsets and measured header padding; native lists must not compensate that padding with a second scroll. */
+export const pagedListDefaults = {
+  maintainVisibleContentPosition: false,
+} as const;
+
 /** Stable feature identities and their explicitly composed content; data stays with each feature. */
 export interface PagedTab {
   id: string;

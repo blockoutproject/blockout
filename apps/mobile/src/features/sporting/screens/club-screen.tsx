@@ -1,7 +1,11 @@
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingCompactHeader } from "../components/sporting-compact-header";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";
-import { PagedTabs, PagerTabBar } from "../../../shared/components/paged-tabs";
+import {
+  PagedTabs,
+  PagerTabBar,
+  pagedListDefaults,
+} from "../../../shared/components/paged-tabs";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { ResourceText } from "../components/resource-text";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
@@ -176,6 +180,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
                 />
               ) : (
                 <TabLegendList
+                  {...pagedListDefaults}
                   alwaysBounceVertical
                   recycleItems
                   refreshControl={
