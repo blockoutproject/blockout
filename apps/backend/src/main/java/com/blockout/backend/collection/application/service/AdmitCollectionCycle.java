@@ -15,8 +15,10 @@ import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import java.time.Clock;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -113,6 +115,17 @@ public class AdmitCollectionCycle {
     CollectionRevision.requireAdvance(control.revision());
     Cycle cycle = store.createCycle(command, mode, null, clock.instant());
     selection.freeze(cycle, control, season);
+    if (mode == CollectionModeEnum.INITIAL_IMPORT && !control.scopeIds().isEmpty()) {
+      Set<UUID> selected = new HashSet<>();
+      for (int page = 0; ; page++) {
+        com.blockout.backend.collection.application.model.CollectionState.SnapshotPage targets =
+            store.targets(cycle.id(), page, 200);
+        targets.items().forEach(target -> selected.add(target.scopeId()));
+        if (!targets.hasNext()) break;
+      }
+      if (!selected.containsAll(control.scopeIds()))
+        throw CollectionConflictException.invalidContext();
+    }
     store.startControl(control, cycle);
     store.discardCycle(control.currentCycleId());
     return new Admission(cycle, true);

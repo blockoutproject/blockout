@@ -8,9 +8,11 @@ import com.blockout.backend.collection.application.model.CollectionState.Cycle;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.collection.application.model.CollectionState.Target;
 import com.blockout.backend.collection.application.model.CollectionWorkMapper;
+import com.blockout.backend.collection.application.model.InitialCoverage;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
@@ -183,6 +185,24 @@ public class FreezeCollectionTargets {
                     cycle.mode() != CollectionModeEnum.PERIODIC || due(target, cycle.startedAt()))
             .toList();
     store.addTargets(cycle.id(), selected);
+    if (cycle.mode() == CollectionModeEnum.INITIAL_IMPORT) {
+      for (Target target : selected) {
+        for (CollectionPhaseEnum phase : CollectionPhaseEnum.values()) {
+          store.saveInitialCoverage(
+              new InitialCoverage(
+                  target.sourceBindingId(),
+                  target.scopeId(),
+                  stages.toStage(target.kind()),
+                  phase,
+                  InitialCoverage.Status.REQUESTED,
+                  cycle.id(),
+                  cycle.cycleOrder(),
+                  0,
+                  null,
+                  null));
+        }
+      }
+    }
   }
 
   /**

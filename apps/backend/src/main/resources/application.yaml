@@ -136,3 +136,15 @@ logging:
         - account_cleanup.original_account_id
         - account_cleanup.auth0_subject
         - account_cleanup.revenuecat_app_user_id
+
+---
+spring:
+  config:
+    activate:
+      on-profile: initial-reconstruction
+  main:
+    web-application-type: none
+blockout:
+  notifications:
+    retention-cron: "-"
+    link-announcements-cron: "-"

@@ -117,3 +117,52 @@ Prepared for [T063](tasks.md); none of these cases authorizes remote Grafana/con
 | Commit and privacy              | Roll back an evidence write; delay its after-commit diagnostic until newer evidence commits. Include synthetic secret/contact/body strings only in controlled rejected/free-form input.                                                    | Rollback emits no accepted-evidence event; delayed diagnostics reread current state. Public/sink output contains only allowed fixed reasons, nonpersonal keys and bounded counts; unknown measurements remain absent.                                                                                                 |
 
 Do not infer instant collector failure from silence, a healthy API from collector activity, or notification delivery from a local log. Availability, detection, notification, native closure and actual recovery are separate observations. If the configured Loki query, downstream delivery or elapsed five-day behavior is unavailable, retain it explicitly as pending T063 evidence.
+
+## Bounded initial reconstruction (T064–T069)
+
+The backend's `initial-reconstruction` profile runs one Spring `ApplicationRunner` action with native configuration binding, then closes its context. It starts no HTTP server, F04 projection scheduler, notification-retention pass or link-announcement schedule. It has no provider client, bootstrap account, import endpoint, archive crawler or automatic follow-up. The existing collector alone reads the explicitly admitted references with its ordinary adapters and limits. The serving backend remains the sole search-index writer.
+
+Use an explicitly authorized isolated destination, its migrated PostgreSQL 18.6 database, one collector and an existing account currently granted `collection.manage`. Export the backend environment as documented in [local development](../../README.md#local-development); Spring does not load dotenv. Keep the operator UUID, connection settings and command output in ignored private runtime files. Override isolation settings only in the process or a private runtime copy. No command below authorizes actual provider access, restoration, reset, logo reassociation, production reconstruction or transition.
+
+After building the backend through the [existing verification target](../../README.md#verification), invoke the same executable for each action:
+
+```sh
+java -jar apps/backend/target/backend-0.0.0-SNAPSHOT.jar \
+  --spring.profiles.active=initial-reconstruction \
+  --blockout.reconstruction.operator="$OPERATOR_UUID" \
+  --blockout.reconstruction.action=prepare \
+  --blockout.reconstruction.start-year=2023 \
+  --blockout.reconstruction.provider=FFVB \
+  --blockout.reconstruction.organizer-reference="$OFFICIAL_ORGANIZER" \
+  --blockout.reconstruction.candidate-url="$VERIFIED_ARCHIVE_CANDIDATE"
+```
+
+Supply each year explicitly: for the 2026/2027 rehearsal they are 2023, 2024, 2025 and 2026. These examples are sporting start years, not a rule deriving a year from today's date or a provider ID. Preparation reuses canonical seasons and their exact labels, creates only missing PREPARING bindings and requests ordinary asynchronous validation. Reusing the same qualified/locked reference preserves its evidence; a conflicting locked reference or closed season is refused. Wrong-host, unsupported-format and wrong-season evidence remains refused by the existing collector validation. Where compatible structure lacks seasonal attribution, use `action=confirm` with `source-id`, the current source `revision` and exact canonical `label`; confirmation cannot override invalid evidence.
+
+Read the returned/current source and season state before continuing. A missing archive remains a coverage gap, never a current-feed substitute. Missing classification uses the [existing F02 flow](../002-sporting-data/quickstart.md); this command grants no classification permission. A first explicit discovery passage may establish child identities, but imports no unclassified calendars and queues no second passage.
+
+```sh
+java -jar apps/backend/target/backend-0.0.0-SNAPSHOT.jar \
+  --spring.profiles.active=initial-reconstruction \
+  --blockout.reconstruction.operator="$OPERATOR_UUID" \
+  --blockout.reconstruction.action=request \
+  --blockout.reconstruction.season-id="$SEASON_UUID" \
+  --blockout.reconstruction.revision="$SEASON_REVISION" \
+  --blockout.reconstruction.sources="$SOURCE_BINDING_UUIDS"
+```
+
+`sources` and `scopes` lists use comma-separated UUIDs. `sources` is mandatory and exact; `scopes` optionally selects previously failed scopes beneath those roots. An identical pending selection returns the same request; a conflicting selection is refused. Acceptance is pending intent, not a supplier observation. On first admission the existing collector freezes only that selection, locks used qualified references and leaves periodic activity disabled and history PREPARING. Classification, division activity, coverage and current restrictions remain effective. A narrower retry updates only its selected current results; untouched failures remain visible.
+
+Use `action=report` with `season-id`, optional zero-based `page` and `size` (1–200; default 200). Read further pages while `hasNext` is true. The application view used by F14 retains current requested, obtained, rejected and unavailable evidence by source/scope/stage/phase, measured counts or explicit absence, and original logical ordering. Acquisition and integration remain independent. Unconfirmed work is unavailable after completion; an interrupted original context is not success. Ordinary periodic results cannot overwrite this report. No report certifies exhaustive provider coverage or migration readiness.
+
+For closure, use `action=close`, `season-id`, the freshly read season `revision` and exact canonical `label`. Closure is definitive: it cancels unstarted intent and refuses new validation, launch or collection; only already admitted selected work may finish once. It preserves history, reference locks, other seasons and seasonless controls. After a lost command acknowledgement, read current source/control/coverage state before an explicit decision; do not blindly replay a command or allocate another cycle.
+
+The serving backend's [ordinary complete F04 rebuild](../../infra/operations/README.md#search-projection-and-reconstruction) covers operator-side PostgreSQL changes. Verify current filtered searches and aliases through that existing owner before relying on search; the non-web command never starts a second index writer. F14 owns review of gaps and any actual launch/closure/cutover authorization.
+
+The [request and binding cases](../../apps/backend/src/test/java/com/blockout/backend/collection/application/InitialReconstructionTest.java), [native configuration cases](../../apps/backend/src/test/java/com/blockout/backend/collection/application/InitialReconstructionRunnerTest.java) and [owner integration rehearsal](../../apps/backend/src/test/java/com/blockout/backend/collection/application/InitialReconstructionIntegrationTest.java) qualify T064–T069 with synthetic inputs on PostgreSQL 18.6. The four-year cases execute the packaged `java -jar` preparation command for 2023, 2024, 2025 and 2026, verify successful process exit, then use real F01 qualification/admission, F02 sporting acceptance and F07 facts. They retain PREPARING/disabled periodic controls and first-use reference locks. Missing qualification, revoked grants, closed history, source conflicts, unknown/blank narrowing and unused retry roots are refused without widening work. Explicit preparation renews only an interrupted candidate validation; it adds no automatic recovery.
+
+The same suite covers discovery-only work, exact pending selection, lost admission acknowledgement, independent failures, narrower retries, interrupted/unconfirmed coverage, periodic-result isolation, historical empty preservation, exact closure and admitted draining. Accepted initial results consume F07 facts without personal entries or after-commit push handoff. The F04 handoff test rereads these accepted PostgreSQL facts through the ordinary full-rebuild owner with a controlled external writer; the actual non-web context has no server, HTTP security chains or projection scheduler. It does not qualify a new deployed search environment.
+
+On 2026-10-27 the full backend target passed 1,167 Surefire tests and 813 Failsafe cases, with the existing optional F12 case skipped. After the final initial-request corrections, 11 targeted unit cases and 126 affected F01/F04 integration cases passed. The full collector verification passed 204 Surefire tests and 170 Failsafe cases with all four opt-in collector/backend suites enabled against the isolated migrated database and packaged backend. Source interpretation and identity tokens were controlled; real generated HTTP, security, F01/F02/F07 transactions and SQL effects remained active. Native Checkstyle, Spotless, contract lint/bundling, Markdown formatting and diff hygiene passed. Private command logs and all generated outputs remain ignored.
+
+These are bounded construction and synthetic-rehearsal proofs. They perform no actual FFVB/LNV/IGN read, exhaustive archive inventory, Auth0 operation, real notification delivery, logo reassociation, retained-data reset, production reconstruction or F14 launch decision. Obtained observations and a successful passage remain distinct from exhaustive season/source coverage and migration readiness. Other feature qualifications stay with their owning tasks.

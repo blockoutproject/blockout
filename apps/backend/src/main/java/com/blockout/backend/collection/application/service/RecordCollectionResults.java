@@ -4,9 +4,12 @@ import com.blockout.backend.collection.application.exception.CollectionConflictE
 import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionStageMapper;
 import com.blockout.backend.collection.application.model.CollectionState;
+import com.blockout.backend.collection.application.model.CollectionState.Target;
+import com.blockout.backend.collection.application.model.InitialCoverage;
 import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
@@ -83,6 +86,7 @@ public class RecordCollectionResults {
             command.reason(),
             command.obtainedCount(),
             command.rejectedCount()));
+    if (cycle.mode() == CollectionModeEnum.INITIAL_IMPORT) recordInitial(cycle, command);
     if (command.outcome() != CollectionOutcomeEnum.SUCCESS
         || (previous != null && previous.firstFailureAt() != null))
       events.publishEvent(
@@ -114,8 +118,82 @@ public class RecordCollectionResults {
       return cycle;
     }
     if (completedAt.isBefore(cycle.startedAt())) throw CollectionConflictException.invalidContext();
+    if (cycle.mode() == CollectionModeEnum.INITIAL_IMPORT) store.finishInitialCoverage(cycle.id());
     store.complete(cycle, completedAt);
     return store.cycle(cycleId).orElseThrow();
+  }
+
+  /**
+   * Retains initial evidence independently of ordinary operational freshness. Additional detail and
+   * logo work resolves its source through F02 and an admitted calendar, never caller-supplied
+   * roots.
+   *
+   * @param cycle already authorized initial passage under its transaction fence
+   * @param command attributable observed result
+   */
+  private void recordInitial(CollectionState.Cycle cycle, RecordCollectionResult command) {
+    Target target;
+    if (command.stage() == CollectionStageEnum.LOGO) {
+      target =
+          acquisitionReads.teamPools(command.scopeId()).stream()
+              .map(pool -> store.target(cycle.id(), pool, CollectionTargetKindEnum.CALENDAR))
+              .flatMap(java.util.Optional::stream)
+              .findFirst()
+              .orElseThrow(CollectionConflictException::invalidContext);
+    } else {
+      target =
+          store
+              .target(cycle.id(), command.scopeId(), stages.toTargetKind(command.stage()))
+              .orElseGet(
+                  () ->
+                      acquisitionReads
+                          .matchPoolId(command.scopeId())
+                          .flatMap(
+                              pool ->
+                                  store.target(cycle.id(), pool, CollectionTargetKindEnum.CALENDAR))
+                          .orElseThrow(CollectionConflictException::invalidContext));
+    }
+    for (CollectionPhaseEnum phase : CollectionPhaseEnum.values()) {
+      InitialCoverage previous =
+          store
+              .initialCoverage(target.sourceBindingId(), command.scopeId(), command.stage(), phase)
+              .orElse(null);
+      if (previous == null || previous.cycleOrder() != cycle.cycleOrder())
+        store.saveInitialCoverage(
+            new InitialCoverage(
+                target.sourceBindingId(),
+                command.scopeId(),
+                command.stage(),
+                phase,
+                InitialCoverage.Status.REQUESTED,
+                cycle.id(),
+                cycle.cycleOrder(),
+                0,
+                null,
+                null));
+    }
+    InitialCoverage.Status status =
+        switch (command.outcome()) {
+          case SUCCESS -> InitialCoverage.Status.OBTAINED;
+          case PARTIAL -> InitialCoverage.Status.REJECTED;
+          case FAILED ->
+              isStructuralReason(command.reasonType())
+                  ? InitialCoverage.Status.REJECTED
+                  : InitialCoverage.Status.UNAVAILABLE;
+          case UNCONFIRMED -> InitialCoverage.Status.UNAVAILABLE;
+        };
+    store.saveInitialCoverage(
+        new InitialCoverage(
+            target.sourceBindingId(),
+            command.scopeId(),
+            command.stage(),
+            command.phase(),
+            status,
+            cycle.id(),
+            cycle.cycleOrder(),
+            command.readOrdinal(),
+            command.obtainedCount(),
+            command.rejectedCount()));
   }
 
   /**
