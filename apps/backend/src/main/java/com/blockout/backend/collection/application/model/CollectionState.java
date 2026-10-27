@@ -9,6 +9,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
+import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
@@ -88,7 +89,26 @@ public final class CollectionState {
       SourceValidationStateEnum state,
       Instant observedAt,
       String seasonEvidence,
-      String reason) {}
+      String reason,
+      URI reasonType) {
+    /**
+     * Retains compatibility with evidence whose failure category is unknown.
+     *
+     * @param cycleId original admitted validation
+     * @param state terminal qualification state
+     * @param observedAt actual completion
+     * @param seasonEvidence attributable seasonal evidence, when available
+     * @param reason safe bounded explanation
+     */
+    public SourceValidation(
+        UUID cycleId,
+        SourceValidationStateEnum state,
+        Instant observedAt,
+        String seasonEvidence,
+        String reason) {
+      this(cycleId, state, observedAt, seasonEvidence, reason, null);
+    }
+  }
 
   /** Current preparation state; proposed and accepted references remain independent. */
   @Builder(toBuilder = true)
@@ -107,7 +127,8 @@ public final class CollectionState {
       boolean seasonConfirmed,
       boolean locked,
       boolean launched,
-      UUID currentCycleId) {}
+      UUID currentCycleId,
+      URI reasonType) {}
 
   /**
    * Current control and retained pending scope; empty selections mean the ordinary whole family.
@@ -183,7 +204,8 @@ public final class CollectionState {
       Instant fastWindowEndsAt,
       CollectionProviderEnum provider,
       String organizerReference,
-      String nativeMatchReference) {}
+      String nativeMatchReference,
+      String nativeTeamReference) {}
 
   /**
    * One served target enriches its frozen identity with current permitted locality, when

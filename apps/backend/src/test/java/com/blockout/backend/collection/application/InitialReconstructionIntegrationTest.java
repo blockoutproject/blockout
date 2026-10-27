@@ -48,13 +48,18 @@ import com.blockout.backend.sporting.application.model.CalendarObservation;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
+import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.service.AcceptCalendar;
 import com.blockout.backend.sporting.application.service.AcceptMatchObservation;
+import com.blockout.backend.sporting.application.service.AcceptSourceImage;
 import com.blockout.backend.sporting.application.service.ReadCollectionSeasons;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
+import com.blockout.backend.sporting.application.service.ValidateSportingImage;
 import com.blockout.backend.sporting.support.SportingIdentityFixture;
+import com.blockout.backend.sporting.support.SportingImageFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.net.URI;
@@ -120,6 +125,7 @@ class InitialReconstructionIntegrationTest {
   @Autowired private ReadCollectionConfiguration configuration;
   @Autowired private SportingIdentityFixture identities;
   @Autowired private AcceptCalendar calendars;
+  @Autowired private AcceptSourceImage sourceImages;
   @Autowired private AcceptMatchObservation matches;
   @Autowired private SportingObservationMapper mapper;
   @Autowired private ReadSportingData sportingReads;
@@ -261,7 +267,8 @@ class InitialReconstructionIntegrationTest {
             SourceValidationStateEnum.INVALID,
             NOW,
             "2026/2027",
-            "Contradictory season evidence"));
+            "Contradictory season evidence",
+            URI.create("urn:blockout:acquisition:context")));
 
     // Then
     assertThatThrownBy(() -> request(source, Set.of()))
@@ -273,6 +280,135 @@ class InitialReconstructionIntegrationTest {
               assertThat(item.status()).isEqualTo(InitialCoverage.Status.REJECTED);
             });
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Long.class)).isZero();
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  @DisplayName(
+      "Unavailable or uncategorized candidates remain unavailable coverage before qualification")
+  void reportsUnavailableCandidate(boolean categorized) {
+    // Given
+    Source source =
+        reconstruction.prepare(
+            OPERATOR,
+            2023,
+            CollectionProviderEnum.FFVB,
+            "ABCCS",
+            URI.create("https://www.ffvbbeach.org/archive"));
+    Cycle cycle =
+        admission
+            .admit(
+                new CollectionState.StartCycle(
+                    UUID.randomUUID(), STARTUP, null, source.id(), source.revision(), null))
+            .cycle();
+
+    // When
+    validation.submitValidation(
+        source.id(),
+        new CollectionState.SourceValidation(
+            cycle.id(),
+            SourceValidationStateEnum.INVALID,
+            NOW,
+            null,
+            "Unavailable source context",
+            categorized ? URI.create("urn:blockout:acquisition:technical") : null));
+
+    // Then
+    assertThat(reconstruction.coverage(OPERATOR, source.seasonId(), 0, 200).items())
+        .singleElement()
+        .satisfies(row -> assertThat(row.status()).isEqualTo(InitialCoverage.Status.UNAVAILABLE));
+  }
+
+  @Test
+  @DisplayName("Initial admission refuses a season launched after request acceptance")
+  void refusesActivationBeforeInitialAdmission() {
+    // Given
+    Source source = qualified(2023, "ABCCS");
+    Control pending = request(source, Set.of());
+    CollectionSeasonView season = seasonReads.collectionState(source.seasonId());
+    preparation.launch(OPERATOR, season.id(), season.collectionRevision(), Set.of(source.id()));
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable start = () -> admit(pending);
+
+    // Then
+    assertThatThrownBy(start).isInstanceOf(CollectionConflictException.class);
+    assertThat(configuration.control(OPERATOR, pending.id()).control().requestId())
+        .isEqualTo(pending.requestId());
+  }
+
+  @Test
+  @DisplayName("A failed team logo admits only that logo without calendar or neighbor writes")
+  void retriesExactFailedLogo() throws Exception {
+    // Given
+    Source source =
+        qualify(
+            reconstruction.prepare(
+                OPERATOR,
+                2023,
+                CollectionProviderEnum.LNV,
+                "135",
+                URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=135")));
+    UUID pool = pool(source, "P1");
+    Cycle first = admit(request(source, Set.of()));
+    CalendarObservation.Match encounter =
+        new CalendarObservation.Match(
+            "M1",
+            new TeamCandidate("100", "Home", null, null),
+            new TeamCandidate("101", "Away", null, null),
+            candidate("M1", "Home", LocalDate.of(2023, 10, 1)).facts(),
+            null);
+    calendars.accept(
+        pool,
+        new CalendarObservation(context(first, 1), true, List.of(encounter), List.of(), List.of()));
+    UUID team =
+        sql.queryForObject(
+            "SELECT home_team_id FROM sporting_match WHERE pool_id=?", UUID.class, pool);
+    UUID neighbor =
+        sql.queryForObject(
+            "SELECT away_team_id FROM sporting_match WHERE pool_id=?", UUID.class, pool);
+    results.record(
+        first.id(),
+        evidence(
+            team,
+            CollectionStageEnum.LOGO,
+            CollectionPhaseEnum.ACQUISITION,
+            CollectionOutcomeEnum.FAILED,
+            2,
+            null));
+    results.complete(first.id(), NOW.plusSeconds(60));
+    Image image = new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
+
+    // When
+    Cycle retry = admit(request(source, Set.of(team)));
+    CollectionState.TargetPage selected = work.targets(retry.id(), 0, 200);
+    sourceImages.acceptSource(team, context(retry, 1), image);
+
+    // Then
+    assertThat(selected.items())
+        .singleElement()
+        .satisfies(
+            item -> {
+              assertThat(item.target().kind().getValue()).isEqualTo("logo");
+              assertThat(item.target().scopeId()).isEqualTo(team);
+            });
+    assertThatThrownBy(
+            () ->
+                calendars.accept(
+                    pool,
+                    new CalendarObservation(
+                        context(retry, 2), true, List.of(), List.of(), List.of())))
+        .isInstanceOf(CollectionConflictException.class);
+    assertThatThrownBy(() -> sourceImages.acceptSource(neighbor, context(retry, 2), image))
+        .isInstanceOf(CollectionConflictException.class);
+    assertThat(
+            sql.queryForObject(
+                "SELECT source_logo FROM sporting_team WHERE id=?", byte[].class, team))
+        .isEqualTo(image.bytes());
+    assertThat(
+            sql.queryForObject(
+                "SELECT source_logo FROM sporting_team WHERE id=?", byte[].class, neighbor))
+        .isNull();
   }
 
   @Test
@@ -891,9 +1027,9 @@ class InitialReconstructionIntegrationTest {
         identities
             .createPool(
                 new PoolKey(
-                    CollectionProviderEnum.FFVB,
+                    source.provider(),
                     source.seasonId(),
-                    "ABCCS",
+                    source.organizerReference(),
                     "N2",
                     null,
                     null,
@@ -904,8 +1040,11 @@ class InitialReconstructionIntegrationTest {
             .id();
     sql.update(
         "UPDATE sporting_pool SET setting_division_id=?, setting_format='_6X6',"
-            + " setting_gender='MALE',calendar_url='https://www.ffvbbeach.org/calendar' WHERE id=?",
+            + " setting_gender='MALE',calendar_url=? WHERE id=?",
         DIVISION,
+        source.provider() == CollectionProviderEnum.LNV
+            ? "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=135&PID=136"
+            : "https://www.ffvbbeach.org/calendar",
         pool);
     return pool;
   }

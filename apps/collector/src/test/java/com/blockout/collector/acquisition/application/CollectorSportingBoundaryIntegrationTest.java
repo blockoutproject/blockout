@@ -19,8 +19,10 @@ import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum
 import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.ResultStateEnum;
+import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.collector.ingestion.IngestionTestClient;
 import java.io.IOException;
+import java.net.URI;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.time.Clock;
@@ -227,6 +229,8 @@ class CollectorSportingBoundaryIntegrationTest {
     UUID request = UUID.fromString("00000000-0000-4000-8000-000000000198");
     if (initialImport) {
       runtime.sql.update(
+          "UPDATE sporting_season SET collection_state='PREPARING' WHERE id=?", SEASON);
+      runtime.sql.update(
           "UPDATE collection_control SET request_id=?, requested_mode='INITIAL_IMPORT' WHERE id=?",
           request,
           CONTROL);
@@ -277,6 +281,43 @@ class CollectorSportingBoundaryIntegrationTest {
         transport.api().getJsonMapper().readTree(requests.getLast().body()).get("context");
     assertThat(sent.propertyNames())
         .containsExactlyInAnyOrder("cycleId", "readOrdinal", "observedAt");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"technical", "context"})
+  @DisplayName("Generated validation transport retains the actual unavailable or refused category")
+  void retainsValidationFailureCategory(String category) {
+    // Given
+    runtime.sql.update(
+        "UPDATE sporting_season SET collection_state='PREPARING' WHERE id=?", SEASON);
+    runtime.sql.update(
+        "UPDATE collection_source_binding SET locked=FALSE,launched=FALSE,accepted_url=NULL,candidate_url='https://www.ffvbbeach.org/ffvbapp/resu/',validation_state='PENDING' WHERE id=?",
+        SOURCE);
+    CollectorLifecycle.AdmittedCycle validation = lifecycle.admit(null, SOURCE, 0, null);
+    URI reasonType = URI.create("urn:blockout:acquisition:" + category);
+
+    // When
+    boolean confirmed =
+        lifecycle.validate(
+            validation,
+            new CollectionBackend.Validation(
+                validation.getCycle().id(),
+                SourceValidationStateEnum.INVALID,
+                Instant.now(),
+                null,
+                "Synthetic candidate failure",
+                reasonType));
+
+    // Then
+    assertThat(confirmed).isTrue();
+    assertThat(
+            runtime.sql.queryForObject(
+                "SELECT reason_type FROM collection_source_binding WHERE id=?",
+                String.class,
+                SOURCE))
+        .isEqualTo(reasonType.toString());
+    assertThat(backend.cycle(validation.getCycle().id()).state())
+        .isEqualTo(CollectionCycleStateEnum.COMPLETED);
   }
 
   @Test

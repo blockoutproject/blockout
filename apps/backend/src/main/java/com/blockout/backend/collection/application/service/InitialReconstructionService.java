@@ -254,7 +254,10 @@ public class InitialReconstructionService {
                       Source source = bindings.get(row.sourceBindingId());
                       if (source != null
                           && source.validationState() == SourceValidationStateEnum.INVALID)
-                        status = InitialCoverage.Status.REJECTED;
+                        status =
+                            RecordCollectionResults.isStructuralReason(source.reasonType())
+                                ? InitialCoverage.Status.REJECTED
+                                : InitialCoverage.Status.UNAVAILABLE;
                     } else {
                       Cycle cycle = cycles.get(row.cycleId());
                       if (cycle == null || cycle.state() != CollectionCycleStateEnum.RUNNING)

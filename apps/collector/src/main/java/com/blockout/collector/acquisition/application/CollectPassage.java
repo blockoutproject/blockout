@@ -64,7 +64,8 @@ public class CollectPassage {
       Map<URI, List<CollectionBackend.Target>> professional = new LinkedHashMap<>();
       for (CollectionBackend.Target target : selected) {
         if (target.kind() == CollectionTargetKindEnum.CALENDAR
-            || target.kind() == CollectionTargetKindEnum.STANDINGS) {
+            || target.kind() == CollectionTargetKindEnum.STANDINGS
+            || target.kind() == CollectionTargetKindEnum.LOGO) {
           if (target.provider() == CollectionProviderEnum.FFVB)
             resources
                 .computeIfAbsent(ffvb.resourceUrl(target), ignored -> new ArrayList<>())
@@ -306,6 +307,8 @@ public class CollectPassage {
       if (target.kind() == CollectionTargetKindEnum.CALENDAR) {
         professionalCalendar(
             context, target, resource, ordinal, readTeams, readMatches, indexes, details);
+      } else if (target.kind() == CollectionTargetKindEnum.LOGO) {
+        professionalLogo(context, target, resource, ordinal, readTeams);
       } else {
         LnvAcquisition.Read<SportingObservation.Standings> read;
         try {
@@ -630,6 +633,37 @@ public class CollectPassage {
           readTeams);
     }
     informationSheets(context, target, read, outcome, indexes, details);
+  }
+
+  /**
+   * Resolves one explicitly selected native team image through the ordinary contextual calendar.
+   * Parsed sporting rows are discarded: this capability authorizes no calendar or neighbor write.
+   *
+   * @param context admitted logo-only capability
+   * @param target selected team with its existing parent pool and native identity
+   * @param resource ordinary bounded parent-page read
+   * @param ordinal original parent read order for a parsing refusal
+   * @param attempted passage-local image deduplication
+   */
+  private void professionalLogo(
+      CollectorLifecycle.AdmittedCycle context,
+      CollectionBackend.Target target,
+      LnvAcquisition.Resource resource,
+      long ordinal,
+      Set<UUID> attempted) {
+    LnvAcquisition.Calendar read;
+    try {
+      read =
+          resource.calendar(
+              target.toBuilder()
+                  .scopeId(target.poolId())
+                  .kind(CollectionTargetKindEnum.CALENDAR)
+                  .build());
+    } catch (RuntimeException failure) {
+      acquisitionFailed(context, target, ordinal, failure);
+      return;
+    }
+    image(context, target.scopeId(), read.logos().get(target.nativeTeamReference()), attempted);
   }
 
   /**
@@ -985,13 +1019,7 @@ public class CollectPassage {
       long ordinal,
       RuntimeException failure) {
     String reason = failureReason(failure);
-    URI reasonType =
-        URI.create(
-            (failure instanceof FfvbAcquisitionException ffvbFailure
-                        && ffvbFailure.getKind() == FfvbAcquisitionException.Kind.STRUCTURE)
-                    || failure instanceof IllegalArgumentException
-                ? "urn:blockout:acquisition:structure"
-                : "urn:blockout:acquisition:technical");
+    URI reasonType = AcquisitionFailure.reasonType(failure);
     boolean confirmed =
         record(
             context,

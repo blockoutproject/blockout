@@ -15,15 +15,20 @@ import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
+import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -92,6 +97,28 @@ public class FreezeCollectionTargets {
     if (sources.isEmpty()
         || (cycle.mode() == CollectionModeEnum.INITIAL_IMPORT
             && sources.size() != control.sourceBindingIds().size())) throw invalid();
+    Map<UUID, TeamView> logoTeams = new HashMap<>();
+    Map<UUID, List<UUID>> logoPools = new HashMap<>();
+    if (cycle.mode() == CollectionModeEnum.INITIAL_IMPORT && !control.scopeIds().isEmpty()) {
+      for (InitialCoverage row :
+          store.initialCoverage(control.sourceBindingIds(), control.scopeIds())) {
+        if (row.stage() != CollectionStageEnum.LOGO || logoTeams.containsKey(row.scopeId()))
+          continue;
+        acquisitionReads
+            .team(row.scopeId())
+            .filter(
+                team ->
+                    team.provider() == CollectionProviderEnum.LNV
+                        && team.nativeReference() != null
+                        && !team.nativeReference().isBlank())
+            .ifPresent(
+                team -> {
+                  logoTeams.put(team.id(), team);
+                  logoPools.put(team.id(), acquisitionReads.teamPools(team.id()));
+                });
+      }
+    }
+    Set<UUID> frozenLogos = new HashSet<>();
     boolean lockedReference = false;
     for (Source candidate : sources) {
       Source source;
@@ -124,6 +151,23 @@ public class FreezeCollectionTargets {
                 .map(reference -> mapper.toTarget(reference, source, season))
                 .toList());
         if (provider == CollectionProviderEnum.LNV) {
+          for (AcquisitionReference reference : references) {
+            if (reference.kind() != CollectionTargetKindEnum.CALENDAR) continue;
+            for (TeamView team : logoTeams.values()) {
+              if (team.seasonId().equals(season.id())
+                  && team.organizerReference().equals(source.organizerReference())
+                  && logoPools.get(team.id()).contains(reference.poolId())
+                  && frozenLogos.add(team.id())) {
+                Target logo =
+                    mapper.toTarget(reference, source, season).toBuilder()
+                        .scopeId(team.id())
+                        .kind(CollectionTargetKindEnum.LOGO)
+                        .nativeTeamReference(team.nativeReference())
+                        .build();
+                retainDue(cycle, control, List.of(logo));
+              }
+            }
+          }
           for (UUID poolId :
               references.stream().map(AcquisitionReference::poolId).distinct().toList()) {
             for (int detailPage = 0; ; detailPage++) {
@@ -220,6 +264,7 @@ public class FreezeCollectionTargets {
           case CALENDAR, STANDINGS ->
               Duration.ofMinutes(target.fastWindowEndsAt() == null ? 30 : 5);
           case DETAILS -> Duration.ofMinutes(target.fastWindowEndsAt() == null ? 60 : 5);
+          case LOGO -> throw CollectionConflictException.invalidContext();
           case CLUB_SHEET -> Duration.ofDays(1);
           case GEOCODING -> Duration.ofHours(1);
         };

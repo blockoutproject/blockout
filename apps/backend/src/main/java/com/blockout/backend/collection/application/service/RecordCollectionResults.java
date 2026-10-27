@@ -125,8 +125,8 @@ public class RecordCollectionResults {
 
   /**
    * Retains initial evidence independently of ordinary operational freshness. Additional detail and
-   * logo work resolves its source through F02 and an admitted calendar, never caller-supplied
-   * roots.
+   * logo work uses an exact admitted target or resolves its source through F02 and an admitted
+   * calendar, never caller-supplied roots.
    *
    * @param cycle already authorized initial passage under its transaction fence
    * @param command attributable observed result
@@ -135,11 +135,17 @@ public class RecordCollectionResults {
     Target target;
     if (command.stage() == CollectionStageEnum.LOGO) {
       target =
-          acquisitionReads.teamPools(command.scopeId()).stream()
-              .map(pool -> store.target(cycle.id(), pool, CollectionTargetKindEnum.CALENDAR))
-              .flatMap(java.util.Optional::stream)
-              .findFirst()
-              .orElseThrow(CollectionConflictException::invalidContext);
+          store
+              .target(cycle.id(), command.scopeId(), CollectionTargetKindEnum.LOGO)
+              .orElseGet(
+                  () ->
+                      acquisitionReads.teamPools(command.scopeId()).stream()
+                          .map(
+                              pool ->
+                                  store.target(cycle.id(), pool, CollectionTargetKindEnum.CALENDAR))
+                          .flatMap(java.util.Optional::stream)
+                          .findFirst()
+                          .orElseThrow(CollectionConflictException::invalidContext));
     } else {
       target =
           store
@@ -206,8 +212,9 @@ public class RecordCollectionResults {
    */
   private boolean contains(UUID cycleId, UUID scopeId, CollectionStageEnum stage) {
     if (stage == CollectionStageEnum.LOGO) {
-      return store.containsAnyTarget(
-          cycleId, acquisitionReads.teamPools(scopeId), CollectionTargetKindEnum.CALENDAR);
+      return store.containsTarget(cycleId, scopeId, CollectionTargetKindEnum.LOGO)
+          || store.containsAnyTarget(
+              cycleId, acquisitionReads.teamPools(scopeId), CollectionTargetKindEnum.CALENDAR);
     }
     if (store.containsTarget(cycleId, scopeId, stages.toTargetKind(stage))) return true;
     return stage == CollectionStageEnum.DETAILS

@@ -4,6 +4,7 @@ import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpCl
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
+import java.net.URI;
 import java.time.Clock;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -19,7 +20,8 @@ public class QualifySource {
   private final Clock clock;
 
   /** Supported structure and optional explicit season evidence, without operator confirmation. */
-  public record Evidence(SourceValidationStateEnum state, String seasonEvidence, String reason) {}
+  public record Evidence(
+      SourceValidationStateEnum state, String seasonEvidence, String reason, URI reasonType) {}
 
   /**
    * Binds explicit provider adapters to the existing admission and completion boundaries.
@@ -65,7 +67,8 @@ public class QualifySource {
             evidence.state(),
             clock.instant(),
             evidence.seasonEvidence(),
-            evidence.reason()));
+            evidence.reason(),
+            evidence.reasonType()));
   }
 
   /**
@@ -89,21 +92,31 @@ public class QualifySource {
                         .build())
                 .catalog();
         if (!catalog.complete())
-          return new Evidence(SourceValidationStateEnum.INVALID, null, "Incomplete FFVB catalog");
+          return new Evidence(
+              SourceValidationStateEnum.INVALID,
+              null,
+              "Incomplete FFVB catalog",
+              URI.create("urn:blockout:acquisition:structure"));
         season = candidate.seasonLabel();
       } else {
         ProviderHttpClient.Response response = lnvHttp.page(candidate.candidateUrl()).join();
         season = lnv.qualify(response.body(), response.url(), candidate.organizerReference());
       }
       if (season == null)
-        return new Evidence(SourceValidationStateEnum.CONFIRMATION_REQUIRED, null, null);
+        return new Evidence(SourceValidationStateEnum.CONFIRMATION_REQUIRED, null, null, null);
       if (!season.equals(candidate.seasonLabel()))
         return new Evidence(
-            SourceValidationStateEnum.INVALID, season, "Contradictory season evidence");
-      return new Evidence(SourceValidationStateEnum.QUALIFIED, season, null);
+            SourceValidationStateEnum.INVALID,
+            season,
+            "Contradictory season evidence",
+            URI.create("urn:blockout:acquisition:context"));
+      return new Evidence(SourceValidationStateEnum.QUALIFIED, season, null, null);
     } catch (RuntimeException failure) {
       return new Evidence(
-          SourceValidationStateEnum.INVALID, null, "Unavailable or unsupported source context");
+          SourceValidationStateEnum.INVALID,
+          null,
+          "Unavailable or unsupported source context",
+          AcquisitionFailure.reasonType(failure));
     }
   }
 }

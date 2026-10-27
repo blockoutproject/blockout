@@ -20,6 +20,7 @@
       <column name="validated_at" type="TIMESTAMP WITH TIME ZONE"></column>
       <column name="season_evidence" type="TEXT"></column>
       <column name="reason" type="TEXT"/>
+      <column name="reason_type" type="VARCHAR(255)"/>
       <column name="season_confirmed" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
       <column name="locked" type="BOOLEAN"><constraints nullable="false"/></column>
       <column name="launched" type="BOOLEAN"><constraints nullable="false"/></column>
@@ -93,6 +94,7 @@
       <column name="provider" type="VARCHAR(255)"></column>
       <column name="organizer_reference" type="TEXT"></column>
       <column name="native_match_reference" type="TEXT"></column>
+      <column name="native_team_reference" type="TEXT"/>
     </createTable>
     <addPrimaryKey tableName="collection_target" columnNames="cycle_id,kind,scope_id" constraintName="pk_collection_target"/>
     <addForeignKeyConstraint baseTableName="collection_target" baseColumnNames="cycle_id" referencedTableName="collection_cycle" referencedColumnNames="id" constraintName="fk_collection_target_cycle" onDelete="CASCADE"/>

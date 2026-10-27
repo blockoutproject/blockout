@@ -110,7 +110,9 @@ public class AdmitCollectionCycle {
                 || (season != null
                     && season.collectionState() != CollectionSeasonStateEnum.ACTIVE)))
         || (mode == CollectionModeEnum.INITIAL_IMPORT
-            && (season == null || control.sourceBindingIds().isEmpty())))
+            && (season == null
+                || season.collectionState() != CollectionSeasonStateEnum.PREPARING
+                || control.sourceBindingIds().isEmpty())))
       throw CollectionConflictException.invalidContext();
     CollectionRevision.requireAdvance(control.revision());
     Cycle cycle = store.createCycle(command, mode, null, clock.instant());
