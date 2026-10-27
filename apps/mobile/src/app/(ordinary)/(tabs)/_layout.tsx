@@ -41,8 +41,9 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useReducedMotion } from "../../../shared/theme/use-reduced-motion";
 import { SelectionIndicator } from "../../../shared/components/selection-indicator";
+import { BottomNavigationInsetContext } from "../../../shared/components/bottom-navigation-inset";
 
-/** Expo owns tab selection/history; native flex layout retains the approved two rows for enlarged text. */
+/** Expo owns focus/history; the measured floating capsule retains native two-row layout for enlarged text. */
 export default function TabsLayout() {
   const { session, queries } = useInboxQueries();
   const summary = useQuery({
@@ -62,69 +63,81 @@ export default function TabsLayout() {
   const { fontScale } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
   const [selectionLayout, setSelectionLayout] = useState<LayoutRectangle>();
+  const [capsuleHeight, setCapsuleHeight] = useState(0);
   const guest = session.status === "guest";
   const columns =
     fontScale >= 1.5 && !guest ? styles.twoColumns : styles.oneRow;
   return (
-    <Tabs
-      style={[styles.tabs, { backgroundColor: colors.canvas }]}
-      options={{ backBehavior: "history" }}
+    <BottomNavigationInsetContext
+      value={
+        capsuleHeight > 0
+          ? capsuleHeight + insets.bottom + tokens.spacing.sm
+          : 0
+      }
     >
-      <TabSlot />
-      <TabList asChild>
-        <NavigationCapsule
-          layout={selectionLayout}
-          reducedMotion={reducedMotion}
-          style={{
-            marginBottom: insets.bottom + tokens.spacing.sm,
-            marginHorizontal:
-              fontScale >= 1.5 ? tokens.spacing.lg : tokens.spacing.sm,
-            borderColor: membership.border,
-            backgroundColor: colors.raised,
-          }}
-        >
-          <TabTrigger name="index" href="/" asChild>
-            <TabButton
-              label="Accueil"
-              icon={House}
-              hidden={guest}
-              style={columns}
-              reducedMotion={reducedMotion}
-              onFocusedLayout={setSelectionLayout}
-            />
-          </TabTrigger>
-          <TabTrigger name="search" href="/search" asChild>
-            <TabButton
-              label="Rechercher"
-              icon={Search}
-              style={columns}
-              reducedMotion={reducedMotion}
-              onFocusedLayout={setSelectionLayout}
-            />
-          </TabTrigger>
-          <TabTrigger name="notifications" href="/notifications" asChild>
-            <TabButton
-              label="Notifications"
-              icon={Bell}
-              count={count}
-              hidden={guest}
-              style={columns}
-              reducedMotion={reducedMotion}
-              onFocusedLayout={setSelectionLayout}
-            />
-          </TabTrigger>
-          <TabTrigger name="profile" href="/profile" asChild>
-            <TabButton
-              label="Profil"
-              icon={UserRound}
-              style={columns}
-              reducedMotion={reducedMotion}
-              onFocusedLayout={setSelectionLayout}
-            />
-          </TabTrigger>
-        </NavigationCapsule>
-      </TabList>
-    </Tabs>
+      <Tabs
+        style={[styles.tabs, { backgroundColor: colors.canvas }]}
+        options={{ backBehavior: "history" }}
+      >
+        <TabSlot />
+        <TabList asChild>
+          <NavigationCapsule
+            onLayout={({ nativeEvent }) =>
+              setCapsuleHeight(nativeEvent.layout.height)
+            }
+            layout={selectionLayout}
+            reducedMotion={reducedMotion}
+            style={{
+              marginBottom: insets.bottom + tokens.spacing.sm,
+              marginHorizontal:
+                fontScale >= 1.5 ? tokens.spacing.lg : tokens.spacing.sm,
+              borderColor: membership.border,
+              backgroundColor: colors.raised,
+            }}
+          >
+            <TabTrigger name="index" href="/" asChild>
+              <TabButton
+                label="Accueil"
+                icon={House}
+                hidden={guest}
+                style={columns}
+                reducedMotion={reducedMotion}
+                onFocusedLayout={setSelectionLayout}
+              />
+            </TabTrigger>
+            <TabTrigger name="search" href="/search" asChild>
+              <TabButton
+                label="Rechercher"
+                icon={Search}
+                style={columns}
+                reducedMotion={reducedMotion}
+                onFocusedLayout={setSelectionLayout}
+              />
+            </TabTrigger>
+            <TabTrigger name="notifications" href="/notifications" asChild>
+              <TabButton
+                label="Notifications"
+                icon={Bell}
+                count={count}
+                hidden={guest}
+                style={columns}
+                reducedMotion={reducedMotion}
+                onFocusedLayout={setSelectionLayout}
+              />
+            </TabTrigger>
+            <TabTrigger name="profile" href="/profile" asChild>
+              <TabButton
+                label="Profil"
+                icon={UserRound}
+                style={columns}
+                reducedMotion={reducedMotion}
+                onFocusedLayout={setSelectionLayout}
+              />
+            </TabTrigger>
+          </NavigationCapsule>
+        </TabList>
+      </Tabs>
+    </BottomNavigationInsetContext>
   );
 }
 
@@ -285,9 +298,13 @@ function TabButton({
 const styles = StyleSheet.create({
   tabs: { flex: 1 },
   capsule: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
     flexDirection: "column",
     padding: tokens.spacing.xs,
-    marginTop: tokens.spacing.lg,
     borderRadius: tokens.radius.panel,
     borderWidth: tokens.border.thin,
   },

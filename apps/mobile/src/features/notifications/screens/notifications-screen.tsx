@@ -15,6 +15,7 @@ import {
 } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
 import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+import { BottomNavigationSpacer } from "../../../shared/components/bottom-navigation-inset";
 import { Button } from "../../../shared/components/button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
@@ -194,21 +195,24 @@ function Inbox({
               )
             }
             ListFooterComponent={
-              query.hasNextPage ? (
-                <View style={styles.continuation}>
-                  <Button
-                    label={
-                      query.isFetchNextPageError
-                        ? "Réessayer"
-                        : "Charger la suite"
-                    }
-                    variant="secondary"
-                    loading={query.isFetchingNextPage}
-                    disabled={query.isFetching}
-                    onPress={() => void loadMore()}
-                  />
-                </View>
-              ) : undefined
+              <>
+                {query.hasNextPage ? (
+                  <View style={styles.continuation}>
+                    <Button
+                      label={
+                        query.isFetchNextPageError
+                          ? "Réessayer"
+                          : "Charger la suite"
+                      }
+                      variant="secondary"
+                      loading={query.isFetchingNextPage}
+                      disabled={query.isFetching}
+                      onPress={() => void loadMore()}
+                    />
+                  </View>
+                ) : null}
+                <BottomNavigationSpacer />
+              </>
             }
             renderItem={({ item }) => (
               <NotificationItem

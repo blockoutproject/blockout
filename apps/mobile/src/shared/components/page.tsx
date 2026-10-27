@@ -13,23 +13,41 @@ import {
 } from "react-native-safe-area-context";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
+import {
+  BottomNavigationInsetContext,
+  BottomNavigationSpacer,
+  useBottomNavigationInset,
+} from "./bottom-navigation-inset";
 
-/** The route composes its header and content; native insets remain owned by this page. */
+/** The route composes its header and content; floating navigation owns the ordinary bottom inset. */
 export interface PageProps extends PropsWithChildren {
   edges?: SafeAreaViewProps["edges"];
+  /** A native modal covers the tab capsule and keeps its own complete safe-area reservation. */
   accessibilityViewIsModal?: boolean;
 }
 
-/** Applies the application canvas and one native safe-area boundary. */
+/** Applies one safe-area boundary; modal pages clear the covered tab bar's trailing reservation. */
 export function Page({ children, edges, accessibilityViewIsModal }: PageProps) {
   const { colors } = useTheme();
+  const bottomNavigationInset = useBottomNavigationInset();
+  const inset = accessibilityViewIsModal ? 0 : bottomNavigationInset;
+  const safeEdges =
+    inset > 0
+      ? Array.isArray(edges)
+        ? edges.filter((edge) => edge !== "bottom")
+        : edges
+          ? { ...edges, bottom: "off" as const }
+          : (["top", "left", "right"] as const)
+      : edges;
   return (
     <SafeAreaView
-      edges={edges}
+      edges={safeEdges}
       accessibilityViewIsModal={accessibilityViewIsModal}
       style={[styles.page, { backgroundColor: colors.canvas }]}
     >
-      {children}
+      <BottomNavigationInsetContext value={inset}>
+        {children}
+      </BottomNavigationInsetContext>
     </SafeAreaView>
   );
 }
@@ -58,8 +76,9 @@ export interface PageScrollViewProps extends ScrollViewProps {
   ref?: Ref<ScrollViewInstance>;
 }
 
-/** Keeps native scroll APIs, worklet handlers and refresh intact while short states fill the useful area. */
+/** Keeps native scroll APIs and refresh; trailing native content clears a measured floating tab bar. */
 export function PageScrollView({
+  children,
   contentContainerStyle,
   ...props
 }: PageScrollViewProps) {
@@ -68,7 +87,10 @@ export function PageScrollView({
       alwaysBounceVertical
       {...props}
       contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
-    />
+    >
+      {children}
+      <BottomNavigationSpacer />
+    </Animated.ScrollView>
   );
 }
 
