@@ -3,7 +3,9 @@ package com.blockout.backend.sporting.application;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
+import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
+import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -51,6 +53,30 @@ public interface ConsultationStore {
    * @return detached existing metadata keyed by identity
    */
   Map<UUID, DivisionDetail> divisions(Set<UUID> ids);
+
+  /**
+   * Reads accepted teams as scalar values without repeating parent or image loads per summary.
+   *
+   * @param ids current identities already admitted within this transaction
+   * @return existing immutable teams keyed by original identity
+   */
+  Map<UUID, TeamView> teams(Set<UUID> ids);
+
+  /**
+   * Reads accepted contextual pools without their acquisition or image graph.
+   *
+   * @param ids current identities already admitted within this transaction
+   * @return existing immutable pools keyed by original identity
+   */
+  Map<UUID, PoolView> pools(Set<UUID> ids);
+
+  /**
+   * Reads canonical season identities for the current summary selection.
+   *
+   * @param ids distinct season identities referenced by selected resources
+   * @return existing canonical seasons keyed by identity
+   */
+  Map<UUID, SeasonView> seasons(Set<UUID> ids);
 
   /**
    * Loads the to-one graph of already admitted dated matches in one bounded query.

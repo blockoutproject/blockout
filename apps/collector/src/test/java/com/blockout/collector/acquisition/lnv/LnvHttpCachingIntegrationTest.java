@@ -2,6 +2,7 @@ package com.blockout.collector.acquisition.lnv;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.config.AcquisitionConfiguration;
 import com.blockout.collector.config.AcquisitionProperties;
@@ -62,7 +63,7 @@ class LnvHttpCachingIntegrationTest {
       http.image(origin.resolve("/logo")).join();
 
       // When
-      ProviderHttpClient.Response result = http.image(origin.resolve("/logo")).join();
+      ProviderResponse result = http.image(origin.resolve("/logo")).join();
 
       // Then
       assertThat(reads).hasValue(2);
@@ -107,8 +108,8 @@ class LnvHttpCachingIntegrationTest {
             List.of());
     try (ProviderHttpClient http = new AcquisitionConfiguration().lnvProviderClient(properties)) {
       // When
-      ProviderHttpClient.Response first = http.image(origin.resolve("/logo")).join();
-      ProviderHttpClient.Response second = http.image(origin.resolve("/logo")).join();
+      ProviderResponse first = http.image(origin.resolve("/logo")).join();
+      ProviderResponse second = http.image(origin.resolve("/logo")).join();
       // Then
       assertThat(first.supplierRead()).isTrue();
       assertThat(second.supplierRead()).isFalse();

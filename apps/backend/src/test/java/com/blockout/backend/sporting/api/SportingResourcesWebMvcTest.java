@@ -17,13 +17,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.blockout.backend.access.application.MaintenanceAdmission;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
+import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
+import com.blockout.backend.sporting.application.ConsultationRequest.ClubSeasonRequest;
 import com.blockout.backend.sporting.application.ConsultationViews;
 import com.blockout.backend.sporting.application.ReadMatchCalendar;
 import com.blockout.backend.sporting.application.ReadSportingResources;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
+import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -44,7 +49,6 @@ import org.springframework.web.server.ResponseStatusException;
 @WebMvcTest(ConsultationController.class)
 @Import({
   HttpConfiguration.class,
-  ConsultationHttpConfiguration.class,
   SecurityConfiguration.class,
   ConsultationApiMapperImpl.class,
   SportingExceptionHandler.class,
@@ -89,9 +93,7 @@ class SportingResourcesWebMvcTest {
   @DisplayName("Serves the exact team pool and match identity through generated JSON mappings")
   void servesResourceDetail(String path, String identityPath) throws Exception {
     // Given
-    com.blockout.backend.sporting.application.model.SportingViews.SeasonView season =
-        new com.blockout.backend.sporting.application.model.SportingViews.SeasonView(
-            ID, 2026, "2026/2027");
+    SeasonView season = new SeasonView(ID, 2026, "2026/2027");
     ConsultationViews.Identity identity =
         new ConsultationViews.Identity(ID, "Resource", null, null);
     ConsultationViews.Classification classification =
@@ -119,11 +121,11 @@ class SportingResourcesWebMvcTest {
                         identity,
                         identity,
                         new ConsultationViews.Schedule(
-                            java.time.LocalDate.of(2026, 10, 24),
+                            LocalDate.of(2026, 10, 24),
                             null,
                             null,
-                            java.time.OffsetDateTime.parse("2026-10-24T12:00:00Z")),
-                        com.blockout.backend.generated.mobile.model.CalendarCategoryEnum.UPCOMING,
+                            OffsetDateTime.parse("2026-10-24T12:00:00Z")),
+                        CalendarCategoryEnum.UPCOMING,
                         null),
                     null,
                     null,
@@ -150,9 +152,7 @@ class SportingResourcesWebMvcTest {
   @DisplayName("Returns a successful empty exact club-season selection")
   void servesEmptySeason() throws Exception {
     // Given
-    when(resources.clubTeams(
-            new com.blockout.backend.sporting.application.ConsultationRequest.ClubSeasonRequest(
-                ID, ID)))
+    when(resources.clubTeams(new ClubSeasonRequest(ID, ID)))
         .thenReturn(new ConsultationViews.ClubTeams(ID, List.of()));
 
     // When
@@ -266,6 +266,42 @@ class SportingResourcesWebMvcTest {
     // Then
     response.andExpect(status().isOk());
     verify(resources).teamLogo(ID, TeamLogoSelectionEnum.AUTOMATIC);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"EFFECTIVE", "AUTOMATIC", " automatic ", "unknown", " "})
+  @DisplayName("Rejects noncanonical logo selections before reading image content")
+  void rejectsNoncanonicalLogoSelection(String selection) throws Exception {
+    // Given
+    UUID team = ID;
+
+    // When
+    ResultActions response =
+        mvc.perform(get("/teams/{id}/logo", team).param("selection", selection));
+
+    // Then
+    response
+        .andExpect(status().isBadRequest())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:invalid-request"))
+        .andExpect(jsonPath("$.detail").doesNotExist())
+        .andExpect(jsonPath("$.instance").doesNotExist());
+    verifyNoInteractions(resources, calendars);
+  }
+
+  @Test
+  @DisplayName("Preserves the generated effective-logo default for an empty selection")
+  void preservesEmptyLogoDefault() throws Exception {
+    // Given
+    when(resources.teamLogo(ID, TeamLogoSelectionEnum.EFFECTIVE))
+        .thenReturn(new Image(new byte[] {1}, "image/png"));
+
+    // When
+    ResultActions response = mvc.perform(get("/teams/{id}/logo", ID).param("selection", ""));
+
+    // Then
+    response.andExpect(status().isOk());
+    verify(resources).teamLogo(ID, TeamLogoSelectionEnum.EFFECTIVE);
   }
 
   @Test

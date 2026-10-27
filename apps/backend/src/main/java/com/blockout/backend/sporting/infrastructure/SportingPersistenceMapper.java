@@ -551,63 +551,116 @@ interface SportingPersistenceMapper {
   }
 
   /**
-   * Detaches club presentation with its current manual artwork route.
+   * Maps managed club state for editor reads/writes, calendar admission and fetched-graph
+   * composition. Already loaded state needs no additional scalar presentation query.
    *
-   * @param source loaded club inside the owning transaction
-   * @return current editor state with independent name and image choices
+   * @param source managed club in the caller's transaction
+   * @return detached presentation using the common scalar presentation rule
    */
   default SportingPresentation.View toPresentation(ClubEntity source) {
-    String manual = source.getLogo() == null ? null : "/clubs/" + source.getId() + "/logo";
-    return new SportingPresentation.View(
-        source.getId(),
-        Kind.CLUB,
-        Long.toString(source.getPresentationRevision()),
-        SportingPresentation.Names.resolve(
-            source.getSourceName(), source.getManualName(), null, false),
-        new SportingPresentation.Logo(manual, manual, null));
+    return toPresentation(
+        new SportingPresentationRow(
+            source.getId(),
+            source.getSourceName(),
+            source.getManualName(),
+            null,
+            source.getPresentationRevision(),
+            null,
+            source.getLogo() != null,
+            false,
+            null,
+            false,
+            0),
+        Kind.CLUB);
   }
 
   /**
-   * Detaches the current team and inherited artwork while retaining its composite revision.
+   * Maps managed team/club state for editor reads/writes, calendar admission and fetched-graph
+   * composition. A fetched graph needs no additional scalar presentation query per encounter.
    *
-   * @param source loaded team with its optional club in the same transaction
-   * @return effective/manual/automatic choices without image bytes
+   * @param source managed team and optional club in the caller's transaction
+   * @return detached presentation using the common scalar presentation rule
    */
   default SportingPresentation.View toPresentation(TeamEntity source) {
     ClubEntity club = source.getClub();
-    String manual = source.getLogo() == null ? null : "/teams/" + source.getId() + "/logo";
-    String automatic =
-        source.getProvider() == CollectionProviderEnum.LNV && source.getSourceLogo() != null
-            ? "/teams/"
-                + source.getId()
-                + "/logo?selection="
-                + TeamLogoSelectionEnum.AUTOMATIC.getValue()
-            : club != null && club.getLogo() != null ? "/clubs/" + club.getId() + "/logo" : null;
-    String revision =
-        source.getPresentationRevision() + "." + (club == null ? 0 : club.getLogoRevision());
-    return new SportingPresentation.View(
-        source.getId(),
-        Kind.TEAM,
-        revision,
-        SportingPresentation.Names.resolve(
-            source.getSourceName(), source.getManualName(), source.getManualShortName(), true),
-        new SportingPresentation.Logo(manual == null ? automatic : manual, manual, automatic));
+    return toPresentation(
+        new SportingPresentationRow(
+            source.getId(),
+            source.getSourceName(),
+            source.getManualName(),
+            source.getManualShortName(),
+            source.getPresentationRevision(),
+            source.getProvider(),
+            source.getLogo() != null,
+            source.getSourceLogo() != null,
+            club == null ? null : club.getId(),
+            club != null && club.getLogo() != null,
+            club == null ? 0 : club.getLogoRevision()),
+        Kind.TEAM);
   }
 
   /**
-   * Detaches names-only pool presentation without inventing a pool artwork concept.
+   * Maps managed pool names for editor reads/writes, calendar admission and fetched-graph
+   * composition, without inventing artwork or re-querying an already loaded presentation.
    *
-   * @param source loaded pool inside the owning transaction
-   * @return current independent name choices
+   * @param source managed pool in the caller's transaction
+   * @return detached presentation using the common scalar presentation rule
    */
   default SportingPresentation.View toPresentation(PoolEntity source) {
+    return toPresentation(
+        new SportingPresentationRow(
+            source.getId(),
+            source.getSourceName(),
+            source.getManualName(),
+            source.getManualShortName(),
+            source.getPresentationRevision(),
+            null,
+            false,
+            false,
+            null,
+            false,
+            0),
+        Kind.POOL);
+  }
+
+  /**
+   * Resolves the same current names and artwork precedence for editor and public batch reads.
+   *
+   * @param source scalar owner facts, including image presence without its bytes
+   * @param kind club, team or pool presentation owner
+   * @return detached presentation with its original resource/inherited artwork revision
+   */
+  default SportingPresentation.View toPresentation(SportingPresentationRow source, Kind kind) {
+    SportingPresentation.Logo logo = null;
+    String revision = Long.toString(source.revision());
+    switch (kind) {
+      case CLUB -> {
+        String manual = source.hasLogo() ? "/clubs/" + source.id() + "/logo" : null;
+        logo = new SportingPresentation.Logo(manual, manual, null);
+      }
+      case TEAM -> {
+        String manual = source.hasLogo() ? "/teams/" + source.id() + "/logo" : null;
+        String automatic =
+            source.provider() == CollectionProviderEnum.LNV && source.hasSourceLogo()
+                ? "/teams/"
+                    + source.id()
+                    + "/logo?selection="
+                    + TeamLogoSelectionEnum.AUTOMATIC.getValue()
+                : source.clubHasLogo() ? "/clubs/" + source.clubId() + "/logo" : null;
+        logo =
+            new SportingPresentation.Logo(manual == null ? automatic : manual, manual, automatic);
+        revision += "." + source.clubLogoRevision();
+      }
+      case POOL -> {}
+      default -> throw new IllegalArgumentException("Unsupported presentation kind");
+    }
     return new SportingPresentation.View(
-        source.getId(),
-        Kind.POOL,
-        Long.toString(source.getPresentationRevision()),
+        source.id(),
+        kind,
+        revision,
         SportingPresentation.Names.resolve(
-            source.getSourceName(), source.getManualName(), source.getManualShortName(), true),
-        null);
+            source.sourceName(), source.manualName(), source.manualShortName(), kind != Kind.CLUB),
+        logo);
   }
 
   /**

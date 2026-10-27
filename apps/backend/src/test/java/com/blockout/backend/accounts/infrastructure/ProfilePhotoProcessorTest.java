@@ -5,13 +5,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.backend.accounts.application.ProfilePhoto;
 import com.blockout.backend.accounts.application.exception.InvalidProfilePhotoException;
+import com.blockout.backend.accounts.application.exception.ProfilePhotoTooLargeException;
 import com.blockout.backend.accounts.application.exception.UnsupportedProfilePhotoException;
+import com.blockout.backend.shared.image.ImageFixture;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageTypeSpecifier;
 import javax.imageio.ImageWriter;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.metadata.IIOMetadataNode;
@@ -115,6 +119,45 @@ class ProfilePhotoProcessorTest {
   }
 
   @Test
+  @DisplayName("Classifies unsupported actual content as invalid when its declaration is accepted")
+  void rejectsUnsupportedActualContent() throws Exception {
+    // Given
+    byte[] original = image("gif", 2, 2);
+
+    // When
+    ThrowingCallable prepare = () -> processor.prepare(original, "image/png");
+
+    // Then
+    assertThatThrownBy(prepare).isInstanceOf(InvalidProfilePhotoException.class);
+  }
+
+  @Test
+  @DisplayName("Refuses the unsupported declaration before excessive compressed bytes")
+  void checksDeclarationBeforeByteBound() {
+    // Given
+    byte[] original = new byte[5 * 1024 * 1024 + 1];
+
+    // When
+    ThrowingCallable prepare = () -> processor.prepare(original, "image/gif");
+
+    // Then
+    assertThatThrownBy(prepare).isInstanceOf(UnsupportedProfilePhotoException.class);
+  }
+
+  @Test
+  @DisplayName("Refuses excessive compressed bytes before decoding malformed content")
+  void checksByteBoundBeforeContent() {
+    // Given
+    byte[] original = new byte[5 * 1024 * 1024 + 1];
+
+    // When
+    ThrowingCallable prepare = () -> processor.prepare(original, "image/png");
+
+    // Then
+    assertThatThrownBy(prepare).isInstanceOf(ProfilePhotoTooLargeException.class);
+  }
+
+  @Test
   @DisplayName("Discards embedded PNG text metadata while retaining accepted pixels")
   void discardsEmbeddedMetadata() throws Exception {
     // Given
@@ -126,7 +169,7 @@ class ProfilePhotoProcessorTest {
       writer.setOutput(output);
       IIOMetadata metadata =
           writer.getDefaultImageMetadata(
-              new javax.imageio.ImageTypeSpecifier(pixels), writer.getDefaultWriteParam());
+              new ImageTypeSpecifier(pixels), writer.getDefaultWriteParam());
       IIOMetadataNode root = new IIOMetadataNode("javax_imageio_png_1.0");
       IIOMetadataNode text = new IIOMetadataNode("tEXt");
       IIOMetadataNode entry = new IIOMetadataNode("tEXtEntry");
@@ -154,10 +197,25 @@ class ProfilePhotoProcessorTest {
   }
 
   @Test
+  @DisplayName("Reencodes valid pixels while ignoring malformed original text metadata")
+  void ignoresMalformedOriginalMetadata() throws Exception {
+    // Given
+    byte[] original = ImageFixture.pngWithMalformedCompressedText();
+
+    // When
+    ProfilePhoto photo = processor.prepare(original, "image/png");
+
+    // Then
+    assertThat(photo.mediaType()).isEqualTo("image/png");
+    assertThat(photo.dimension()).isEqualTo(2);
+    assertThat(ImageIO.read(new ByteArrayInputStream(photo.bytes())).getWidth()).isEqualTo(2);
+  }
+
+  @Test
   @DisplayName("Accepts a valid upload exactly at the compressed byte bound")
   void acceptsByteBoundary() throws Exception {
     // Given
-    byte[] original = java.util.Arrays.copyOf(image("png", 1, 1), 5 * 1024 * 1024);
+    byte[] original = Arrays.copyOf(image("png", 1, 1), 5 * 1024 * 1024);
 
     // When
     ProfilePhoto photo = processor.prepare(original, "image/png");

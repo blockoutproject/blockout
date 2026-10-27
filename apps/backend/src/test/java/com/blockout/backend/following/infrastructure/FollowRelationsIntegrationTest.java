@@ -11,11 +11,10 @@ import com.blockout.backend.following.application.FollowContext;
 import com.blockout.backend.following.application.FollowContext.Relation;
 import com.blockout.backend.following.application.FollowContext.Target;
 import com.blockout.backend.following.application.FollowContext.TargetType;
+import com.blockout.backend.following.application.FollowState;
 import com.blockout.backend.following.application.FollowStore;
 import com.blockout.backend.following.application.FollowUnavailableTargetException;
 import com.blockout.backend.following.application.ReadFollowEligibility;
-import com.blockout.backend.following.application.ReadFollowState;
-import com.blockout.backend.following.application.ReplaceFollowState;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.sql.Connection;
@@ -65,8 +64,7 @@ class FollowRelationsIntegrationTest {
   // Deliberately equal UUIDs in different owner tables must remain distinct typed targets.
   private static final UUID TARGET = UUID.fromString("00000000-0000-4000-8000-000000000013");
   @Autowired private JdbcTemplate sql;
-  @Autowired private ReadFollowState reads;
-  @Autowired private ReplaceFollowState changes;
+  @Autowired private FollowState state;
   @Autowired private FollowStore store;
   @Autowired private ReadFollowEligibility eligibility;
   @Autowired private AccountAccess accounts;
@@ -114,7 +112,7 @@ class FollowRelationsIntegrationTest {
         DIVISION);
     sql.update(
         "INSERT INTO sporting_participation(id, team_id, pool_id, current) VALUES (?, ?, ?, TRUE)",
-        UUID.randomUUID(),
+        UUID.fromString("00000000-0000-4000-8000-000000000101"),
         TARGET,
         TARGET);
   }
@@ -125,17 +123,17 @@ class FollowRelationsIntegrationTest {
   void replacesIdempotently(TargetType type) {
     // Given
     FollowContext context = context(type);
-    assertThat(reads.read(context)).isFalse();
-    assertThat(changes.replace(context, true)).isTrue();
+    assertThat(state.read(context)).isFalse();
+    assertThat(state.replace(context, true)).isTrue();
     UUID original = relation(type).id();
 
     // When
-    boolean repeatedTrue = changes.replace(context, true);
+    boolean repeatedTrue = state.replace(context, true);
     UUID retained = relation(type).id();
-    boolean firstRemoval = changes.replace(context, false);
-    boolean repeatedRemoval = changes.replace(context, false);
+    boolean firstRemoval = state.replace(context, false);
+    boolean repeatedRemoval = state.replace(context, false);
     Optional<Relation> removed = store.find(context);
-    boolean restored = changes.replace(context, true);
+    boolean restored = state.replace(context, true);
     UUID recreated = relation(type).id();
 
     // Then
@@ -155,19 +153,19 @@ class FollowRelationsIntegrationTest {
   @DisplayName("Removes only the exact owner's typed association")
   void isolatesOwnersAndKinds() {
     // Given
-    changes.replace(context(TargetType.TEAM), true);
-    assertThat(reads.read(context(TargetType.POOL))).isFalse();
-    changes.replace(context(TargetType.POOL), true);
+    state.replace(context(TargetType.TEAM), true);
+    assertThat(state.read(context(TargetType.POOL))).isFalse();
+    state.replace(context(TargetType.POOL), true);
     FollowContext other = new FollowContext(OTHER, context(TargetType.TEAM).target());
-    changes.replace(other, true);
+    state.replace(other, true);
 
     // When
-    changes.replace(context(TargetType.TEAM), false);
+    state.replace(context(TargetType.TEAM), false);
 
     // Then
-    assertThat(reads.read(context(TargetType.TEAM))).isFalse();
-    assertThat(reads.read(context(TargetType.POOL))).isTrue();
-    assertThat(reads.read(other)).isTrue();
+    assertThat(state.read(context(TargetType.TEAM))).isFalse();
+    assertThat(state.read(context(TargetType.POOL))).isTrue();
+    assertThat(state.read(other)).isTrue();
   }
 
   @ParameterizedTest
@@ -178,7 +176,7 @@ class FollowRelationsIntegrationTest {
     String table = type == TargetType.TEAM ? "team_follow" : "pool_follow";
     String column = type == TargetType.TEAM ? "team_id" : "pool_id";
     String insert = "INSERT INTO " + table + "(id, account_id, " + column + ") VALUES (?, ?, ?)";
-    changes.replace(context(type), true);
+    state.replace(context(type), true);
 
     // When: each statement commits independently, so every rejection reaches SQL.
     Throwable observedFailure =
@@ -222,19 +220,19 @@ class FollowRelationsIntegrationTest {
   @DisplayName("Retains a hidden relation and restores its identity when F02 permits viewing again")
   void retainsHiddenRelations(TargetType type) {
     // Given
-    changes.replace(context(type), true);
+    state.replace(context(type), true);
     UUID original = relation(type).id();
     sql.update(
         "UPDATE sporting_pool SET catalog_eligible=FALSE, calendar_empty=TRUE WHERE id=?", TARGET);
 
     // When
-    Throwable observedFailure = catchThrowable(() -> reads.read(context(type)));
+    Throwable observedFailure = catchThrowable(() -> state.read(context(type)));
 
     // Then
     assertThat(observedFailure).isInstanceOf(FollowUnavailableTargetException.class);
 
     // When
-    Throwable secondFailure = catchThrowable(() -> changes.replace(context(type), false));
+    Throwable secondFailure = catchThrowable(() -> state.replace(context(type), false));
 
     // Then
     assertThat(secondFailure).isInstanceOf(FollowUnavailableTargetException.class);
@@ -244,12 +242,12 @@ class FollowRelationsIntegrationTest {
     sql.update("UPDATE sporting_division SET active=FALSE WHERE id=?", DIVISION);
 
     // When
-    Throwable thirdFailure = catchThrowable(() -> reads.read(context(type)));
+    Throwable thirdFailure = catchThrowable(() -> state.read(context(type)));
 
     // Then
     assertThat(thirdFailure).isInstanceOf(FollowUnavailableTargetException.class);
     sql.update("UPDATE sporting_division SET active=TRUE WHERE id=?", DIVISION);
-    assertThat(reads.read(context(type))).isTrue();
+    assertThat(state.read(context(type))).isTrue();
     assertThat(relation(type).id()).isEqualTo(original);
   }
 
@@ -258,10 +256,10 @@ class FollowRelationsIntegrationTest {
       "Keeps corrections on the original identity without transferring to homonyms in another season")
   void preservesIdentityAcrossCorrections() {
     // Given
-    changes.replace(context(TargetType.TEAM), true);
+    state.replace(context(TargetType.TEAM), true);
     UUID original = relation(TargetType.TEAM).id();
-    UUID nextSeason = UUID.randomUUID();
-    UUID nextTeam = UUID.randomUUID();
+    UUID nextSeason = UUID.fromString("00000000-0000-4000-8000-000000000102");
+    UUID nextTeam = UUID.fromString("00000000-0000-4000-8000-000000000103");
     sql.update(
         "INSERT INTO sporting_season(id, start_year, label) VALUES (?, 2027, '2027/2028')",
         nextSeason);
@@ -273,11 +271,11 @@ class FollowRelationsIntegrationTest {
 
     // When
     sql.update(
-        "UPDATE sporting_team SET source_name='Corrected', comparison_name='corrected', gender='MENS' WHERE id=?",
+        "UPDATE sporting_team SET source_name='Corrected', comparison_name='corrected', gender='MALE' WHERE id=?",
         TARGET);
 
     // Then
-    assertThat(reads.read(context(TargetType.TEAM))).isTrue();
+    assertThat(state.read(context(TargetType.TEAM))).isTrue();
     assertThat(relation(TargetType.TEAM).id()).isEqualTo(original);
     assertThat(store.find(new FollowContext(ACCOUNT, new Target(TargetType.TEAM, nextTeam))))
         .isEmpty();
@@ -293,7 +291,7 @@ class FollowRelationsIntegrationTest {
     FollowContext missing = new FollowContext(ACCOUNT, new Target(type, UUID.randomUUID()));
 
     // When
-    Throwable observedFailure = catchThrowable(() -> changes.replace(missing, true));
+    Throwable observedFailure = catchThrowable(() -> state.replace(missing, true));
 
     // Then
     assertThat(observedFailure).isInstanceOf(FollowUnavailableTargetException.class);
@@ -304,7 +302,7 @@ class FollowRelationsIntegrationTest {
   @DisplayName("Rolls back all relation changes on a later transactional failure")
   void rollsBack() {
     // Given
-    changes.replace(context(TargetType.POOL), true);
+    state.replace(context(TargetType.POOL), true);
     UUID original = relation(TargetType.POOL).id();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
@@ -314,8 +312,8 @@ class FollowRelationsIntegrationTest {
             () ->
                 transaction.executeWithoutResult(
                     status -> {
-                      changes.replace(context(TargetType.POOL), false);
-                      changes.replace(context(TargetType.TEAM), true);
+                      state.replace(context(TargetType.POOL), false);
+                      state.replace(context(TargetType.TEAM), true);
                       throw new IllegalStateException("Controlled rollback");
                     }));
 
@@ -344,10 +342,10 @@ class FollowRelationsIntegrationTest {
                                 inner -> {
                                   waitingPid.complete(
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
-                                  return changes.replace(context(TargetType.TEAM), last);
+                                  return state.replace(context(TargetType.TEAM), last);
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, waitingPid);
-                changes.replace(context(TargetType.TEAM), first);
+                state.replace(context(TargetType.TEAM), first);
                 return second;
               });
 
@@ -355,7 +353,7 @@ class FollowRelationsIntegrationTest {
       assertThat(waiting.get(15, TimeUnit.SECONDS)).isEqualTo(last);
 
       // Then
-      assertThat(reads.read(context(TargetType.TEAM))).isEqualTo(last);
+      assertThat(state.read(context(TargetType.TEAM))).isEqualTo(last);
       assertThat(sql.queryForObject("SELECT COUNT(*) FROM team_follow", Long.class))
           .isEqualTo(last ? 1L : 0L);
       verifyNoInteractions(provider);
@@ -382,7 +380,7 @@ class FollowRelationsIntegrationTest {
                                 inner -> {
                                   waitingPid.complete(
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
-                                  return changes.replace(context(TargetType.TEAM), true);
+                                  return state.replace(context(TargetType.TEAM), true);
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, waitingPid);
                 sql.update("DELETE FROM account WHERE id=?", ACCOUNT);
@@ -391,7 +389,7 @@ class FollowRelationsIntegrationTest {
       if (recreate)
         sql.update(
             "INSERT INTO account(id, issuer, subject, username, email) VALUES (?, 'https://identity.example.invalid/', 'one', 'replacement', 'replacement@example.invalid')",
-            UUID.randomUUID());
+            UUID.fromString("00000000-0000-4000-8000-000000000104"));
 
       // When
       Throwable observedFailure = catchThrowable(() -> waiting.get(15, TimeUnit.SECONDS));
@@ -415,7 +413,7 @@ class FollowRelationsIntegrationTest {
       Future<?> deletion =
           transaction.execute(
               status -> {
-                changes.replace(context(TargetType.POOL), true);
+                state.replace(context(TargetType.POOL), true);
                 Future<?> remover =
                     worker.submit(
                         () ->
@@ -441,7 +439,7 @@ class FollowRelationsIntegrationTest {
 
       // When
       Throwable observedFailure =
-          catchThrowable(() -> changes.replace(context(TargetType.POOL), true));
+          catchThrowable(() -> state.replace(context(TargetType.POOL), true));
 
       // Then
       assertThat(observedFailure).isInstanceOf(AccountNotFoundException.class);
@@ -453,16 +451,16 @@ class FollowRelationsIntegrationTest {
   @DisplayName("Reads current typed relations for eligibility and excludes a recreated UUID")
   void readsEligibility() {
     // Given
-    changes.replace(context(TargetType.TEAM), true);
-    changes.replace(context(TargetType.POOL), true);
+    state.replace(context(TargetType.TEAM), true);
+    state.replace(context(TargetType.POOL), true);
     Relation original = relation(TargetType.TEAM);
     Map<UUID, Set<Relation>> recipients =
         eligibility.recipients(
             Set.of(context(TargetType.TEAM).target(), context(TargetType.POOL).target()));
 
     // When
-    changes.replace(context(TargetType.TEAM), false);
-    changes.replace(context(TargetType.TEAM), true);
+    state.replace(context(TargetType.TEAM), false);
+    state.replace(context(TargetType.TEAM), true);
 
     // Then
     assertThat(recipients).containsEntry(ACCOUNT, Set.of(original, relation(TargetType.POOL)));

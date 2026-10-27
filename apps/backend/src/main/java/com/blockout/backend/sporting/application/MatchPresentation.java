@@ -11,6 +11,12 @@ import lombok.NoArgsConstructor;
 /** F03 presentation only; callers first enforce F02 visibility and a usable sporting date. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class MatchPresentation {
+  /** Elapsed time after a reliable kickoff at which an unfinished match enters Completed. */
+  public static final Duration TIMED_COMPLETION_DELAY = Duration.ofHours(6);
+
+  /** Civil-day authority for schedules that have a date without a reliable kickoff instant. */
+  public static final ZoneId DATE_ONLY_ZONE = ZoneId.of("Europe/Paris");
+
   /**
    * Classifies current accepted facts at one request instant, independently of display zone.
    *
@@ -25,8 +31,8 @@ public final class MatchPresentation {
       return CalendarCategoryEnum.COMPLETED;
     Instant boundary =
         schedule.instant() == null
-            ? schedule.localDate().plusDays(1).atStartOfDay(ZoneId.of("Europe/Paris")).toInstant()
-            : schedule.instant().toInstant().plus(Duration.ofHours(6));
+            ? schedule.localDate().plusDays(1).atStartOfDay(DATE_ONLY_ZONE).toInstant()
+            : schedule.instant().toInstant().plus(TIMED_COMPLETION_DELAY);
     return now.isBefore(boundary) ? CalendarCategoryEnum.UPCOMING : CalendarCategoryEnum.COMPLETED;
   }
 }

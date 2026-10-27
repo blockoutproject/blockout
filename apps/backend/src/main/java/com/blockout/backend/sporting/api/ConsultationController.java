@@ -17,19 +17,16 @@ import com.blockout.backend.sporting.application.model.SportingPresentation.Imag
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.Locale;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
-import org.springframework.format.Formatter;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.WebDataBinder;
-import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -43,34 +40,6 @@ public class ConsultationController implements ConsultationApi {
   private final ConsultationApiMapper mapper;
   private final ReadMatchCalendar calendars;
 
-  /**
-   * Keeps calendar input strict even when another generated consumer registers a global enum
-   * converter.
-   *
-   * @param binder native controller-scoped request binding
-   */
-  @InitBinder
-  void calendarCategory(WebDataBinder binder) {
-    binder.addCustomFormatter(
-        new Formatter<CalendarCategoryEnum>() {
-          /** {@inheritDoc} */
-          @Override
-          public CalendarCategoryEnum parse(String text, Locale locale) {
-            return switch (text) {
-              case "upcoming" -> CalendarCategoryEnum.UPCOMING;
-              case "completed" -> CalendarCategoryEnum.COMPLETED;
-              default -> throw new IllegalArgumentException("Unknown calendar category");
-            };
-          }
-
-          /** {@inheritDoc} */
-          @Override
-          public String print(CalendarCategoryEnum value, Locale locale) {
-            return value.getValue();
-          }
-        });
-  }
-
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<MatchCalendarResponse> listMatches(
@@ -82,7 +51,7 @@ public class ConsultationController implements ConsultationApi {
       UUID seasonId,
       LocalDate nextDay,
       Boolean bypass) {
-    if (Stream.of(clubId, teamId, poolId).filter(java.util.Objects::nonNull).count() != 1
+    if (Stream.of(clubId, teamId, poolId).filter(Objects::nonNull).count() != 1
         || (clubId != null) != (seasonId != null))
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
     if (!ZoneId.getAvailableZoneIds().contains(timeZone))

@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
+import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import java.net.URI;
@@ -17,6 +18,7 @@ import java.nio.charset.Charset;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.hc.core5.http.NameValuePair;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -42,12 +44,10 @@ class FfvbClubSheetTest {
     ProviderHttpClient http = mock(ProviderHttpClient.class);
     when(http.page(FORM))
         .thenReturn(
-            CompletableFuture.completedFuture(
-                new ProviderHttpClient.Response(bytes(form), FORM, true)));
+            CompletableFuture.completedFuture(new ProviderResponse(bytes(form), FORM, true)));
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> new FfvbClubSheets(http).read("000042");
+    ThrowingCallable action = () -> new FfvbClubSheets(http).read("000042");
 
     // Then
     assertThatThrownBy(action).isInstanceOf(FfvbAcquisitionException.class);
@@ -77,7 +77,7 @@ class FfvbClubSheetTest {
     when(http.page(FORM))
         .thenReturn(
             CompletableFuture.completedFuture(
-                new ProviderHttpClient.Response(
+                new ProviderResponse(
                     bytes(
                         "<form method=POST action='current_club.php'><input name=id_club><input name=scope value=current type=hidden></form>"),
                     FORM,
@@ -133,8 +133,7 @@ class FfvbClubSheetTest {
     byte[] response = bytes(html);
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
-        () -> FfvbClubSheets.parse(response, "000042");
+    ThrowingCallable parse = () -> FfvbClubSheets.parse(response, "000042");
 
     // Then
     assertThatThrownBy(parse).isInstanceOf(FfvbAcquisitionException.class);

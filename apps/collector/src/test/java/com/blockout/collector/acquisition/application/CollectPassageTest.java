@@ -14,7 +14,6 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.ffvb.FfvbDiscovery;
-import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
@@ -36,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -655,13 +655,13 @@ class CollectPassageTest {
               .sourceBindingId(CONTROL)
               .url(page)
               .build();
-      ProviderHttpClient http = mock(ProviderHttpClient.class);
+      ProviderPages http = mock(ProviderPages.class);
       byte[] html =
           ("<title>Alterna VOLSTAR 2026/2027</title>"
                   + "<a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>"
                   + "<div class=rmpView id=Content_Main_903><span id=group_lbl_title>Regular</span></div>")
               .getBytes(StandardCharsets.UTF_8);
-      ProviderHttpClient.Response response = new ProviderHttpClient.Response(html, page, true);
+      ProviderResponse response = new ProviderResponse(html, page, true);
       when(http.page(page)).thenReturn(CompletableFuture.completedFuture(response));
       DiscoverSeasonSources realDiscovery =
           new DiscoverSeasonSources(
@@ -1065,8 +1065,7 @@ class CollectPassageTest {
               });
 
       // When
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> passage.execute(admitted);
+      ThrowingCallable action = () -> passage.execute(admitted);
 
       // Then
       assertThatThrownBy(action).isInstanceOf(IllegalStateException.class);

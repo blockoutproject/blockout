@@ -1,6 +1,5 @@
 package com.blockout.collector.acquisition.application;
 
-import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
@@ -59,7 +58,7 @@ public interface LnvAcquisition {
    * @param observedAt actual response completion time
    * @return transient resource without another page request
    */
-  Resource fromPage(ProviderHttpClient.Response page, Instant observedAt);
+  Resource fromPage(ProviderResponse page, Instant observedAt);
 
   /** Calendar plus qualified native-team media references for the admitted passage only. */
   record Calendar(

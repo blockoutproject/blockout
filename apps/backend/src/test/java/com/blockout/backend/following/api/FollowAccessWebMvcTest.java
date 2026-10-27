@@ -48,7 +48,6 @@ import org.springframework.transaction.support.SimpleTransactionStatus;
   HttpConfiguration.class,
   ApiExceptionHandler.class,
   FollowingRequest.class,
-  FollowingWebConfiguration.class,
   CurrentAccount.class,
   MaintenanceAdmission.class,
   ActionAuthorization.class,

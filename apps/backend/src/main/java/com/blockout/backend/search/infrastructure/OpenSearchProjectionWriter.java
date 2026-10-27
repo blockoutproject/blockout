@@ -1,19 +1,23 @@
 package com.blockout.backend.search.infrastructure;
 
+import com.blockout.backend.search.application.SearchContext;
 import com.blockout.backend.search.application.SearchDocuments;
 import com.blockout.backend.search.application.SearchProjectionBulkException;
 import com.blockout.backend.search.application.SearchProjectionWriter;
 import com.blockout.backend.search.application.SearchUnavailableException;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
+import jakarta.json.stream.JsonParser;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.opensearch.client.json.JsonData;
@@ -24,8 +28,10 @@ import org.opensearch.client.opensearch._types.Refresh;
 import org.opensearch.client.opensearch._types.mapping.TypeMapping;
 import org.opensearch.client.opensearch.core.BulkRequest;
 import org.opensearch.client.opensearch.core.BulkResponse;
+import org.opensearch.client.opensearch.core.bulk.OperationType;
 import org.opensearch.client.opensearch.indices.GetAliasResponse;
 import org.opensearch.client.opensearch.indices.IndexSettings;
+import org.opensearch.client.opensearch.indices.RefreshResponse;
 import org.opensearch.client.opensearch.indices.UpdateAliasesRequest;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -46,7 +52,7 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
     String suffix = "-g-" + UUID.randomUUID();
     JsonpMapper mapper = client._transport().jsonpMapper();
     try (InputStream input = getClass().getResourceAsStream("/search/indices.json");
-        jakarta.json.stream.JsonParser parser = mapper.jsonProvider().createParser(input)) {
+        JsonParser parser = mapper.jsonProvider().createParser(input)) {
       Map<String, JsonData> definition =
           JsonpDeserializer.stringMapDeserializer(JsonData._DESERIALIZER)
               .deserialize(parser, mapper);
@@ -55,7 +61,7 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
       TypeMapping mapping =
           definition.get("mappings").deserialize(TypeMapping._DESERIALIZER, mapper);
       for (Kind kind : List.of(Kind.CLUB, Kind.TEAM, Kind.POOL)) {
-        String index = alias(kind) + suffix;
+        String index = indexes.alias(kind) + suffix;
         if (!client
             .indices()
             .create(request -> request.index(index).settings(settings).mappings(mapping))
@@ -87,17 +93,20 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
     if (ids.isEmpty()) return;
     BulkRequest.Builder request =
         new BulkRequest.Builder().requireAlias(true).refresh(Refresh.WaitFor);
-    Set<UUID> visible =
-        documents.stream().map(SearchDocuments::id).collect(java.util.stream.Collectors.toSet());
+    Set<UUID> visible = documents.stream().map(SearchDocuments::id).collect(Collectors.toSet());
     for (SearchDocuments document : documents)
       request.operations(
           operation ->
               operation.index(
-                  item -> item.index(alias(kind)).id(document.id().toString()).document(document)));
+                  item ->
+                      item.index(indexes.alias(kind))
+                          .id(document.id().toString())
+                          .document(document)));
     for (UUID id : ids)
       if (!visible.contains(id))
         request.operations(
-            operation -> operation.delete(item -> item.index(alias(kind)).id(id.toString())));
+            operation ->
+                operation.delete(item -> item.index(indexes.alias(kind)).id(id.toString())));
     bulk(request.build());
   }
 
@@ -117,9 +126,7 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
                           item.error() == null
                               && (item.status() < 300
                                   || (item.status() == 404
-                                      && item.operationType()
-                                          == org.opensearch.client.opensearch.core.bulk
-                                              .OperationType.Delete)))
+                                      && item.operationType() == OperationType.Delete)))
                   .count();
       if (response.errors()
           || response.items().size() != request.operations().size()
@@ -134,14 +141,14 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
   @Override
   public void publish(Map<Kind, String> generation) {
     try {
-      org.opensearch.client.opensearch.indices.RefreshResponse refreshed =
+      RefreshResponse refreshed =
           client.indices().refresh(request -> request.index(new ArrayList<>(generation.values())));
       if (refreshed.shards().failed() != 0
           || refreshed.shards().successful() != refreshed.shards().total())
         throw new SearchUnavailableException();
       UpdateAliasesRequest.Builder request = new UpdateAliasesRequest.Builder();
       for (Map.Entry<Kind, String> target : generation.entrySet()) {
-        String alias = alias(target.getKey());
+        String alias = indexes.alias(target.getKey());
         request.actions(
             action ->
                 action.remove(
@@ -172,7 +179,9 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
         .allMatch(
             target ->
                 current.result().entrySet().stream()
-                    .filter(entry -> entry.getValue().aliases().containsKey(alias(target.getKey())))
+                    .filter(
+                        entry ->
+                            entry.getValue().aliases().containsKey(indexes.alias(target.getKey())))
                     .map(Map.Entry::getKey)
                     .toList()
                     .equals(List.of(target.getValue())));
@@ -199,10 +208,14 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
   @Override
   public void cleanup() {
     try {
+      String aliases =
+          Arrays.stream(SearchContext.Resource.values())
+              .map(indexes::alias)
+              .map(Pattern::quote)
+              .collect(Collectors.joining("|"));
       Pattern owned =
           Pattern.compile(
-              Pattern.quote(indexes.prefix())
-                  + "-(clubs|teams|pools)-g-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
+              "(?:" + aliases + ")-g-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
       List<String> inactive =
           aliases().result().entrySet().stream()
               .filter(
@@ -224,21 +237,5 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
           .addKeyValue("reason", failure.getClass().getSimpleName())
           .log("Inactive search generation cleanup failed");
     }
-  }
-
-  /**
-   * Resolves the existing resource alias; non-searchable owner kinds are rejected.
-   *
-   * @param kind searchable resource
-   * @return environment-scoped alias
-   */
-  private String alias(Kind kind) {
-    return indexes.prefix()
-        + switch (kind) {
-          case CLUB -> "-clubs";
-          case TEAM -> "-teams";
-          case POOL -> "-pools";
-          case MATCH -> throw new IllegalArgumentException("Matches have no search index");
-        };
   }
 }

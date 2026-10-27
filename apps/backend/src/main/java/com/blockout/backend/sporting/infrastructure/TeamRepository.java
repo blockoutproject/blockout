@@ -5,6 +5,7 @@ import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
+import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -15,6 +16,42 @@ import org.springframework.data.jpa.repository.Query;
 
 /** Native Spring Data access to the sporting team owner. */
 interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
+  /** Shared detached identity projection excludes image payloads and relationships. */
+  String VIEW_SELECT =
+      """
+      SELECT NEW com.blockout.backend.sporting.application.model.SportingViews$TeamView(
+        t.id, t.season.id, t.provider, t.organizerReference, t.competitionReference,
+        t.nativeReference, t.sourceName, t.comparisonName, t.club.id,
+        NEW com.blockout.backend.sporting.application.model.SportingClassification(
+          t.division.id, t.format, t.gender))
+      FROM TeamEntity t
+      """;
+
+  /**
+   * Reads accepted team identity and classification without image bytes or related entity graphs.
+   *
+   * @param ids exact selected team identities
+   * @return immutable owner values; selection admission remains with the application caller
+   */
+  @Query(VIEW_SELECT + " WHERE t.id IN :ids")
+  List<TeamView> findViews(Set<UUID> ids);
+
+  /**
+   * Reads current team names and manual/source/inherited image presence in one scalar projection.
+   *
+   * @param ids exact selected teams
+   * @return current presentation facts with no retained image bytes
+   */
+  @Query(
+      """
+      SELECT NEW com.blockout.backend.sporting.infrastructure.SportingPresentationRow(
+        t.id, t.sourceName, t.manualName, t.manualShortName, t.presentationRevision, t.provider,
+        t.logo IS NOT NULL, t.sourceLogo IS NOT NULL, c.id, c.logo IS NOT NULL,
+        COALESCE(c.logoRevision, 0L))
+      FROM TeamEntity t LEFT JOIN t.club c WHERE t.id IN :ids
+      """)
+  List<SportingPresentationRow> findPresentations(Set<UUID> ids);
+
   /**
    * Finds the FFVB season/club/classification/name identity.
    *
@@ -98,7 +135,7 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
       SELECT DISTINCT target.id
       FROM TeamEntity original LEFT JOIN original.aliases originalAlias,
            TeamEntity target LEFT JOIN target.aliases targetAlias
-      WHERE original.id IN :teamIds AND original.provider = com.blockout.backend.generated.ingestion.model.CollectionProviderEnum.FFVB
+      WHERE original.id IN :teamIds AND original.provider = CollectionProviderEnum.FFVB
       AND target.provider = original.provider AND target.season = original.season
       AND target.club = original.club
       AND (target.id IN :teamIds OR (
@@ -165,17 +202,18 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
   List<SeasonEntity> findVisibleClubSeasons(UUID clubId);
 
   /**
-   * Selects current teams in a club season whose parents are already loaded by the caller.
+   * Selects current team values in a club season without loading their retained image payloads.
    *
    * @param clubId admitted club
    * @param seasonId admitted season
    * @return visible teams in stable identity order
    */
   @Query(
-      "SELECT t FROM TeamEntity t WHERE t.club.id = :clubId AND t.season.id = :seasonId AND "
+      VIEW_SELECT
+          + " WHERE t.club.id = :clubId AND t.season.id = :seasonId AND "
           + VISIBLE
           + " ORDER BY t.id")
-  List<TeamEntity> findVisibleClubTeams(UUID clubId, UUID seasonId);
+  List<TeamView> findVisibleClubTeams(UUID clubId, UUID seasonId);
 
   /**
    * Selects canonical seasons from currently visible teams without loading their cards.

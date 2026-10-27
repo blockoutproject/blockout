@@ -26,10 +26,9 @@ import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.following.application.FollowContext;
 import com.blockout.backend.following.application.FollowContext.Target;
 import com.blockout.backend.following.application.FollowContext.TargetType;
+import com.blockout.backend.following.application.FollowState;
 import com.blockout.backend.following.application.FollowUnavailableTargetException;
 import com.blockout.backend.following.application.ReadFollowOptions;
-import com.blockout.backend.following.application.ReadFollowState;
-import com.blockout.backend.following.application.ReplaceFollowState;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import java.util.Optional;
 import java.util.Set;
@@ -73,10 +72,9 @@ class FollowStateWebMvcTest {
   private static final UUID TARGET = UUID.fromString(FollowingContractWebMvcTest.TARGET);
   private static final String ISSUER = "https://identity.example.invalid/";
   @Autowired private MockMvc mvc;
-  @MockitoBean private ReadFollowState reads;
+  @MockitoBean private FollowState state;
   @MockitoBean private ReadFollowOptions options;
   @MockitoBean private FollowingApiMapper mapper;
-  @MockitoBean private ReplaceFollowState changes;
   @MockitoBean private AccountAccess accounts;
   @MockitoBean private AccessSettingsStore settings;
   @MockitoBean private PermissionStore permissions;
@@ -96,7 +94,7 @@ class FollowStateWebMvcTest {
   void readsConfirmedState(String kind, boolean confirmed) throws Exception {
     // Given
     when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ACCOUNT));
-    when(reads.read(context(kind))).thenReturn(confirmed);
+    when(state.read(context(kind))).thenReturn(confirmed);
 
     // When
     ResultActions response = mvc.perform(get(path(kind)).with(mobile()));
@@ -114,7 +112,7 @@ class FollowStateWebMvcTest {
   void replacesState(String kind, boolean requested, boolean confirmed) throws Exception {
     // Given
     when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ACCOUNT));
-    when(changes.replace(context(kind), requested)).thenReturn(confirmed);
+    when(state.replace(context(kind), requested)).thenReturn(confirmed);
 
     // When
     ResultActions response =
@@ -129,7 +127,7 @@ class FollowStateWebMvcTest {
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.following").value(confirmed));
-    verify(changes).replace(context(kind), requested);
+    verify(state).replace(context(kind), requested);
   }
 
   @ParameterizedTest
@@ -156,7 +154,7 @@ class FollowStateWebMvcTest {
         .andExpect(status().isBadRequest())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:invalid-request"));
-    verifyNoInteractions(reads, changes);
+    verifyNoInteractions(state);
   }
 
   @ParameterizedTest
@@ -184,7 +182,7 @@ class FollowStateWebMvcTest {
 
     // Then
     secondResponse.andExpect(status().isBadRequest());
-    verifyNoInteractions(reads, changes);
+    verifyNoInteractions(state);
   }
 
   @Test
@@ -202,7 +200,7 @@ class FollowStateWebMvcTest {
         .andExpect(status().isUnsupportedMediaType())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:unsupported-media-type"))
         .andExpect(header().string("Cache-Control", "no-store"));
-    verifyNoInteractions(reads, changes);
+    verifyNoInteractions(state);
   }
 
   @Test
@@ -229,7 +227,7 @@ class FollowStateWebMvcTest {
     secondResponse
         .andExpect(status().isForbidden())
         .andExpect(header().string("Cache-Control", "no-store"));
-    verifyNoInteractions(reads, changes, accounts);
+    verifyNoInteractions(state, accounts);
   }
 
   @ParameterizedTest
@@ -250,7 +248,7 @@ class FollowStateWebMvcTest {
 
     // Then
     response.andExpect(status().isNotFound()).andExpect(jsonPath("$.detail").doesNotExist());
-    verifyNoInteractions(reads, changes);
+    verifyNoInteractions(state);
   }
 
   @ParameterizedTest
@@ -259,7 +257,7 @@ class FollowStateWebMvcTest {
   void rejectsTarget(String kind) throws Exception {
     // Given
     when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ACCOUNT));
-    when(changes.replace(context(kind), true)).thenThrow(new FollowUnavailableTargetException());
+    when(state.replace(context(kind), true)).thenThrow(new FollowUnavailableTargetException());
 
     // When
     ResultActions response =
@@ -282,7 +280,7 @@ class FollowStateWebMvcTest {
   void rejectsUnavailableStorage() throws Exception {
     // Given
     when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ACCOUNT));
-    when(reads.read(any())).thenThrow(new DataAccessResourceFailureException("Private fixture"));
+    when(state.read(any())).thenThrow(new DataAccessResourceFailureException("Private fixture"));
 
     // When
     ResultActions response = mvc.perform(get(path("team")).with(mobile()));
@@ -311,7 +309,7 @@ class FollowStateWebMvcTest {
 
     // Then
     response.andExpect(status().isServiceUnavailable());
-    verifyNoInteractions(reads, changes);
+    verifyNoInteractions(state);
 
     // When
     ResultActions secondResponse =
@@ -319,7 +317,7 @@ class FollowStateWebMvcTest {
 
     // Then
     secondResponse.andExpect(status().isOk());
-    verify(reads).read(context("pool"));
+    verify(state).read(context("pool"));
   }
 
   @Test
@@ -333,7 +331,7 @@ class FollowStateWebMvcTest {
 
     // Then
     response.andExpect(status().isMethodNotAllowed());
-    verifyNoInteractions(reads, changes);
+    verifyNoInteractions(state);
   }
 
   /** Supplies a validated mobile principal without granting another account's access. */

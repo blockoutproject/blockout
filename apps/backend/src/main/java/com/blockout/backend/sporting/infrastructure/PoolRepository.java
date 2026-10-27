@@ -2,6 +2,7 @@ package com.blockout.backend.sporting.infrastructure;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.sporting.application.model.PoolKey;
+import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -13,6 +14,41 @@ import org.springframework.data.jpa.repository.Query;
 
 /** Native Spring Data access to the sporting pool owner. */
 interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
+  /**
+   * Projects accepted contextual identity and classification without acquisition collections.
+   *
+   * @param ids exact already admitted pool identities
+   * @return detached current pool values
+   */
+  @Query(
+      """
+      SELECT NEW com.blockout.backend.sporting.application.model.SportingViews$PoolView(
+        p.id,
+        NEW com.blockout.backend.sporting.application.model.PoolKey(
+          p.provider, p.season.id, p.organizerReference, p.competitionReference,
+          p.tourReference, p.groupReference, p.reference),
+        p.pack.id, p.sourceName,
+        NEW com.blockout.backend.sporting.application.model.SportingClassification(
+          p.division.id, p.format, p.gender))
+      FROM PoolEntity p WHERE p.id IN :ids
+      """)
+  List<PoolView> findViews(Set<UUID> ids);
+
+  /**
+   * Projects names-only presentation without inventing a pool artwork concept.
+   *
+   * @param ids exact selected pools
+   * @return scalar current presentation facts
+   */
+  @Query(
+      """
+      SELECT NEW com.blockout.backend.sporting.infrastructure.SportingPresentationRow(
+        p.id, p.sourceName, p.manualName, p.manualShortName, p.presentationRevision, NULL,
+        FALSE, FALSE, NULL, FALSE, 0L)
+      FROM PoolEntity p WHERE p.id IN :ids
+      """)
+  List<SportingPresentationRow> findPresentations(Set<UUID> ids);
+
   /**
    * Aggregates missing effective settings independently of historical published classification.
    *

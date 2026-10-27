@@ -3,6 +3,7 @@ package com.blockout.collector.acquisition.ffvb;
 import com.blockout.collector.acquisition.application.CollectionBackend;
 import com.blockout.collector.acquisition.application.FfvbAcquisition;
 import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
+import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import java.net.URI;
@@ -58,7 +59,7 @@ public class FfvbObservationReader implements FfvbAcquisition {
   @Override
   public Resource read(URI url) {
     try {
-      ProviderHttpClient.Response response = http.page(url).join();
+      ProviderResponse response = http.page(url).join();
       return fromPage(response, clock.instant());
     } catch (RuntimeException failure) {
       throw readFailure(failure);
@@ -67,7 +68,7 @@ public class FfvbObservationReader implements FfvbAcquisition {
 
   /** {@inheritDoc} */
   @Override
-  public Resource fromPage(ProviderHttpClient.Response page, Instant observedAt) {
+  public Resource fromPage(ProviderResponse page, Instant observedAt) {
     return new SharedResource(page.url(), new Read<>(page.body(), observedAt));
   }
 

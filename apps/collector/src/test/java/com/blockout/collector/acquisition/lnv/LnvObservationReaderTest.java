@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.application.CollectionBackend;
 import com.blockout.collector.acquisition.application.LnvAcquisition;
+import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.config.AcquisitionProperties;
@@ -24,6 +25,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -51,8 +53,7 @@ class LnvObservationReaderTest {
         """;
     LnvAcquisition.Resource resource =
         reader.fromPage(
-            new ProviderHttpClient.Response(html.getBytes(StandardCharsets.UTF_8), page, true),
-            Instant.EPOCH);
+            new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), page, true), Instant.EPOCH);
     CollectionBackend.Target target =
         CollectionBackend.Target.builder()
             .competitionReference("901")
@@ -85,15 +86,14 @@ class LnvObservationReaderTest {
             .build();
     LnvAcquisition.Resource resource =
         reader.fromPage(
-            new ProviderHttpClient.Response(
+            new ProviderResponse(
                 new byte[0],
                 URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?" + query),
                 true),
             Instant.EPOCH);
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> resource.document(target, "Scoresheet");
+    ThrowingCallable action = () -> resource.document(target, "Scoresheet");
 
     // Then
     assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
@@ -118,11 +118,10 @@ class LnvObservationReaderTest {
         "<title>Alterna VOLSTAR 2027/2028</title><span id=Content_Main_LB_DateTime>dimanche 17 octobre 2027</span><span id=Content_Main_LBL_WonSetHome>3</span><span id=Content_Main_LBL_WonSetGuest>1</span>";
     LnvAcquisition.Resource resource =
         reader.fromPage(
-            new ProviderHttpClient.Response(html.getBytes(StandardCharsets.UTF_8), page, true),
-            Instant.EPOCH);
+            new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), page, true), Instant.EPOCH);
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action = () -> resource.detail(target);
+    ThrowingCallable action = () -> resource.detail(target);
 
     // Then
     assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
@@ -147,12 +146,10 @@ class LnvObservationReaderTest {
         "<title>Alterna VOLSTAR 2027/2028</title><span id=Content_Main_LB_DateTime>dimanche 17 octobre 2027</span><span id=Content_Main_LBL_WonSetHome>3</span><span id=Content_Main_LBL_WonSetGuest>1</span>";
     LnvAcquisition.Resource resource =
         reader.fromPage(
-            new ProviderHttpClient.Response(html.getBytes(StandardCharsets.UTF_8), page, true),
-            Instant.EPOCH);
+            new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), page, true), Instant.EPOCH);
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> resource.document(target, "Scoresheet");
+    ThrowingCallable action = () -> resource.document(target, "Scoresheet");
 
     // Then
     assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
@@ -183,12 +180,11 @@ class LnvObservationReaderTest {
             .build();
     LnvAcquisition.Resource resource =
         reader.fromPage(
-            new ProviderHttpClient.Response(html.getBytes(StandardCharsets.UTF_8), page, true),
-            Instant.EPOCH);
+            new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), page, true), Instant.EPOCH);
     when(http.postPage(any(), any()))
         .thenReturn(
             CompletableFuture.completedFuture(
-                new ProviderHttpClient.Response(
+                new ProviderResponse(
                     ("<title>Alterna VOLSTAR "
                             + (wrongSeason ? "2027/2028" : "2026/2027")
                             + "</title><iframe src='https://documents.example.invalid/foreign.pdf'></iframe>")
@@ -200,8 +196,7 @@ class LnvObservationReaderTest {
                     true)));
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> resource.document(target, "Scoresheet");
+    ThrowingCallable action = () -> resource.document(target, "Scoresheet");
 
     // Then
     assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
@@ -219,8 +214,7 @@ class LnvObservationReaderTest {
         "<div id=Content_Main_903><table class=rgMasterTable><thead><tr><th>Equipe</th><th>Points</th></tr></thead><tbody><tr><td><span id=TeamName>Home</span><input id=HF_TeamID value=001></td><td>9</td></tr></tbody></table></div>";
     LnvAcquisition.Resource resource =
         reader.fromPage(
-            new ProviderHttpClient.Response(html.getBytes(StandardCharsets.UTF_8), page, true),
-            Instant.EPOCH);
+            new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), page, true), Instant.EPOCH);
     CollectionBackend.Target target =
         CollectionBackend.Target.builder()
             .competitionReference("901")
@@ -247,8 +241,7 @@ class LnvObservationReaderTest {
         "<span id=Content_Main_LB_DateTime>invalid date</span><span id=Content_Main_LBL_WonSetHome>3</span><span id=Content_Main_LBL_WonSetGuest>1</span>";
     LnvAcquisition.Resource resource =
         reader.fromPage(
-            new ProviderHttpClient.Response(html.getBytes(StandardCharsets.UTF_8), page, true),
-            Instant.EPOCH);
+            new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), page, true), Instant.EPOCH);
     CollectionBackend.Target target =
         CollectionBackend.Target.builder()
             .nativeMatchReference("990")
@@ -280,8 +273,7 @@ class LnvObservationReaderTest {
     when(http.page(indexUrl))
         .thenReturn(
             CompletableFuture.completedFuture(
-                new ProviderHttpClient.Response(
-                    xml.getBytes(StandardCharsets.UTF_8), indexUrl, true)));
+                new ProviderResponse(xml.getBytes(StandardCharsets.UTF_8), indexUrl, true)));
     Instant firstTime = Instant.parse("2026-10-17T12:00:00Z");
     Clock clock = mock(Clock.class);
     when(clock.instant()).thenReturn(firstTime, firstTime.plusSeconds(60));

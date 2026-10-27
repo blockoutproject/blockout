@@ -68,6 +68,8 @@ apps/mobile/                     # Existing discovery queries and visit state
 
 ## Matching and current data
 
+Search hydrates accepted candidate sets through F03's batched current summaries, keeping the same repeatable-read boundary and F02 visibility. Shared season/division/presentation inputs use set-based scalar projections, including logo presence without loading image bytes. The [common composition qualification](../003-shared-quality/quickstart.md#common-backend-composition) compares one and twenty candidates and retains current-city and visibility regressions; no application cache is introduced.
+
 The backend indexes the [data model](data-model.md): current public/source full and short names, verified owner-scoped aliases and the permitted context for each resource. Teams and pools also index their format/gender labels and relevant division abbreviations. Abbreviations belong to the identified division; they are not global text substitutions or a reason to merge identities. Professional teams without a club have no invented club or city.
 
 Use native `copy_to` to form two aggregate text fields from the permitted source fields. Normalize with standard tokenization, lowercase and accent folding, without stop-word removal or stemming. One aggregate indexes word prefixes using `edge_ngram`; the other retains whole words. Explicitly set the prefix field’s `search_analyzer` to standard tokenization, lowercase and accent folding only, matching the whole-word search analyzer. Prefix expansion runs only at indexing time, never on the query. Search submits the whole text to two alternative `match` clauses, each with `operator: and`: prefix matching, or ordinary whole-word typo tolerance (`fuzziness: AUTO`). Require at least one complete branch. Native optional boosts on exact names and direct whole-word matches favor them over context or fuzzy matches without promising an absolute ordering.
@@ -93,6 +95,8 @@ Empty/whitespace-only text selects up to five eligible examples in stable UUID o
 Search options come from current PostgreSQL viewability, separately for teams and pools: available seasons newest sporting start year first, and active divisions. The existing format/gender enums are shared. Absent season means all seasons; the mobile supplies the newest available season by default, including an already published future season. A successful catalogue reload reconciles unavailable choices under F04; a failed read preserves earlier choices.
 
 ## Projection lifecycle
+
+`SearchIndexProperties` owns resource alias names for both `OpenSearchEngine` queries and `OpenSearchProjectionWriter` writes/publication. Environment prefix and existing alias values remain unchanged; the native bulk and uncertain-publication rules below remain authoritative.
 
 Use one dedicated Spring `ThreadPoolTaskScheduler` with one thread in the serving backend instance. Both after-commit targeted work and full rebuilds execute on that scheduler, without a nested async executor. Relevant F02 commits submit identities or affected scopes; execution rereads current sporting state rather than indexing an event payload. Club changes reach dependent teams, division changes reach teams and pools, and participation/source visibility changes reach their affected identities. Score-only changes require no search update.
 

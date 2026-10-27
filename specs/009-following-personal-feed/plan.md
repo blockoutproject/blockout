@@ -66,6 +66,8 @@ contracts/http/     # canonical mobile routes and existing shared definitions
 
 ## Persistence and concurrency
 
+`FollowState` groups member reads and desired-state replacements because they share original-account serialization, current target admission and the same persistence port. Its two public operations own their transactions, including the write-capable locked read; the private admission step adds no transaction proxy. Relation UUID/no-op semantics and the separate `ReadFollowEligibility` audience API remain unchanged.
+
 Use two association tables with UUID identity, account/target foreign keys and uniqueness on each account–target pair. Deletion removes the relation; recreating it assigns a new identity. Hidden targets retain relationships. Account erasure removes all relations atomically, including hidden ones. See [data model](data-model.md).
 
 Every write targets the authenticated owner's original usable account. Use F05's short account-row lock for follow writes and erasure; check sporting eligibility through F02-owned rules. Preserve the common lock order if an operation also requires sporting locks. No provider call or notification delivery occurs inside the transaction. A target that subsequently becomes hidden is filtered from reads without deleting the relation.
@@ -73,6 +75,8 @@ Every write targets the authenticated owner's original usable account. Use F05's
 The operation replaces desired follow state: repeating true keeps the same relation; repeating false leaves it absent. Between devices, last server-recorded state wins, including delayed requests. No gesture timestamp, optimistic version conflict, tombstone or request ledger.
 
 ## Reads and boundaries
+
+Season choices compose F02's `SportingSeasonSelection` scalar Criteria API with F06's own follow predicates in one native query. F02 alone supplies seasonal fields and current visible target selections; no sporting entity, repository or private HQL fragment crosses into F06. This preserves season order, closed-season consultation and the current-follow default without materializing target IDs. See the [common composition qualification](../003-shared-quality/quickstart.md#common-backend-composition).
 
 The [canonical contracts](contracts/README.md) separate public counts from private state. Counts use the relationships directly, including retained hidden-target relations whenever the target itself is viewable. Failed reads never become zero. Public sporting pages remain usable without private account reads.
 

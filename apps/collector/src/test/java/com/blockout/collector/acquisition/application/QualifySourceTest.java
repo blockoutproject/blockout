@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
@@ -30,14 +29,13 @@ class QualifySourceTest {
       "A supported LNV championship without season evidence requires explicit confirmation")
   void requiresSeasonEvidence() {
     // Given
-    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    ProviderPages http = mock(ProviderPages.class);
     URI url = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901");
     byte[] page =
         "<title>Alterna VOLSTAR</title><a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>"
             .getBytes(StandardCharsets.UTF_8);
     when(http.page(url))
-        .thenReturn(
-            CompletableFuture.completedFuture(new ProviderHttpClient.Response(page, url, true)));
+        .thenReturn(CompletableFuture.completedFuture(new ProviderResponse(page, url, true)));
     QualifySource service =
         new QualifySource(
             http,
@@ -61,7 +59,7 @@ class QualifySourceTest {
   @DisplayName("A supported-origin redirect into another championship cannot be confirmed away")
   void refusesWrongChampionship() {
     // Given
-    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    ProviderPages http = mock(ProviderPages.class);
     URI url = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901");
     byte[] page =
         "<title>Alterna VOLSTAR</title><a href='CompetitionMatches.aspx?ID=999&PID=902'>Regular</a>"
@@ -69,7 +67,7 @@ class QualifySourceTest {
     when(http.page(url))
         .thenReturn(
             CompletableFuture.completedFuture(
-                new ProviderHttpClient.Response(
+                new ProviderResponse(
                     page,
                     URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=999"),
                     true)));
@@ -96,7 +94,7 @@ class QualifySourceTest {
   @DisplayName("Qualification preserves technical unavailability separately from content refusal")
   void preservesFailureCategory(boolean unavailable) {
     // Given
-    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    ProviderPages http = mock(ProviderPages.class);
     URI url = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901");
     if (unavailable)
       when(http.page(url))
@@ -106,7 +104,7 @@ class QualifySourceTest {
       when(http.page(url))
           .thenReturn(
               CompletableFuture.completedFuture(
-                  new ProviderHttpClient.Response(
+                  new ProviderResponse(
                       "<html>Unsupported synthetic content</html>".getBytes(StandardCharsets.UTF_8),
                       url,
                       true)));

@@ -16,6 +16,7 @@ import com.blockout.backend.generated.mobile.model.SportGenderEnum;
 import com.blockout.backend.generated.mobile.model.SportingSearchOptionsResponse;
 import com.blockout.backend.generated.mobile.model.TeamSearchResponse;
 import com.blockout.backend.search.application.SearchContext;
+import com.blockout.backend.search.application.SearchContinuation;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
@@ -43,7 +44,6 @@ import org.springframework.web.bind.annotation.RestController;
 @AutoConfigureMockMvc(addFilters = false)
 @Import({
   HttpConfiguration.class,
-  DiscoveryWebConfiguration.class,
   ApiExceptionHandler.class,
   DiscoveryRequest.class,
   DiscoveryContractWebMvcTest.Adapter.class
@@ -186,7 +186,7 @@ class DiscoveryContractWebMvcTest {
             SearchContext.Resource.TEAM, "ÉTOILE Volley", null, null, null, null, false);
     String cursor =
         requests.encode(
-            new com.blockout.backend.search.application.SearchContinuation(
+            new SearchContinuation(
                 context, 1.5, UUID.fromString("00000000-0000-4000-8000-000000000001")));
 
     // When

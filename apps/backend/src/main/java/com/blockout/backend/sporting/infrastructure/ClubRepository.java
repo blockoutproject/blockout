@@ -14,6 +14,21 @@ import org.springframework.data.jpa.repository.Query;
 /** Native Spring Data access to the sporting club owner. */
 interface ClubRepository extends JpaRepository<ClubEntity, UUID> {
   /**
+   * Projects names and image presence for current summaries and editor snapshots.
+   *
+   * @param ids exact selected clubs
+   * @return scalar presentation without private contacts or image payloads
+   */
+  @Query(
+      """
+      SELECT NEW com.blockout.backend.sporting.infrastructure.SportingPresentationRow(
+        c.id, c.sourceName, c.manualName, NULL, c.presentationRevision, NULL,
+        c.logo IS NOT NULL, FALSE, NULL, FALSE, 0L)
+      FROM ClubEntity c WHERE c.id IN :ids
+      """)
+  List<SportingPresentationRow> findPresentations(Set<UUID> ids);
+
+  /**
    * Selects current seasonless acquisition candidates strictly after the visited identity boundary.
    *
    * @param geocoding whether to select current municipal needs

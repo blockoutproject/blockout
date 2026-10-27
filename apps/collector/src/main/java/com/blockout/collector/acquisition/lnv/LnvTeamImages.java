@@ -1,5 +1,6 @@
 package com.blockout.collector.acquisition.lnv;
 
+import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import java.net.URI;
 import java.time.Clock;
@@ -34,7 +35,7 @@ public class LnvTeamImages {
    * @return new observation or null on native cache reuse
    */
   public Image read(URI uri) {
-    ProviderHttpClient.Response response = http.image(uri).join();
+    ProviderResponse response = http.image(uri).join();
     return response.supplierRead() ? new Image(response.body(), clock.instant()) : null;
   }
 }

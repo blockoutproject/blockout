@@ -1,5 +1,7 @@
 package com.blockout.collector.acquisition.infrastructure.provider;
 
+import com.blockout.collector.acquisition.application.ProviderPages;
+import com.blockout.collector.acquisition.application.ProviderResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -30,7 +32,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
  * One provider's shared worker, queue and HTTP budget; parsing begins only after a complete read.
  */
 @RequiredArgsConstructor
-public final class ProviderHttpClient implements AutoCloseable {
+public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
   /** Per-exchange native protocol evidence; distinguishes 200 revalidation from 304 reuse. */
   public static final String SUPPLIER_BODY = "blockout.supplier-body";
 
@@ -39,16 +41,9 @@ public final class ProviderHttpClient implements AutoCloseable {
   private final Set<HttpHost> origins;
   private final int maxResponseBytes;
 
-  /** Complete response metadata; cache reuse deliberately carries no new observation timestamp. */
-  public record Response(byte[] body, URI url, boolean supplierRead) {}
-
-  /**
-   * Reads a page with final redirect context and no storage in the image cache.
-   *
-   * @param uri published page URL
-   * @return complete bounded bytes and actual final URL
-   */
-  public CompletableFuture<Response> page(URI uri) {
+  /** {@inheritDoc} */
+  @Override
+  public CompletableFuture<ProviderResponse> page(URI uri) {
     requireOrigin(uri, origins);
     HttpGet request = new HttpGet(uri);
     request.setHeader("Cache-Control", "no-store");
@@ -62,7 +57,7 @@ public final class ProviderHttpClient implements AutoCloseable {
    * @param uri qualified published image URL
    * @return bounded response without treating cache reuse as a new provider observation
    */
-  public CompletableFuture<Response> image(URI uri) {
+  public CompletableFuture<ProviderResponse> image(URI uri) {
     requireOrigin(uri, origins);
     return executor.submitCompletable(() -> response(new HttpGet(uri)));
   }
@@ -132,7 +127,8 @@ public final class ProviderHttpClient implements AutoCloseable {
    * @param fields ephemeral published form state
    * @return final HTML response context, never a downloaded PDF
    */
-  public CompletableFuture<Response> postPage(URI uri, List<? extends NameValuePair> fields) {
+  public CompletableFuture<ProviderResponse> postPage(
+      URI uri, List<? extends NameValuePair> fields) {
     requireOrigin(uri, origins);
     HttpPost request = new HttpPost(uri);
     request.setHeader("Cache-Control", "no-store");
@@ -183,7 +179,7 @@ public final class ProviderHttpClient implements AutoCloseable {
    * @return actual response context
    * @throws IOException for status, transport or size failures
    */
-  private Response response(HttpUriRequestBase request) throws IOException {
+  private ProviderResponse response(HttpUriRequestBase request) throws IOException {
     return response(request, false);
   }
 
@@ -195,7 +191,7 @@ public final class ProviderHttpClient implements AutoCloseable {
    * @return complete allowed content and native response metadata
    * @throws IOException for forbidden content, status, transport or size failures
    */
-  private Response response(HttpUriRequestBase request, boolean page) throws IOException {
+  private ProviderResponse response(HttpUriRequestBase request, boolean page) throws IOException {
     HttpCacheContext context = HttpCacheContext.create();
     byte[] body =
         http.execute(
@@ -226,7 +222,7 @@ public final class ProviderHttpClient implements AutoCloseable {
     if (context.getRedirectLocations() != null && context.getRedirectLocations().size() > 0)
       actual = context.getRedirectLocations().get(context.getRedirectLocations().size() - 1);
     CacheResponseStatus status = context.getCacheResponseStatus();
-    return new Response(
+    return new ProviderResponse(
         body,
         actual,
         status == null

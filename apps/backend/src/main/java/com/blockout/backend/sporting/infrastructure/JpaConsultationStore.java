@@ -7,8 +7,12 @@ import com.blockout.backend.sporting.application.ConsultationMatchSelection;
 import com.blockout.backend.sporting.application.ConsultationRequest.CalendarRequest;
 import com.blockout.backend.sporting.application.ConsultationStore;
 import com.blockout.backend.sporting.application.ConsultationViews;
+import com.blockout.backend.sporting.application.MatchPresentation;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
+import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
+import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
+import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Tuple;
 import jakarta.persistence.criteria.CommonAbstractCriteria;
@@ -23,7 +27,6 @@ import jakarta.persistence.criteria.Subquery;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +44,9 @@ import org.springframework.stereotype.Repository;
 public class JpaConsultationStore implements ConsultationStore, ConsultationMatchSelection {
   private final MatchRepository matches;
   private final DivisionRepository divisions;
+  private final TeamRepository teams;
+  private final PoolRepository pools;
+  private final SeasonRepository seasons;
   private final SportingPersistenceMapper mapper;
   private final EntityManager entityManager;
 
@@ -175,11 +181,13 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
             builder.and(
                 builder.isNotNull(match.get("reliableStart")),
                 builder.lessThanOrEqualTo(
-                    match.get("reliableStart"), now.minusSeconds(6 * 60 * 60))),
+                    match.get("reliableStart"),
+                    now.minus(MatchPresentation.TIMED_COMPLETION_DELAY))),
             builder.and(
                 builder.isNull(match.get("reliableStart")),
                 builder.lessThan(
-                    match.get("localDate"), now.atZone(ZoneId.of("Europe/Paris")).toLocalDate())));
+                    match.get("localDate"),
+                    now.atZone(MatchPresentation.DATE_ONLY_ZONE).toLocalDate())));
     conditions.add(
         request.category() == CalendarCategoryEnum.COMPLETED ? completed : builder.not(completed));
     if (request.nextDay() != null)
@@ -214,9 +222,7 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
         .where(
             builder.isTrue(match.get("present")),
             builder.isNotNull(match.get("localDate")),
-            builder.isTrue(match.get("pool").get("catalogEligible")),
-            builder.isFalse(match.get("pool").get("calendarEmpty")),
-            builder.isTrue(match.get("pool").get("division").get("active")),
+            SportingVisibilityPredicates.pool(match.get("pool"), builder),
             builder.isTrue(match.get("homeTeam").get("division").get("active")),
             builder.isTrue(match.get("awayTeam").get("division").get("active")),
             builder.exists(home),
@@ -231,6 +237,31 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
     return divisions.findSummariesByIdIn(ids).stream()
         .map(mapper::toDetail)
         .collect(Collectors.toUnmodifiableMap(DivisionDetail::id, value -> value));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Map<UUID, TeamView> teams(Set<UUID> ids) {
+    if (ids.isEmpty()) return Map.of();
+    return teams.findViews(ids).stream()
+        .collect(Collectors.toUnmodifiableMap(TeamView::id, value -> value));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Map<UUID, PoolView> pools(Set<UUID> ids) {
+    if (ids.isEmpty()) return Map.of();
+    return pools.findViews(ids).stream()
+        .collect(Collectors.toUnmodifiableMap(PoolView::id, value -> value));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Map<UUID, SeasonView> seasons(Set<UUID> ids) {
+    if (ids.isEmpty()) return Map.of();
+    return seasons.findAllById(ids).stream()
+        .map(mapper::toView)
+        .collect(Collectors.toUnmodifiableMap(SeasonView::id, value -> value));
   }
 
   /** {@inheritDoc} */

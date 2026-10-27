@@ -1,5 +1,6 @@
 package com.blockout.backend.search.api;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -64,7 +65,6 @@ import org.springframework.transaction.support.SimpleTransactionStatus;
 @Import({
   SecurityConfiguration.class,
   HttpConfiguration.class,
-  DiscoveryWebConfiguration.class,
   ApiExceptionHandler.class,
   CurrentPermissions.class,
   ActionAuthorization.class,
@@ -119,7 +119,7 @@ class SearchOptionsWebMvcTest {
         .andExpect(jsonPath("$.seasons[0].label").value("2040/2041"))
         .andExpect(jsonPath("$.divisions[0].name").value("Nationale"))
         .andExpect(jsonPath("$.divisions[0].color").value("#112233"))
-        .andExpect(jsonPath("$.divisions[0].gradient").value(org.hamcrest.Matchers.nullValue()))
+        .andExpect(jsonPath("$.divisions[0].gradient").value(nullValue()))
         .andExpect(jsonPath("$.divisions[0].logoUrl").doesNotExist());
     verifyNoInteractions(accounts, permissions);
   }

@@ -4,15 +4,28 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.blockout.backend.generated.mobile.model.SportFormatEnum;
+import com.blockout.backend.generated.mobile.model.SportGenderEnum;
 import com.blockout.backend.search.application.SearchEngine.Candidate;
 import com.blockout.backend.search.application.SearchEngine.Position;
 import com.blockout.backend.sporting.application.ReadSportingResources;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
+import jakarta.persistence.EntityManagerFactory;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestReporter;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,17 +47,18 @@ class SearchCurrentDataIntegrationTest {
   @Autowired private PostgreSQLContainer database;
   @Autowired JdbcTemplate sql;
   @Autowired HydrateSearch hydration;
+  @Autowired EntityManagerFactory entityManagerFactory;
   @MockitoSpyBean ReadSportingResources consultation;
 
   /** Clears only this suite's disposable database before each independent fixture. */
-  @org.junit.jupiter.api.BeforeEach
+  @BeforeEach
   void clearFixtures() throws Exception {
-    try (java.sql.Connection connection =
-            java.sql.DriverManager.getConnection(
+    try (Connection connection =
+            DriverManager.getConnection(
                 database.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
-        java.sql.Statement statement = connection.createStatement()) {
+        Statement statement = connection.createStatement()) {
       statement.execute("TRUNCATE sporting_season, sporting_club, sporting_division CASCADE");
     }
   }
@@ -74,7 +88,7 @@ class SearchCurrentDataIntegrationTest {
         new SearchContext(SearchContext.Resource.CLUB, "eagles", null, null, null, null, false);
 
     // When
-    java.util.Map<UUID, SearchPage.Summary> current =
+    Map<UUID, SearchPage.Summary> current =
         hydration.current(context, List.of(new Candidate(new Position(1.0, id), "Lyon")));
 
     // Then
@@ -121,8 +135,8 @@ class SearchCurrentDataIntegrationTest {
             "eagles",
             fixture.season(),
             fixture.division(),
-            com.blockout.backend.generated.mobile.model.SportFormatEnum._6X6,
-            com.blockout.backend.generated.mobile.model.SportGenderEnum.FEMALE,
+            SportFormatEnum._6X6,
+            SportGenderEnum.FEMALE,
             false);
 
     // When
@@ -162,7 +176,7 @@ class SearchCurrentDataIntegrationTest {
         new SearchContext(SearchContext.Resource.TEAM, "eagles", null, null, null, null, false);
 
     // When
-    java.util.Map<UUID, SearchPage.Summary> result =
+    Map<UUID, SearchPage.Summary> result =
         hydration.current(context, List.of(new Candidate(new Position(1.0, fixture.team()), null)));
 
     // Then
@@ -181,11 +195,11 @@ class SearchCurrentDataIntegrationTest {
             fixture.season(),
             fixture.division(),
             null,
-            com.blockout.backend.generated.mobile.model.SportGenderEnum.MALE,
+            SportGenderEnum.MALE,
             false);
 
     // When
-    java.util.Map<UUID, SearchPage.Summary> result =
+    Map<UUID, SearchPage.Summary> result =
         hydration.current(context, List.of(new Candidate(new Position(1.0, fixture.team()), null)));
 
     // Then
@@ -207,7 +221,7 @@ class SearchCurrentDataIntegrationTest {
         new SearchContext(SearchContext.Resource.TEAM, "eagles", null, null, null, null, false);
 
     // When
-    java.util.Map<UUID, SearchPage.Summary> stale =
+    Map<UUID, SearchPage.Summary> stale =
         hydration.current(context, List.of(new Candidate(new Position(1.0, fixture.team()), null)));
     SearchPage.Summary current =
         hydration
@@ -233,12 +247,12 @@ class SearchCurrentDataIntegrationTest {
             "synthetic",
             fixture.season(),
             fixture.division(),
-            com.blockout.backend.generated.mobile.model.SportFormatEnum._6X6,
+            SportFormatEnum._6X6,
             null,
             false);
 
     // When
-    java.util.Map<UUID, SearchPage.Summary> result =
+    Map<UUID, SearchPage.Summary> result =
         hydration.current(context, List.of(new Candidate(new Position(1.0, fixture.pool()), null)));
 
     // Then
@@ -265,6 +279,86 @@ class SearchCurrentDataIntegrationTest {
     assertThat(result.pool().pool().id()).isEqualTo(fixture.pool());
     assertThat(result.pool().classification().format()).isNull();
     assertThat(result.pool().classification().gender()).isNull();
+  }
+
+  @ParameterizedTest
+  @EnumSource(SearchContext.Resource.class)
+  @DisplayName("Hydrates twenty distinct current summaries without per-candidate SQL reads")
+  void readsSummariesInBatches(SearchContext.Resource resource, TestReporter reporter) {
+    // Given: each candidate has its own sporting identity; the shared graph is already committed.
+    Fixture fixture = professionalTeam(2026);
+    List<Candidate> candidates = new ArrayList<>();
+    for (int number = 1; number <= 20; number++) {
+      UUID id = UUID.fromString("10000000-0000-4000-8000-" + String.format("%012d", number));
+      switch (resource) {
+        case CLUB ->
+            sql.update(
+                "INSERT INTO sporting_club(id, provider, reference, source_name, manual_name, logo, logo_media_type) VALUES (?, 'FFVB', ?, 'Source', 'Current', ?, 'image/png')",
+                id,
+                id.toString(),
+                new byte[] {1});
+        case TEAM -> {
+          sql.update(
+              "INSERT INTO sporting_team(id, season_id, provider, organizer_reference, competition_reference, native_reference, source_name, comparison_name, manual_name, division_id, format, gender, source_logo, source_logo_media_type) VALUES (?, ?, 'LNV', 'synthetic', 'competition', ?, 'Source', ?, 'Current', ?, '_6X6', 'FEMALE', ?, 'image/png')",
+              id,
+              fixture.season(),
+              id.toString(),
+              id.toString(),
+              fixture.division(),
+              new byte[] {1});
+          sql.update(
+              "INSERT INTO sporting_participation(id, team_id, pool_id, current) VALUES (?, ?, ?, TRUE)",
+              id,
+              id,
+              fixture.pool());
+        }
+        case POOL ->
+            sql.update(
+                "INSERT INTO sporting_pool(id, season_id, pack_id, provider, organizer_reference, competition_reference, reference, source_name, manual_name, division_id, format, gender) SELECT ?, season_id, pack_id, provider, organizer_reference, competition_reference, ?, 'Source', 'Current', division_id, format, gender FROM sporting_pool WHERE id = ?",
+                id,
+                id.toString(),
+                fixture.pool());
+      }
+      candidates.add(new Candidate(new Position(number, id), null));
+    }
+    SearchContext context = new SearchContext(resource, "source", null, null, null, null, false);
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean enabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      long before = statistics.getPrepareStatementCount();
+      hydration.current(context, candidates.subList(0, 1));
+      long singleReads = statistics.getPrepareStatementCount() - before;
+
+      // When
+      before = statistics.getPrepareStatementCount();
+      Map<UUID, SearchPage.Summary> current = hydration.current(context, candidates);
+      long batchReads = statistics.getPrepareStatementCount() - before;
+      reporter.publishEntry(
+          Map.of(
+              "resource", resource.name(),
+              "singleCandidateStatements", Long.toString(singleReads),
+              "twentyCandidateStatements", Long.toString(batchReads)));
+
+      // Then
+      assertThat(current).hasSize(20);
+      assertThat(batchReads).isEqualTo(singleReads);
+      SearchPage.Summary first = current.get(candidates.getFirst().position().id());
+      switch (resource) {
+        case CLUB -> {
+          assertThat(first.club().club().name()).isEqualTo("Current");
+          assertThat(first.club().club().logoUrl()).endsWith("/logo");
+        }
+        case TEAM -> {
+          assertThat(first.team().team().name()).isEqualTo("Current");
+          assertThat(first.team().team().logoUrl()).endsWith("/logo?selection=automatic");
+          assertThat(first.team().club()).isNull();
+        }
+        case POOL -> assertThat(first.pool().pool().name()).isEqualTo("Current");
+      }
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
   }
 
   /**

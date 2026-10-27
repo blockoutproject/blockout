@@ -423,7 +423,7 @@ The [canonical patterns](README.md) own setup, naming and lifecycle conventions.
 
 [Source](../apps/backend/src/test/java/com/blockout/backend/following/api/FollowAccessWebMvcTest.java) — 9 scenario methods.
 
-**Real:** MVC dispatcher, Jackson/Bean Validation, generated DTO/interface mappings; `SecurityConfiguration`, `HttpConfiguration`, `ApiExceptionHandler`, `FollowingRequest`, `FollowingWebConfiguration`, `CurrentAccount`, `MaintenanceAdmission`, `ActionAuthorization`, `CurrentPermissions`.
+**Real:** MVC dispatcher, Jackson/Bean Validation, generated DTO/interface mappings; `SecurityConfiguration`, `HttpConfiguration`, `ApiExceptionHandler`, `FollowingRequest`, `ContractEnumBinding`, `CurrentAccount`, `MaintenanceAdmission`, `ActionAuthorization`, `CurrentPermissions`.
 
 **Controlled:** test-only adapter endpoint(s) `FollowingContractWebMvcTest.Adapter`; Mockito: `AccountAccess`, `AccessSettingsStore`, `PermissionStore`, `PlatformTransactionManager`; Spring Security prevalidated JWT principal.
 
@@ -447,7 +447,7 @@ The [canonical patterns](README.md) own setup, naming and lifecycle conventions.
 
 **Real:** MVC dispatcher, Jackson/Bean Validation, generated DTO/interface mappings; `FollowingController`, `SecurityConfiguration`, `HttpConfiguration`, `ApiExceptionHandler`, `FollowingExceptionHandler`, `FollowingRequest`, `CurrentAccount`, `MaintenanceAdmission`, `ActionAuthorization`, `CurrentPermissions`.
 
-**Controlled:** Mockito: `ReadFollowState`, `ReplaceFollowState`, `AccountAccess`, `AccessSettingsStore`, `PermissionStore`, `PlatformTransactionManager`; Spring Security prevalidated JWT principal.
+**Controlled:** Mockito: `FollowState`, `AccountAccess`, `AccessSettingsStore`, `PermissionStore`, `PlatformTransactionManager`; Spring Security prevalidated JWT principal.
 
 **Limit/cleanup:** No database/commit/servlet socket/provider proof.
 
@@ -483,7 +483,7 @@ The [canonical patterns](README.md) own setup, naming and lifecycle conventions.
 
 [Source](../apps/backend/src/test/java/com/blockout/backend/following/api/FollowingContractWebMvcTest.java) — 8 scenario methods.
 
-**Real:** MVC dispatcher, Jackson/Bean Validation, generated DTO/interface mappings; `HttpConfiguration`, `ApiExceptionHandler`, `FollowingRequest`, `FollowingWebConfiguration`.
+**Real:** MVC dispatcher, Jackson/Bean Validation, generated DTO/interface mappings; `HttpConfiguration`, `ApiExceptionHandler`, `FollowingRequest`, `ContractEnumBinding`.
 
 **Controlled:** test-only adapter endpoint(s) `FollowingContractWebMvcTest.Adapter`; Mockito: `CurrentAccount`; security filters disabled.
 
@@ -659,7 +659,7 @@ The [canonical patterns](README.md) own setup, naming and lifecycle conventions.
 
 [Source](../apps/backend/src/test/java/com/blockout/backend/search/api/DiscoveryAccessWebMvcTest.java) — 7 scenario methods.
 
-**Real:** MVC dispatcher, Jackson/Bean Validation, generated DTO/interface mappings; `DiscoveryController`, `SecurityConfiguration`, `HttpConfiguration`, `DiscoveryWebConfiguration`, `ApiExceptionHandler`, `CurrentPermissions`, `ActionAuthorization`, `MaintenanceAdmission`, `DiscoveryRequest`, `DiscoveryApiMapperImpl`, `ConsultationApiMapperImpl`.
+**Real:** MVC dispatcher, Jackson/Bean Validation, generated DTO/interface mappings; `DiscoveryController`, `SecurityConfiguration`, `HttpConfiguration`, `ContractEnumBinding`, `ApiExceptionHandler`, `CurrentPermissions`, `ActionAuthorization`, `MaintenanceAdmission`, `DiscoveryRequest`, `DiscoveryApiMapperImpl`, `ConsultationApiMapperImpl`.
 
 **Controlled:** Mockito: `AccountAccess`, `PermissionStore`, `AccessSettingsStore`, `PlatformTransactionManager`, `ReadSearch`; Spring Security prevalidated JWT principal.
 
@@ -679,7 +679,7 @@ The [canonical patterns](README.md) own setup, naming and lifecycle conventions.
 
 [Source](../apps/backend/src/test/java/com/blockout/backend/search/api/DiscoveryContractWebMvcTest.java) — 10 scenario methods.
 
-**Real:** MVC dispatcher, Jackson/Bean Validation, generated DTO/interface mappings; `HttpConfiguration`, `DiscoveryWebConfiguration`, `ApiExceptionHandler`, `DiscoveryRequest`.
+**Real:** MVC dispatcher, Jackson/Bean Validation, generated DTO/interface mappings; `HttpConfiguration`, `ContractEnumBinding`, `ApiExceptionHandler`, `DiscoveryRequest`.
 
 **Controlled:** test-only adapter endpoint(s) `DiscoveryContractWebMvcTest.Adapter`; security filters disabled.
 
@@ -700,19 +700,21 @@ The [canonical patterns](README.md) own setup, naming and lifecycle conventions.
 
 ### `DiscoveryWebMvcTest`
 
-[Source](../apps/backend/src/test/java/com/blockout/backend/search/api/DiscoveryWebMvcTest.java) — 3 scenario methods.
+[Source](../apps/backend/src/test/java/com/blockout/backend/search/api/DiscoveryWebMvcTest.java) — 5 scenario methods.
 
-**Real:** MVC dispatcher, Jackson/Bean Validation, generated DTO/interface mappings; `DiscoveryController`, `DiscoveryRequest`, `DiscoveryWebConfiguration`, `DiscoveryApiMapperImpl`, `ConsultationApiMapperImpl`, `DiscoveryExceptionHandler`, `ApiExceptionHandler`.
+**Real:** MVC dispatcher, Jackson/Bean Validation, generated DTO/interface mappings; `DiscoveryController`, `DiscoveryRequest`, `ContractEnumBinding`, `DiscoveryApiMapperImpl`, `ConsultationApiMapperImpl`, `DiscoveryExceptionHandler`, `ApiExceptionHandler`.
 
 **Controlled:** Mockito: `ReadSearch`; security filters disabled.
 
 **Limit/cleanup:** No database/commit/servlet socket/provider proof.
 
-| Method                         | Regression detected by its assertions                                   | Shape |
-| ------------------------------ | ----------------------------------------------------------------------- | ----- |
-| `returnsCurrentClub`           | Serializes only current club presentation with absent context omitted   | test  |
-| `exposesUnavailable`           | Returns the shared retryable unavailable profile for an incomplete read | test  |
-| `rejectsMalformedContinuation` | Rejects malformed continuations before application reads                | test  |
+| Method                         | Regression detected by its assertions                                                       | Shape         |
+| ------------------------------ | ------------------------------------------------------------------------------------------- | ------------- |
+| `returnsCurrentClub`           | Serializes only current club presentation with absent context omitted                       | test          |
+| `returnsSportingSummary`       | Serializes current team and pool summaries with absent context omitted                      | parameterized |
+| `exposesUnavailable`           | Returns the shared retryable unavailable profile for an incomplete read                     | test          |
+| `rejectsMalformedContinuation` | Rejects malformed continuations before application reads                                    | test          |
+| `rejectsNoncanonicalFilters`   | Rejects Java enum names, padded and empty filters before search with opaque no-store errors | parameterized |
 
 ### `ContractBoundaryWebMvcTest`
 
@@ -924,27 +926,29 @@ The [canonical patterns](README.md) own setup, naming and lifecycle conventions.
 
 ### `SportingResourcesWebMvcTest`
 
-[Source](../apps/backend/src/test/java/com/blockout/backend/sporting/api/SportingResourcesWebMvcTest.java) — 11 scenario methods.
+[Source](../apps/backend/src/test/java/com/blockout/backend/sporting/api/SportingResourcesWebMvcTest.java) — 13 scenario methods.
 
-**Real:** MVC dispatcher, Jackson/Bean Validation, generated DTO/interface mappings; `ConsultationController`, `HttpConfiguration`, `ConsultationHttpConfiguration`, `SecurityConfiguration`, `ConsultationApiMapperImpl`, `SportingExceptionHandler`, `ApiExceptionHandler`.
+**Real:** MVC dispatcher, Jackson/Bean Validation, generated DTO/interface mappings; `ConsultationController`, `HttpConfiguration`, `ContractEnumBinding`, `SecurityConfiguration`, `ConsultationApiMapperImpl`, `SportingExceptionHandler`, `ApiExceptionHandler`.
 
 **Controlled:** Mockito: `ReadSportingResources`, `MaintenanceAdmission`; Spring Security prevalidated JWT principal.
 
 **Limit/cleanup:** No database/commit/servlet socket/provider proof.
 
-| Method                     | Regression detected by its assertions                                         | Shape         |
-| -------------------------- | ----------------------------------------------------------------------------- | ------------- |
-| `servesPublicClub`         | Serves guest club facts without private state or credentials                  | test          |
-| `servesResourceDetail`     | Serves the exact team pool and match identity through generated JSON mappings | parameterized |
-| `servesEmptySeason`        | Returns a successful empty exact club-season selection                        | test          |
-| `refusesUnavailableTarget` | Returns safe not-found for missing hidden or dateless targets                 | parameterized |
-| `requiresSeason`           | Requires an explicit club season before reading data                          | test          |
-| `refusesUnknownSeason`     | Reports an unknown club season safely                                         | test          |
-| `servesBinaryLogo`         | Delivers the effective binary image with its owner media type                 | parameterized |
-| `bindsAutomaticLogo`       | Binds automatic logo selection without silently choosing the manual logo      | test          |
-| `admitsExplicitBypass`     | Rechecks current authorized bypass before image delivery                      | test          |
-| `refusesGuestBypass`       | Refuses guest bypass before any sporting read                                 | parameterized |
-| `refusesInvalidBearer`     | Refuses an invalid bearer without falling back to public admission            | test          |
+| Method                             | Regression detected by its assertions                                          | Shape         |
+| ---------------------------------- | ------------------------------------------------------------------------------ | ------------- |
+| `servesPublicClub`                 | Serves guest club facts without private state or credentials                   | test          |
+| `servesResourceDetail`             | Serves the exact team pool and match identity through generated JSON mappings  | parameterized |
+| `servesEmptySeason`                | Returns a successful empty exact club-season selection                         | test          |
+| `refusesUnavailableTarget`         | Returns safe not-found for missing hidden or dateless targets                  | parameterized |
+| `requiresSeason`                   | Requires an explicit club season before reading data                           | test          |
+| `refusesUnknownSeason`             | Reports an unknown club season safely                                          | test          |
+| `servesBinaryLogo`                 | Delivers the effective binary image with its owner media type                  | parameterized |
+| `bindsAutomaticLogo`               | Binds automatic logo selection without silently choosing the manual logo       | test          |
+| `rejectsNoncanonicalLogoSelection` | Rejects noncanonical selections before image reads with opaque no-store errors | parameterized |
+| `preservesEmptyLogoDefault`        | Keeps the generated effective-logo default when selection is empty             | test          |
+| `admitsExplicitBypass`             | Rechecks current authorized bypass before image delivery                       | test          |
+| `refusesGuestBypass`               | Refuses guest bypass before any sporting read                                  | parameterized |
+| `refusesInvalidBearer`             | Refuses an invalid bearer without falling back to public admission             | test          |
 
 ### `SupportGeneratedWebMvcTest`
 
@@ -1387,7 +1391,7 @@ Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction managem
 
 Source: [apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAnnouncementsIntegrationTest.java](../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAnnouncementsIntegrationTest.java). Classification: **application/infrastructure integration / Failsafe**.
 
-Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `Probe`, `SportingProjectionChanges`, `ProcessDueMatch`, `com.blockout.backend.sporting.application.service.MatchContributionAccess`, `com.blockout.backend.notifications.application.AnnouncementRecipients`, `AnnounceContribution`, `ChangeCollectionSeasons`, `AdmitCollectionCycle`, `RegisterCollectorRuntime`, `AcceptCalendar`, `AcceptMatchObservation`, `SportingObservationMapper`, `SubmitContribution`, `ReadOwnContributions`, `ContributionStore`, `ReplaceFollowState`, `ProcessDueLinkAnnouncements`; actual publication/result/F07 producers and after-commit event listeners. Controlled/absent boundaries: clock; instance-owned recording/failing after-commit listener; controlled SQL uniqueness failure.
+Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `Probe`, `SportingProjectionChanges`, `ProcessDueMatch`, `com.blockout.backend.sporting.application.service.MatchContributionAccess`, `com.blockout.backend.notifications.application.AnnouncementRecipients`, `AnnounceContribution`, `ChangeCollectionSeasons`, `AdmitCollectionCycle`, `RegisterCollectorRuntime`, `AcceptCalendar`, `AcceptMatchObservation`, `SportingObservationMapper`, `SubmitContribution`, `ReadOwnContributions`, `ContributionStore`, `FollowState`, `ProcessDueLinkAnnouncements`; actual publication/result/F07 producers and after-commit event listeners. Controlled/absent boundaries: clock; instance-owned recording/failing after-commit listener; controlled SQL uniqueness failure.
 
 | Scenario (all declared parameter values)          | Protected behavior / detectable regression                                                          |
 | ------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
@@ -1416,7 +1420,7 @@ Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction managem
 
 Source: [apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAttributionIntegrationTest.java](../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAttributionIntegrationTest.java). Classification: **application/infrastructure integration / Failsafe**.
 
-Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `ChangeCollectionSeasons`, `AdmitCollectionCycle`, `RegisterCollectorRuntime`, `AcceptCalendar`, `AcceptMatchObservation`, `SportingObservationMapper`, `SubmitContribution`, `ReadOwnContributions`, `ContributionStore`, `ReplaceFollowState`, `ProcessDueLinkAnnouncements`. Controlled/absent boundaries: `Clock`.
+Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `ChangeCollectionSeasons`, `AdmitCollectionCycle`, `RegisterCollectorRuntime`, `AcceptCalendar`, `AcceptMatchObservation`, `SportingObservationMapper`, `SubmitContribution`, `ReadOwnContributions`, `ContributionStore`, `FollowState`, `ProcessDueLinkAnnouncements`. Controlled/absent boundaries: `Clock`.
 
 | Scenario (all declared parameter values) | Protected behavior / detectable regression                                       |
 | ---------------------------------------- | -------------------------------------------------------------------------------- |
@@ -1427,7 +1431,7 @@ Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction managem
 
 Source: [apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionSportingLocksIntegrationTest.java](../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionSportingLocksIntegrationTest.java). Classification: **application/infrastructure integration / Failsafe**.
 
-Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `ChangeDivisionLifecycle`, `ProcessDueLinkAnnouncements.ProcessDueMatch`, `ChangeCollectionSeasons`, `AdmitCollectionCycle`, `RegisterCollectorRuntime`, `AcceptCalendar`, `AcceptMatchObservation`, `SportingObservationMapper`, `SubmitContribution`, `ReadOwnContributions`, `ContributionStore`, `ReplaceFollowState`, `ProcessDueLinkAnnouncements`. Controlled/absent boundaries: `Clock`.
+Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `ChangeDivisionLifecycle`, `ProcessDueLinkAnnouncements.ProcessDueMatch`, `ChangeCollectionSeasons`, `AdmitCollectionCycle`, `RegisterCollectorRuntime`, `AcceptCalendar`, `AcceptMatchObservation`, `SportingObservationMapper`, `SubmitContribution`, `ReadOwnContributions`, `ContributionStore`, `FollowState`, `ProcessDueLinkAnnouncements`. Controlled/absent boundaries: `Clock`.
 
 | Scenario (all declared parameter values) | Protected behavior / detectable regression                                    |
 | ---------------------------------------- | ----------------------------------------------------------------------------- |
@@ -1437,7 +1441,7 @@ Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction managem
 
 Source: [apps/backend/src/test/java/com/blockout/backend/contributions/application/ReadOwnContributionsIntegrationTest.java](../apps/backend/src/test/java/com/blockout/backend/contributions/application/ReadOwnContributionsIntegrationTest.java). Classification: **application/infrastructure integration / Failsafe**.
 
-Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `ChangeCollectionSeasons`, `AdmitCollectionCycle`, `RegisterCollectorRuntime`, `AcceptCalendar`, `AcceptMatchObservation`, `SportingObservationMapper`, `SubmitContribution`, `ReadOwnContributions`, `ContributionStore`, `ReplaceFollowState`, `ProcessDueLinkAnnouncements`. Controlled/absent boundaries: `Clock`.
+Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `ChangeCollectionSeasons`, `AdmitCollectionCycle`, `RegisterCollectorRuntime`, `AcceptCalendar`, `AcceptMatchObservation`, `SportingObservationMapper`, `SubmitContribution`, `ReadOwnContributions`, `ContributionStore`, `FollowState`, `ProcessDueLinkAnnouncements`. Controlled/absent boundaries: `Clock`.
 
 | Scenario (all declared parameter values) | Protected behavior / detectable regression                                         |
 | ---------------------------------------- | ---------------------------------------------------------------------------------- |
@@ -1449,7 +1453,7 @@ Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction managem
 
 Source: [apps/backend/src/test/java/com/blockout/backend/contributions/application/SubmitContributionIntegrationTest.java](../apps/backend/src/test/java/com/blockout/backend/contributions/application/SubmitContributionIntegrationTest.java). Classification: **application/infrastructure integration / Failsafe**.
 
-Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `ChangeCollectionSeasons`, `AdmitCollectionCycle`, `RegisterCollectorRuntime`, `AcceptCalendar`, `AcceptMatchObservation`, `SportingObservationMapper`, `SubmitContribution`, `ReadOwnContributions`, `ContributionStore`, `ReplaceFollowState`, `ProcessDueLinkAnnouncements`. Controlled/absent boundaries: `Clock`.
+Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `ChangeCollectionSeasons`, `AdmitCollectionCycle`, `RegisterCollectorRuntime`, `AcceptCalendar`, `AcceptMatchObservation`, `SportingObservationMapper`, `SubmitContribution`, `ReadOwnContributions`, `ContributionStore`, `FollowState`, `ProcessDueLinkAnnouncements`. Controlled/absent boundaries: `Clock`.
 
 | Scenario (all declared parameter values) | Protected behavior / detectable regression                                                  |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -1466,7 +1470,7 @@ Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction managem
 
 Source: [apps/backend/src/test/java/com/blockout/backend/contributions/application/SubmitModeratedContributionIntegrationTest.java](../apps/backend/src/test/java/com/blockout/backend/contributions/application/SubmitModeratedContributionIntegrationTest.java). Classification: **application/infrastructure integration / Failsafe**.
 
-Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `SubmitModeratedContribution`, `ChangeAttributionAfterCommit`, `ChangeCollectionSeasons`, `AdmitCollectionCycle`, `RegisterCollectorRuntime`, `AcceptCalendar`, `AcceptMatchObservation`, `SportingObservationMapper`, `SubmitContribution`, `ReadOwnContributions`, `ContributionStore`, `ReplaceFollowState`, `ProcessDueLinkAnnouncements`; moderated command and post-commit attribution reads. Controlled/absent boundaries: clock; instance-owned listener performs explicit competing account mutation after commit.
+Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `SubmitModeratedContribution`, `ChangeAttributionAfterCommit`, `ChangeCollectionSeasons`, `AdmitCollectionCycle`, `RegisterCollectorRuntime`, `AcceptCalendar`, `AcceptMatchObservation`, `SportingObservationMapper`, `SubmitContribution`, `ReadOwnContributions`, `ContributionStore`, `FollowState`, `ProcessDueLinkAnnouncements`; moderated command and post-commit attribution reads. Controlled/absent boundaries: clock; instance-owned listener performs explicit competing account mutation after commit.
 
 | Scenario (all declared parameter values) | Protected behavior / detectable regression                     |
 | ---------------------------------------- | -------------------------------------------------------------- |
@@ -1505,7 +1509,7 @@ Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction managem
 
 Source: [apps/backend/src/test/java/com/blockout/backend/following/infrastructure/FollowRelationsIntegrationTest.java](../apps/backend/src/test/java/com/blockout/backend/following/infrastructure/FollowRelationsIntegrationTest.java). Classification: **application/infrastructure integration / Failsafe**.
 
-Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `ReadFollowState`, `ReplaceFollowState`, `FollowStore`, `ReadFollowEligibility`, `AccountAccess`. Controlled/absent boundaries: `PrincipalReader`.
+Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `FollowState`, `FollowStore`, `ReadFollowEligibility`, `AccountAccess`. Controlled/absent boundaries: `PrincipalReader`.
 
 | Scenario (all declared parameter values) | Protected behavior / detectable regression                                                     |
 | ---------------------------------------- | ---------------------------------------------------------------------------------------------- |
@@ -1547,7 +1551,7 @@ Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction managem
 
 Source: [apps/backend/src/test/java/com/blockout/backend/notifications/application/AnnouncementAudienceIntegrationTest.java](../apps/backend/src/test/java/com/blockout/backend/notifications/application/AnnouncementAudienceIntegrationTest.java). Classification: **application/infrastructure integration / Failsafe**.
 
-Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `ProcessDueLinkAnnouncements.ProcessDueMatch`, `ChangeCollectionSeasons`, `AdmitCollectionCycle`, `RegisterCollectorRuntime`, `AcceptCalendar`, `AcceptMatchObservation`, `SportingObservationMapper`, `SubmitContribution`, `ReadOwnContributions`, `ContributionStore`, `ReplaceFollowState`, `ProcessDueLinkAnnouncements`. Controlled/absent boundaries: `Clock`.
+Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `ProcessDueLinkAnnouncements.ProcessDueMatch`, `ChangeCollectionSeasons`, `AdmitCollectionCycle`, `RegisterCollectorRuntime`, `AcceptCalendar`, `AcceptMatchObservation`, `SportingObservationMapper`, `SubmitContribution`, `ReadOwnContributions`, `ContributionStore`, `FollowState`, `ProcessDueLinkAnnouncements`. Controlled/absent boundaries: `Clock`.
 
 | Scenario (all declared parameter values) | Protected behavior / detectable regression                             |
 | ---------------------------------------- | ---------------------------------------------------------------------- |
@@ -1579,7 +1583,7 @@ Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction managem
 
 Source: [apps/backend/src/test/java/com/blockout/backend/notifications/application/LinkAnnouncementIntegrationTest.java](../apps/backend/src/test/java/com/blockout/backend/notifications/application/LinkAnnouncementIntegrationTest.java). Classification: **application/infrastructure integration / Failsafe**.
 
-Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `ChangeCollectionSeasons`, `AdmitCollectionCycle`, `RegisterCollectorRuntime`, `AcceptCalendar`, `AcceptMatchObservation`, `SportingObservationMapper`, `SubmitContribution`, `ReadOwnContributions`, `ContributionStore`, `ReplaceFollowState`, `ProcessDueLinkAnnouncements`. Controlled/absent boundaries: `Clock`.
+Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `ChangeCollectionSeasons`, `AdmitCollectionCycle`, `RegisterCollectorRuntime`, `AcceptCalendar`, `AcceptMatchObservation`, `SportingObservationMapper`, `SubmitContribution`, `ReadOwnContributions`, `ContributionStore`, `FollowState`, `ProcessDueLinkAnnouncements`. Controlled/absent boundaries: `Clock`.
 
 | Scenario (all declared parameter values) | Protected behavior / detectable regression                                                           |
 | ---------------------------------------- | ---------------------------------------------------------------------------------------------------- |
@@ -1642,7 +1646,7 @@ Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction managem
 
 Source: [apps/backend/src/test/java/com/blockout/backend/notifications/application/RecipientSnapshotIntegrationTest.java](../apps/backend/src/test/java/com/blockout/backend/notifications/application/RecipientSnapshotIntegrationTest.java). Classification: **application/infrastructure integration / Failsafe**.
 
-Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `ChangeCollectionSeasons`, `AdmitCollectionCycle`, `RegisterCollectorRuntime`, `AcceptCalendar`, `AcceptMatchObservation`, `SportingObservationMapper`, `SubmitContribution`, `ReadOwnContributions`, `ContributionStore`, `ReplaceFollowState`, `ProcessDueLinkAnnouncements`; real SQL audience union with independent follow commits. Controlled/absent boundaries: clock; instance-owned Hibernate statement observer coordinates the interleaving without changing SQL.
+Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `ChangeCollectionSeasons`, `AdmitCollectionCycle`, `RegisterCollectorRuntime`, `AcceptCalendar`, `AcceptMatchObservation`, `SportingObservationMapper`, `SubmitContribution`, `ReadOwnContributions`, `ContributionStore`, `FollowState`, `ProcessDueLinkAnnouncements`; real SQL audience union with independent follow commits. Controlled/absent boundaries: clock; instance-owned Hibernate statement observer coordinates the interleaving without changing SQL.
 
 | Scenario (all declared parameter values) | Protected behavior / detectable regression                              |
 | ---------------------------------------- | ----------------------------------------------------------------------- |
@@ -1662,18 +1666,19 @@ Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction managem
 
 Source: [apps/backend/src/test/java/com/blockout/backend/search/application/SearchCurrentDataIntegrationTest.java](../apps/backend/src/test/java/com/blockout/backend/search/application/SearchCurrentDataIntegrationTest.java). Classification: **application/infrastructure integration / Failsafe**.
 
-Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `HydrateSearch`; real ReadSportingResources spy and current SQL hydration. Controlled/absent boundaries: synthetic stale engine candidates; engine retrieval not exercised.
+Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction management; `HydrateSearch`, `ConsultationStore`; real ReadSportingResources spy, current SQL hydration and Hibernate statement counts for one versus twenty distinct candidates. Controlled/absent boundaries: synthetic stale engine candidates; engine retrieval not exercised.
 
-| Scenario (all declared parameter values) | Protected behavior / detectable regression                                          |
-| ---------------------------------------- | ----------------------------------------------------------------------------------- |
-| `omitsStaleCity`                         | Omits a stale city even when the resource name matches.                             |
-| `hydratesCurrentClub`                    | Returns the current public identity and logo of a club without teams.               |
-| `hydratesProfessionalTeam`               | Preserves clubless professional identity across published past and future seasons.  |
-| `respectsCurrentRestrictions`            | Current sporting restrictions remove teams and affected pool reads.                 |
-| `respectsCurrentFilter`                  | Rechecks exact filters against current classification.                              |
-| `attachesClub`                           | A verified club attachment supplies current context without changing team identity. |
-| `omitsUnknownClassification`             | An unknown current pool classification cannot satisfy a stale exact filter.         |
-| `hydratesUnknownClassification`          | Preserves unknown current pool classification when no exact filter is requested.    |
+| Scenario (all declared parameter values) | Protected behavior / detectable regression                                                                                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `omitsStaleCity`                         | Omits a stale city even when the resource name matches.                                                                                                       |
+| `hydratesCurrentClub`                    | Returns the current public identity and logo of a club without teams.                                                                                         |
+| `hydratesProfessionalTeam`               | Preserves clubless professional identity across published past and future seasons.                                                                            |
+| `respectsCurrentRestrictions`            | Current sporting restrictions remove teams and affected pool reads.                                                                                           |
+| `respectsCurrentFilter`                  | Rechecks exact filters against current classification.                                                                                                        |
+| `attachesClub`                           | A verified club attachment supplies current context without changing team identity.                                                                           |
+| `omitsUnknownClassification`             | An unknown current pool classification cannot satisfy a stale exact filter.                                                                                   |
+| `hydratesUnknownClassification`          | Preserves unknown current pool classification when no exact filter is requested.                                                                              |
+| `readsSummariesInBatches`                | Twenty distinct club, team or pool summaries require the same number of SQL statements as one, while preserving current presentation and absent club context. |
 
 ### ResultAnnouncementIntegrationTest
 
@@ -2005,9 +2010,10 @@ Source: [apps/backend/src/test/java/com/blockout/backend/search/infrastructure/O
 
 Real: OpenSearchEngine and real request/response values. Controlled: Official OpenSearch client collaborator. Lifecycle: Fresh mocks; no engine semantic evidence claimed.
 
-| Scenario                                    | Evidence / regression guarded                                            |
-| ------------------------------------------- | ------------------------------------------------------------------------ |
-| `rejectsIncompleteResponse` (parameterized) | Rejects incomplete responses instead of publishing successful exhaustion |
+| Scenario                                    | Evidence / regression guarded                                                         |
+| ------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `rejectsIncompleteResponse` (parameterized) | Rejects incomplete responses instead of publishing successful exhaustion              |
+| `selectsResourceAlias` (parameterized)      | Uses the configured environment namespace and resource alias for every search request |
 
 ### OpenSearchPropertiesIntegrationTest
 
@@ -2247,7 +2253,7 @@ Real: CollectorLifecycle/CollectPassage, generated HTTP, backend security, row l
 
 Source: [apps/collector/src/test/java/com/blockout/collector/acquisition/application/CurrentEntryOperationalEvidenceIntegrationTest.java](../apps/collector/src/test/java/com/blockout/collector/acquisition/application/CurrentEntryOperationalEvidenceIntegrationTest.java). Family: **Logging integration**.
 
-Real: Native discovery parsers/orchestration and Boot ECS console encoder. Controlled: ProviderHttpClient and CollectionBackend ports; fixed Clock. Lifecycle: Minimal configuration-only Boot context; per-method objects/captured logs, no provider evidence.
+Real: Native discovery parsers/orchestration and Boot ECS console encoder. Controlled: ProviderPages and CollectionBackend ports; fixed Clock. Lifecycle: Minimal configuration-only Boot context; per-method objects/captured logs, no provider evidence.
 
 | Scenario                                     | Evidence / regression guarded                                     |
 | -------------------------------------------- | ----------------------------------------------------------------- |
@@ -2260,7 +2266,7 @@ Real: Native discovery parsers/orchestration and Boot ECS console encoder. Contr
 
 Source: [apps/collector/src/test/java/com/blockout/collector/acquisition/application/DiscoverSeasonSourcesTest.java](../apps/collector/src/test/java/com/blockout/collector/acquisition/application/DiscoverSeasonSourcesTest.java). Family: **Unit**.
 
-Real: DiscoverSeasonSources with native FFVB/LNV parsers. Controlled: ProviderHttpClient and backend/lifecycle ports. Lifecycle: Fresh data and completed/failed futures; no HTTP proof.
+Real: DiscoverSeasonSources with native FFVB/LNV parsers. Controlled: ProviderPages and backend/lifecycle ports. Lifecycle: Fresh data and completed/failed futures; no HTTP proof.
 
 | Scenario                        | Evidence / regression guarded                                                      |
 | ------------------------------- | ---------------------------------------------------------------------------------- |
@@ -2274,7 +2280,7 @@ Real: DiscoverSeasonSources with native FFVB/LNV parsers. Controlled: ProviderHt
 
 Source: [apps/collector/src/test/java/com/blockout/collector/acquisition/application/QualifySourceTest.java](../apps/collector/src/test/java/com/blockout/collector/acquisition/application/QualifySourceTest.java). Family: **Unit**.
 
-Real: QualifySource and native context qualification. Controlled: ProviderHttpClient and backend/lifecycle ports. Lifecycle: Fresh completed futures; no provider proof.
+Real: QualifySource and native context qualification. Controlled: ProviderPages and backend/lifecycle ports. Lifecycle: Fresh completed futures; no provider proof.
 
 | Scenario                   | Evidence / regression guarded                                                       |
 | -------------------------- | ----------------------------------------------------------------------------------- |

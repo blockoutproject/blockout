@@ -25,6 +25,7 @@ import com.blockout.backend.generated.mobile.model.TeamFollowsResponse;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,7 +52,6 @@ import org.springframework.web.bind.annotation.RestController;
   HttpConfiguration.class,
   ApiExceptionHandler.class,
   FollowingRequest.class,
-  FollowingWebConfiguration.class,
   FollowingContractWebMvcTest.Adapter.class
 })
 @DisplayName("Following generated contract boundary")
@@ -169,6 +169,8 @@ public class FollowingContractWebMvcTest {
         "/team-follows?page=",
         "/follow-options?seasonId=",
         "/matches?category=unknown&timeZone=Europe/Paris",
+        "/matches?category=UPCOMING&timeZone=Europe/Paris",
+        "/matches?category=COMPLETED&timeZone=Europe/Paris",
         "/matches?category=upcoming&timeZone=invalid",
         "/matches?category=upcoming&timeZone=Europe/Paris&nextDay=2026-02-30",
         "/matches?category=upcoming&timeZone=Europe/Paris&unknown=1",
@@ -374,7 +376,7 @@ public class FollowingContractWebMvcTest {
               new MatchCalendarResponse(
                   CalendarCategoryEnum.UPCOMING,
                   "Europe/Paris",
-                  java.time.OffsetDateTime.parse("2026-10-24T00:00:00Z"),
+                  OffsetDateTime.parse("2026-10-24T00:00:00Z"),
                   List.of())));
     }
   }

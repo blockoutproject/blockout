@@ -8,7 +8,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.ffvb.FfvbDiscovery;
-import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import java.io.IOException;
 import java.net.URI;
@@ -46,7 +45,7 @@ class CurrentEntryOperationalEvidenceIntegrationTest {
   private static final URI ENTRY = URI.create("https://www.lnv.fr/competitions/alterna-volstar");
   private static final URI SOURCE =
       URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
-  private final ProviderHttpClient http = mock(ProviderHttpClient.class);
+  private final ProviderPages http = mock(ProviderPages.class);
   private final CollectionBackend backend = mock(CollectionBackend.class);
   private DiscoverSeasonSources discovery;
 
@@ -180,9 +179,9 @@ class CurrentEntryOperationalEvidenceIntegrationTest {
    * @param html synthetic interpretable provider markup
    * @return completed controlled response
    */
-  private CompletableFuture<ProviderHttpClient.Response> response(URI url, String html) {
+  private CompletableFuture<ProviderResponse> response(URI url, String html) {
     return CompletableFuture.completedFuture(
-        new ProviderHttpClient.Response(html.getBytes(StandardCharsets.UTF_8), url, true));
+        new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), url, true));
   }
 
   /**

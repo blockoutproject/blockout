@@ -1,5 +1,6 @@
 package com.blockout.backend.sporting.api;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -19,6 +20,7 @@ import com.blockout.backend.sporting.application.ConsultationViews;
 import com.blockout.backend.sporting.application.ReadMatchCalendar;
 import com.blockout.backend.sporting.application.ReadSportingResources;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
+import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -34,12 +36,12 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 /** Actual generated MVC/security and JSON mappings with a controlled calendar application port. */
 @WebMvcTest(ConsultationController.class)
 @Import({
   HttpConfiguration.class,
-  ConsultationHttpConfiguration.class,
   SecurityConfiguration.class,
   ConsultationApiMapperImpl.class,
   SportingExceptionHandler.class,
@@ -63,8 +65,7 @@ class MatchCalendarWebMvcTest {
     ConsultationViews.PoolSummary pool =
         new ConsultationViews.PoolSummary(
             identity,
-            new com.blockout.backend.sporting.application.model.SportingViews.SeasonView(
-                ID, 2026, "2026/2027"),
+            new SeasonView(ID, 2026, "2026/2027"),
             new ConsultationViews.Classification(null, null, null),
             null,
             null);
@@ -95,7 +96,7 @@ class MatchCalendarWebMvcTest {
                 LocalDate.parse("2026-09-19")));
 
     // When
-    org.springframework.test.web.servlet.ResultActions response =
+    ResultActions response =
         mvc.perform(
             get("/matches")
                 .param("teamId", ID.toString())
@@ -131,14 +132,13 @@ class MatchCalendarWebMvcTest {
     String selector = extra.isEmpty() ? "" : "poolId=" + ID + extra + ID + "&";
 
     // When
-    org.springframework.test.web.servlet.ResultActions response =
+    ResultActions response =
         mvc.perform(get("/matches?" + selector + "category=upcoming&timeZone=Europe/Paris"));
 
     // Then
     response
         .andExpect(status().isBadRequest())
-        .andExpect(
-            header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")));
+        .andExpect(header().string("Cache-Control", containsString("no-store")));
     verifyNoInteractions(calendars);
   }
 
@@ -154,8 +154,7 @@ class MatchCalendarWebMvcTest {
   @DisplayName("Rejects invalid category IANA zone and day without leaking submitted values")
   void rejectsInvalidParameters(String params) throws Exception {
     // Given / When
-    org.springframework.test.web.servlet.ResultActions response =
-        mvc.perform(get("/matches?poolId=" + ID + "&" + params));
+    ResultActions response = mvc.perform(get("/matches?poolId=" + ID + "&" + params));
 
     // Then
     response.andExpect(status().isBadRequest()).andExpect(jsonPath("$.detail").doesNotExist());

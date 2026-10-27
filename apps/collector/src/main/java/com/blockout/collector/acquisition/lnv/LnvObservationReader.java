@@ -2,6 +2,7 @@ package com.blockout.collector.acquisition.lnv;
 
 import com.blockout.collector.acquisition.application.CollectionBackend;
 import com.blockout.collector.acquisition.application.LnvAcquisition;
+import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.config.AcquisitionProperties;
@@ -63,13 +64,13 @@ public class LnvObservationReader implements LnvAcquisition {
   /** {@inheritDoc} */
   @Override
   public Resource read(URI uri) {
-    ProviderHttpClient.Response response = http.page(uri).join();
+    ProviderResponse response = http.page(uri).join();
     return fromPage(response, clock.instant());
   }
 
   /** {@inheritDoc} */
   @Override
-  public Resource fromPage(ProviderHttpClient.Response response, Instant observedAt) {
+  public Resource fromPage(ProviderResponse response, Instant observedAt) {
     return new Resource() {
       /** {@inheritDoc} */
       @Override
@@ -124,7 +125,7 @@ public class LnvObservationReader implements LnvAcquisition {
         LnvDocumentReferences.Form form = documents.form(response.body(), response.url(), label);
         if (form == null) return null;
         requireMatch(form.action(), target);
-        ProviderHttpClient.Response document = http.postPage(form.action(), form.fields()).join();
+        ProviderResponse document = http.postPage(form.action(), form.fields()).join();
         requireMatch(document.url(), target);
         requireSeason(document, target);
         URI pdf = documents.publishedPdf(document.body(), document.url());
@@ -157,7 +158,7 @@ public class LnvObservationReader implements LnvAcquisition {
         // passage.
         indexes.put(code, Optional.empty());
         long ordinal = nextOrdinal.getAsLong();
-        ProviderHttpClient.Response xml =
+        ProviderResponse xml =
             http.page(URI.create("https://www.lnv.fr/xml/calendrier-" + code + ".xml")).join();
         indexes.put(code, Optional.of(new Index(xml.body(), clock.instant(), ordinal)));
       }
@@ -193,8 +194,7 @@ public class LnvObservationReader implements LnvAcquisition {
    * @param response bounded provider response
    * @param target admitted seasonal scope
    */
-  private void requireSeason(
-      ProviderHttpClient.Response response, CollectionBackend.Target target) {
+  private void requireSeason(ProviderResponse response, CollectionBackend.Target target) {
     String season = LnvPage.season(LnvPage.parse(response.body(), response.url()));
     if (season != null && !season.equals(target.seasonLabel())) throw LnvPage.invalid();
   }

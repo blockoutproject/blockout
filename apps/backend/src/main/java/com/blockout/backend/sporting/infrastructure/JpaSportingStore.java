@@ -888,6 +888,23 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  public Map<UUID, SportingPresentation.View> presentations(Kind kind, Set<UUID> ids) {
+    if (ids.isEmpty()) return Map.of();
+    List<SportingPresentationRow> rows =
+        switch (kind) {
+          case CLUB -> clubs.findPresentations(ids);
+          case TEAM -> teams.findPresentations(ids);
+          case POOL -> pools.findPresentations(ids);
+          default -> throw new IllegalArgumentException("Unsupported presentation kind");
+        };
+    return rows.stream()
+        .collect(
+            Collectors.toUnmodifiableMap(
+                SportingPresentationRow::id, row -> mapper.toPresentation(row, kind)));
+  }
+
+  /** {@inheritDoc} */
+  @Override
   @Transactional(propagation = Propagation.MANDATORY)
   public SportingPresentation.View savePresentation(
       Kind kind, UUID id, SportingPresentation.Edit edit) {

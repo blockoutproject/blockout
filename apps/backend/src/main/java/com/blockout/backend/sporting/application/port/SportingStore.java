@@ -660,6 +660,15 @@ public interface SportingStore {
   Optional<SportingPresentation.View> presentation(Kind kind, UUID id);
 
   /**
+   * Reads current scalar names and artwork presence for an already selected resource set.
+   *
+   * @param kind club, team or pool presentation owner
+   * @param ids exact identities selected in the caller's transaction
+   * @return current existing presentations; this operation does not authorize public visibility
+   */
+  Map<UUID, SportingPresentation.View> presentations(Kind kind, Set<UUID> ids);
+
+  /**
    * Saves complete decided manual names and artwork under the caller's root/account locks.
    *
    * @param kind club, team or pool

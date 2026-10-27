@@ -2,6 +2,7 @@ package com.blockout.collector.acquisition.ffvb;
 
 import com.blockout.collector.acquisition.application.ClubSheets;
 import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
+import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import java.net.URI;
@@ -40,7 +41,7 @@ public class FfvbClubSheets implements ClubSheets {
   @Override
   public SportingObservation.Club read(String reference) {
     if (reference == null || reference.isBlank()) throw invalid();
-    ProviderHttpClient.Response response = http.page(LOOKUP).join();
+    ProviderResponse response = http.page(LOOKUP).join();
     Document document =
         Jsoup.parse(new String(response.body(), FfvbPage.CHARSET), response.url().toString());
     List<FormElement> forms =

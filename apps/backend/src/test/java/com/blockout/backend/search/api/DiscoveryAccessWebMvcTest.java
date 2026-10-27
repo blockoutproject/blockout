@@ -58,7 +58,6 @@ import org.springframework.transaction.support.SimpleTransactionStatus;
 @Import({
   SecurityConfiguration.class,
   HttpConfiguration.class,
-  DiscoveryWebConfiguration.class,
   ApiExceptionHandler.class,
   CurrentPermissions.class,
   ActionAuthorization.class,

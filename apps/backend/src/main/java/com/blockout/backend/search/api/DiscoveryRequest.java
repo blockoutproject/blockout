@@ -1,6 +1,5 @@
 package com.blockout.backend.search.api;
 
-import com.blockout.backend.generated.mobile.model.SearchResourceTypeEnum;
 import com.blockout.backend.search.application.SearchContext;
 import com.blockout.backend.search.application.SearchContinuation;
 import jakarta.servlet.http.HttpServletRequest;
@@ -73,20 +72,14 @@ public class DiscoveryRequest {
   }
 
   /**
-   * Validates one nonblank options type and declared query names; its generated enum owns values.
+   * Rejects undeclared or repeated options parameters; shared binding owns exact enum values.
    *
    * @param request native options request
-   * @throws ResponseStatusException for missing, blank, unknown or repeated query parameters
+   * @throws ResponseStatusException for missing, unknown or repeated query parameters
    */
   public void validateOptions(HttpServletRequest request) {
     if (!request.getParameterMap().keySet().equals(Set.of("resourceType"))
         || request.getParameterValues("resourceType").length != 1) throw invalid();
-    try {
-      // MVC can fall back to enum constant names after a converter refuses a value.
-      SearchResourceTypeEnum.fromValue(request.getParameter("resourceType"));
-    } catch (IllegalArgumentException exception) {
-      throw invalid();
-    }
   }
 
   /**

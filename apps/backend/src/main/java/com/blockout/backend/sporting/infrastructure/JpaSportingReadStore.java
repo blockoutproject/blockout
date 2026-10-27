@@ -126,13 +126,10 @@ public class JpaSportingReadStore implements SportingReadStore {
     return teams.findVisibleClubSeasons(clubId).stream().map(mapper::toView).toList();
   }
 
-  /**
-   * {@inheritDoc} The caller has already loaded the club and season in this persistence context;
-   * selecting only teams avoids repeating parent columns and club image bytes for every row.
-   */
+  /** {@inheritDoc} Scalar projection avoids loading parent or team image payloads. */
   @Override
   public List<TeamView> viewableClubTeams(UUID clubId, UUID seasonId) {
-    return teams.findVisibleClubTeams(clubId, seasonId).stream().map(mapper::toView).toList();
+    return teams.findVisibleClubTeams(clubId, seasonId);
   }
 
   /** {@inheritDoc} */

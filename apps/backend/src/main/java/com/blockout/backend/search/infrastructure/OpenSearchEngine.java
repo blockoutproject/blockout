@@ -49,13 +49,7 @@ public class OpenSearchEngine implements SearchEngine {
     try {
       SearchRequest.Builder request =
           new SearchRequest.Builder()
-              .index(
-                  indexes.prefix()
-                      + switch (context.resource()) {
-                        case CLUB -> "-clubs";
-                        case TEAM -> "-teams";
-                        case POOL -> "-pools";
-                      })
+              .index(indexes.alias(context.resource()))
               .size(size)
               .allowPartialSearchResults(false)
               .trackTotalHits(track -> track.enabled(false))
