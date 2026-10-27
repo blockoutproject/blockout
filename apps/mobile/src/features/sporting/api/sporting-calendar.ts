@@ -101,6 +101,9 @@ export async function refreshCalendar(
  * Applies a known match refusal to retained calendars in the captured session/bypass context.
  * Cancels older reads without reverting their data, then removes only that identity; source times,
  * grouping and continuation remain unchanged. No refusal registry or new network read is created.
+ * @param client existing root QueryClient
+ * @param queryKey generated calendar collection prefix in the captured session/bypass context
+ * @param matchId exact identity refused by its current detail read
  */
 export async function removeUnavailableCalendarMatch(
   client: QueryClient,
