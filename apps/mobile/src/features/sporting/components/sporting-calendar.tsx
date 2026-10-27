@@ -1,9 +1,5 @@
 import type { LegendListRef } from "@legendapp/list/react-native";
-import {
-  keepPreviousData,
-  useInfiniteQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation } from "expo-router";
 import {
   useEffect,
@@ -30,6 +26,9 @@ import { DataRefreshControl } from "../../../shared/components/data-refresh-cont
 import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
+import { ListContinuation } from "../../../shared/components/list-continuation";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { pageContentStyle } from "../../../shared/components/page";
 import { pagedListDefaults } from "../../../shared/components/paged-tabs";
 import { tokens } from "../../../shared/theme/tokens";
@@ -69,6 +68,7 @@ export function SportingCalendar({
   const queries = useConsultationQueries();
   const client = useQueryClient();
   const navigation = useNavigation();
+  const feedback = useActionFeedback();
   const [zone, setZone] = useState(currentSportingTimeZone);
   const [displayZone, setDisplayZone] = useState(currentSportingTimeZone);
   const [refreshing, setRefreshing] = useState(false);
@@ -79,9 +79,7 @@ export function SportingCalendar({
   });
   const calendar = useInfiniteQuery({
     ...options,
-    enabled: (query) => active && !refreshing && query.state.status !== "error",
-    // Native Query preserves the accepted grouping only while its explicit replacement is pending.
-    placeholderData: refreshing ? keepPreviousData : undefined,
+    enabled: (query) => active && query.state.status !== "error",
   });
   const groupingZone = calendar.data?.pages[0]?.timeZone ?? zone;
   const { fontScale, width } = useWindowDimensions();
@@ -97,10 +95,7 @@ export function SportingCalendar({
     : Math.max(2, Math.min(8, Math.floor(availableWidth / (40 * fontScale))));
   const { headerHeight, collapseRange, tabBarHeight } =
     useCollapsingTabsContext();
-  const days = useMemo(
-    () => (calendar.isError ? [] : calendarDays(calendar.data)),
-    [calendar.data, calendar.isError],
-  );
+  const days = useMemo(() => calendarDays(calendar.data), [calendar.data]);
   const rows = useMemo(() => calendarRows(days, stacked), [days, stacked]);
   const stickyHeaderIndices = useMemo(
     () => rows.flatMap((row, index) => (row.kind === "date" ? [index] : [])),
@@ -112,27 +107,28 @@ export function SportingCalendar({
     });
     return () => subscription.remove();
   }, []);
-  /** First-page retry/refresh replaces traversal; failure presents the shared error card without exposing cached rows. */
+  /** Only successful first-page refresh adopts a new loading zone; ordinary failure retains authorized groups and reports a toast. */
   async function refresh() {
     if (refreshing || !active) return;
+    feedback.clear();
     setRefreshing(true);
     const nextZone = currentSportingTimeZone();
     try {
       if (nextZone !== zone)
         await client.cancelQueries({ queryKey: options.queryKey, exact: true });
-      setZone(nextZone);
       await refreshCalendar(
         client,
         createCalendarOptions(queries, { ...selection, timeZone: nextZone }),
       );
+      setZone(nextZone);
       list.current?.scrollToOffset({ offset: 0, animated: false });
-    } catch {
-      // Query owns the read failure and its error-card retry; no competing toast or row store is needed.
+    } catch (error) {
+      if (calendar.data && !isAccessDenied(error)) feedback.error();
     } finally {
       setRefreshing(false);
     }
   }
-  /** Appends only for the visible idle list; Query does not cancel an in-flight replacement. */
+  /** The focused idle list may retry a failed cursor explicitly; its edge callback blocks automatic error replay. */
   function loadMore() {
     if (
       active &&
@@ -140,7 +136,7 @@ export function SportingCalendar({
       calendar.hasNextPage &&
       !refreshing &&
       !calendar.isFetching &&
-      !calendar.isError
+      (!calendar.isError || calendar.isFetchNextPageError)
     )
       void calendar.fetchNextPage({ cancelRefetch: false });
   }
@@ -202,29 +198,30 @@ export function SportingCalendar({
         )
       }
       onEndReached={() => {
-        if (
-          calendar.hasNextPage &&
-          !calendar.isFetching &&
-          !calendar.isFetchNextPageError
-        )
+        if (calendar.hasNextPage && !calendar.isFetching && !calendar.isError)
           loadMore();
       }}
       ListEmptyComponent={
         <ScreenState>
-          {calendar.isPending ? (
-            <RequestLoading />
-          ) : calendar.isError ? (
+          {calendar.isError && !calendar.data ? (
             <ErrorState
               onRetry={() => void refresh()}
               retrying={calendar.isFetching}
             />
+          ) : calendar.isPending ? (
+            <RequestLoading />
           ) : (
             <EmptyState title="Aucun match pour cette sélection" />
           )}
         </ScreenState>
       }
       ListFooterComponent={
-        calendar.isFetchingNextPage ? <RequestLoading /> : undefined
+        <ListContinuation
+          loading={calendar.isFetchingNextPage}
+          failed={!!calendar.data && calendar.isFetchNextPageError}
+          disabled={calendar.isFetching || refreshing}
+          onRetry={loadMore}
+        />
       }
     />
   );

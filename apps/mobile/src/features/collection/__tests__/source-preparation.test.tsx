@@ -1105,7 +1105,7 @@ it("loads the next child page only from the visible idle list and retains bounde
   ).not.toBeOnTheScreen();
 });
 
-it("replaces a failed child traversal with the read card and resumes only after its explicit retry", async () => {
+it("retains child rows and retries the failed page from its compact continuation without a toast", async () => {
   // Given
   const user = userEvent.setup();
   let fails = true;
@@ -1134,7 +1134,9 @@ it("replaces a failed child traversal with the read card and resumes only after 
     screen.getByTestId("collection-source-children-list"),
     "endReached",
   );
-  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  await screen.findByRole("button", {
+    name: "Une erreur est survenue. Réessayer.",
+  });
   fails = false;
 
   // When
@@ -1144,7 +1146,7 @@ it("replaces a failed child traversal with the read card and resumes only after 
   );
 
   // Then
-  expect(screen.queryByText("Phase régulière")).not.toBeOnTheScreen();
+  expect(screen.getByText("Phase régulière")).toBeOnTheScreen();
   expect(
     screen.queryByText(
       "Une erreur est survenue. Veuillez réessayer plus tard.",
@@ -1159,11 +1161,8 @@ it("replaces a failed child traversal with the read card and resumes only after 
   ).toHaveLength(1);
 
   // When
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-  await screen.findByText("Phase régulière");
-  await fireEvent(
-    screen.getByTestId("collection-source-children-list"),
-    "endReached",
+  await user.press(
+    screen.getByRole("button", { name: "Une erreur est survenue. Réessayer." }),
   );
 
   // Then
@@ -1174,7 +1173,55 @@ it("replaces a failed child traversal with the read card and resumes only after 
   );
   expect(
     pages.map(([url]) => new URL(String(url)).searchParams.get("page")),
-  ).toEqual(["0", "1", "0", "1"]);
+  ).toEqual(["0", "1", "1"]);
+});
+
+it("retains authorized child rows after a failed native refresh with discreet feedback", async () => {
+  // Given
+  let unavailable = false;
+  mockFetch.mockImplementation((url) =>
+    String(url).includes("/children")
+      ? Promise.resolve(
+          unavailable
+            ? refused(503)
+            : json({
+                items: [
+                  {
+                    id: "00000000-0000-4000-8000-000000000182",
+                    label: "Groupe conservé",
+                    kind: "pool",
+                  },
+                ],
+                page: 0,
+                hasNext: false,
+              }),
+        )
+      : reads(url),
+  );
+  await renderPreparation(
+    <SourceChildrenScreen seasonId={seasonId} sourceId={sourceId} />,
+  );
+  await screen.findByText("Groupe conservé");
+
+  // When
+  unavailable = true;
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("Groupe conservé")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", {
+      name: "Une erreur est survenue. Réessayer.",
+    }),
+  ).not.toBeOnTheScreen();
 });
 
 it("retains the manual supported-source draft after a duplicate conflict", async () => {

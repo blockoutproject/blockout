@@ -8,7 +8,7 @@ import { reconcileSearchFilters } from "../model/search-filters";
 import { Page, PageContent } from "../../../shared/components/page";
 import { PagedTabs, PagerTabBar } from "../../../shared/components/paged-tabs";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ListContinuation } from "../../../shared/components/list-continuation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useRef, useState } from "react";
@@ -46,7 +46,8 @@ const searchTabs = [
 /**
  * Public text-search entry with internal tabs and a single shared editable value. Empty-text
  * examples and sporting activation remain with their owning tasks. Filters retain one selection per sporting tab.
- * Native end events continue the selected focused context; a read failure replaces its results with the shared retry card.
+ * Native end events continue the selected focused context. Initial errors use the shared card;
+ * failed continuation retains accepted pages and offers one compact retry at the list edge.
  * Generated Unicode validation rejects over-limit text without truncating the user's draft.
  */
 export function SearchScreen() {
@@ -244,9 +245,7 @@ export function SearchScreen() {
               <View style={styles.resultsHeading}>
                 <SearchHeading
                   count={
-                    queries[resource].data && !queries[resource].isError
-                      ? items[resource].length
-                      : undefined
+                    queries[resource].data ? items[resource].length : undefined
                   }
                   onClear={() => clearCriteria(resource)}
                 />
@@ -259,7 +258,7 @@ export function SearchScreen() {
   );
 }
 
-/** One native list survives criteria and read states; any read failure replaces cards until explicit retry. */
+/** One native list retains accepted cards while a failed continuation recovers at its own footer. */
 function SearchScene({
   resource,
   active,
@@ -278,25 +277,29 @@ function SearchScene({
   const sporting = resource === "club" ? undefined : visit[resource];
   const filters = sporting?.filters;
   const resultsReady = searchable && (!sporting || !!filters);
-  const error = query.isError ? (
-    <ErrorState
-      onRetry={() => void query.refetch()}
-      retrying={query.isFetching}
-    />
-  ) : undefined;
+  /** The visible valid context owns continuation; explicit retry may resume its failed cursor. */
+  function loadMore() {
+    if (
+      active &&
+      navigation.isFocused() &&
+      resultsReady &&
+      query.hasNextPage &&
+      !query.isFetching
+    )
+      void query.fetchNextPage({ cancelRefetch: false });
+  }
+  const error =
+    query.isError && !query.data ? (
+      <ErrorState
+        onRetry={() => void query.refetch()}
+        retrying={query.isFetching}
+      />
+    ) : undefined;
   return (
     <SearchResults
-      items={resultsReady && !query.isError ? items : []}
+      items={resultsReady ? items : []}
       onEndReached={() => {
-        if (
-          active &&
-          navigation.isFocused() &&
-          resultsReady &&
-          query.hasNextPage &&
-          !query.isFetching &&
-          !query.isError
-        )
-          void query.fetchNextPage({ cancelRefetch: false });
+        if (!query.isError) loadMore();
       }}
       emptyComponent={
         !searchable ? null : sporting && !filters ? (
@@ -325,8 +328,15 @@ function SearchScene({
         )
       }
       continuation={
-        resultsReady && !query.isError && query.isFetchingNextPage ? (
-          <RequestLoading />
+        resultsReady &&
+        query.data &&
+        (query.isFetchingNextPage || query.isFetchNextPageError) ? (
+          <ListContinuation
+            loading={query.isFetchingNextPage}
+            failed={query.isFetchNextPageError}
+            disabled={!active || query.isFetching}
+            onRetry={loadMore}
+          />
         ) : undefined
       }
     />

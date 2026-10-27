@@ -50,6 +50,7 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ push: mockPush }),
+  useNavigation: () => ({ isFocused: () => true }),
 }));
 // The official native-inset double supplies the Modal window's measurement event in Jest.
 jest.mock(

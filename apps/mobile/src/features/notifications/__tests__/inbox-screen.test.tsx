@@ -200,7 +200,7 @@ it("keeps confirmed reading after navigation fails, including a discreet lost-re
   await waitFor(() => expect(setBadgeCountAsync).toHaveBeenLastCalledWith(6));
 });
 
-it("replaces cards with the shared error state after failed refresh and retries the first page explicitly", async () => {
+it("uses the initial error card but retains authorized cards with a toast after failed pull-to-refresh", async () => {
   // Given
   mockFetch.mockImplementation((url: string, init: RequestInit) =>
     new URL(url).pathname.endsWith("/notifications")
@@ -226,15 +226,16 @@ it("replaces cards with the shared error state after failed refresh and retries 
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
-  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  await screen.findByRole("alert", { name: /Une erreur est survenue/ });
+  expect(screen.getByRole("link", { name: /non lue$/ })).toBeOnTheScreen();
   expect(
-    screen.queryByRole("link", { name: /non lue$/ }),
+    screen.queryByRole("button", { name: /Réessayer/ }),
   ).not.toBeOnTheScreen();
   expect(screen.queryByText("Aucune notification pour le moment")).toBeNull();
 
   // When
   mockFetch.mockImplementation(response);
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
   expect(
@@ -242,7 +243,7 @@ it("replaces cards with the shared error state after failed refresh and retries 
   ).toBeOnTheScreen();
 });
 
-it("removes expired content while active offline and presents the failed read instead of an empty outcome", async () => {
+it("removes known expired content while active offline without restoring it after a failed read", async () => {
   // Given
   rows = [
     {
@@ -269,7 +270,7 @@ it("removes expired content while active offline and presents the failed read in
   // Then
   expect(screen.queryByRole("link", { name: /non lue$/ })).toBeNull();
   expect(
-    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    await screen.findByText("Aucune notification pour le moment"),
   ).toBeOnTheScreen();
 });
 
@@ -345,7 +346,7 @@ it("clears the app badge on session invalidation and excludes guest private read
   ).toBe(false);
 });
 
-it("loads only the focused inbox and replaces failed pagination with a card that retries from newest", async () => {
+it("loads only the focused inbox and retains rows while its compact footer retries the same failed cursor", async () => {
   // Given
   const second = {
     ...row,
@@ -390,24 +391,24 @@ it("loads only the focused inbox and replaces failed pagination with a card that
 
   // Then
   expect(
-    await screen.findByRole("button", { name: "Réessayer" }),
+    await screen.findByRole("button", {
+      name: /Une erreur est survenue.*Réessayer/,
+    }),
   ).toBeOnTheScreen();
-  await fireEvent(
-    screen.getByRole("button", { name: "Réessayer" }),
-    "endReached",
-  );
+  await fireEvent(first, "endReached");
   expect(
     mockFetch.mock.calls.filter(([url]) =>
       new URL(url).searchParams.has("cursor"),
     ),
   ).toHaveLength(1);
   expect(
-    screen.queryByRole("link", { name: /^Le résultat.*non lue$/ }),
-  ).not.toBeOnTheScreen();
+    screen.getByRole("link", { name: /^Le résultat.*non lue$/ }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 
   // When
   failNext = false;
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(screen.getByRole("button", { name: /Réessayer/ }));
 
   // Then
   expect(
@@ -418,7 +419,7 @@ it("loads only the focused inbox and replaces failed pagination with a card that
     "endReached",
   );
   expect(
-    screen.queryByRole("button", { name: "Réessayer" }),
+    screen.queryByRole("button", { name: /Réessayer/ }),
   ).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Charger la suite" }),
@@ -427,7 +428,7 @@ it("loads only the focused inbox and replaces failed pagination with a card that
     mockFetch.mock.calls
       .filter(([url]) => new URL(url).searchParams.has("cursor"))
       .map(([url]) => new URL(url).searchParams.get("cursor")),
-  ).toEqual(["same-boundary"]);
+  ).toEqual(["same-boundary", "same-boundary"]);
 });
 
 it("keeps the 29-day deadline armed beyond the platform timeout limit without premature network refresh", async () => {

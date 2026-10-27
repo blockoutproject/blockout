@@ -685,6 +685,16 @@ it("distinguishes an empty club season from a failed team read", async () => {
   expect(
     screen.queryByText("Aucune équipe pour cette saison"),
   ).not.toBeOnTheScreen();
+  // When: a failed initial catalogue is revisited, only its explicit card action may retry.
+  await user.press(screen.getByRole("tab", { name: "Infos" }));
+  await user.press(screen.getByRole("tab", { name: "Équipes" }));
+  await layoutNativeTabs();
+  await screen.findByRole("alert");
+
+  // Then
+  expect(
+    mockFetch.mock.calls.filter(([url]) => String(url).includes("/teams?")),
+  ).toHaveLength(1);
   failed = false;
   // When
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
@@ -692,9 +702,12 @@ it("distinguishes an empty club season from a failed team read", async () => {
   expect(
     await screen.findByText("Aucune équipe pour cette saison"),
   ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) => String(url).includes("/teams?")),
+  ).toHaveLength(2);
 });
 
-it("replaces a club season's teams with the shared error card and retries only that bounded catalogue", async () => {
+it("retains a club season's teams after failed pull-to-refresh and retries only that bounded catalogue on another pull", async () => {
   // Given: the club header, selection and accepted team catalogue have their real Query owners.
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
@@ -711,11 +724,14 @@ it("replaces a club season's teams with the shared error card and retries only t
 
   // When
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  await screen.findByRole("alert", { name: /Une erreur est survenue/ });
 
-  // Then: no retained list or competing toast remains, while the independent club identity stays readable.
+  // Then: the authorized catalogue and independent club identity remain visible with one toast.
   expect(
-    screen.queryByRole("link", { name: team.team.team.name }),
+    screen.getByRole("link", { name: team.team.team.name }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
   ).not.toBeOnTheScreen();
   expect(screen.getAllByRole("alert")).toHaveLength(1);
   expect(screen.getByText(club.club.name)).toBeOnTheScreen();
@@ -725,7 +741,7 @@ it("replaces a club season's teams with the shared error card and retries only t
 
   // When
   mockFetch.mockImplementation(reads);
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
   expect(

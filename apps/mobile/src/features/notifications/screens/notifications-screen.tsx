@@ -16,6 +16,7 @@ import {
 import { PageHeader } from "../../../shared/components/page-header";
 import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import { BottomNavigationSpacer } from "../../../shared/components/bottom-navigation-inset";
+import { ListContinuation } from "../../../shared/components/list-continuation";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
@@ -23,6 +24,7 @@ import { RequestLoading } from "../../../shared/components/request-feedback";
 import { Skeleton } from "../../../shared/components/skeleton";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useInboxQueries } from "../api/use-inbox-queries";
@@ -90,16 +92,14 @@ function Inbox({
   const { colors } = useTheme();
   // Cached rows also pass the opening cutoff before the first render; the ordinary layout owns active/resume cleanup.
   const [openedAt] = useState(Date.now);
-  const rows = query.isError
-    ? []
-    : [
-        ...new Map(
-          (query.data?.pages ?? [])
-            .flatMap((page) => page.notifications)
-            .filter((row) => notificationExpiry(row) > openedAt)
-            .map((row) => [row.id, row]),
-        ).values(),
-      ];
+  const rows = [
+    ...new Map(
+      (query.data?.pages ?? [])
+        .flatMap((page) => page.notifications)
+        .filter((row) => notificationExpiry(row) > openedAt)
+        .map((row) => [row.id, row]),
+    ).values(),
+  ];
 
   /** Opening/focus requests the first page and whole summary; Query owns the resulting read state. */
   const open = useEffectEvent(() => {
@@ -111,22 +111,30 @@ function Inbox({
     return navigation.addListener("focus", () => open());
   }, [navigation]);
 
-  /** Native refresh restarts from newest; any inbox read failure replaces its rows with the shared error card. */
+  /** Explicit refresh retains authorized rows on ordinary failure and reports it through the existing toast. */
   async function refresh() {
     feedback.clear();
-    await Promise.allSettled([
+    const outcomes = await Promise.allSettled([
       refreshInbox(client, queries),
       refreshNotificationSummary(client, queries),
     ]);
+    if (
+      owner.isCurrent(owner.generation) &&
+      outcomes.some(
+        (result) =>
+          result.status === "rejected" && !isAccessDenied(result.reason),
+      )
+    )
+      feedback.error();
   }
-  /** Only the current focused owner appends; a read error requires the card's explicit first-page retry. */
+  /** The focused current owner may retry the failed cursor explicitly; native edge events never replay it. */
   async function loadMore() {
     if (
       !navigation.isFocused() ||
       !owner.isCurrent(owner.generation) ||
       !query.hasNextPage ||
       query.isFetching ||
-      query.isError
+      (query.isError && !query.isFetchNextPageError)
     )
       return;
     await query.fetchNextPage({ cancelRefetch: false });
@@ -153,7 +161,7 @@ function Inbox({
             alwaysBounceVertical
             data={rows}
             onEndReached={() => {
-              if (!query.isFetchNextPageError) void loadMore();
+              if (!query.isError) void loadMore();
             }}
             keyExtractor={(item) => item.id}
             ItemSeparatorComponent={ListSeparator}
@@ -173,7 +181,7 @@ function Inbox({
               />
             }
             ListEmptyComponent={
-              query.isError ? (
+              query.isError && !query.data ? (
                 <ScreenState>
                   <ErrorState
                     onRetry={() => void refresh()}
@@ -193,7 +201,12 @@ function Inbox({
             }
             ListFooterComponent={
               <>
-                {query.isFetchingNextPage ? <RequestLoading /> : null}
+                <ListContinuation
+                  loading={query.isFetchingNextPage}
+                  failed={!!query.data && query.isFetchNextPageError}
+                  disabled={query.isFetching}
+                  onRetry={() => void loadMore()}
+                />
                 <BottomNavigationSpacer />
               </>
             }

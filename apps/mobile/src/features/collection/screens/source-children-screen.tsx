@@ -2,6 +2,9 @@ import { ListSeparator } from "../../../shared/components/list-separator";
 import { Page, pageContentStyle } from "../../../shared/components/page";
 import { PreparationLink } from "../components/preparation-link";
 import { AccessFeedback } from "../../access/components/access-feedback";
+import { isAccessDenied } from "../../../shared/api/access-denied";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { ListContinuation } from "../../../shared/components/list-continuation";
 import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { PageHeader } from "../../../shared/components/page-header";
@@ -18,7 +21,7 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { ClassificationEntry } from "../../sporting-administration/entry";
 import { useSourceChildren } from "../api/use-source-preparation";
 
-/** Visible native end-of-list events traverse direct children; a failed read replaces rows with explicit recovery. */
+/** Native edges traverse direct children; authorized rows survive technical failures and continuation retries stay local. */
 export function SourceChildrenScreen({
   seasonId,
   sourceId,
@@ -32,23 +35,28 @@ export function SourceChildrenScreen({
   const { colors } = useTheme();
   const router = useRouter();
   const navigation = useNavigation();
-  const items = query.isError
+  const feedback = useActionFeedback();
+  const denied = isAccessDenied(query.error);
+  const items = denied
     ? []
     : (query.data?.pages.flatMap((page) => page.items) ?? []);
-  /** Refreshes the displayed catalog or its grant; Query owns the resulting loading/error state. */
+  /** Refreshes the catalog or grant; a failed technical reread retains authorized content and reports its outcome. */
   async function refresh() {
     if (query.isFetching) return;
-    if (authority.enabled) await query.refetch({ cancelRefetch: false });
-    else await authority.account.refetch({ cancelRefetch: false });
+    const result = authority.enabled
+      ? await query.refetch({ cancelRefetch: false })
+      : await authority.account.refetch({ cancelRefetch: false });
+    if (result.isError && result.data && !isAccessDenied(result.error))
+      feedback.error();
   }
-  /** Repeated edge events cannot overlap reads, replay failures or outlive the visible authorized owner. */
+  /** Shared continuation command keeps traversal and scope; automatic edges separately exclude failed reads. */
   function loadMore() {
     if (
       !authority.enabled ||
       !authority.session.isCurrent(authority.session.generation) ||
       !navigation.isFocused() ||
       !query.hasNextPage ||
-      query.isError ||
+      denied ||
       query.isFetching ||
       authority.account.isFetching
     )
@@ -92,7 +100,9 @@ export function SourceChildrenScreen({
               },
             ]}
             ItemSeparatorComponent={ListSeparator}
-            onEndReached={loadMore}
+            onEndReached={() => {
+              if (!query.isError) loadMore();
+            }}
             onEndReachedThreshold={0.5}
             ListHeaderComponent={
               <>
@@ -135,9 +145,14 @@ export function SourceChildrenScreen({
               <ScreenState>
                 {!authority.enabled ? (
                   <AccessFeedback {...authority} />
+                ) : denied ? (
+                  <ErrorState
+                    onRetry={() => void query.refetch({ cancelRefetch: false })}
+                    retrying={query.isFetching}
+                  />
                 ) : query.isPending ? (
                   <RequestLoading />
-                ) : query.isError ? (
+                ) : query.isError && !query.data ? (
                   <ErrorState
                     onRetry={() => void query.refetch({ cancelRefetch: false })}
                     retrying={query.isFetching}
@@ -148,11 +163,14 @@ export function SourceChildrenScreen({
               </ScreenState>
             }
             ListFooterComponent={
-              authority.enabled &&
-              !query.isError &&
-              query.isFetchingNextPage ? (
+              authority.enabled && !denied && query.hasNextPage ? (
                 <View style={styles.footer}>
-                  <RequestLoading />
+                  <ListContinuation
+                    loading={query.isFetchingNextPage}
+                    failed={query.isFetchNextPageError}
+                    disabled={query.isFetching || authority.account.isFetching}
+                    onRetry={loadMore}
+                  />
                 </View>
               ) : undefined
             }

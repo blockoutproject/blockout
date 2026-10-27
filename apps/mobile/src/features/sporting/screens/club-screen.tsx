@@ -74,17 +74,20 @@ function ClubPage({ clubId }: ClubScreenProps) {
     setSelectedSeason(season?.id);
   const teams = useQuery({
     ...queries.clubTeams(clubId, season?.id ?? ""),
-    enabled: !!data && !!season && tab === "teams",
+    enabled: (query) =>
+      !!data && !!season && tab === "teams" && query.state.status !== "error",
     staleTime: Infinity,
   });
   const teamData =
-    !teams.isError && teams.data?.seasonId === season?.id
+    !isAccessDenied(teams.error) && teams.data?.seasonId === season?.id
       ? teams.data
       : undefined;
-  /** Team-list errors use the shared card; the independent club information keeps its own read continuity. */
+  /** Explicit refresh retains each authorized scope; initial failures keep their existing read retry. */
   async function refresh() {
     if (tab === "teams" && data && season) {
-      await teams.refetch({ cancelRefetch: false });
+      const result = await teams.refetch({ cancelRefetch: false });
+      if (result.isError && result.data && !isAccessDenied(result.error))
+        feedback.error();
       return;
     }
     const result = await club.refetch({ cancelRefetch: false });

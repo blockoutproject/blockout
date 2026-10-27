@@ -118,9 +118,8 @@ it("separates competition seasons from the two seasonless controls", async () =>
   ).toBe(true);
 });
 
-it("replaces seasons after a failed overview read without a toast and keeps independent club destinations", async () => {
+it("retains authorized seasons after a failed overview refresh with discreet feedback and no refresh button", async () => {
   // Given
-  const user = userEvent.setup();
   let unavailable = false;
   mockFetch.mockImplementation((url, options) =>
     unavailable && new URL(String(url)).pathname.endsWith("/collection-seasons")
@@ -136,22 +135,21 @@ it("replaces seasons after a failed overview read without a toast and keeps inde
 
   // Then
   expect(
-    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
   ).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("link", { name: /2026\/2027/ }),
-  ).not.toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: /2026\/2027/ })).toBeOnTheScreen();
   expect(screen.getByRole("link", { name: "Fiches clubs" })).toBeOnTheScreen();
   expect(screen.getByRole("link", { name: "Géocodage" })).toBeOnTheScreen();
   expect(
-    screen.queryByText(
-      "Une erreur est survenue. Veuillez réessayer plus tard.",
-    ),
+    screen.queryByRole("button", { name: "Réessayer" }),
   ).not.toBeOnTheScreen();
 
   // When
   unavailable = false;
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await waitFor(() => expect(client.isFetching()).toBe(0));
 
   // Then
   expect(
@@ -612,7 +610,7 @@ it("retains running evidence while pause cancels an unstarted request", async ()
   expect(screen.getByRole("button", { name: "En cours" })).toBeDisabled();
 });
 
-it("replaces failed results with the read card and never replays an automatic edge until explicit recovery", async () => {
+it("retains result rows and retries the failed page locally without replaying automatic edges", async () => {
   // Given
   const user = userEvent.setup();
   let pageAvailable = false;
@@ -658,14 +656,16 @@ it("replaces failed results with the read card and never replays an automatic ed
   // When
   mockIsFocused.mockReturnValue(true);
   await fireEvent(screen.getByTestId("collection-results-list"), "endReached");
-  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  await screen.findByRole("button", {
+    name: "Une erreur est survenue. Réessayer.",
+  });
   pageAvailable = true;
   await fireEvent(screen.getByTestId("collection-results-list"), "endReached");
 
   // Then
   expect(
-    screen.queryByText("Nationale 2 · Poule A · Calendrier"),
-  ).not.toBeOnTheScreen();
+    screen.getByText("Nationale 2 · Poule A · Calendrier"),
+  ).toBeOnTheScreen();
   expect(
     screen.queryByText(
       "Une erreur est survenue. Veuillez réessayer plus tard.",
@@ -676,9 +676,9 @@ it("replaces failed results with the read card and never replays an automatic ed
   ).toHaveLength(1);
 
   // When
-  await user.press(await screen.findByRole("button", { name: "Réessayer" }));
-  await screen.findByText("Nationale 2 · Poule A · Calendrier");
-  await fireEvent(screen.getByTestId("collection-results-list"), "endReached");
+  await user.press(
+    screen.getByRole("button", { name: "Une erreur est survenue. Réessayer." }),
+  );
 
   // Then
   expect(
@@ -696,10 +696,9 @@ it.each([
   { projection: "results", status: 503 },
   { projection: "control", status: 500 },
 ] as const)(
-  "replaces result rows after a failed $projection refresh and recovers through the read card without a toast",
+  "retains authorized result rows after a failed $projection refresh with ordinary discreet feedback",
   async ({ projection, status }) => {
     // Given
-    const user = userEvent.setup();
     peer.results = [result()];
     let unavailable = false;
     const failedPath =
@@ -723,20 +722,21 @@ it.each([
 
     // Then
     expect(
-      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+      await screen.findByRole("alert", {
+        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      }),
     ).toBeOnTheScreen();
     expect(
-      screen.queryByText("Nationale 2 · Poule A · Calendrier"),
-    ).not.toBeOnTheScreen();
+      screen.getByText("Nationale 2 · Poule A · Calendrier"),
+    ).toBeOnTheScreen();
     expect(
-      screen.queryByText(
-        "Une erreur est survenue. Veuillez réessayer plus tard.",
-      ),
+      screen.queryByRole("button", { name: "Réessayer" }),
     ).not.toBeOnTheScreen();
 
     // When
     unavailable = false;
-    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await waitFor(() => expect(client.isFetching()).toBe(0));
 
     // Then
     expect(

@@ -915,28 +915,24 @@ it("continues only the active resource and shares one pending native end request
   expect(screen.queryByRole("button", { name: "Charger la suite" })).toBeNull();
 });
 
-it("replaces a failed continuation with the error card until retry and then resumes automatic pages", async () => {
+it("retains loaded rows and retries the failed cursor only through its compact continuation", async () => {
   // Given
   const user = userEvent.setup();
+  const retry = Promise.withResolvers<Response>();
+  const first = { club: { id: firstId, name: "Volley Lyon" }, city: "Lyon" };
   let nextPageAvailable = false;
   mockFetch.mockImplementation((url: string) => {
     const parsed = new URL(url);
     if (!parsed.pathname.endsWith("/clubs")) return publicReads(url);
-    const first = { club: { id: firstId, name: "Volley Lyon" }, city: "Lyon" };
     if (!parsed.searchParams.has("cursor"))
       return Promise.resolve(
         Response.json({ clubs: [first], nextCursor: "next-page" }),
       );
-    return Promise.resolve(
-      nextPageAvailable
-        ? Response.json({
-            clubs: [
-              first,
-              { club: { id: secondId, name: "Volley Niort" }, city: "Niort" },
-            ],
-          })
-        : Response.json({ title: "Unavailable", status: 500 }, { status: 500 }),
-    );
+    return nextPageAvailable
+      ? retry.promise
+      : Promise.resolve(
+          Response.json({ title: "Unavailable", status: 500 }, { status: 500 }),
+        );
   });
   await renderSearch();
   await user.paste(await screen.findByLabelText("Rechercher"), "Volley");
@@ -944,9 +940,14 @@ it("replaces a failed continuation with the error card until retry and then resu
   await fireEvent(await screen.findByText("Volley Lyon"), "endReached", {
     distanceFromEnd: 0,
   });
-  await screen.findByRole("button", { name: "Réessayer" });
-  expect(screen.queryByText("Volley Lyon")).not.toBeOnTheScreen();
-  expect(screen.getByRole("header", { name: "Résultats" })).toBeOnTheScreen();
+  await screen.findByRole("button", {
+    name: "Une erreur est survenue. Réessayer.",
+  });
+  expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "1 résultat chargé" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   expect(
     screen.queryByLabelText("Actualiser les données"),
   ).not.toBeOnTheScreen();
@@ -954,27 +955,51 @@ it("replaces a failed continuation with the error card until retry and then resu
   mockFetch.mockClear();
 
   // When: repeated native end events and returning to the failed context never replay it.
-  await fireEvent(screen.getByRole("alert"), "endReached", {
+  await fireEvent(screen.getByText("Volley Lyon"), "endReached", {
     distanceFromEnd: 0,
   });
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
   await screen.findByText("Volley professionnel");
   mockFetch.mockClear();
   await fireEvent(
-    screen.getByRole("alert", { includeHiddenElements: true }),
+    screen.getByText("Volley Lyon", { includeHiddenElements: true }),
     "endReached",
     { distanceFromEnd: 0 },
   );
   await user.press(screen.getByRole("tab", { name: "Clubs" }));
-  await fireEvent(await screen.findByRole("alert"), "endReached", {
+  await fireEvent(await screen.findByText("Volley Lyon"), "endReached", {
     distanceFromEnd: 0,
   });
   expect(mockFetch).not.toHaveBeenCalled();
 
   // When
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-  await fireEvent(await screen.findByText("Volley Lyon"), "endReached", {
-    distanceFromEnd: 0,
+  await user.press(
+    screen.getByRole("button", {
+      name: "Une erreur est survenue. Réessayer.",
+    }),
+  );
+
+  // Then: the same continuation becomes pending while already loaded rows stay readable.
+  expect(
+    await screen.findByRole("progressbar", { name: "Chargement en cours" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", {
+      name: "Une erreur est survenue. Réessayer.",
+    }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await act(async () => {
+    retry.resolve(
+      Response.json({
+        clubs: [
+          first,
+          { club: { id: secondId, name: "Volley Niort" }, city: "Niort" },
+        ],
+      }),
+    );
   });
 
   // Then
@@ -989,16 +1014,16 @@ it("replaces a failed continuation with the error card until retry and then resu
   await fireEvent(screen.getByText("Volley Niort"), "endReached", {
     distanceFromEnd: 0,
   });
-  expect(mockFetch).toHaveBeenCalledTimes(2);
+  expect(mockFetch).toHaveBeenCalledTimes(1);
   expect(
     mockFetch.mock.calls.map(([url]) =>
       new URL(String(url)).searchParams.get("cursor"),
     ),
-  ).toEqual([null, "next-page"]);
+  ).toEqual(["next-page"]);
 });
 
 it.each([false, true])(
-  "accepts the next traversal after a background read or explicit error-card retry: %s",
+  "retains accepted pages through a failed background read and accepts the next traversal: %s",
   async (fails) => {
     // Given
     const user = userEvent.setup();
@@ -1061,12 +1086,14 @@ it.each([false, true])(
       await client.refetchQueries({ queryKey: ["discovery"], type: "active" });
     });
     if (fails) {
-      await screen.findByRole("alert");
-      expect(screen.queryByText("Volley Lyon")).not.toBeOnTheScreen();
-      expect(screen.queryByText("Volley Niort")).not.toBeOnTheScreen();
-      expect(screen.getByRole("alert")).toBeOnTheScreen();
+      await user.press(screen.getByRole("tab", { name: "Équipes" }));
+      await screen.findByText("Volley professionnel");
+      await user.press(screen.getByRole("tab", { name: "Clubs" }));
+      expect(await screen.findByText("Volley Lyon")).toBeOnTheScreen();
+      expect(screen.getByText("Volley Niort")).toBeOnTheScreen();
+      expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
       expect(
-        screen.getByRole("header", { name: "Résultats" }),
+        screen.getByRole("header", { name: "2 résultats chargés" }),
       ).toBeOnTheScreen();
       expect(mockFetch).toHaveBeenCalledTimes(1);
       mockFetch.mockClear();
@@ -1087,7 +1114,12 @@ it.each([false, true])(
           ),
         ),
       );
-      await user.press(screen.getByRole("button", { name: "Réessayer" }));
+      await act(async () => {
+        await client.refetchQueries({
+          queryKey: ["discovery"],
+          type: "active",
+        });
+      });
     }
 
     // Then

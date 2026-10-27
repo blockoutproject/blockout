@@ -32,7 +32,7 @@ export function SearchResults({
       onEndReached={onEndReached}
       ListFooterComponent={
         <>
-          {items.length && continuation ? (
+          {continuation ? (
             <View style={styles.continuation}>{continuation}</View>
           ) : null}
           <BottomNavigationSpacer />
@@ -54,7 +54,7 @@ export function SearchResults({
   );
 }
 
-/** The search heading labels loaded results; an absent count represents a pending or failed read. */
+/** The search heading labels loaded results; an absent count represents a pending or failed first read. */
 export interface SearchHeadingProps {
   count?: number;
   onClear: () => void;

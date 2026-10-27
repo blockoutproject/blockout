@@ -263,7 +263,7 @@ it("retains loaded calendar data and its active context through native font-size
   }
 });
 
-it("replaces calendar rows with the shared error card after refresh failure and retries the first page", async () => {
+it("retains calendar rows with one toast after refresh failure and replaces them only after a successful pull", async () => {
   // Given
   await render(
     <CalendarTab>
@@ -283,11 +283,14 @@ it("replaces calendar rows with the shared error card after refresh failure and 
 
   // When
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  await screen.findByRole("alert", { name: /Une erreur est survenue/ });
 
   // Then
   expect(
-    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: /Réessayer/ }),
   ).not.toBeOnTheScreen();
 
   // When
@@ -300,7 +303,7 @@ it("replaces calendar rows with the shared error card after refresh failure and 
       ),
     ),
   );
-  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
   await screen.findByText("Aucun match pour cette sélection");
@@ -349,7 +352,7 @@ it("keeps pagination unavailable while a successful first-page replacement is pe
   ).toHaveLength(2);
 });
 
-it("shows the failed new-zone read without an implicit retry and keeps the old rows only while refresh is pending", async () => {
+it("retains the captured groups after a failed new-zone refresh and retries that zone only on another pull", async () => {
   // Given: native Intl supplies the device zone; generated HTTP and Query remain real.
   let deviceZone = "Europe/Paris";
   const resolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
@@ -379,21 +382,23 @@ it("shows the failed new-zone read without an implicit retry and keeps the old r
   ).toBeOnTheScreen();
   await act(async () => pending.resolve(Response.json({}, { status: 500 })));
 
-  // Then: the failed new key owns the card, without automatically issuing another read on observation.
-  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  // Then: failure keeps the original accepted grouping and reports one toast without adopting the failed key.
+  await screen.findByRole("alert", { name: /Une erreur est survenue/ });
   expect(
-    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: /Réessayer/ }),
   ).not.toBeOnTheScreen();
-  await fireEvent(screen.getByRole("alert"), "endReached");
   expect(mockFetch).toHaveBeenCalledTimes(1);
 
   // When
   mockFetch.mockResolvedValue(
     Response.json({ ...calendar, timeZone: deviceZone, days: [] }),
   );
-  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
-  // Then: the card retries only the new zone's first page.
+  // Then: only the next explicit pull retries the new zone's first page.
   await screen.findByText("Aucun match pour cette sélection");
   expect(
     mockFetch.mock.calls.map(([url]) => {
@@ -409,7 +414,7 @@ it("shows the failed new-zone read without an implicit retry and keeps the old r
   ]);
 });
 
-it("appends only the focused active calendar and replaces pagination errors with an explicit first-page retry", async () => {
+it("appends only the focused active calendar and retries a failed cursor from its compact footer", async () => {
   // Given: two complete days arrive through the real Query owner, with a controlled continuation failure.
   calendar = { ...calendar, nextDay: "2026-09-21" };
   const nextMatch = {
@@ -490,35 +495,38 @@ it("appends only the focused active calendar and replaces pagination errors with
     screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
     "endReached",
   );
-  await screen.findByRole("button", { name: "Réessayer" });
+  await screen.findByRole("button", {
+    name: /Une erreur est survenue.*Réessayer/,
+  });
   await fireEvent(
-    screen.getByRole("button", { name: "Réessayer" }),
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
     "endReached",
   );
 
-  // Then: the error card replaces the rows, and another native event never retries automatically.
+  // Then: the footer retains the rows without a duplicate toast or an automatic retry.
   expect(mockFetch).toHaveBeenCalledTimes(1);
   expect(
-    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
-  ).not.toBeOnTheScreen();
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 
   // When
   failNext = false;
-  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+  await userEvent.press(screen.getByRole("button", { name: /Réessayer/ }));
   await screen.findByRole("link", { name: /Home — Next opponent/ });
   await fireEvent(
     screen.getByRole("link", { name: /Home — Next opponent/ }),
     "endReached",
   );
 
-  // Then: retry restarted at the first page, and exhaustion sends no extra request or normal load button.
+  // Then: retry uses the same cursor, and exhaustion sends no extra request or normal load button.
   expect(
     mockFetch.mock.calls.map(([url]) =>
       new URL(url).searchParams.get("nextDay"),
     ),
-  ).toEqual(["2026-09-21", null]);
+  ).toEqual(["2026-09-21", "2026-09-21"]);
   expect(
-    screen.queryByRole("button", { name: "Réessayer" }),
+    screen.queryByRole("button", { name: /Réessayer/ }),
   ).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Charger les journées suivantes" }),

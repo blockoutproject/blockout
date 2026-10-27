@@ -27,6 +27,7 @@ import type {
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { Button } from "../../../shared/components/button";
 import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ListContinuation } from "../../../shared/components/list-continuation";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import {
@@ -49,11 +50,21 @@ const familyLabels: Record<CollectionFamilyEnum, string> = {
   geocoding: "Géocodage",
 };
 
-/** Lists bounded seasons or their read error; independent club destinations remain available without pagination. */
+/** Keeps authorized bounded seasons through technical rereads; independent club destinations have no pagination. */
 export function CollectionDashboardScreen() {
   const { authority, query } = useCollectionSeasons();
+  const feedback = useActionFeedback();
   const { colors } = useTheme();
   const router = useRouter();
+  const denied = isAccessDenied(query.error);
+  /** Native refresh retains authorized data after a technical failure; an initial read still owns its error card. */
+  async function refresh() {
+    const result = authority.enabled
+      ? await query.refetch({ cancelRefetch: false })
+      : await authority.account.refetch({ cancelRefetch: false });
+    if (result.isError && result.data && !isAccessDenied(result.error))
+      feedback.error();
+  }
   const blockingState = !authority.enabled ? (
     <AccessFeedback {...authority} />
   ) : undefined;
@@ -73,12 +84,7 @@ export function CollectionDashboardScreen() {
                   refreshing={
                     query.isRefetching || authority.account.isRefetching
                   }
-                  onRefresh={() => {
-                    if (authority.enabled)
-                      void query.refetch({ cancelRefetch: false });
-                    else
-                      void authority.account.refetch({ cancelRefetch: false });
-                  }}
+                  onRefresh={() => void refresh()}
                 />
               ) : undefined
             }
@@ -98,7 +104,7 @@ export function CollectionDashboardScreen() {
                     >
                       Compétitions
                     </Text>
-                    {(!query.isError ? query.data?.items : undefined)?.map(
+                    {(!denied ? query.data?.items : undefined)?.map(
                       (season) => (
                         <PreparationLink
                           key={season.id}
@@ -114,14 +120,12 @@ export function CollectionDashboardScreen() {
                         />
                       ),
                     )}
-                    {!query.isError && query.data?.items.length === 0 && (
+                    {!denied && query.data?.items.length === 0 && (
                       <EmptyState title="Aucune saison découverte" />
                     )}
-                    {query.isError ? (
+                    {denied || (query.isError && !query.data) ? (
                       <ErrorState
-                        onRetry={() =>
-                          void query.refetch({ cancelRefetch: false })
-                        }
+                        onRetry={() => void refresh()}
                         retrying={query.isFetching}
                       />
                     ) : (
@@ -386,7 +390,7 @@ function ControlScope({
   );
 }
 
-/** Current evidence pages load at the visible list edge; read errors replace rows while command ownership remains mounted. */
+/** Visible list edges append current evidence; technical failures retain authorized rows without changing command ownership. */
 function ControlDashboard({
   controlId,
   family,
@@ -420,7 +424,7 @@ function ControlDashboard({
     current?.family === family &&
     current.seasonId === season?.id;
   const rows =
-    query.isError || results.isError
+    isAccessDenied(query.error) || isAccessDenied(results.error)
       ? []
       : (results.data?.pages.flatMap((page) => page.items) ?? []);
   /** Refresh reads each projection only; command reconciliation is released by its separate explicit reread action. */
@@ -436,13 +440,22 @@ function ControlDashboard({
       await authority.account.refetch({ cancelRefetch: false });
       return;
     }
-    await Promise.all([
+    const [controlRead, resultRead] = await Promise.all([
       query.refetch({ cancelRefetch: false }),
       results.refetch({ cancelRefetch: false }),
       rereadSeason?.(),
     ]);
+    if (
+      (controlRead.isError &&
+        controlRead.data &&
+        !isAccessDenied(controlRead.error)) ||
+      (resultRead.isError &&
+        resultRead.data &&
+        !isAccessDenied(resultRead.error))
+    )
+      feedback.error();
   }
-  /** The native edge may append only for the current idle authorized scope; failures need the read card's retry. */
+  /** The shared continuation command preserves scope; automatic edges separately exclude read errors. */
   function loadMore() {
     if (
       !authority.enabled ||
@@ -450,8 +463,8 @@ function ControlDashboard({
       !matches ||
       !navigation.isFocused() ||
       !results.hasNextPage ||
-      query.isError ||
-      results.isError ||
+      isAccessDenied(query.error) ||
+      isAccessDenied(results.error) ||
       results.isFetching ||
       refreshing ||
       query.isFetching ||
@@ -596,19 +609,20 @@ function ControlDashboard({
               ]}
               ListHeaderComponent={header}
               ItemSeparatorComponent={ListSeparator}
-              onEndReached={loadMore}
+              onEndReached={() => {
+                if (!query.isError && !results.isError) loadMore();
+              }}
               onEndReachedThreshold={0.5}
               renderItem={({ item }) => (
                 <CollectionResult result={item} diagnostics={diagnostics} />
               )}
               ListEmptyComponent={
                 <ScreenState>
-                  {query.isError || results.isError ? (
+                  {isAccessDenied(results.error) ||
+                  (results.isError && !results.data) ? (
                     <ErrorState
                       onRetry={() =>
-                        void (query.isError
-                          ? query.refetch({ cancelRefetch: false })
-                          : results.refetch({ cancelRefetch: false }))
+                        void results.refetch({ cancelRefetch: false })
                       }
                       retrying={results.isFetching}
                     />
@@ -623,11 +637,19 @@ function ControlDashboard({
                 </ScreenState>
               }
               ListFooterComponent={
-                !query.isError &&
-                !results.isError &&
-                results.isFetchingNextPage ? (
+                !isAccessDenied(results.error) && results.hasNextPage ? (
                   <View style={styles.footer}>
-                    <RequestLoading />
+                    <ListContinuation
+                      loading={results.isFetchingNextPage}
+                      failed={results.isFetchNextPageError}
+                      disabled={
+                        results.isFetching ||
+                        refreshing ||
+                        query.isFetching ||
+                        editing.activity.pending
+                      }
+                      onRetry={loadMore}
+                    />
                   </View>
                 ) : undefined
               }

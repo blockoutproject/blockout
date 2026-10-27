@@ -137,7 +137,7 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
   };
 }
 
-/** Restarts at newest with one native Query fetch; failed refresh may retain cached pages, while the view displays its error card. */
+/** Restarts at newest with one native Query fetch; ordinary failure retains authorized pages for the view's refresh feedback. */
 export async function refreshInbox(
   client: QueryClient,
   queries: ReturnType<typeof createInboxQueries>,

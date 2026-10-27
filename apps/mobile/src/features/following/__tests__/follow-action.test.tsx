@@ -61,6 +61,7 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ push: mockPush }),
+  useNavigation: () => ({ isFocused: () => true }),
   useLocalSearchParams: () => mockRouteParams,
 }));
 jest.mock("expo/fetch", () => ({
@@ -113,7 +114,7 @@ function SessionProbe({ children }: { children: ReactNode }) {
   return children;
 }
 
-/** Real gesture, Query, theme, F12 and F05 providers; native I/O, viewport layout and HTTP are controlled. */
+/** Real gesture, Query, theme, F12 and F05 providers; native I/O, route focus, viewport and HTTP are controlled. */
 async function renderFollowing(children: ReactElement) {
   return render(children, {
     wrapper: ({ children }) => (
