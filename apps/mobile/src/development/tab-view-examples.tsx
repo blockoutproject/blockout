@@ -296,7 +296,7 @@ function LegendListTabs() {
 }
 
 /** Follows the stock pager's continuous position; no independent animation or tab state is introduced. */
-function DemoAnimatedTabLabel({
+export function DemoAnimatedTabLabel({
   label,
   index,
   position,
@@ -434,7 +434,7 @@ const DemoCalendar = memo(function DemoCalendar({
 });
 
 /** Preserves stock refresh props injected by native ScrollView or either tab adapter. */
-function DemoRefreshControl({
+export function DemoRefreshControl({
   calendar,
   ...nativeProps
 }: {
