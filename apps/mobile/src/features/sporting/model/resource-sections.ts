@@ -6,5 +6,5 @@ export function poolLabel(pool: PoolSummaryResponse): string {
   return [pool.pool.name, pool.phaseName].filter(Boolean).join(" · ");
 }
 
-/** Later-story composition boundary; content is rendered only for the active exact pool. */
+/** Later-story content for one exact pool; the resource page owns lazy panel mounting. */
 export type RenderStandings = (pool: PoolSummaryResponse) => ReactNode;

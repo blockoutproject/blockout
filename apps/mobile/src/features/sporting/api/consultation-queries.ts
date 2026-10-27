@@ -62,7 +62,8 @@ export const consultationOpeningPolicy = {
  * Resource/season/category/zone keys isolate selections; F13 transport rejects obsolete session
  * or cancelled bypass results even when native cancellation loses the response-body race.
  * Detail resources explicitly reread when opened; child selections retain their own policy.
- * This foundation adds no infinite traversal, persistence, foreground refresh or retry loop.
+ * Calendar traversal remains with its focused owner; this boundary applies generated requests
+ * and current refusal cleanup without persistence, foreground refresh or a retry loop.
  */
 export function createConsultationQueries(
   session: ConsultationSession,
