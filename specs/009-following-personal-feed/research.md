@@ -34,6 +34,12 @@ The decisions below implement the accepted [F06 specification](spec.md) and the 
 
 **Alternatives**: Search-style opaque cursors, total counts, normalized-name copies, denormalized follower counters and materialized per-user feeds add machinery without an accepted need. Offset movement on concurrent changes is repaired by ordinary refresh; no snapshot guarantee or silent total cap is introduced. [JPA setFirstResult](<https://jakarta.ee/specifications/persistence/3.2/apidocs/jakarta.persistence/jakarta/persistence/Query.html#setFirstResult(int)>) accepts an int offset, as reflected by [Spring Data PageableUtils](https://docs.spring.io/spring-data/jpa/reference/api/java/org/springframework/data/jpa/support/PageableUtils.html). Bound page and nextPage to floor(Integer.MAX_VALUE / 20), or 107374182; unsupported traversal fails explicitly instead of overflowing or concealing further results. Public count stays independently readable without loading private state or the full sporting detail again.
 
+F02's existing HQL eligibility expressions are shared through
+[`SportingVisibilityPredicates`](../../apps/backend/src/main/java/com/blockout/backend/sporting/infrastructure/SportingVisibilityPredicates.java).
+Its sporting repositories and F06 scalar projections use the same clauses. This keeps visibility
+with F02 without loading all follow targets or exposing managed entities/repositories across features;
+it introduces no query engine or separate visibility cache.
+
 ## Contract and design scope
 
 **Decision**: Extend the existing mobile root with relationship-state resources, private lists/options/calendar and public counts. Reuse F03 projections/parameters and F13 errors/generation. Keep F07 access in process.

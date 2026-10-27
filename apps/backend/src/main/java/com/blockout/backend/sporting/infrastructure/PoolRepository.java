@@ -112,8 +112,7 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
       UUID seasonId, CollectionProviderEnum provider, String organizerReference);
 
   /** Canonical current pool eligibility for queries using the pool alias p. */
-  String VISIBLE =
-      "p.catalogEligible = TRUE AND p.calendarEmpty = FALSE AND p.division.active = TRUE";
+  String VISIBLE = SportingVisibilityPredicates.POOL;
 
   /**
    * Reads visibility facts without hydrating presentation or acquisition state.

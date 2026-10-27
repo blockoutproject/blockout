@@ -95,6 +95,40 @@ native accessibility or design qualification. T016, later story tasks and T045 r
 live Dynamic Type [F13 native qualification](../003-shared-quality/quickstart.md#native-presentation-qualification) and iOS input
 [F13 native qualification](../003-shared-quality/quickstart.md#native-presentation-qualification) remain deferred.
 
+### Shared personal season boundary (T017–T021)
+
+`FollowOptionsIntegrationTest` exercises the migrated PostgreSQL projection, current F02 visibility,
+original-account isolation and the followed-versus-catalog default. Sporting repositories and F06
+use the same [F02 visibility clauses](../../apps/backend/src/main/java/com/blockout/backend/sporting/infrastructure/SportingVisibilityPredicates.java).
+`FollowOptionsWebMvcTest` exercises the production generated route and mapper, no-store, strict
+queries and safe access/storage failures with controlled application reads and identity/admission inputs.
+
+`personal-season.test.tsx` uses the real Query client, generated options/list/calendar calls and bounded
+transport with controlled HTTP. It covers shared selection, All seasons, reset, fresh-opening defaults,
+successful disappearance, failed reconciliation, explicit retry and obsolete session/selection responses.
+`personal-screen.test.tsx` adds the actual F05/F12 providers, Home, follow action, club and search
+components; native identity/inset I/O and HTTP are controlled. Current private refusals remain
+blocking across a subsequent network failure until a successful read. The selector's native opening
+event owns refresh feedback inside its Modal surface; retained Query errors emit no toast by effect.
+These tests establish neither native networking nor provider qualification.
+
+The existing `apps/mobile/src/app/(ordinary)/index.tsx` retains its entry/age guards and composes
+only the personal context and controls. Its current route replaces the earlier planned `(tabs)` path;
+no additional navigation owner is needed for this minimal Home. US3/US4 still own the business
+lists/calendar and their scrolling. T021 supplies the bounded read boundary; T022/T029/T037 retain
+qualification through those actual views and endpoints.
+
+Compare the [Home controls](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5075-4799)
+with the UI Library's [compact tabs](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=841-983)
+and [season selector](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=3176-2823).
+The [prototype Home](https://github.com/blockoutproject/product-prototype/blob/859bf5970ff0cda8a9a7ddb9aaa7203ce7c7d7a0/src/sport/discovery-screens.tsx#L279)
+and its HTML select control are interaction references; their rendering is not native evidence.
+
+```sh
+./mvnw -B -ntp -pl apps/backend verify -Dtest=FollowOptionsWebMvcTest,FollowStateWebMvcTest -Dit.test=FollowOptionsIntegrationTest
+npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/following/__tests__/personal-season.test.tsx src/features/following/__tests__/personal-screen.test.tsx
+```
+
 ### Integrated journeys to qualify
 
 Using Jest Expo/React Native Testing Library and native device checks where applicable:

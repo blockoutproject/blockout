@@ -132,10 +132,7 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
   List<TeamEntity> findCurrentIn(UUID poolId);
 
   /** Canonical team eligibility for queries using the team alias t. */
-  String VISIBLE =
-      "t.division.active = TRUE AND EXISTS (SELECT r.id FROM ParticipationEntity r JOIN r.pool p WHERE r.team = t AND r.current = TRUE AND "
-          + PoolRepository.VISIBLE
-          + ")";
+  String VISIBLE = SportingVisibilityPredicates.TEAM;
 
   /**
    * Resolves immutable season ownership before loading state protected by its lock.
