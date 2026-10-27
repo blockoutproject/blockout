@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
+import { FieldMessage } from "./field-message";
 
 /** A native input contract; features retain values, validation, submission and secure-entry decisions. */
 export interface TextFieldProps extends TextInputProps {
@@ -69,34 +70,22 @@ export function TextField({
           style,
         ]}
       />
-      {error ? (
-        <Text
-          accessibilityRole="alert"
-          accessibilityLiveRegion="polite"
-          style={[styles.message, { color: colors.error }]}
-        >
-          {error}
-        </Text>
-      ) : helper ? (
-        <Text style={[styles.message, { color: colors.secondaryText }]}>
-          {helper}
-        </Text>
-      ) : null}
+      <FieldMessage error={error} helper={helper} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  field: { gap: tokens.spacing.label },
+  field: { gap: tokens.layout.form.labelGap },
   disabled: { opacity: tokens.opacity.disabled },
   label: tokens.typography.label,
   input: {
     ...tokens.typography.body,
-    minHeight: tokens.size.control,
-    borderWidth: tokens.borderWidth,
+    minHeight: tokens.size.control.default,
+    borderWidth: tokens.border.thin,
     borderRadius: tokens.radius.control,
     padding: tokens.spacing.md,
   },
-  multiline: { minHeight: tokens.size.multiline, textAlignVertical: "top" },
-  message: tokens.typography.metadata,
+  // UI Library TextField multiline 162:175/control 162:177 owns this 96-point minimum without a variable.
+  multiline: { minHeight: 96, textAlignVertical: "top" },
 });

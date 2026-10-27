@@ -22,7 +22,7 @@ export default function ClassificationSelectionRoute() {
     />
   ) : (
     <Sheet title="Classification" onClose={() => router.back()}>
-      {admitted ? <ErrorState /> : <ErrorState />}
+      <ErrorState />
     </Sheet>
   );
 }

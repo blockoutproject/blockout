@@ -2,7 +2,6 @@ import { Search, X } from "lucide-react-native";
 import { useState, type Ref } from "react";
 import {
   StyleSheet,
-  Text,
   TextInput,
   View,
   type TextInputInstance,
@@ -11,6 +10,7 @@ import {
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
 import { IconButton } from "./icon-button";
+import { FieldMessage } from "./field-message";
 
 /** Native Search Field; the form owns text, validation and clearing, without truncating its draft. */
 export interface SearchFieldProps extends TextInputProps {
@@ -61,7 +61,7 @@ export function SearchField({
         <Search
           accessible={false}
           color={colors.icon}
-          size={tokens.size.controlIcon}
+          size={tokens.size.icon.md}
           opacity={opacity}
           nonScalingStroke
         />
@@ -93,32 +93,24 @@ export function SearchField({
             <X
               accessible={false}
               color={colors.icon}
-              size={tokens.size.controlIcon}
+              size={tokens.size.icon.md}
               nonScalingStroke
             />
           </IconButton>
         )}
       </View>
-      {error && (
-        <Text
-          accessibilityRole="alert"
-          accessibilityLiveRegion="polite"
-          style={[styles.error, { color: colors.error, opacity }]}
-        >
-          {error}
-        </Text>
-      )}
+      <FieldMessage error={error} disabled={!isEditable} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  field: { gap: tokens.spacing.label },
+  field: { gap: tokens.layout.form.labelGap },
   control: {
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
-    minHeight: tokens.size.control,
+    minHeight: tokens.size.control.default,
     borderRadius: tokens.radius.control,
     paddingLeft: tokens.spacing.md,
     paddingRight: tokens.spacing.xs,
@@ -126,7 +118,7 @@ const styles = StyleSheet.create({
   },
   // The inside stroke keeps the field at 48 points when its 48-point clear target appears.
   edge: {
-    borderWidth: tokens.borderWidth,
+    borderWidth: tokens.border.thin,
     borderRadius: tokens.radius.control,
   },
   input: {
@@ -135,5 +127,4 @@ const styles = StyleSheet.create({
     minWidth: 0,
     paddingVertical: tokens.spacing.md,
   },
-  error: { ...tokens.typography.metadata },
 });

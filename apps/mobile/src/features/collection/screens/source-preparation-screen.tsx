@@ -1,11 +1,14 @@
+import { AccessFeedback } from "../../access/components/access-feedback";
+import { ScreenState } from "../../../shared/components/screen-state";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
+import { FormScrollView } from "../../../shared/components/form-scroll-view";
+import { PageHeader } from "../../../shared/components/page-header";
+import { Page, PageContent } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useSourcePreparation } from "../api/use-source-preparation";
-import {
-  CollectionAccessFeedback,
-  PreparationPage,
-} from "../components/preparation-layout";
+
 import { SourceCandidateForm } from "../forms/source-candidate-form";
 
 /** Original source route inputs; its retained form owns draft-discard confirmation. */
@@ -27,64 +30,80 @@ export function SourcePreparationScreen({
     current && season.data && current.seasonId === seasonId,
   );
   const feedback = useActionFeedback();
+  const blockingState = !(
+    current &&
+    season.data &&
+    current.seasonId === seasonId
+  ) ? (
+    !authority.enabled ? (
+      <AccessFeedback {...authority} />
+    ) : source.isError ||
+      season.isError ||
+      (current && current.seasonId !== seasonId) ? (
+      <ErrorState
+        onRetry={() => {
+          void source.refetch();
+          void season.refetch();
+        }}
+        retrying={source.isFetching || season.isFetching}
+      />
+    ) : (
+      <RequestLoading />
+    )
+  ) : undefined;
   return (
-    <PreparationPage
-      state={
-        !(current && season.data && current.seasonId === seasonId) ? (
-          !authority.enabled ? (
-            <CollectionAccessFeedback authority={authority} />
-          ) : source.isError ||
-            season.isError ||
-            (current && current.seasonId !== seasonId) ? (
-            <ErrorState
-              onRetry={() => {
-                void source.refetch();
-                void season.refetch();
-              }}
-              retrying={source.isFetching || season.isFetching}
-            />
-          ) : (
-            <RequestLoading />
-          )
-        ) : undefined
-      }
-      title={current?.label ?? "Source"}
-      refreshing={
-        source.isRefetching ||
-        season.isRefetching ||
-        authority.account.isRefetching
-      }
-      refreshEnabled={!editing.candidate.pending}
-      onRefresh={
-        authority.sessionStatus === "authenticated"
-          ? () => {
-              if (editing.candidate.isPending()) return;
-              if (!authority.enabled)
-                void authority.account
-                  .refetch({ cancelRefetch: false })
-                  .then((result) => {
-                    if (result.isError && retained) feedback.error();
-                  });
-              else {
-                void source.refetch({ cancelRefetch: false }).then((result) => {
-                  if (result.isError && retained) feedback.error();
-                });
-                void season.refetch({ cancelRefetch: false }).then((result) => {
-                  if (result.isError && retained) feedback.error();
-                });
+    <Page>
+      <PageHeader title={current?.label ?? "Source"} />
+      <FormScrollView
+        refreshControl={
+          authority.sessionStatus === "authenticated" ? (
+            <DataRefreshControl
+              refreshing={
+                source.isRefetching ||
+                season.isRefetching ||
+                authority.account.isRefetching
               }
-            }
-          : undefined
-      }
-    >
-      {current && season.data && current.seasonId === seasonId && (
-        <SourceCandidateForm
-          key={`${authority.session.generation}:${sourceId}`}
-          source={current}
-          season={season.data}
-          editing={editing}
-        />
-      )}
-    </PreparationPage>
+              enabled={!editing.candidate.pending}
+              onRefresh={() => {
+                if (editing.candidate.isPending()) return;
+                if (!authority.enabled)
+                  void authority.account
+                    .refetch({ cancelRefetch: false })
+                    .then((result) => {
+                      if (result.isError && retained) feedback.error();
+                    });
+                else {
+                  void source
+                    .refetch({ cancelRefetch: false })
+                    .then((result) => {
+                      if (result.isError && retained) feedback.error();
+                    });
+                  void season
+                    .refetch({ cancelRefetch: false })
+                    .then((result) => {
+                      if (result.isError && retained) feedback.error();
+                    });
+                }
+              }}
+            />
+          ) : undefined
+        }
+      >
+        {blockingState ? (
+          <ScreenState>{blockingState}</ScreenState>
+        ) : (
+          <PageContent>
+            {current && season.data && current.seasonId === seasonId && (
+              <SourceCandidateForm
+                key={`${authority.session.generation}:${sourceId}`}
+                source={current}
+                season={season.data}
+                editing={editing}
+              />
+            )}
+          </PageContent>
+        )}
+      </FormScrollView>
+    </Page>
   );
 }

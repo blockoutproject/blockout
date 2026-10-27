@@ -1,5 +1,8 @@
+import { ScreenState } from "../../../../../shared/components/screen-state";
+import { PageHeader } from "../../../../../shared/components/page-header";
+import { Page, PageScrollView } from "../../../../../shared/components/page";
 import { ErrorState } from "../../../../../shared/components/state-card";
-import { EditorPage } from "../../../../../features/sporting-administration/components/editor-page";
+
 import { useLocalSearchParams } from "expo-router";
 import { z } from "zod";
 import { useOperationalAdmission } from "../../../../../features/access/queries/use-access-admission";
@@ -13,13 +16,16 @@ const targetSchema = z.object({
 export default function PresentationRoute() {
   const admitted = useOperationalAdmission();
   const params = targetSchema.safeParse(useLocalSearchParams());
-  if (!admitted)
+  if (!admitted || !params.success)
     return (
-      <EditorPage title="Administration technique" state={<ErrorState />} />
-    );
-  if (!params.success)
-    return (
-      <EditorPage title="Administration technique" state={<ErrorState />} />
+      <Page>
+        <PageHeader title="Administration technique" />
+        <PageScrollView>
+          <ScreenState>
+            <ErrorState />
+          </ScreenState>
+        </PageScrollView>
+      </Page>
     );
   return (
     <PresentationScreen

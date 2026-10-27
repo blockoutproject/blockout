@@ -1,15 +1,8 @@
 import { useImageSelection } from "../shared/images/use-image-selection";
 import { useState } from "react";
 import { File } from "expo-file-system";
-import {
-  Image,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Image, StyleSheet, Switch, Text, View } from "react-native";
+import { Page, PageContent, PageScrollView } from "../shared/components/page";
 import {
   ImageField,
   type ImageFieldImage,
@@ -67,74 +60,76 @@ export function ImageFieldExamplesScreen() {
     },
   });
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text
-          accessibilityRole="header"
-          style={[tokens.typography.heading, { color: colors.text }]}
-        >
-          Images natives
-        </Text>
-        {[
-          { label: "Plusieurs images", value: multiple, change: setMultiple },
-          { label: "Taille compacte", value: compact, change: setCompact },
-          {
-            label: "Respecter les proportions",
-            value: contain,
-            change: setContain,
-          },
-          { label: "Désactivé", value: disabled, change: setDisabled },
-          { label: "Erreur de préparation", value: fail, change: setFail },
-        ].map((option) => (
-          <View key={option.label} style={styles.option}>
-            <Text style={[tokens.typography.body, { color: colors.text }]}>
-              {option.label}
-            </Text>
-            <Switch
-              accessibilityLabel={option.label}
-              value={option.value}
-              onValueChange={option.change}
-            />
-          </View>
-        ))}
-        <Button
-          label="Charger un aperçu de test"
-          onPress={() => {
-            const source = Image.resolveAssetSource(
-              require("./assets/image-field-sample.png"),
-            );
-            if (source) {
-              setImages([
-                { id: "sample", uri: source.uri, label: "Image de test" },
-              ]);
-            }
-          }}
-        />
-        <ImageField
-          label="Image de démonstration"
-          contentFit={contain ? "contain" : "cover"}
-          helper="PNG/JPEG, 5 Mio maximum. Aucun envoi."
-          images={images}
-          multiple={multiple}
-          size={compact ? "compact" : "standard"}
-          disabled={disabled}
-          error={error}
-          selection={selection}
-          onRemove={(id) => {
-            setError(undefined);
-            setImages((current) => current.filter((image) => image.id !== id));
-          }}
-        />
-        <Text style={[tokens.typography.body, { color: colors.text }]}>
-          {images.length} image(s) conservée(s)
-        </Text>
-      </ScrollView>
-    </SafeAreaView>
+    <Page>
+      <PageScrollView>
+        <PageContent>
+          <Text
+            accessibilityRole="header"
+            style={[tokens.typography.heading, { color: colors.text }]}
+          >
+            Images natives
+          </Text>
+          {[
+            { label: "Plusieurs images", value: multiple, change: setMultiple },
+            { label: "Taille compacte", value: compact, change: setCompact },
+            {
+              label: "Respecter les proportions",
+              value: contain,
+              change: setContain,
+            },
+            { label: "Désactivé", value: disabled, change: setDisabled },
+            { label: "Erreur de préparation", value: fail, change: setFail },
+          ].map((option) => (
+            <View key={option.label} style={styles.option}>
+              <Text style={[tokens.typography.body, { color: colors.text }]}>
+                {option.label}
+              </Text>
+              <Switch
+                accessibilityLabel={option.label}
+                value={option.value}
+                onValueChange={option.change}
+              />
+            </View>
+          ))}
+          <Button
+            label="Charger un aperçu de test"
+            onPress={() => {
+              const source = Image.resolveAssetSource(
+                require("./assets/image-field-sample.png"),
+              );
+              if (source) {
+                setImages([
+                  { id: "sample", uri: source.uri, label: "Image de test" },
+                ]);
+              }
+            }}
+          />
+          <ImageField
+            label="Image de démonstration"
+            contentFit={contain ? "contain" : "cover"}
+            helper="PNG/JPEG, 5 Mio maximum. Aucun envoi."
+            images={images}
+            multiple={multiple}
+            size={compact ? "compact" : "standard"}
+            disabled={disabled}
+            error={error}
+            selection={selection}
+            onRemove={(id) => {
+              setError(undefined);
+              setImages((current) =>
+                current.filter((image) => image.id !== id),
+              );
+            }}
+          />
+          <Text style={[tokens.typography.body, { color: colors.text }]}>
+            {images.length} image(s) conservée(s)
+          </Text>
+        </PageContent>
+      </PageScrollView>
+    </Page>
   );
 }
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  content: { padding: tokens.spacing.lg, gap: tokens.spacing.lg },
   option: {
     flexDirection: "row",
     alignItems: "center",

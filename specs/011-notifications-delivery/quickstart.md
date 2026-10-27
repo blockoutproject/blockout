@@ -125,7 +125,7 @@ without changing surviving creation dates or nonpersonal consumed match facts.
 Revision-specific commands and results belong in the delivery PR; these cases establish no
 actual F05 erasure, mobile expiry, sender/provider or operational restoration evidence.
 
-The [#255 delivery evidence](https://github.com/blockoutproject/blockout/pull/497) records exact
+The [delivery evidence](https://github.com/blockoutproject/blockout/pull/497) for [T047/T049](tasks.md) records exact
 commands and local/CI outcomes. Qualification uses actual Spring/JPA transactions and current
 inbox reads, with a controlled clock and test-only SQL interruption. No sender/ephemeral-work
 or installation-subscription persistence exists at this base; their lifecycle remains with its

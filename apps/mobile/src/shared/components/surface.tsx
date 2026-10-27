@@ -20,9 +20,9 @@ export function Surface({ children }: PropsWithChildren) {
 
 const styles = StyleSheet.create({
   surface: {
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
-    padding: tokens.spacing.lg,
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.panel,
+    padding: tokens.layout.surface.inset,
     gap: tokens.spacing.md,
     overflow: "hidden",
   },

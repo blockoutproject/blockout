@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { StyleSheet, Text } from "react-native";
+import { Page, PageContent } from "../../shared/components/page";
 import { Button } from "../../shared/components/button";
 import { FormScrollView } from "../../shared/components/form-scroll-view";
 import { TextField } from "../../shared/components/text-field";
@@ -17,7 +17,10 @@ export interface ExampleFormProps {
   onConfirm: (values: ExampleValues) => void;
 }
 
-/** Exercises ordinary editing with one platform-owned keyboard mechanism and an explicit native confirmation. */
+/**
+ * Exercises ordinary editing with one platform-owned keyboard mechanism and an explicit native confirmation.
+ * The hosting native stack owns the top inset; Page owns the remaining safe edges.
+ */
 export function ExampleForm({ long = false, onConfirm }: ExampleFormProps) {
   const { colors } = useTheme();
   const confirmAction = useActionConfirmation();
@@ -37,9 +40,9 @@ export function ExampleForm({ long = false, onConfirm }: ExampleFormProps) {
       onConfirm(values);
   }
   return (
-    <View style={[styles.screen, { backgroundColor: colors.canvas }]}>
+    <Page edges={["bottom", "left", "right"]}>
       <FormScrollView>
-        <SafeAreaView edges={["bottom"]} style={styles.content}>
+        <PageContent>
           <Controller
             control={control}
             name="name"
@@ -80,14 +83,12 @@ export function ExampleForm({ long = false, onConfirm }: ExampleFormProps) {
             fullWidth
             onPress={() => void handleSubmit(submit)()}
           />
-        </SafeAreaView>
+        </PageContent>
       </FormScrollView>
-    </View>
+    </Page>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  content: { padding: tokens.spacing.lg, gap: tokens.spacing.section },
   body: tokens.typography.body,
 });

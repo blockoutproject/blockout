@@ -50,10 +50,10 @@ function NavigationAction({
 
 const styles = StyleSheet.create({
   action: {
-    minHeight: tokens.size.control,
+    minHeight: tokens.size.control.default,
     justifyContent: "center",
     padding: tokens.spacing.lg,
-    borderWidth: tokens.borderWidth,
+    borderWidth: tokens.border.thin,
     borderRadius: tokens.radius.control,
   },
 });

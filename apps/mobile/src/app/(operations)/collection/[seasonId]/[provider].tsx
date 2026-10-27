@@ -1,5 +1,8 @@
+import { ScreenState } from "../../../../shared/components/screen-state";
+import { PageHeader } from "../../../../shared/components/page-header";
+import { Page, PageScrollView } from "../../../../shared/components/page";
 import { ErrorState } from "../../../../shared/components/state-card";
-import { PreparationPage } from "../../../../features/collection/components/preparation-layout";
+
 import { useLocalSearchParams } from "expo-router";
 import { ProviderSourcesScreen } from "../../../../features/collection/screens/provider-sources-screen";
 
@@ -12,6 +15,13 @@ export default function ProviderSourcesRoute() {
   return provider === "ffvb" || provider === "lnv" ? (
     <ProviderSourcesScreen seasonId={seasonId} provider={provider} />
   ) : (
-    <PreparationPage title="Collectes" state={<ErrorState />} />
+    <Page>
+      <PageHeader title="Collectes" />
+      <PageScrollView>
+        <ScreenState>
+          <ErrorState />
+        </ScreenState>
+      </PageScrollView>
+    </Page>
   );
 }

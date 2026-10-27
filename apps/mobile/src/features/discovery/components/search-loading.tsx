@@ -1,3 +1,4 @@
+import { resultBadgeSize } from "./search-result-card";
 import { StyleSheet, View } from "react-native";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -34,8 +35,8 @@ function LoadingCard() {
     >
       <View style={styles.identity}>
         <Skeleton
-          width={tokens.size.entityMedia}
-          height={tokens.size.entityMedia}
+          width={tokens.size.media.entity}
+          height={tokens.size.media.entity}
         />
         <View style={styles.copy}>
           <Skeleton />
@@ -43,9 +44,9 @@ function LoadingCard() {
         </View>
       </View>
       <View style={styles.metadata}>
-        <Skeleton width={96} height={tokens.size.badge} />
-        <Skeleton width={76} height={tokens.size.badge} />
-        <Skeleton width={52} height={tokens.size.badge} />
+        <Skeleton width={96} height={resultBadgeSize} />
+        <Skeleton width={76} height={resultBadgeSize} />
+        <Skeleton width={52} height={resultBadgeSize} />
       </View>
     </View>
   );
@@ -54,10 +55,10 @@ function LoadingCard() {
 const styles = StyleSheet.create({
   cards: { gap: tokens.spacing.md },
   card: {
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.panel,
     // Figma's inside stroke is included in the 16-point outer inset.
-    padding: tokens.spacing.lg - tokens.borderWidth,
+    padding: tokens.spacing.lg - tokens.border.thin,
     gap: tokens.spacing.md,
   },
   identity: {

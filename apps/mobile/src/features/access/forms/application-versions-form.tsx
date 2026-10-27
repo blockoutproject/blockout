@@ -215,7 +215,7 @@ export function ApplicationVersionsForm({
                 </Text>
                 <Chevron
                   accessible={false}
-                  size={tokens.size.controlIcon}
+                  size={tokens.size.icon.md}
                   color={colors.icon}
                 />
               </Pressable>
@@ -331,7 +331,7 @@ export function ApplicationVersionsForm({
                 {checked && (
                   <Check
                     accessible={false}
-                    size={tokens.size.controlIcon}
+                    size={tokens.size.icon.md}
                     color={colors.canvas}
                   />
                 )}
@@ -432,13 +432,13 @@ export function ApplicationVersionsForm({
   );
 }
 const styles = StyleSheet.create({
-  form: { gap: tokens.spacing.lg },
+  form: { gap: tokens.layout.form.gap },
   platforms: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },
   platformCard: {
     flexBasis: 160,
     flexGrow: 1,
-    borderRadius: tokens.radius.sheet,
-    borderWidth: tokens.borderWidth,
+    borderRadius: tokens.radius.panel,
+    borderWidth: tokens.border.thin,
   },
   expandedCard: { flexBasis: "100%" },
   fields: {
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
-    minHeight: tokens.touchTarget.android,
+    minHeight: tokens.touch.minimum,
   },
   platform: { ...tokens.typography.strong, flex: 1 },
   minimum: { ...tokens.typography.metadata, flexShrink: 1 },
@@ -461,13 +461,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.md,
-    minHeight: tokens.touchTarget.android,
+    minHeight: tokens.touch.minimum,
   },
   acknowledgementText: { ...tokens.typography.body, flex: 1 },
   check: {
-    width: tokens.size.controlIcon,
-    height: tokens.size.controlIcon,
-    borderRadius: tokens.radius.badge,
-    borderWidth: tokens.borderWidth,
+    width: tokens.size.icon.md,
+    height: tokens.size.icon.md,
+    borderRadius: tokens.radius.sm,
+    borderWidth: tokens.border.thin,
   },
 });

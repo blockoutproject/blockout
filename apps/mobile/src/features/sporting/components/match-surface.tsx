@@ -33,13 +33,13 @@ export function MatchSurface({ division, children }: MatchSurfaceProps) {
 
 const styles = StyleSheet.create({
   surface: {
-    borderRadius: tokens.radius.sheet,
+    borderRadius: tokens.radius.panel,
     overflow: "hidden",
   },
   // Figma's inside stroke overlays content instead of shrinking its full-width slots.
   stroke: {
     ...StyleSheet.absoluteFill,
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.panel,
   },
 });

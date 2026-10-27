@@ -1,6 +1,7 @@
+import { Page, PageScrollView } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { useEffect } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import {
   cancelAnimation,
   Easing,
@@ -10,8 +11,8 @@ import {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { BrandMark } from "../../../shared/components/brand-mark";
+
+import { BrandHeader } from "../../../shared/components/brand-header";
 import { Surface } from "../../../shared/components/surface";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { RequestLoading } from "../../../shared/components/request-feedback";
@@ -58,26 +59,9 @@ export function AgeDeclarationScreen() {
   const { colors } = useTheme();
   const age = useAgeDeclaration();
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
-      <View style={styles.header}>
-        <View style={styles.brand} accessible accessibilityLabel="Blockout">
-          <BrandMark />
-          <Text style={[tokens.typography.navigation, { color: colors.text }]}>
-            BLOCKOUT
-          </Text>
-        </View>
-        <View
-          accessible={false}
-          pointerEvents="none"
-          style={[styles.divider, { backgroundColor: colors.border }]}
-        />
-      </View>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={
-          age.loading || age.readFailed ? styles.stateContent : styles.stage
-        }
-      >
+    <Page>
+      <BrandHeader />
+      <PageScrollView>
         {age.loading || age.readFailed ? (
           <ScreenState>
             {age.loading ? (
@@ -87,7 +71,7 @@ export function AgeDeclarationScreen() {
             )}
           </ScreenState>
         ) : (
-          <>
+          <View style={styles.stage}>
             <AgeBackdrop />
             <Surface>
               <View style={styles.form}>
@@ -102,34 +86,18 @@ export function AgeDeclarationScreen() {
                 <AgeForm pending={age.pending} onSubmit={age.confirm} />
               </View>
             </Surface>
-          </>
+          </View>
         )}
-      </ScrollView>
-    </SafeAreaView>
+      </PageScrollView>
+    </Page>
   );
 }
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  header: {
-    minHeight: 69,
-    marginHorizontal: tokens.spacing.section,
-    paddingBottom: tokens.spacing.lg,
-    justifyContent: "center",
-  },
-  divider: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: tokens.borderWidth,
-  },
-  brand: { flexDirection: "row", gap: 9, alignItems: "center" },
-  scroll: { flex: 1 },
-  stateContent: { flexGrow: 1, padding: tokens.spacing.lg },
+  // Entry artwork shares discovery's centered stage and wider illustrative inset.
   stage: {
     flexGrow: 1,
     justifyContent: "center",
-    padding: tokens.spacing.section,
+    padding: tokens.spacing["2xl"],
   },
-  form: { gap: tokens.spacing.sm },
+  form: { gap: tokens.layout.form.gap },
 });

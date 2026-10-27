@@ -281,6 +281,75 @@ it("distinguishes initial waiting, retryable failure and established no matches 
   ).toBeOnTheScreen();
 });
 
+it("keeps clearing available without pull-to-refresh through replacement reads and preserves the selected tab", async () => {
+  // Given: replacement text is pasted directly, without unmounting results through an empty draft.
+  const pending = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string) => {
+    const parsed = new URL(url);
+    if (parsed.pathname.endsWith("/clubs")) {
+      if (parsed.searchParams.get("q") === "None") return pending.promise;
+      if (parsed.searchParams.get("q") === "Failed")
+        return Promise.resolve(
+          Response.json({ title: "Unavailable", status: 503 }, { status: 503 }),
+        );
+    }
+    return publicReads(url);
+  });
+  const user = userEvent.setup();
+  await renderSearch();
+  const input = await screen.findByLabelText("Rechercher");
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await user.paste(input, "Volley");
+  await screen.findByRole("header", { name: "2 résultats chargés" });
+  expect(
+    screen.queryByLabelText("Actualiser les données"),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await user.paste(input, "None");
+
+  // Then: a new pending/error read has no accepted count, while successful emptiness has zero.
+  expect(
+    await screen.findByRole("header", { name: "Résultats" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Effacer" })).toBeEnabled();
+  expect(
+    screen.queryByLabelText("Actualiser les données"),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByText("Lyon")).not.toBeOnTheScreen();
+  await act(async () => pending.resolve(Response.json({ clubs: [] })));
+  expect(
+    await screen.findByRole("header", { name: "0 résultats chargés" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText("Aucun résultat pour ces critères"),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Effacer" })).toBeEnabled();
+  expect(
+    screen.queryByLabelText("Actualiser les données"),
+  ).not.toBeOnTheScreen();
+  await user.paste(input, "Failed");
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(screen.getByRole("header", { name: "Résultats" })).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Effacer" })).toBeEnabled();
+  expect(
+    screen.queryByLabelText("Actualiser les données"),
+  ).not.toBeOnTheScreen();
+  mockFetch.mockImplementation(publicReads);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await screen.findByRole("header", { name: "2 résultats chargés" });
+  mockFetch.mockClear();
+  await user.press(screen.getByRole("button", { name: "Effacer" }));
+  expect(input).toHaveDisplayValue("");
+  expect(
+    screen.getByRole("tab", { name: "Clubs", selected: true }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Effacer" }),
+  ).not.toBeOnTheScreen();
+  expect(mockFetch).not.toHaveBeenCalled();
+});
+
 it("cancels superseded text and tab requests and never shows an older result as the new search", async () => {
   // Given: a transport that completes late even after cancellation.
   const old = Promise.withResolvers<Response>();
@@ -496,7 +565,7 @@ it("retries native rendering after a successful logo reread with identical bytes
 });
 
 it.each(["empty", "error"])(
-  "refreshes %s search without discarding text or the selected tab",
+  "retains the draft and selected tab when an %s search is read again",
   async (state) => {
     // Given
     const user = userEvent.setup();
@@ -521,7 +590,15 @@ it.each(["empty", "error"])(
     mockFetch.mockReset().mockImplementation(publicReads);
 
     // When
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    if (state === "error")
+      await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    else
+      await act(async () => {
+        await client.refetchQueries({
+          queryKey: ["discovery"],
+          type: "active",
+        });
+      });
 
     // Then
     expect(await screen.findByText("Lyon")).toBeOnTheScreen();
@@ -590,7 +667,7 @@ it("retries only the failed continuation and keeps one row per resource", async 
 });
 
 it.each([false, true])(
-  "refreshes only the first page and retains loaded pages when it fails: %s",
+  "retains loaded pages after a failed background read and accepts the next traversal: %s",
   async (fails) => {
     // Given
     const user = userEvent.setup();
@@ -625,59 +702,72 @@ it.each([false, true])(
     );
     await screen.findByText("Volley Niort");
     mockFetch.mockClear();
-    mockFetch.mockImplementation(() =>
+    mockFetch.mockImplementation((url: string) =>
       Promise.resolve(
         fails
           ? Response.json(
               { title: "Unavailable", status: 500 },
               { status: 500 },
             )
-          : Response.json({
-              clubs: [
-                {
-                  club: { id: firstId, name: "Volley Lyon actualisé" },
-                  city: "Lyon",
-                },
-              ],
-              nextCursor: "new-page",
-            }),
+          : Response.json(
+              new URL(url).searchParams.has("cursor")
+                ? { clubs: [] }
+                : {
+                    clubs: [
+                      {
+                        club: { id: firstId, name: "Volley Lyon actualisé" },
+                        city: "Lyon",
+                      },
+                    ],
+                    nextCursor: "new-page",
+                  },
+            ),
       ),
     );
 
     // When
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await act(async () => {
+      await client.refetchQueries({ queryKey: ["discovery"], type: "active" });
+    });
     if (fails) {
-      await screen.findByRole("alert");
       expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
       expect(screen.getByText("Volley Niort")).toBeOnTheScreen();
       expect(mockFetch).toHaveBeenCalledTimes(1);
       mockFetch.mockClear();
-      mockFetch.mockImplementation(() =>
+      mockFetch.mockImplementation((url: string) =>
         Promise.resolve(
-          Response.json({
-            clubs: [
-              {
-                club: { id: firstId, name: "Volley Lyon actualisé" },
-                city: "Lyon",
-              },
-            ],
-            nextCursor: "new-page",
-          }),
+          Response.json(
+            new URL(url).searchParams.has("cursor")
+              ? { clubs: [] }
+              : {
+                  clubs: [
+                    {
+                      club: { id: firstId, name: "Volley Lyon actualisé" },
+                      city: "Lyon",
+                    },
+                  ],
+                  nextCursor: "new-page",
+                },
+          ),
         ),
       );
-      await fireEvent(
-        screen.getByLabelText("Actualiser les données"),
-        "refresh",
-      );
+      await act(async () => {
+        await client.refetchQueries({
+          queryKey: ["discovery"],
+          type: "active",
+        });
+      });
     }
 
     // Then
     expect(await screen.findByText("Volley Lyon actualisé")).toBeOnTheScreen();
     expect(screen.queryByText("Volley Niort")).toBeNull();
-    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
     expect(
-      new URL(String(mockFetch.mock.calls[0][0])).searchParams.has("cursor"),
-    ).toBe(false);
+      mockFetch.mock.calls.map(([url]) =>
+        new URL(String(url)).searchParams.get("cursor"),
+      ),
+    ).toEqual([null, "new-page"]);
     expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
     expect(
       screen.getByRole("tab", { name: "Clubs", selected: true }),
@@ -685,7 +775,7 @@ it.each([false, true])(
   },
 );
 
-it("cancels pending pagination before refresh and rejects its late response", async () => {
+it("cancels pending pagination before a background read and rejects its late response", async () => {
   // Given
   const user = userEvent.setup();
   const pending = Promise.withResolvers<Response>();
@@ -714,7 +804,9 @@ it("cancels pending pagination before refresh and rejects its late response", as
   mockFetch.mockClear();
 
   // When
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ["discovery"], type: "active" });
+  });
   await waitFor(() => expect(pageSignal?.aborted).toBe(true));
   await waitFor(() =>
     expect(
@@ -741,7 +833,7 @@ it("cancels pending pagination before refresh and rejects its late response", as
 });
 
 it.each([401, 403, 404])(
-  "replaces retained search results after an explicit current access or visibility refusal (%s)",
+  "replaces retained search results after a current access or visibility refusal (%s)",
   async (status) => {
     // Given
     const user = userEvent.setup();
@@ -757,7 +849,9 @@ it.each([401, 403, 404])(
     );
 
     // When
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await act(async () => {
+      await client.refetchQueries({ queryKey: ["discovery"], type: "active" });
+    });
 
     // Then
     expect(

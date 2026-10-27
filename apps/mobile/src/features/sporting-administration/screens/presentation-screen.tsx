@@ -1,3 +1,7 @@
+import { ScreenState } from "../../../shared/components/screen-state";
+import { FormScrollView } from "../../../shared/components/form-scroll-view";
+import { PageHeader } from "../../../shared/components/page-header";
+import { Page, PageContent } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 import {
@@ -13,7 +17,6 @@ import { useAccountSession } from "../../accounts/current-account";
 import { useAdministrationCapabilities } from "../../access/api/use-administration-capabilities";
 import { usePresentation, type PresentationTarget } from "../api/presentation";
 import { PresentationForm } from "../forms/presentation-form";
-import { EditorPage } from "../components/editor-page";
 
 /** Route-owned target; the form reads its own dirty state and F12 supplies current action grants. */
 export interface PresentationScreenProps {
@@ -106,50 +109,56 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
   ) : !canRead ? (
     <ErrorState />
   ) : undefined;
-  return (
-    <EditorPage
-      state={
-        !presentation
-          ? (accessState ??
-            (editing.query.isError ? (
-              <ErrorState
-                onRetry={() =>
-                  void editing.query.refetch().then((result) => {
-                    if (result.isError && result.data) feedback.error();
-                  })
-                }
-                retrying={editing.query.isFetching}
-              />
-            ) : (
-              <RequestLoading />
-            )))
-          : undefined
-      }
-      title={title}
-      refreshControl={
-        sessionStatus === "authenticated" &&
-        target.kind !== "division-creation" ? (
-          <DataRefreshControl
-            enabled={!editing.save.pending}
-            refreshing={
-              editing.query.isRefetching ||
-              account.isRefetching ||
-              logoRefreshing
-            }
-            onRefresh={() => void refresh()}
-          />
-        ) : undefined
-      }
-    >
-      {presentation && (
-        <PresentationForm
-          key={`${session.generation}:${target.kind}:${target.id}`}
-          presentation={presentation}
-          target={target}
-          editing={editing}
-          disabled={!canManage || editing.query.isError}
+  const blockingState = !presentation
+    ? (accessState ??
+      (editing.query.isError ? (
+        <ErrorState
+          onRetry={() =>
+            void editing.query.refetch().then((result) => {
+              if (result.isError && result.data) feedback.error();
+            })
+          }
+          retrying={editing.query.isFetching}
         />
-      )}
-    </EditorPage>
+      ) : (
+        <RequestLoading />
+      )))
+    : undefined;
+  return (
+    <Page>
+      <PageHeader title={title} />
+      <FormScrollView
+        refreshControl={
+          sessionStatus === "authenticated" &&
+          target.kind !== "division-creation" ? (
+            <DataRefreshControl
+              enabled={!editing.save.pending}
+              refreshing={
+                editing.query.isRefetching ||
+                account.isRefetching ||
+                logoRefreshing
+              }
+              onRefresh={() => void refresh()}
+            />
+          ) : undefined
+        }
+      >
+        {blockingState ? (
+          <ScreenState>{blockingState}</ScreenState>
+        ) : (
+          <PageContent>
+            {presentation && (
+              <PresentationForm
+                key={`${session.generation}:${target.kind}:${target.id}`}
+                presentation={presentation}
+                target={target}
+                editing={editing}
+                disabled={!canManage || editing.query.isError}
+              />
+            )}
+          </PageContent>
+        )}
+      </FormScrollView>
+    </Page>
   );
 }

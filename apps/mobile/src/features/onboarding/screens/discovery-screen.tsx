@@ -1,16 +1,17 @@
+import { Page, PageScrollView } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { ArrowRight, ChevronLeft } from "lucide-react-native";
 import { useEffect, useRef, useState, type ComponentRef } from "react";
 import {
   AccessibilityInfo,
   BackHandler,
-  ScrollView,
+  type ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { BrandMark } from "../../../shared/components/brand-mark";
+
+import { BrandHeader } from "../../../shared/components/brand-header";
 import { Button } from "../../../shared/components/button";
 import { IconButton } from "../../../shared/components/icon-button";
 
@@ -92,38 +93,24 @@ export function DiscoveryScreen() {
   }, [step, discovery.saving]);
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
-      <View style={[styles.header, { borderColor: colors.border }]}>
-        <View style={styles.brand} accessible accessibilityLabel="Blockout">
-          <BrandMark />
-          <Text style={[tokens.typography.navigation, { color: colors.text }]}>
-            BLOCKOUT
-          </Text>
-        </View>
+    <Page>
+      <BrandHeader>
         {discovery.error !== "read" && step < 4 && (
-          <View style={styles.trailingAction}>
-            <Button
-              label="Passer"
-              variant="secondary"
-              onPress={() => void discovery.finish()}
-              loading={discovery.saving}
-            />
-          </View>
+          <Button
+            label="Passer"
+            variant="secondary"
+            onPress={() => void discovery.finish()}
+            loading={discovery.saving}
+          />
         )}
-      </View>
-      <ScrollView
-        ref={scroll}
-        style={styles.scroll}
-        contentContainerStyle={
-          discovery.error === "read" ? styles.stateContent : styles.stage
-        }
-      >
+      </BrandHeader>
+      <PageScrollView ref={scroll}>
         {discovery.error === "read" ? (
           <ScreenState>
             <ErrorState onRetry={discovery.retryRead} />
           </ScreenState>
         ) : (
-          <>
+          <View style={styles.stage}>
             <DiscoveryBackdrop />
             <View style={styles.stack}>
               <DiscoveryExample step={step} />
@@ -162,9 +149,9 @@ export function DiscoveryScreen() {
                 ))}
               </View>
             </View>
-          </>
+          </View>
         )}
-      </ScrollView>
+      </PageScrollView>
       {discovery.error !== "read" && (
         <View style={styles.footer}>
           <View
@@ -178,7 +165,7 @@ export function DiscoveryScreen() {
               onPress={() => setStep((value) => value - 1)}
               disabled={step === 0 || discovery.saving}
             >
-              <ChevronLeft size={24} color={colors.icon} />
+              <ChevronLeft size={tokens.size.icon.lg} color={colors.icon} />
             </IconButton>
           </View>
           <View
@@ -214,41 +201,27 @@ export function DiscoveryScreen() {
           </View>
         </View>
       )}
-    </SafeAreaView>
+    </Page>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  header: {
-    marginHorizontal: tokens.spacing.section,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: tokens.spacing.md,
-    alignItems: "center",
-    justifyContent: "space-between",
-    minHeight: 69,
-    paddingBottom: tokens.spacing.lg,
-    borderBottomWidth: tokens.borderWidth,
-  },
-  brand: { flexDirection: "row", gap: 9, alignItems: "center" },
-  scroll: { flex: 1 },
-  stateContent: { flexGrow: 1, padding: tokens.spacing.lg },
+  // The approved discovery artwork remains centered with its wider illustrative inset.
   stage: {
     flexGrow: 1,
     justifyContent: "center",
-    padding: tokens.spacing.section,
+    padding: tokens.spacing["2xl"],
   },
   stack: { gap: tokens.spacing.lg },
   card: {
     padding: tokens.spacing.lg,
-    borderRadius: tokens.radius.sheet,
-    borderWidth: tokens.borderWidth,
+    borderRadius: tokens.radius.panel,
+    borderWidth: tokens.border.thin,
     gap: tokens.spacing.md,
   },
   title: tokens.typography.headingXl,
   footer: {
-    paddingHorizontal: tokens.spacing.section,
+    paddingHorizontal: tokens.spacing["2xl"],
     flexDirection: "row",
     flexWrap: "wrap",
     gap: tokens.spacing.md,
@@ -256,14 +229,14 @@ const styles = StyleSheet.create({
     paddingVertical: tokens.spacing.lg,
   },
   previous: {
-    borderWidth: tokens.borderWidth,
+    borderWidth: tokens.border.thin,
     borderRadius: tokens.radius.control,
   },
   progress: {
     flexGrow: 1,
     flexDirection: "row",
     justifyContent: "center",
-    gap: tokens.spacing.label,
+    gap: tokens.spacing.tight,
   },
   dot: { height: 5, borderRadius: tokens.radius.full },
   trailingAction: { marginLeft: "auto", maxWidth: "100%" },

@@ -1,6 +1,7 @@
-import type { TextStyle } from "react-native";
+import { Platform, type TextStyle } from "react-native";
 
-/** Approved UI Library projection, read 2026-10-17; palettes remain implementation details.
+/** Approved UI Library projection; common layout, size and platform roles rechecked 2026-10-26.
+ * Palettes remain implementation details.
  * Sources: https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=7-3
  * Typography/layout/effects: sibling foundation pages 7:4–7:6; control nodes are linked by quickstart.
  */
@@ -15,7 +16,7 @@ export interface ContextColors {
   shadow: string;
 }
 
-/** Semantic roles used by the first controls, retaining identical keys in both Figma modes. */
+/** Semantic color roles retain identical keys in both Figma appearance modes. */
 export const appearanceColors = {
   light: {
     canvas: "#FCFCFD",
@@ -125,46 +126,56 @@ export const membershipColors = {
   },
 };
 
-/** Core, Typography, Motion and Platform roles needed by the initial controls, without a styling engine. */
+/** Core spacing values; semantic roles below retain their Figma aliases rather than parallel numbers. */
+const spacing = {
+  xs: 4,
+  tight: 6,
+  sm: 8,
+  compact: 10,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  "2xl": 24,
+  optical: 2,
+};
+
+/** Active Core radius roles, including the distinct entity-media and preview radii. */
+const radius = {
+  sm: 8,
+  control: 12,
+  lg: 16,
+  media: 6,
+  panelInset: 18,
+  panel: 22,
+  full: 999,
+};
+
+/** Platform touch/minimum: the native OS is fixed for the application's lifetime. */
+const touch = { minimum: Platform.OS === "android" ? 48 : 44 };
+
+/** Core, Typography, Motion and Platform roles. Figma slash paths become nested keys and kebab-case becomes camelCase. */
 export const tokens = {
-  spacing: {
-    xs: 4,
-    sm: 8,
-    md: 12,
-    compact: 10,
-    lg: 16,
-    xl: 20,
-    section: 24,
-    label: 6,
-    tight: 6,
-    optical: 2,
+  spacing: { ...spacing, screen: spacing.lg },
+  // Safe-area and keyboard measurements remain native; these are content roles only.
+  layout: {
+    header: 48,
+    width: { compact: 320 },
+    content: { start: spacing.sm, end: spacing.lg },
+    form: { gap: spacing.lg, labelGap: spacing.tight },
+    list: { gap: spacing.md },
+    section: { gap: spacing["2xl"] },
+    surface: { inset: spacing.lg },
+    collection: { toolbarMinHeight: touch.minimum },
   },
-  radius: {
-    badge: 8,
-    control: 12,
-    media: 16,
-    // Product Design Entity Card's Media/Image slot binds Core radius/media (6), not form media (16).
-    entityMedia: 6,
-    panelInset: 18,
-    sheet: 22,
-    full: 999,
-  },
+  radius,
+  media: { radius: { preview: radius.lg } },
   size: {
-    control: 48,
-    compactControl: 36,
-    multiline: 96,
-    actionIcon: 24,
-    controlIcon: 20,
-    loading: 20,
-    entityMedia: 48,
-    smallIcon: 16,
-    badge: 24,
-    collectionToolbar: 44,
-    mediaRow: 40,
-    inlineIcon: 16,
+    control: { default: 48, compact: 36 },
+    icon: { sm: 16, md: 20, lg: 24 },
+    media: { row: 40, entity: 48 },
   },
-  touchTarget: { ios: 44, android: 48 },
-  borderWidth: 1,
+  touch,
+  border: { thin: 1 },
   opacity: { disabled: 0.45, pressed: 0.9 },
   elevation: { offsetX: 0, offsetY: 4, blur: 10 },
   motion: { slow: 480 },

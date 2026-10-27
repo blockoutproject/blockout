@@ -1,3 +1,4 @@
+import { SeasonIdentity, SourceBadge } from "../components/source-summary";
 import { Surface } from "../../../shared/components/surface";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
@@ -18,11 +19,7 @@ import { EmptyState } from "../../../shared/components/state-card";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import type { useSeasonPreparation } from "../api/use-source-preparation";
-import {
-  SeasonIdentity,
-  SourceBadge,
-  preparationStyles,
-} from "../components/preparation-layout";
+
 import { CreateSourceForm } from "./create-source-form";
 import { providerPreparationEditor } from "./provider-preparation-editor";
 import { createSourceValues } from "./create-source-values";
@@ -214,7 +211,7 @@ export function ProviderPreparationForm({
     });
   }
   return (
-    <View style={preparationStyles.form}>
+    <View style={styles.form}>
       <SeasonIdentity season={season} />
       {closed && (
         <Text style={[tokens.typography.strong, { color: colors.text }]}>
@@ -249,7 +246,7 @@ export function ProviderPreparationForm({
             <Icon
               accessible={false}
               color={colors.icon}
-              size={tokens.size.actionIcon}
+              size={tokens.size.icon.lg}
             />
             <View style={styles.identity}>
               <Text style={[tokens.typography.strong, { color: colors.text }]}>
@@ -260,7 +257,7 @@ export function ProviderPreparationForm({
             <ChevronRight
               accessible={false}
               color={colors.icon}
-              size={tokens.size.controlIcon}
+              size={tokens.size.icon.md}
             />
           </Pressable>
         </Surface>
@@ -326,11 +323,12 @@ export function ProviderPreparationForm({
   );
 }
 const styles = StyleSheet.create({
+  form: { gap: tokens.layout.form.gap },
   source: {
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.lg,
-    minHeight: tokens.size.control,
+    minHeight: tokens.size.control.default,
   },
   identity: { flex: 1, gap: tokens.spacing.xs },
 });

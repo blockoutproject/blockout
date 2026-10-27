@@ -59,7 +59,7 @@ export function Sheet({
           <IconButton label="Fermer" onPress={onClose}>
             <X
               accessible={false}
-              size={tokens.size.actionIcon}
+              size={tokens.size.icon.lg}
               color={colors.icon}
             />
           </IconButton>
@@ -93,10 +93,10 @@ export function Sheet({
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   scrollContent: { flexGrow: 1 },
-  content: { padding: tokens.spacing.lg, gap: tokens.spacing.section },
+  content: { padding: tokens.spacing.lg, gap: tokens.layout.section.gap },
   // Product Design's 24-point handle area + 8-point header inset; the grabber is drawn by the native route.
   compactContent: {
-    paddingTop: tokens.spacing.section + tokens.spacing.sm,
+    paddingTop: tokens.spacing["2xl"] + tokens.spacing.sm,
     paddingBottom: tokens.spacing.xl,
     gap: tokens.spacing.md,
   },

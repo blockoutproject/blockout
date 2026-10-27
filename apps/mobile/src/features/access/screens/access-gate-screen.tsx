@@ -1,11 +1,12 @@
+import { Page, PageScrollView } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { applicationUpdateMessage } from "../application-update-message";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+
 import type { PublicMaintenanceResponse } from "../../../../.generated/schemas/index.zod";
 import { IconButton } from "../../../shared/components/icon-button";
 import { Button } from "../../../shared/components/button";
@@ -63,7 +64,7 @@ function GateView({
     message = updateMessage ?? applicationUpdateMessage;
   }
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
+    <Page>
       <View style={[styles.header, { borderColor: colors.border }]}>
         <View style={styles.identity}>
           <BrandMark />
@@ -81,15 +82,13 @@ function GateView({
           <IconButton label="Fermer" onPress={onClose}>
             <X
               accessible={false}
-              size={tokens.size.actionIcon}
+              size={tokens.size.icon.lg}
               color={colors.icon}
             />
           </IconButton>
         )}
       </View>
-      <ScrollView
-        contentContainerStyle={simple ? styles.stateContent : styles.scroll}
-        alwaysBounceVertical
+      <PageScrollView
         refreshControl={
           !onClose && onRefresh && gate !== "checking" ? (
             <DataRefreshControl refreshing={checking} onRefresh={onRefresh} />
@@ -169,8 +168,8 @@ function GateView({
             </View>
           </>
         )}
-      </ScrollView>
-    </SafeAreaView>
+      </PageScrollView>
+    </Page>
   );
 }
 
@@ -263,12 +262,12 @@ export function AccessGateScreen() {
   );
 }
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
+  // Admission status and preview actions retain their approved compact header, distinct from the discovery brand header.
   header: {
-    marginHorizontal: tokens.spacing.section,
+    marginHorizontal: tokens.spacing["2xl"],
     minHeight: 53,
-    paddingBottom: tokens.spacing.section,
-    borderBottomWidth: tokens.borderWidth,
+    paddingBottom: tokens.spacing["2xl"],
+    borderBottomWidth: tokens.border.thin,
     flexDirection: "row",
     flexWrap: "wrap",
     gap: tokens.spacing.sm,
@@ -283,22 +282,20 @@ const styles = StyleSheet.create({
   brand: tokens.typography.navigation,
   badge: {
     ...tokens.typography.metadata,
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.badge,
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.sm,
     paddingHorizontal: tokens.spacing.sm,
     paddingVertical: tokens.spacing.xs,
   },
-  scroll: { flexGrow: 1 },
-  stateContent: { flexGrow: 1, padding: tokens.spacing.lg },
   stage: {
     flex: 1,
     justifyContent: "center",
-    paddingHorizontal: tokens.spacing.section,
+    paddingHorizontal: tokens.spacing["2xl"],
     paddingVertical: tokens.spacing.xl,
   },
   card: {
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.panel,
     overflow: "hidden",
   },
   mediaInset: {
@@ -312,7 +309,7 @@ const styles = StyleSheet.create({
     maxWidth: 280,
     minHeight: 140,
     justifyContent: "center",
-    borderWidth: tokens.borderWidth,
+    borderWidth: tokens.border.thin,
     borderStyle: "dashed",
     borderRadius: tokens.radius.control,
     padding: tokens.spacing.sm,
@@ -334,12 +331,12 @@ const styles = StyleSheet.create({
     paddingTop: tokens.spacing.md,
   },
   actions: {
-    paddingHorizontal: tokens.spacing.section,
+    paddingHorizontal: tokens.spacing["2xl"],
     paddingBottom: tokens.spacing.sm,
     gap: tokens.spacing.compact,
   },
   operator: {
-    minHeight: tokens.size.control,
+    minHeight: tokens.size.control.default,
     alignItems: "center",
     justifyContent: "center",
   },

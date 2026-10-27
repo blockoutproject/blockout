@@ -187,7 +187,7 @@ export function DivisionColorFields({
             </Text>
             <ChevronRight
               accessible={false}
-              size={tokens.size.inlineIcon}
+              size={tokens.size.icon.sm}
               color={colors.icon}
             />
           </Pressable>
@@ -212,8 +212,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.md,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: tokens.radius.badge,
-    borderWidth: tokens.borderWidth,
+    borderRadius: tokens.radius.sm,
+    borderWidth: tokens.border.thin,
   },
   preview: {
     height: 126,
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   },
   mode: {
     alignSelf: "flex-start",
-    borderRadius: tokens.radius.badge,
+    borderRadius: tokens.radius.sm,
     padding: tokens.spacing.xs,
   },
   stops: { gap: tokens.spacing.lg },
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: tokens.spacing.xs,
-    minHeight: tokens.size.control,
+    minHeight: tokens.size.control.default,
   },
   actionLabel: {
     ...tokens.typography.metadata,

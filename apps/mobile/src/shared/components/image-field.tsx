@@ -8,11 +8,14 @@ import {
 } from "lucide-react-native";
 import { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
 import { IconButton } from "./icon-button";
 import { LoadingIndicator } from "./loading-indicator";
+import { FieldMessage } from "./field-message";
+import { ScreenState } from "./screen-state";
+import { ErrorState } from "./state-card";
+import { Page, PageScrollView } from "./page";
 
 /** Stable caller identity and accessible description for an existing or prepared local preview. */
 export interface ImageFieldImage {
@@ -69,7 +72,6 @@ export function ImageField({
   const [previewId, setPreviewId] = useState<string>();
   const preview = images.find((image) => image.id === previewId);
   const busy = selection.pending;
-  const message = error;
   const unavailable = disabled || busy;
   const compact = size === "compact";
 
@@ -88,7 +90,7 @@ export function ImageField({
               compact && styles.compact,
               {
                 backgroundColor: colors.surface,
-                borderColor: message ? colors.error : colors.border,
+                borderColor: error ? colors.error : colors.border,
               },
             ]}
           >
@@ -119,7 +121,7 @@ export function ImageField({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`${replaceLabel} : ${image.label}`}
-              accessibilityHint={message ?? helper}
+              accessibilityHint={error ?? helper}
               accessibilityState={{ disabled: unavailable, busy }}
               disabled={unavailable}
               onPress={() => selection.select(image.id)}
@@ -160,7 +162,7 @@ export function ImageField({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={chooseLabel}
-          accessibilityHint={message ?? helper}
+          accessibilityHint={error ?? helper}
           accessibilityState={{ disabled: unavailable, busy }}
           disabled={unavailable}
           onPress={() => selection.select()}
@@ -169,7 +171,7 @@ export function ImageField({
             compact && styles.compact,
             {
               backgroundColor: colors.surface,
-              borderColor: message ? colors.error : colors.border,
+              borderColor: error ? colors.error : colors.border,
               opacity: pressed ? tokens.opacity.pressed : 1,
             },
           ]}
@@ -179,7 +181,7 @@ export function ImageField({
               styles.thumbnail,
               compact && styles.compactThumbnail,
               {
-                backgroundColor: message
+                backgroundColor: error
                   ? colors.subtle
                   : colors.mediaPlaceholder,
               },
@@ -187,16 +189,16 @@ export function ImageField({
           >
             {busy ? (
               <LoadingIndicator color={colors.icon} />
-            ) : message ? (
+            ) : error ? (
               <ImageOff
                 accessible={false}
-                size={tokens.size.actionIcon}
+                size={tokens.size.icon.lg}
                 color={colors.icon}
               />
             ) : (
               <PlaceholderIcon
                 accessible={false}
-                size={tokens.size.actionIcon}
+                size={tokens.size.icon.lg}
                 color={colors.icon}
               />
             )}
@@ -206,19 +208,7 @@ export function ImageField({
           </Text>
         </Pressable>
       )}
-      {message ? (
-        <Text
-          accessibilityRole="alert"
-          accessibilityLiveRegion="polite"
-          style={[styles.message, { color: colors.error }]}
-        >
-          {message}
-        </Text>
-      ) : helper ? (
-        <Text style={[styles.message, { color: colors.secondaryText }]}>
-          {helper}
-        </Text>
-      ) : null}
+      <FieldMessage error={error} helper={helper} />
       <Modal
         visible={!!preview}
         presentationStyle="fullScreen"
@@ -237,7 +227,7 @@ export function ImageField({
   );
 }
 
-/** One mounted image attempt owns decode feedback; changing the image or closing the viewer drops it. */
+/** A failed native decode gets an opaque read card; retry remounts only the image and never changes the draft. */
 function ImagePreview({
   image,
   onClose,
@@ -248,55 +238,46 @@ function ImagePreview({
   const { colors } = useTheme();
   const [failed, setFailed] = useState(false);
   return (
-    <SafeAreaView
-      style={[styles.viewer, { backgroundColor: colors.canvas }]}
-      accessibilityViewIsModal
-    >
+    <Page accessibilityViewIsModal>
       <IconButton label="Fermer" onPress={onClose}>
-        <X
-          accessible={false}
-          size={tokens.size.actionIcon}
-          color={colors.icon}
-        />
+        <X accessible={false} size={tokens.size.icon.lg} color={colors.icon} />
       </IconButton>
-      {failed && (
-        <Text
-          accessibilityRole="alert"
-          accessibilityLiveRegion="polite"
-          style={[styles.previewError, { color: colors.error }]}
-        >
-          Impossible d’afficher l’image.
-        </Text>
+      {failed ? (
+        <PageScrollView>
+          <ScreenState>
+            <ErrorState onRetry={() => setFailed(false)} />
+          </ScreenState>
+        </PageScrollView>
+      ) : (
+        <Image
+          onError={() => setFailed(true)}
+          source={{ uri: image.uri }}
+          accessibilityRole="image"
+          accessibilityLabel={image.label}
+          accessible
+          cachePolicy="none"
+          contentFit="contain"
+          style={styles.fullImage}
+        />
       )}
-      <Image
-        onError={() => setFailed(true)}
-        source={{ uri: image.uri }}
-        accessibilityRole="image"
-        accessibilityLabel={image.label}
-        accessible
-        cachePolicy="none"
-        contentFit="contain"
-        style={styles.fullImage}
-      />
-    </SafeAreaView>
+    </Page>
   );
 }
 
 // UI Library Structure / Image Field, 230:489 (2026-10-22); standard 230:142, compact 2881:3071.
 const styles = StyleSheet.create({
-  field: { gap: tokens.spacing.label },
+  field: { gap: tokens.layout.form.labelGap },
   disabled: { opacity: tokens.opacity.disabled },
   label: { ...tokens.typography.label, flexShrink: 1, textAlign: "center" },
-  message: tokens.typography.body,
   body: {
     minHeight: 168,
     paddingHorizontal: tokens.spacing.lg,
-    paddingVertical: tokens.spacing.section,
+    paddingVertical: tokens.spacing["2xl"],
     gap: tokens.spacing.compact,
     alignItems: "center",
-    borderWidth: tokens.borderWidth,
+    borderWidth: tokens.border.thin,
     borderStyle: "dashed",
-    borderRadius: tokens.radius.media,
+    borderRadius: tokens.radius.lg,
   },
   compact: {
     minHeight: 84,
@@ -307,30 +288,28 @@ const styles = StyleSheet.create({
   thumbnail: {
     width: 92,
     height: 92,
-    borderRadius: tokens.radius.media,
+    borderRadius: tokens.media.radius.preview,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
   },
   compactThumbnail: { width: 64, height: 64 },
   action: {
-    minWidth: tokens.touchTarget.ios,
-    minHeight: tokens.size.control,
+    minWidth: tokens.touch.minimum,
+    minHeight: tokens.size.control.default,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 1,
     gap: tokens.spacing.xs,
   },
   remove: {
-    minWidth: tokens.touchTarget.ios,
-    minHeight: tokens.size.control,
+    minWidth: tokens.touch.minimum,
+    minHeight: tokens.size.control.default,
     paddingVertical: tokens.spacing.sm,
     justifyContent: "center",
     alignSelf: "flex-start",
   },
   compactRemove: { alignSelf: "flex-end" },
   removeLabel: tokens.typography.strong,
-  previewError: { ...tokens.typography.body, margin: tokens.spacing.lg },
-  viewer: { flex: 1 },
   fullImage: { flex: 1, width: "100%" },
 } as const);

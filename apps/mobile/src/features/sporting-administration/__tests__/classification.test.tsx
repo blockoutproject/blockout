@@ -1100,6 +1100,124 @@ it("keeps an open selector's known choices visible and read-only after its grant
   ).toBeOnTheScreen();
 });
 
+it.each([
+  { authority: "unavailable", accountStatus: 503, canRetry: true },
+  { authority: "withdrawn", accountStatus: 200, canRetry: false },
+])(
+  "keeps a refused division selector explicit when its authority is $authority",
+  async ({ accountStatus, canRetry }) => {
+    // Given
+    stored.setting = classification;
+    const user = await renderEditor();
+    await choose(user, "Format", "4 × 4");
+    await user.press(screen.getByRole("button", { name: "Division" }));
+    await screen.findByRole("radio", { name: "National 2" });
+    mockFetch.mockImplementation((url, options) =>
+      String(url).includes("/divisions?")
+        ? Promise.resolve(json({ title: "Forbidden", status: 403 }, 403))
+        : respond(url, options),
+    );
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await screen.findByRole("alert", { name: "Une erreur est survenue" });
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+
+    // When
+    permissions = {};
+    mockFetch.mockImplementation((url, options) =>
+      String(url).endsWith("/accounts/me") && accountStatus !== 200
+        ? Promise.resolve(
+            json(
+              { title: "Unavailable", status: accountStatus },
+              accountStatus,
+            ),
+          )
+        : respond(url, options),
+    );
+    await act(async () =>
+      client.refetchQueries({
+        predicate: ({ queryKey }) => queryKey.includes("/accounts/me"),
+      }),
+    );
+
+    // Then
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", {
+          name: "Format",
+          includeHiddenElements: true,
+        }),
+      ).toBeDisabled(),
+    );
+    expect(
+      screen.getByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("radio", { name: "National 2" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryAllByRole("button", { name: "Réessayer" })).toHaveLength(
+      canRetry ? 1 : 0,
+    );
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Format" }),
+    ).toHaveAccessibilityValue({ text: "4 × 4" });
+    expect(
+      screen.getByText("Modifications non enregistrées"),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.every(([, options]) => options?.method === "GET"),
+    ).toBe(true);
+  },
+);
+
+it("retains an empty division selector and reports an ordinary refresh failure through a toast", async () => {
+  // Given
+  stored.setting = classification;
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/divisions?")
+      ? Promise.resolve(json({ items: [] }))
+      : respond(url, options),
+  );
+  const user = await renderEditor();
+  await choose(user, "Format", "4 × 4");
+  await user.press(screen.getByRole("button", { name: "Division" }));
+  await screen.findByRole("header", { name: "Aucune division active" });
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/divisions?")
+      ? Promise.resolve(json({ title: "Unavailable", status: 503 }, 503))
+      : respond(url, options),
+  );
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "Aucune division active" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+  expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
+});
+
 it("keeps an open format selector unavailable through a refused then failed classification reread", async () => {
   // Given
   stored.setting = classification;

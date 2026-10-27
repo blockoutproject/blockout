@@ -23,7 +23,7 @@ export function Skeleton({
         maxWidth: "100%",
         height,
         borderRadius:
-          shape === "text" ? tokens.radius.badge : tokens.radius.control,
+          shape === "text" ? tokens.radius.sm : tokens.radius.control,
         backgroundColor: colors.skeleton,
       }}
     />

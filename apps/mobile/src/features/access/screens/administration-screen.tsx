@@ -1,10 +1,13 @@
+import {
+  Page,
+  PageContent,
+  PageScrollView,
+} from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { ScrollView, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+
 import { RequestLoading } from "../../../shared/components/request-feedback";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+
 import { Button } from "../../../shared/components/button";
 import { PageHeader } from "../../../shared/components/page-header";
 import { NavigationLink } from "../../../shared/components/navigation-link";
@@ -28,7 +31,6 @@ export function AdministrationScreen({
 }: AdministrationScreenProps) {
   const { permissions, hasCommands, account, sessionStatus } =
     useAdministrationCapabilities();
-  const { colors } = useTheme();
   let content = null;
   if (!admitted) {
     content = <ErrorState />;
@@ -86,11 +88,9 @@ export function AdministrationScreen({
       (account.isPending || account.isError)) ||
     (!hasCommands && !onBypass);
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
+    <Page>
       <PageHeader title="Administration technique" />
-      <ScrollView
-        contentContainerStyle={styles.content}
-        alwaysBounceVertical
+      <PageScrollView
         refreshControl={
           admitted && sessionStatus === "authenticated" ? (
             <DataRefreshControl
@@ -100,13 +100,12 @@ export function AdministrationScreen({
           ) : undefined
         }
       >
-        {blocked ? <ScreenState>{content}</ScreenState> : content}
-      </ScrollView>
-    </SafeAreaView>
+        {blocked ? (
+          <ScreenState>{content}</ScreenState>
+        ) : (
+          <PageContent>{content}</PageContent>
+        )}
+      </PageScrollView>
+    </Page>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  content: { flexGrow: 1, padding: tokens.spacing.lg, gap: tokens.spacing.lg },
-});

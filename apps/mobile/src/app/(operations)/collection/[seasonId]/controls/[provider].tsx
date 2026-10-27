@@ -1,5 +1,8 @@
+import { ScreenState } from "../../../../../shared/components/screen-state";
+import { PageHeader } from "../../../../../shared/components/page-header";
+import { Page, PageScrollView } from "../../../../../shared/components/page";
 import { ErrorState } from "../../../../../shared/components/state-card";
-import { PreparationPage } from "../../../../../features/collection/components/preparation-layout";
+
 import { useLocalSearchParams } from "expo-router";
 import { CollectionControlScreen } from "../../../../../features/collection/screens/collection-dashboard-screen";
 
@@ -12,6 +15,13 @@ export default function CompetitionCollectionRoute() {
   return provider === "ffvb" || provider === "lnv" ? (
     <CollectionControlScreen family={provider} seasonId={seasonId} />
   ) : (
-    <PreparationPage title="Collectes" state={<ErrorState />} />
+    <Page>
+      <PageHeader title="Collectes" />
+      <PageScrollView>
+        <ScreenState>
+          <ErrorState />
+        </ScreenState>
+      </PageScrollView>
+    </Page>
   );
 }

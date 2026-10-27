@@ -1,11 +1,5 @@
 import type { PropsWithChildren } from "react";
-import {
-  Platform,
-  Pressable,
-  StyleSheet,
-  View,
-  type PressableProps,
-} from "react-native";
+import { Pressable, StyleSheet, View, type PressableProps } from "react-native";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
 import { LoadingIndicator } from "./loading-indicator";
@@ -60,23 +54,22 @@ export function IconButton({
   );
 }
 
-const target =
-  Platform.OS === "android"
-    ? tokens.touchTarget.android
-    : tokens.touchTarget.ios;
 const styles = StyleSheet.create({
   action: {
-    width: target,
-    minHeight: target,
+    width: tokens.touch.minimum,
+    minHeight: tokens.touch.minimum,
     borderRadius: tokens.radius.control,
     alignItems: "center",
     justifyContent: "center",
   },
   icon: {
-    width: tokens.size.actionIcon,
-    height: tokens.size.actionIcon,
+    width: tokens.size.icon.lg,
+    height: tokens.size.icon.lg,
     alignItems: "center",
     justifyContent: "center",
   },
-  control: { width: tokens.size.control, minHeight: tokens.size.control },
+  control: {
+    width: tokens.size.control.default,
+    minHeight: tokens.size.control.default,
+  },
 });

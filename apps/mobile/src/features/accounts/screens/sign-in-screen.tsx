@@ -1,3 +1,4 @@
+import { Page, PageScrollView } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -25,17 +26,16 @@ export interface SignInScreenProps {
 
 /** Keeps login intent scoped to admitted navigation; blocking access discards the local journey. */
 export function SignInScreen({ admitted }: SignInScreenProps) {
-  const { colors } = useTheme();
   return admitted ? (
     <SignInJourney />
   ) : (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
-      <ScrollView contentContainerStyle={styles.stateContent}>
+    <Page>
+      <PageScrollView>
         <ScreenState>
           <ErrorState />
         </ScreenState>
-      </ScrollView>
-    </SafeAreaView>
+      </PageScrollView>
+    </Page>
   );
 }
 
@@ -107,6 +107,7 @@ function SignInJourney() {
   }
 
   return (
+    // The artwork is full bleed; the lower native inset boundary keeps account actions clear of system controls.
     <ScrollView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <SignInArtwork />
       <SafeAreaView edges={["bottom", "left", "right"]} style={styles.content}>
@@ -216,9 +217,8 @@ function SignInJourney() {
 }
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  stateContent: { flexGrow: 1, padding: tokens.spacing.lg },
   content: {
-    paddingVertical: tokens.spacing.section,
+    paddingVertical: tokens.spacing["2xl"],
     gap: tokens.spacing.lg,
   },
   inset: { paddingHorizontal: tokens.spacing.lg },
@@ -236,16 +236,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: tokens.radius.control,
-    borderWidth: tokens.borderWidth,
+    borderWidth: tokens.border.thin,
   },
   guest: {
-    minHeight: tokens.size.control,
+    minHeight: tokens.size.control.default,
     padding: tokens.spacing.md,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
     gap: tokens.spacing.sm,
-    borderWidth: tokens.borderWidth,
+    borderWidth: tokens.border.thin,
     borderRadius: tokens.radius.control,
   },
   guestLabel: {

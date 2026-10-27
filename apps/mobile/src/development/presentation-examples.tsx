@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ScrollView, StyleSheet, Switch, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { StyleSheet, Switch, Text, View } from "react-native";
+import { Page, PageContent } from "../shared/components/page";
+import { FormScrollView } from "../shared/components/form-scroll-view";
 import { Button } from "../shared/components/button";
 import { Sheet } from "../shared/components/sheet";
 import { TextField } from "../shared/components/text-field";
@@ -21,36 +22,34 @@ export function PresentationExamplesScreen({
   const { colors } = useTheme();
   const [draft, setDraft] = useState("");
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        automaticallyAdjustKeyboardInsets
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text
-          accessibilityRole="header"
-          style={[styles.title, { color: colors.text }]}
-        >
-          Présentations natives
-        </Text>
-        <TextField
-          label="Brouillon initial"
-          value={draft}
-          onChangeText={setDraft}
-        />
-        <Button label="Choix courts" fullWidth onPress={onOpenSheet} />
-        <Button
-          label="Formulaire court"
-          fullWidth
-          onPress={() => onOpenForm(false)}
-        />
-        <Button
-          label="Formulaire long"
-          fullWidth
-          onPress={() => onOpenForm(true)}
-        />
-      </ScrollView>
-    </SafeAreaView>
+    <Page>
+      <FormScrollView>
+        <PageContent>
+          <Text
+            accessibilityRole="header"
+            style={[styles.title, { color: colors.text }]}
+          >
+            Présentations natives
+          </Text>
+          <TextField
+            label="Brouillon initial"
+            value={draft}
+            onChangeText={setDraft}
+          />
+          <Button label="Choix courts" fullWidth onPress={onOpenSheet} />
+          <Button
+            label="Formulaire court"
+            fullWidth
+            onPress={() => onOpenForm(false)}
+          />
+          <Button
+            label="Formulaire long"
+            fullWidth
+            onPress={() => onOpenForm(true)}
+          />
+        </PageContent>
+      </FormScrollView>
+    </Page>
   );
 }
 
@@ -80,8 +79,6 @@ export function ShortSheetExampleScreen({ onClose }: { onClose: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  content: { padding: tokens.spacing.lg, gap: tokens.spacing.section },
   title: tokens.typography.heading,
   choice: {
     flexDirection: "row",

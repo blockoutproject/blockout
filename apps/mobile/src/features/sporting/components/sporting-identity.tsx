@@ -48,7 +48,7 @@ function useSportingLogo(
 export function SportingLogo({
   identity,
   kind,
-  size = tokens.size.mediaRow,
+  size = tokens.size.media.row,
 }: SportingLogoProps) {
   const { query: logo, queryKey } = useSportingLogo(identity, kind);
   return (
@@ -214,7 +214,7 @@ export function SportingLink({ kind, id, label, identity }: SportingLinkProps) {
       <Text style={[styles.linkLabel, { color: colors.text }]}>{label}</Text>
       <ChevronRight
         accessible={false}
-        size={tokens.size.inlineIcon}
+        size={tokens.size.icon.sm}
         color={colors.icon}
       />
     </Pressable>
@@ -224,8 +224,8 @@ export function SportingLink({ kind, id, label, identity }: SportingLinkProps) {
 const styles = StyleSheet.create({
   profile: {
     flexDirection: "row",
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.panel,
     overflow: "hidden",
     minHeight: 136,
   },
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   metadata: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },
   badge: {
     ...tokens.typography.metadata,
-    borderWidth: tokens.borderWidth,
+    borderWidth: tokens.border.thin,
     borderRadius: tokens.radius.full,
     padding: tokens.spacing.xs,
     paddingHorizontal: tokens.spacing.sm,
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.md,
-    minHeight: tokens.touchTarget.android,
+    minHeight: tokens.touch.minimum,
     paddingVertical: tokens.spacing.sm,
   },
   linkLabel: { ...tokens.typography.strong, flex: 1 },

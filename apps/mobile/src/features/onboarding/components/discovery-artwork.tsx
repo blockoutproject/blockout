@@ -73,7 +73,10 @@ export function DiscoveryExample({ step }: { step: number }) {
             >
               Ligue B Masculine
             </Text>
-            <ChevronRight size={16} color={colors.secondaryText} />
+            <ChevronRight
+              size={tokens.size.icon.sm}
+              color={colors.secondaryText}
+            />
           </>
         ) : (
           <>
@@ -83,7 +86,7 @@ export function DiscoveryExample({ step }: { step: number }) {
               Le match
             </Text>
             <View style={[styles.flag, { borderColor: colors.error }]}>
-              <Flag size={24} color={colors.icon} />
+              <Flag size={tokens.size.icon.lg} color={colors.icon} />
             </View>
           </>
         )}
@@ -108,7 +111,7 @@ export function DiscoveryExample({ step }: { step: number }) {
               !notification && styles.matchRow,
               !notification &&
                 index === 1 && {
-                  borderTopWidth: tokens.borderWidth,
+                  borderTopWidth: tokens.border.thin,
                   borderColor: colors.border,
                 },
             ]}
@@ -190,14 +193,14 @@ const styles = StyleSheet.create({
   },
   example: {
     padding: tokens.spacing.md,
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.panel,
     gap: tokens.spacing.sm,
   },
   report: { padding: tokens.spacing.sm },
   reportHeader: { padding: tokens.spacing.xs },
   match: {
-    borderWidth: tokens.borderWidth,
+    borderWidth: tokens.border.thin,
     borderRadius: tokens.radius.control,
   },
   matchRow: { minHeight: 56, padding: tokens.spacing.sm },
@@ -218,13 +221,13 @@ const styles = StyleSheet.create({
     minWidth: 32,
     minHeight: 32,
     padding: tokens.spacing.xs,
-    borderRadius: tokens.radius.badge,
+    borderRadius: tokens.radius.sm,
     alignItems: "center",
     justifyContent: "center",
   },
   mark: { ...tokens.typography.metadata, width: 32, textAlign: "center" },
   resultFooter: {
-    borderTopWidth: tokens.borderWidth,
+    borderTopWidth: tokens.border.thin,
     paddingTop: tokens.spacing.sm,
   },
 });

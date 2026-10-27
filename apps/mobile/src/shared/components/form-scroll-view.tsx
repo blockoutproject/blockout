@@ -1,4 +1,9 @@
-import { Platform, ScrollView, type ScrollViewProps } from "react-native";
+import {
+  Platform,
+  ScrollView,
+  StyleSheet,
+  type ScrollViewProps,
+} from "react-native";
 import {
   KeyboardAwareScrollView,
   KeyboardProvider,
@@ -11,10 +16,14 @@ export type FormScrollViewProps = Pick<
 >;
 
 /** Uses the accepted single native keyboard mechanism per platform and preserves handled action taps. */
-export function FormScrollView(props: FormScrollViewProps) {
+export function FormScrollView({
+  contentContainerStyle,
+  ...props
+}: FormScrollViewProps) {
   return Platform.OS === "ios" ? (
     <ScrollView
       {...props}
+      contentContainerStyle={[styles.content, contentContainerStyle]}
       alwaysBounceVertical
       automaticallyAdjustKeyboardInsets
       keyboardShouldPersistTaps="handled"
@@ -23,9 +32,12 @@ export function FormScrollView(props: FormScrollViewProps) {
     <KeyboardProvider>
       <KeyboardAwareScrollView
         {...props}
+        contentContainerStyle={[styles.content, contentContainerStyle]}
         alwaysBounceVertical
         keyboardShouldPersistTaps="handled"
       />
     </KeyboardProvider>
   );
 }
+
+const styles = StyleSheet.create({ content: { flexGrow: 1 } });
