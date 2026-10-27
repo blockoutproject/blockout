@@ -204,12 +204,12 @@ F13's data model contains logical responsibilities, not generic tables to scaffo
 
 ### Tests and qualification cases for User Story 7
 
-- [ ] T059 [US7] Prepare the controlled A22 cases in `specs/003-shared-quality/quickstart.md#initial-restore-and-activation-condition`, linking the F02 image/identity rules and F14 protected-logo procedure; preserve “Missing bytes do not authorize reset.” and “No identity by name-only matching.” An old URL alone is not retained bytes; “This manual scope concerns club logos only; F14 decides concrete transition records and procedures, with F02 identity rules.”
+- [x] T059 [US7] Prepare the controlled A22 cases in `specs/003-shared-quality/quickstart.md#initial-restore-and-activation-condition`, linking the F02 image/identity rules and F14 protected-logo procedure; preserve “Missing bytes do not authorize reset.” and “No identity by name-only matching.” An old URL alone is not retained bytes; “This manual scope concerns club logos only; F14 decides concrete transition records and procedures, with F02 identity rules.”
 
 ### Implementation and qualification for User Story 7
 
-- [ ] T060 [US7] Add the protection handoff in `infra/operations/README.md` referencing F14's existing preservation/reassociation steps: independently retained bytes and exact source associations, certain matches, private unmatched cases and missing-file refusal. Do not create a second exporter, migration store or general customization transfer.
-- [ ] T061 [US7] Verify the controlled A22 outcomes using `specs/014-v1-v2-transition/quickstart.md` and the implemented F02 image paths; record F13's observed retention/restore scope in the authorized private delivery evidence. F14 still owns live preservation and cutover authorization; synthetic evidence cannot certify production retention or authorize a reset.
+- [x] T060 [US7] Add the protection handoff in `infra/operations/README.md` referencing F14's existing preservation/reassociation steps: independently retained bytes and exact source associations, certain matches, private unmatched cases and missing-file refusal. Do not create a second exporter, migration store or general customization transfer.
+- [x] T061 [US7] Verify the controlled A22 outcomes using `specs/014-v1-v2-transition/quickstart.md` and the implemented F02 image paths; record F13's observed retention/restore scope in the authorized private delivery evidence. F14 still owns live preservation and cutover authorization; synthetic evidence cannot certify production retention or authorize a reset.
 
 **Checkpoint**: US7 is complete only when its independent test has actual evidence. Unavailable owner/runtime/provider inputs leave the affected tasks pending; continue unrelated ready work using the dependencies below.
 
