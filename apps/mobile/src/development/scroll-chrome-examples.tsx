@@ -29,6 +29,7 @@ import { Button } from "../shared/components/button";
 import { IconButton } from "../shared/components/icon-button";
 import { ThemeProvider, useTheme } from "../shared/theme/theme-provider";
 import { tokens } from "../shared/theme/tokens";
+import { BottomNavigationExamplesScreen } from "./bottom-navigation-examples";
 import {
   TrialBottomNavigation,
   TrialDetailBar,
@@ -49,7 +50,7 @@ import type { DemoDay, DemoMatch } from "./tab-view-fixtures";
 import { useDemoCalendar, type DemoCalendarState } from "./use-demo-calendar";
 
 /** Local scenarios share no production route, query, account or provider state. */
-type Example = "home" | "team" | "search" | "baseline";
+type Example = "home" | "team" | "search" | "baseline" | "navigation";
 
 /** One-shot fixture controls appear only in the native example chooser. */
 type TrialAction = { label: string; run: () => void };
@@ -90,6 +91,7 @@ function TrialExamples() {
     { value: "team", label: "Équipe · carte rétractable" },
     { value: "search", label: "Recherche · header fixe" },
     { value: "baseline", label: "Comparaison initiale validée" },
+    { value: "navigation", label: "Navigation basse · animations" },
   ];
   return (
     <View style={[styles.screen, { backgroundColor: colors.canvas }]}>
@@ -102,6 +104,8 @@ function TrialExamples() {
           />
           <TabViewExamplesScreen />
         </SafeAreaView>
+      ) : example === "navigation" ? (
+        <BottomNavigationExamplesScreen onBack={() => setMenu([])} />
       ) : example === "search" ? (
         <SearchTrial {...navigation} />
       ) : (
