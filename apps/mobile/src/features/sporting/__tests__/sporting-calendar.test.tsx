@@ -22,10 +22,15 @@ import { initializeV2Installation } from "../../onboarding/initialize-v2-install
 import { mockAuth0 } from "../../accounts/test-support/native-auth0";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { matchDetail, sportingId } from "../test-support/consultation-data";
+import {
+  clubDetail,
+  matchDetail,
+  sportingId,
+} from "../test-support/consultation-data";
 import { CalendarMatch } from "../components/calendar-match";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { TeamScreen } from "../screens/team-screen";
+import { ClubScreen } from "../screens/club-screen";
 
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
@@ -221,6 +226,104 @@ it("retains calendar rows through an ordinary refresh failure and replaces them 
   ).not.toBeOnTheScreen();
 });
 
+it("keeps pagination unavailable while a successful first-page replacement is pending", async () => {
+  // Given
+  calendar = { ...calendar, nextDay: "2026-09-20" };
+  await render(
+    <SportingCalendar
+      selection={{ teamId: sportingId, category: "upcoming" }}
+    />,
+    { wrapper: Providers },
+  );
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  const refreshed = Promise.withResolvers<Response>();
+  mockFetch.mockReturnValueOnce(refreshed.promise);
+
+  // When: native pull-to-refresh is not expressible through userEvent.
+  fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  const more = screen.getByRole("button", {
+    name: "Charger les journées suivantes",
+  });
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Charger les journées suivantes" }),
+    ).toBeDisabled(),
+  );
+  await userEvent.press(more);
+  await act(async () => {
+    refreshed.resolve(
+      Response.json({ ...calendar, days: [], nextDay: undefined }),
+    );
+  });
+  await screen.findByText("Aucun match pour cette sélection");
+  expect(
+    mockFetch.mock.calls.filter(
+      ([url]) => new URL(url).pathname === "/matches",
+    ),
+  ).toHaveLength(2);
+});
+
+it("pages from club information through teams to the calendar and back without rereading common data", async () => {
+  // Given
+  const club = clubDetail();
+  club.seasons = [matchDetail().match.pool.season];
+  mockFetch.mockImplementation((url: string) => {
+    const path = new URL(url).pathname;
+    return Promise.resolve(
+      Response.json(
+        path.endsWith("/application-access")
+          ? applicationAccessResponse()
+          : path.endsWith(`/clubs/${sportingId}/teams`)
+            ? { seasonId: club.seasons[0].id, items: [] }
+            : path.endsWith(`/clubs/${sportingId}`)
+              ? club
+              : calendar,
+      ),
+    );
+  });
+  await render(<ClubScreen clubId={sportingId} />, { wrapper: Providers });
+  await screen.findByText("Coordonnées");
+
+  // When: native horizontal momentum selects all resource tabs, including existing neighbour panels.
+  fireEvent(screen.getByTestId("sporting-tabs-pager"), "momentumScrollEnd", {
+    nativeEvent: {
+      contentOffset: { x: 402 },
+      layoutMeasurement: { width: 402 },
+    },
+  });
+  await screen.findByText("Aucune équipe pour cette saison");
+  fireEvent(screen.getByTestId("sporting-tabs-pager"), "momentumScrollEnd", {
+    nativeEvent: {
+      contentOffset: { x: 804 },
+      layoutMeasurement: { width: 402 },
+    },
+  });
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  fireEvent(screen.getByTestId("sporting-tabs-pager"), "momentumScrollEnd", {
+    nativeEvent: {
+      contentOffset: { x: 402 },
+      layoutMeasurement: { width: 402 },
+    },
+  });
+
+  // Then
+  expect(
+    await screen.findByRole("tab", { name: "Équipes", selected: true }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(
+      ([url]) => new URL(url).pathname === `/clubs/${sportingId}`,
+    ),
+  ).toHaveLength(1);
+  expect(
+    mockFetch.mock.calls.filter(
+      ([url]) => new URL(url).pathname === `/clubs/${sportingId}/teams`,
+    ),
+  ).toHaveLength(1);
+});
+
 it("loads calendar tabs lazily and refreshes only the active calendar through generated consumers", async () => {
   // Given
   const team = {
@@ -297,16 +400,12 @@ it("changes calendar category with the native horizontal pager without rereading
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
 
   // When: native momentum completion is not expressible with userEvent.
-  fireEvent(
-    screen.getByTestId("sporting-calendar-pager"),
-    "momentumScrollEnd",
-    {
-      nativeEvent: {
-        contentOffset: { x: 402 },
-        layoutMeasurement: { width: 402 },
-      },
+  fireEvent(screen.getByTestId("sporting-tabs-pager"), "momentumScrollEnd", {
+    nativeEvent: {
+      contentOffset: { x: 402 },
+      layoutMeasurement: { width: 402 },
     },
-  );
+  });
 
   // Then
   await waitFor(() =>

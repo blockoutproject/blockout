@@ -1,4 +1,5 @@
-import { SportingCalendars } from "../components/sporting-calendar";
+import { SportingCalendar } from "../components/sporting-calendar";
+import { SportingPager } from "../components/sporting-pager";
 import { ResourceText } from "../components/resource-text";
 import { Tabs } from "../../../shared/components/tabs";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
@@ -67,7 +68,6 @@ function PoolPage({
     if (result.isError && result.data && !isAccessDenied(result.error))
       feedback.error();
   }
-  const category = tab === "upcoming" || tab === "completed" ? tab : undefined;
   const identity = data ? (
     <SportingIdentity
       identity={data.pool.pool}
@@ -101,59 +101,64 @@ function PoolPage({
   return (
     <Page>
       <PageHeader title="Poule" />
-      {(!category || renderCalendar || !data) && (
+      {blockingState ? (
         <PageScrollView
           refreshControl={
-            !data ? (
-              <DataRefreshControl
-                refreshing={pool.isRefetching}
-                onRefresh={() => void refresh()}
-              />
-            ) : undefined
+            <DataRefreshControl
+              refreshing={pool.isRefetching}
+              onRefresh={() => void refresh()}
+            />
           }
         >
-          {blockingState ? (
-            <ScreenState>{blockingState}</ScreenState>
-          ) : (
-            <PageContent>
-              {data && (
-                <>
-                  {identity}
-                  {toolbar}
-                  {tab === "standings"
-                    ? (renderStandings?.(data.pool) ?? (
-                        <ResourceText>
-                          Classement indisponible pour le moment
-                        </ResourceText>
-                      ))
-                    : tab === "map"
-                      ? (renderMap?.(data.pool) ?? (
-                          <ResourceText>
-                            Carte indisponible pour le moment
-                          </ResourceText>
-                        ))
-                      : (renderCalendar?.({
-                          poolId,
-                          category:
-                            tab === "completed" ? "completed" : "upcoming",
-                        }) ?? (
-                          <ResourceText>
-                            Calendrier indisponible pour le moment
-                          </ResourceText>
-                        ))}
-                </>
-              )}
-            </PageContent>
-          )}
+          <ScreenState>{blockingState}</ScreenState>
         </PageScrollView>
-      )}
-      {data && !renderCalendar && (
-        <SportingCalendars
-          selector={{ poolId }}
-          category={category}
-          header={identity}
-          toolbar={toolbar}
+      ) : (
+        <SportingPager
+          selected={tab}
           onSelect={setTab}
+          panels={(["standings", "upcoming", "completed", "map"] as const).map(
+            (value) => ({
+              id: value,
+              content:
+                (value === "upcoming" || value === "completed") &&
+                !renderCalendar ? (
+                  <SportingCalendar
+                    selection={{ poolId, category: value }}
+                    header={identity}
+                    toolbar={toolbar}
+                    active={tab === value}
+                  />
+                ) : (
+                  <PageScrollView>
+                    <PageContent>
+                      {identity}
+                      {toolbar}
+                      {data &&
+                        (value === "standings"
+                          ? (renderStandings?.(data.pool) ?? (
+                              <ResourceText>
+                                Classement indisponible pour le moment
+                              </ResourceText>
+                            ))
+                          : value === "map"
+                            ? (renderMap?.(data.pool) ?? (
+                                <ResourceText>
+                                  Carte indisponible pour le moment
+                                </ResourceText>
+                              ))
+                            : (renderCalendar?.({
+                                poolId,
+                                category: value,
+                              }) ?? (
+                                <ResourceText>
+                                  Calendrier indisponible pour le moment
+                                </ResourceText>
+                              )))}
+                    </PageContent>
+                  </PageScrollView>
+                ),
+            }),
+          )}
         />
       )}
     </Page>

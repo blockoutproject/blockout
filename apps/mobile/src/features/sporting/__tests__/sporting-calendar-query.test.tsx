@@ -67,7 +67,7 @@ afterEach(() => {
   else process.env.EXPO_PUBLIC_API_URL = originalUrl;
 });
 
-it("retains loaded pages through mount focus reconnect and invalidation without a reread", async () => {
+it("retains observed pages through focus reconnect and invalidation without a reread", async () => {
   // Given
   const options = createCalendarOptions(queries, selection);
   mockFetch
@@ -95,6 +95,81 @@ it("retains loaded pages through mount focus reconnect and invalidation without 
     "2026-09-20",
   );
   unsubscribe();
+});
+
+it("discards an unmounted calendar so a new page opening reads a fresh first page", async () => {
+  // Given: a retained page keeps its observer; closing it removes the last observer.
+  const options = createCalendarOptions(queries, selection);
+  mockFetch.mockResolvedValueOnce(Response.json(page("2026-09-20")));
+  const first = new InfiniteQueryObserver(client, options);
+  const close = first.subscribe(() => {});
+  await waitFor(() => expect(first.getCurrentResult().isSuccess).toBe(true));
+
+  // When
+  close();
+  await waitFor(() =>
+    expect(client.getQueryData(options.queryKey)).toBeUndefined(),
+  );
+  mockFetch.mockResolvedValueOnce(Response.json(page("2026-09-22")));
+  const reopened = new InfiniteQueryObserver(client, options);
+  const unsubscribe = reopened.subscribe(() => {});
+
+  // Then
+  await waitFor(() =>
+    expect(reopened.getCurrentResult().data?.pages).toEqual([
+      page("2026-09-22"),
+    ]),
+  );
+  expect(mockFetch).toHaveBeenCalledTimes(2);
+  unsubscribe();
+});
+
+it("suppresses every retained category of a refused selector and cancels its late append", async () => {
+  // Given: two visited categories and an unrelated resource in the same session.
+  const upcoming = createCalendarOptions(queries, selection);
+  const completed = createCalendarOptions(queries, {
+    ...selection,
+    category: "completed",
+  });
+  const other = createCalendarOptions(queries, {
+    ...selection,
+    teamId: "00000000-0000-4000-8000-000000000003",
+  });
+  mockFetch.mockImplementation((url: string) =>
+    Promise.resolve(
+      Response.json({
+        ...page("2026-09-20", sportingId, "2026-09-20"),
+        category: new URL(url).searchParams.get("category"),
+      }),
+    ),
+  );
+  const observers = [upcoming, completed, other].map(
+    (options) => new InfiniteQueryObserver(client, options),
+  );
+  const subscriptions = observers.map((observer) =>
+    observer.subscribe(() => {}),
+  );
+  await waitFor(() =>
+    observers.forEach((observer) =>
+      expect(observer.getCurrentResult().isSuccess).toBe(true),
+    ),
+  );
+  const late = Promise.withResolvers<Response>();
+  mockFetch.mockReturnValueOnce(late.promise);
+  const pending = observers[1].fetchNextPage();
+  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(4));
+  mockFetch.mockResolvedValueOnce(Response.json({}, { status: 404 }));
+
+  // When
+  await expect(refreshCalendar(client, upcoming)).rejects.toBeDefined();
+  late.resolve(Response.json(page("2026-09-21")));
+  await pending;
+
+  // Then
+  expect(client.getQueryData(upcoming.queryKey)).toBeUndefined();
+  expect(client.getQueryData(completed.queryKey)).toBeUndefined();
+  expect(client.getQueryData(other.queryKey)).toBeDefined();
+  subscriptions.forEach((unsubscribe) => unsubscribe());
 });
 
 it("replaces multiple pages with only the successful first-page refresh", async () => {

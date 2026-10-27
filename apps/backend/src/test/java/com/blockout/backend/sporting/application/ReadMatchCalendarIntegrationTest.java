@@ -303,7 +303,7 @@ class ReadMatchCalendarIntegrationTest {
     UUID id =
         sql.queryForObject("SELECT id FROM sporting_match WHERE reference='ACCEPTED'", UUID.class);
 
-    // When: an omitted schedule preserves the accepted date; an explicit withdrawal hides it.
+    // When: result changes preserve the accepted date; only explicit date withdrawal hides it.
     observations.detail(
         new MatchObservation(
             id,
@@ -334,10 +334,29 @@ class ReadMatchCalendarIntegrationTest {
             new MatchObservation.Context(
                 scope.cycle().id(), 3, initial.observedAt().plusSeconds(2), null),
             new MatchObservation.Facts(
-                JsonNullable.of(null),
+                JsonNullable.undefined(),
                 JsonNullable.undefined(),
                 null,
                 JsonNullable.of(null),
+                JsonNullable.undefined(),
+                JsonNullable.undefined(),
+                JsonNullable.undefined(),
+                JsonNullable.undefined(),
+                JsonNullable.undefined(),
+                JsonNullable.undefined(),
+                JsonNullable.undefined(),
+                JsonNullable.undefined())));
+    ConsultationViews.Calendar resultWithdrawn = calendars.read(request(null));
+    observations.detail(
+        new MatchObservation(
+            id,
+            new MatchObservation.Context(
+                scope.cycle().id(), 4, initial.observedAt().plusSeconds(3), null),
+            new MatchObservation.Facts(
+                JsonNullable.of(null),
+                JsonNullable.undefined(),
+                null,
+                JsonNullable.undefined(),
                 JsonNullable.undefined(),
                 JsonNullable.undefined(),
                 JsonNullable.undefined(),
@@ -353,6 +372,9 @@ class ReadMatchCalendarIntegrationTest {
     assertThat(
             accepted.days().getFirst().pools().getFirst().matches().getFirst().result().homeSets())
         .isEqualTo(3);
+    assertThat(ids(resultWithdrawn)).containsExactly(id);
+    assertThat(resultWithdrawn.days().getFirst().pools().getFirst().matches().getFirst().result())
+        .isNull();
     assertThat(withdrawn.days()).isEmpty();
   }
 
@@ -378,7 +400,12 @@ class ReadMatchCalendarIntegrationTest {
         .isInstanceOf(SportingResourceNotFoundException.class);
   }
 
-  /** Supplies one exact completed traversal with a scenario-selected exclusive boundary. */
+  /**
+   * Supplies one exact completed traversal with a scenario-selected exclusive boundary.
+   *
+   * @param nextDay exclusive continuation, or null to restart
+   * @return exact pool selection for the current synthetic scope
+   */
   private CalendarRequest request(LocalDate nextDay) {
     return new CalendarRequest(
         Kind.POOL,
@@ -389,7 +416,12 @@ class ReadMatchCalendarIntegrationTest {
         nextDay);
   }
 
-  /** Flattens only response identities to assert movement without relying on adapter internals. */
+  /**
+   * Flattens only response identities to assert movement without relying on adapter internals.
+   *
+   * @param page complete response returned by the real application reader
+   * @return ordered encounter identities across its complete groups
+   */
   private List<UUID> ids(ConsultationViews.Calendar page) {
     return page.days().stream()
         .flatMap(day -> day.pools().stream())

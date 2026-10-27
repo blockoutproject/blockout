@@ -3,15 +3,12 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   AppState,
   FlatList,
-  ScrollView,
-  type ScrollViewInstance,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
 } from "react-native";
 import type {
-  CalendarCategoryEnum,
   MatchDayResponse,
   MatchPoolGroupResponse,
 } from "../../../../.generated/schemas/index.zod";
@@ -22,10 +19,8 @@ import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { pageContentStyle } from "../../../shared/components/page";
 import { tokens } from "../../../shared/theme/tokens";
-import { useReducedMotion } from "../../../shared/theme/use-reduced-motion";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { isAccessDenied } from "../../../shared/api/access-denied";
-import { resourceUnavailable } from "../model/consultation-availability";
 import {
   createCalendarOptions,
   refreshCalendar,
@@ -119,21 +114,15 @@ export function SportingCalendar({
       setZone(nextZone);
       list.current?.scrollToOffset({ offset: 0, animated: false });
     } catch (error) {
-      if (error instanceof Error && resourceUnavailable(error)) {
-        client
-          .getQueryCache()
-          .find({ queryKey: options.queryKey, exact: true })
-          ?.setState({
-            data: undefined,
-            dataUpdatedAt: 0,
-            error,
-            status: "error",
-          });
-      }
       if (calendar.data && !isAccessDenied(error)) feedback.error();
     } finally {
       setRefreshing(false);
     }
+  }
+  /** Appends only for the visible idle list; native Query cannot cancel an in-flight replacement. */
+  function loadMore() {
+    if (active && !refreshing && !calendar.isFetching)
+      void calendar.fetchNextPage({ cancelRefetch: false });
   }
   return (
     <FlatList
@@ -211,7 +200,7 @@ export function SportingCalendar({
           !calendar.isFetching &&
           !calendar.isFetchNextPageError
         )
-          void calendar.fetchNextPage();
+          loadMore();
       }}
       ListFooterComponent={
         !days.length ? (
@@ -229,14 +218,15 @@ export function SportingCalendar({
           <RequestLoading />
         ) : calendar.isFetchNextPageError ? (
           <ErrorState
-            onRetry={() => void calendar.fetchNextPage()}
-            retrying={calendar.isFetching}
+            onRetry={loadMore}
+            retrying={calendar.isFetching || refreshing}
           />
         ) : calendar.hasNextPage ? (
           <Button
             variant="secondary"
             label="Charger les journées suivantes"
-            onPress={() => void calendar.fetchNextPage()}
+            onPress={loadMore}
+            disabled={calendar.isFetching || refreshing}
           />
         ) : undefined
       }
@@ -299,94 +289,9 @@ function CalendarPoolGroup({
   );
 }
 
-/** Resource-owned tab selection and shared header; only visited categories acquire a Query observer. */
-export interface SportingCalendarsProps {
-  category?: CalendarCategoryEnum;
-  selector: Omit<CalendarSelection, "category" | "timeZone">;
-  header: ReactNode;
-  toolbar: ReactNode;
-  onSelect: (category: CalendarCategoryEnum) => void;
-}
-
-/** Native paging keeps lazily opened categories mounted, retaining their loading zone and scroll. */
-export function SportingCalendars({
-  category,
-  selector,
-  header,
-  toolbar,
-  onSelect,
-}: SportingCalendarsProps) {
-  const [visited, setVisited] = useState<CalendarCategoryEnum[]>([]);
-  const pager = useRef<ScrollViewInstance>(null);
-  const dimensions = useWindowDimensions();
-  const [width, setWidth] = useState(dimensions.width);
-  const reducedMotion = useReducedMotion();
-  useEffect(() => {
-    if (category)
-      pager.current?.scrollTo({
-        x: category === "upcoming" ? 0 : width,
-        animated: !reducedMotion,
-      });
-  }, [category, width, reducedMotion]);
-  if (category && !visited.includes(category))
-    setVisited([...visited, category]);
-  return (
-    <View
-      style={category ? styles.visible : styles.hidden}
-      onLayout={(event) => {
-        if (event.nativeEvent.layout.width > 0)
-          setWidth(event.nativeEvent.layout.width);
-      }}
-    >
-      <ScrollView
-        ref={pager}
-        style={styles.visible}
-        testID="sporting-calendar-pager"
-        horizontal
-        pagingEnabled
-        directionalLockEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={(event) => {
-          if (category)
-            onSelect(
-              event.nativeEvent.contentOffset.x /
-                event.nativeEvent.layoutMeasurement.width <
-                0.5
-                ? "upcoming"
-                : "completed",
-            );
-        }}
-      >
-        {(["upcoming", "completed"] as const).map((value) => (
-          <View
-            key={value}
-            style={[styles.pagerPage, { width }]}
-            accessibilityElementsHidden={category !== value}
-            importantForAccessibility={
-              category === value ? "auto" : "no-hide-descendants"
-            }
-          >
-            {visited.includes(value) && (
-              <SportingCalendar
-                selection={{ ...selector, category: value }}
-                header={header}
-                toolbar={toolbar}
-                active={category === value}
-              />
-            )}
-          </View>
-        ))}
-      </ScrollView>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   // A vertical list inside native horizontal paging must retain the page's constrained width.
   list: { width: "100%" },
-  visible: { flex: 1 },
-  pagerPage: { height: "100%", flexShrink: 0 },
-  hidden: { display: "none" },
   header: { gap: tokens.spacing.lg, marginBottom: tokens.spacing.lg },
   toolbar: { gap: tokens.spacing.md, paddingVertical: tokens.spacing.sm },
   day: {

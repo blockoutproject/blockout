@@ -47,6 +47,34 @@ class CalendarDayIntegrationTest {
   }
 
   @ParameterizedTest
+  @CsvSource({",UPCOMING", "PROVISIONAL,UPCOMING", "UNCONFIRMED,UPCOMING", "FINAL,COMPLETED"})
+  @DisplayName("Only a definitive result classifies a future match as completed early")
+  void classifiesEarlyResults(String state, CalendarCategoryEnum category) {
+    // Given
+    var match =
+        fixtures.match(
+            scope.pool(),
+            "FUTURE",
+            LocalDate.parse("2026-10-25"),
+            Instant.parse("2026-10-25T05:00:00Z"));
+    sql.update(
+        "UPDATE sporting_match SET result_state=?, home_sets=1, away_sets=0 WHERE id=?",
+        state,
+        match.id());
+
+    // When
+    ConsultationViews.Calendar page =
+        calendars.read(
+            new CalendarRequest(
+                Kind.POOL, scope.pool(), null, category, ZoneId.of("Europe/Paris"), null));
+
+    // Then
+    assertThat(page.days()).hasSize(1);
+    assertThat(page.days().getFirst().pools().getFirst().matches().getFirst().category())
+        .isEqualTo(category);
+  }
+
+  @ParameterizedTest
   @CsvSource({"-21599,UPCOMING", "-21600,COMPLETED", "-21601,COMPLETED"})
   @DisplayName("Uses exactly six elapsed hours across the autumn DST transition")
   void classifiesKnownBoundary(long startOffset, CalendarCategoryEnum category) {

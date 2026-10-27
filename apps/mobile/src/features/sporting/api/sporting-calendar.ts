@@ -1,4 +1,5 @@
 import {
+  hashKey,
   infiniteQueryOptions,
   type InfiniteData,
   type QueryClient,
@@ -9,6 +10,7 @@ import type {
   MatchDayResponse,
 } from "../../../../.generated/schemas/index.zod";
 import type { createConsultationQueries } from "./consultation-queries";
+import { resourceUnavailable } from "../model/consultation-availability";
 
 /** Exact selector/category/loading-zone inputs; Query alone owns the exclusive continuation. */
 export type CalendarSelection = Omit<ListMatchesParams, "nextDay">;
@@ -16,24 +18,64 @@ export type CalendarSelection = Omit<ListMatchesParams, "nextDay">;
 /**
  * Retains the generated selection without implicit refetch, including invalidation.
  * The shared transport keeps no-retry/always-network and current session/bypass checks.
+ * Native zero-delay garbage collection discards a closed page's unobserved traversal;
+ * mounted panels retain observers. A known refusal suppresses this selector across categories/zones.
  */
 export function createCalendarOptions(
   queries: Pick<ReturnType<typeof createConsultationQueries>, "calendar">,
   selection: CalendarSelection,
 ) {
   const first = queries.calendar(selection);
+  // Generated keys end with request parameters. Native partial matching addresses this selector
+  // across categories/zones while preserving the generated path and session/bypass prefix.
+  const scopeKey = [
+    ...first.queryKey.slice(0, -1),
+    {
+      clubId: selection.clubId,
+      seasonId: selection.seasonId,
+      teamId: selection.teamId,
+      poolId: selection.poolId,
+    },
+  ];
   return infiniteQueryOptions({
     queryKey: first.queryKey,
     initialPageParam: undefined as string | undefined,
-    queryFn: (context) =>
-      queries
-        .calendar({
-          ...selection,
-          ...(context.pageParam ? { nextDay: context.pageParam } : {}),
-        })
-        .queryFn(context),
+    queryFn: async (context) => {
+      try {
+        return await queries
+          .calendar({
+            ...selection,
+            ...(context.pageParam ? { nextDay: context.pageParam } : {}),
+          })
+          .queryFn(context);
+      } catch (error) {
+        if (
+          !context.signal.aborted &&
+          error instanceof Error &&
+          resourceUnavailable(error)
+        ) {
+          await context.client.cancelQueries({
+            queryKey: scopeKey,
+            predicate: (query) => query.queryHash !== hashKey(context.queryKey),
+          });
+          context.client
+            .getQueryCache()
+            .findAll({ queryKey: scopeKey })
+            .forEach((query) =>
+              query.setState({
+                data: undefined,
+                dataUpdatedAt: 0,
+                error,
+                status: "error",
+              }),
+            );
+        }
+        throw error;
+      }
+    },
     getNextPageParam: (last: MatchCalendarResponse) => last.nextDay,
     staleTime: "static",
+    gcTime: 0,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
