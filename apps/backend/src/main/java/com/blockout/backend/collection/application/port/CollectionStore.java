@@ -10,6 +10,7 @@ import com.blockout.backend.collection.application.model.CollectionState.Runtime
 import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.collection.application.model.CollectionState.StartCycle;
 import com.blockout.backend.collection.application.model.CollectionState.Target;
+import com.blockout.backend.collection.application.model.InitialCoverage;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
@@ -19,12 +20,78 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
  * Current-state persistence operations; callers own transactions and runtime-first lock ordering.
  */
 public interface CollectionStore {
+  /**
+   * Retains backend-authorized initial intent under the locked season/control.
+   *
+   * @param id existing or newly prepared control
+   * @param requestId single pending identity
+   * @param sourceIds exact selected roots
+   * @param scopeIds narrower failed scopes, or empty for the roots
+   * @return persisted current control, preserving its ordinary activity
+   */
+  Control setInitialIntent(UUID id, UUID requestId, Set<UUID> sourceIds, Set<UUID> scopeIds);
+
+  /**
+   * Establishes a disabled family for explicit initial work without periodic launch.
+   *
+   * @param seasonId already locked PREPARING season
+   * @param provider explicitly requested authority
+   * @return existing control or newly created disabled control
+   */
+  Control prepareInitialControl(UUID seasonId, CollectionProviderEnum provider);
+
+  /**
+   * Pages current initial evidence independently of operational results.
+   *
+   * @param seasonId canonical season
+   * @param page zero-based page
+   * @param size bounded page size
+   * @return current report without a total-count query
+   */
+  InitialCoverage.Page initialCoverage(UUID seasonId, int page, int size);
+
+  /**
+   * Reads only existing requested scopes for narrower retry validation.
+   *
+   * @param sourceIds exact roots
+   * @param scopeIds exact narrower selection
+   * @return current rows, with no fabricated result for missing scopes
+   */
+  List<InitialCoverage> initialCoverage(Set<UUID> sourceIds, Set<UUID> scopeIds);
+
+  /**
+   * Reads a single current initial key under the caller's runtime/season/cycle locks.
+   *
+   * @param sourceId binding owner
+   * @param scopeId stable target
+   * @param stage acquisition role
+   * @param phase acquisition or integration
+   * @return retained current initial evidence, if explicitly requested
+   */
+  Optional<InitialCoverage> initialCoverage(
+      UUID sourceId, UUID scopeId, CollectionStageEnum stage, CollectionPhaseEnum phase);
+
+  /**
+   * Replaces one explicitly selected current initial row; ordinary results never call this write.
+   *
+   * @param coverage requested or attributable evidence under its owner locks
+   */
+  void saveInitialCoverage(InitialCoverage coverage);
+
+  /**
+   * Marks still-unconfirmed selected work unavailable at terminal completion.
+   *
+   * @param cycleId exact completed initial passage
+   */
+  void finishInitialCoverage(UUID cycleId);
+
   /**
    * Reads actual attempt evidence for a bounded selection.
    *

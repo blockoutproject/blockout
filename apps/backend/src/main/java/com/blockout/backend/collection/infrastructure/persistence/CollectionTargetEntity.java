@@ -65,6 +65,7 @@ class CollectionTargetEntity {
 
   @Setter private String organizerReference;
   @Setter private String nativeMatchReference;
+  @Setter private String nativeTeamReference;
 
   /** Natural snapshot membership; no separate per-cycle scope identity is generated. */
   public record Key(UUID cycleId, UUID scopeId, CollectionTargetKindEnum kind)

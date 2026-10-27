@@ -3,6 +3,7 @@ package com.blockout.backend.sporting.application.service;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.service.CollectionCycleAccess;
 import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.StandingsPublicationStateEnum;
@@ -21,7 +22,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Atomic official table replacement; publication absence never erases a retained usable table. */
+/**
+ * Atomic official table replacement; absence and empty initial input preserve the last usable
+ * table.
+ */
 @Service
 @RequiredArgsConstructor
 public class AcceptStandings {
@@ -33,6 +37,8 @@ public class AcceptStandings {
 
   /**
    * Accepts current publication evidence under the F01 runtime and season locks through commit.
+   * Empty initial input advances publication attribution without replacing retained table facts;
+   * ordinary current collection may still accept a published empty table.
    *
    * @param poolId addressed admitted standings scope
    * @param observation structurally qualified table or positive absence evidence
@@ -44,10 +50,9 @@ public class AcceptStandings {
         cycleAccess.requireTarget(
             observation.context().cycleId(), poolId, CollectionTargetKindEnum.STANDINGS);
     SportingViews.PoolView pool = store.pool(poolId).orElseThrow();
+    CollectionState.Cycle cycle = collectionWork.get(observation.context().cycleId());
     ObservationOrder order =
-        new ObservationOrder(
-            collectionWork.get(observation.context().cycleId()).cycleOrder(),
-            observation.context().readOrdinal());
+        new ObservationOrder(cycle.cycleOrder(), observation.context().readOrdinal());
     StandingsView previous = store.standings(poolId).orElse(null);
     if (previous != null) {
       int comparison =
@@ -70,7 +75,8 @@ public class AcceptStandings {
         .providerPublishedAt(published);
     boolean changed =
         previous == null || observation.publicationState() != previous.publicationState();
-    if (observation.publicationState() == StandingsPublicationStateEnum.PUBLISHED) {
+    if (observation.publicationState() == StandingsPublicationStateEnum.PUBLISHED
+        && !(cycle.mode() == CollectionModeEnum.INITIAL_IMPORT && observation.rows().isEmpty())) {
       List<SportingViews.TeamView> participants = store.currentPoolTeams(poolId);
       List<StandingsView.Row> rows =
           observation.rows().stream()

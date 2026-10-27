@@ -8,6 +8,7 @@ import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpCl
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -16,6 +17,8 @@ import java.time.ZoneOffset;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Candidate interpretation uses controlled complete HTTP responses; no backend mutation is implied.
@@ -86,5 +89,48 @@ class QualifySourceTest {
 
     // Then
     assertThat(result.state()).isEqualTo(SourceValidationStateEnum.INVALID);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  @DisplayName("Qualification preserves technical unavailability separately from content refusal")
+  void preservesFailureCategory(boolean unavailable) {
+    // Given
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    URI url = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901");
+    if (unavailable)
+      when(http.page(url))
+          .thenReturn(
+              CompletableFuture.failedFuture(new IOException("Synthetic transport failure")));
+    else
+      when(http.page(url))
+          .thenReturn(
+              CompletableFuture.completedFuture(
+                  new ProviderHttpClient.Response(
+                      "<html>Unsupported synthetic content</html>".getBytes(StandardCharsets.UTF_8),
+                      url,
+                      true)));
+    QualifySource service =
+        new QualifySource(
+            http,
+            new LnvDiscovery(),
+            mock(DiscoverSeasonSources.class),
+            mock(CollectionBackend.class),
+            mock(CollectorLifecycle.class),
+            Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+
+    // When
+    QualifySource.Evidence evidence =
+        service.qualify(
+            new CollectionBackend.Candidate(url, "2023/2024", CollectionProviderEnum.LNV, "901"));
+
+    // Then
+    assertThat(evidence.state()).isEqualTo(SourceValidationStateEnum.INVALID);
+    assertThat(evidence.reasonType())
+        .isEqualTo(
+            URI.create(
+                unavailable
+                    ? "urn:blockout:acquisition:technical"
+                    : "urn:blockout:acquisition:structure"));
   }
 }

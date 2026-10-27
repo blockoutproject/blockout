@@ -31,13 +31,18 @@ public class CollectionCycleAccess {
    * before any sporting root or account lock, and holds it through the caller's commit.
    *
    * @param id current cycle
+   * @param teamId exact team resolved by the sporting owner
    * @param poolIds memberships read by the sporting owner, never supplied by the HTTP caller
-   * @return exact admitted calendar capability
+   * @return exact admitted team-logo or parent-calendar capability
    * @throws CollectionConflictException when none of these memberships is admitted
    */
   @Transactional(propagation = Propagation.MANDATORY)
-  public CollectionState.Target requireTeamLogo(UUID id, List<UUID> poolIds) {
+  public CollectionState.Target requireTeamLogo(UUID id, UUID teamId, List<UUID> poolIds) {
     requireRunningControl(id);
+    Optional<CollectionState.Target> selected =
+        store.target(id, teamId, CollectionTargetKindEnum.LOGO);
+    if (selected.isPresent() && poolIds.contains(selected.orElseThrow().poolId()))
+      return selected.orElseThrow();
     return poolIds.stream()
         .map(poolId -> store.target(id, poolId, CollectionTargetKindEnum.CALENDAR))
         .flatMap(Optional::stream)

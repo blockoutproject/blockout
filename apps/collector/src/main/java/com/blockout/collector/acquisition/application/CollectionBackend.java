@@ -109,7 +109,8 @@ public interface CollectionBackend {
       String nativeMatchReference,
       String localityRevision,
       String municipality,
-      String postalCode) {}
+      String postalCode,
+      String nativeTeamReference) {}
 
   /** Bounded snapshot page, without a persistent checkpoint or total count. */
   record TargetPage(List<Target> items, long page, boolean hasNext) {
@@ -173,7 +174,26 @@ public interface CollectionBackend {
       SourceValidationStateEnum state,
       Instant observedAt,
       String seasonEvidence,
-      String reason) {}
+      String reason,
+      URI reasonType) {
+    /**
+     * Represents older evidence without a known failure category.
+     *
+     * @param cycleId original validation context
+     * @param state terminal qualification
+     * @param observedAt actual completion
+     * @param seasonEvidence attributable season, when available
+     * @param reason safe bounded explanation
+     */
+    public Validation(
+        UUID cycleId,
+        SourceValidationStateEnum state,
+        Instant observedAt,
+        String seasonEvidence,
+        String reason) {
+      this(cycleId, state, observedAt, seasonEvidence, reason, null);
+    }
+  }
 
   /**
    * Reads current registration without claiming it.

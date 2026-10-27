@@ -64,7 +64,8 @@ public class CollectPassage {
       Map<URI, List<CollectionBackend.Target>> professional = new LinkedHashMap<>();
       for (CollectionBackend.Target target : selected) {
         if (target.kind() == CollectionTargetKindEnum.CALENDAR
-            || target.kind() == CollectionTargetKindEnum.STANDINGS) {
+            || target.kind() == CollectionTargetKindEnum.STANDINGS
+            || target.kind() == CollectionTargetKindEnum.LOGO) {
           if (target.provider() == CollectionProviderEnum.FFVB)
             resources
                 .computeIfAbsent(ffvb.resourceUrl(target), ignored -> new ArrayList<>())
@@ -306,6 +307,8 @@ public class CollectPassage {
       if (target.kind() == CollectionTargetKindEnum.CALENDAR) {
         professionalCalendar(
             context, target, resource, ordinal, readTeams, readMatches, indexes, details);
+      } else if (target.kind() == CollectionTargetKindEnum.LOGO) {
+        professionalLogo(context, target, resource, ordinal, readTeams);
       } else {
         LnvAcquisition.Read<SportingObservation.Standings> read;
         try {
@@ -378,18 +381,17 @@ public class CollectPassage {
               observation);
       long accepted = outcome.acceptedCount() + outcome.unchangedCount();
       long rejected = outcome.rejectedCount() + outcome.staleCount();
-      record(
+      recordIntegration(
           context,
-          target,
+          target.scopeId(),
+          stageMapper.toStage(target.kind()),
           ordinal,
-          CollectionPhaseEnum.INTEGRATION,
           measuredOutcome(accepted, rejected),
           accepted,
           rejected,
-          clock.instant(),
           outcome.outcomes().stream()
-              .filter(item -> item.reasonType() != null)
-              .map(item -> item.reasonType().toString())
+              .map(SportingObservation.Outcome::reasonType)
+              .filter(Objects::nonNull)
               .findFirst()
               .orElse(null));
       return outcome;
@@ -466,16 +468,15 @@ public class CollectPassage {
       boolean accepted =
           outcome.outcome() == ObservationOutcomeEnum.ACCEPTED
               || outcome.outcome() == ObservationOutcomeEnum.UNCHANGED;
-      record(
+      recordIntegration(
           context,
-          target,
+          target.scopeId(),
+          stageMapper.toStage(target.kind()),
           ordinal,
-          CollectionPhaseEnum.INTEGRATION,
           accepted ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.FAILED,
           null,
           null,
-          clock.instant(),
-          outcome.reasonType() == null ? null : outcome.reasonType().toString());
+          outcome.reasonType());
     } catch (CollectionBackendFailure failure) {
       if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
       record(
@@ -532,16 +533,19 @@ public class CollectPassage {
               read.catalog());
       long accepted = outcome.outcomes().stream().filter(this::accepted).count();
       long rejected = outcome.outcomes().size() - accepted;
-      record(
+      recordIntegration(
           context,
-          target,
+          target.scopeId(),
+          stageMapper.toStage(target.kind()),
           ordinal,
-          CollectionPhaseEnum.INTEGRATION,
           measuredOutcome(accepted, rejected),
           accepted,
           rejected,
-          clock.instant(),
-          null);
+          outcome.outcomes().stream()
+              .map(SportingObservation.Outcome::reasonType)
+              .filter(Objects::nonNull)
+              .findFirst()
+              .orElse(null));
       if (!outcome.absenceReconciled()) return null;
       Set<UUID> pools = new LinkedHashSet<>();
       outcome.outcomes().stream()
@@ -633,6 +637,37 @@ public class CollectPassage {
   }
 
   /**
+   * Resolves one explicitly selected native team image through the ordinary contextual calendar.
+   * Parsed sporting rows are discarded: this capability authorizes no calendar or neighbor write.
+   *
+   * @param context admitted logo-only capability
+   * @param target selected team with its existing parent pool and native identity
+   * @param resource ordinary bounded parent-page read
+   * @param ordinal original parent read order for a parsing refusal
+   * @param attempted passage-local image deduplication
+   */
+  private void professionalLogo(
+      CollectorLifecycle.AdmittedCycle context,
+      CollectionBackend.Target target,
+      LnvAcquisition.Resource resource,
+      long ordinal,
+      Set<UUID> attempted) {
+    LnvAcquisition.Calendar read;
+    try {
+      read =
+          resource.calendar(
+              target.toBuilder()
+                  .scopeId(target.poolId())
+                  .kind(CollectionTargetKindEnum.CALENDAR)
+                  .build());
+    } catch (RuntimeException failure) {
+      acquisitionFailed(context, target, ordinal, failure);
+      return;
+    }
+    image(context, target.scopeId(), read.logos().get(target.nativeTeamReference()), attempted);
+  }
+
+  /**
    * Sends only qualified auxiliary codes, keeping the original index timestamp on reused bytes.
    *
    * @param context admitted passage
@@ -662,6 +697,7 @@ public class CollectPassage {
               CollectionPhaseEnum.ACQUISITION,
               CollectionOutcomeEnum.FAILED,
               clock.instant(),
+              AcquisitionFailure.reasonType(failure),
               "Information-sheet index: " + failureReason(failure));
       }
       return;
@@ -678,6 +714,7 @@ public class CollectPassage {
           CollectionPhaseEnum.ACQUISITION,
           CollectionOutcomeEnum.SUCCESS,
           read.observedAt(),
+          null,
           null);
       try {
         SportingObservation.Outcome association =
@@ -700,6 +737,7 @@ public class CollectPassage {
             CollectionPhaseEnum.INTEGRATION,
             accepted(association) ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.FAILED,
             clock.instant(),
+            association.reasonType(),
             reason);
       } catch (CollectionBackendFailure failure) {
         if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
@@ -709,6 +747,7 @@ public class CollectPassage {
             CollectionPhaseEnum.INTEGRATION,
             failed(failure),
             clock.instant(),
+            null,
             "Information-sheet association: " + failureReason(failure));
       }
     }
@@ -736,6 +775,7 @@ public class CollectPassage {
           CollectionPhaseEnum.ACQUISITION,
           CollectionOutcomeEnum.FAILED,
           clock.instant(),
+          AcquisitionFailure.reasonType(failure),
           failureReason(failure));
       return;
     }
@@ -756,6 +796,7 @@ public class CollectPassage {
             CollectionPhaseEnum.ACQUISITION,
             CollectionOutcomeEnum.FAILED,
             clock.instant(),
+            AcquisitionFailure.reasonType(failure),
             failureReason(failure));
         continue;
       }
@@ -766,6 +807,7 @@ public class CollectPassage {
           CollectionPhaseEnum.ACQUISITION,
           read.complete() ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.PARTIAL,
           read.observedAt(),
+          read.complete() ? null : URI.create("urn:blockout:acquisition:structure"),
           read.complete() ? null : "Invalid independent detail fields");
       try {
         SportingObservation.Outcome outcome =
@@ -780,6 +822,7 @@ public class CollectPassage {
             CollectionPhaseEnum.INTEGRATION,
             accepted(outcome) ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.FAILED,
             clock.instant(),
+            outcome.reasonType(),
             outcome.reasonType() == null ? null : outcome.reasonType().toString());
       } catch (CollectionBackendFailure failure) {
         if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
@@ -789,6 +832,7 @@ public class CollectPassage {
             CollectionPhaseEnum.INTEGRATION,
             failed(failure),
             clock.instant(),
+            null,
             failureReason(failure));
       }
     }
@@ -808,6 +852,7 @@ public class CollectPassage {
      * @param phase independent acquisition or integration phase
      * @param outcome one actual part's outcome
      * @param observedAt original observation or integration completion time
+     * @param reasonType original typed refusal, absent for unclassified failures
      * @param reason safe failure diagnostic, retained across later successes
      */
     private void add(
@@ -816,6 +861,7 @@ public class CollectPassage {
         CollectionPhaseEnum phase,
         CollectionOutcomeEnum outcome,
         Instant observedAt,
+        URI reasonType,
         String reason) {
       DetailTotal total =
           totals
@@ -826,6 +872,7 @@ public class CollectPassage {
       if (outcome != CollectionOutcomeEnum.SUCCESS) {
         total.rejected++;
         total.reason = reason;
+        if (reasonType != null) total.reasonType = reasonType;
       }
       total.unconfirmed |= outcome == CollectionOutcomeEnum.UNCONFIRMED;
       if (ordinal >= total.readOrdinal) {
@@ -846,15 +893,17 @@ public class CollectPassage {
           if (total.unconfirmed) outcome = CollectionOutcomeEnum.UNCONFIRMED;
           record(
               context,
-              match.getKey(),
-              CollectionStageEnum.DETAILS,
-              total.readOrdinal,
-              phase.getKey(),
-              outcome,
-              total.obtained,
-              total.rejected,
-              total.observedAt,
-              total.reason);
+              new CollectionBackend.Result(
+                  match.getKey(),
+                  CollectionStageEnum.DETAILS,
+                  phase.getKey(),
+                  total.readOrdinal,
+                  total.observedAt,
+                  outcome,
+                  total.reasonType,
+                  total.reason,
+                  total.obtained,
+                  total.rejected));
         }
       }
     }
@@ -867,6 +916,7 @@ public class CollectPassage {
     private long obtained;
     private long rejected;
     private boolean unconfirmed;
+    private URI reasonType;
     private String reason;
   }
 
@@ -918,17 +968,15 @@ public class CollectPassage {
               new SportingObservation.Context(
                   context.getCycle().id(), ordinal, read.observedAt(), null),
               read.observation());
-      record(
+      recordIntegration(
           context,
           team,
           CollectionStageEnum.LOGO,
           ordinal,
-          CollectionPhaseEnum.INTEGRATION,
           accepted(outcome) ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.FAILED,
           null,
           null,
-          clock.instant(),
-          outcome.reasonType() == null ? null : outcome.reasonType().toString());
+          outcome.reasonType());
     } catch (CollectionBackendFailure failure) {
       if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
       record(
@@ -985,13 +1033,7 @@ public class CollectPassage {
       long ordinal,
       RuntimeException failure) {
     String reason = failureReason(failure);
-    URI reasonType =
-        URI.create(
-            (failure instanceof FfvbAcquisitionException ffvbFailure
-                        && ffvbFailure.getKind() == FfvbAcquisitionException.Kind.STRUCTURE)
-                    || failure instanceof IllegalArgumentException
-                ? "urn:blockout:acquisition:structure"
-                : "urn:blockout:acquisition:technical");
+    URI reasonType = AcquisitionFailure.reasonType(failure);
     boolean confirmed =
         record(
             context,
@@ -1040,6 +1082,42 @@ public class CollectPassage {
     return failure.getKind() == CollectionBackendFailure.Kind.UNCONFIRMED
         ? CollectionOutcomeEnum.UNCONFIRMED
         : CollectionOutcomeEnum.FAILED;
+  }
+
+  /**
+   * Preserves F02's typed content refusal independently from unavailable integration transport.
+   *
+   * @param context admitted passage
+   * @param scope actual sporting or source owner
+   * @param stage independently integrated role
+   * @param ordinal original source-read order
+   * @param outcome measured F02 acceptance or refusal
+   * @param obtained accepted items, or unknown
+   * @param rejected refused items, or unknown
+   * @param reasonType original safe F02 problem type; no diagnostic wording is parsed
+   */
+  private void recordIntegration(
+      CollectorLifecycle.AdmittedCycle context,
+      UUID scope,
+      CollectionStageEnum stage,
+      long ordinal,
+      CollectionOutcomeEnum outcome,
+      Long obtained,
+      Long rejected,
+      URI reasonType) {
+    record(
+        context,
+        new CollectionBackend.Result(
+            scope,
+            stage,
+            CollectionPhaseEnum.INTEGRATION,
+            ordinal,
+            clock.instant(),
+            outcome,
+            reasonType,
+            reasonType == null ? null : reasonType.toString(),
+            obtained,
+            rejected));
   }
 
   /**

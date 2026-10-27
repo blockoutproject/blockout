@@ -31,7 +31,7 @@ public class AcceptSourceImage {
    * Checks current image acquisition authority before decoding; the later write checks it again.
    *
    * @param teamId existing professional participant
-   * @param context admitted current calendar cycle
+   * @param context admitted current calendar or selected-logo cycle
    */
   @Transactional
   public void requireSource(UUID teamId, MatchObservation.Context context) {
@@ -61,7 +61,7 @@ public class AcceptSourceImage {
           order.compareTo(previous) < 0
               ? ObservationOutcomeEnum.STALE
               : ObservationOutcomeEnum.UNCHANGED;
-    else if (!acquisitionClassification.acceptsObservation(target.scopeId(), target))
+    else if (!acquisitionClassification.acceptsObservation(target.poolId(), target))
       status = ObservationOutcomeEnum.REJECTED;
     else
       status =
@@ -77,11 +77,11 @@ public class AcceptSourceImage {
    *
    * @param teamId existing seasonal team
    * @param context supplied cycle identity
-   * @return exact admitted calendar membership
+   * @return exact selected logo or admitted calendar membership
    */
   private CollectionState.Target requireTarget(UUID teamId, MatchObservation.Context context) {
     CollectionState.Target target =
-        cycleAccess.requireTeamLogo(context.cycleId(), store.teamPoolIds(teamId));
+        cycleAccess.requireTeamLogo(context.cycleId(), teamId, store.teamPoolIds(teamId));
     TeamView team = store.team(teamId).orElseThrow(SportingResourceNotFoundException::new);
     if (team.provider() != CollectionProviderEnum.LNV)
       throw new AccessDeniedException("Professional artwork is not permitted");
