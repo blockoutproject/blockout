@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useState } from "react";
+import { useState } from "react";
 import { useAuth0 } from "react-native-auth0";
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
@@ -16,7 +16,6 @@ import { Tabs } from "../../../shared/components/tabs";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { Button } from "../../../shared/components/button";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { tokens } from "../../../shared/theme/tokens";
 import {
   captureFollowingOwner,
@@ -97,7 +96,6 @@ function PersonalSpace({
 }) {
   const { getCredentials } = useAuth0();
   const admission = useOrdinaryRequest();
-  const feedback = useActionFeedback();
   const [tab, setTab] = useState("upcoming");
 
   /** Prepares only a current original-owner request after native credentials and current F12 admission. */
@@ -117,24 +115,15 @@ function PersonalSpace({
     usable,
     Boolean(admission.bypass),
   );
-  const blocked =
-    isAccessDenied(profile.error) ||
+  const [optionsRefused, setOptionsRefused] = useState(false);
+  const refused =
     isAccessDenied(season.options.error) ||
     (season.options.error instanceof ApiError &&
       season.options.error.status === 404);
-  /** Publishes a retained-read failure once per Query error, using the current session and feedback owner. */
-  const notifyOptionsFailure = useEffectEvent(() => {
-    if (
-      season.options.isError &&
-      season.options.data &&
-      !blocked &&
-      owner.isCurrent(owner.generation)
-    )
-      feedback.error();
-  });
-  useEffect(() => {
-    notifyOptionsFailure();
-  }, [season.options.errorUpdatedAt]);
+  // A transient retry failure cannot release a known restriction on retained private options.
+  if (refused && !optionsRefused) setOptionsRefused(true);
+  else if (optionsRefused && season.options.isSuccess) setOptionsRefused(false);
+  const blocked = isAccessDenied(profile.error) || refused || optionsRefused;
 
   return (
     <>
@@ -156,9 +145,12 @@ function PersonalSpace({
           seasonId={season.seasonId}
           onSelect={season.selectSeason}
           onReset={season.resetSeason}
-          onOpen={() => {
-            feedback.clear();
-            void season.options.refetch({ cancelRefetch: false });
+          scopeKey={owner.generation}
+          onOpen={async () => {
+            await season.options.refetch({
+              cancelRefetch: false,
+              throwOnError: true,
+            });
           }}
           disabled={!usable || blocked || !season.options.data}
         />

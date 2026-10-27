@@ -109,6 +109,7 @@ const styles = StyleSheet.create({
   tabs: { flexDirection: "row", gap: tokens.spacing.md },
   compactTarget: { minHeight: tokens.touch.minimum, justifyContent: "center" },
   compactPill: {
+    overflow: "hidden",
     minHeight: 38,
     paddingHorizontal: tokens.spacing.lg,
     paddingVertical: tokens.spacing.xs,

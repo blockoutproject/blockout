@@ -498,14 +498,10 @@ it("recalculates a new opening's default from fresh options even when Query reta
   // When
   await mount();
   await waitFor(() => expect(optionReads()).toBe(2));
-  await waitFor(() =>
-    expect(client.getQueryState(followOptionsKey(owner))?.fetchStatus).toBe(
-      "idle",
-    ),
-  );
-
   // Then
-  expect(
-    screen.getByRole("button", { name: "Saison des suivis" }),
-  ).toHaveAccessibilityValue({ text: newer.label });
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Saison des suivis" }),
+    ).toHaveAccessibilityValue({ text: newer.label }),
+  );
 });

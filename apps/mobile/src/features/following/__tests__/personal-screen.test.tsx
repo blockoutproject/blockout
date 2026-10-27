@@ -2,6 +2,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   cleanup,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -216,9 +217,12 @@ it("keeps current choices after a failed explicit refresh and offers the next op
 
   // When
   await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
+  // Native Modal.onShow is not dispatched by the JavaScript press event.
+  await fireEvent(screen.getByTestId("personal-season-modal"), "show");
 
   // Then
   await screen.findByRole("radio", { name: older.label, checked: true });
+  await screen.findByRole("alert");
   await waitFor(() =>
     expect(
       mockFetch.mock.calls.filter(([url]) => url.includes("follow-options"))
@@ -230,6 +234,8 @@ it("keeps current choices after a failed explicit refresh and offers the next op
   // When
   await user.press(screen.getByRole("button", { name: "Fermer" }));
   await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
+  // Native Modal.onShow is not dispatched by the JavaScript press event.
+  await fireEvent(screen.getByTestId("personal-season-modal"), "show");
 
   // Then
   await waitFor(() =>
@@ -383,6 +389,8 @@ it.each([403, 404])(
 
     // When
     await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
+    // Native Modal.onShow is not dispatched by the JavaScript press event.
+    await fireEvent(screen.getByTestId("personal-season-modal"), "show");
 
     // Then
     await screen.findByRole("button", { name: "Réessayer" });
@@ -392,6 +400,20 @@ it.each([403, 404])(
     expect(
       screen.queryByRole("radio", { name: older.label }),
     ).not.toBeOnTheScreen();
+
+    // When
+    mockFetch.mockImplementation((url, request) =>
+      url.includes("follow-options")
+        ? Promise.reject(new TypeError("Synthetic retry network failure"))
+        : transport(url, request),
+    );
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    await screen.findByRole("button", { name: "Réessayer", busy: false });
+
+    // Then
+    expect(
+      screen.getByRole("button", { name: "Saison des suivis", disabled: true }),
+    ).toHaveAccessibilityValue({ text: "Saison" });
 
     // When
     mockFetch.mockImplementation(transport);
