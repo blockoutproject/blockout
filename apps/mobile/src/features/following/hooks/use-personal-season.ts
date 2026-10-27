@@ -35,6 +35,7 @@ export function usePersonalSeason(
   }, [seasonId]);
   // Store only an established fallback; a failed options read retains its prior data and choice.
   if (
+    enabled &&
     options.isSuccess &&
     !options.isFetching &&
     owner.isCurrent(owner.generation) &&

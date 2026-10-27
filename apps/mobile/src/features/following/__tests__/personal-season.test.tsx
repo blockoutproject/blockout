@@ -31,6 +31,12 @@ import {
 import { ApiError } from "../../../shared/api/api-fetch";
 import { useState } from "react";
 
+// The official native-inset double supplies the Modal window's measurement event in Jest.
+jest.mock(
+  "react-native-safe-area-context",
+  () =>
+    jest.requireActual("react-native-safe-area-context/src/jest/mock").default,
+);
 jest.mock("expo/fetch", () => ({
   fetch: (url: string, request?: RequestInit) => mockFetch(url, request),
 }));
@@ -55,14 +61,14 @@ const owner: FollowingOwner = {
 let client = createQueryClient();
 const environment = { ...process.env };
 
-/** Controlled credential preparation only; generated transport, validation, Query and scoped state are real. */
+/** Controlled credential/inset I/O only; generated transport, validation, Query and scoped state are real. */
 async function request(signal?: AbortSignal) {
   return { signal, session: owner };
 }
 
 /** Future tab/list consumers observe one scoped choice; no future list/calendar UI is simulated as production. */
-function PersonalProbe() {
-  const season = usePersonalSeason(owner, request, true);
+function PersonalProbe({ enabled = true }: { enabled?: boolean }) {
+  const season = usePersonalSeason(owner, request, enabled);
   const [tab, setTab] = useState("upcoming");
   const list = useQuery({
     queryKey: [
@@ -73,7 +79,7 @@ function PersonalProbe() {
       ),
       tab,
     ],
-    enabled: Boolean(season.options.data),
+    enabled: enabled && Boolean(season.options.data),
     queryFn: ({ signal }) =>
       season.read(season.seasonId, signal, async () => {
         const options = await request(signal);
@@ -121,11 +127,11 @@ function PersonalProbe() {
 }
 
 /** Mounts the real Query/theme owners around the scoped personal-season consumer. */
-async function mount() {
+async function mount(enabled = true) {
   return render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
-        <PersonalProbe />
+        <PersonalProbe enabled={enabled} />
       </ThemeProvider>
     </QueryClientProvider>,
   );
@@ -498,6 +504,39 @@ it("recalculates a new opening's default from fresh options even when Query reta
   // When
   await mount();
   await waitFor(() => expect(optionReads()).toBe(2));
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Saison des suivis" }),
+    ).toHaveAccessibilityValue({ text: newer.label }),
+  );
+});
+
+it("waits for an admitted opening before establishing a cached proposed season", async () => {
+  // Given
+  const first = await mount();
+  await screen.findByText("Loaded");
+  await first.unmount();
+  mockFetch.mockImplementation(async (url) =>
+    Response.json(
+      url.includes("follow-options")
+        ? { seasons: [newer, older], defaultSeasonId: newer.id }
+        : { items: [] },
+    ),
+  );
+  const opening = await mount(false);
+  expect(optionReads()).toBe(1);
+
+  // When
+  await opening.rerender(
+    <QueryClientProvider client={client}>
+      <ThemeProvider>
+        <PersonalProbe enabled />
+      </ThemeProvider>
+    </QueryClientProvider>,
+  );
+  await waitFor(() => expect(optionReads()).toBe(2));
+
   // Then
   await waitFor(() =>
     expect(

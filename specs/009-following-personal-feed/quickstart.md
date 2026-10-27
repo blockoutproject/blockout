@@ -107,7 +107,7 @@ queries and safe access/storage failures with controlled application reads and i
 transport with controlled HTTP. It covers shared selection, All seasons, reset, fresh-opening defaults,
 successful disappearance, failed reconciliation, explicit retry and obsolete session/selection responses.
 `personal-screen.test.tsx` adds the actual F05/F12 providers, Home, follow action, club and search
-components; only native identity I/O and HTTP are controlled. Current private refusals remain
+components; native identity/inset I/O and HTTP are controlled. Current private refusals remain
 blocking across a subsequent network failure until a successful read. The selector's native opening
 event owns refresh feedback inside its Modal surface; retained Query errors emit no toast by effect.
 These tests establish neither native networking nor provider qualification.

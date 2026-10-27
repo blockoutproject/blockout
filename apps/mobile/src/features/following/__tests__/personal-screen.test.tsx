@@ -48,6 +48,12 @@ jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ push: mockPush }),
 }));
+// The official native-inset double supplies the Modal window's measurement event in Jest.
+jest.mock(
+  "react-native-safe-area-context",
+  () =>
+    jest.requireActual("react-native-safe-area-context/src/jest/mock").default,
+);
 jest.mock("expo/fetch", () => ({
   fetch: (url: string, request?: RequestInit) => mockFetch(url, request),
 }));
@@ -90,7 +96,7 @@ let client = createQueryClient();
 let session: AccountSession;
 let proposed = older;
 
-/** Uses the root's real private-query cleanup; native identity and HTTP alone are controlled. */
+/** Uses the root's real private-query cleanup; native identity/inset I/O and HTTP are controlled. */
 function SessionBinding({ children }: PropsWithChildren) {
   const current = useAccountSession();
   useEffect(() => {

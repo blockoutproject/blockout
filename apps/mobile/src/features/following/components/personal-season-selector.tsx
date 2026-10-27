@@ -1,6 +1,7 @@
 import { useImperativeHandle, useRef, useState, type Ref } from "react";
 import { ChevronDown } from "lucide-react-native";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import type { FollowOptionsResponse } from "../../../../.generated/schemas/index.zod";
 import { Sheet } from "../../../shared/components/sheet";
 import { ApiError } from "../../../shared/api/api-fetch";
@@ -100,17 +101,24 @@ export function PersonalSeasonSelector({
         onDismiss={() => setOpen(false)}
         onShow={() => void sheet.current?.refresh()}
       >
-        <ActionFeedbackProvider scopeKey={scopeKey}>
-          <SeasonSheet
-            ref={sheet}
-            options={options}
-            seasonId={seasonId}
-            onSelect={onSelect}
-            onReset={onReset}
-            onOpen={onOpen}
-            onClose={() => setOpen(false)}
-          />
-        </ActionFeedbackProvider>
+        <SafeAreaProvider style={{ backgroundColor: colors.surface }}>
+          <SafeAreaView edges={["top"]} style={styles.modal}>
+            <ActionFeedbackProvider
+              key={open ? "open" : "closed"}
+              scopeKey={scopeKey}
+            >
+              <SeasonSheet
+                ref={sheet}
+                options={options}
+                seasonId={seasonId}
+                onSelect={onSelect}
+                onReset={onReset}
+                onOpen={onOpen}
+                onClose={() => setOpen(false)}
+              />
+            </ActionFeedbackProvider>
+          </SafeAreaView>
+        </SafeAreaProvider>
       </Modal>
     </>
   );
@@ -225,6 +233,7 @@ function SeasonChoice({
   );
 }
 const styles = StyleSheet.create({
+  modal: { flex: 1 },
   target: {
     minHeight: tokens.touch.minimum,
     justifyContent: "center",
