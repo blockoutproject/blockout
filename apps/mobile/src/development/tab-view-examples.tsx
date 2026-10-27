@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import {
   Pressable,
   RefreshControl,
@@ -9,16 +9,31 @@ import {
   View,
   useColorScheme,
   useWindowDimensions,
+  type RefreshControlProps,
   type SectionListProps,
 } from "react-native";
 import { MaterialTabBar, Tabs } from "react-native-collapsible-tab-view";
-import { TabBar, TabView } from "react-native-tab-view";
+import {
+  DefaultTabBar,
+  Tabs as LegendTabs,
+  useCollapsingTabsContext,
+} from "react-native-collapsible-tab";
+import { TabLegendList } from "react-native-collapsible-tab/legend-list";
+import { TabBar, TabBarIndicator, TabView } from "react-native-tab-view";
+import Animated, {
+  interpolateColor,
+  useAnimatedStyle,
+  type SharedValue,
+} from "react-native-reanimated";
 import {
   appearanceColors,
   membershipColors,
   tokens,
 } from "../shared/theme/tokens";
-import { createDays, type DemoDay, type DemoMatch } from "./tab-view-fixtures";
+import type { DemoMatch } from "./tab-view-fixtures";
+import { useDemoCalendar, type DemoCalendarState } from "./use-demo-calendar";
+
+const minimumHeaderHeight = 56;
 
 const routes = [
   { key: "upcoming", title: "À venir" },
@@ -41,7 +56,9 @@ function useDemoTheme() {
  * each library alone owns its pager, indicator and scroll behavior. The host owns safe-area insets.
  */
 export function TabViewExamplesScreen() {
-  const [mode, setMode] = useState<"standard" | "collapsible">("standard");
+  const [mode, setMode] = useState<"standard" | "collapsible" | "legend">(
+    "standard",
+  );
   const { colors } = useDemoTheme();
   return (
     <View style={[styles.screen, { backgroundColor: colors.canvas }]}>
@@ -53,11 +70,15 @@ export function TabViewExamplesScreen() {
           Essai natif des onglets
         </Text>
         <View style={styles.modeButtons}>
-          {(["standard", "collapsible"] as const).map((item) => (
+          {(["standard", "collapsible", "legend"] as const).map((item) => (
             <DemoButton
               key={item}
               label={
-                item === "standard" ? "TabView fixe" : "Header rétractable"
+                item === "standard"
+                  ? "TabView fixe"
+                  : item === "collapsible"
+                    ? "Header rétractable"
+                    : "LegendList"
               }
               selected={mode === item}
               onPress={() => setMode(item)}
@@ -70,7 +91,13 @@ export function TabViewExamplesScreen() {
           pages.
         </Text>
       </View>
-      {mode === "standard" ? <StandardTabs /> : <CollapsibleTabs />}
+      {mode === "standard" ? (
+        <StandardTabs />
+      ) : mode === "collapsible" ? (
+        <CollapsibleTabs />
+      ) : (
+        <LegendListTabs />
+      )}
     </View>
   );
 }
@@ -114,7 +141,7 @@ function DemoButton({
   );
 }
 
-/** Keeps the same 180-point header fixed above the ordinary TabView and native lists. */
+/** Keeps the header fixed; the stock indicator takes the committed tab's width without scaling its corners. */
 function StandardTabs() {
   const [index, setIndex] = useState(0);
   const { width } = useWindowDimensions();
@@ -141,6 +168,19 @@ function StandardTabs() {
               styles.tabIndicator,
               { backgroundColor: membership.fill },
             ]}
+            renderIndicator={(indicatorProps) => (
+              <TabBarIndicator
+                {...indicatorProps}
+                style={[
+                  indicatorProps.style,
+                  {
+                    width: indicatorProps.getTabWidth(
+                      indicatorProps.navigationState.index,
+                    ),
+                  },
+                ]}
+              />
+            )}
           />
         )}
         renderScene={({ route }) =>
@@ -167,7 +207,7 @@ function CollapsibleTabs() {
     <Tabs.Container
       containerStyle={styles.pager}
       headerHeight={180}
-      minHeaderHeight={56}
+      minHeaderHeight={minimumHeaderHeight}
       renderHeader={() => <DemoHeader />}
       renderTabBar={(props) => (
         <MaterialTabBar
@@ -206,6 +246,137 @@ function CollapsibleTabs() {
   );
 }
 
+/** Tests RNCT's stock LegendList adapter and tab bar without changing either established mode. */
+function LegendListTabs() {
+  const { colors, membership } = useDemoTheme();
+  return (
+    <LegendTabs.Container
+      containerStyle={styles.pager}
+      minHeaderHeight={minimumHeaderHeight}
+      headerBackgroundColor={colors.canvas}
+      renderHeader={() => <DemoHeader />}
+      renderTabBar={(props) => (
+        <DefaultTabBar
+          {...props}
+          backgroundColor={colors.canvas}
+          activeColor={membership.content}
+          inactiveColor={colors.secondaryText}
+          indicatorColor={membership.fill}
+          tabStyle={[styles.tabItem, styles.legendTabItem]}
+          labelStyle={[styles.tabLabel, { fontWeight: "normal" }]}
+          indicatorStyle={styles.tabIndicator}
+          renderLabel={({ label, index }) => (
+            <DemoAnimatedTabLabel
+              label={label}
+              index={index}
+              position={props.indexDecimal}
+            />
+          )}
+        />
+      )}
+    >
+      <LegendTabs.Tab name="upcoming" label="À venir">
+        <LegendCalendar completed={false} />
+      </LegendTabs.Tab>
+      <LegendTabs.Tab name="completed" label="Terminés">
+        <LegendCalendar completed />
+      </LegendTabs.Tab>
+      <LegendTabs.Tab name="standings" label="Classement">
+        <LegendTabs.ScrollView contentContainerStyle={styles.shortContent}>
+          <ShortContent empty={false} />
+        </LegendTabs.ScrollView>
+      </LegendTabs.Tab>
+      <LegendTabs.Tab name="empty" label="Vide">
+        <LegendTabs.ScrollView contentContainerStyle={styles.shortContent}>
+          <ShortContent empty />
+        </LegendTabs.ScrollView>
+      </LegendTabs.Tab>
+    </LegendTabs.Container>
+  );
+}
+
+/** Follows the stock pager's continuous position; no independent animation or tab state is introduced. */
+function DemoAnimatedTabLabel({
+  label,
+  index,
+  position,
+}: {
+  label: string;
+  index: number;
+  position: SharedValue<number>;
+}) {
+  const { colors, membership } = useDemoTheme();
+  const colorStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(
+      Math.min(1, Math.abs(position.value - index)),
+      [0, 1],
+      [membership.content, colors.secondaryText],
+    ),
+  }));
+  return (
+    <Animated.Text style={[styles.tabLabel, colorStyle]}>{label}</Animated.Text>
+  );
+}
+
+/** Individual date and match rows permit recycling and sticky indices without giant day cells. */
+type LegendCalendarRow =
+  | { kind: "date"; id: string; title: string }
+  | { kind: "match"; id: string; match: DemoMatch };
+
+/**
+ * Pins date rows below the collapsed bands through the public sticky offset. LegendList itself adds
+ * the container's top padding to the native refresh control; an explicit refresh offset would double it.
+ */
+const LegendCalendar = memo(function LegendCalendar({
+  completed,
+}: {
+  completed: boolean;
+}) {
+  const calendar = useDemoCalendar(completed);
+  const { tabBarHeight } = useCollapsingTabsContext();
+  const data = useMemo<LegendCalendarRow[]>(
+    () =>
+      calendar.days.flatMap((day) => [
+        { kind: "date" as const, id: `date:${day.title}`, title: day.title },
+        ...day.data.map((match) => ({
+          kind: "match" as const,
+          id: match.id,
+          match,
+        })),
+      ]),
+    [calendar.days],
+  );
+  const stickyHeaderIndices = useMemo(
+    () => data.flatMap((row, index) => (row.kind === "date" ? [index] : [])),
+    [data],
+  );
+  return (
+    <TabLegendList<LegendCalendarRow>
+      data={data}
+      recycleItems
+      keyExtractor={(item) => item.id}
+      getItemType={(item) => item.kind}
+      stickyHeaderIndices={stickyHeaderIndices}
+      stickyHeaderConfig={{ offset: minimumHeaderHeight + tabBarHeight }}
+      refreshControl={<DemoRefreshControl calendar={calendar} />}
+      contentContainerStyle={styles.calendarContent}
+      onEndReached={() => {
+        if (calendar.progressive && !calendar.refreshing) calendar.loadDays(4);
+      }}
+      onEndReachedThreshold={0.5}
+      ListHeaderComponent={<CalendarControls calendar={calendar} />}
+      ListFooterComponent={<CalendarCount count={calendar.days.length * 30} />}
+      renderItem={({ item }) =>
+        item.kind === "date" ? (
+          <DateHeader title={item.title} />
+        ) : (
+          <MatchCard match={item.match} />
+        )
+      }
+    />
+  );
+});
+
 /** The bottom 56-point summary remains after the stock container translates the upper card away. */
 function DemoHeader() {
   const { colors } = useDemoTheme();
@@ -239,119 +410,21 @@ const DemoCalendar = memo(function DemoCalendar({
   completed: boolean;
   collapsible: boolean;
 }) {
-  const { colors } = useDemoTheme();
-  const [days, setDays] = useState<DemoDay[]>(() =>
-    createDays(completed, 0, 4),
-  );
-  const [progressive, setProgressive] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [refreshCount, setRefreshCount] = useState(0);
-  // This local read simulation is cancelled when its calendar unmounts or its refresh completes.
-  useEffect(() => {
-    if (!refreshing) return;
-    const timer = setTimeout(() => {
-      setDays(createDays(completed, 0, 4));
-      setRefreshCount((count) => count + 1);
-      setRefreshing(false);
-    }, 750);
-    return () => clearTimeout(timer);
-  }, [completed, refreshing]);
-  /** Appends only absent days up to the 3,000-match cap, preserving existing section objects. */
-  function loadDays(count: number) {
-    if (refreshing) return;
-    setDays((current) =>
-      current.length >= 100
-        ? current
-        : [
-            ...current,
-            ...createDays(
-              completed,
-              current.length,
-              Math.min(count, 100 - current.length),
-            ),
-          ],
-    );
-  }
+  const calendar = useDemoCalendar(completed);
   const listProps: SectionListProps<DemoMatch> = {
-    sections: days,
+    sections: calendar.days,
     keyExtractor: (item) => item.id,
     stickySectionHeadersEnabled: true,
-    refreshControl: (
-      <RefreshControl
-        refreshing={refreshing}
-        onRefresh={refreshing ? undefined : () => setRefreshing(true)}
-        accessibilityLabel="Actualiser les données"
-        accessibilityState={{ busy: refreshing }}
-        colors={[colors.accentPrimary]}
-        tintColor={colors.accentPrimary}
-        progressBackgroundColor={colors.raised}
-      />
-    ),
+    refreshControl: <DemoRefreshControl calendar={calendar} />,
     contentContainerStyle: styles.calendarContent,
     onEndReached: () => {
-      if (progressive && !refreshing) loadDays(4);
+      if (calendar.progressive && !calendar.refreshing) calendar.loadDays(4);
     },
     onEndReachedThreshold: 0.5,
-    ListHeaderComponent: (
-      <View style={styles.instructions}>
-        <Text style={[tokens.typography.strong, { color: colors.text }]}>
-          {days.length * 30} matchs chargés / 3 000 · {days.length} journées
-        </Text>
-        <Text
-          accessibilityLiveRegion="polite"
-          style={[tokens.typography.metadata, { color: colors.text }]}
-        >
-          Actualisations : {refreshCount}
-        </Text>
-        <View style={styles.modeButtons}>
-          <DemoButton
-            label="Charge progressive"
-            selected={progressive}
-            onPress={() => setProgressive(!progressive)}
-          />
-          <DemoButton
-            label="Charger 3 000 matchs"
-            onPress={() => loadDays(100)}
-          />
-        </View>
-      </View>
-    ),
-    ListFooterComponent: (
-      <Text
-        style={[
-          styles.date,
-          tokens.typography.metadata,
-          { color: colors.text },
-        ]}
-      >
-        {days.length * 30} matchs chargés / 3 000
-      </Text>
-    ),
-    renderSectionHeader: ({ section }) => (
-      <View style={[styles.date, { backgroundColor: colors.canvas }]}>
-        <Text
-          accessibilityRole="header"
-          style={[tokens.typography.strong, { color: colors.text }]}
-        >
-          {section.title}
-        </Text>
-      </View>
-    ),
-    renderItem: ({ item }) => (
-      <View
-        style={[
-          styles.match,
-          { backgroundColor: colors.surface, borderColor: colors.border },
-        ]}
-      >
-        <Text style={[tokens.typography.strong, { color: colors.text }]}>
-          {item.home} — {item.away}
-        </Text>
-        <Text style={[tokens.typography.body, { color: colors.secondaryText }]}>
-          {item.detail}
-        </Text>
-      </View>
-    ),
+    ListHeaderComponent: <CalendarControls calendar={calendar} />,
+    ListFooterComponent: <CalendarCount count={calendar.days.length * 30} />,
+    renderSectionHeader: ({ section }) => <DateHeader title={section.title} />,
+    renderItem: ({ item }) => <MatchCard match={item} />,
   };
   return collapsible ? (
     <Tabs.SectionList {...listProps} />
@@ -359,6 +432,107 @@ const DemoCalendar = memo(function DemoCalendar({
     <SectionList {...listProps} />
   );
 });
+
+/** Preserves stock refresh props injected by native ScrollView or either tab adapter. */
+function DemoRefreshControl({
+  calendar,
+  ...nativeProps
+}: {
+  calendar: DemoCalendarState;
+} & Pick<RefreshControlProps, "children" | "style" | "progressViewOffset">) {
+  const { colors } = useDemoTheme();
+  return (
+    <RefreshControl
+      {...nativeProps}
+      refreshing={calendar.refreshing}
+      onRefresh={
+        calendar.refreshing ? undefined : () => calendar.setRefreshing(true)
+      }
+      accessibilityLabel="Actualiser les données"
+      accessibilityState={{ busy: calendar.refreshing }}
+      colors={[colors.accentPrimary]}
+      tintColor={colors.accentPrimary}
+      progressBackgroundColor={colors.raised}
+    />
+  );
+}
+
+/** Shared fixture controls expose the same loaded volume and refresh result in all three modes. */
+function CalendarControls({ calendar }: { calendar: DemoCalendarState }) {
+  const { colors } = useDemoTheme();
+  return (
+    <View style={styles.instructions}>
+      <Text style={[tokens.typography.strong, { color: colors.text }]}>
+        {calendar.days.length * 30} matchs chargés / 3 000 ·{" "}
+        {calendar.days.length} journées
+      </Text>
+      <Text
+        accessibilityLiveRegion="polite"
+        style={[tokens.typography.metadata, { color: colors.text }]}
+      >
+        Actualisations : {calendar.refreshCount}
+      </Text>
+      <View style={styles.modeButtons}>
+        <DemoButton
+          label="Charge progressive"
+          selected={calendar.progressive}
+          onPress={() => calendar.setProgressive(!calendar.progressive)}
+        />
+        <DemoButton
+          label="Charger 3 000 matchs"
+          onPress={() => calendar.loadDays(100)}
+        />
+      </View>
+    </View>
+  );
+}
+
+/** Shows the actual loaded match count at the end of either list implementation. */
+function CalendarCount({ count }: { count: number }) {
+  const { colors } = useDemoTheme();
+  return (
+    <Text
+      style={[styles.date, tokens.typography.metadata, { color: colors.text }]}
+    >
+      {count} matchs chargés / 3 000
+    </Text>
+  );
+}
+
+/** Keeps the horizontal date heading identical between native sections and recycled sticky rows. */
+function DateHeader({ title }: { title: string }) {
+  const { colors } = useDemoTheme();
+  return (
+    <View style={[styles.date, { backgroundColor: colors.canvas }]}>
+      <Text
+        accessibilityRole="header"
+        style={[tokens.typography.strong, { color: colors.text }]}
+      >
+        {title}
+      </Text>
+    </View>
+  );
+}
+
+/** Renders one fictional match per native or recycled list row. */
+function MatchCard({ match }: { match: DemoMatch }) {
+  const { colors } = useDemoTheme();
+  return (
+    <View
+      style={[
+        styles.match,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+      ]}
+    >
+      <Text style={[tokens.typography.strong, { color: colors.text }]}>
+        {match.home} — {match.away}
+      </Text>
+      <Text style={[tokens.typography.body, { color: colors.secondaryText }]}>
+        {match.detail}
+      </Text>
+    </View>
+  );
+}
 
 /** Bounded short and empty pages expose the library's ordinary minimum-scroll behavior. */
 function ShortContent({ empty }: { empty: boolean }) {
@@ -403,6 +577,7 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.control,
   },
   materialTabItem: { zIndex: 1 },
+  legendTabItem: { marginRight: tokens.spacing.md, zIndex: 1 },
   tabLabel: { ...tokens.typography.label, margin: 0 },
   tabIndicator: { height: "100%", borderRadius: tokens.radius.control },
   instructions: {
