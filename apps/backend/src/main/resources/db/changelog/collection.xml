@@ -20,6 +20,7 @@
       <column name="validated_at" type="TIMESTAMP WITH TIME ZONE"></column>
       <column name="season_evidence" type="TEXT"></column>
       <column name="reason" type="TEXT"/>
+      <column name="reason_type" type="VARCHAR(255)"/>
       <column name="season_confirmed" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
       <column name="locked" type="BOOLEAN"><constraints nullable="false"/></column>
       <column name="launched" type="BOOLEAN"><constraints nullable="false"/></column>
@@ -93,6 +94,7 @@
       <column name="provider" type="VARCHAR(255)"></column>
       <column name="organizer_reference" type="TEXT"></column>
       <column name="native_match_reference" type="TEXT"></column>
+      <column name="native_team_reference" type="TEXT"/>
     </createTable>
     <addPrimaryKey tableName="collection_target" columnNames="cycle_id,kind,scope_id" constraintName="pk_collection_target"/>
     <addForeignKeyConstraint baseTableName="collection_target" baseColumnNames="cycle_id" referencedTableName="collection_cycle" referencedColumnNames="id" constraintName="fk_collection_target_cycle" onDelete="CASCADE"/>
@@ -120,6 +122,20 @@
     </createTable>
     <addPrimaryKey tableName="collection_result" columnNames="control_id,scope_id,stage,phase" constraintName="pk_collection_result"/>
     <addForeignKeyConstraint baseTableName="collection_result" baseColumnNames="control_id" referencedTableName="collection_control" referencedColumnNames="id" constraintName="fk_collection_result_control" onDelete="CASCADE"/>
+    <createTable tableName="collection_initial_coverage">
+      <column name="source_binding_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="scope_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="stage" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="phase" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="status" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="cycle_id" type="UUID"/>
+      <column name="cycle_order" type="BIGINT"><constraints nullable="false"/></column>
+      <column name="read_ordinal" type="BIGINT"><constraints nullable="false"/></column>
+      <column name="obtained_count" type="BIGINT"/>
+      <column name="rejected_count" type="BIGINT"/>
+    </createTable>
+    <addPrimaryKey tableName="collection_initial_coverage" columnNames="source_binding_id,scope_id,stage,phase" constraintName="pk_collection_initial_coverage"/>
+    <addForeignKeyConstraint baseTableName="collection_initial_coverage" baseColumnNames="source_binding_id" referencedTableName="collection_source_binding" referencedColumnNames="id" constraintName="fk_collection_initial_coverage_source" onDelete="CASCADE"/>
     <insert tableName="collector_runtime"><column name="id" valueNumeric="1"/><column name="revision" valueNumeric="0"/></insert>
     <insert tableName="collection_control"><column name="id" value="00000000-0000-4000-8000-000000000001"/><column name="family" value="CLUB_SHEETS"/><column name="enabled" valueBoolean="false"/></insert>
     <insert tableName="collection_control"><column name="id" value="00000000-0000-4000-8000-000000000002"/><column name="family" value="GEOCODING"/><column name="enabled" valueBoolean="false"/></insert>

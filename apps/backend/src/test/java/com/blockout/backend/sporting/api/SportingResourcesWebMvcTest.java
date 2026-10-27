@@ -20,6 +20,7 @@ import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import com.blockout.backend.sporting.application.ConsultationViews;
+import com.blockout.backend.sporting.application.ReadMatchCalendar;
 import com.blockout.backend.sporting.application.ReadSportingResources;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
@@ -54,6 +55,7 @@ class SportingResourcesWebMvcTest {
   private static final UUID ID = UUID.fromString("00000000-0000-4000-8000-000000000203");
   @Autowired private MockMvc mvc;
   @MockitoBean private ReadSportingResources resources;
+  @MockitoBean private ReadMatchCalendar calendars;
   @MockitoBean private MaintenanceAdmission admission;
 
   @Test

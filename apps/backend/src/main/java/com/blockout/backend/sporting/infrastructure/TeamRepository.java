@@ -178,6 +178,17 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
   List<TeamEntity> findVisibleClubTeams(UUID clubId, UUID seasonId);
 
   /**
+   * Selects canonical seasons from currently visible teams without loading their cards.
+   *
+   * @return distinct seasons in descending start-year and ascending UUID order
+   */
+  @Query(
+      "SELECT DISTINCT s FROM TeamEntity t JOIN t.season s WHERE "
+          + VISIBLE
+          + " ORDER BY s.startYear DESC, s.id")
+  List<SeasonEntity> findVisibleSeasons();
+
+  /**
    * Selects eligible search identities before bounded hydration.
    *
    * @param page bounded projection request

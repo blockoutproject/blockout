@@ -31,6 +31,7 @@ import {
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import { ClubScreen } from "../../sporting/screens/club-screen";
 import { SearchScreen } from "../../discovery/screens/search-screen";
+import { SearchVisitProvider } from "../../discovery/forms/search-visit";
 import { clubDetail } from "../../sporting/test-support/consultation-data";
 import { PersonalScreen } from "../screens/personal-screen";
 import { FollowButton } from "../components/follow-button";
@@ -298,8 +299,18 @@ it("leaves the actual club-season and search-input owners unchanged", async () =
       return Promise.resolve(
         Response.json({ ...clubDetail(), seasons: [older, newer] }),
       );
+    if (url.includes("/sporting-search-options?"))
+      return Promise.resolve(
+        Response.json({
+          resourceType: new URL(url).searchParams.get("resourceType"),
+          seasons: [older],
+          divisions: [],
+          formats: ["6x6", "4x4", "2x2"],
+          genders: ["female", "male", "mixed"],
+        }),
+      );
     if (url.includes("/teams?"))
-      return Promise.resolve(Response.json({ items: [] }));
+      return Promise.resolve(Response.json({ teams: [] }));
     return transport(url, request);
   });
   await mount(
@@ -307,7 +318,9 @@ it("leaves the actual club-season and search-input owners unchanged", async () =
       <View accessibilityLabel="Public club">
         <ClubScreen clubId={team.id} />
       </View>
-      <SearchScreen />
+      <SearchVisitProvider>
+        <SearchScreen />
+      </SearchVisitProvider>
     </>,
   );
   await user.press(
@@ -317,6 +330,7 @@ it("leaves the actual club-season and search-input owners unchanged", async () =
   );
   await screen.findByRole("button", { name: `Saison ${older.label}` });
   await user.type(screen.getByLabelText("Rechercher"), "Volleyball");
+  await screen.findByText("Aucun résultat pour ces critères");
 
   // When
   await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
@@ -327,6 +341,11 @@ it("leaves the actual club-season and search-input owners unchanged", async () =
     screen.getByRole("button", { name: `Saison ${older.label}` }),
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Volleyball")).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls
+      .filter(([url]) => new URL(url).pathname === "/teams")
+      .every(([url]) => new URL(url).searchParams.get("seasonId") === older.id),
+  ).toBe(true);
   expect(
     screen.getByRole("button", { name: "Saison des suivis" }),
   ).toHaveAccessibilityValue({ text: newer.label });

@@ -239,7 +239,9 @@ CollectionTargetInternalResponse:
     One authorized target selected at admission from the starting snapshot. Kind determines
     applicable optional fields; absent context is never invented. Discovery requires a binding and URL;
     calendar/standings/details require binding, URL, pool and complete classification; details additionally
-    require match identity. Club sheets require club identity/reference; geocoding requires club identity
+    require match identity. Logo-only initial retries require the selected team UUID, nativeTeamReference,
+    an eligible parent pool and its qualified LNV calendar URL; reading that calendar authorizes only
+    the selected logo, not calendar/standings/detail integration. Club sheets require club identity/reference; geocoding requires club identity
     and current localityRevision; a null permitted municipality means no provider query, with postalCode
     only when available.
   additionalProperties: true
@@ -248,7 +250,7 @@ CollectionTargetInternalResponse:
       type: string
       description: >-
         Stable domain UUID reused across cycles: binding for discovery, pool for calendar/standings,
-        match for details, club for club-sheet/geocoding.
+        match for details, team for a logo-only retry, club for club-sheet/geocoding.
       format: uuid
     kind:
       $ref: ../../common/collection-enums.yaml#/CollectionTargetKindEnum
@@ -335,6 +337,10 @@ CollectionTargetInternalResponse:
     nativeMatchReference:
       type: string
       description: Native match reference within the qualified provider/pool context, required for details.
+    nativeTeamReference:
+      type: string
+      description: Exact season/championship-scoped LNV team reference for a logo-only retry; absent for other roles.
+      minLength: 1
   required:
     - scopeId
     - kind
@@ -455,6 +461,13 @@ SubmitSourceValidationInternalRequest:
     reason:
       type: string
       description: Safe incompatibility or missing-evidence explanation.
+    reasonType:
+      type: string
+      format: uri
+      description: >-
+        Safe failure category: urn:blockout:acquisition:technical for unavailable acquisition,
+        urn:blockout:acquisition:structure or urn:blockout:acquisition:context for refused content.
+        Omission leaves the category unknown; it proves no content rejection.
   required:
     - cycleId
     - state

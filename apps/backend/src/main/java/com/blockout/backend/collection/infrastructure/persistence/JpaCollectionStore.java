@@ -5,6 +5,7 @@ import com.blockout.backend.collection.application.exception.CollectionNotFoundE
 import com.blockout.backend.collection.application.model.CollectionAttempt;
 import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionState;
+import com.blockout.backend.collection.application.model.InitialCoverage;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +48,100 @@ class JpaCollectionStore implements CollectionStore {
   private final CollectionTargetRepository targets;
   private final CollectionPersistenceMapper mapper;
   private final CollectionResultRepository results;
+  private final InitialCoverageRepository coverage;
+  private final InitialCoveragePersistenceMapper coverageMapper;
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public CollectionState.Control prepareInitialControl(
+      UUID seasonId, CollectionProviderEnum provider) {
+    CollectionFamilyEnum family =
+        provider == CollectionProviderEnum.FFVB
+            ? CollectionFamilyEnum.FFVB
+            : CollectionFamilyEnum.LNV;
+    CollectionControlEntity entity =
+        controls.findBySeasonIdOrderById(seasonId).stream()
+            .filter(control -> control.getFamily() == family)
+            .findFirst()
+            .orElse(null);
+    if (entity == null) {
+      entity = new CollectionControlEntity(seasonId, family);
+      entity.setEnabled(false);
+      controls.saveAndFlush(entity);
+    }
+    return lockControl(entity.getId());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public CollectionState.Control setInitialIntent(
+      UUID id, UUID requestId, Set<UUID> sourceIds, Set<UUID> scopeIds) {
+    CollectionControlEntity entity =
+        controls.findById(id).orElseThrow(CollectionNotFoundException::new);
+    entity.setRequestId(requestId);
+    entity.setRequestedMode(CollectionModeEnum.INITIAL_IMPORT);
+    entity.getSourceBindingIds().clear();
+    entity.getSourceBindingIds().addAll(sourceIds);
+    entity.getScopeIds().clear();
+    entity.getScopeIds().addAll(scopeIds);
+    controls.flush();
+    return mapper.toView(entity);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public InitialCoverage.Page initialCoverage(UUID seasonId, int page, int size) {
+    Slice<InitialCoverageEntity> slice = coverage.coverage(seasonId, PageRequest.of(page, size));
+    return new InitialCoverage.Page(
+        slice.stream().map(coverageMapper::toView).toList(), page, slice.hasNext());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<InitialCoverage> initialCoverage(Set<UUID> sourceIds, Set<UUID> scopeIds) {
+    return coverage.findBySourceBindingIdInAndScopeIdIn(sourceIds, scopeIds).stream()
+        .map(coverageMapper::toView)
+        .toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<InitialCoverage> initialCoverage(
+      UUID sourceId, UUID scopeId, CollectionStageEnum stage, CollectionPhaseEnum phase) {
+    return coverage
+        .findById(new InitialCoverageEntity.Key(sourceId, scopeId, stage, phase))
+        .map(coverageMapper::toView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void saveInitialCoverage(InitialCoverage value) {
+    InitialCoverageEntity entity =
+        coverage
+            .findById(
+                new InitialCoverageEntity.Key(
+                    value.sourceBindingId(), value.scopeId(), value.stage(), value.phase()))
+            .orElse(null);
+    if (entity == null) entityManager.persist(coverageMapper.toEntity(value));
+    else coverageMapper.update(value, entity);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void finishInitialCoverage(UUID cycleId) {
+    while (true) {
+      Slice<InitialCoverageEntity> pending =
+          coverage.findByCycleIdAndStatus(
+              cycleId, InitialCoverage.Status.REQUESTED, PageRequest.of(0, 200));
+      if (pending.isEmpty()) break;
+      pending.forEach(row -> row.setStatus(InitialCoverage.Status.UNAVAILABLE));
+      coverage.flush();
+    }
+  }
 
   /** {@inheritDoc} */
   @Override

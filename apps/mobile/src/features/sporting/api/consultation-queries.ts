@@ -35,6 +35,7 @@ import { getSessionQueryKey } from "../../../shared/query/query-client";
 import type { SessionSnapshot } from "../../accounts/session/session-generation";
 import type { useOrdinaryRequest } from "../../access/ordinary-request";
 import { resourceUnavailable } from "../model/consultation-availability";
+import { removeUnavailableCalendarMatch } from "./sporting-calendar";
 
 /** Captured F05 generation guards public completions without requiring an established account. */
 type ConsultationSession = SessionSnapshot &
@@ -61,7 +62,8 @@ export const consultationOpeningPolicy = {
  * Resource/season/category/zone keys isolate selections; F13 transport rejects obsolete session
  * or cancelled bypass results even when native cancellation loses the response-body race.
  * Detail resources explicitly reread when opened; child selections retain their own policy.
- * This foundation adds no infinite traversal, persistence, foreground refresh or retry loop.
+ * Calendar traversal remains with its focused owner; this boundary applies generated requests
+ * and current refusal cleanup without persistence, foreground refresh or a retry loop.
  */
 export function createConsultationQueries(
   session: ConsultationSession,
@@ -242,23 +244,32 @@ export function createConsultationQueries(
         throw new Error("Calendar requires a club/season, team or pool");
       // Native Intl validates the selected grouping zone without a second time-zone registry.
       new Intl.DateTimeFormat("en", { timeZone: params.timeZone });
-      return queryOptions({
+      return {
         queryKey: key(getListMatchesQueryKey(params)),
-        queryFn: async (context) =>
+        queryFn: async (context: QueryFunctionContext) =>
           listMatches(params, await request(context)).catch((error: unknown) =>
             rejectUnavailable(error, context),
           ),
-      });
+      };
     },
     /** Current dated match facts on opening; foreground refresh belongs to the match story. */
     match: (matchId: string) =>
       queryOptions({
         ...consultationOpeningPolicy,
         queryKey: key(getGetMatchQueryKey(matchId)),
-        queryFn: async (context) =>
-          getMatch(matchId, await request(context)).catch((error: unknown) =>
-            rejectUnavailable(error, context),
-          ),
+        queryFn: async (context) => {
+          try {
+            return await getMatch(matchId, await request(context));
+          } catch (error) {
+            if (!context.signal.aborted && resourceUnavailable(error))
+              await removeUnavailableCalendarMatch(
+                context.client,
+                key(getListMatchesQueryKey()),
+                matchId,
+              );
+            return rejectUnavailable(error, context);
+          }
+        },
       }),
   };
 }

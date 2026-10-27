@@ -4,6 +4,7 @@ import com.blockout.backend.access.api.MaintenanceAdmissionFilter;
 import com.blockout.backend.access.application.MaintenanceAdmission;
 import com.blockout.backend.shared.http.SecurityProblemHandler;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -46,6 +47,7 @@ public class SecurityConfiguration {
    * @throws Exception if Spring cannot construct its security filters
    */
   @Bean
+  @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
   @Order(0)
   SecurityFilterChain operationalSecurity(HttpSecurity http) throws Exception {
     return http.securityMatcher("/health/**", "/actuator/**")
@@ -69,6 +71,7 @@ public class SecurityConfiguration {
    * @throws Exception if Spring cannot build the filters
    */
   @Bean
+  @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
   @Order(1)
   SecurityFilterChain ingestionSecurity(
       HttpSecurity http, SecurityProperties properties, SecurityProblemHandler problems)
@@ -102,6 +105,7 @@ public class SecurityConfiguration {
    * @throws Exception if Spring cannot build the filters
    */
   @Bean
+  @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
   @Order(2)
   SecurityFilterChain legacyStatusSecurity(HttpSecurity http) throws Exception {
     return http.securityMatcher(
@@ -125,6 +129,7 @@ public class SecurityConfiguration {
    * @throws Exception if Spring cannot build the filters
    */
   @Bean
+  @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
   @Order(3)
   SecurityFilterChain mobileSecurity(
       HttpSecurity http,

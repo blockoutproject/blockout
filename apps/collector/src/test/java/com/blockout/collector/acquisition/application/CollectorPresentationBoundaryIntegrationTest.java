@@ -20,6 +20,7 @@ import com.blockout.collector.config.AcquisitionProperties;
 import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.collector.generated.ingestion.api.SportingApi;
+import com.blockout.collector.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.collector.generated.ingestion.model.GeocodingOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.collector.ingestion.IngestionTestClient;
@@ -250,6 +251,103 @@ class CollectorPresentationBoundaryIntegrationTest {
                 "SELECT outcome FROM collection_result WHERE stage='CALENDAR' AND phase='INTEGRATION'",
                 String.class))
         .containsExactlyInAnyOrder("SUCCESS", "SUCCESS");
+  }
+
+  @Test
+  @DisplayName("An exact initial logo retry crosses generated HTTP without rewriting its calendar")
+  void retriesOnlyAdmittedInitialLogo() {
+    // Given
+    UUID season = UUID.fromString("00000000-0000-4000-8000-000000000192");
+    UUID source = UUID.fromString("00000000-0000-4000-8000-000000000196");
+    UUID firstRequest = UUID.fromString("00000000-0000-4000-8000-000000000198");
+    runtime.sql.update(
+        "UPDATE sporting_season SET collection_state='PREPARING' WHERE id=?", season);
+    // Seed the already tested operator intent; admission and every subsequent write use HTTP.
+    runtime.sql.update(
+        "UPDATE collection_control SET enabled=FALSE,request_id=?,requested_mode='INITIAL_IMPORT' WHERE id=?",
+        firstRequest,
+        CONTROL);
+    runtime.sql.update(
+        "INSERT INTO collection_request_source(control_id,source_binding_id) VALUES (?,?)",
+        CONTROL,
+        source);
+    CollectorLifecycle.AdmittedCycle first = lifecycle.admit(CONTROL, null, 0, firstRequest);
+    imageStatus = 404;
+    assertThat(
+            passage(professional(), mock(ClubSheets.class), mock(MunicipalGeocoder.class))
+                .execute(first))
+        .isTrue();
+    UUID selected =
+        runtime.sql.queryForObject(
+            "SELECT id FROM sporting_team WHERE native_reference='HOME'", UUID.class);
+    UUID neighbor =
+        runtime.sql.queryForObject(
+            "SELECT id FROM sporting_team WHERE native_reference='AWAY'", UUID.class);
+    List<String> retained =
+        runtime.sql.queryForList(
+            "SELECT status FROM collection_initial_coverage WHERE scope_id=? ORDER BY phase",
+            String.class,
+            neighbor);
+    UUID retryRequest = UUID.fromString("00000000-0000-4000-8000-000000000199");
+    runtime.sql.update(
+        "UPDATE collection_control SET request_id=?,requested_mode='INITIAL_IMPORT' WHERE id=?",
+        retryRequest,
+        CONTROL);
+    runtime.sql.update(
+        "INSERT INTO collection_request_source(control_id,source_binding_id) VALUES (?,?)",
+        CONTROL,
+        source);
+    runtime.sql.update(
+        "INSERT INTO collection_request_scope(control_id,scope_id) VALUES (?,?)",
+        CONTROL,
+        selected);
+    long revision =
+        runtime.sql.queryForObject(
+            "SELECT revision FROM collection_control WHERE id=?", Long.class, CONTROL);
+    imageStatus = 200;
+
+    // When
+    CollectorLifecycle.AdmittedCycle retry = lifecycle.admit(CONTROL, null, revision, retryRequest);
+    CollectionBackend.TargetPage targets = backend.targets(retry.getCycle().id(), 0);
+    boolean completed =
+        passage(professional(), mock(ClubSheets.class), mock(MunicipalGeocoder.class))
+            .execute(retry);
+
+    // Then
+    assertThat(completed).isTrue();
+    assertThat(targets.items())
+        .singleElement()
+        .satisfies(
+            target -> {
+              assertThat(target.kind()).isEqualTo(CollectionTargetKindEnum.LOGO);
+              assertThat(target.scopeId()).isEqualTo(selected);
+              assertThat(target.nativeTeamReference()).isEqualTo("HOME");
+            });
+    assertThat(imageReads).hasValue(3);
+    assertThat(
+            runtime.sql.queryForObject(
+                "SELECT source_logo FROM sporting_team WHERE id=?", byte[].class, selected))
+        .isEqualTo(imageBody);
+    assertThat(
+            runtime.sql.queryForObject(
+                "SELECT source_logo FROM sporting_team WHERE id=?", byte[].class, neighbor))
+        .isNull();
+    assertThat(
+            runtime.sql.queryForList(
+                "SELECT status FROM collection_initial_coverage WHERE scope_id=? ORDER BY phase",
+                String.class,
+                neighbor))
+        .isEqualTo(retained);
+    assertThat(
+            runtime.sql.queryForList(
+                "SELECT DISTINCT accepted_cycle_order FROM sporting_match", Long.class))
+        .containsExactly(first.getCycle().cycleOrder());
+    assertThat(
+            runtime.sql.queryForList(
+                "SELECT status FROM collection_initial_coverage WHERE scope_id=? AND stage='LOGO' ORDER BY phase",
+                String.class,
+                selected))
+        .containsExactly("OBTAINED", "OBTAINED");
   }
 
   @ParameterizedTest
@@ -644,6 +742,8 @@ class CollectorPresentationBoundaryIntegrationTest {
   /**
    * Supplies controlled calendar interpretation while delegating every image GET to production
    * transport.
+   *
+   * @return controlled interpretation with actual bounded HTTP image reads
    */
   private LnvAcquisition professional() {
     LnvAcquisition lnv = mock(LnvAcquisition.class);
@@ -669,6 +769,8 @@ class CollectorPresentationBoundaryIntegrationTest {
   /**
    * Returns repeated attributable professional participants; pool context keeps match identities
    * distinct.
+   *
+   * @return attributable complete synthetic calendar
    */
   private SportingObservation.Calendar calendar() {
     SportingObservation.Team home = new SportingObservation.Team("Home", "HOME", null, null);

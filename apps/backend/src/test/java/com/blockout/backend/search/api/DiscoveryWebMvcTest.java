@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.blockout.backend.search.application.ReadSearch;
+import com.blockout.backend.search.application.ReadSearchOptions;
 import com.blockout.backend.search.application.SearchPage;
 import com.blockout.backend.search.application.SearchUnavailableException;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
@@ -45,6 +46,7 @@ import org.springframework.test.web.servlet.ResultActions;
 class DiscoveryWebMvcTest {
   @Autowired MockMvc mvc;
   @MockitoBean ReadSearch reads;
+  @MockitoBean private ReadSearchOptions options;
 
   @Test
   @DisplayName("Serializes only current club presentation with absent context omitted")

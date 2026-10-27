@@ -9,6 +9,7 @@ import com.blockout.backend.generated.mobile.model.SportGenderEnum;
 import com.blockout.backend.generated.mobile.model.SportingSearchOptionsResponse;
 import com.blockout.backend.generated.mobile.model.TeamSearchResponse;
 import com.blockout.backend.search.application.ReadSearch;
+import com.blockout.backend.search.application.ReadSearchOptions;
 import com.blockout.backend.search.application.SearchContext;
 import com.blockout.backend.search.application.SearchContinuation;
 import com.blockout.backend.search.application.SearchEngine;
@@ -28,6 +29,7 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor
 public class DiscoveryController implements DiscoveryApi {
   private final ReadSearch reads;
+  private final ReadSearchOptions options;
   private final DiscoveryRequest requests;
   private final DiscoveryApiMapper mapper;
   private final HttpServletRequest request;
@@ -102,8 +104,9 @@ public class DiscoveryController implements DiscoveryApi {
   public ResponseEntity<SportingSearchOptionsResponse> getSportingSearchOptions(
       SearchResourceTypeEnum resourceType, Boolean bypass) {
     requests.validateOptions(request);
-    // Current options are delivered by the separately owned US3 increment.
-    throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE);
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(mapper.toDto(options.read(resourceType)));
   }
 
   /**
