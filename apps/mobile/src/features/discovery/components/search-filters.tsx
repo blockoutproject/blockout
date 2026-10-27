@@ -80,6 +80,7 @@ export function SearchFilters() {
           <View style={styles.actions}>
             <Button
               label="Appliquer les filtres"
+              fullWidth
               onPress={() =>
                 void visit.draft.handleSubmit((draft) => {
                   apply(reconcileSearchFilters(draft, options));
@@ -89,6 +90,7 @@ export function SearchFilters() {
             />
             <Button
               label="Réinitialiser les filtres"
+              fullWidth
               variant="secondary"
               onPress={() =>
                 visit.draft.reset(reconcileSearchFilters(undefined, options))
