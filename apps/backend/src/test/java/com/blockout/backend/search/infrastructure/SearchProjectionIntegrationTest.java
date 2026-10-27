@@ -7,19 +7,29 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.blockout.backend.generated.mobile.model.ContactModeEnum;
 import com.blockout.backend.search.application.ProjectSearch;
 import com.blockout.backend.search.application.SearchDocuments;
+import com.blockout.backend.search.application.SearchEngine;
 import com.blockout.backend.search.application.SearchUnavailableException;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
+import com.blockout.backend.sporting.application.model.SportingPresentation.ContactEdit;
+import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
+import com.blockout.backend.sporting.application.service.ChangeClubContacts;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
+import com.blockout.backend.sporting.application.service.RestrictClubContacts;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -27,6 +37,8 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch.core.BulkRequest;
 import org.opensearch.client.opensearch.indices.OpenSearchIndicesClient;
@@ -35,18 +47,24 @@ import org.opensearch.client.opensearch.indices.UpdateAliasesRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 /** Migrated PostgreSQL, F02 event/read owners and real TLS engine; all indexes are synthetic. */
 @SpringBootTest
+@AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @Import({
   PostgresTestConfiguration.class,
@@ -68,6 +86,10 @@ class SearchProjectionIntegrationTest {
   @Autowired ProjectSearch projection;
   @Autowired OpenSearchProjectionWriter writer;
   @Autowired ThreadPoolTaskScheduler tasks;
+  @Autowired MockMvc mvc;
+  @Autowired JsonMapper json;
+  @Autowired ChangeClubContacts contacts;
+  @Autowired RestrictClubContacts restrictions;
 
   /**
    * Stops background work before the owned Spring context closes its infrastructure.
@@ -129,6 +151,201 @@ class SearchProjectionIntegrationTest {
 
     // Then
     assertThat(document("clubs", CLUB).names()).containsExactly("Committed club");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"clubs", "teams", "pools"})
+  @DisplayName("Finds current F02 names and context through native matching and F03 HTTP summaries")
+  void matchesOwnerFields(String resource) throws Exception {
+    // Given
+    participation();
+    sql.update("UPDATE sporting_club SET manual_name = 'Étoile Volley' WHERE id = ?", CLUB);
+    sql.update(
+        "UPDATE sporting_team SET manual_name = 'Comets', manual_short_name = 'teamshort' WHERE id = ?",
+        TEAM);
+    sql.update(
+        "UPDATE sporting_pool SET manual_name = 'Nebula', manual_short_name = 'poolshort' WHERE id = ?",
+        POOL);
+    sql.update("INSERT INTO sporting_division_term(division_id, term) VALUES (?, 'N2')", DIVISION);
+    UUID season = UUID.fromString("00000000-0000-4000-8000-000000000010");
+    sql.update(
+        "INSERT INTO sporting_club_alias(club_id, season_id, organizer_reference, competition_reference, comparison_name) VALUES (?, ?, 'synthetic', 'competition', 'clubalias')",
+        CLUB,
+        season);
+    sql.update(
+        "INSERT INTO sporting_team_alias(team_id, season_id, organizer_reference, competition_reference, comparison_name) VALUES (?, ?, 'synthetic', 'competition', 'teamalias')",
+        TEAM,
+        season);
+    sql.update(
+        "INSERT INTO sporting_pool_alias(pool_id, season_id, organizer_reference, competition_reference, comparison_name) VALUES (?, ?, 'synthetic', 'competition', 'poolalias')",
+        POOL,
+        season);
+    full();
+    UUID expected =
+        switch (resource) {
+          case "clubs" -> CLUB;
+          case "teams" -> TEAM;
+          case "pools" -> POOL;
+          default -> throw new IllegalArgumentException();
+        };
+    String identity = resource.substring(0, resource.length() - 1);
+    List<String> terms =
+        switch (resource) {
+          case "clubs" -> List.of("Original club", "ÉTOILE", "eto", "clubalias", "Lyon");
+          case "teams" ->
+              List.of(
+                  "Eagles",
+                  "Comets",
+                  "teamshort",
+                  "teamalias",
+                  "Étoile Volley",
+                  "Lyon",
+                  "Original division",
+                  "N2",
+                  "féminin",
+                  "6x6",
+                  "teamalias Lyon N2 feminin 6x6");
+          case "pools" ->
+              List.of(
+                  "Synthetic pool",
+                  "Nebula",
+                  "poolshort",
+                  "poolalias",
+                  "Original division",
+                  "N2",
+                  "féminin",
+                  "6x6",
+                  "poolalias N2 feminin 6x6");
+          default -> throw new IllegalArgumentException();
+        };
+
+    // When
+    for (String term : terms) {
+      JsonNode matches = results(resource, term);
+
+      // Then
+      assertThat(matches.size()).as("%s matching %s", resource, term).isEqualTo(1);
+      assertThat(matches.get(0).path(identity).path("id").asText()).isEqualTo(expected.toString());
+      assertThat(matches.get(0).path(identity).path("name").asText())
+          .isEqualTo(
+              switch (resource) {
+                case "clubs" -> "Étoile Volley";
+                case "teams" -> "Comets";
+                case "pools" -> "Nebula";
+                default -> throw new IllegalArgumentException();
+              });
+    }
+    assertThat(results("clubs", "N2").isEmpty()).isTrue();
+    assertThat(results("pools", "Lyon").isEmpty()).isTrue();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"corrected", "absent", "restricted"})
+  @DisplayName("Current city decisions win in HTTP before queued projection catch-up")
+  void enforcesCityBeforeCatchUp(String decision) throws Exception {
+    // Given
+    participation();
+    full();
+    UUID operator = UUID.fromString("00000000-0000-4000-8000-000000000224");
+    sql.update("DELETE FROM account WHERE id = ?", operator);
+    sql.update(
+        "INSERT INTO account(id, issuer, subject, username, email) VALUES (?, 'https://identity.example.invalid/', 'auth0|search224', 'Search_224', 'search224@example.invalid')",
+        operator);
+    sql.update(
+        "INSERT INTO account_permission(account_id, permission) VALUES (?, 'sporting-presentation.manage')",
+        operator);
+    assertThat(results("clubs", "Lyon").size()).isEqualTo(1);
+    assertThat(results("teams", "Eagles Lyon").size()).isEqualTo(1);
+    CountDownLatch blocked = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    tasks.execute(
+        () -> {
+          blocked.countDown();
+          try {
+            if (!release.await(20, TimeUnit.SECONDS))
+              throw new IllegalStateException("Fixture gate expired");
+          } catch (InterruptedException failure) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(failure);
+          }
+        });
+    try {
+      assertThat(blocked.await(5, TimeUnit.SECONDS)).isTrue();
+
+      // When
+      if (decision.equals("restricted")) restrictions.restrict(CLUB, Set.of(ContactField.CITY));
+      else
+        contacts.correct(
+            operator,
+            CLUB,
+            "0",
+            Map.of(
+                ContactField.CITY,
+                new ContactEdit(
+                    decision.equals("corrected") ? ContactModeEnum.MANUAL : ContactModeEnum.HIDDEN,
+                    decision.equals("corrected") ? "Paris" : null)));
+
+      // Then
+      assertThat(document("clubs", CLUB).city()).isEqualTo("Lyon");
+      assertThat(document("teams", TEAM).city()).isEqualTo("Lyon");
+      assertThat(results("clubs", "Lyon").isEmpty()).isTrue();
+      assertThat(results("teams", "Lyon").isEmpty()).isTrue();
+      assertThat(results("clubs", "Original").isEmpty()).isTrue();
+      assertThat(results("teams", "Eagles").isEmpty()).isTrue();
+    } finally {
+      release.countDown();
+      drain();
+    }
+
+    // When
+    JsonNode clubs = results("clubs", "Original");
+    JsonNode teams = results("teams", "Eagles");
+
+    // Then
+    assertThat(clubs.size()).isEqualTo(1);
+    assertThat(teams.size()).isEqualTo(1);
+    assertThat(clubs.get(0).path("club").path("id").asText()).isEqualTo(CLUB.toString());
+    assertThat(teams.get(0).path("team").path("id").asText()).isEqualTo(TEAM.toString());
+    assertThat(results("clubs", "Lyon").isEmpty()).isTrue();
+    assertThat(results("teams", "Lyon").isEmpty()).isTrue();
+    if (decision.equals("corrected")) {
+      assertThat(clubs.get(0).path("city").asText()).isEqualTo("Paris");
+      assertThat(results("clubs", "Paris").size()).isEqualTo(1);
+      assertThat(results("teams", "Paris").size()).isEqualTo(1);
+    } else assertThat(clubs.get(0).hasNonNull("city")).isFalse();
+  }
+
+  @Test
+  @DisplayName("Changed source names and verified aliases converge without keeping name history")
+  void convergesNamesAndAliases() throws Exception {
+    // Given
+    participation();
+    sql.update("UPDATE sporting_team SET manual_name = 'Comets' WHERE id = ?", TEAM);
+    sql.update(
+        "INSERT INTO sporting_team_alias(team_id, season_id, organizer_reference, competition_reference, comparison_name) SELECT id, season_id, organizer_reference, competition_reference, 'nightbirds' FROM sporting_team WHERE id = ?",
+        TEAM);
+    full();
+    assertThat(results("teams", "Eagles nightbirds").size()).isEqualTo(1);
+
+    // When
+    new TransactionTemplate(transactions)
+        .executeWithoutResult(
+            status -> {
+              sql.update("UPDATE sporting_team SET source_name = 'Falcons' WHERE id = ?", TEAM);
+              sql.update(
+                  "UPDATE sporting_team_alias SET comparison_name = 'constellation' WHERE team_id = ?",
+                  TEAM);
+              changes.submit(SportingProjectionChanges.Kind.TEAM, TEAM);
+            });
+    drain();
+    JsonNode current = results("teams", "Falcons constellation");
+
+    // Then
+    assertThat(current.size()).isEqualTo(1);
+    assertThat(current.get(0).path("team").path("id").asText()).isEqualTo(TEAM.toString());
+    assertThat(current.get(0).path("team").path("name").asText()).isEqualTo("Comets");
+    assertThat(results("teams", "Eagles").isEmpty()).isTrue();
+    assertThat(results("teams", "nightbirds").isEmpty()).isTrue();
   }
 
   @Test
@@ -502,6 +719,24 @@ class SearchProjectionIntegrationTest {
   }
 
   /**
+   * Reads the actual generated HTTP boundary, including current owner hydration and mapping.
+   *
+   * @param resource clubs, teams or pools
+   * @param text nonempty complete native query
+   * @return the public collection after no-store and successful-response checks
+   */
+  private JsonNode results(String resource, String text) throws Exception {
+    return json.readTree(
+            mvc.perform(get("/" + resource).param("q", text))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString())
+        .path(resource);
+  }
+
+  /**
    * Reads the current native alias document for the explicit fixture identity.
    *
    * @param resource clubs, teams or pools
@@ -573,6 +808,18 @@ class SearchProjectionIntegrationTest {
     @Bean(initMethod = "startEngine", destroyMethod = "close")
     SearchTestEngine nativeEngine() {
       return new SearchTestEngine();
+    }
+
+    /**
+     * Uses this suite's actual native aliases for the production HTTP read path.
+     *
+     * @param nativeEngine context-owned TLS engine also used by projection writes
+     * @return native candidate adapter; SQL hydration and HTTP mapping remain production beans
+     */
+    @Bean
+    @Primary
+    SearchEngine searchEngine(SearchTestEngine nativeEngine) {
+      return new OpenSearchEngine(nativeEngine.client, new SearchIndexProperties(PREFIX));
     }
 
     /**
