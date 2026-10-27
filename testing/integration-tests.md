@@ -2046,21 +2046,21 @@ Source: [apps/backend/src/test/java/com/blockout/backend/search/infrastructure/S
 
 Real: Migrated PostgreSQL, real owner services/commit callbacks, scheduler, OpenSearch projection/alias writes and generated HTTP reads with F03 summaries. Controlled: Native client spies assert SQL independence or inject selected failures while other operations stay real; a latch holds projection work during current-city HTTP checks. Lifecycle: Context-owned engine and scheduler; class context closed; SQL reset and drained scheduler before each method; explicit transactions/joins.
 
-| Scenario                          | Evidence / regression guarded                                                               |
-| --------------------------------- | ------------------------------------------------------------------------------------------- |
-| `distinguishesCommitFromRollback` | Publishes committed names while rollback leaves the usable document unchanged               |
-| `matchesOwnerFields`              | Current available club/team/pool fields match once under the public name through HTTP       |
-| `enforcesCityBeforeCatchUp`       | Corrected, absent and restricted cities override stale native candidates before catch-up    |
-| `convergesNamesAndAliases`        | Changed source names and verified aliases converge without retaining arbitrary name history |
-| `rereadsQueuedChanges`            | Queued updates reread the latest committed state after a serialized full rebuild            |
-| `updatesDependentScopes`          | Club, division and participation scopes update or delete their actual F02 dependents        |
-| `catchesLostWork`                 | A full run catches up SQL changes that had no in-memory submission                          |
-| `preservesAliasesOnFailedItem`    | Failed native bulk items leave every previous resource alias usable                         |
-| `preservesAliasesOnFailedRefresh` | An unavailable refresh preserves the preceding complete generation                          |
-| `resolvesUncertainAliasSuccess`   | A lost alias acknowledgement is resolved from native aliases before cleanup                 |
-| `preservesInFlightCandidates`     | Preserves candidates when a timed-out alias request applies after the state reread          |
-| `preservesUncertainOldAliases`    | An interrupted alias request preserves the old usable aliases                               |
-| `boundsOwnedCleanup`              | Cleanup removes at most twelve unaliased owned generations and preserves unrelated indexes  |
+| Scenario                          | Evidence / regression guarded                                                                       |
+| --------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `distinguishesCommitFromRollback` | Publishes committed names while rollback leaves the usable document unchanged                       |
+| `matchesOwnerFields`              | Current fields match once through HTTP; N2 excludes visible team/pool witnesses in another division |
+| `enforcesCityBeforeCatchUp`       | Corrected, absent and restricted cities override stale native candidates before catch-up            |
+| `convergesNamesAndAliases`        | Changed source names and verified aliases converge without retaining arbitrary name history         |
+| `rereadsQueuedChanges`            | Queued updates reread the latest committed state after a serialized full rebuild                    |
+| `updatesDependentScopes`          | Club, division and participation scopes update or delete their actual F02 dependents                |
+| `catchesLostWork`                 | A full run catches up SQL changes that had no in-memory submission                                  |
+| `preservesAliasesOnFailedItem`    | Failed native bulk items leave every previous resource alias usable                                 |
+| `preservesAliasesOnFailedRefresh` | An unavailable refresh preserves the preceding complete generation                                  |
+| `resolvesUncertainAliasSuccess`   | A lost alias acknowledgement is resolved from native aliases before cleanup                         |
+| `preservesInFlightCandidates`     | Preserves candidates when a timed-out alias request applies after the state reread                  |
+| `preservesUncertainOldAliases`    | An interrupted alias request preserves the old usable aliases                                       |
+| `boundsOwnedCleanup`              | Cleanup removes at most twelve unaliased owned generations and preserves unrelated indexes          |
 
 ### CollectorApplicationSmokeTest
 
