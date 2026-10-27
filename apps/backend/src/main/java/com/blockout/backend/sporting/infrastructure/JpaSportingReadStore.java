@@ -2,6 +2,8 @@ package com.blockout.backend.sporting.infrastructure;
 
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
+import com.blockout.backend.sporting.application.SportingSeasonSelection;
+import com.blockout.backend.sporting.application.SportingSeasonSelection.Season;
 import com.blockout.backend.sporting.application.model.SportingPublicInput;
 import com.blockout.backend.sporting.application.model.SportingPublicInput.Alias;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
@@ -10,6 +12,10 @@ import com.blockout.backend.sporting.application.model.SportingVisibility;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Reason;
 import com.blockout.backend.sporting.application.port.SportingReadStore;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -24,10 +30,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
-/** Canonical JPA reads; search engines and retained follows never authorize public hydration. */
+/**
+ * Canonical JPA reads and scalar selections; search engines and retained follows never authorize
+ * public hydration.
+ */
 @Repository
 @RequiredArgsConstructor
-public class JpaSportingReadStore implements SportingReadStore {
+public class JpaSportingReadStore implements SportingReadStore, SportingSeasonSelection {
   private final ClubRepository clubs;
   private final PoolRepository pools;
   private final TeamRepository teams;
@@ -99,6 +108,27 @@ public class JpaSportingReadStore implements SportingReadStore {
     if (divisionId == null) reasons.add(Reason.UNCLASSIFIED);
     else if (!divisionActive) reasons.add(Reason.DIVISION_INACTIVE);
     return reasons;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Season select(CriteriaQuery<?> query, CriteriaBuilder builder) {
+    Root<SeasonEntity> season = query.from(SeasonEntity.class);
+    Subquery<UUID> pools = query.subquery(UUID.class);
+    Root<PoolEntity> pool = pools.from(PoolEntity.class);
+    pools
+        .select(pool.get("id"))
+        .where(
+            builder.equal(pool.get("season"), season),
+            SportingVisibilityPredicates.pool(pool, builder));
+    Subquery<UUID> teams = query.subquery(UUID.class);
+    Root<TeamEntity> team = teams.from(TeamEntity.class);
+    teams
+        .select(team.get("id"))
+        .where(
+            builder.equal(team.get("season"), season),
+            SportingVisibilityPredicates.team(teams, team, builder));
+    return new Season(season.get("id"), season.get("startYear"), season.get("label"), pools, teams);
   }
 
   /** {@inheritDoc} */
