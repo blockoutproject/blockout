@@ -67,7 +67,8 @@ function Inbox({
   queries: NonNullable<ReturnType<typeof useInboxQueries>["queries"]>;
 }) {
   const client = useQueryClient();
-  const query = useInfiniteQuery(queries.inbox);
+  // Focus owns opening reads; the native observer still owns data, paging and fetch state.
+  const query = useInfiniteQuery({ ...queries.inbox, enabled: false });
   const command = useMutation(
     createReadNotificationOptions(client, owner, queries),
   );
@@ -88,10 +89,8 @@ function Inbox({
 
   /** Opening/focus requests the first page and whole summary; failure retains authorized content. */
   const open = useEffectEvent(() => {
-    void client
-      .fetchInfiniteQuery({ ...queries.inbox, staleTime: 0, pages: 1 })
-      .catch(() => undefined);
-    void client.fetchQuery(queries.summary).catch(() => undefined);
+    void refreshInbox(client, queries).catch(() => undefined);
+    void refreshNotificationSummary(client, queries).catch(() => undefined);
   });
   useEffect(() => {
     if (navigation.isFocused()) open();

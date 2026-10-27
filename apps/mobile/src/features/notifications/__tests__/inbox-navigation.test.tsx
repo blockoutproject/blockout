@@ -1,6 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   cleanup,
+  act,
   fireEvent,
   screen,
   userEvent,
@@ -195,4 +196,53 @@ it("removes the zero-count tab badge after a confirmed summary refresh", async (
     await screen.findByRole("button", { name: "Notifications" }),
   ).toBeOnTheScreen();
   expect(screen.queryByText("7")).toBeNull();
+});
+
+it("restarts from newest on tab return while a continuation is still in flight", async () => {
+  // Given
+  const delayed = Promise.withResolvers<Response>();
+  const newest = {
+    ...row,
+    id: "00000000-0000-4000-8000-000000000239",
+    title: "Nouvelle information sportive",
+  };
+  let firstPage = true;
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) throw new Error("Synthetic HTTP implementation is required");
+  mockFetch.mockImplementation((url: string, init: RequestInit) => {
+    const target = new URL(url);
+    if (!target.pathname.endsWith("/notifications")) return ordinary(url, init);
+    if (target.searchParams.has("cursor")) return delayed.promise;
+    if (firstPage) {
+      firstPage = false;
+      return Promise.resolve(
+        Response.json({ notifications: [row], nextCursor: "boundary" }),
+      );
+    }
+    return Promise.resolve(Response.json({ notifications: [newest] }));
+  });
+  await openInbox();
+  const user = userEvent.setup();
+  await user.press(
+    await screen.findByRole("button", { name: "Charger la suite" }),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Profil" }));
+  await waitFor(() => expect(screen).toHavePathname("/profile"));
+  await user.press(
+    screen.getByRole("button", { name: "Notifications, 7 non lues" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: /^Nouvelle information/ }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("link", { name: /^Le résultat/ })).toBeNull();
+  await act(async () =>
+    delayed.resolve(Response.json({ notifications: [row] })),
+  );
+  expect(
+    screen.getByRole("link", { name: /^Nouvelle information/ }),
+  ).toBeOnTheScreen();
 });

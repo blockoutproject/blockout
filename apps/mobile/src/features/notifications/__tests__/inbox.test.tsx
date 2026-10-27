@@ -323,3 +323,31 @@ it("presents an initial list error when the summary refuses access during its pe
     data: undefined,
   });
 });
+
+it.each(["inbox", "summary"] as const)(
+  "removes the original owner's retained data after a %s 404",
+  async (resource) => {
+    // Given
+    const { queries } = context();
+    client.setQueryData(queries.inbox.queryKey, {
+      pages: [{ notifications: [row] }],
+      pageParams: [undefined],
+    });
+    client.setQueryData(queries.summary.queryKey, {
+      unreadCount: 7,
+      nextExpiryAt: "2026-11-01T00:00:00Z",
+    });
+    mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
+
+    // When
+    await (
+      resource === "inbox"
+        ? client.fetchInfiniteQuery(queries.inbox)
+        : client.fetchQuery(queries.summary)
+    ).catch(() => undefined);
+
+    // Then
+    expect(client.getQueryData(queries.inbox.queryKey)).toBeUndefined();
+    expect(client.getQueryData(queries.summary.queryKey)).toBeUndefined();
+  },
+);

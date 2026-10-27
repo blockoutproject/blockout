@@ -163,7 +163,7 @@ export async function refreshNotificationSummary(
 }
 
 /**
- * Applies a known current owner refusal across private list/count observers. Older reads are
+ * Applies a known current owner refusal or missing owner across private list/count observers. Older reads are
  * cancelled; both representations enter ordinary error state so an initial read can be retried.
  * The failing query finishes its own native error transition when its key is supplied.
  */
@@ -176,7 +176,7 @@ export function refuseInboxAccess(
   if (
     !owner.isCurrent(owner.generation) ||
     !(error instanceof ApiError) ||
-    !isAccessDenied(error)
+    !(isAccessDenied(error) || error.status === 404)
   )
     return;
   const keys = getNotificationKeys(owner);

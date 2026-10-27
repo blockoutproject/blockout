@@ -70,17 +70,17 @@ export function createReadNotificationOptions(
       .getQueryCache()
       .find({ queryKey: queries.summary.queryKey, exact: true })
       ?.setState({ data: undefined, dataUpdatedAt: 0 });
-    // Native active observers perform ordinary refresh; failure keeps authorized inbox pages.
+    // Ordinary synchronization replaces traversal only on success, including a currently inactive tab.
     void client.invalidateQueries({
       queryKey: queries.inbox.queryKey,
       exact: true,
       refetchType: "none",
     });
     if (
-      client
+      (client
         .getQueryCache()
         .find({ queryKey: queries.inbox.queryKey, exact: true })
-        ?.isActive()
+        ?.getObserversCount() ?? 0) > 0
     )
       void refreshInbox(client, queries).catch(() => undefined);
     void client.invalidateQueries({
@@ -113,9 +113,9 @@ export function createReadNotificationOptions(
           const current = await client.fetchQuery(queries.detail(id));
           if (current.read) return current;
         } catch (observation) {
-          refuseInboxAccess(client, owner, observation);
           if (observation instanceof ApiError && observation.status === 404)
             await reconcile(id);
+          else refuseInboxAccess(client, owner, observation);
         }
         throw error;
       }
