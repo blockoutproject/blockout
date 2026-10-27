@@ -183,7 +183,7 @@ public class RecordCollectionResults {
           case SUCCESS -> InitialCoverage.Status.OBTAINED;
           case PARTIAL -> InitialCoverage.Status.REJECTED;
           case FAILED ->
-              isStructuralReason(command.reasonType())
+              isRejectedReason(command.reasonType())
                   ? InitialCoverage.Status.REJECTED
                   : InitialCoverage.Status.UNAVAILABLE;
           case UNCONFIRMED -> InitialCoverage.Status.UNAVAILABLE;
@@ -222,6 +222,18 @@ public class RecordCollectionResults {
             .matchPoolId(scopeId)
             .map(pool -> store.containsTarget(cycleId, pool, CollectionTargetKindEnum.CALENDAR))
             .orElse(false);
+  }
+
+  /**
+   * Distinguishes explicit acquisition/content refusals from technical or unclassified failures.
+   *
+   * @param reasonType original typed acquisition or F02 outcome, never a parsed diagnostic
+   * @return whether actual evidence establishes rejected content
+   */
+  private static boolean isRejectedReason(URI reasonType) {
+    return isStructuralReason(reasonType)
+        || URI.create("urn:blockout:problem:unprocessable-content").equals(reasonType)
+        || URI.create("urn:blockout:problem:stale-observation").equals(reasonType);
   }
 
   /**

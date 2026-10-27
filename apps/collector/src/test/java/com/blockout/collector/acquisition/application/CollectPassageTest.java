@@ -818,6 +818,7 @@ class CollectPassageTest {
       assertThat(last.obtainedCount()).isEqualTo(1);
       assertThat(last.rejectedCount()).isEqualTo(1);
       assertThat(last.reason()).contains("Information-sheet association", "document-refused");
+      assertThat(last.reasonType()).isEqualTo(URI.create("urn:blockout:document-refused"));
     }
   }
 

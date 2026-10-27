@@ -283,6 +283,55 @@ class CollectorSportingBoundaryIntegrationTest {
         .containsExactlyInAnyOrder("cycleId", "readOrdinal", "observedAt");
   }
 
+  @Test
+  @DisplayName(
+      "A complete real F02 refusal remains rejected initial coverage through the collector")
+  void reportsRejectedInitialIntegration() {
+    // Given
+    UUID request = UUID.fromString("00000000-0000-4000-8000-000000000198");
+    runtime.sql.update(
+        "UPDATE sporting_season SET collection_state='PREPARING' WHERE id=?", SEASON);
+    runtime.sql.update(
+        "UPDATE collection_control SET request_id=?,requested_mode='INITIAL_IMPORT' WHERE id=?",
+        request,
+        CONTROL);
+    runtime.sql.update(
+        "INSERT INTO collection_request_source(control_id,source_binding_id) VALUES (?,?)",
+        CONTROL,
+        SOURCE);
+    CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, request);
+    runtime.sql.update("UPDATE sporting_pool SET setting_format='_4X4' WHERE id=?", POOL);
+    FfvbAcquisition provider = mock(FfvbAcquisition.class);
+    FfvbAcquisition.Resource resource = mock(FfvbAcquisition.Resource.class);
+    when(provider.resourceUrl(any()))
+        .thenAnswer(call -> ((CollectionBackend.Target) call.getArgument(0)).url());
+    when(provider.read(any())).thenReturn(resource);
+    when(resource.calendar(any()))
+        .thenReturn(new FfvbAcquisition.Read<>(calendar("M1", LocalDate.of(2026, 10, 24)), NOW));
+
+    // When
+    boolean completed = passage(provider).execute(cycle);
+
+    // Then
+    assertThat(completed).isTrue();
+    assertThat(
+            runtime.sql.queryForMap(
+                "SELECT outcome,obtained_count,rejected_count,reason_type FROM collection_result WHERE scope_id=? AND stage='CALENDAR' AND phase='INTEGRATION'",
+                POOL))
+        .containsEntry("outcome", "FAILED")
+        .containsEntry("obtained_count", 0L)
+        .containsEntry("rejected_count", 1L)
+        .containsEntry("reason_type", "urn:blockout:problem:unprocessable-content");
+    assertThat(
+            runtime.sql.queryForObject(
+                "SELECT status FROM collection_initial_coverage WHERE scope_id=? AND stage='CALENDAR' AND phase='INTEGRATION'",
+                String.class,
+                POOL))
+        .isEqualTo("REJECTED");
+    assertThat(runtime.sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Integer.class))
+        .isZero();
+  }
+
   @ParameterizedTest
   @ValueSource(strings = {"technical", "context"})
   @DisplayName("Generated validation transport retains the actual unavailable or refused category")

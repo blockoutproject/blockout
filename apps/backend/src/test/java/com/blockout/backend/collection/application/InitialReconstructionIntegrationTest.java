@@ -39,6 +39,7 @@ import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
+import com.blockout.backend.generated.ingestion.model.StandingsPublicationStateEnum;
 import com.blockout.backend.notifications.application.AfterCommitAnnouncements;
 import com.blockout.backend.search.application.ProjectSearch;
 import com.blockout.backend.search.application.SearchDocuments;
@@ -51,10 +52,13 @@ import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
+import com.blockout.backend.sporting.application.model.StandingsObservation;
+import com.blockout.backend.sporting.application.model.StandingsView;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.service.AcceptCalendar;
 import com.blockout.backend.sporting.application.service.AcceptMatchObservation;
 import com.blockout.backend.sporting.application.service.AcceptSourceImage;
+import com.blockout.backend.sporting.application.service.AcceptStandings;
 import com.blockout.backend.sporting.application.service.ReadCollectionSeasons;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
 import com.blockout.backend.sporting.application.service.ValidateSportingImage;
@@ -125,6 +129,7 @@ class InitialReconstructionIntegrationTest {
   @Autowired private ReadCollectionConfiguration configuration;
   @Autowired private SportingIdentityFixture identities;
   @Autowired private AcceptCalendar calendars;
+  @Autowired private AcceptStandings standings;
   @Autowired private AcceptSourceImage sourceImages;
   @Autowired private AcceptMatchObservation matches;
   @Autowired private SportingObservationMapper mapper;
@@ -838,6 +843,104 @@ class InitialReconstructionIntegrationTest {
                     "ABCCS",
                     URI.create(source.candidateUrl())))
         .isInstanceOf(CollectionConflictException.class);
+  }
+
+  @Test
+  @DisplayName("A published empty initial standings observation preserves the accepted table")
+  void preservesEmptyInitialStandings() {
+    // Given
+    Source source = qualified(2023, "ABCCS");
+    UUID pool = pool(source, "P1");
+    sql.update(
+        "UPDATE sporting_pool SET standings_url=? WHERE id=?",
+        "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_classement.php",
+        pool);
+    Cycle cycle = admit(request(source, Set.of()));
+    calendars.accept(
+        pool,
+        new CalendarObservation(
+            context(cycle, 1),
+            true,
+            List.of(candidate("M1", "Synthetic home", LocalDate.of(2023, 10, 1))),
+            List.of(),
+            List.of()));
+    standings.accept(
+        pool,
+        new StandingsObservation(
+            context(cycle, 2),
+            StandingsPublicationStateEnum.PUBLISHED,
+            List.of("points"),
+            List.of(
+                new StandingsObservation.Row("Synthetic home", null, 1, Map.of("points", "9")))));
+    StandingsView retained = sportingReads.publicStandings(pool).orElseThrow();
+
+    // When
+    standings.accept(
+        pool,
+        new StandingsObservation(
+            new MatchObservation.Context(cycle.id(), 3, NOW.plusSeconds(30), null),
+            StandingsPublicationStateEnum.PUBLISHED,
+            List.of("points"),
+            List.of()));
+
+    // Then
+    StandingsView current = sportingReads.publicStandings(pool).orElseThrow();
+    assertThat(current.rows()).isEqualTo(retained.rows());
+    assertThat(current.columns()).isEqualTo(retained.columns());
+    assertThat(current.tableObservedAt()).isEqualTo(retained.tableObservedAt());
+    assertThat(current.observedAt()).isEqualTo(NOW.plusSeconds(30));
+    assertThat(current.readOrdinal()).isEqualTo(3);
+  }
+
+  @Test
+  @DisplayName("A complete F02 content refusal is rejected coverage in the initial report")
+  void reportsRejectedIntegration() {
+    // Given
+    Source source = qualified(2023, "ABCCS");
+    UUID pool = pool(source, "P1");
+    Cycle cycle = admit(request(source, Set.of()));
+    sql.update("UPDATE sporting_pool SET setting_format='_4X4' WHERE id=?", pool);
+    com.blockout.backend.sporting.application.model.ObservationOutcome.Calendar refused =
+        calendars.accept(
+            pool,
+            new CalendarObservation(
+                context(cycle, 1),
+                true,
+                List.of(candidate("M1", "Synthetic home", LocalDate.of(2023, 10, 1))),
+                List.of(),
+                List.of()));
+
+    assertThat(refused.rejectedCount()).isEqualTo(1);
+
+    // When
+    results.record(
+        cycle.id(),
+        new RecordCollectionResult(
+            pool,
+            CollectionStageEnum.CALENDAR,
+            CollectionPhaseEnum.INTEGRATION,
+            1,
+            NOW,
+            CollectionOutcomeEnum.FAILED,
+            refused.outcomes().getFirst().reasonType(),
+            null,
+            0L,
+            (long) refused.rejectedCount()));
+
+    // Then
+    assertThat(reconstruction.report(OPERATOR, source.seasonId(), 0, 200).coverage().items())
+        .filteredOn(
+            row ->
+                row.scopeId().equals(pool)
+                    && row.stage() == CollectionStageEnum.CALENDAR
+                    && row.phase() == CollectionPhaseEnum.INTEGRATION)
+        .singleElement()
+        .satisfies(
+            row -> {
+              assertThat(row.status()).isEqualTo(InitialCoverage.Status.REJECTED);
+              assertThat(row.obtainedCount()).isZero();
+              assertThat(row.rejectedCount()).isEqualTo(1);
+            });
   }
 
   @Test
