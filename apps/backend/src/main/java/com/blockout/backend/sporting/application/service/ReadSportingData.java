@@ -7,6 +7,7 @@ import com.blockout.backend.sporting.application.model.SportingModelMapper;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingPublicInput;
 import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
+import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionView;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
@@ -45,6 +46,25 @@ public class ReadSportingData {
    */
   public Optional<SportingVisibility> visibility(Kind kind, UUID id) {
     return publicReads.visibility(kind, id);
+  }
+
+  /**
+   * Reads current filter seasons directly from sporting visibility, independently of an index.
+   *
+   * @param kind TEAM or POOL
+   * @return distinct canonical seasons newest first, including viewable closed seasons
+   */
+  public List<SeasonView> publicSeasons(Kind kind) {
+    return publicReads.viewableSeasons(kind);
+  }
+
+  /**
+   * Reads all active divisions independently of the current result set.
+   *
+   * @return effective division presentation ordered by case-folded name, then UUID
+   */
+  public List<DivisionDetail> publicDivisions() {
+    return store.divisions(false);
   }
 
   /**

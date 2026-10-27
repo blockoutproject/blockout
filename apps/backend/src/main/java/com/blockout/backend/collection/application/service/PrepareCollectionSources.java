@@ -213,6 +213,7 @@ public class PrepareCollectionSources {
         .validatedAt(null)
         .seasonEvidence(null)
         .reason(null)
+        .reasonType(null)
         .seasonConfirmed(false);
   }
 }

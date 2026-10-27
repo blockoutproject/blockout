@@ -31,6 +31,14 @@ public interface SportingReadStore {
   Set<UUID> viewablePoolTeamIds(UUID poolId);
 
   /**
+   * Selects distinct seasons containing currently viewable resources of one sporting kind.
+   *
+   * @param kind TEAM or POOL; other resource kinds have no sporting filter choices
+   * @return canonical seasons ordered by descending start year, then UUID
+   */
+  List<SeasonView> viewableSeasons(Kind kind);
+
+  /**
    * Selects distinct seasons from currently viewable teams without hydrating search inputs.
    *
    * @param clubId exact retained organization

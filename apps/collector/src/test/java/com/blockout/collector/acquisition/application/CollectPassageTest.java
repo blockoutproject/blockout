@@ -429,6 +429,75 @@ class CollectPassageTest {
   @Nested
   @DisplayName("LNV match and image enrichment")
   class LnvEnrichment {
+    @Test
+    @DisplayName("An explicit logo target reads only its image and submits no sporting neighbors")
+    void retriesOnlySelectedLogo() {
+      // Given
+      when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
+      when(backend.register(0, lifecycle.getIncarnationId()))
+          .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
+      lifecycle.start();
+      when(backend.admit(any()))
+          .thenAnswer(
+              call -> {
+                CollectionBackend.StartCycle command = call.getArgument(0);
+                return new CollectionBackend.Cycle(
+                    command.cycleId(),
+                    command.incarnationId(),
+                    command.controlId(),
+                    null,
+                    1,
+                    CollectionModeEnum.INITIAL_IMPORT,
+                    CollectionCycleStateEnum.RUNNING,
+                    false,
+                    null);
+              });
+      CollectorLifecycle.AdmittedCycle admitted =
+          lifecycle.admit(
+              CONTROL, null, 0, UUID.fromString("00000000-0000-4000-8000-000000000179"));
+      UUID team = UUID.fromString("00000000-0000-4000-8000-000000000173");
+      URI page =
+          URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
+      URI selected = URI.create("https://images.dataproject.com/lnv/selected.png");
+      URI neighbor = URI.create("https://images.dataproject.com/lnv/neighbor.png");
+      byte[] image = {1, 2, 3};
+      CollectionBackend.Target target =
+          target(CollectionTargetKindEnum.LOGO).toBuilder()
+              .scopeId(team)
+              .provider(CollectionProviderEnum.LNV)
+              .url(page)
+              .nativeTeamReference("100")
+              .build();
+      when(backend.targets(admitted.getCycle().id(), 0))
+          .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
+      LnvAcquisition.Resource resource = mock(LnvAcquisition.Resource.class);
+      when(lnv.read(page)).thenReturn(resource);
+      when(resource.calendar(any()))
+          .thenReturn(
+              new LnvAcquisition.Calendar(
+                  new SportingObservation.Calendar(true, List.of(), List.of(), List.of()),
+                  Map.of("100", selected, "101", neighbor),
+                  NOW,
+                  null));
+      when(lnv.image(selected)).thenReturn(new LnvAcquisition.Read<>(image, NOW));
+      when(sporting.logo(eq(team), any(), eq(image)))
+          .thenReturn(
+              new SportingObservation.Outcome(
+                  "100", ObservationOutcomeEnum.ACCEPTED, team, null, null, null));
+      when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+
+      // When
+      passage.execute(admitted);
+
+      // Then
+      verify(lnv).image(selected);
+      verify(lnv, never()).image(neighbor);
+      verify(sporting).logo(eq(team), any(), eq(image));
+      verify(sporting, never()).calendar(any(), any(), any());
+      verify(sporting, never()).standings(any(), any(), any());
+      verify(sporting, never()).detail(any(), any(), any());
+      verifyNoInteractions(discovery);
+    }
 
     @ParameterizedTest
     @CsvSource({"FRESH, 4, SUCCESS", "FAILED, 2, FAILED", "CACHED, 0, SUCCESS"})
@@ -749,6 +818,7 @@ class CollectPassageTest {
       assertThat(last.obtainedCount()).isEqualTo(1);
       assertThat(last.rejectedCount()).isEqualTo(1);
       assertThat(last.reason()).contains("Information-sheet association", "document-refused");
+      assertThat(last.reasonType()).isEqualTo(URI.create("urn:blockout:document-refused"));
     }
   }
 

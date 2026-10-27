@@ -174,9 +174,12 @@ lost acknowledgement. [Clock cases](../../apps/mobile/src/features/notifications
 exercise the 29-elapsed-day cutoff and an unloaded summary expiry without a partial-page count.
 [Screen cases](../../apps/mobile/src/features/notifications/__tests__/inbox-screen.test.tsx) use real
 session/admission/Query owners with controlled native/HTTP I/O; [route cases](../../apps/mobile/src/features/notifications/__tests__/inbox-navigation.test.tsx)
-exercise Expo Router tabs, exact match navigation, guest return and zero badge removal.
+exercise Expo Router tabs, the current public search stack and its retained draft, exact match
+navigation, guest return and zero badge removal.
 
-The native route group follows the existing ordinary access stack. Page content, feedback,
+The native route group follows the existing ordinary access stack. Home delegates to F06
+PersonalScreen after the entry/age/guest guards. Search retains F04
+SearchVisitProvider and its index/filter/choice stack under its tab. Page content, feedback,
 sporting artwork and contextual palettes remain with their existing owners. Design references are
 Product Design [notification journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=1062-9319),
 [notification item](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=512-6869)

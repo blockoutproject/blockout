@@ -2,6 +2,7 @@ package com.blockout.backend.following.api;
 
 import com.blockout.backend.following.api.FollowingRequest.QueryShape;
 import com.blockout.backend.following.application.FollowContext.TargetType;
+import com.blockout.backend.following.application.ReadFollowOptions;
 import com.blockout.backend.following.application.ReadFollowState;
 import com.blockout.backend.following.application.ReplaceFollowState;
 import com.blockout.backend.generated.mobile.api.FollowingApi;
@@ -23,12 +24,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-/** Canonical following routes; later stories own collections, calendars, options and counts. */
+/** Canonical following routes; later stories own collections, calendars and counts. */
 @RestController
 @RequiredArgsConstructor
 public class FollowingController implements FollowingApi {
   private final ReadFollowState reads;
   private final ReplaceFollowState changes;
+  private final ReadFollowOptions options;
+  private final FollowingApiMapper mapper;
   private final FollowingRequest requests;
   private final HttpServletRequest request;
 
@@ -107,7 +110,10 @@ public class FollowingController implements FollowingApi {
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<FollowOptionsResponse> getFollowOptions(UUID accountId, Boolean bypass) {
-    throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED);
+    requests.validateQuery(request, QueryShape.MEMBER);
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(mapper.toDto(options.read(requests.requireOwner(accountId))));
   }
 
   /** {@inheritDoc} */

@@ -132,10 +132,7 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
   List<TeamEntity> findCurrentIn(UUID poolId);
 
   /** Canonical team eligibility for queries using the team alias t. */
-  String VISIBLE =
-      "t.division.active = TRUE AND EXISTS (SELECT r.id FROM ParticipationEntity r JOIN r.pool p WHERE r.team = t AND r.current = TRUE AND "
-          + PoolRepository.VISIBLE
-          + ")";
+  String VISIBLE = SportingVisibilityPredicates.TEAM;
 
   /**
    * Resolves immutable season ownership before loading state protected by its lock.
@@ -179,6 +176,17 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
           + VISIBLE
           + " ORDER BY t.id")
   List<TeamEntity> findVisibleClubTeams(UUID clubId, UUID seasonId);
+
+  /**
+   * Selects canonical seasons from currently visible teams without loading their cards.
+   *
+   * @return distinct seasons in descending start-year and ascending UUID order
+   */
+  @Query(
+      "SELECT DISTINCT s FROM TeamEntity t JOIN t.season s WHERE "
+          + VISIBLE
+          + " ORDER BY s.startYear DESC, s.id")
+  List<SeasonEntity> findVisibleSeasons();
 
   /**
    * Selects eligible search identities before bounded hydration.

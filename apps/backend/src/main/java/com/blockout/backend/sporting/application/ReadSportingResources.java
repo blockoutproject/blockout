@@ -292,7 +292,7 @@ public class ReadSportingResources {
    * @param now common presentation instant
    * @return public summary with current owner-controlled names and independent attribution
    */
-  private ConsultationViews.MatchSummary matchSummary(MatchInput input, Instant now) {
+  ConsultationViews.MatchSummary matchSummary(MatchInput input, Instant now) {
     ConsultationViews.Result result = mapper.toView(input.result(), input.resultObservedAt());
     ConsultationViews.PoolSummary pool =
         new ConsultationViews.PoolSummary(

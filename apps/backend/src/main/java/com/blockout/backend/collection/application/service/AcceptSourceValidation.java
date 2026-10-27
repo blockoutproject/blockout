@@ -60,7 +60,8 @@ public class AcceptSourceValidation {
       if (acceptedState != result.state()
           || !Objects.equals(source.validatedAt(), observedAt)
           || !Objects.equals(source.seasonEvidence(), result.seasonEvidence())
-          || !Objects.equals(source.reason(), result.reason()))
+          || !Objects.equals(source.reason(), result.reason())
+          || !Objects.equals(source.reasonType(), result.reasonType()))
         throw CollectionConflictException.invalidContext();
       return source;
     }
@@ -82,6 +83,7 @@ public class AcceptSourceValidation {
                 .validatedAt(observedAt)
                 .seasonEvidence(result.seasonEvidence())
                 .reason(result.reason())
+                .reasonType(result.reasonType())
                 .seasonConfirmed(false)
                 .build());
     store.complete(cycle, observedAt);

@@ -47,6 +47,7 @@ class SourceBindingEntity {
   @Setter private Instant validatedAt;
   @Setter private String seasonEvidence;
   @Setter private String reason;
+  @Setter private String reasonType;
   @Setter private boolean seasonConfirmed;
   @Setter private boolean locked;
   @Setter private boolean launched;

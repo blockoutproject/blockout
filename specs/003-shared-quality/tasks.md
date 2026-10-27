@@ -152,12 +152,12 @@ F13's data model contains logical responsibilities, not generic tables to scaffo
 
 ### Tests and qualification cases for User Story 4
 
-- [ ] T043 [US4] Prepare A11–A13 cross-owner interruption cases in `specs/003-shared-quality/quickstart.md#data-and-schema`, referencing F01/F02 ordinary passes, F04 projection replacement and F07 announcement facts. Use controlled stale/partial inputs; preserve “Previous usable results survive incomplete rebuilds, but current restrictions always apply.”
+- [x] T043 [US4] Prepare A11–A13 cross-owner interruption cases in `specs/003-shared-quality/quickstart.md#data-and-schema`, referencing F01/F02 ordinary passes, F04 projection replacement and F07 announcement facts. Use controlled stale/partial inputs; preserve “Previous usable results survive incomplete rebuilds, but current restrictions always apply.”
 
 ### Implementation and qualification for User Story 4
 
-- [ ] T044 [US4] Document actual authorized rerun/rebuild and uncertainty checks in `infra/operations/README.md`, referring to owner entry points and latest-useful outcomes; distinguish acquisition, integration and projection, keep accepted partial results, and add no checkpoints, retry ledger or new job/lock service.
-- [ ] T045 [US4] Execute T043 through the implemented F01/F02/F04/F07 paths and their owning tests, as identified in `specs/003-shared-quality/quickstart.md#data-and-schema`; verify stale observations cannot restore restricted data, incomplete generations never replace usable search, and ordinary rebuild does not recreate consumed announcements. Record F07's accepted restoration-duplicate limit.
+- [x] T044 [US4] Document actual authorized rerun/rebuild and uncertainty checks in `infra/operations/README.md`, referring to owner entry points and latest-useful outcomes; distinguish acquisition, integration and projection, keep accepted partial results, and add no checkpoints, retry ledger or new job/lock service.
+- [x] T045 [US4] Execute T043 through the implemented F01/F02/F04/F07 paths and their owning tests, as identified in `specs/003-shared-quality/quickstart.md#data-and-schema`; verify stale observations cannot restore restricted data, incomplete generations never replace usable search, and ordinary rebuild does not recreate consumed announcements. Record F07's accepted restoration-duplicate limit.
 
 **Checkpoint**: US4 is complete only when its independent test has actual evidence. Unavailable owner/runtime/provider inputs leave the affected tasks pending; continue unrelated ready work using the dependencies below.
 
@@ -204,12 +204,12 @@ F13's data model contains logical responsibilities, not generic tables to scaffo
 
 ### Tests and qualification cases for User Story 7
 
-- [ ] T059 [US7] Prepare the controlled A22 cases in `specs/003-shared-quality/quickstart.md#initial-restore-and-activation-condition`, linking the F02 image/identity rules and F14 protected-logo procedure; preserve “Missing bytes do not authorize reset.” and “No identity by name-only matching.” An old URL alone is not retained bytes; “This manual scope concerns club logos only; F14 decides concrete transition records and procedures, with F02 identity rules.”
+- [x] T059 [US7] Prepare the controlled A22 cases in `specs/003-shared-quality/quickstart.md#initial-restore-and-activation-condition`, linking the F02 image/identity rules and F14 protected-logo procedure; preserve “Missing bytes do not authorize reset.” and “No identity by name-only matching.” An old URL alone is not retained bytes; “This manual scope concerns club logos only; F14 decides concrete transition records and procedures, with F02 identity rules.”
 
 ### Implementation and qualification for User Story 7
 
-- [ ] T060 [US7] Add the protection handoff in `infra/operations/README.md` referencing F14's existing preservation/reassociation steps: independently retained bytes and exact source associations, certain matches, private unmatched cases and missing-file refusal. Do not create a second exporter, migration store or general customization transfer.
-- [ ] T061 [US7] Verify the controlled A22 outcomes using `specs/014-v1-v2-transition/quickstart.md` and the implemented F02 image paths; record F13's observed retention/restore scope in the authorized private delivery evidence. F14 still owns live preservation and cutover authorization; synthetic evidence cannot certify production retention or authorize a reset.
+- [x] T060 [US7] Add the protection handoff in `infra/operations/README.md` referencing F14's existing preservation/reassociation steps: independently retained bytes and exact source associations, certain matches, private unmatched cases and missing-file refusal. Do not create a second exporter, migration store or general customization transfer.
+- [x] T061 [US7] Verify the controlled A22 outcomes using `specs/014-v1-v2-transition/quickstart.md` and the implemented F02 image paths; record F13's observed retention/restore scope in the authorized private delivery evidence. F14 still owns live preservation and cutover authorization; synthetic evidence cannot certify production retention or authorize a reset.
 
 **Checkpoint**: US7 is complete only when its independent test has actual evidence. Unavailable owner/runtime/provider inputs leave the affected tasks pending; continue unrelated ready work using the dependencies below.
 

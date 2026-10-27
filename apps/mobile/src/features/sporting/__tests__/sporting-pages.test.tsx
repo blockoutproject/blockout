@@ -99,6 +99,15 @@ function reads(url: string): Promise<Response> {
     return Promise.resolve(Response.json(pool));
   if (path.endsWith(`/matches/${sportingId}`))
     return Promise.resolve(Response.json(match));
+  if (path === "/matches")
+    return Promise.resolve(
+      Response.json({
+        category: parsed.searchParams.get("category"),
+        timeZone: parsed.searchParams.get("timeZone"),
+        evaluatedAt: "2026-10-25T12:00:00Z",
+        days: [],
+      }),
+    );
   throw new Error(`Unexpected controlled request ${path}`);
 }
 
@@ -162,14 +171,7 @@ async function renderPage(content: ReactElement) {
 it("shares the newest/selected club season between teams and both calendar entries", async () => {
   // Given
   const user = userEvent.setup();
-  await renderPage(
-    <ClubScreen
-      clubId={sportingId}
-      renderCalendar={(selection) => (
-        <Text>{`Calendar ${selection.seasonId} ${selection.category}`}</Text>
-      )}
-    />,
-  );
+  await renderPage(<ClubScreen clubId={sportingId} />);
   await screen.findByText(club.club.name);
 
   // When
@@ -180,15 +182,24 @@ it("shares the newest/selected club season between teams and both calendar entri
   await user.press(screen.getByRole("tab", { name: "À venir" }));
 
   // Then
-  expect(
-    screen.getByText(`Calendar ${olderSeason.id} upcoming`),
-  ).toBeOnTheScreen();
+  await screen.findByText("Aucun match pour cette sélection");
   // When
   await user.press(screen.getByRole("tab", { name: "Terminés" }));
   // Then
-  expect(
-    screen.getByText(`Calendar ${olderSeason.id} completed`),
-  ).toBeOnTheScreen();
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls
+        .map(([url]) => new URL(url))
+        .filter((url) => url.pathname === "/matches")
+        .map((url) => [
+          url.searchParams.get("seasonId"),
+          url.searchParams.get("category"),
+        ]),
+    ).toEqual([
+      [olderSeason.id, "upcoming"],
+      [olderSeason.id, "completed"],
+    ]),
+  );
   expect(
     mockFetch.mock.calls.some(([url]) =>
       String(url).includes(`seasonId=${olderSeason.id}`),
@@ -978,7 +989,7 @@ it("refreshes the active club team tab only and preserves the selected season", 
   ).toBeOnTheScreen();
 });
 
-it("omits pull-to-refresh from a club calendar placeholder with no rechargeable content", async () => {
+it("opens the generated club-season calendar with its own explicit refresh", async () => {
   // Given
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
@@ -988,10 +999,12 @@ it("omits pull-to-refresh from a club calendar placeholder with no rechargeable 
   await user.press(screen.getByRole("tab", { name: "À venir" }));
 
   // Then
-  expect(
-    screen.getByText("Calendrier indisponible pour le moment"),
-  ).toBeOnTheScreen();
-  expect(
-    screen.queryByLabelText("Actualiser les données"),
-  ).not.toBeOnTheScreen();
+  await screen.findByText("Aucun match pour cette sélection");
+  expect(screen.getByLabelText("Actualiser les données")).toBeOnTheScreen();
+  const request = mockFetch.mock.calls
+    .map(([url]) => new URL(url))
+    .find((url) => url.pathname === "/matches");
+  expect(request?.searchParams.get("clubId")).toBe(sportingId);
+  expect(request?.searchParams.get("seasonId")).toBe(season.id);
+  expect(request?.searchParams.get("category")).toBe("upcoming");
 });

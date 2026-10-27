@@ -267,7 +267,7 @@ Matches:
   get:
     operationId: listMatches
     tags:
-      - Sporting
+      - Consultation
     summary: Read a sporting calendar
     description:
       Supply exactly one clubId, teamId or poolId. A club requires seasonId; other selectors forbid it.

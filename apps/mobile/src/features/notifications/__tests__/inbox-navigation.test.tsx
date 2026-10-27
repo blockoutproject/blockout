@@ -13,6 +13,10 @@ import { Dimensions, Text } from "react-native";
 import { useLayoutEffect } from "react";
 import TabsLayout from "../../../app/(ordinary)/(tabs)/_layout";
 import NotificationsRoute from "../../../app/(ordinary)/(tabs)/notifications";
+import SearchLayout from "../../../app/(ordinary)/(tabs)/search/_layout";
+import SearchRoute from "../../../app/(ordinary)/(tabs)/search/index";
+import SearchFiltersRoute from "../../../app/(ordinary)/(tabs)/search/filters";
+import SearchChoiceRoute from "../../../app/(ordinary)/(tabs)/search/choice";
 import { NotificationState } from "../state/notification-state";
 import {
   createQueryClient,
@@ -106,6 +110,14 @@ beforeEach(() => {
         return Response.json(applicationAccessResponse());
       if (path.endsWith("accounts/me"))
         return Response.json(accountResponse({ accountId: row.id }));
+      if (path.endsWith("sporting-search-options"))
+        return Response.json({
+          resourceType: new URL(url).searchParams.get("resourceType"),
+          seasons: [],
+          divisions: [],
+          formats: ["6x6"],
+          genders: ["female", "male", "mixed"],
+        });
       if (path.endsWith("notification-summary"))
         return Response.json(
           total
@@ -133,14 +145,17 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Fixture route tree exercises the production tab/notification entries without mounting unrelated business screens. */
+/** Production tab/search/inbox entries retain their owners; Home, profile and match destinations are controlled. */
 async function openInbox() {
   return renderRouter(
     {
       _layout: Root,
       "(tabs)/_layout": TabsLayout,
       "(tabs)/index": () => <Text>Accueil</Text>,
-      "(tabs)/search": () => <Text>Recherche publique</Text>,
+      "(tabs)/search/_layout": SearchLayout,
+      "(tabs)/search/index": SearchRoute,
+      "(tabs)/search/filters": SearchFiltersRoute,
+      "(tabs)/search/choice": SearchChoiceRoute,
       "(tabs)/profile": () => <Text>Profil</Text>,
       "(tabs)/notifications": NotificationsRoute,
       "matches/[matchId]": () => <Text>Destination du match</Text>,
@@ -175,8 +190,40 @@ it("routes a guest to public search without requesting a personal inbox or showi
 
   // Then
   await waitFor(() => expect(screen).toHavePathname("/search"));
-  expect(await screen.findByText("Recherche publique")).toBeOnTheScreen();
+  expect(
+    await screen.findByRole("button", { name: "Filtres" }),
+  ).toBeOnTheScreen();
   expect(screen.queryByRole("button", { name: /Notifications/ })).toBeNull();
+  expect(mockFetch.mock.calls.some(([url]) => /notification/.test(url))).toBe(
+    false,
+  );
+});
+
+it("retains the public search visit through its native sheets and a bottom-tab return", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(false);
+  await openInbox();
+  const user = userEvent.setup();
+  await user.press(await screen.findByRole("button", { name: "Filtres" }));
+  await user.press(await screen.findByRole("button", { name: "Genre" }));
+  await user.press(await screen.findByRole("radio", { name: "Masculin" }));
+  await user.press(
+    screen.getByRole("button", { name: "Appliquer les filtres" }),
+  );
+  await waitFor(() => expect(screen).toHavePathname("/search"));
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Profil" }));
+  await waitFor(() => expect(screen).toHavePathname("/profile"));
+  await user.press(screen.getByRole("button", { name: "Rechercher" }));
+  await user.press(
+    await screen.findByRole("button", { name: "Filtres actifs" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Genre" }),
+  ).toHaveAccessibilityValue({ text: "Masculin" });
   expect(mockFetch.mock.calls.some(([url]) => /notification/.test(url))).toBe(
     false,
   );

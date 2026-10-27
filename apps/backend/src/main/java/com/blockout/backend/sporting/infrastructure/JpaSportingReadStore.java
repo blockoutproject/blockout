@@ -103,6 +103,19 @@ public class JpaSportingReadStore implements SportingReadStore {
 
   /** {@inheritDoc} */
   @Override
+  public List<SeasonView> viewableSeasons(Kind kind) {
+    List<SeasonEntity> seasons =
+        switch (kind) {
+          case TEAM -> teams.findVisibleSeasons();
+          case POOL -> pools.findVisibleSeasons();
+          default ->
+              throw new IllegalArgumentException("Sporting choices require a team or pool kind");
+        };
+    return seasons.stream().map(mapper::toView).toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public Set<UUID> viewablePoolTeamIds(UUID poolId) {
     return Set.copyOf(participations.findVisibleTeamIds(poolId));
   }
