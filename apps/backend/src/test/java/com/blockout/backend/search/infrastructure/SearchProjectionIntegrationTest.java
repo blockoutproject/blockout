@@ -180,6 +180,27 @@ class SearchProjectionIntegrationTest {
         "INSERT INTO sporting_pool_alias(pool_id, season_id, organizer_reference, competition_reference, comparison_name) VALUES (?, ?, 'synthetic', 'competition', 'poolalias')",
         POOL,
         season);
+    UUID otherDivision = UUID.fromString("00000000-0000-4000-8000-000000000021");
+    UUID otherPool = UUID.fromString("00000000-0000-4000-8000-000000000041");
+    UUID otherTeam = UUID.fromString("00000000-0000-4000-8000-000000000051");
+    sql.update(
+        "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'Regional witnesses', TRUE, '#445566')",
+        otherDivision);
+    sql.update(
+        "INSERT INTO sporting_pool(id, season_id, pack_id, provider, organizer_reference, competition_reference, reference, source_name, division_id, format, gender) SELECT ?, season_id, pack_id, provider, organizer_reference, competition_reference, '224-witness-pool', 'Witness pool', ?, '_4X4', 'MALE' FROM sporting_pool WHERE id = ?",
+        otherPool,
+        otherDivision,
+        POOL);
+    sql.update(
+        "INSERT INTO sporting_team(id, season_id, provider, organizer_reference, competition_reference, native_reference, source_name, comparison_name, division_id, format, gender) SELECT ?, season_id, provider, organizer_reference, competition_reference, '224-witness-team', 'Witness team', 'witness team', ?, '_4X4', 'MALE' FROM sporting_team WHERE id = ?",
+        otherTeam,
+        otherDivision,
+        TEAM);
+    sql.update(
+        "INSERT INTO sporting_participation(id, team_id, pool_id, current) VALUES (?, ?, ?, TRUE)",
+        UUID.fromString("00000000-0000-4000-8000-000000000071"),
+        otherTeam,
+        otherPool);
     full();
     UUID expected =
         switch (resource) {
@@ -235,6 +256,10 @@ class SearchProjectionIntegrationTest {
                 default -> throw new IllegalArgumentException();
               });
     }
+    assertThat(results("teams", "Witness").get(0).path("team").path("id").asText())
+        .isEqualTo(otherTeam.toString());
+    assertThat(results("pools", "Witness").get(0).path("pool").path("id").asText())
+        .isEqualTo(otherPool.toString());
     assertThat(results("clubs", "N2").isEmpty()).isTrue();
     assertThat(results("pools", "Lyon").isEmpty()).isTrue();
   }
