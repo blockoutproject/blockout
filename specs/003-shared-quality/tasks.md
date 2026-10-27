@@ -152,11 +152,11 @@ F13's data model contains logical responsibilities, not generic tables to scaffo
 
 ### Tests and qualification cases for User Story 4
 
-- [ ] T043 [US4] Prepare A11–A13 cross-owner interruption cases in `specs/003-shared-quality/quickstart.md#data-and-schema`, referencing F01/F02 ordinary passes, F04 projection replacement and F07 announcement facts. Use controlled stale/partial inputs; preserve “Previous usable results survive incomplete rebuilds, but current restrictions always apply.”
+- [x] T043 [US4] Prepare A11–A13 cross-owner interruption cases in `specs/003-shared-quality/quickstart.md#data-and-schema`, referencing F01/F02 ordinary passes, F04 projection replacement and F07 announcement facts. Use controlled stale/partial inputs; preserve “Previous usable results survive incomplete rebuilds, but current restrictions always apply.”
 
 ### Implementation and qualification for User Story 4
 
-- [ ] T044 [US4] Document actual authorized rerun/rebuild and uncertainty checks in `infra/operations/README.md`, referring to owner entry points and latest-useful outcomes; distinguish acquisition, integration and projection, keep accepted partial results, and add no checkpoints, retry ledger or new job/lock service.
+- [x] T044 [US4] Document actual authorized rerun/rebuild and uncertainty checks in `infra/operations/README.md`, referring to owner entry points and latest-useful outcomes; distinguish acquisition, integration and projection, keep accepted partial results, and add no checkpoints, retry ledger or new job/lock service.
 - [ ] T045 [US4] Execute T043 through the implemented F01/F02/F04/F07 paths and their owning tests, as identified in `specs/003-shared-quality/quickstart.md#data-and-schema`; verify stale observations cannot restore restricted data, incomplete generations never replace usable search, and ordinary rebuild does not recreate consumed announcements. Record F07's accepted restoration-duplicate limit.
 
 **Checkpoint**: US4 is complete only when its independent test has actual evidence. Unavailable owner/runtime/provider inputs leave the affected tasks pending; continue unrelated ready work using the dependencies below.
