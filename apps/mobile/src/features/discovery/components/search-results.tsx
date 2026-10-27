@@ -15,6 +15,7 @@ export interface SearchResultsProps {
   items: readonly SearchResult[];
   emptyComponent?: ReactElement | null;
   continuation?: ReactNode;
+  onEndReached?: () => void;
 }
 
 /** One mounted native list retains its scroll registration through blank, loading, error and populated states. */
@@ -22,11 +23,13 @@ export function SearchResults({
   items,
   emptyComponent,
   continuation,
+  onEndReached,
 }: SearchResultsProps) {
   return (
     <TabLegendList
       {...pagedListDefaults}
       alwaysBounceVertical
+      onEndReached={onEndReached}
       ListFooterComponent={
         <>
           {items.length && continuation ? (
@@ -51,7 +54,7 @@ export function SearchResults({
   );
 }
 
-/** The search heading labels loaded results; an absent count represents a pending or failed initial read. */
+/** The search heading labels loaded results; an absent count represents a pending or failed read. */
 export interface SearchHeadingProps {
   count?: number;
   onClear: () => void;

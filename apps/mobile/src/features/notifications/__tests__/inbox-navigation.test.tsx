@@ -282,8 +282,9 @@ it("restarts from newest on tab return while a continuation is still in flight",
   });
   await openInbox();
   const user = userEvent.setup();
-  await user.press(
-    await screen.findByRole("button", { name: "Charger la suite" }),
+  await fireEvent(
+    await screen.findByRole("link", { name: /^Le résultat/ }),
+    "endReached",
   );
 
   // When

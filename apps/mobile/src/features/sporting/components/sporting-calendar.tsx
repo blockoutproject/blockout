@@ -1,5 +1,10 @@
 import type { LegendListRef } from "@legendapp/list/react-native";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { useNavigation } from "expo-router";
 import {
   useEffect,
   useMemo,
@@ -24,13 +29,11 @@ import type {
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { RequestLoading } from "../../../shared/components/request-feedback";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { Button } from "../../../shared/components/button";
+import { ScreenState } from "../../../shared/components/screen-state";
 import { pageContentStyle } from "../../../shared/components/page";
 import { pagedListDefaults } from "../../../shared/components/paged-tabs";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
-import { isAccessDenied } from "../../../shared/api/access-denied";
 import {
   createCalendarOptions,
   refreshCalendar,
@@ -65,7 +68,7 @@ export function SportingCalendar({
 }: SportingCalendarProps) {
   const queries = useConsultationQueries();
   const client = useQueryClient();
-  const feedback = useActionFeedback();
+  const navigation = useNavigation();
   const [zone, setZone] = useState(currentSportingTimeZone);
   const [displayZone, setDisplayZone] = useState(currentSportingTimeZone);
   const [refreshing, setRefreshing] = useState(false);
@@ -74,7 +77,13 @@ export function SportingCalendar({
     ...selection,
     timeZone: zone,
   });
-  const calendar = useInfiniteQuery({ ...options, enabled: active });
+  const calendar = useInfiniteQuery({
+    ...options,
+    enabled: (query) => active && !refreshing && query.state.status !== "error",
+    // Native Query preserves the accepted grouping only while its explicit replacement is pending.
+    placeholderData: refreshing ? keepPreviousData : undefined,
+  });
+  const groupingZone = calendar.data?.pages[0]?.timeZone ?? zone;
   const { fontScale, width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [listWidth, setListWidth] = useState(0);
@@ -88,7 +97,10 @@ export function SportingCalendar({
     : Math.max(2, Math.min(8, Math.floor(availableWidth / (40 * fontScale))));
   const { headerHeight, collapseRange, tabBarHeight } =
     useCollapsingTabsContext();
-  const days = useMemo(() => calendarDays(calendar.data), [calendar.data]);
+  const days = useMemo(
+    () => (calendar.isError ? [] : calendarDays(calendar.data)),
+    [calendar.data, calendar.isError],
+  );
   const rows = useMemo(() => calendarRows(days, stacked), [days, stacked]);
   const stickyHeaderIndices = useMemo(
     () => rows.flatMap((row, index) => (row.kind === "date" ? [index] : [])),
@@ -100,7 +112,7 @@ export function SportingCalendar({
     });
     return () => subscription.remove();
   }, []);
-  /** First-page replacement is atomic; only success changes the loading zone and returns to the start. */
+  /** First-page retry/refresh replaces traversal; failure presents the shared error card without exposing cached rows. */
   async function refresh() {
     if (refreshing || !active) return;
     setRefreshing(true);
@@ -108,21 +120,28 @@ export function SportingCalendar({
     try {
       if (nextZone !== zone)
         await client.cancelQueries({ queryKey: options.queryKey, exact: true });
+      setZone(nextZone);
       await refreshCalendar(
         client,
         createCalendarOptions(queries, { ...selection, timeZone: nextZone }),
       );
-      setZone(nextZone);
       list.current?.scrollToOffset({ offset: 0, animated: false });
-    } catch (error) {
-      if (calendar.data && !isAccessDenied(error)) feedback.error();
+    } catch {
+      // Query owns the read failure and its error-card retry; no competing toast or row store is needed.
     } finally {
       setRefreshing(false);
     }
   }
   /** Appends only for the visible idle list; Query does not cancel an in-flight replacement. */
   function loadMore() {
-    if (active && !refreshing && !calendar.isFetching)
+    if (
+      active &&
+      navigation.isFocused() &&
+      calendar.hasNextPage &&
+      !refreshing &&
+      !calendar.isFetching &&
+      !calendar.isError
+    )
       void calendar.fetchNextPage({ cancelRefetch: false });
   }
   return (
@@ -161,7 +180,11 @@ export function SportingCalendar({
       }
       renderItem={({ item }) =>
         item.kind === "space" ? null : item.kind === "date" ? (
-          <CalendarDate date={item.date} timeZone={zone} stacked={stacked} />
+          <CalendarDate
+            date={item.date}
+            timeZone={groupingZone}
+            stacked={stacked}
+          />
         ) : item.kind === "pool" ? (
           <CalendarPoolHeader group={item.group} />
         ) : (
@@ -186,9 +209,9 @@ export function SportingCalendar({
         )
           loadMore();
       }}
-      ListFooterComponent={
-        !days.length ? (
-          calendar.isPending ? (
+      ListEmptyComponent={
+        <ScreenState>
+          {calendar.isPending ? (
             <RequestLoading />
           ) : calendar.isError ? (
             <ErrorState
@@ -197,22 +220,11 @@ export function SportingCalendar({
             />
           ) : (
             <EmptyState title="Aucun match pour cette sélection" />
-          )
-        ) : calendar.isFetchingNextPage ? (
-          <RequestLoading />
-        ) : calendar.isFetchNextPageError ? (
-          <ErrorState
-            onRetry={loadMore}
-            retrying={calendar.isFetching || refreshing}
-          />
-        ) : calendar.hasNextPage ? (
-          <Button
-            variant="secondary"
-            label="Charger les journées suivantes"
-            onPress={loadMore}
-            disabled={calendar.isFetching || refreshing}
-          />
-        ) : undefined
+          )}
+        </ScreenState>
+      }
+      ListFooterComponent={
+        calendar.isFetchingNextPage ? <RequestLoading /> : undefined
       }
     />
   );

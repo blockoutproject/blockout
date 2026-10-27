@@ -2,26 +2,23 @@ import { ListSeparator } from "../../../shared/components/list-separator";
 import { Page, pageContentStyle } from "../../../shared/components/page";
 import { PreparationLink } from "../components/preparation-link";
 import { AccessFeedback } from "../../access/components/access-feedback";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { PageHeader } from "../../../shared/components/page-header";
 import { ScrollChrome } from "../../../shared/components/scroll-chrome";
-import { useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { Layers } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { Button } from "../../../shared/components/button";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { ClassificationEntry } from "../../sporting-administration/entry";
 import { useSourceChildren } from "../api/use-source-preparation";
 
-/** Read-only native catalog context; pack navigation never grants mapping or acquisition readiness. */
+/** Visible native end-of-list events traverse direct children; a failed read replaces rows with explicit recovery. */
 export function SourceChildrenScreen({
   seasonId,
   sourceId,
@@ -34,30 +31,36 @@ export function SourceChildrenScreen({
   const { authority, query } = useSourceChildren(sourceId, parentId);
   const { colors } = useTheme();
   const router = useRouter();
-  const denied = isAccessDenied(query.error);
-  const items = denied
+  const navigation = useNavigation();
+  const items = query.isError
     ? []
     : (query.data?.pages.flatMap((page) => page.items) ?? []);
-  const feedback = useActionFeedback();
-  /** Refreshes the displayed catalog or its grant and leaves retained rows usable after failure. */
+  /** Refreshes the displayed catalog or its grant; Query owns the resulting loading/error state. */
   async function refresh() {
     if (query.isFetching) return;
-    const result = authority.enabled
-      ? await query.refetch({ cancelRefetch: false })
-      : await authority.account.refetch({ cancelRefetch: false });
-    if (result.isError && result.data && !isAccessDenied(result.error))
-      feedback.error();
+    if (authority.enabled) await query.refetch({ cancelRefetch: false });
+    else await authority.account.refetch({ cancelRefetch: false });
   }
-  /** Pagination retains the existing traversal and the same continuation command after an error. */
-  async function loadMore() {
-    const result = await query.fetchNextPage({ cancelRefetch: false });
-    if (result.isError && !isAccessDenied(result.error)) feedback.error();
+  /** Repeated edge events cannot overlap reads, replay failures or outlive the visible authorized owner. */
+  function loadMore() {
+    if (
+      !authority.enabled ||
+      !authority.session.isCurrent(authority.session.generation) ||
+      !navigation.isFocused() ||
+      !query.hasNextPage ||
+      query.isError ||
+      query.isFetching ||
+      authority.account.isFetching
+    )
+      return;
+    void query.fetchNextPage({ cancelRefetch: false });
   }
   return (
     <Page edges={["left", "right", "bottom"]}>
       <ScrollChrome header={<PageHeader title="Groupes découverts" />}>
         {({ onScroll, headerHeight }) => (
           <Animated.FlatList
+            testID="collection-source-children-list"
             onScroll={onScroll}
             scrollEventThrottle={16}
             scrollIndicatorInsets={{ top: headerHeight }}
@@ -89,6 +92,8 @@ export function SourceChildrenScreen({
               },
             ]}
             ItemSeparatorComponent={ListSeparator}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
             ListHeaderComponent={
               <>
                 {parentId && authority.enabled && (
@@ -130,16 +135,11 @@ export function SourceChildrenScreen({
               <ScreenState>
                 {!authority.enabled ? (
                   <AccessFeedback {...authority} />
-                ) : denied ? (
-                  <ErrorState
-                    onRetry={() => void query.refetch()}
-                    retrying={query.isFetching}
-                  />
                 ) : query.isPending ? (
                   <RequestLoading />
-                ) : query.isError && !query.data ? (
+                ) : query.isError ? (
                   <ErrorState
-                    onRetry={() => void query.refetch()}
+                    onRetry={() => void query.refetch({ cancelRefetch: false })}
                     retrying={query.isFetching}
                   />
                 ) : (
@@ -148,19 +148,11 @@ export function SourceChildrenScreen({
               </ScreenState>
             }
             ListFooterComponent={
-              authority.enabled && !denied && query.hasNextPage ? (
+              authority.enabled &&
+              !query.isError &&
+              query.isFetchingNextPage ? (
                 <View style={styles.footer}>
-                  <Button
-                    label={
-                      query.isFetchNextPageError
-                        ? "Réessayer"
-                        : "Charger la suite"
-                    }
-                    variant="secondary"
-                    onPress={() => void loadMore()}
-                    disabled={query.isFetching}
-                    loading={query.isFetchingNextPage}
-                  />
+                  <RequestLoading />
                 </View>
               ) : undefined
             }

@@ -48,6 +48,7 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ back: mockBack, push: mockPush, canGoBack: () => true }),
+  useNavigation: () => ({ isFocused: () => true }),
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),
@@ -691,6 +692,54 @@ it("distinguishes an empty club season from a failed team read", async () => {
   expect(
     await screen.findByText("Aucune équipe pour cette saison"),
   ).toBeOnTheScreen();
+});
+
+it("replaces a club season's teams with the shared error card and retries only that bounded catalogue", async () => {
+  // Given: the club header, selection and accepted team catalogue have their real Query owners.
+  const user = userEvent.setup();
+  await renderPage(<ClubScreen clubId={sportingId} />);
+  await user.press(screen.getByRole("tab", { name: "Équipes" }));
+  await layoutNativeTabs();
+  await screen.findByRole("link", { name: team.team.team.name });
+  mockFetch
+    .mockClear()
+    .mockImplementation((url: string) =>
+      url.includes("/teams?")
+        ? Promise.reject(new TypeError("offline"))
+        : reads(url),
+    );
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+
+  // Then: no retained list or competing toast remains, while the independent club identity stays readable.
+  expect(
+    screen.queryByRole("link", { name: team.team.team.name }),
+  ).not.toBeOnTheScreen();
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  expect(screen.getByText(club.club.name)).toBeOnTheScreen();
+  expect(
+    screen.getByRole("tab", { name: "Équipes", selected: true }),
+  ).toBeOnTheScreen();
+
+  // When
+  mockFetch.mockImplementation(reads);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: team.team.team.name }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.map(([url]) => {
+      const target = new URL(url);
+      return [target.pathname, target.searchParams.get("seasonId")];
+    }),
+  ).toEqual([
+    [`/clubs/${sportingId}/teams`, season.id],
+    [`/clubs/${sportingId}/teams`, season.id],
+  ]);
 });
 
 it("suppresses a retained team after a current visibility refusal", async () => {

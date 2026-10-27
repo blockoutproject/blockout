@@ -52,6 +52,7 @@ jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   usePreventRemove: jest.fn(),
   useRouter: () => ({ back: jest.fn(), push: mockPush }),
+  useNavigation: () => ({ isFocused: mockIsFocused }),
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, options?: RequestInit) =>
@@ -63,6 +64,7 @@ const mockFetch = jest.fn<
   [RequestInfo | URL, RequestInit?]
 >();
 const mockPush = jest.fn();
+const mockIsFocused = jest.fn(() => true);
 const environment = { ...process.env };
 const seasonId = "00000000-0000-4000-8000-000000000179";
 const sourceId = "00000000-0000-4000-8000-000000000180";
@@ -145,6 +147,7 @@ async function reads(url: RequestInfo | URL): Promise<Response> {
   throw new Error(`Unexpected controlled request ${path}`);
 }
 beforeEach(() => {
+  mockIsFocused.mockReset().mockReturnValue(true);
   client = createQueryClient();
   permissions = { manageCollection: true };
   season = {
@@ -178,7 +181,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Real session, query and theme providers with native credential I/O and HTTP controlled locally. */
+/** Real session, query and theme providers; native identity, Router focus and HTTP are controlled boundaries. */
 async function renderPreparation(
   content = <SourcePreparationScreen seasonId={seasonId} sourceId={sourceId} />,
 ) {
@@ -1006,13 +1009,14 @@ it("launches an initial-import-locked qualified binding unchanged", async () => 
   });
 });
 
-it("reads bounded direct children and their next page without exposing mapping or an invented total", async () => {
+it("loads the next child page only from the visible idle list and retains bounded rows without an invented total", async () => {
   // Given
-  const user = userEvent.setup();
+  const nextPage = Promise.withResolvers<Response>();
   mockFetch.mockImplementation(async (url) => {
     const parsed = new URL(String(url));
     if (!parsed.pathname.endsWith("/children")) return reads(url);
     const page = Number(parsed.searchParams.get("page"));
+    if (page === 1) return nextPage.promise;
     return json({
       items: [
         {
@@ -1031,11 +1035,59 @@ it("reads bounded direct children and their next page without exposing mapping o
   await screen.findByText("Phase régulière");
 
   // When
-  await user.press(screen.getByRole("button", { name: "Charger la suite" }));
+  mockIsFocused.mockReturnValue(false);
+  await fireEvent(
+    screen.getByTestId("collection-source-children-list"),
+    "endReached",
+  );
+
+  // Then
+  expect(
+    mockFetch.mock.calls.filter(([url]) => String(url).includes("/children")),
+  ).toHaveLength(1);
+
+  // When
+  mockIsFocused.mockReturnValue(true);
+  await fireEvent(
+    screen.getByTestId("collection-source-children-list"),
+    "endReached",
+  );
+  await fireEvent(
+    screen.getByTestId("collection-source-children-list"),
+    "endReached",
+  );
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(([url]) => String(url).includes("/children")),
+    ).toHaveLength(2),
+  );
+  await act(async () =>
+    nextPage.resolve(
+      json({
+        items: [
+          {
+            id: "00000000-0000-4000-8000-000000000183",
+            label: "Phase finale",
+            kind: "pool",
+          },
+        ],
+        page: 1,
+        hasNext: false,
+      }),
+    ),
+  );
 
   // Then
   expect(await screen.findByText("Phase finale")).toBeOnTheScreen();
   expect(screen.getByText("Phase régulière")).toBeOnTheScreen();
+
+  // When
+  await fireEvent(
+    screen.getByTestId("collection-source-children-list"),
+    "endReached",
+  );
+
+  // Then
   const pages = mockFetch.mock.calls.filter(([url]) =>
     String(url).includes("/children"),
   );
@@ -1048,9 +1100,12 @@ it("reads bounded direct children and their next page without exposing mapping o
     ),
   ).toBe(true);
   expect(screen.queryByText(/mapping|classification/i)).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Charger la suite" }),
+  ).not.toBeOnTheScreen();
 });
 
-it("retries the failed next child page instead of only refreshing already loaded children", async () => {
+it("replaces a failed child traversal with the read card and resumes only after its explicit retry", async () => {
   // Given
   const user = userEvent.setup();
   let fails = true;
@@ -1075,14 +1130,41 @@ it("retries the failed next child page instead of only refreshing already loaded
     <SourceChildrenScreen seasonId={seasonId} sourceId={sourceId} />,
   );
   await screen.findByText("Phase régulière");
-  await user.press(screen.getByRole("button", { name: "Charger la suite" }));
-  await screen.findByText(
-    "Une erreur est survenue. Veuillez réessayer plus tard.",
+  await fireEvent(
+    screen.getByTestId("collection-source-children-list"),
+    "endReached",
   );
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
   fails = false;
 
   // When
+  await fireEvent(
+    screen.getByTestId("collection-source-children-list"),
+    "endReached",
+  );
+
+  // Then
+  expect(screen.queryByText("Phase régulière")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByText(
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
+    ),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(
+      ([url]) =>
+        String(url).includes("/children") &&
+        new URL(String(url)).searchParams.get("page") === "1",
+    ),
+  ).toHaveLength(1);
+
+  // When
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await screen.findByText("Phase régulière");
+  await fireEvent(
+    screen.getByTestId("collection-source-children-list"),
+    "endReached",
+  );
 
   // Then
   expect(await screen.findByText("Phase finale")).toBeOnTheScreen();
@@ -1092,7 +1174,7 @@ it("retries the failed next child page instead of only refreshing already loaded
   );
   expect(
     pages.map(([url]) => new URL(String(url)).searchParams.get("page")),
-  ).toEqual(["0", "1", "1"]);
+  ).toEqual(["0", "1", "0", "1"]);
 });
 
 it("retains the manual supported-source draft after a duplicate conflict", async () => {

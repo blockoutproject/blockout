@@ -55,8 +55,9 @@ jest.mock("expo-router", () => ({
   useNavigation: () => mockNavigation,
 }));
 const mockPush = jest.fn();
+let mockFocused = true;
 const mockNavigation = {
-  isFocused: () => true,
+  isFocused: () => mockFocused,
   addListener: jest.fn(() => () => undefined),
 };
 const mockFetch = jest.fn();
@@ -132,6 +133,7 @@ beforeEach(() => {
   total = 7;
   nextExpiry = "2026-11-10T00:00:00Z";
   readResponseLost = false;
+  mockFocused = true;
 });
 afterEach(async () => {
   await cleanup();
@@ -198,7 +200,7 @@ it("keeps confirmed reading after navigation fails, including a discreet lost-re
   await waitFor(() => expect(setBadgeCountAsync).toHaveBeenLastCalledWith(6));
 });
 
-it("distinguishes initial failure from empty and retains cards after failed manual refresh", async () => {
+it("replaces cards with the shared error state after failed refresh and retries the first page explicitly", async () => {
   // Given
   mockFetch.mockImplementation((url: string, init: RequestInit) =>
     new URL(url).pathname.endsWith("/notifications")
@@ -224,13 +226,23 @@ it("distinguishes initial failure from empty and retains cards after failed manu
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
-  await waitFor(() =>
-    expect(screen.getByRole("link", { name: /non lue$/ })).toBeOnTheScreen(),
-  );
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(
+    screen.queryByRole("link", { name: /non lue$/ }),
+  ).not.toBeOnTheScreen();
   expect(screen.queryByText("Aucune notification pour le moment")).toBeNull();
+
+  // When
+  mockFetch.mockImplementation(response);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: /non lue$/ }),
+  ).toBeOnTheScreen();
 });
 
-it("removes expired content while active offline and clears an unprovable total", async () => {
+it("removes expired content while active offline and presents the failed read instead of an empty outcome", async () => {
   // Given
   rows = [
     {
@@ -257,7 +269,7 @@ it("removes expired content while active offline and clears an unprovable total"
   // Then
   expect(screen.queryByRole("link", { name: /non lue$/ })).toBeNull();
   expect(
-    await screen.findByText("Aucune notification pour le moment"),
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
   ).toBeOnTheScreen();
 });
 
@@ -333,7 +345,7 @@ it("clears the app badge on session invalidation and excludes guest private read
   ).toBe(false);
 });
 
-it("retains loaded cards and the same cursor through next-page failure and explicit retry", async () => {
+it("loads only the focused inbox and replaces failed pagination with a card that retries from newest", async () => {
   // Given
   const second = {
     ...row,
@@ -346,26 +358,52 @@ it("retains loaded cards and the same cursor through next-page failure and expli
     if (!target.pathname.endsWith("/notifications")) return response(url, init);
     if (!target.searchParams.has("cursor"))
       return Promise.resolve(
-        Response.json({ notifications: [row], nextCursor: "same-boundary" }),
+        Response.json(
+          failNext
+            ? { notifications: [row], nextCursor: "same-boundary" }
+            : { notifications: [second] },
+        ),
       );
     if (failNext) return Promise.reject(new TypeError("offline"));
     return Promise.resolve(Response.json({ notifications: [second] }));
   });
   await showInbox();
   const user = userEvent.setup();
+  const first = await screen.findByRole("link", {
+    name: /^Le résultat.*non lue$/,
+  });
+
+  // When: only the focused list consumes a native end-of-list event.
+  mockFocused = false;
+  await fireEvent(first, "endReached");
+
+  // Then
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).searchParams.has("cursor"),
+    ),
+  ).toHaveLength(0);
 
   // When
-  await user.press(
-    await screen.findByRole("button", { name: "Charger la suite" }),
-  );
+  mockFocused = true;
+  await fireEvent(first, "endReached");
 
   // Then
   expect(
     await screen.findByRole("button", { name: "Réessayer" }),
   ).toBeOnTheScreen();
+  await fireEvent(
+    screen.getByRole("button", { name: "Réessayer" }),
+    "endReached",
+  );
   expect(
-    screen.getByRole("link", { name: /^Le résultat.*non lue$/ }),
-  ).toBeOnTheScreen();
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).searchParams.has("cursor"),
+    ),
+  ).toHaveLength(1);
+  expect(
+    screen.queryByRole("link", { name: /^Le résultat.*non lue$/ }),
+  ).not.toBeOnTheScreen();
 
   // When
   failNext = false;
@@ -375,11 +413,21 @@ it("retains loaded cards and the same cursor through next-page failure and expli
   expect(
     await screen.findByRole("link", { name: /^Un lien.*non lue$/ }),
   ).toBeOnTheScreen();
+  await fireEvent(
+    screen.getByRole("link", { name: /^Un lien.*non lue$/ }),
+    "endReached",
+  );
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Charger la suite" }),
+  ).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls
       .filter(([url]) => new URL(url).searchParams.has("cursor"))
       .map(([url]) => new URL(url).searchParams.get("cursor")),
-  ).toEqual(["same-boundary", "same-boundary"]);
+  ).toEqual(["same-boundary"]);
 });
 
 it("keeps the 29-day deadline armed beyond the platform timeout limit without premature network refresh", async () => {

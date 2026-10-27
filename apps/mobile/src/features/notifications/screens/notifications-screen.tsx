@@ -16,7 +16,6 @@ import {
 import { PageHeader } from "../../../shared/components/page-header";
 import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import { BottomNavigationSpacer } from "../../../shared/components/bottom-navigation-inset";
-import { Button } from "../../../shared/components/button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
@@ -24,7 +23,6 @@ import { RequestLoading } from "../../../shared/components/request-feedback";
 import { Skeleton } from "../../../shared/components/skeleton";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useInboxQueries } from "../api/use-inbox-queries";
@@ -92,16 +90,18 @@ function Inbox({
   const { colors } = useTheme();
   // Cached rows also pass the opening cutoff before the first render; the ordinary layout owns active/resume cleanup.
   const [openedAt] = useState(Date.now);
-  const rows = [
-    ...new Map(
-      (query.data?.pages ?? [])
-        .flatMap((page) => page.notifications)
-        .filter((row) => notificationExpiry(row) > openedAt)
-        .map((row) => [row.id, row]),
-    ).values(),
-  ];
+  const rows = query.isError
+    ? []
+    : [
+        ...new Map(
+          (query.data?.pages ?? [])
+            .flatMap((page) => page.notifications)
+            .filter((row) => notificationExpiry(row) > openedAt)
+            .map((row) => [row.id, row]),
+        ).values(),
+      ];
 
-  /** Opening/focus requests the first page and whole summary; failure retains authorized content. */
+  /** Opening/focus requests the first page and whole summary; Query owns the resulting read state. */
   const open = useEffectEvent(() => {
     void refreshInbox(client, queries).catch(() => undefined);
     void refreshNotificationSummary(client, queries).catch(() => undefined);
@@ -111,31 +111,25 @@ function Inbox({
     return navigation.addListener("focus", () => open());
   }, [navigation]);
 
-  /** User refresh reports failure discreetly and swaps traversal only after a successful native Query fetch. */
+  /** Native refresh restarts from newest; any inbox read failure replaces its rows with the shared error card. */
   async function refresh() {
     feedback.clear();
-    const outcomes = await Promise.allSettled([
+    await Promise.allSettled([
       refreshInbox(client, queries),
       refreshNotificationSummary(client, queries),
     ]);
-    if (
-      owner.isCurrent(owner.generation) &&
-      outcomes.some(
-        (result) =>
-          result.status === "rejected" && !isAccessDenied(result.reason),
-      )
-    )
-      feedback.error();
   }
-  /** Failed continuation leaves loaded rows and the exact same cursor available for explicit retry. */
+  /** Only the current focused owner appends; a read error requires the card's explicit first-page retry. */
   async function loadMore() {
-    const result = await query.fetchNextPage({ cancelRefetch: false });
     if (
-      owner.isCurrent(owner.generation) &&
-      result.isError &&
-      !isAccessDenied(result.error)
+      !navigation.isFocused() ||
+      !owner.isCurrent(owner.generation) ||
+      !query.hasNextPage ||
+      query.isFetching ||
+      query.isError
     )
-      feedback.error();
+      return;
+    await query.fetchNextPage({ cancelRefetch: false });
   }
   return (
     <Page edges={["left", "right"]}>
@@ -158,6 +152,9 @@ function Inbox({
             scrollIndicatorInsets={{ top: headerHeight }}
             alwaysBounceVertical
             data={rows}
+            onEndReached={() => {
+              if (!query.isFetchNextPageError) void loadMore();
+            }}
             keyExtractor={(item) => item.id}
             ItemSeparatorComponent={ListSeparator}
             contentContainerStyle={[
@@ -176,18 +173,18 @@ function Inbox({
               />
             }
             ListEmptyComponent={
-              query.data ? (
-                <ScreenState>
-                  <EmptyState
-                    title="Aucune notification pour le moment"
-                    description="Les nouvelles de vos équipes et poules suivies apparaîtront ici."
-                  />
-                </ScreenState>
-              ) : query.isError ? (
+              query.isError ? (
                 <ScreenState>
                   <ErrorState
                     onRetry={() => void refresh()}
                     retrying={query.isFetching}
+                  />
+                </ScreenState>
+              ) : query.data ? (
+                <ScreenState>
+                  <EmptyState
+                    title="Aucune notification pour le moment"
+                    description="Les nouvelles de vos équipes et poules suivies apparaîtront ici."
                   />
                 </ScreenState>
               ) : (
@@ -196,21 +193,7 @@ function Inbox({
             }
             ListFooterComponent={
               <>
-                {query.hasNextPage ? (
-                  <View style={styles.continuation}>
-                    <Button
-                      label={
-                        query.isFetchNextPageError
-                          ? "Réessayer"
-                          : "Charger la suite"
-                      }
-                      variant="secondary"
-                      loading={query.isFetchingNextPage}
-                      disabled={query.isFetching}
-                      onPress={() => void loadMore()}
-                    />
-                  </View>
-                ) : null}
+                {query.isFetchingNextPage ? <RequestLoading /> : null}
                 <BottomNavigationSpacer />
               </>
             }
@@ -273,7 +256,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   empty: { flexGrow: 1 },
-  continuation: { marginTop: tokens.spacing.lg },
   skeletons: { gap: tokens.layout.list.gap },
   skeleton: { gap: tokens.spacing.md, paddingBottom: tokens.spacing.md },
 });

@@ -1,5 +1,5 @@
 import { hashKey } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
@@ -7,9 +7,8 @@ import { useSearchVisit } from "../forms/search-visit";
 import { reconcileSearchFilters } from "../model/search-filters";
 import { Page, PageContent } from "../../../shared/components/page";
 import { PagedTabs, PagerTabBar } from "../../../shared/components/paged-tabs";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useRef, useState } from "react";
@@ -24,7 +23,6 @@ import {
 
 import { searchSchema, type SearchValues } from "../schemas/search-schema";
 import { searchValues } from "../forms/search-values";
-import { Button } from "../../../shared/components/button";
 import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { tokens } from "../../../shared/theme/tokens";
 import { SearchField } from "../../../shared/components/search-field";
@@ -48,6 +46,7 @@ const searchTabs = [
 /**
  * Public text-search entry with internal tabs and a single shared editable value. Empty-text
  * examples and sporting activation remain with their owning tasks. Filters retain one selection per sporting tab.
+ * Native end events continue the selected focused context; a read failure replaces its results with the shared retry card.
  * Generated Unicode validation rejects over-limit text without truncating the user's draft.
  */
 export function SearchScreen() {
@@ -154,6 +153,7 @@ export function SearchScreen() {
           content: (
             <SearchScene
               resource={id}
+              active={resource === id}
               searchable={searchable}
               query={queries[id]}
               items={items[id]}
@@ -244,7 +244,9 @@ export function SearchScreen() {
               <View style={styles.resultsHeading}>
                 <SearchHeading
                   count={
-                    queries[resource].data ? items[resource].length : undefined
+                    queries[resource].data && !queries[resource].isError
+                      ? items[resource].length
+                      : undefined
                   }
                   onClear={() => clearCriteria(resource)}
                 />
@@ -257,39 +259,45 @@ export function SearchScreen() {
   );
 }
 
-/** Every scene keeps one native list through criteria changes; its query and loaded count share one parent owner. */
+/** One native list survives criteria and read states; any read failure replaces cards until explicit retry. */
 function SearchScene({
   resource,
+  active,
   searchable,
   query,
   items,
 }: {
   resource: DiscoveryResource;
+  active: boolean;
   searchable: boolean;
   query: ReturnType<typeof useDiscoveryQuery>;
   items: readonly SearchResult[];
 }) {
   const visit = useSearchVisit();
+  const navigation = useNavigation();
   const sporting = resource === "club" ? undefined : visit[resource];
   const filters = sporting?.filters;
   const resultsReady = searchable && (!sporting || !!filters);
-  const feedback = useActionFeedback();
-  /** Continuation failure leaves loaded rows and the same continuation action available. */
-  async function loadMore() {
-    const result = await query.fetchNextPage({ cancelRefetch: false });
-    if (result.isError && result.data && !isAccessDenied(result.error))
-      feedback.error();
-  }
-  const error =
-    query.isError && !query.data ? (
-      <ErrorState
-        onRetry={() => void query.refetch()}
-        retrying={query.isFetching}
-      />
-    ) : undefined;
+  const error = query.isError ? (
+    <ErrorState
+      onRetry={() => void query.refetch()}
+      retrying={query.isFetching}
+    />
+  ) : undefined;
   return (
     <SearchResults
-      items={resultsReady ? items : []}
+      items={resultsReady && !query.isError ? items : []}
+      onEndReached={() => {
+        if (
+          active &&
+          navigation.isFocused() &&
+          resultsReady &&
+          query.hasNextPage &&
+          !query.isFetching &&
+          !query.isError
+        )
+          void query.fetchNextPage({ cancelRefetch: false });
+      }}
       emptyComponent={
         !searchable ? null : sporting && !filters ? (
           <ScreenState>
@@ -317,16 +325,8 @@ function SearchScene({
         )
       }
       continuation={
-        resultsReady && query.hasNextPage ? (
-          <Button
-            label={
-              query.isFetchNextPageError ? "Réessayer" : "Charger la suite"
-            }
-            variant="secondary"
-            disabled={query.isFetching}
-            loading={query.isFetchingNextPage}
-            onPress={() => void loadMore()}
-          />
+        resultsReady && !query.isError && query.isFetchingNextPage ? (
+          <RequestLoading />
         ) : undefined
       }
     />

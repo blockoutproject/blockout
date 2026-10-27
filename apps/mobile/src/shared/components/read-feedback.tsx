@@ -2,7 +2,7 @@ import type { UseQueryResult } from "@tanstack/react-query";
 import { RequestLoading } from "./request-feedback";
 import { ErrorState } from "./state-card";
 
-/** Initial-read presentation only; owners decide when retained data or a draft remains usable. */
+/** Read presentation only; list owners hide failed rows while independent sections and drafts retain their safeguards. */
 export interface ReadFeedbackProps {
   query: Pick<
     UseQueryResult,

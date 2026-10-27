@@ -78,6 +78,8 @@ export function createCalendarOptions(
     staleTime: "static",
     gcTime: 0,
     refetchOnMount: false,
+    // A failed new-zone read becomes observed after refresh; mounting must not retry that failed key.
+    retryOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     retry: false,
@@ -87,7 +89,8 @@ export function createCalendarOptions(
 
 /**
  * Cancels obsolete append work before a supported first-page stale fetch.
- * Native Query replaces data only after success; ordinary failure retains permitted pages.
+ * Native Query replaces cached pages only after success. Failure may retain cache data,
+ * while the view displays its read-error card instead of those pages.
  */
 export async function refreshCalendar(
   client: QueryClient,

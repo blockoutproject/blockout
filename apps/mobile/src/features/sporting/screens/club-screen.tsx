@@ -77,13 +77,17 @@ function ClubPage({ clubId }: ClubScreenProps) {
     enabled: !!data && !!season && tab === "teams",
     staleTime: Infinity,
   });
-  const teamData = teams.data?.seasonId === season?.id ? teams.data : undefined;
-  /** Only the displayed scope refreshes; a failed read leaves authorized information visible. */
+  const teamData =
+    !teams.isError && teams.data?.seasonId === season?.id
+      ? teams.data
+      : undefined;
+  /** Team-list errors use the shared card; the independent club information keeps its own read continuity. */
   async function refresh() {
-    const result =
-      tab === "teams" && data && season
-        ? await teams.refetch({ cancelRefetch: false })
-        : await club.refetch({ cancelRefetch: false });
+    if (tab === "teams" && data && season) {
+      await teams.refetch({ cancelRefetch: false });
+      return;
+    }
+    const result = await club.refetch({ cancelRefetch: false });
     if (result.isError && result.data && !isAccessDenied(result.error))
       feedback.error();
   }
