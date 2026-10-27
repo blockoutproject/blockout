@@ -36,7 +36,12 @@ public interface ConsultationStore {
   List<CalendarEntry> calendarMatches(
       ConsultationRequest.CalendarRequest request, List<LocalDate> days, Instant now);
 
-  /** One accepted match and its PostgreSQL-derived display day, without a fabricated instant. */
+  /**
+   * One accepted match and its PostgreSQL-derived display day, without a fabricated instant.
+   *
+   * @param day complete sporting day in the captured grouping context
+   * @param match detached accepted values needed by the public summary
+   */
   record CalendarEntry(LocalDate day, MatchInput match) {}
 
   /**

@@ -53,7 +53,7 @@ public class ConsultationController implements ConsultationApi {
   void calendarCategory(WebDataBinder binder) {
     binder.addCustomFormatter(
         new Formatter<CalendarCategoryEnum>() {
-          /** Parses only the exact canonical wire values. */
+          /** {@inheritDoc} */
           @Override
           public CalendarCategoryEnum parse(String text, Locale locale) {
             return switch (text) {
@@ -63,7 +63,7 @@ public class ConsultationController implements ConsultationApi {
             };
           }
 
-          /** Prints the contract value without the Java enum spelling. */
+          /** {@inheritDoc} */
           @Override
           public String print(CalendarCategoryEnum value, Locale locale) {
             return value.getValue();
