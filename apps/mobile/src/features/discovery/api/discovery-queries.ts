@@ -120,6 +120,8 @@ export function createSearchOptionsQueryOptions(
       : ["discovery-options", session.generation, ...generatedKey],
     // Entering a new visit reads current choices before selecting its default; sheets retain this observer.
     refetchOnMount: "always",
+    // A new visit also rereads a failed initial catalogue; no retry is scheduled within a visit.
+    retryOnMount: true,
     queryFn: async ({ signal }) => {
       let headers: Record<string, string> | undefined;
       if (intent) {

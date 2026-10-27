@@ -471,6 +471,30 @@ it("keeps initial option failure distinct from an empty successful catalogue and
   ).toBeOnTheScreen();
 });
 
+it("reads options again on a new visit after an initial failure without data", async () => {
+  // Given: this visit has no successful catalogue to retain.
+  choicesFail = true;
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+  await screen.findByRole("button", { name: "Réessayer" });
+  await act(() => router.replace("/detail"));
+  await screen.findByText("Controlled detail destination");
+  choicesFail = false;
+  seasons = [futureSeason, season, oldSeason];
+
+  // When: a new visit reads current choices without pressing a retry or filter control.
+  await act(() => router.push("/search"));
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+
+  // Then
+  await screen.findByText("Volley professionnel");
+  const read = mockFetch.mock.calls
+    .map(([url]) => new URL(String(url)))
+    .findLast((url) => url.pathname.endsWith("/teams"));
+  expect(read?.searchParams.get("seasonId")).toBe(futureSeason.id);
+});
+
 it("cancels a superseded filter read and rejects its late completion", async () => {
   // Given: generated transport, Query and native routes remain real; only HTTP is delayed.
   const user = userEvent.setup();
