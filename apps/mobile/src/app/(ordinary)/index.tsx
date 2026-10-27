@@ -1,4 +1,5 @@
 import { StartupAccessGate } from "../../features/access/screens/access-gate-screen";
+import { PersonalScreen } from "../../features/following/screens/personal-screen";
 import { Redirect } from "expo-router";
 import { useAgeDeclaration } from "../../features/advertising/age-declaration-provider";
 
@@ -7,5 +8,5 @@ export default function Index() {
   const age = useAgeDeclaration();
   if (age.loading) return <StartupAccessGate />;
   if (age.required) return <Redirect href="/age-declaration" />;
-  return null;
+  return <PersonalScreen />;
 }

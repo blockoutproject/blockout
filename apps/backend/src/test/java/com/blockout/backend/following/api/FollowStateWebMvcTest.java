@@ -27,6 +27,7 @@ import com.blockout.backend.following.application.FollowContext;
 import com.blockout.backend.following.application.FollowContext.Target;
 import com.blockout.backend.following.application.FollowContext.TargetType;
 import com.blockout.backend.following.application.FollowUnavailableTargetException;
+import com.blockout.backend.following.application.ReadFollowOptions;
 import com.blockout.backend.following.application.ReadFollowState;
 import com.blockout.backend.following.application.ReplaceFollowState;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
@@ -73,6 +74,8 @@ class FollowStateWebMvcTest {
   private static final String ISSUER = "https://identity.example.invalid/";
   @Autowired private MockMvc mvc;
   @MockitoBean private ReadFollowState reads;
+  @MockitoBean private ReadFollowOptions options;
+  @MockitoBean private FollowingApiMapper mapper;
   @MockitoBean private ReplaceFollowState changes;
   @MockitoBean private AccountAccess accounts;
   @MockitoBean private AccessSettingsStore settings;
