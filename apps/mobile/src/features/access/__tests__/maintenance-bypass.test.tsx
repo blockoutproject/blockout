@@ -1,3 +1,4 @@
+import { accountResponse } from "../../accounts/test-support/account-response";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -56,14 +57,13 @@ const mockFetch = jest.fn<
   [RequestInfo | URL, RequestInit?]
 >();
 const environment = { ...process.env };
-const account = {
+const account = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000180",
   username: "Operator",
   email: "operator@example.invalid",
-  principalCreatedAt: null,
   hasPhoto: true,
   permissions: { bypassMaintenance: true },
-};
+});
 let client = createQueryClient();
 let full = applicationAccessResponse();
 
@@ -112,7 +112,7 @@ function Providers({ children }: PropsWithChildren) {
 }
 
 /** Exposes existing business hooks so scenarios can exercise generated calls and real provider state together. */
-async function setup() {
+async function renderAccessHooks() {
   const hook = await renderHook(
     () => ({
       ordinary: useOrdinaryRequest(),
@@ -122,13 +122,13 @@ async function setup() {
     }),
     { wrapper: Providers },
   );
-  await waitFor(() => expect(hook.result.current.access.canBypass).toBe(true));
   return hook;
 }
 
 it("requires explicit choice for binary requests while independent identification remains unchanged", async () => {
   // Given
-  const { result } = await setup();
+  const { result } = await renderAccessHooks();
+  await waitFor(() => expect(result.current.access.canBypass).toBe(true));
   const options = {
     session: result.current.session,
     headers: { Authorization: "Bearer existing" },
@@ -175,7 +175,8 @@ it.each([
   "https://images.example.invalid/photo",
 ])("never forwards captured credentials or intent to %s", async (url) => {
   // Given
-  const { result } = await setup();
+  const { result } = await renderAccessHooks();
+  await waitFor(() => expect(result.current.access.canBypass).toBe(true));
   await act(() => {
     result.current.access.bypassMaintenance();
   });
@@ -185,8 +186,11 @@ it.each([
   });
   mockFetch.mockClear();
 
-  // When / Then
-  await expect(apiFetch(url, options)).rejects.toMatchObject({
+  // When
+  const request = apiFetch(url, options);
+
+  // Then
+  await expect(request).rejects.toMatchObject({
     kind: "configuration",
   });
   expect(mockFetch).not.toHaveBeenCalled();
@@ -194,7 +198,8 @@ it.each([
 
 it("clears intent on observed grant loss even when the grant returns before React renders", async () => {
   // Given
-  const { result } = await setup();
+  const { result } = await renderAccessHooks();
+  await waitFor(() => expect(result.current.access.canBypass).toBe(true));
   await act(() => {
     result.current.access.bypassMaintenance();
   });
@@ -220,7 +225,8 @@ it.each([account.accountId, "00000000-0000-4000-8000-000000000181"])(
   "does not reuse intent after a session boundary returning to %s",
   async (nextAccount) => {
     // Given
-    const { result } = await setup();
+    const { result } = await renderAccessHooks();
+    await waitFor(() => expect(result.current.access.canBypass).toBe(true));
     await act(() => {
       result.current.access.bypassMaintenance();
     });
@@ -250,7 +256,8 @@ it.each([account.accountId, "00000000-0000-4000-8000-000000000181"])(
 
 it("clears personal choice only after a successful complete inactive check", async () => {
   // Given
-  const { result } = await setup();
+  const { result } = await renderAccessHooks();
+  await waitFor(() => expect(result.current.access.canBypass).toBe(true));
   await act(() => {
     result.current.access.bypassMaintenance();
   });
@@ -270,7 +277,8 @@ it("clears personal choice only after a successful complete inactive check", asy
 
 it("rejects a profile command when bypass is cleared during native credential preparation", async () => {
   // Given
-  const { result } = await setup();
+  const { result } = await renderAccessHooks();
+  await waitFor(() => expect(result.current.access.canBypass).toBe(true));
   await act(() => {
     result.current.access.bypassMaintenance();
   });
@@ -305,7 +313,8 @@ it.each(["typed maintenance", "generic 503"])(
   "observes an ordinary %s refusal through the caller's options",
   async (kind) => {
     // Given
-    const { result } = await setup();
+    const { result } = await renderAccessHooks();
+    await waitFor(() => expect(result.current.access.canBypass).toBe(true));
     const options = result.current.ordinary.request({
       session: result.current.session,
     });
@@ -349,7 +358,8 @@ it.each(["typed maintenance", "generic 503"])(
 
 it("never downgrades a captured public discovery bypass after its intent is cleared", async () => {
   // Given
-  const { result } = await setup();
+  const { result } = await renderAccessHooks();
+  await waitFor(() => expect(result.current.access.canBypass).toBe(true));
   await act(() => {
     result.current.access.bypassMaintenance();
   });
@@ -379,7 +389,8 @@ it("never downgrades a captured public discovery bypass after its intent is clea
 
 it("rechecks the minimum version after native credential preparation", async () => {
   // Given
-  const { result } = await setup();
+  const { result } = await renderAccessHooks();
+  await waitFor(() => expect(result.current.access.canBypass).toBe(true));
   await act(() => {
     result.current.access.bypassMaintenance();
   });
@@ -418,7 +429,8 @@ it("rechecks the minimum version after native credential preparation", async () 
 
 it("discards an old session's refusal before publishing access observations", async () => {
   // Given
-  const { result } = await setup();
+  const { result } = await renderAccessHooks();
+  await waitFor(() => expect(result.current.access.canBypass).toBe(true));
   const options = result.current.ordinary.request({
     session: result.current.session,
   });
@@ -461,7 +473,8 @@ it.each([401, 403])(
   "clears current personal intent after its HTTP %i refusal",
   async (status) => {
     // Given
-    const { result } = await setup();
+    const { result } = await renderAccessHooks();
+    await waitFor(() => expect(result.current.access.canBypass).toBe(true));
     await act(() => {
       result.current.access.bypassMaintenance();
     });
@@ -486,7 +499,8 @@ it.each([401, 403])(
 
 it("aborts the captured bypass intent when its provider is removed", async () => {
   // Given
-  const hook = await setup();
+  const hook = await renderAccessHooks();
+  await waitFor(() => expect(hook.result.current.access.canBypass).toBe(true));
   await act(async () => {
     hook.result.current.access.bypassMaintenance();
   });
@@ -558,6 +572,7 @@ it("cancels a profile photo conversion when its captured bypass intent ends", as
     expect(result.current.photo.data).toBeUndefined();
     expect(readers[0].onload).toBeNull();
   } finally {
+    await cleanup();
     if (previousReader)
       Object.defineProperty(globalThis, "FileReader", previousReader);
     else Reflect.deleteProperty(globalThis, "FileReader");

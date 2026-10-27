@@ -14,6 +14,8 @@ import { useCommand } from "../use-command";
 const groupKey = ["session", "command-session", "resource"];
 const queryKey = [...groupKey, "read"];
 let client: ReturnType<typeof createQueryClient>;
+let observer: Pick<QueryObserver, "destroy"> | undefined;
+let unbind: (() => void) | undefined;
 
 beforeEach(() => {
   client = createQueryClient();
@@ -21,11 +23,15 @@ beforeEach(() => {
 
 afterEach(async () => {
   await cleanup();
+  observer?.destroy();
+  observer = undefined;
+  unbind?.();
+  unbind = undefined;
   client.clear();
 });
 
 /** Real Query context shared by competing command observers; no command lifecycle is mocked. */
-function Wrapper({ children }: PropsWithChildren) {
+function QueryProvider({ children }: PropsWithChildren) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
@@ -44,7 +50,7 @@ it("sends one command for two same-turn actions across observers without queuein
         { groupKey, requiresRead: isUncertainMutationFailure },
       ),
     }),
-    { wrapper: Wrapper },
+    { wrapper: QueryProvider },
   );
   let first: Promise<string> | undefined;
   let duplicate: Promise<string> | undefined;
@@ -85,7 +91,7 @@ it("retains uncertain recovery after the initiating form is discarded and remoun
       { mutationKey: [...groupKey, "save"], mutationFn: write },
       { groupKey, requiresRead: isUncertainMutationFailure },
     );
-  const initiating = await renderHook(useSave, { wrapper: Wrapper });
+  const initiating = await renderHook(useSave, { wrapper: QueryProvider });
   let attempt: Promise<unknown> | undefined;
   await act(() => {
     attempt = initiating.result.current.start()?.catch((error) => error);
@@ -93,7 +99,7 @@ it("retains uncertain recovery after the initiating form is discarded and remoun
 
   // When
   await initiating.unmount();
-  const returning = await renderHook(useSave, { wrapper: Wrapper });
+  const returning = await renderHook(useSave, { wrapper: QueryProvider });
 
   // Then
   expect(returning.result.current.pending).toBe(true);
@@ -105,7 +111,7 @@ it("retains uncertain recovery after the initiating form is discarded and remoun
     await attempt;
   });
   await returning.unmount();
-  const reopened = await renderHook(useSave, { wrapper: Wrapper });
+  const reopened = await renderHook(useSave, { wrapper: QueryProvider });
 
   // Then
   expect(reopened.result.current.needsRead).toBe(true);
@@ -128,21 +134,23 @@ it("keeps uncertain recovery after a cancelled reread returns old successful dat
         },
         { groupKey, requiresRead: isUncertainMutationFailure },
       ),
-    { wrapper: Wrapper },
+    { wrapper: QueryProvider },
   );
   await act(async () => {
     await hooks.result.current.start()?.catch(() => {});
   });
   const reading = Promise.withResolvers<string>();
-  const observer = new QueryObserver(client, {
+  const readingObserver = new QueryObserver(client, {
     queryKey,
     enabled: false,
     queryFn: () => reading.promise,
   });
 
+  observer = readingObserver;
+
   // When
   const reconciliation = hooks.result.current.reconcile([queryKey], () =>
-    observer.refetch(),
+    readingObserver.refetch(),
   );
   await client.cancelQueries({ queryKey, exact: true });
   const result = await reconciliation;
@@ -152,7 +160,6 @@ it("keeps uncertain recovery after a cancelled reread returns old successful dat
   expect(result.reconciled).toBe(false);
   await waitFor(() => expect(hooks.result.current.needsRead).toBe(true));
   expect(hooks.result.current.start()).toBeUndefined();
-  observer.destroy();
   reading.resolve("late");
 });
 
@@ -168,7 +175,7 @@ it("allows a new explicit command only after a fresh successful reconciliation",
         { mutationKey: [...groupKey, "save"], mutationFn: write },
         { groupKey, requiresRead: isUncertainMutationFailure },
       ),
-    { wrapper: Wrapper },
+    { wrapper: QueryProvider },
   );
   await act(async () => {
     await hooks.result.current.start()?.catch(() => {});
@@ -211,7 +218,7 @@ it("preserves a definite refusal on the initiating observer without blocking a c
         { mutationKey: [...groupKey, "save"], mutationFn: write },
         { groupKey, requiresRead: isUncertainMutationFailure },
       ),
-    { wrapper: Wrapper },
+    { wrapper: QueryProvider },
   );
 
   // When
@@ -239,11 +246,7 @@ it("removes retained command recovery at the existing business session boundary"
   const session = createSessionGeneration();
   const generation = session.getSnapshot().generation;
   const privateGroup = ["session", generation, "resource"];
-  const unbind = bindSessionQueries(
-    client,
-    session.subscribe,
-    session.isCurrent,
-  );
+  unbind = bindSessionQueries(client, session.subscribe, session.isCurrent);
   const hooks = await renderHook(
     () =>
       useCommand(
@@ -255,7 +258,7 @@ it("removes retained command recovery at the existing business session boundary"
         },
         { groupKey: privateGroup, requiresRead: isUncertainMutationFailure },
       ),
-    { wrapper: Wrapper },
+    { wrapper: QueryProvider },
   );
   await act(async () => {
     await hooks.result.current.start()?.catch(() => {});
@@ -268,7 +271,6 @@ it("removes retained command recovery at the existing business session boundary"
   // Then
   await waitFor(() => expect(hooks.result.current.needsRead).toBe(false));
   expect(client.getMutationCache().getAll()).toHaveLength(0);
-  unbind();
 });
 
 it("ignores an old confirmation after the same observer changes resource", async () => {
@@ -283,7 +285,7 @@ it("ignores an old confirmation after the same observer changes resource", async
           requiresRead: isUncertainMutationFailure,
         },
       ),
-    { wrapper: Wrapper, initialProps: { resource: "original" } },
+    { wrapper: QueryProvider, initialProps: { resource: "original" } },
   );
   const heldStart = hook.result.current.start;
 
@@ -309,7 +311,7 @@ it("keeps recovery when fresh data fails the owning revision acceptance rule", a
         },
         { groupKey, requiresRead: isUncertainMutationFailure },
       ),
-    { wrapper: Wrapper },
+    { wrapper: QueryProvider },
   );
   await act(async () => {
     await hook.result.current.start()?.catch(() => {});

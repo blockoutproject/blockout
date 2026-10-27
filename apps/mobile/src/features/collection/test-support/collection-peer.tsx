@@ -1,15 +1,14 @@
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
-import { act, render, screen, userEvent } from "@testing-library/react-native";
-import type { ReactElement, PropsWithChildren } from "react";
-import { Alert, Pressable, Text } from "react-native";
+import { render } from "@testing-library/react-native";
+import type { ReactElement } from "react";
+import { Pressable, Text } from "react-native";
 import type {
   CollectionControlResponse,
   CollectionResultResponse,
   CollectionSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import {
@@ -92,7 +91,6 @@ export function refused(status: number) {
 
 /** Scenario-owned HTTP projections; tests may replace fields directly without changing the real application owners. */
 interface CollectionPeer {
-  client: QueryClient;
   season: CollectionSeasonResponse;
   controls: CollectionControlResponse[];
   results: CollectionResultResponse[];
@@ -104,7 +102,6 @@ interface CollectionPeer {
 /** Mutable HTTP peer only; React, Query, forms, authority and session owners remain real. */
 export function collectionPeer(): CollectionPeer {
   const peer: CollectionPeer = {
-    client: createQueryClient(),
     season: {
       id: seasonId,
       label: "2026/2027",
@@ -148,32 +145,20 @@ export function collectionPeer(): CollectionPeer {
 }
 
 /** Mounts the actual session/query/theme/access boundaries with only native identity and HTTP doubled by the suite. */
-export function renderCollection(
-  content: ReactElement,
-  client: ReturnType<typeof createQueryClient>,
-) {
+export function renderCollection(content: ReactElement, client: QueryClient) {
   return render(content, {
     wrapper: ({ children }) => (
       <QueryClientProvider client={client}>
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              <ActionFeedbackScope>{children}</ActionFeedbackScope>
+              <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
       </QueryClientProvider>
     ),
   });
-}
-
-/** Accepts only an already displayed native confirmation, never an action hidden in fixture setup. */
-export async function confirm(label: string) {
-  const action = jest
-    .mocked(Alert.alert)
-    .mock.lastCall?.[2]?.find((choice) => choice.text === label);
-  if (!action?.onPress) throw new Error(`Missing native action ${label}`);
-  await act(async () => action.onPress?.());
 }
 
 /** Real account actions expose permission refresh and F05 invalidation without bypassing their owners. */
@@ -198,22 +183,5 @@ export function AccountActions() {
         <Text>Déconnexion</Text>
       </Pressable>
     </>
-  );
-}
-
-/** Requests a displayed control action using its real accessible name. */
-export async function pressAction(label: string) {
-  await userEvent
-    .setup()
-    .press(await screen.findByRole("button", { name: label }));
-}
-
-/** Uses the real F05 generation so a previous session cannot retain action feedback in this fixture. */
-function ActionFeedbackScope({ children }: PropsWithChildren) {
-  const { generation } = useAccountSession();
-  return (
-    <ActionFeedbackProvider scopeKey={generation}>
-      {children}
-    </ActionFeedbackProvider>
   );
 }

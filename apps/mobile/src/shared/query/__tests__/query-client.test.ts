@@ -62,7 +62,7 @@ it("fails an offline read without queueing it, then allows an explicit retry", a
 
   // When
   onlineManager.setOnline(true);
-  await jest.advanceTimersByTimeAsync(10_000);
+  await jest.runOnlyPendingTimersAsync();
 
   // Then
   expect(read).toHaveBeenCalledTimes(1);
@@ -108,7 +108,7 @@ it.each([false, true])(
     focusManager.setFocused(false);
     onlineManager.setOnline(true);
     focusManager.setFocused(true);
-    await jest.advanceTimersByTimeAsync(10_000);
+    await jest.runOnlyPendingTimersAsync();
 
     // Then
     expect(write).toHaveBeenCalledTimes(1);
@@ -173,7 +173,7 @@ it.each([false, true])(
     // When
     onlineManager.setOnline(online);
     const attempt = observer.refetch();
-    await jest.advanceTimersByTimeAsync(10_000);
+    await jest.runOnlyPendingTimersAsync();
 
     // Then
     expect(read).toHaveBeenCalledTimes(2);
@@ -265,7 +265,7 @@ it.each(["success", "error"])(
       queryFn: read,
     });
     observer.subscribe(() => {});
-    await jest.advanceTimersByTimeAsync(10_000);
+    await jest.runOnlyPendingTimersAsync();
     const attempts = read.mock.calls.length;
     observer.destroy();
 
@@ -275,7 +275,7 @@ it.each(["success", "error"])(
       queryFn: read,
     });
     observer.subscribe(() => {});
-    await jest.advanceTimersByTimeAsync(10_000);
+    await jest.runOnlyPendingTimersAsync();
 
     // Then
     expect(read).toHaveBeenCalledTimes(attempts);

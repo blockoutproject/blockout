@@ -1,19 +1,26 @@
 import { render, screen, userEvent } from "@testing-library/react-native";
+import { useState } from "react";
+import { Text } from "react-native";
 import { RotateCw, X } from "lucide-react-native";
 import { ThemeProvider } from "../../theme/theme-provider";
 import { IconButton } from "../icon-button";
 
+/** The caller retains form visibility; the icon control supplies only its named native action. */
+function DismissibleForm() {
+  const [open, setOpen] = useState(true);
+  return open ? (
+    <IconButton label="Fermer le formulaire" onPress={() => setOpen(false)}>
+      <X accessible={false} />
+    </IconButton>
+  ) : (
+    <Text>Formulaire fermé</Text>
+  );
+}
+
 it("announces the caller's action independently of its decorative icon", async () => {
   // Given
-  const onPress = jest.fn();
   const user = userEvent.setup();
-  await render(
-    <ThemeProvider>
-      <IconButton label="Fermer le formulaire" onPress={onPress}>
-        <X accessible={false} />
-      </IconButton>
-    </ThemeProvider>,
-  );
+  await render(<DismissibleForm />, { wrapper: ThemeProvider });
 
   // When
   await user.press(
@@ -21,7 +28,10 @@ it("announces the caller's action independently of its decorative icon", async (
   );
 
   // Then
-  expect(onPress).toHaveBeenCalledTimes(1);
+  expect(screen.getByText("Formulaire fermé")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Fermer le formulaire" }),
+  ).not.toBeOnTheScreen();
 });
 
 it.each([

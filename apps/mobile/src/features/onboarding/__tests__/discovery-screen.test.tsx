@@ -1,6 +1,12 @@
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { act, render, screen, userEvent } from "@testing-library/react-native";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+} from "@testing-library/react-native";
 import { useState } from "react";
 import { Pressable, Text } from "react-native";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
@@ -18,7 +24,10 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 beforeEach(async () => {
   await AsyncStorage.clear();
 });
-afterEach(() => jest.restoreAllMocks());
+afterEach(async () => {
+  await cleanup();
+  jest.restoreAllMocks();
+});
 
 /** Applies the root's installation-read and completion boundaries without replacing discovery behavior. */
 function Journey() {

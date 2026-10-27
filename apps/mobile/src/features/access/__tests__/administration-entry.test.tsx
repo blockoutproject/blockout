@@ -1,8 +1,10 @@
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+import { accountResponse } from "../../accounts/test-support/account-response";
+import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import { ApplicationAccessProvider } from "../queries/use-application-access";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
+  cleanup,
   act,
   render,
   screen,
@@ -65,14 +67,12 @@ const mockFetch = jest.fn<
 const mockBack = jest.fn();
 let client = createQueryClient();
 const environment = { ...process.env };
-const account = {
+const account = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000174",
   username: "Player_174",
   email: "player@example.invalid",
-  principalCreatedAt: null,
-  hasPhoto: false,
   permissions: {},
-};
+});
 
 beforeEach(() => {
   client = createQueryClient();
@@ -92,7 +92,8 @@ beforeEach(() => {
     .mockResolvedValue(credentialsFor("auth0|operator"));
   mockFetch.mockReset().mockImplementation(async () => json(account));
 });
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   client.clear();
   jest.restoreAllMocks();
   process.env = { ...environment };
@@ -111,11 +112,11 @@ async function renderAdministration(
     wrapper: ({ children }) => (
       <QueryClientProvider client={client}>
         <ThemeProvider>
-          <ActionFeedbackProvider scopeKey="test">
-            <ApplicationAccessProvider>
-              <AccountSessionProvider>{children}</AccountSessionProvider>
-            </ApplicationAccessProvider>
-          </ActionFeedbackProvider>
+          <ApplicationAccessProvider>
+            <AccountSessionProvider>
+              <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+            </AccountSessionProvider>
+          </ApplicationAccessProvider>
         </ThemeProvider>
       </QueryClientProvider>
     ),

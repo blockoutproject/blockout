@@ -1,3 +1,4 @@
+import * as proSessionModule from "../pro-session";
 import {
   act,
   cleanup,
@@ -40,6 +41,14 @@ let info: CustomerInfo;
 const originalDomain = process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
 const originalClient = process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID;
 beforeEach(() => {
+  process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
+  process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
+  // A fresh real owner isolates tests; remounts within one scenario retain it.
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
   info = prepareProNativeIO();
 });
 afterEach(async () => {
@@ -52,9 +61,9 @@ afterEach(async () => {
   else process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = originalClient;
 });
 
-/** Mounts real providers and publishes a synthetic usable UUID through F05's actual boundary. */
-async function mountAccount() {
-  await render(
+/** Mounts only the real owners; each scenario publishes and awaits its account explicitly. */
+async function renderAccount() {
+  return render(
     <ProHarness
       capture={(a, p) => {
         account = a;
@@ -63,37 +72,93 @@ async function mountAccount() {
       onSupport={jest.fn()}
     />,
   );
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() =>
-    account.setAccount(
-      account.generation,
-      "00000000-0000-4000-8000-000000000001",
-    ),
-  );
-  await screen.findByText("Pro: inactive");
 }
 
-it("reads on association, ordinary entry, foreground, retry and operation completion, cleaning subscriptions", async () => {
+it.each([
+  "association",
+  "explicit refresh",
+  "foreground",
+  "retry",
+  "operation completion",
+] as const)("publishes newly read rights after %s", async (trigger) => {
   // Given
   const foreground = jest.spyOn(AppState, "addEventListener");
-  await mountAccount();
-  expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(1);
+  await renderAccount();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  if (trigger !== "association") {
+    await act(() =>
+      account.setAccount(
+        account.generation,
+        "00000000-0000-4000-8000-000000000001",
+      ),
+    );
+    await screen.findByText("Pro: inactive");
+  }
+  const stateChange = foreground.mock.calls.find(
+    ([event]) => event === "change",
+  )?.[1];
+  if (!stateChange)
+    throw new Error("The Pro provider did not subscribe to AppState changes");
+  const active = { "Blockout Pro": entitlement() };
+  mockPurchases.getCustomerInfo.mockResolvedValueOnce(
+    customerInfo({
+      active,
+      all: active,
+      verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+    }),
+  );
 
   // When
-  await act(() => pro.refresh());
-  const onChange = foreground.mock.calls[0][1];
-  await act(() => onChange("active"));
-  await act(() => pro.retry());
-  await act(() => pro.completeOperation("completed"));
-  const listener = mockPurchases.addCustomerInfoUpdateListener.mock.calls[0][0];
-  const removeForeground = jest.spyOn(
-    foreground.mock.results[0].value,
-    "remove",
-  );
-  await cleanup();
+  await act(async () => {
+    switch (trigger) {
+      case "association":
+        account.setAccount(
+          account.generation,
+          "00000000-0000-4000-8000-000000000001",
+        );
+        break;
+      case "explicit refresh":
+        await pro.refresh();
+        break;
+      case "foreground":
+        stateChange("active");
+        break;
+      case "retry":
+        await pro.retry();
+        break;
+      case "operation completion":
+        await pro.completeOperation("completed");
+        break;
+    }
+  });
 
   // Then
-  expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(5);
+  expect(await screen.findByText("Pro: active")).toBeOnTheScreen();
+  expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(
+    trigger === "association" ? 1 : 2,
+  );
+});
+
+it("removes native subscriptions when the provider unmounts", async () => {
+  // Given
+  const foreground = jest.spyOn(AppState, "addEventListener");
+  const view = await renderAccount();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  const listener = mockPurchases.addCustomerInfoUpdateListener.mock.calls[0][0];
+  const subscriptionIndex = foreground.mock.calls.findIndex(
+    ([event]) => event === "change",
+  );
+  if (subscriptionIndex < 0)
+    throw new Error("The Pro provider did not subscribe to AppState changes");
+  const removeForeground = jest.spyOn(
+    foreground.mock.results[subscriptionIndex].value,
+    "remove",
+  );
+
+  // When
+  await view.unmount();
+
+  // Then
   expect(mockPurchases.removeCustomerInfoUpdateListener).toHaveBeenCalledWith(
     listener,
   );
@@ -102,7 +167,15 @@ it("reads on association, ordinary entry, foreground, retry and operation comple
 
 it("rejects a detached read and callbacks after provider remount into the same business account", async () => {
   // Given
-  await mountAccount();
+  await renderAccount();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000001",
+    ),
+  );
+  await screen.findByText("Pro: inactive");
   const detached = pro;
   const listener = mockPurchases.addCustomerInfoUpdateListener.mock.calls[0][0];
   const read = Promise.withResolvers<CustomerInfo>();
@@ -115,7 +188,15 @@ it("rejects a detached read and callbacks after provider remount into the same b
   await cleanup();
 
   // When
-  await mountAccount();
+  await renderAccount();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000001",
+    ),
+  );
+  await screen.findByText("Pro: inactive");
   const readsAfterRemount = mockPurchases.getCustomerInfo.mock.calls.length;
   const active = { "Blockout Pro": entitlement() };
   await act(async () => {
@@ -141,7 +222,15 @@ it("rejects a detached read and callbacks after provider remount into the same b
 
 it("reads operation completion without waiting for an earlier read and rejects its late result", async () => {
   // Given
-  await mountAccount();
+  await renderAccount();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000001",
+    ),
+  );
+  await screen.findByText("Pro: inactive");
   const earlier = Promise.withResolvers<CustomerInfo>();
   const active = { "Blockout Pro": entitlement() };
   mockPurchases.getCustomerInfo
@@ -169,17 +258,29 @@ it("reads operation completion without waiting for an earlier read and rejects i
   expect(pro.state).toEqual(
     expect.objectContaining({ operation: "completed" }),
   );
+
+  // When
   await act(async () => {
     earlier.resolve(info);
     await refresh;
     await completion;
   });
+
+  // Then
   expect(screen.getByText("Pro: active")).toBeOnTheScreen();
 });
 
 it("keeps current verification busy when an older read fails", async () => {
   // Given
-  await mountAccount();
+  await renderAccount();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000001",
+    ),
+  );
+  await screen.findByText("Pro: inactive");
   const earlier = Promise.withResolvers<CustomerInfo>();
   const current = Promise.withResolvers<CustomerInfo>();
   mockPurchases.getCustomerInfo
@@ -201,6 +302,8 @@ it("keeps current verification busy when an older read fails", async () => {
   // Then
   expect(pro.refreshing).toBe(true);
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+
+  // When
   const active = { "Blockout Pro": entitlement() };
   await act(async () => {
     current.resolve(
@@ -212,13 +315,23 @@ it("keeps current verification busy when an older read fails", async () => {
     );
     await latest;
   });
+
+  // Then
   expect(screen.getByText("Pro: active")).toBeOnTheScreen();
   expect(pro.refreshing).toBe(false);
 });
 
 it("treats an old listener payload as a signal to read B rather than publish A's rights", async () => {
   // Given
-  await mountAccount();
+  await renderAccount();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000001",
+    ),
+  );
+  await screen.findByText("Pro: inactive");
   const listener = mockPurchases.addCustomerInfoUpdateListener.mock.calls[0][0];
   const active = { "Blockout Pro": entitlement() };
   const oldPayload = customerInfo({
@@ -245,7 +358,11 @@ it("treats an old listener payload as a signal to read B rather than publish A's
 
   // Then
   expect(screen.getByText("Pro: inactive")).toBeOnTheScreen();
+
+  // When
   await act(() => read.resolve(info));
+
+  // Then
   expect(screen.getByText("Pro: inactive")).toBeOnTheScreen();
 });
 
@@ -256,7 +373,15 @@ it.each([
   "reads SDK signals without waiting for an earlier read when current state becomes $expected",
   async ({ previousActive, expected }) => {
     // Given: SDK output is controlled; listener payloads have no F05 attribution.
-    await mountAccount();
+    await renderAccount();
+    await waitFor(() => expect(account.status).toBe("authenticated"));
+    await act(() =>
+      account.setAccount(
+        account.generation,
+        "00000000-0000-4000-8000-000000000001",
+      ),
+    );
+    await screen.findByText("Pro: inactive");
     const active = { "Blockout Pro": entitlement() };
     const activeInfo = customerInfo({
       active,
@@ -286,17 +411,29 @@ it.each([
 
     // Then: current rights do not wait for the earlier promise, and its late result cannot replace them.
     expect(screen.getByText(`Pro: ${expected}`)).toBeOnTheScreen();
+
+    // When
     await act(async () => {
       pending.resolve(previous);
       await refresh;
     });
+
+    // Then
     expect(screen.getByText(`Pro: ${expected}`)).toBeOnTheScreen();
   },
 );
 
 it("ignores events during association and reads once after the current login settles", async () => {
   // Given
-  await mountAccount();
+  await renderAccount();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000001",
+    ),
+  );
+  await screen.findByText("Pro: inactive");
   const login =
     Promise.withResolvers<Awaited<ReturnType<typeof mockPurchases.logIn>>>();
   mockPurchases.logIn.mockReturnValueOnce(login.promise);
@@ -320,7 +457,15 @@ it("ignores events during association and reads once after the current login set
 
 it("clears local rights before native logout settles, without waiting for RevenueCat", async () => {
   // Given
-  await mountAccount();
+  await renderAccount();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000001",
+    ),
+  );
+  await screen.findByText("Pro: inactive");
   const active = { "Blockout Pro": entitlement() };
   mockPurchases.getCustomerInfo.mockResolvedValueOnce(
     customerInfo({
@@ -342,7 +487,11 @@ it("clears local rights before native logout settles, without waiting for Revenu
   expect(account.status).toBe("guest");
   expect(screen.getByText("Pro: guest")).toBeOnTheScreen();
   expect(screen.getByText("Public sport")).toBeOnTheScreen();
+
+  // When
   await act(() => oldPro.completeOperation("completed"));
-  expect(screen.getByText("Pro: guest")).toBeOnTheScreen();
   await act(() => logout.resolve(info));
+
+  // Then
+  expect(screen.getByText("Pro: guest")).toBeOnTheScreen();
 });

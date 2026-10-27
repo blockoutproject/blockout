@@ -1,10 +1,19 @@
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
-import { act, render, screen, userEvent } from "@testing-library/react-native";
+import {
+  cleanup,
+  act,
+  render,
+  screen,
+  userEvent,
+} from "@testing-library/react-native";
 import { Linking } from "react-native";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { ContactLink } from "../components/contact-link";
 
-afterEach(() => jest.restoreAllMocks());
+afterEach(async () => {
+  await cleanup();
+  jest.restoreAllMocks();
+});
 
 it("does not carry a late opening failure across destination changes, including a return to the original link", async () => {
   // Given
@@ -48,5 +57,8 @@ it("does not carry a late opening failure across destination changes, including 
 
   // Then
   expect(screen.getByRole("link", { name: "Site : Club A" })).toBeOnTheScreen();
+  expect(jest.mocked(Linking.openURL).mock.calls).toEqual([
+    ["https://a.example.invalid"],
+  ]);
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 });

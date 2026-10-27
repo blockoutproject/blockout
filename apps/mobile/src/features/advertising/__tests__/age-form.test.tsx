@@ -1,3 +1,4 @@
+import type { PropsWithChildren } from "react";
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import {
   act,
@@ -9,27 +10,32 @@ import {
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { AgeForm } from "../forms/age-form";
 
+// The schema imports the age persistence owner; only its native storage dependency is doubled.
 jest.mock("@react-native-async-storage/async-storage", () =>
   jest.requireActual(
     "@react-native-async-storage/async-storage/jest/async-storage-mock",
   ),
 );
 
-/** Real form/theme; only the storage submission boundary is controlled. */
-async function openForm(onSubmit = jest.fn().mockResolvedValue(undefined)) {
-  await render(
+/** Supplies only the theme and feedback owners required by the real age form. */
+function AgeFormProviders({ children }: PropsWithChildren) {
+  return (
     <ThemeProvider>
       <ActionFeedbackProvider scopeKey="test">
-        <AgeForm pending={false} onSubmit={onSubmit} />
+        {children}
       </ActionFeedbackProvider>
-    </ThemeProvider>,
+    </ThemeProvider>
   );
-  return onSubmit;
 }
 
 it("starts without a declared age despite the native thumb position", async () => {
-  // Given / When
-  await openForm();
+  // Given
+  const submit = jest.fn().mockResolvedValue(undefined);
+
+  // When
+  await render(<AgeForm pending={false} onSubmit={submit} />, {
+    wrapper: AgeFormProviders,
+  });
 
   // Then
   expect(screen.getByText("—")).toBeOnTheScreen();
@@ -43,7 +49,10 @@ it("starts without a declared age despite the native thumb position", async () =
 it("requires confirmation after a precise plus/minus choice, including explicit zero", async () => {
   // Given
   const user = userEvent.setup();
-  const submit = await openForm();
+  const submit = jest.fn().mockResolvedValue(undefined);
+  await render(<AgeForm pending={false} onSubmit={submit} />, {
+    wrapper: AgeFormProviders,
+  });
 
   // When
   await user.press(screen.getByRole("button", { name: "Augmenter l’âge" }));
@@ -64,12 +73,16 @@ it("requires confirmation after a precise plus/minus choice, including explicit 
 it("treats releasing the thumb at zero as explicit selection and displays 100+ at the upper bound", async () => {
   // Given
   const user = userEvent.setup();
-  const submit = await openForm();
+  const submit = jest.fn().mockResolvedValue(undefined);
+  await render(<AgeForm pending={false} onSubmit={submit} />, {
+    wrapper: AgeFormProviders,
+  });
   const slider = screen.getByRole("adjustable", {
     name: "Âge en années révolues",
   });
 
   // When
+  // userEvent has no slider gesture; deliver the native completion event.
   await fireEvent(slider, "onRNCSliderSlidingComplete", {
     nativeEvent: { value: 0 },
   });
@@ -97,7 +110,9 @@ it("keeps the editable choice after rejected persistence and allows explicit ret
     .fn()
     .mockReturnValueOnce(write.promise)
     .mockResolvedValue(undefined);
-  await openForm(submit);
+  await render(<AgeForm pending={false} onSubmit={submit} />, {
+    wrapper: AgeFormProviders,
+  });
   await fireEvent(screen.getByRole("adjustable"), "change", {
     nativeEvent: { value: 16 },
   });
@@ -106,7 +121,7 @@ it("keeps the editable choice after rejected persistence and allows explicit ret
   await user.press(screen.getByRole("button", { name: "Continuer" }));
 
   // Then
-  expect(submit).toHaveBeenCalledTimes(1);
+  expect(submit.mock.calls).toEqual([[16]]);
 
   // When
   await act(async () => write.reject(new Error("Storage")));
@@ -123,26 +138,24 @@ it("keeps the editable choice after rejected persistence and allows explicit ret
   await user.press(screen.getByRole("button", { name: "Continuer" }));
 
   // Then
-  expect(submit).toHaveBeenCalledTimes(2);
+  expect(submit.mock.calls).toEqual([[16], [16]]);
 });
 
 it("cancels an edited correction on unmount and starts a fresh neutral choice when reopened", async () => {
   // Given
   const submit = jest.fn().mockResolvedValue(undefined);
-  const view = await render(
-    <ThemeProvider>
-      <ActionFeedbackProvider scopeKey="test">
-        <AgeForm pending={false} onSubmit={submit} />
-      </ActionFeedbackProvider>
-    </ThemeProvider>,
-  );
+  const view = await render(<AgeForm pending={false} onSubmit={submit} />, {
+    wrapper: AgeFormProviders,
+  });
   await fireEvent(screen.getByRole("adjustable"), "change", {
     nativeEvent: { value: 17 },
   });
 
   // When
   await view.unmount();
-  await openForm(submit);
+  await render(<AgeForm pending={false} onSubmit={submit} />, {
+    wrapper: AgeFormProviders,
+  });
 
   // Then
   expect(submit).not.toHaveBeenCalled();

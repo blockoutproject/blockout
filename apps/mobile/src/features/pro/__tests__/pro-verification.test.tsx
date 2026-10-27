@@ -1,3 +1,4 @@
+import * as proSessionModule from "../pro-session";
 import {
   act,
   cleanup,
@@ -44,6 +45,14 @@ const support = jest.fn();
 const originalDomain = process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
 const originalClient = process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID;
 beforeEach(() => {
+  process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
+  process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
+  // A fresh real owner isolates tests; remounts within one scenario retain it.
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
   prepareProNativeIO();
 });
 afterEach(async () => {
@@ -56,8 +65,8 @@ afterEach(async () => {
   else process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = originalClient;
 });
 
-/** Composes actual providers; usable-account publication is synthetic and no backend is contacted. */
-async function mountAccount(status: "inactive" | "unavailable" = "inactive") {
+/** Mounts only the real owners; each scenario publishes and awaits its account explicitly. */
+async function renderAccount() {
   await render(
     <ProHarness
       capture={(a, p) => {
@@ -67,14 +76,6 @@ async function mountAccount(status: "inactive" | "unavailable" = "inactive") {
       onSupport={support}
     />,
   );
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() =>
-    account.setAccount(
-      account.generation,
-      "00000000-0000-4000-8000-000000000001",
-    ),
-  );
-  await screen.findByText(`Pro: ${status}`);
 }
 
 it("does not turn an initial read failure or a failed retry into inactivity", async () => {
@@ -122,7 +123,15 @@ it("does not turn an initial read failure or a failed retry into inactivity", as
 
 it("keeps failed association unavailable, with explicit retry and independent support", async () => {
   // Given
-  await mountAccount();
+  await renderAccount();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000001",
+    ),
+  );
+  await screen.findByText("Pro: inactive");
   mockPurchases.logIn.mockRejectedValueOnce(
     new Error("private customer payload"),
   );
@@ -160,7 +169,15 @@ it.each([
   "preserves SDK-active $label through failed verification and ordinary cancellation",
   async ({ values }) => {
     // Given: past dates intentionally do not define expiry; SDK-active is authoritative.
-    await mountAccount();
+    await renderAccount();
+    await waitFor(() => expect(account.status).toBe("authenticated"));
+    await act(() =>
+      account.setAccount(
+        account.generation,
+        "00000000-0000-4000-8000-000000000001",
+      ),
+    );
+    await screen.findByText("Pro: inactive");
     const active = { "Blockout Pro": entitlement(values) };
     mockPurchases.getCustomerInfo.mockResolvedValueOnce(
       customerInfo({
@@ -191,7 +208,15 @@ it.each([
 
 it("accepts an SDK-inactive result without reconstructing historical rights", async () => {
   // Given
-  await mountAccount();
+  await renderAccount();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000001",
+    ),
+  );
+  await screen.findByText("Pro: inactive");
   const all = { "Blockout Pro": entitlement({ isActive: false }) };
   mockPurchases.getCustomerInfo.mockResolvedValueOnce(
     customerInfo({
@@ -213,7 +238,15 @@ it.each(["pending", "uncertain"] as const)(
   "keeps %s operation feedback separate from active rights and never repeats a transaction",
   async (operation) => {
     // Given
-    await mountAccount();
+    await renderAccount();
+    await waitFor(() => expect(account.status).toBe("authenticated"));
+    await act(() =>
+      account.setAccount(
+        account.generation,
+        "00000000-0000-4000-8000-000000000001",
+      ),
+    );
+    await screen.findByText("Pro: inactive");
     const active = { "Blockout Pro": entitlement() };
     mockPurchases.getCustomerInfo.mockResolvedValue(
       customerInfo({
@@ -240,7 +273,15 @@ it.each(["pending", "uncertain"] as const)(
 
 it("preserves known rights without a persistent error block after a definite purchase failure", async () => {
   // Given
-  await mountAccount();
+  await renderAccount();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000001",
+    ),
+  );
+  await screen.findByText("Pro: inactive");
   mockPurchases.getCustomerInfo.mockRejectedValue(new Error("unavailable"));
 
   // When: the native presentation owns its failure toast, independently of retained SDK evidence.
@@ -259,18 +300,27 @@ it.each(["inactive", "unavailable"] as const)(
   "toasts a failed explicit verification from %s while preserving its uncertain business outcome",
   async (status) => {
     // Given
+    const user = userEvent.setup();
     if (status === "unavailable")
       mockPurchases.getCustomerInfo.mockRejectedValue(
         new Error("initial unavailable"),
       );
-    await mountAccount(status);
+    await renderAccount();
+    await waitFor(() => expect(account.status).toBe("authenticated"));
+    await act(() =>
+      account.setAccount(
+        account.generation,
+        "00000000-0000-4000-8000-000000000001",
+      ),
+    );
+    await screen.findByText(`Pro: ${status}`);
     await act(() => pro.completeOperation("uncertain"));
     mockPurchases.getCustomerInfo.mockRejectedValue(
       new Error("private provider response"),
     );
 
     // When
-    await userEvent.press(
+    await user.press(
       screen.getByRole("button", { name: "Vérifier mes droits" }),
     );
 

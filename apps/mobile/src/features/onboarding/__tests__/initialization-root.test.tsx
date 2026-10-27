@@ -1,5 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { act, render, screen, userEvent } from "@testing-library/react-native";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+} from "@testing-library/react-native";
 import { Stack } from "expo-router";
 import type { ComponentType } from "react";
 import { Pressable, Text } from "react-native";
@@ -58,7 +64,8 @@ beforeEach(async () => {
   jest.mocked(Stack).mockImplementation(InitializationConsumer);
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   jest.restoreAllMocks();
   for (const [key, value] of Object.entries(originalConfiguration)) {
     if (value === undefined) delete process.env[key];
@@ -121,7 +128,14 @@ it.each(["native clearing", "marker persistence"] as const)(
     expect(screen.getByText("Authentication: guest")).toBeOnTheScreen();
     expect(mockAuth0.hasValidCredentials).toHaveBeenCalledTimes(1);
     expect(await AsyncStorage.getItem(marker)).toBe("true");
-    expect(mockAuth0.initializeAuth0WithConfiguration).toHaveBeenCalled();
+    expect(mockAuth0.initializeAuth0WithConfiguration).toHaveBeenCalledWith(
+      "mobile-test",
+      "identity.example.invalid",
+      undefined,
+      false,
+      0,
+      undefined,
+    );
     for (const configuration of mockAuth0.initializeAuth0WithConfiguration.mock
       .calls) {
       expect(configuration[3]).toBe(false);

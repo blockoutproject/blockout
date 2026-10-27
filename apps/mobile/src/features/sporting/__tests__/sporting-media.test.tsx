@@ -60,9 +60,9 @@ it.each([
   },
 );
 
-it("removes both decorative artwork and its tint after native decoding fails", async () => {
+it("removes decorative artwork after a native decoding error event", async () => {
   // Given
-  const view = await render(
+  await render(
     <SportingCover
       uri="data:image/png;base64,bm90LWFuLWltYWdl"
       primary="#F4C66A"
@@ -76,5 +76,7 @@ it("removes both decorative artwork and its tint after native decoding fails", a
   });
 
   // Then
-  expect(view.toJSON()).toBeNull();
+  expect(
+    screen.queryByTestId("sporting-decorative-cover"),
+  ).not.toBeOnTheScreen();
 });

@@ -1,4 +1,6 @@
+import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
 import {
+  cleanup,
   act,
   fireEvent,
   screen,
@@ -129,7 +131,8 @@ beforeEach(async () => {
   mockFetch.mockReset();
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
 });
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
@@ -225,7 +228,6 @@ function responses(
       return Response.json({ items: [], page: 0, hasNext: false });
     throw new Error(`Unexpected controlled request ${path}`);
   };
-  mockFetch.mockImplementation(serve);
   return serve;
 }
 
@@ -234,6 +236,7 @@ it.each(["candidate", "addition"])(
   async (kind) => {
     // Given
     const serve = responses({ manageCollection: true });
+    mockFetch.mockImplementation(serve);
     const user = userEvent.setup();
     await openRoute("/access");
     await screen.findByRole("link", { name: "Accès administrateur" });
@@ -330,7 +333,7 @@ it.each(["candidate", "addition"])(
 
 it("opens preparation from the administration entry during maintenance with collection permission alone", async () => {
   // Given
-  responses({ manageCollection: true });
+  mockFetch.mockImplementation(responses({ manageCollection: true }));
   const user = userEvent.setup();
   await openRoute("/access");
   await user.press(
@@ -353,6 +356,7 @@ it("opens preparation from the administration entry during maintenance with coll
 it("keeps a resumed candidate locked while its original save remains pending", async () => {
   // Given
   const serve = responses({ manageCollection: true });
+  mockFetch.mockImplementation(serve);
   const user = userEvent.setup();
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });
@@ -436,6 +440,7 @@ it("keeps a resumed candidate locked while its original save remains pending", a
 it("retains the exact failed launch selection when admission removes and later restores its provider route", async () => {
   // Given
   const serve = responses({ manageCollection: true });
+  mockFetch.mockImplementation(serve);
   const user = userEvent.setup();
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });
@@ -485,12 +490,7 @@ it("retains the exact failed launch selection when admission removes and later r
   await user.press(
     await screen.findByRole("button", { name: "Lancer les sources prêtes" }),
   );
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.lastCall?.[2]?.find((choice) => choice.text === "Lancer")
-      ?.onPress?.(),
-  );
+  await act(async () => nativeAlertAction("Lancer")());
   await screen.findByText(
     "Le résultat doit être vérifié avant une nouvelle action.",
   );
@@ -523,12 +523,7 @@ it("retains the exact failed launch selection when admission removes and later r
   await user.press(
     screen.getByRole("button", { name: "Lancer les sources prêtes" }),
   );
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.lastCall?.[2]?.find((choice) => choice.text === "Lancer")
-      ?.onPress?.(),
-  );
+  await act(async () => nativeAlertAction("Lancer")());
 
   // Then
   await screen.findByText("Sources sélectionnées lancées.");
@@ -544,7 +539,7 @@ it("retains the exact failed launch selection when admission removes and later r
 
 it("navigates through seasonal provider controls to separate source preparation", async () => {
   // Given
-  responses({ manageCollection: true });
+  mockFetch.mockImplementation(responses({ manageCollection: true }));
   const user = userEvent.setup();
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });
@@ -575,6 +570,7 @@ it("navigates through seasonal provider controls to separate source preparation"
 it("retains a typed closure draft across protected-route removal and cancels through native back without a write", async () => {
   // Given
   const serve = responses({ manageCollection: true });
+  mockFetch.mockImplementation(serve);
   const user = userEvent.setup();
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });
@@ -616,12 +612,14 @@ it("retains a typed closure draft across protected-route removal and cancels thr
 
   // Then
   expect(await screen.findByDisplayValue("2026/")).toBeOnTheScreen();
+  // When
   await user.press(screen.getByRole("button", { name: "Annuler" }));
   const discard = jest
     .mocked(Alert.alert)
     .mock.lastCall?.[2]?.find((choice) => choice.text === "Abandonner");
   if (!discard?.onPress) throw new Error("Missing native discard confirmation");
   await act(async () => discard.onPress?.());
+  // Then
   expect(
     await screen.findByRole("button", { name: "Clôturer la saison" }),
   ).toBeOnTheScreen();
@@ -633,6 +631,7 @@ it("retains a typed closure draft across protected-route removal and cancels thr
 it("preserves uncertain closure after discarding its text and reopening before acknowledgement", async () => {
   // Given
   const serve = responses({ manageCollection: true });
+  mockFetch.mockImplementation(serve);
   const pending = Promise.withResolvers<Response>();
   const user = userEvent.setup();
   mockFetch.mockImplementation((url, options) =>
@@ -698,7 +697,7 @@ it.each([{ manageMaintenance: true }, { bypassMaintenance: true }])(
   "refuses a collection deep link with unrelated rights %j",
   async (permissions) => {
     // Given
-    responses(permissions);
+    mockFetch.mockImplementation(responses(permissions));
     await openRoute("/access");
     await screen.findByRole("link", { name: "Accès administrateur" });
 
@@ -721,7 +720,7 @@ it.each([{ manageMaintenance: true }, { bypassMaintenance: true }])(
 
 it("keeps collection operations closed to an outdated client even with the collection grant", async () => {
   // Given
-  responses({ manageCollection: true }, true);
+  mockFetch.mockImplementation(responses({ manageCollection: true }, true));
   await openRoute("/access");
   await screen.findByText("Maintenance demo");
 
@@ -744,6 +743,7 @@ it("keeps collection operations closed to an outdated client even with the colle
 it("does not send a prepared command when a newer minimum blocks the client during credential retrieval", async () => {
   // Given
   const serve = responses({ manageCollection: true });
+  mockFetch.mockImplementation(serve);
   const user = userEvent.setup();
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });

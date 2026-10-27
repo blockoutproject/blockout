@@ -135,12 +135,11 @@ beforeEach(() => {
   };
   mockFetch.mockReset().mockImplementation(reads);
 });
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   client.clear();
+  process.env = { ...environment };
   jest.restoreAllMocks();
-});
-afterAll(() => {
-  process.env = environment;
 });
 
 /** Supplies the actual application owners without mounting unrelated root navigation/provider SDKs. */
@@ -184,7 +183,9 @@ it("shares the newest/selected club season between teams and both calendar entri
   expect(
     screen.getByText(`Calendar ${olderSeason.id} upcoming`),
   ).toBeOnTheScreen();
+  // When
   await user.press(screen.getByRole("tab", { name: "Terminés" }));
+  // Then
   expect(
     screen.getByText(`Calendar ${olderSeason.id} completed`),
   ).toBeOnTheScreen();
@@ -222,11 +223,13 @@ it("retains a valid season through failed retrieval and falls back only after su
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   club = { ...club, seasons: [season] };
   mockFetch.mockImplementation(reads);
+  // When
   await act(async () => {
     await client.refetchQueries({
       predicate: (query) => query.queryKey.includes(`/clubs/${sportingId}`),
     });
   });
+  // Then
   await waitFor(() =>
     expect(
       screen.getByRole("button", { name: "Saison 2027/2028" }),
@@ -236,12 +239,10 @@ it("retains a valid season through failed retrieval and falls back only after su
 
 it("does not replace the selected season with a delayed former team response", async () => {
   // Given
-  let finish: ((response: Response) => void) | undefined;
+  const formerTeams = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url: string) =>
     url.includes("/teams?seasonId=" + season.id)
-      ? new Promise<Response>((resolve) => {
-          finish = resolve;
-        })
+      ? formerTeams.promise
       : reads(url),
   );
   const user = userEvent.setup();
@@ -254,7 +255,7 @@ it("does not replace the selected season with a delayed former team response", a
   await user.press(screen.getByRole("button", { name: "2026/2027" }));
   await screen.findByRole("link", { name: team.team.team.name });
   await act(async () =>
-    finish?.(
+    formerTeams.resolve(
       Response.json({
         seasonId: season.id,
         items: [
@@ -603,7 +604,9 @@ it("distinguishes an empty club season from a failed team read", async () => {
     screen.queryByText("Aucune équipe pour cette saison"),
   ).not.toBeOnTheScreen();
   failed = false;
+  // When
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  // Then
   expect(
     await screen.findByText("Aucune équipe pour cette saison"),
   ).toBeOnTheScreen();
@@ -634,7 +637,9 @@ it("suppresses a retained team after a current visibility refusal", async () => 
     "Une erreur est survenue",
   );
   expect(screen.queryByText(team.team.team.name)).not.toBeOnTheScreen();
+  // When
   await user.press(screen.getByRole("button", { name: "Retour" }));
+  // Then
   expect(mockBack).toHaveBeenCalledTimes(1);
 });
 
@@ -936,7 +941,9 @@ it.each(["network", "503"])(
       screen.queryByRole("link", { name: /Téléphone/ }),
     ).not.toBeOnTheScreen();
     mockFetch.mockImplementation(reads);
+    // When
     await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    // Then
     expect(await screen.findByText(club.club.name)).toBeOnTheScreen();
   },
 );

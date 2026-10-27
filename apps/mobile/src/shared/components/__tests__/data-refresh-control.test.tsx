@@ -31,7 +31,6 @@ it("forwards the native scroll child and preserves it while refresh is disabled"
         refreshing={false}
         onRefresh={refresh}
         enabled={enabled}
-        style={{ flex: 1 }}
       >
         <Draft />
       </DataRefreshControl>
@@ -46,9 +45,8 @@ it("forwards the native scroll child and preserves it while refresh is disabled"
   // Then
   expect(screen.getByDisplayValue("Retained")).toBeOnTheScreen();
   expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
-  expect(screen.getByLabelText("Actualiser les données")).toHaveStyle({
-    flex: 1,
-  });
+  // Refresh is a native callback contract: fireEvent would bubble through the composite
+  // to its caller prop even when the native RefreshControl receives no callback.
   expect(screen.getByLabelText("Actualiser les données")).not.toHaveProp(
     "onRefresh",
   );

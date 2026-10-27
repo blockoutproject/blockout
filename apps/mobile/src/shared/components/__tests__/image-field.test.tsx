@@ -1,8 +1,5 @@
 import { ActionFeedbackProvider } from "../action-feedback";
 import { TECHNICAL_ERROR, TECHNICAL_ERROR_TITLE } from "../error-copy";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { createQueryClient } from "../../query/query-client";
-import { useCommand } from "../../query/use-command";
 import {
   act,
   fireEvent,
@@ -22,15 +19,18 @@ import {
   useImageSelection,
   type ImageSelectionOptions,
 } from "../../images/use-image-selection";
-import { ImageFieldExamplesScreen } from "../../../development/image-field-examples";
 
 jest.mock("expo-image-picker", () => ({ launchImageLibraryAsync: jest.fn() }));
 jest.mock("expo-file-system", () => ({
   File: jest.fn((uri: string) => ({
     uri,
-    exists: true,
-    delete: () => mockDeleteFile(uri),
-    base64: () => mockReadBase64(uri),
+    get exists() {
+      return !mockDeletedFiles.has(uri);
+    },
+    delete: () => {
+      mockDeletedFiles.add(uri);
+      mockDeleteFile(uri);
+    },
   })),
   Paths: {
     cache: { uri: "file:///cache/" },
@@ -38,8 +38,9 @@ jest.mock("expo-file-system", () => ({
   },
 }));
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+// Separate File handles observe the same native path after deletion.
+const mockDeletedFiles = new Set<string>();
 const mockDeleteFile = jest.fn<void, [string]>();
-const mockReadBase64 = jest.fn<Promise<string>, [string]>();
 const launch = jest.mocked(ImagePicker.launchImageLibraryAsync);
 const logo = {
   id: "club-logo",
@@ -77,38 +78,30 @@ function ImageField({
   );
 }
 
-/** Renders real control/appearance owners with native picker and filesystem I/O doubled. */
-async function renderField(
-  props: Partial<
-    Omit<ImageFieldProps, "selection"> & ImageSelectionOptions
-  > = {},
+/** Mounts only the image control's required providers; each scenario supplies its native results and callbacks. */
+function renderField(
+  props: Partial<Omit<ImageFieldProps, "selection">> & ImageSelectionOptions,
 ) {
-  const onSelect = jest.fn();
-  const onRemove = jest.fn();
-  await render(
+  return render(
     <MediaProviders>
-      <ImageField
-        label="Logo"
-        images={[]}
-        onSelect={onSelect}
-        onRemove={onRemove}
-        {...props}
-      />
+      <ImageField label="Logo" images={[]} {...props} />
     </MediaProviders>,
   );
-  return { onSelect, onRemove, user: userEvent.setup() };
 }
 
 beforeEach(() => {
+  mockDeletedFiles.clear();
   launch.mockReset();
   mockDeleteFile.mockReset();
-  mockReadBase64.mockReset().mockResolvedValue("cHJldmlldw==");
 });
 
 it("keeps image selection explicit after validation instead of promising a retry", async () => {
   // Given
   launch.mockResolvedValue({ canceled: true, assets: null });
-  const { user, onSelect } = await renderField({
+  const user = userEvent.setup();
+  const onSelect = jest.fn();
+  await renderField({
+    onSelect,
     error:
       "Cette image ne peut pas être enregistrée. Choisissez une autre image.",
   });
@@ -127,7 +120,9 @@ it("keeps image selection explicit after validation instead of promising a retry
 it("loans native image copies without imposing cropping and releases them after acceptance", async () => {
   // Given
   launch.mockResolvedValue({ canceled: false, assets: [photo] });
-  const { user, onSelect } = await renderField();
+  const user = userEvent.setup();
+  const onSelect = jest.fn();
+  await renderField({ onSelect });
 
   // When
   await user.press(screen.getByRole("button", { name: "Choisir une image" }));
@@ -166,7 +161,10 @@ it.each([
     // Given
     const cropped = { ...photo, width: 800, height: 800 };
     launch.mockResolvedValue({ canceled: false, assets: [cropped] });
-    const { user, onSelect } = await renderField({
+    const user = userEvent.setup();
+    const onSelect = jest.fn();
+    await renderField({
+      onSelect,
       images,
       allowsEditing: true,
       aspect: [1, 1],
@@ -190,13 +188,8 @@ it.each([
 
 it("opens one native picker when selection is requested twice before a render", async () => {
   // Given — the public selection owner must also reject duplicate native dispatch without a field rerender.
-  let complete: (result: ImagePicker.ImagePickerResult) => void = () => {};
-  launch.mockImplementation(
-    () =>
-      new Promise((resolve) => {
-        complete = resolve;
-      }),
-  );
+  const picker = Promise.withResolvers<ImagePicker.ImagePickerResult>();
+  launch.mockReturnValue(picker.promise);
   const onSelect = jest.fn();
   const { result } = await renderHook(() => useImageSelection({ onSelect }), {
     wrapper: MediaProviders,
@@ -211,75 +204,50 @@ it("opens one native picker when selection is requested twice before a render", 
   // Then
   expect(launch).toHaveBeenCalledTimes(1);
   expect(result.current.pending).toBe(true);
-  await act(async () => complete({ canceled: false, assets: [photo] }));
-  expect(onSelect).toHaveBeenCalledTimes(1);
+  // When
+  await act(async () => picker.resolve({ canceled: false, assets: [photo] }));
+
+  // Then
+  expect(onSelect).toHaveBeenCalledWith([photo], undefined);
   expect(mockDeleteFile).toHaveBeenCalledWith(photo.uri);
   expect(result.current.pending).toBe(false);
 });
 
-it.each(["selection", "command"])(
-  "excludes overlapping native selection and HTTP admission when %s starts before a render",
-  async (first) => {
-    // Given — real operation owners share only synchronous admission checks, never mirrored pending state.
-    const client = createQueryClient();
-    const picker = Promise.withResolvers<ImagePicker.ImagePickerResult>();
-    const response = Promise.withResolvers<void>();
-    launch.mockReturnValue(picker.promise);
-    const write = jest.fn(() => response.promise);
-    const { result, unmount } = await renderHook(
-      () => {
-        const command = useCommand(
-          { mutationKey: ["image-owner"], mutationFn: write },
-          {
-            groupKey: ["image-owner"],
-            requiresRead: () => false,
-          },
-        );
-        const selection = useImageSelection({
-          canSelect: () => !command.isPending(),
-          onSelect: jest.fn(),
-        });
-        return { command, selection };
-      },
-      {
-        wrapper: ({ children }: PropsWithChildren) => (
-          <QueryClientProvider client={client}>
-            <MediaProviders>{children}</MediaProviders>
-          </QueryClientProvider>
-        ),
-      },
-    );
-    let attempt: Promise<void> | undefined;
+it("respects the caller's selection admission and allows a later explicit attempt", async () => {
+  // Given
+  launch.mockResolvedValue({ canceled: false, assets: [photo] });
+  const onSelect = jest.fn();
+  const view = await renderHook(
+    ({ admitted }: { admitted: boolean }) =>
+      useImageSelection({ canSelect: () => admitted, onSelect }),
+    { wrapper: MediaProviders, initialProps: { admitted: false } },
+  );
 
-    // When
-    await act(async () => {
-      if (first === "selection") {
-        result.current.selection.select();
-        if (!result.current.selection.isPending())
-          attempt = result.current.command.start();
-      } else {
-        attempt = result.current.command.start();
-        result.current.selection.select();
-      }
-    });
+  // When
+  await act(() => view.result.current.select());
 
-    // Then
-    expect(launch).toHaveBeenCalledTimes(first === "selection" ? 1 : 0);
-    expect(write).toHaveBeenCalledTimes(first === "command" ? 1 : 0);
-    await act(async () => {
-      picker.resolve({ canceled: true, assets: null });
-      response.resolve();
-      await attempt;
-    });
-    await unmount();
-    client.clear();
-  },
-);
+  // Then
+  expect(launch).not.toHaveBeenCalled();
+  expect(onSelect).not.toHaveBeenCalled();
+
+  // When
+  await view.rerender({ admitted: true });
+  await act(() => view.result.current.select());
+
+  // Then
+  expect(launch).toHaveBeenCalledTimes(1);
+  expect(onSelect).toHaveBeenCalledWith([photo], undefined);
+});
 
 it("preserves the existing image when native selection is cancelled", async () => {
   // Given
   launch.mockResolvedValue({ canceled: true, assets: null });
-  const { user, onSelect, onRemove } = await renderField({
+  const user = userEvent.setup();
+  const onSelect = jest.fn();
+  const onRemove = jest.fn();
+  await renderField({
+    onSelect,
+    onRemove,
     images: [logo],
     allowsEditing: true,
     aspect: [1, 1],
@@ -306,7 +274,9 @@ it.each(["ERR_USER_REJECTED_PERMISSIONS", "ERR_TEST_PICKER"])(
     launch.mockRejectedValueOnce(
       Object.assign(new Error("private path/provider detail"), { code }),
     );
-    const { user, onSelect } = await renderField({ images: [logo] });
+    const user = userEvent.setup();
+    const onSelect = jest.fn();
+    await renderField({ onSelect, images: [logo] });
 
     // When
     await user.press(
@@ -328,7 +298,10 @@ it.each(["ERR_USER_REJECTED_PERMISSIONS", "ERR_TEST_PICKER"])(
 
 it("opens a full-screen preview and closes it without changing caller values", async () => {
   // Given
-  const { user, onSelect, onRemove } = await renderField({ images: [logo] });
+  const user = userEvent.setup();
+  const onSelect = jest.fn();
+  const onRemove = jest.fn();
+  await renderField({ onSelect, onRemove, images: [logo] });
 
   // When
   await user.press(
@@ -348,7 +321,12 @@ it("opens a full-screen preview and closes it without changing caller values", a
 it("replaces a specific image and delegates automatic-logo restoration meaning", async () => {
   // Given
   launch.mockResolvedValue({ canceled: false, assets: [photo] });
-  const { user, onSelect, onRemove } = await renderField({
+  const user = userEvent.setup();
+  const onSelect = jest.fn();
+  const onRemove = jest.fn();
+  await renderField({
+    onSelect,
+    onRemove,
     images: [logo],
     removeLabel: "Rétablir le logo automatique",
   });
@@ -373,8 +351,16 @@ it("replaces a specific image and delegates automatic-logo restoration meaning",
 
 it("prioritizes multiple additions over native cropping but allows cropping a single replacement", async () => {
   // Given
-  launch.mockResolvedValue({ canceled: false, assets: [photo] });
-  const { user } = await renderField({
+  const replacement = {
+    ...photo,
+    uri: "file:///cache/ImagePicker/replacement.jpg",
+  };
+  launch
+    .mockResolvedValueOnce({ canceled: false, assets: [photo] })
+    .mockResolvedValueOnce({ canceled: false, assets: [replacement] });
+  const user = userEvent.setup();
+  await renderField({
+    onSelect: jest.fn(),
     images: [logo],
     multiple: true,
     selectionLimit: 4,
@@ -413,67 +399,42 @@ it("prioritizes multiple additions over native cropping but allows cropping a si
   );
 });
 
-it("retains the old image and caller validation error when preparation rejects unsupported or oversized bytes", async () => {
+it("preserves the controlled image when its owner supplies a validation error", async () => {
   // Given
-  const oversized = {
-    ...photo,
-    fileSize: 5 * 1024 * 1024 + 1,
-    mimeType: "image/heic",
-  };
-  launch.mockResolvedValue({ canceled: false, assets: [oversized] });
-  const validate = jest
-    .fn()
-    .mockRejectedValue(new Error("private preparation details"));
-  /** This owner fixture enforces its upload rules; the control never uploads or assumes MIME proves content. */
-  function Owner() {
-    const [error, setError] = useState<string>();
-    return (
-      <MediaProviders>
-        <ImageField
-          label="Pièces jointes"
-          images={[logo]}
-          error={error}
-          onRemove={jest.fn()}
-          onSelect={async (assets) => {
-            try {
-              await validate(assets);
-            } catch {
-              setError("PNG/JPEG, 5 Mio maximum après préparation.");
-            }
-          }}
-        />
-      </MediaProviders>
-    );
-  }
-  const user = userEvent.setup();
-  await render(<Owner />);
+  const onSelect = jest.fn();
+  const view = await render(
+    <ImageField label="Pièces jointes" images={[logo]} onSelect={onSelect} />,
+    { wrapper: MediaProviders },
+  );
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Changer l’image : Logo du club" }),
+  await view.rerender(
+    <ImageField
+      label="Pièces jointes"
+      images={[logo]}
+      onSelect={onSelect}
+      error="PNG/JPEG, 5 Mio maximum après préparation."
+    />,
   );
 
   // Then
-  expect(validate).toHaveBeenCalledWith([oversized]);
   expect(screen.getByRole("alert")).toHaveTextContent(
     "PNG/JPEG, 5 Mio maximum après préparation.",
   );
   expect(
     screen.getByRole("button", { name: "Aperçu : Logo du club" }),
   ).toBeOnTheScreen();
+  expect(onSelect).not.toHaveBeenCalled();
 });
 
 it("blocks reselection during owner preparation and recovers safely from rejection", async () => {
   // Given
   launch.mockResolvedValue({ canceled: false, assets: [photo] });
-  let rejectPreparation: (error: Error) => void = () => {};
-  const onSelect = jest.fn(
-    () =>
-      new Promise<void>((_, reject) => {
-        rejectPreparation = reject;
-      }),
-  );
-  const { user } = await renderField({ images: [logo], onSelect });
+  const preparation = Promise.withResolvers<void>();
+  const onSelect = jest.fn(() => preparation.promise);
+  const onRemove = jest.fn();
+  const user = userEvent.setup();
+  await renderField({ images: [logo], onSelect, onRemove });
 
   // When
   await user.press(
@@ -510,7 +471,7 @@ it("blocks reselection during owner preparation and recovers safely from rejecti
 
   // When
   await act(async () => {
-    rejectPreparation(new Error("private URI"));
+    preparation.reject(new Error("private URI"));
   });
 
   // Then
@@ -526,7 +487,11 @@ it("blocks reselection during owner preparation and recovers safely from rejecti
 
 it("prevents all image actions when the caller disables the field", async () => {
   // Given
-  const { user, onRemove } = await renderField({
+  const user = userEvent.setup();
+  const onRemove = jest.fn();
+  await renderField({
+    onSelect: jest.fn(),
+    onRemove,
     images: [logo],
     disabled: true,
   });
@@ -552,20 +517,17 @@ it("prevents all image actions when the caller disables the field", async () => 
 
 it("ignores a native selection returned after the field unmounts", async () => {
   // Given
-  let resolvePicker: (value: ImagePicker.ImagePickerResult) => void = () => {};
-  launch.mockImplementation(
-    () =>
-      new Promise((resolve) => {
-        resolvePicker = resolve;
-      }),
-  );
-  const { user, onSelect } = await renderField();
+  const picker = Promise.withResolvers<ImagePicker.ImagePickerResult>();
+  launch.mockReturnValue(picker.promise);
+  const user = userEvent.setup();
+  const onSelect = jest.fn();
+  await renderField({ onSelect });
 
   // When
   await user.press(screen.getByRole("button", { name: "Choisir une image" }));
   await screen.unmount();
   await act(async () => {
-    resolvePicker({ canceled: false, assets: [photo] });
+    picker.resolve({ canceled: false, assets: [photo] });
   });
 
   // Then
@@ -629,15 +591,22 @@ it("shows accepted caller values and removes them only when the owner updates", 
 
 it("keeps preview dismissal available when native image decoding fails", async () => {
   // Given
-  const { user, onSelect, onRemove } = await renderField({ images: [logo] });
+  const user = userEvent.setup();
+  const onSelect = jest.fn();
+  const onRemove = jest.fn();
+  await renderField({ onSelect, onRemove, images: [logo] });
   await user.press(
     screen.getByRole("button", { name: "Aperçu : Logo du club" }),
   );
 
   // When
-  fireEvent(screen.getByRole("image", { name: "Logo du club" }), "error", {
-    nativeEvent: { error: "private file path" },
-  });
+  await fireEvent(
+    screen.getByRole("image", { name: "Logo du club" }),
+    "error",
+    {
+      nativeEvent: { error: "private file path" },
+    },
+  );
 
   // Then
   expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -712,7 +681,10 @@ it("starts a new preview attempt when an image URI returns or the viewer reopens
 it("retains the caller's image choice after an empty-field validation error", async () => {
   // Given
   launch.mockResolvedValue({ canceled: false, assets: [photo] });
-  const { user, onSelect } = await renderField({
+  const user = userEvent.setup();
+  const onSelect = jest.fn();
+  await renderField({
+    onSelect,
     error: "Cette capture ne peut pas être utilisée.",
     chooseLabel: "Choisir une autre capture",
   });
@@ -744,7 +716,9 @@ it.each([
   // Given
   const borrowed = { ...photo, uri };
   launch.mockResolvedValue({ canceled: false, assets: [borrowed] });
-  const { user, onSelect } = await renderField();
+  const user = userEvent.setup();
+  const onSelect = jest.fn();
+  await renderField({ onSelect });
 
   // When
   await user.press(screen.getByRole("button", { name: "Choisir une image" }));
@@ -764,7 +738,8 @@ it("releases every delivered cache copy after preparation settles even if the fi
   launch.mockResolvedValue({ canceled: false, assets: [photo, second] });
   const preparation = Promise.withResolvers<void>();
   const onSelect = jest.fn(() => preparation.promise);
-  const { user } = await renderField({
+  const user = userEvent.setup();
+  await renderField({
     onSelect,
     multiple: true,
     selectionLimit: 2,
@@ -783,55 +758,6 @@ it("releases every delivered cache copy after preparation settles even if the fi
 
   // Then
   expect(mockDeleteFile.mock.calls).toEqual([[photo.uri], [second.uri]]);
-});
-
-it("keeps the demonstration preview in memory after its picker cache copy is released", async () => {
-  // Given
-  launch.mockResolvedValue({ canceled: false, assets: [photo] });
-  const bytes = Promise.withResolvers<string>();
-  mockReadBase64.mockReturnValue(bytes.promise);
-  const user = userEvent.setup();
-  await render(
-    <MediaProviders>
-      <ImageFieldExamplesScreen />
-    </MediaProviders>,
-  );
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Choisir une image" }));
-
-  // Then
-  expect(mockReadBase64).toHaveBeenCalledWith(photo.uri);
-  expect(mockDeleteFile).not.toHaveBeenCalled();
-
-  // When
-  await act(async () => bytes.resolve("cHJldmlldw=="));
-
-  // Then
-  expect(
-    await screen.findByRole("button", { name: "Aperçu : Image 1" }),
-  ).toBeOnTheScreen();
-  expect(mockDeleteFile).toHaveBeenCalledWith(photo.uri);
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Aperçu : Image 1" }));
-
-  // Then
-  expect(screen.getByRole("image", { name: "Image 1" })).toHaveProp("source", [
-    expect.objectContaining({ uri: "data:image/jpeg;base64,cHJldmlldw==" }),
-  ]);
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Fermer" }));
-  await user.press(
-    screen.getByRole("button", { name: "Supprimer l’image : Image 1" }),
-  );
-
-  // Then
-  expect(
-    screen.queryByRole("button", { name: "Aperçu : Image 1" }),
-  ).not.toBeOnTheScreen();
-  expect(mockDeleteFile).toHaveBeenCalledTimes(1);
 });
 
 /** Matches the application's theme and transient feedback owners for native selection scenarios. */

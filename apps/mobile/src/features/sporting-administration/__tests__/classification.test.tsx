@@ -1,10 +1,12 @@
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
+import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   getGetPoolClassificationQueryKey,
   getListClubTeamsQueryKey,
 } from "../../../../.generated/mobile";
 import {
+  cleanup,
   act,
   fireEvent,
   screen,
@@ -14,7 +16,7 @@ import {
 import { Alert, Pressable, Text } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
-import type { ComponentType, PropsWithChildren } from "react";
+import type { ComponentType } from "react";
 import RootLayout from "../../../app/_layout";
 import OnboardingRoute from "../../../app/onboarding";
 import OperationsLayout from "../../../app/(operations)/_layout";
@@ -26,10 +28,7 @@ import { ClassificationSelectionScreen } from "../screens/classification-selecti
 import { PresentationScreen } from "../screens/presentation-screen";
 import CreateDivisionRoute from "../../../app/(operations)/administration/divisions/new";
 import { AdministrationScreen } from "../../access/screens/administration-screen";
-import {
-  useCurrentAccount,
-  useAccountSession,
-} from "../../accounts/current-account";
+import { useCurrentAccount } from "../../accounts/current-account";
 import { ClassificationEntry } from "../entry";
 import { completeDiscovery } from "../../onboarding/discovery-state";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
@@ -166,7 +165,8 @@ beforeEach(async () => {
     .mockResolvedValue(credentialsFor("auth0|operator-178"));
   mockFetch.mockReset().mockImplementation(respond);
 });
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   client.clear();
   process.env = { ...environment };
   jest.restoreAllMocks();
@@ -208,7 +208,7 @@ async function renderEditor(
           <ThemeProvider>
             <ApplicationAccessProvider>
               <AccountSessionProvider>
-                <ActionFeedbackScope>{children}</ActionFeedbackScope>
+                <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
               </AccountSessionProvider>
             </ApplicationAccessProvider>
           </ThemeProvider>
@@ -216,7 +216,6 @@ async function renderEditor(
       ),
     },
   );
-  return userEvent.setup();
 }
 it("announces the pending division catalogue without inventing editable rows", async () => {
   // Given
@@ -250,43 +249,32 @@ it("announces the pending division catalogue without inventing editable rows", a
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 });
 
-/** Chooses through the real native-stack selection route and returns to the original form. */
-async function choose(
-  user: ReturnType<typeof userEvent.setup>,
-  field: string,
-  label: string,
-) {
-  await user.press(await screen.findByRole("button", { name: field }));
-  await user.press(await screen.findByRole("radio", { name: label }));
-  await screen.findByRole("button", { name: field });
-}
-/** Accepts the native confirmation only when a test explicitly chooses its final action. */
-async function confirm(label = "Enregistrer") {
-  const action = jest
-    .mocked(Alert.alert)
-    .mock.calls.at(-1)?.[2]
-    ?.find((button) => button.text === label);
-  await act(async () => {
-    action?.onPress?.();
-  });
-}
 it("submits a complete pool override after confirmation and excludes inactive choices", async () => {
   // Given
   jest.spyOn(Alert, "alert");
-  const user = await renderEditor();
+  const user = userEvent.setup();
+  await renderEditor();
   await screen.findByRole("radio", { name: "Du pack" });
   // When
   await user.press(screen.getByRole("radio", { name: "Personnalisé" }));
-  await choose(user, "Division", "National 2");
-  await choose(user, "Format", "4 × 4");
-  await choose(user, "Genre", "Mixte");
+  await user.press(await screen.findByRole("button", { name: "Division" }));
+  await user.press(await screen.findByRole("radio", { name: "National 2" }));
+  await screen.findByRole("button", { name: "Division" });
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  await screen.findByRole("button", { name: "Format" });
+  await user.press(await screen.findByRole("button", { name: "Genre" }));
+  await user.press(await screen.findByRole("radio", { name: "Mixte" }));
+  await screen.findByRole("button", { name: "Genre" });
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   // Then
   expect(screen.queryByRole("radio", { name: "Inactive" })).toBeNull();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
   ).toHaveLength(0);
-  await confirm();
+  // When
+  await act(async () => nativeAlertAction("Enregistrer")());
+  // Then
   await waitFor(() =>
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining(`/pools/${id}/classification`),
@@ -309,8 +297,11 @@ it("submits a complete pool override after confirmation and excludes inactive ch
 it("refreshes classification data without replacing dirty choices or accepting a newer editing baseline", async () => {
   // Given
   stored.setting = classification;
-  const user = await renderEditor();
-  await choose(user, "Format", "4 × 4");
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  await screen.findByRole("button", { name: "Format" });
   stored = { ...stored, revision: "r2" };
 
   // When
@@ -338,7 +329,8 @@ it("refreshes an empty division catalogue without changing its search or activit
         )
       : respond(url, options),
   );
-  const user = await renderEditor("divisions");
+  const user = userEvent.setup();
+  await renderEditor("divisions");
   await screen.findByText("Aucune division active");
   await user.type(screen.getByLabelText("Rechercher une division"), "National");
   await user.press(screen.getByRole("tab", { name: "Inactives" }));
@@ -361,12 +353,13 @@ it("removes the complete pack default with explicit null", async () => {
   // Given
   stored.setting = classification;
   jest.spyOn(Alert, "alert");
-  const user = await renderEditor("pack");
+  const user = userEvent.setup();
+  await renderEditor("pack");
   await screen.findByRole("radio", { name: "Sans classification" });
   // When
   await user.press(screen.getByRole("radio", { name: "Sans classification" }));
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await confirm();
+  await act(async () => nativeAlertAction("Enregistrer")());
   // Then
   await waitFor(() =>
     expect(mockFetch).toHaveBeenCalledWith(
@@ -403,15 +396,22 @@ it("retains dirty choices and displays conflicting scopes without applying a sub
         )
       : initialFetch(url, options),
   );
-  const user = await renderEditor();
+  const user = userEvent.setup();
+  await renderEditor();
   await screen.findByRole("radio", { name: "Personnalisé" });
   // When
   await user.press(screen.getByRole("radio", { name: "Personnalisé" }));
-  await choose(user, "Division", "National 2");
-  await choose(user, "Format", "2 × 2");
-  await choose(user, "Genre", "Masculin");
+  await user.press(await screen.findByRole("button", { name: "Division" }));
+  await user.press(await screen.findByRole("radio", { name: "National 2" }));
+  await screen.findByRole("button", { name: "Division" });
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "2 × 2" }));
+  await screen.findByRole("button", { name: "Format" });
+  await user.press(await screen.findByRole("button", { name: "Genre" }));
+  await user.press(await screen.findByRole("radio", { name: "Masculin" }));
+  await screen.findByRole("button", { name: "Genre" });
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await confirm();
+  await act(async () => nativeAlertAction("Enregistrer")());
   // Then
   expect(await screen.findByText(new RegExp(inactiveId))).toBeOnTheScreen();
   expect(
@@ -436,12 +436,15 @@ it("requires a successful current-state read after an uncertain write and preser
       ? Promise.reject(new TypeError("Lost response"))
       : initialFetch(url, options),
   );
-  const user = await renderEditor();
+  const user = userEvent.setup();
+  await renderEditor();
   await screen.findByRole("button", { name: "Format" });
   // When
-  await choose(user, "Format", "4 × 4");
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  await screen.findByRole("button", { name: "Format" });
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await confirm();
+  await act(async () => nativeAlertAction("Enregistrer")());
   await screen.findByRole("button", { name: "Relire la classification" });
   stored = { ...stored, revision: "r2" };
   await user.press(
@@ -459,12 +462,13 @@ it("requires a successful current-state read after an uncertain write and preser
 it("uses an independent explicit activity command with the division revision", async () => {
   // Given
   jest.spyOn(Alert, "alert");
-  const user = await renderEditor("division");
+  const user = userEvent.setup();
+  await renderEditor("division");
   // When
   await user.press(
     await screen.findByRole("button", { name: "Désactiver la division" }),
   );
-  await confirm("Désactiver");
+  await act(async () => nativeAlertAction("Désactiver")());
   // Then
   await waitFor(() =>
     expect(mockFetch).toHaveBeenCalledWith(
@@ -494,7 +498,8 @@ it("refuses an incomplete override without opening confirmation or writing", asy
   // Given
   stored.effective = null;
   jest.spyOn(Alert, "alert");
-  const user = await renderEditor();
+  const user = userEvent.setup();
+  await renderEditor();
   await screen.findByRole("radio", { name: "Personnalisé" });
 
   // When
@@ -523,13 +528,16 @@ it("keeps a failed recovery read blocking and never retries the uncertain write"
       ? Promise.reject(new TypeError("Unavailable"))
       : initialFetch(url, options),
   );
-  const user = await renderEditor();
+  const user = userEvent.setup();
+  await renderEditor();
   await screen.findByRole("button", { name: "Format" });
 
   // When
-  await choose(user, "Format", "4 × 4");
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  await screen.findByRole("button", { name: "Format" });
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await confirm();
+  await act(async () => nativeAlertAction("Enregistrer")());
   await screen.findByRole("button", { name: "Relire la classification" });
   failedRead = true;
   await user.press(
@@ -565,13 +573,14 @@ it("reconciles uncertain deactivation before offering explicit reactivation", as
       ? Promise.resolve(json({ ...division, revision: "d2", active: false }))
       : initialFetch(url, options);
   });
-  const user = await renderEditor("division");
+  const user = userEvent.setup();
+  await renderEditor("division");
 
   // When
   await user.press(
     await screen.findByRole("button", { name: "Désactiver la division" }),
   );
-  await confirm("Désactiver");
+  await act(async () => nativeAlertAction("Désactiver")());
   await user.press(
     await screen.findByRole("button", { name: "Relire la division" }),
   );
@@ -661,10 +670,12 @@ it("retains a classification draft and uncertainty through actual protected-rout
     await screen.findByRole("button", { name: "Relire les permissions" }),
   );
   await user.press(screen.getByText("Modifier la classification"));
-  await choose(user, "Format", "4 × 4");
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  await screen.findByRole("button", { name: "Format" });
   jest.spyOn(Alert, "alert");
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await confirm();
+  await act(async () => nativeAlertAction("Enregistrer")());
   await screen.findByRole("button", { name: "Relire la classification" });
 
   // When
@@ -701,7 +712,9 @@ it("retains a classification draft and uncertainty through actual protected-rout
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
   );
+  // When
   await act(async () => router.back());
+  // Then
   expect(Alert.alert).toHaveBeenLastCalledWith(
     "Abandonner les modifications ?",
     "Votre brouillon n’a pas été enregistré.",
@@ -757,9 +770,8 @@ it.each(["classification", "activity"])(
           )
         : respond(url, options);
     });
-    const user = await renderEditor(
-      operation === "activity" ? "division" : "pool",
-    );
+    const user = userEvent.setup();
+    await renderEditor(operation === "activity" ? "division" : "pool");
 
     // When
     if (operation === "activity")
@@ -770,7 +782,11 @@ it.each(["classification", "activity"])(
       await user.press(
         await screen.findByRole("button", { name: "Enregistrer" }),
       );
-    await confirm(operation === "activity" ? "Désactiver" : "Enregistrer");
+    await act(async () =>
+      nativeAlertAction(
+        operation === "activity" ? "Désactiver" : "Enregistrer",
+      )(),
+    );
 
     // Then
     if (operation === "activity")
@@ -811,12 +827,15 @@ it("distinguishes a stale revision and uses the reread revision only on explicit
         )
       : respond(url, options),
   );
-  const user = await renderEditor();
-  await choose(user, "Format", "4 × 4");
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  await screen.findByRole("button", { name: "Format" });
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await confirm();
+  await act(async () => nativeAlertAction("Enregistrer")());
   await screen.findByText(/La classification a changé depuis votre lecture/);
   stored = { ...stored, revision: "r2" };
   await user.press(
@@ -824,7 +843,7 @@ it("distinguishes a stale revision and uses the reread revision only on explicit
   );
   refuse = false;
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await confirm();
+  await act(async () => nativeAlertAction("Enregistrer")());
 
   // Then
   await waitFor(() =>
@@ -845,7 +864,8 @@ it("distinguishes a stale revision and uses the reread revision only on explicit
 it("reauthorizes a held native confirmation after the current classification grant is revoked", async () => {
   // Given
   jest.spyOn(Alert, "alert");
-  const user = await renderEditor();
+  const user = userEvent.setup();
+  await renderEditor();
   await user.press(await screen.findByRole("button", { name: "Enregistrer" }));
 
   // When
@@ -856,7 +876,7 @@ it("reauthorizes a held native confirmation after the current classification gra
         queryKey.some((part) => part === "/accounts/me"),
     }),
   );
-  await confirm();
+  await act(async () => nativeAlertAction("Enregistrer")());
 
   // Then
   expect(screen.queryByText("Une erreur est survenue")).toBeNull();
@@ -904,7 +924,9 @@ it("shows current activity on reentry for an operator with classification permis
 
   // Then
   await screen.findByText("Aucune division active");
+  // When
   await user.press(screen.getByRole("tab", { name: "Inactives" }));
+  // Then
   expect(await screen.findByText("National 2")).toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Désactiver la division" }),
@@ -913,7 +935,8 @@ it("shows current activity on reentry for an operator with classification permis
 
 it("filters division names within the selected activity catalogue without exposing lifecycle commands on cards", async () => {
   // Given
-  const user = await renderEditor("divisions");
+  const user = userEvent.setup();
+  await renderEditor("divisions");
   await screen.findByRole("link", { name: "National 2" });
 
   // When
@@ -934,7 +957,8 @@ it("filters division names within the selected activity catalogue without exposi
 
 it("clears the division search without resetting the selected activity catalogue", async () => {
   // Given
-  const user = await renderEditor("divisions");
+  const user = userEvent.setup();
+  await renderEditor("divisions");
   await screen.findByRole("link", { name: "National 2" });
   await user.type(screen.getByLabelText("Rechercher une division"), "national");
   await user.press(screen.getByRole("tab", { name: "Inactives" }));
@@ -1032,21 +1056,14 @@ it("discards a held classification confirmation when its protected route is remo
   ).toBe(false);
 });
 
-/** Uses the real F05 generation so a previous session cannot retain action feedback in this fixture. */
-function ActionFeedbackScope({ children }: PropsWithChildren) {
-  const { generation } = useAccountSession();
-  return (
-    <ActionFeedbackProvider scopeKey={generation}>
-      {children}
-    </ActionFeedbackProvider>
-  );
-}
-
 it("keeps classification choices but disables editing after a current resource refusal", async () => {
   // Given
   stored.setting = classification;
-  const user = await renderEditor();
-  await choose(user, "Format", "4 × 4");
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  await screen.findByRole("button", { name: "Format" });
   mockFetch.mockImplementation((url, options) =>
     String(url).includes("/classification")
       ? Promise.resolve(json({ title: "Forbidden", status: 403 }, 403))
@@ -1073,8 +1090,11 @@ it("keeps classification choices but disables editing after a current resource r
 it("keeps an open selector's known choices visible and read-only after its grant is withdrawn", async () => {
   // Given
   stored.setting = classification;
-  const user = await renderEditor();
-  await choose(user, "Format", "4 × 4");
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  await screen.findByRole("button", { name: "Format" });
   await user.press(screen.getByRole("button", { name: "Format" }));
   await screen.findByRole("radio", { name: "4 × 4", checked: true });
 
@@ -1094,7 +1114,9 @@ it("keeps an open selector's known choices visible and read-only after its grant
     screen.getByRole("radio", { name: "4 × 4", checked: true }),
   ).toBeDisabled();
   expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+  // When
   await user.press(screen.getByRole("radio", { name: "2 × 2" }));
+  // Then
   expect(
     screen.getByRole("radio", { name: "4 × 4", checked: true }),
   ).toBeOnTheScreen();
@@ -1108,8 +1130,11 @@ it.each([
   async ({ accountStatus, canRetry }) => {
     // Given
     stored.setting = classification;
-    const user = await renderEditor();
-    await choose(user, "Format", "4 × 4");
+    const user = userEvent.setup();
+    await renderEditor();
+    await user.press(await screen.findByRole("button", { name: "Format" }));
+    await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+    await screen.findByRole("button", { name: "Format" });
     await user.press(screen.getByRole("button", { name: "Division" }));
     await screen.findByRole("radio", { name: "National 2" });
     mockFetch.mockImplementation((url, options) =>
@@ -1182,8 +1207,11 @@ it("retains an empty division selector and reports an ordinary refresh failure t
       ? Promise.resolve(json({ items: [] }))
       : respond(url, options),
   );
-  const user = await renderEditor();
-  await choose(user, "Format", "4 × 4");
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  await screen.findByRole("button", { name: "Format" });
   await user.press(screen.getByRole("button", { name: "Division" }));
   await screen.findByRole("header", { name: "Aucune division active" });
   mockFetch.mockImplementation((url, options) =>
@@ -1221,8 +1249,11 @@ it("retains an empty division selector and reports an ordinary refresh failure t
 it("keeps an open format selector unavailable through a refused then failed classification reread", async () => {
   // Given
   stored.setting = classification;
-  const user = await renderEditor();
-  await choose(user, "Format", "4 × 4");
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  await screen.findByRole("button", { name: "Format" });
   await user.press(screen.getByRole("button", { name: "Format" }));
   await screen.findByRole("radio", { name: "4 × 4", checked: true });
   let status = 403;
@@ -1269,8 +1300,11 @@ it("refuses a held save confirmation after its current classification read is re
   // Given
   jest.spyOn(Alert, "alert");
   stored.setting = classification;
-  const user = await renderEditor();
-  await choose(user, "Format", "4 × 4");
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  await screen.findByRole("button", { name: "Format" });
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   mockFetch.mockImplementation((url, options) =>
     String(url).includes("/classification")
@@ -1283,7 +1317,7 @@ it("refuses a held save confirmation after its current classification read is re
   });
 
   // When
-  await confirm();
+  await act(async () => nativeAlertAction("Enregistrer")());
 
   // Then
   expect(

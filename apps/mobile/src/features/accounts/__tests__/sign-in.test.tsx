@@ -1,3 +1,4 @@
+import { accountResponse } from "../test-support/account-response";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
@@ -5,6 +6,7 @@ import { ApplicationAccessProvider } from "../../access/queries/use-application-
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
+  cleanup,
   render,
   screen,
   userEvent,
@@ -66,23 +68,11 @@ const configuration = {
   EXPO_PUBLIC_AUTH0_AUDIENCE: process.env.EXPO_PUBLIC_AUTH0_AUDIENCE,
   EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
 };
-const account = {
+const account = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000169",
   username: "Player_169",
   email: "shared@example.invalid",
-  principalCreatedAt: null,
-  hasPhoto: false,
-  permissions: {
-    manageMaintenance: false,
-    manageApplicationVersions: false,
-    bypassMaintenance: false,
-    manageSportingPresentation: false,
-    manageSportingClassification: false,
-    manageDivisionLifecycle: false,
-    manageCollection: false,
-    moderateStreamLinks: false,
-  },
-};
+});
 
 beforeEach(() => {
   queryClient = createQueryClient();
@@ -109,9 +99,9 @@ beforeEach(() => {
         : problem(404, "not-found"),
     );
 });
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   queryClient.clear();
-  jest.useRealTimers();
   jest.restoreAllMocks();
   for (const [key, value] of Object.entries(configuration)) {
     if (value === undefined) delete process.env[key];
@@ -493,8 +483,11 @@ it.each(["sign-in", "profile"])(
 );
 
 it("does not admit login or profile navigation through a controlled F12 refusal", async () => {
-  // Given / When
-  await renderJourney(<SignInScreen admitted={false} />);
+  // Given
+  const admitted = false;
+
+  // When
+  await renderJourney(<SignInScreen admitted={admitted} />);
 
   // Then
   expect(
@@ -678,7 +671,6 @@ it("discards a credential failure from an obsolete establishment session", async
 
 it("suspends account reads throughout native credential clearing", async () => {
   // Given
-  jest.useFakeTimers();
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   mockFetch.mockImplementation(async () => json(account));
   const clearing = Promise.withResolvers<void>();
@@ -697,9 +689,6 @@ it("suspends account reads throughout native credential clearing", async () => {
 
   // When
   await user.press(screen.getByRole("button", { name: "Quitter la session" }));
-  await act(async () => {
-    await jest.advanceTimersByTimeAsync(0);
-  });
 
   // Then
   expect(screen.getByText("Current account: unavailable")).toBeOnTheScreen();
@@ -709,7 +698,6 @@ it("suspends account reads throughout native credential clearing", async () => {
   await act(async () => {
     clearing.resolve();
   });
-  jest.useRealTimers();
 });
 
 /** Synthetic canonical response for controlled transport, not native networking evidence. */

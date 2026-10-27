@@ -1,11 +1,19 @@
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
-import { render, screen, userEvent } from "@testing-library/react-native";
+import {
+  cleanup,
+  render,
+  screen,
+  userEvent,
+} from "@testing-library/react-native";
 import { Linking } from "react-native";
 import { StoreAction } from "../components/store-action";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 
 beforeEach(() => jest.spyOn(Linking, "openURL"));
-afterEach(() => jest.restoreAllMocks());
+afterEach(async () => {
+  await cleanup();
+  jest.restoreAllMocks();
+});
 
 it("keeps the action available after a failed native open and retries explicitly", async () => {
   // Given

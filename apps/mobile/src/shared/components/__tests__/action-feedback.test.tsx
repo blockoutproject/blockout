@@ -1,11 +1,20 @@
-import { act, render, screen, userEvent } from "@testing-library/react-native";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+} from "@testing-library/react-native";
 import { Pressable, Text } from "react-native";
 import { ActionFeedbackProvider, useActionFeedback } from "../action-feedback";
 import { ThemeProvider } from "../../theme/theme-provider";
 import { TECHNICAL_ERROR } from "../error-copy";
 
 beforeEach(() => jest.useFakeTimers());
-afterEach(() => jest.useRealTimers());
+afterEach(async () => {
+  await cleanup();
+  jest.useRealTimers();
+});
 
 /** Exercises actual presentation events; the optional promise controls only the remote failure boundary. */
 function Actions({
@@ -138,10 +147,9 @@ it("drops old session feedback and refuses its delayed failure after a scope cha
 
 it("retains a published native-handoff failure after route removal until the session changes", async () => {
   // Given
+  const user = userEvent.setup();
   const view = await render(<Surface retainOnUnmount />);
-  await userEvent.press(
-    screen.getByRole("button", { name: "Technical failure" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Technical failure" }));
 
   // When
   await view.rerender(<Surface retainOnUnmount showActions={false} />);
@@ -161,12 +169,11 @@ it("retains a published native-handoff failure after route removal until the ses
 it("ignores a late handoff failure even when an already-published notice could survive navigation", async () => {
   // Given
   const response = Promise.withResolvers<void>();
+  const user = userEvent.setup();
   const view = await render(
     <Surface retainOnUnmount response={response.promise} />,
   );
-  await userEvent.press(
-    screen.getByRole("button", { name: "Technical failure" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Technical failure" }));
 
   // When
   await view.rerender(<Surface retainOnUnmount showActions={false} />);

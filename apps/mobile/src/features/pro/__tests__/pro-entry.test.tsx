@@ -4,12 +4,12 @@ import { useEffect } from "react";
 import {
   act,
   cleanup,
-  render,
   screen,
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
 import { Text } from "react-native";
+import { renderRouter } from "expo-router/testing-library";
 import Purchases from "react-native-purchases";
 import type { AccountSession } from "../../accounts";
 import {
@@ -53,10 +53,6 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => mockRouter,
-  useFocusEffect: (callback: () => () => void) => {
-    const { useEffect } = jest.requireActual("react");
-    useEffect(callback, [callback]);
-  },
 }));
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
@@ -106,19 +102,24 @@ function SessionProbe() {
 
 /** Mounts focused real owners; routing remains an explicitly controlled command boundary. */
 async function mount(content: React.ReactNode) {
-  await render(
-    <QueryClientProvider client={client}>
-      <ThemeProvider>
-        <ActionFeedbackProvider scopeKey="test">
-          <AccountSessionProvider>
-            <SessionProbe />
-            {content}
-          </AccountSessionProvider>
-        </ActionFeedbackProvider>
-      </ThemeProvider>
-    </QueryClientProvider>,
+  await renderRouter(
+    { index: () => <>{content}</> },
+    {
+      initialUrl: "/",
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={client}>
+          <ThemeProvider>
+            <ActionFeedbackProvider scopeKey="test">
+              <AccountSessionProvider>
+                <SessionProbe />
+                {children}
+              </AccountSessionProvider>
+            </ActionFeedbackProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      ),
+    },
   );
-  await screen.findByText("Session: guest");
 }
 
 it("places a distinct Pro action before Privacy in the existing admitted profile", async () => {
@@ -128,6 +129,7 @@ it("places a distinct Pro action before Privacy in the existing admitted profile
       <ProfileScreen admitted proEntry={<ProProfileEntry />} />
     </ProProvider>,
   );
+  await screen.findByText("Session: guest");
 
   // When
   const user = userEvent.setup();
@@ -150,16 +152,20 @@ it("places a distinct Pro action before Privacy in the existing admitted profile
 
 it("keeps Pro and its direct invitation behind ordinary F12 admission", async () => {
   // Given
+  const admitted = false;
+
+  // When
   await mount(
     <>
       <ProProvider>
-        <ProfileScreen admitted={false} proEntry={<ProProfileEntry />} />
+        <ProfileScreen admitted={admitted} proEntry={<ProProfileEntry />} />
       </ProProvider>
-      <SignInInvitationScreen admitted={false} message={message} />
+      <SignInInvitationScreen admitted={admitted} message={message} />
     </>,
   );
+  await screen.findByText("Session: guest");
 
-  // When / Then
+  // Then
   expect(
     screen.queryByRole("button", { name: "Blockout Pro" }),
   ).not.toBeOnTheScreen();
@@ -169,7 +175,7 @@ it("keeps Pro and its direct invitation behind ordinary F12 admission", async ()
   ).not.toBeOnTheScreen();
 });
 
-it("dismisses the price-free invitation without changing the originating context or consulting native offers", async () => {
+it("requests dismissal of the price-free invitation without consulting native offers", async () => {
   // Given
   await mount(
     <>
@@ -177,6 +183,7 @@ it("dismisses the price-free invitation without changing the originating context
       <SignInInvitationScreen admitted message={message} />
     </>,
   );
+  await screen.findByText("Session: guest");
 
   // When
   const user = userEvent.setup();
@@ -195,6 +202,7 @@ it("dismisses the price-free invitation without changing the originating context
 it("replaces the invitation with ordinary sign-in, without any continuation parameter", async () => {
   // Given
   await mount(<SignInInvitationScreen admitted message={message} />);
+  await screen.findByText("Session: guest");
 
   // When
   const user = userEvent.setup();
@@ -210,6 +218,7 @@ it("replaces the invitation with ordinary sign-in, without any continuation para
 it("removes the guest presentation immediately when its F05 generation changes", async () => {
   // Given
   await mount(<SignInInvitationScreen admitted message={message} />);
+  await screen.findByText("Session: guest");
 
   // When
   await act(() => account.invalidate());
@@ -221,12 +230,13 @@ it("removes the guest presentation immediately when its F05 generation changes",
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
 });
 
-it("requires a new explicit press after ordinary sign-in before calling a native host command", async () => {
+it("requires a new explicit press after ordinary sign-in before requesting presentation", async () => {
   // Given: only the host navigation command is controlled; F05 sign-in and generation publication are real.
   const present = jest.fn();
   mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|entry-test"));
   mockAuth0.saveCredentials.mockResolvedValue();
   await mount(<ProEntry onOpenPresentation={present} />);
+  await screen.findByText("Session: guest");
   const user = userEvent.setup();
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
 
@@ -243,6 +253,10 @@ it("requires a new explicit press after ordinary sign-in before calling a native
   // Then
   expect(present).not.toHaveBeenCalled();
   expect(mockRouter.push).toHaveBeenCalledTimes(1);
+
+  // When
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-  expect(present).toHaveBeenCalledTimes(1);
+
+  // Then
+  expect(present.mock.calls).toEqual([[]]);
 });
