@@ -5,13 +5,16 @@ import {
 } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useEffectEvent, useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 import {
   Page,
   PageContent,
+  PageScrollView,
   pageContentStyle,
 } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
+import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import { Button } from "../../../shared/components/button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
@@ -35,18 +38,28 @@ export function NotificationsScreen() {
   const { account } = authority;
   if (!authority.queries)
     return (
-      <Page edges={["top", "left", "right"]}>
-        <PageHeader title="Notifications" />
-        <ScreenState>
-          {account.isPending ? (
-            <RequestLoading />
-          ) : (
-            <ErrorState
-              onRetry={() => void account.refetch()}
-              retrying={account.isFetching}
-            />
+      <Page edges={["left", "right"]}>
+        <ScrollChrome header={<PageHeader title="Notifications" />}>
+          {({ onScroll, headerHeight }) => (
+            <PageScrollView
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              scrollIndicatorInsets={{ top: headerHeight }}
+              contentContainerStyle={{ paddingTop: headerHeight }}
+            >
+              <ScreenState>
+                {account.isPending ? (
+                  <RequestLoading />
+                ) : (
+                  <ErrorState
+                    onRetry={() => void account.refetch()}
+                    retrying={account.isFetching}
+                  />
+                )}
+              </ScreenState>
+            </PageScrollView>
           )}
-        </ScreenState>
+        </ScrollChrome>
       </Page>
     );
   return (
@@ -124,85 +137,105 @@ function Inbox({
       feedback.error();
   }
   return (
-    <Page edges={["top", "left", "right"]}>
-      <View style={styles.header}>
-        <Text
-          accessibilityRole="header"
-          style={[tokens.typography.navigation, { color: colors.text }]}
-        >
-          Notifications
-        </Text>
-      </View>
-      <FlatList
-        alwaysBounceVertical
-        data={rows}
-        keyExtractor={(item) => item.id}
-        ItemSeparatorComponent={ListSeparator}
-        contentContainerStyle={rows.length ? pageContentStyle : styles.empty}
-        refreshControl={
-          <DataRefreshControl
-            refreshing={query.isRefetching && !query.isFetchingNextPage}
-            onRefresh={() => void refresh()}
-          />
+    <Page edges={["left", "right"]}>
+      <ScrollChrome
+        header={
+          <View style={styles.header}>
+            <Text
+              accessibilityRole="header"
+              style={[tokens.typography.navigation, { color: colors.text }]}
+            >
+              Notifications
+            </Text>
+          </View>
         }
-        ListEmptyComponent={
-          query.data ? (
-            <ScreenState>
-              <EmptyState
-                title="Aucune notification pour le moment"
-                description="Les nouvelles de vos équipes et poules suivies apparaîtront ici."
+      >
+        {({ onScroll, headerHeight }) => (
+          <Animated.FlatList
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            scrollIndicatorInsets={{ top: headerHeight }}
+            alwaysBounceVertical
+            data={rows}
+            keyExtractor={(item) => item.id}
+            ItemSeparatorComponent={ListSeparator}
+            contentContainerStyle={[
+              rows.length ? pageContentStyle : styles.empty,
+              {
+                paddingTop:
+                  headerHeight +
+                  (rows.length ? tokens.layout.content.start : 0),
+              },
+            ]}
+            refreshControl={
+              <DataRefreshControl
+                progressViewOffset={headerHeight}
+                refreshing={query.isRefetching && !query.isFetchingNextPage}
+                onRefresh={() => void refresh()}
               />
-            </ScreenState>
-          ) : query.isError ? (
-            <ScreenState>
-              <ErrorState
-                onRetry={() => void refresh()}
-                retrying={query.isFetching}
+            }
+            ListEmptyComponent={
+              query.data ? (
+                <ScreenState>
+                  <EmptyState
+                    title="Aucune notification pour le moment"
+                    description="Les nouvelles de vos équipes et poules suivies apparaîtront ici."
+                  />
+                </ScreenState>
+              ) : query.isError ? (
+                <ScreenState>
+                  <ErrorState
+                    onRetry={() => void refresh()}
+                    retrying={query.isFetching}
+                  />
+                </ScreenState>
+              ) : (
+                <NotificationLoading />
+              )
+            }
+            ListFooterComponent={
+              query.hasNextPage ? (
+                <View style={styles.continuation}>
+                  <Button
+                    label={
+                      query.isFetchNextPageError
+                        ? "Réessayer"
+                        : "Charger la suite"
+                    }
+                    variant="secondary"
+                    loading={query.isFetchingNextPage}
+                    disabled={query.isFetching}
+                    onPress={() => void loadMore()}
+                  />
+                </View>
+              ) : undefined
+            }
+            renderItem={({ item }) => (
+              <NotificationItem
+                notification={item}
+                pending={command.isPending && command.variables === item.id}
+                onPress={() => {
+                  if (!owner.isCurrent(owner.generation)) return;
+                  // Both intents start on tap; either can fail without reversing the other.
+                  command.mutate(item.id, {
+                    onError: () => {
+                      if (owner.isCurrent(owner.generation)) feedback.error();
+                    },
+                  });
+                  try {
+                    router.push({
+                      pathname: "/matches/[matchId]",
+                      params: { matchId: item.match.id },
+                    });
+                  } catch {
+                    feedback.error();
+                  }
+                }}
               />
-            </ScreenState>
-          ) : (
-            <NotificationLoading />
-          )
-        }
-        ListFooterComponent={
-          query.hasNextPage ? (
-            <View style={styles.continuation}>
-              <Button
-                label={
-                  query.isFetchNextPageError ? "Réessayer" : "Charger la suite"
-                }
-                variant="secondary"
-                loading={query.isFetchingNextPage}
-                disabled={query.isFetching}
-                onPress={() => void loadMore()}
-              />
-            </View>
-          ) : undefined
-        }
-        renderItem={({ item }) => (
-          <NotificationItem
-            notification={item}
-            pending={command.isPending && command.variables === item.id}
-            onPress={() => {
-              if (!owner.isCurrent(owner.generation)) return;
-              // Both intents start on tap; either can fail without reversing the other.
-              command.mutate(item.id, {
-                onError: () => {
-                  if (owner.isCurrent(owner.generation)) feedback.error();
-                },
-              });
-              try {
-                router.push({
-                  pathname: "/matches/[matchId]",
-                  params: { matchId: item.match.id },
-                });
-              } catch {
-                feedback.error();
-              }
-            }}
+            )}
           />
         )}
-      />
+      </ScrollChrome>
     </Page>
   );
 }

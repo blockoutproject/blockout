@@ -4,18 +4,15 @@ import { Image } from "expo-image";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { useSearchVisit } from "../forms/search-visit";
-import {
-  reconcileSearchFilters,
-  type SearchFilters,
-} from "../model/search-filters";
+import { reconcileSearchFilters } from "../model/search-filters";
 import { Page, PageContent } from "../../../shared/components/page";
-import { Tabs } from "../../../shared/components/tabs";
+import { PagedTabs, PagerTabBar } from "../../../shared/components/paged-tabs";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import {
   Keyboard,
@@ -37,8 +34,16 @@ import {
   type DiscoveryResource,
 } from "../api/discovery-context";
 import { useDiscoveryQuery } from "../api/use-discovery-query";
-import { SearchResults } from "../components/search-results";
+import { SearchHeading, SearchResults } from "../components/search-results";
 import { SearchLoading } from "../components/search-loading";
+import type { CollapsingTabsRef } from "react-native-collapsible-tab";
+import { uniqueSearchResults, type SearchResult } from "../model/search-result";
+
+const searchTabs = [
+  { id: "team", label: "Équipes" },
+  { id: "pool", label: "Poules" },
+  { id: "club", label: "Clubs" },
+] as const;
 
 /**
  * Public text-search entry with internal tabs and a single shared editable value. Empty-text
@@ -71,147 +76,203 @@ export function SearchScreen() {
   const text = useWatch({ control, name: "q" });
   const valid = searchSchema.safeParse({ q: text }).success;
   const textual = /[^\p{White_Space}]/u.test(text);
+  const searchable = valid && textual;
+  // Invalid drafts remain editable; generated request validation receives only a valid inactive input.
+  const queryText = searchable ? text : "";
+  const pager = useRef<CollapsingTabsRef>(null);
+  const textKey = hashKey(
+    createDiscoveryContext("club", { q: queryText }).queryKey,
+  );
+  const teamFilterKey = hashKey([visit.team.filters]);
+  const poolFilterKey = hashKey([visit.pool.filters]);
+  // Only criteria identities are remembered; RNCT remains the sole owner of native scroll offsets.
+  const previousCriteria = useRef({
+    textKey,
+    team: teamFilterKey,
+    pool: poolFilterKey,
+  });
+  useEffect(() => {
+    const previous = previousCriteria.current;
+    if (previous.textKey !== textKey) {
+      pager.current?.scrollAllToTop();
+      previousCriteria.current = {
+        textKey,
+        team: teamFilterKey,
+        pool: poolFilterKey,
+      };
+    } else if (resource !== "club") {
+      const filterKey = resource === "team" ? teamFilterKey : poolFilterKey;
+      if (previous[resource] !== filterKey) {
+        pager.current?.scrollToTop(false);
+        previousCriteria.current = { ...previous, [resource]: filterKey };
+      }
+    }
+  }, [textKey, teamFilterKey, poolFilterKey, resource]);
+  const teamQuery = useDiscoveryQuery(
+    "team",
+    { q: queryText, ...visit.team.filters },
+    resource === "team" && searchable && !!visit.team.filters,
+  );
+  const poolQuery = useDiscoveryQuery(
+    "pool",
+    { q: queryText, ...visit.pool.filters },
+    resource === "pool" && searchable && !!visit.pool.filters,
+  );
+  const clubQuery = useDiscoveryQuery(
+    "club",
+    { q: queryText },
+    resource === "club" && searchable,
+  );
+  const queries = { team: teamQuery, pool: poolQuery, club: clubQuery };
+  const items = {
+    team: uniqueSearchResults(teamQuery.data?.pages),
+    pool: uniqueSearchResults(poolQuery.data?.pages),
+    club: uniqueSearchResults(clubQuery.data?.pages),
+  };
   /** Clearing resets the editable query and validation without altering the selected resource tab. */
   function clearSearch() {
     reset(searchValues());
   }
   /** The results heading clears this resource's criteria; the input clear action retains sporting filters. */
-  function clearCriteria() {
+  function clearCriteria(target: DiscoveryResource) {
     clearSearch();
-    if (sporting?.query.data)
-      sporting.apply(reconcileSearchFilters(undefined, sporting.query.data));
+    const selection = target === "club" ? undefined : visit[target];
+    if (selection?.query.data)
+      selection.apply(reconcileSearchFilters(undefined, selection.query.data));
   }
   return (
-    <Page>
-      <View style={styles.controls}>
-        <View>
-          <Tabs
-            items={[
-              { id: "team", label: "Équipes" },
-              { id: "pool", label: "Poules" },
-              { id: "club", label: "Clubs" },
-            ]}
-            selected={resource}
-            onSelect={(id) => {
-              if (id === "team" || id === "pool" || id === "club")
-                setResource(id);
-            }}
-          />
-        </View>
-        <View style={styles.toolbar}>
-          <View style={styles.search}>
-            <Controller
-              control={control}
-              name="q"
-              render={({ field, fieldState }) => (
-                <SearchField
-                  ref={field.ref}
-                  label="Rechercher"
-                  value={field.value}
-                  onChangeText={field.onChange}
-                  onBlur={field.onBlur}
-                  onClear={clearSearch}
-                  placeholder={
-                    resource === "club"
-                      ? "Rechercher un club…"
-                      : resource === "team"
-                        ? "Rechercher une équipe…"
-                        : "Rechercher une poule…"
-                  }
-                  error={
-                    fieldState.invalid
-                      ? "La recherche est limitée à 200 caractères."
-                      : undefined
-                  }
-                  returnKeyType="search"
-                  autoCorrect={false}
-                />
-              )}
+    <Page edges={["left", "right", "bottom"]}>
+      <PagedTabs
+        ref={pager}
+        selected={resource}
+        onSelect={(id) => {
+          if (id === "team" || id === "pool" || id === "club") setResource(id);
+        }}
+        tabs={searchTabs.map(({ id, label }) => ({
+          id,
+          label,
+          content: (
+            <SearchScene
+              resource={id}
+              searchable={searchable}
+              query={queries[id]}
+              items={items[id]}
             />
-          </View>
-          {resource !== "club" && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={changed ? "Filtres actifs" : "Filtres"}
-              onPress={() => {
-                Keyboard.dismiss();
-                visit.setEditing(resource);
-                visit.draft.reset(visit[resource].filters ?? {});
-                void visit[resource].query.refetch();
-                router.push("/search/filters");
-              }}
-              style={({ pressed }) => [
-                styles.filter,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                  width: filterSize,
-                  minHeight: filterSize,
-                  opacity: pressed ? tokens.opacity.pressed : 1,
-                },
-              ]}
-            >
-              <Image
-                accessible={false}
-                source={require("../../../../assets/discovery/filter.svg")}
-                tintColor={colors.icon}
-                contentFit="contain"
-                style={styles.filterIcon}
-              />
-              {changed && (
-                <View
-                  pointerEvents="none"
-                  style={[
-                    styles.indicator,
-                    {
-                      backgroundColor: colors.accentPrimary,
-                      borderColor: colors.surface,
-                    },
-                  ]}
+          ),
+        }))}
+        renderTabBar={(props) => (
+          <>
+            <PagerTabBar {...props} />
+            <View style={styles.controls}>
+              <View style={styles.toolbar}>
+                <View style={styles.search}>
+                  <Controller
+                    control={control}
+                    name="q"
+                    render={({ field, fieldState }) => (
+                      <SearchField
+                        ref={field.ref}
+                        label="Rechercher"
+                        value={field.value}
+                        onChangeText={field.onChange}
+                        onBlur={field.onBlur}
+                        onClear={clearSearch}
+                        placeholder={
+                          resource === "club"
+                            ? "Rechercher un club…"
+                            : resource === "team"
+                              ? "Rechercher une équipe…"
+                              : "Rechercher une poule…"
+                        }
+                        error={
+                          fieldState.invalid
+                            ? "La recherche est limitée à 200 caractères."
+                            : undefined
+                        }
+                        returnKeyType="search"
+                        autoCorrect={false}
+                      />
+                    )}
+                  />
+                </View>
+                {resource !== "club" && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={changed ? "Filtres actifs" : "Filtres"}
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      visit.setEditing(resource);
+                      visit.draft.reset(visit[resource].filters ?? {});
+                      void visit[resource].query.refetch();
+                      router.push("/search/filters");
+                    }}
+                    style={({ pressed }) => [
+                      styles.filter,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                        width: filterSize,
+                        minHeight: filterSize,
+                        opacity: pressed ? tokens.opacity.pressed : 1,
+                      },
+                    ]}
+                  >
+                    <Image
+                      accessible={false}
+                      source={require("../../../../assets/discovery/filter.svg")}
+                      tintColor={colors.icon}
+                      contentFit="contain"
+                      style={styles.filterIcon}
+                    />
+                    {changed && (
+                      <View
+                        pointerEvents="none"
+                        style={[
+                          styles.indicator,
+                          {
+                            backgroundColor: colors.accentPrimary,
+                            borderColor: colors.surface,
+                          },
+                        ]}
+                      />
+                    )}
+                  </Pressable>
+                )}
+              </View>
+            </View>
+            {searchable && (!sporting || filters) && (
+              <View style={styles.resultsHeading}>
+                <SearchHeading
+                  count={
+                    queries[resource].data ? items[resource].length : undefined
+                  }
+                  onClear={() => clearCriteria(resource)}
                 />
-              )}
-            </Pressable>
-          )}
-        </View>
-      </View>
-      {valid &&
-        textual &&
-        (sporting && !sporting.filters ? (
-          <ReadFeedback
-            query={{
-              ...sporting.query,
-              isPending: sporting.query.isPending || sporting.query.isFetching,
-            }}
-          />
-        ) : (
-          <TextSearchResults
-            key={hashKey(
-              createDiscoveryContext(resource, { q: text, ...filters })
-                .queryKey,
+              </View>
             )}
-            resource={resource}
-            text={text}
-            filters={filters}
-            onClear={clearCriteria}
-          />
-        ))}
+          </>
+        )}
+      />
     </Page>
   );
 }
 
-/** Each internal tab mounts its own Query observer; tab return honors native no-refetch/no-retry-on-mount. */
-function TextSearchResults({
+/** Every scene keeps one native list through criteria changes; its query and loaded count share one parent owner. */
+function SearchScene({
   resource,
-  text,
-  filters,
-  onClear,
+  searchable,
+  query,
+  items,
 }: {
   resource: DiscoveryResource;
-  text: string;
-  filters?: SearchFilters;
-  onClear: () => void;
+  searchable: boolean;
+  query: ReturnType<typeof useDiscoveryQuery>;
+  items: readonly SearchResult[];
 }) {
-  const query = useDiscoveryQuery(resource, { q: text, ...filters });
+  const visit = useSearchVisit();
+  const sporting = resource === "club" ? undefined : visit[resource];
+  const filters = sporting?.filters;
+  const resultsReady = searchable && (!sporting || !!filters);
   const feedback = useActionFeedback();
   /** Continuation failure leaves loaded rows and the same continuation action available. */
   async function loadMore() {
@@ -228,10 +289,19 @@ function TextSearchResults({
     ) : undefined;
   return (
     <SearchResults
-      pages={query.data?.pages}
-      onClear={onClear}
+      items={resultsReady ? items : []}
       emptyComponent={
-        query.isPending ? (
+        !searchable ? null : sporting && !filters ? (
+          <ScreenState>
+            <ReadFeedback
+              query={{
+                ...sporting.query,
+                isPending:
+                  sporting.query.isPending || sporting.query.isFetching,
+              }}
+            />
+          </ScreenState>
+        ) : query.isPending ? (
           <PageContent>
             <SearchLoading />
           </PageContent>
@@ -247,7 +317,7 @@ function TextSearchResults({
         )
       }
       continuation={
-        query.hasNextPage ? (
+        resultsReady && query.hasNextPage ? (
           <Button
             label={
               query.isFetchNextPageError ? "Réessayer" : "Charger la suite"
@@ -264,6 +334,11 @@ function TextSearchResults({
 }
 
 const styles = StyleSheet.create({
+  // Figma 7130:19183: the heading is fixed within the continuous blurred chrome, four points below the input.
+  resultsHeading: {
+    paddingHorizontal: tokens.spacing.screen,
+    paddingTop: tokens.spacing.xs,
+  },
   toolbar: {
     flexDirection: "row",
     gap: tokens.spacing.sm,
@@ -289,10 +364,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // Result content owns the following gap in loaded, pending, empty and error states.
+  // The fixed heading owns the following gap when a textual search is present.
   controls: {
     paddingHorizontal: tokens.spacing.screen,
-    paddingTop: tokens.spacing.lg,
+    paddingTop: tokens.spacing.sm,
     gap: tokens.spacing.sm,
   },
 });

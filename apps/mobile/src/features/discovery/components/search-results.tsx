@@ -1,39 +1,28 @@
 import { pageContentStyle } from "../../../shared/components/page";
 import { ListSeparator } from "../../../shared/components/list-separator";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ReactElement, ReactNode } from "react";
-import type { DiscoveryPage } from "../api/discovery-queries";
+import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { SearchResultCard } from "./search-result-card";
-import { searchResults } from "../model/search-result";
+import type { SearchResult } from "../model/search-result";
 
-/** Text results expose clearing and continuation; changing the search starts a new read, without pull-to-refresh. */
+/** The parent derives accepted cards and the fixed heading from the same Query pages. */
 export interface SearchResultsProps {
-  /** Undefined means the current search has no accepted read, so its heading has no count yet. */
-  pages?: readonly DiscoveryPage[];
-  onClear: () => void;
-  emptyComponent: ReactElement;
+  items: readonly SearchResult[];
+  emptyComponent?: ReactElement | null;
   continuation?: ReactNode;
 }
 
-/** Keeps one native list/header through reads; the query owner supplies loading or empty feedback. */
+/** One mounted native list retains its scroll registration through blank, loading, error and populated states. */
 export function SearchResults({
-  pages,
-  onClear,
+  items,
   emptyComponent,
   continuation,
 }: SearchResultsProps) {
-  // A resource moved between pages keeps one row under its stable public identity.
-  const items = [
-    ...new Map(
-      (pages ?? [])
-        .flatMap(searchResults)
-        .map((item) => [item.identity.id, item]),
-    ).values(),
-  ];
   return (
-    <FlatList
+    <TabLegendList
       alwaysBounceVertical
       ListFooterComponent={
         items.length && continuation ? (
@@ -41,24 +30,15 @@ export function SearchResults({
         ) : undefined
       }
       data={items}
+      ListEmptyComponent={emptyComponent}
       keyExtractor={(item) => item.identity.id}
+      getItemType={(item) => item.kind}
+      recycleItems
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       contentContainerStyle={
-        items.length ? [pageContentStyle, searchResultsStartStyle] : styles.list
+        items.length ? [pageContentStyle, styles.cards] : styles.list
       }
-      ListHeaderComponentStyle={
-        !items.length
-          ? [pageContentStyle, searchResultsStartStyle, styles.header]
-          : undefined
-      }
-      ListHeaderComponent={
-        <SearchHeading
-          count={pages ? items.length : undefined}
-          onClear={onClear}
-        />
-      }
-      ListEmptyComponent={emptyComponent}
       ItemSeparatorComponent={ListSeparator}
       renderItem={({ item }) => <SearchResultCard {...item} />}
     />
@@ -110,8 +90,7 @@ export function SearchHeading({ count, onClear }: SearchHeadingProps) {
 
 const styles = StyleSheet.create({
   list: { flexGrow: 1 },
-  header: { flexGrow: 0 },
-  start: { paddingTop: tokens.spacing.xs },
+  cards: { paddingTop: 0 },
   continuation: { paddingTop: tokens.spacing.lg },
   toolbar: {
     flexDirection: "row",
@@ -126,6 +105,3 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
 });
-
-/** The 4-point start combines with text leading for the search gap; full touch targets extend below. */
-const searchResultsStartStyle = styles.start;

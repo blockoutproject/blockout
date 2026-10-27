@@ -1,7 +1,8 @@
 import { SportingCalendar } from "../components/sporting-calendar";
-import { SportingPager } from "../components/sporting-pager";
+import { SportingCompactHeader } from "../components/sporting-compact-header";
+import { TabScrollView } from "react-native-collapsible-tab";
+import { PagedTabs } from "../../../shared/components/paged-tabs";
 import { ResourceText } from "../components/resource-text";
-import { Tabs } from "../../../shared/components/tabs";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
@@ -80,70 +81,72 @@ function PoolPage({
       )}
     </SportingIdentity>
   ) : undefined;
-  const toolbar = (
-    <Tabs
-      selected={tab}
-      onSelect={setTab}
-      items={[
-        { id: "standings", label: "Classement" },
-        { id: "upcoming", label: "À venir" },
-        { id: "completed", label: "Terminés" },
-        { id: "map", label: "Carte" },
-      ]}
-    />
-  );
+  const tabs = [
+    { id: "standings", label: "Classement" },
+    { id: "upcoming", label: "À venir" },
+    { id: "completed", label: "Terminés" },
+    { id: "map", label: "Carte" },
+  ] as const;
   const blockingState = !data ? <ReadFeedback query={pool} /> : undefined;
   return (
-    <Page>
-      <PageHeader title="Poule" />
+    <Page edges={blockingState ? undefined : ["left", "right", "bottom"]}>
       {blockingState ? (
-        <PageScrollView
-          refreshControl={
-            <DataRefreshControl
-              refreshing={pool.isRefetching}
-              onRefresh={() => void refresh()}
-            />
-          }
-        >
-          <ScreenState>{blockingState}</ScreenState>
-        </PageScrollView>
+        <>
+          <PageHeader title="Poule" />
+          <PageScrollView
+            refreshControl={
+              <DataRefreshControl
+                refreshing={pool.isRefetching}
+                onRefresh={() => void refresh()}
+              />
+            }
+          >
+            <ScreenState>{blockingState}</ScreenState>
+          </PageScrollView>
+        </>
       ) : (
-        <SportingPager
+        <PagedTabs
           selected={tab}
           onSelect={setTab}
-          panels={(["standings", "upcoming", "completed", "map"] as const).map(
-            (value) => ({
-              id: value,
-              content:
-                value === "upcoming" || value === "completed" ? (
-                  <SportingCalendar
-                    selection={{ poolId, category: value }}
-                    header={identity}
-                    toolbar={toolbar}
-                    active={tab === value}
-                  />
-                ) : (
-                  <PageScrollView>
-                    <PageContent>
-                      {identity}
-                      {toolbar}
-                      {data &&
-                        (value === "standings"
-                          ? (renderStandings?.(data.pool) ?? (
-                              <ResourceText>
-                                Classement indisponible pour le moment
-                              </ResourceText>
-                            ))
-                          : (renderMap?.(data.pool) ?? (
-                              <ResourceText>
-                                Carte indisponible pour le moment
-                              </ResourceText>
-                            )))}
-                    </PageContent>
-                  </PageScrollView>
-                ),
-            }),
-          )}
+          header={
+            data && (
+              <SportingCompactHeader
+                title="Poule"
+                identity={data.pool.pool}
+                division={data.pool.classification.division}
+                kind="pool"
+              />
+            )
+          }
+          collapsibleHeader={<PageContent>{identity}</PageContent>}
+          tabs={tabs.map(({ id: value, label }) => ({
+            id: value,
+            label,
+            content:
+              value === "upcoming" || value === "completed" ? (
+                <SportingCalendar
+                  selection={{ poolId, category: value }}
+                  active={tab === value}
+                />
+              ) : (
+                <TabScrollView alwaysBounceVertical>
+                  <PageContent>
+                    {data &&
+                      (value === "standings"
+                        ? (renderStandings?.(data.pool) ?? (
+                            <ResourceText>
+                              Classement indisponible pour le moment
+                            </ResourceText>
+                          ))
+                        : (renderMap?.(data.pool) ?? (
+                            <ResourceText>
+                              Carte indisponible pour le moment
+                            </ResourceText>
+                          )))}
+                  </PageContent>
+                </TabScrollView>
+              ),
+          }))}
         />
       )}
     </Page>

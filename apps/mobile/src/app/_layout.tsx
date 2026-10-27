@@ -2,6 +2,8 @@ import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect, useLayoutEffect, useState } from "react";
 import {
   AccountSessionProvider,
@@ -112,25 +114,30 @@ function RootLayout() {
   const [queryClient] = useState(createQueryClient);
   useEffect(() => () => queryClient.clear(), [queryClient]);
   return (
-    <QueryClientProvider client={queryClient}>
-      <ApplicationAccessProvider>
-        <AccountSessionProvider
-          fallback={
-            <ThemeProvider>
-              <ActionFeedbackProvider scopeKey="startup">
-                <StartupAccessGate />
-              </ActionFeedbackProvider>
-            </ThemeProvider>
-          }
-        >
-          <AccessAdmissionProvider>
-            <ProProvider>
-              <ThemedNavigation />
-            </ProProvider>
-          </AccessAdmissionProvider>
-        </AccountSessionProvider>
-      </ApplicationAccessProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <QueryClientProvider client={queryClient}>
+        <ApplicationAccessProvider>
+          <AccountSessionProvider
+            fallback={
+              <ThemeProvider>
+                <ActionFeedbackProvider scopeKey="startup">
+                  <StartupAccessGate />
+                </ActionFeedbackProvider>
+              </ThemeProvider>
+            }
+          >
+            <AccessAdmissionProvider>
+              <ProProvider>
+                <ThemedNavigation />
+              </ProProvider>
+            </AccessAdmissionProvider>
+          </AccountSessionProvider>
+        </ApplicationAccessProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({ root: { flex: 1 } });
+
 export default Sentry.wrap(RootLayout);

@@ -1,9 +1,5 @@
-import {
-  Platform,
-  ScrollView,
-  StyleSheet,
-  type ScrollViewProps,
-} from "react-native";
+import { Platform, StyleSheet, type ScrollViewProps } from "react-native";
+import Animated from "react-native-reanimated";
 import {
   KeyboardAwareScrollView,
   KeyboardProvider,
@@ -12,7 +8,12 @@ import {
 /** Bounded form content; callers own the draft, page chrome and content spacing. */
 export type FormScrollViewProps = Pick<
   ScrollViewProps,
-  "children" | "contentContainerStyle" | "refreshControl"
+  | "children"
+  | "contentContainerStyle"
+  | "refreshControl"
+  | "onScroll"
+  | "scrollEventThrottle"
+  | "scrollIndicatorInsets"
 >;
 
 /** Uses the accepted single native keyboard mechanism per platform and preserves handled action taps. */
@@ -21,7 +22,7 @@ export function FormScrollView({
   ...props
 }: FormScrollViewProps) {
   return Platform.OS === "ios" ? (
-    <ScrollView
+    <Animated.ScrollView
       {...props}
       contentContainerStyle={[styles.content, contentContainerStyle]}
       alwaysBounceVertical

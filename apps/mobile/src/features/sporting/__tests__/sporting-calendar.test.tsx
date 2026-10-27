@@ -1,3 +1,4 @@
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import type { PropsWithChildren } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -10,6 +11,9 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { AppState } from "react-native";
+import { Tabs } from "react-native-collapsible-tab";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import type {
   MatchCalendarResponse,
   MatchSummaryResponse,
@@ -94,15 +98,33 @@ afterEach(async () => {
 /** Actual theme, access, session and cache; only native identity and HTTP are controlled. */
 function Providers({ children }: PropsWithChildren) {
   return (
-    <QueryClientProvider client={client}>
-      <ThemeProvider>
-        <ActionFeedbackProvider scopeKey="test">
-          <ApplicationAccessProvider>
-            <AccountSessionProvider>{children}</AccountSessionProvider>
-          </ApplicationAccessProvider>
-        </ActionFeedbackProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView>
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 390, height: 844 },
+          insets: { top: 0, right: 0, bottom: 0, left: 0 },
+        }}
+      >
+        <QueryClientProvider client={client}>
+          <ThemeProvider>
+            <ActionFeedbackProvider scopeKey="test">
+              <ApplicationAccessProvider>
+                <AccountSessionProvider>{children}</AccountSessionProvider>
+              </ApplicationAccessProvider>
+            </ActionFeedbackProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
+
+/** Supplies the same official native tab context used by resource screens for a calendar-only scenario. */
+function CalendarTab({ children }: PropsWithChildren) {
+  return (
+    <Tabs.Container>
+      <Tabs.Tab name="calendar">{children}</Tabs.Tab>
+    </Tabs.Container>
   );
 }
 
@@ -186,11 +208,14 @@ it("opens the exact match while keeping final special notation and supplied tota
 it("retains calendar rows through an ordinary refresh failure and replaces them after success", async () => {
   // Given
   await render(
-    <SportingCalendar
-      selection={{ teamId: sportingId, category: "upcoming" }}
-    />,
+    <CalendarTab>
+      <SportingCalendar
+        selection={{ teamId: sportingId, category: "upcoming" }}
+      />
+    </CalendarTab>,
     { wrapper: Providers },
   );
+  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   mockFetch.mockImplementation((url: string) =>
     new URL(url).pathname.endsWith("/application-access")
@@ -199,7 +224,7 @@ it("retains calendar rows through an ordinary refresh failure and replaces them 
   );
 
   // When
-  fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await screen.findByRole("alert");
 
   // Then
@@ -217,7 +242,7 @@ it("retains calendar rows through an ordinary refresh failure and replaces them 
       ),
     ),
   );
-  fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
   await screen.findByText("Aucun match pour cette sélection");
@@ -230,17 +255,20 @@ it("keeps pagination unavailable while a successful first-page replacement is pe
   // Given
   calendar = { ...calendar, nextDay: "2026-09-20" };
   await render(
-    <SportingCalendar
-      selection={{ teamId: sportingId, category: "upcoming" }}
-    />,
+    <CalendarTab>
+      <SportingCalendar
+        selection={{ teamId: sportingId, category: "upcoming" }}
+      />
+    </CalendarTab>,
     { wrapper: Providers },
   );
+  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   const refreshed = Promise.withResolvers<Response>();
   mockFetch.mockReturnValueOnce(refreshed.promise);
 
   // When: native pull-to-refresh is not expressible through userEvent.
-  fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
   const more = screen.getByRole("button", {
@@ -284,28 +312,23 @@ it("pages from club information through teams to the calendar and back without r
     );
   });
   await render(<ClubScreen clubId={sportingId} />, { wrapper: Providers });
+  await screen.findByRole("tab", { name: "Infos" });
+  await layoutNativeTabs();
   await screen.findByText("Coordonnées");
 
-  // When: native horizontal momentum selects all resource tabs, including existing neighbour panels.
-  fireEvent(screen.getByTestId("sporting-tabs-pager"), "momentumScrollEnd", {
-    nativeEvent: {
-      contentOffset: { x: 402 },
-      layoutMeasurement: { width: 402 },
-    },
+  // When: the native pager selects all resource tabs, including retained neighbour panels.
+  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
+    nativeEvent: { position: 1 },
   });
+  await layoutNativeTabs();
   await screen.findByText("Aucune équipe pour cette saison");
-  fireEvent(screen.getByTestId("sporting-tabs-pager"), "momentumScrollEnd", {
-    nativeEvent: {
-      contentOffset: { x: 804 },
-      layoutMeasurement: { width: 402 },
-    },
+  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
+    nativeEvent: { position: 2 },
   });
+  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
-  fireEvent(screen.getByTestId("sporting-tabs-pager"), "momentumScrollEnd", {
-    nativeEvent: {
-      contentOffset: { x: 402 },
-      layoutMeasurement: { width: 402 },
-    },
+  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
+    nativeEvent: { position: 1 },
   });
 
   // Then
@@ -348,6 +371,8 @@ it("loads calendar tabs lazily and refreshes only the active calendar through ge
   );
   const events = jest.spyOn(AppState, "addEventListener");
   await render(<TeamScreen teamId={sportingId} />, { wrapper: Providers });
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   const requests = mockFetch.mock.calls.length;
 
@@ -357,7 +382,7 @@ it("loads calendar tabs lazily and refreshes only the active calendar through ge
       if (event === "change") listener("active");
     });
   });
-  fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await waitFor(() => expect(mockFetch.mock.calls.length).toBe(requests + 1));
 
   // Then
@@ -372,6 +397,38 @@ it("loads calendar tabs lazily and refreshes only the active calendar through ge
       ([url]) => new URL(url).searchParams.get("category") === "completed",
     ),
   ).toHaveLength(0);
+
+  // When: a visited sibling stays mounted, but only the newly displayed category refreshes.
+  await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
+  await layoutNativeTabs();
+  await screen.findByRole("tab", { name: "Terminés", selected: true });
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(
+        ([url]) => new URL(url).searchParams.get("category") === "completed",
+      ),
+    ).toHaveLength(1),
+  );
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(
+        ([url]) => new URL(url).searchParams.get("category") === "completed",
+      ),
+    ).toHaveLength(2),
+  );
+  expect(
+    mockFetch.mock.calls.filter(
+      ([url]) => new URL(url).searchParams.get("category") === "upcoming",
+    ),
+  ).toHaveLength(2);
+  expect(
+    mockFetch.mock.calls.filter(
+      ([url]) => new URL(url).pathname === `/teams/${sportingId}`,
+    ),
+  ).toHaveLength(1);
 });
 
 it("changes calendar category with the native horizontal pager without rereading page information", async () => {
@@ -397,14 +454,13 @@ it("changes calendar category with the native horizontal pager without rereading
     ),
   );
   await render(<TeamScreen teamId={sportingId} />, { wrapper: Providers });
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
 
-  // When: native momentum completion is not expressible with userEvent.
-  fireEvent(screen.getByTestId("sporting-tabs-pager"), "momentumScrollEnd", {
-    nativeEvent: {
-      contentOffset: { x: 402 },
-      layoutMeasurement: { width: 402 },
-    },
+  // When: native page settlement is not expressible with userEvent.
+  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
+    nativeEvent: { position: 1 },
   });
 
   // Then

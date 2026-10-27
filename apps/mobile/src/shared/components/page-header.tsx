@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import type { ReactNode } from "react";
 import { ChevronLeft } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../theme/theme-provider";
@@ -8,10 +9,12 @@ import { IconButton } from "./icon-button";
 /** Ordinary back navigation with an optional centered identity; direct entry returns home. */
 export interface PageHeaderProps {
   title?: string;
+  /** A composed compact identity may replace the plain title while preserving the balanced rails. */
+  children?: ReactNode;
 }
 
 /** UI Library Top Bar: equal control rails keep the title centered as native text grows. */
-export function PageHeader({ title }: PageHeaderProps) {
+export function PageHeader({ title, children }: PageHeaderProps) {
   const router = useRouter();
   const { colors } = useTheme();
   return (
@@ -30,7 +33,16 @@ export function PageHeader({ title }: PageHeaderProps) {
           />
         </IconButton>
       </View>
-      {title ? (
+      {children ? (
+        <View
+          accessible={Boolean(title)}
+          accessibilityRole="header"
+          accessibilityLabel={title}
+          style={styles.middle}
+        >
+          {children}
+        </View>
+      ) : title ? (
         <Text
           accessibilityRole="header"
           accessibilityLabel={title}
@@ -56,5 +68,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.lg,
   },
   rail: { width: tokens.size.control.default, alignItems: "center" },
+  middle: { flex: 1, minWidth: 0, alignItems: "center" },
   title: { ...tokens.typography.navigation, flex: 1, textAlign: "center" },
 });

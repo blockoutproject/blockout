@@ -1,16 +1,25 @@
+import type { LegendListRef } from "@legendapp/list/react-native";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PropsWithChildren,
+} from "react";
 import {
   AppState,
-  FlatList,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
 } from "react-native";
+import { useCollapsingTabsContext } from "react-native-collapsible-tab";
+import { TabLegendList } from "react-native-collapsible-tab/legend-list";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type {
-  MatchDayResponse,
   MatchPoolGroupResponse,
+  MatchSummaryResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { ErrorState, EmptyState } from "../../../shared/components/state-card";
@@ -28,6 +37,7 @@ import {
   type CalendarSelection,
 } from "../api/sporting-calendar";
 import { useConsultationQueries } from "../api/use-consultation-queries";
+import { calendarRows, type CalendarRow } from "../model/calendar-rows";
 import {
   currentSportingTimeZone,
   formatSportingDay,
@@ -35,36 +45,21 @@ import {
 import { divisionTextColor } from "../presentation";
 import { genderLabel } from "../classification-presentation";
 import { CalendarMatch } from "./calendar-match";
-import { MatchSurface } from "./match-surface";
 import { DivisionPaint } from "./division-paint";
 import { SportingLogo, SportingArtwork } from "./sporting-identity";
 
-/** Active resource tab with ordinary native list header; its selector never contains continuation. */
+/** One native tab owns its exact calendar traversal; inactive panels keep data without issuing reads. */
 export interface SportingCalendarProps {
   selection: Omit<CalendarSelection, "timeZone">;
-  header?: ReactNode;
-  toolbar?: ReactNode;
   active?: boolean;
 }
 
-/** One flattened pool group retains its complete day and original server order. */
-interface CalendarGroup {
-  day: MatchDayResponse;
-  pool: MatchPoolGroupResponse;
-  first: boolean;
-}
-
-/** The first native list cell carries the sticky tab rail; remaining cells are complete pool groups. */
-type CalendarRow = { kind: "toolbar" } | ({ kind: "group" } & CalendarGroup);
-
 /**
- * Virtualized day/pool groups retain Query's pages while native navigation keeps the page alive.
- * Foreground updates formatting only. Only successful explicit refresh changes grouping/progression.
+ * Individually virtualized encounters retain Query's complete days and pool grouping. Native sticky
+ * day cells share the collapsing header's measured inset; foreground changes only time formatting.
  */
 export function SportingCalendar({
   selection,
-  header,
-  toolbar,
   active = true,
 }: SportingCalendarProps) {
   const queries = useConsultationQueries();
@@ -73,35 +68,40 @@ export function SportingCalendar({
   const [zone, setZone] = useState(currentSportingTimeZone);
   const [displayZone, setDisplayZone] = useState(currentSportingTimeZone);
   const [refreshing, setRefreshing] = useState(false);
-  const list = useRef<FlatList<CalendarRow>>(null);
+  const list = useRef<LegendListRef>(null);
   const options = createCalendarOptions(queries, {
     ...selection,
     timeZone: zone,
   });
   const calendar = useInfiniteQuery({ ...options, enabled: active });
-  const { colors } = useTheme();
-  const { fontScale } = useWindowDimensions();
-  const days = calendarDays(calendar.data);
-  const groups: CalendarRow[] = [
-    ...(toolbar ? [{ kind: "toolbar" as const }] : []),
-    ...days.flatMap((day) =>
-      day.pools.map((pool, index) => ({
-        kind: "group" as const,
-        day,
-        pool,
-        first: index === 0,
-      })),
-    ),
-  ];
+  const { fontScale, width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const [listWidth, setListWidth] = useState(0);
+  const stacked = fontScale >= 1.6;
+  // Every lateral grid column must retain the scaled 40-point rail before its inner optical gap.
+  const availableWidth =
+    (listWidth || width - insets.left - insets.right) -
+    2 * tokens.spacing.screen;
+  const columns = stacked
+    ? 1
+    : Math.max(2, Math.min(8, Math.floor(availableWidth / (40 * fontScale))));
+  const { headerHeight, collapseRange, tabBarHeight } =
+    useCollapsingTabsContext();
+  const days = useMemo(() => calendarDays(calendar.data), [calendar.data]);
+  const rows = useMemo(() => calendarRows(days, stacked), [days, stacked]);
+  const stickyHeaderIndices = useMemo(
+    () => rows.flatMap((row, index) => (row.kind === "date" ? [index] : [])),
+    [rows],
+  );
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") setDisplayZone(currentSportingTimeZone());
     });
     return () => subscription.remove();
   }, []);
-  /** Native Query first-page replacement is atomic; a new phone zone becomes active only on success. */
+  /** First-page replacement is atomic; only success changes the loading zone and returns to the start. */
   async function refresh() {
-    if (refreshing) return;
+    if (refreshing || !active) return;
     setRefreshing(true);
     const nextZone = currentSportingTimeZone();
     try {
@@ -119,79 +119,59 @@ export function SportingCalendar({
       setRefreshing(false);
     }
   }
-  /** Appends only for the visible idle list; native Query cannot cancel an in-flight replacement. */
+  /** Appends only for the visible idle list; Query does not cancel an in-flight replacement. */
   function loadMore() {
     if (active && !refreshing && !calendar.isFetching)
       void calendar.fetchNextPage({ cancelRefetch: false });
   }
   return (
-    <FlatList
+    <TabLegendList<CalendarRow>
       ref={list}
-      style={styles.list}
       alwaysBounceVertical
       contentContainerStyle={pageContentStyle}
-      data={groups}
-      keyExtractor={(item) =>
-        item.kind === "toolbar"
-          ? "toolbar"
-          : `${item.day.date}:${item.pool.poolId}`
-      }
-      stickyHeaderIndices={toolbar ? [header ? 1 : 0] : undefined}
-      ListHeaderComponent={
-        header ? <View style={styles.header}>{header}</View> : undefined
-      }
+      data={rows}
+      numColumns={columns}
+      onLayout={({ nativeEvent }) => setListWidth(nativeEvent.layout.width)}
+      overrideItemLayout={(layout, item, _index, columns) => {
+        layout.span =
+          item.kind === "date" || item.kind === "space"
+            ? 1
+            : columns === 1
+              ? 1
+              : columns - 1;
+      }}
+      recycleItems
+      getItemType={(item) => item.kind}
+      getFixedItemSize={(item) => (item.kind === "space" ? 0 : undefined)}
+      keyExtractor={(item) => item.key}
+      stickyHeaderIndices={stickyHeaderIndices}
+      stickyHeaderConfig={{
+        offset: headerHeight - collapseRange + tabBarHeight,
+      }}
       refreshControl={
         <DataRefreshControl
           refreshing={refreshing}
           onRefresh={() => void refresh()}
+          enabled={active}
         />
       }
       renderItem={({ item }) =>
-        item.kind === "toolbar" ? (
-          <View style={[styles.toolbar, { backgroundColor: colors.canvas }]}>
-            {toolbar}
-          </View>
+        item.kind === "space" ? null : item.kind === "date" ? (
+          <CalendarDate date={item.date} timeZone={zone} stacked={stacked} />
+        ) : item.kind === "pool" ? (
+          <CalendarPoolHeader group={item.group} />
         ) : (
-          <View
-            style={[
-              styles.day,
-              item.first && styles.newDay,
-              fontScale >= 1.6 && styles.stacked,
-            ]}
-          >
+          <CalendarGroupPart match={item.match} last={item.last}>
             <View
-              style={
-                fontScale >= 1.6
-                  ? styles.stackedDate
-                  : [styles.rail, { width: 40 * fontScale }]
-              }
+              style={[
+                styles.match,
+                item.first && styles.firstMatch,
+                item.last && styles.lastMatch,
+              ]}
             >
-              {item.first && (
-                <View
-                  accessible
-                  accessibilityRole="header"
-                  accessibilityLabel={formatSportingDay(item.day.date, zone)}
-                  style={styles.dateHeading}
-                >
-                  <Text style={[styles.date, { color: colors.text }]}>
-                    {new Intl.DateTimeFormat("fr-FR", {
-                      timeZone: "UTC",
-                      day: "numeric",
-                    }).format(new Date(`${item.day.date}T12:00:00Z`))}
-                  </Text>
-                  <Text
-                    style={[styles.dateMeta, { color: colors.secondaryText }]}
-                  >{`${new Intl.DateTimeFormat("fr-FR", { timeZone: "UTC", weekday: "short" }).format(new Date(`${item.day.date}T12:00:00Z`))}\n${new Intl.DateTimeFormat("fr-FR", { timeZone: "UTC", month: "short" }).format(new Date(`${item.day.date}T12:00:00Z`))}`}</Text>
-                </View>
-              )}
+              <CalendarMatch match={item.match} displayTimeZone={displayZone} />
             </View>
-            <View style={styles.group}>
-              <CalendarPoolGroup
-                group={item.pool}
-                displayTimeZone={displayZone}
-              />
-            </View>
-          </View>
+          </CalendarGroupPart>
         )
       }
       onEndReached={() => {
@@ -234,21 +214,80 @@ export function SportingCalendar({
   );
 }
 
-/** A real pool heading and its exact accepted rows; no locally inferred score or pool navigation. */
-function CalendarPoolGroup({
-  group,
-  displayTimeZone,
+/** Date-only sporting values stay on their original day; the full spoken heading uses the captured zone. */
+function CalendarDate({
+  date,
+  timeZone,
+  stacked,
 }: {
-  group: MatchPoolGroupResponse;
-  displayTimeZone: string;
+  date: string;
+  timeZone: string;
+  stacked: boolean;
 }) {
-  const { colors, context } = useTheme();
+  const { colors } = useTheme();
+  const value = new Date(`${date}T12:00:00Z`);
+  return (
+    <View
+      accessible
+      accessibilityRole="header"
+      accessibilityLabel={formatSportingDay(date, timeZone)}
+      style={[
+        styles.dateHeading,
+        { backgroundColor: colors.canvas },
+        stacked && styles.stackedDate,
+      ]}
+    >
+      <Text style={[styles.date, { color: colors.text }]}>
+        {dayFormat.format(value)}
+      </Text>
+      <Text
+        style={[styles.dateMeta, { color: colors.secondaryText }]}
+      >{`${weekdayFormat.format(value)}\n${monthFormat.format(value)}`}</Text>
+    </View>
+  );
+}
+
+/** Reuses one pool outline across separate header and encounter cells, with rounded ends only. */
+function CalendarGroupPart({
+  match,
+  first,
+  last,
+  children,
+}: PropsWithChildren<{
+  match: MatchSummaryResponse;
+  first?: boolean;
+  last?: boolean;
+}>) {
+  const { colors } = useTheme();
+  const division = match.pool.classification.division;
+  return (
+    <View
+      style={[
+        styles.groupPart,
+        first && styles.groupStart,
+        last && styles.groupEnd,
+        {
+          backgroundColor: colors.surface,
+          borderColor: division
+            ? `${division.color}${tokens.sporting.borderAlpha}`
+            : colors.border,
+        },
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+/** A real pool heading appears once before its individually virtualized accepted encounters. */
+function CalendarPoolHeader({ group }: { group: MatchPoolGroupResponse }) {
+  const { context } = useTheme();
   const pool = group.matches[0].pool;
   const division = pool.classification.division;
   const accent = division?.color ?? context.primary;
   const foreground = division ? divisionTextColor(accent) : context.onAction;
   return (
-    <MatchSurface division={division}>
+    <CalendarGroupPart match={group.matches[0]} first>
       <View style={styles.groupInset}>
         <View style={[styles.pool, { backgroundColor: accent }]}>
           {division && (
@@ -275,39 +314,51 @@ function CalendarPoolGroup({
             </Text>
           </View>
         </View>
-        <View style={[styles.matches, { backgroundColor: colors.surface }]}>
-          {group.matches.map((match) => (
-            <CalendarMatch
-              key={match.id}
-              match={match}
-              displayTimeZone={displayTimeZone}
-            />
-          ))}
-        </View>
       </View>
-    </MatchSurface>
+    </CalendarGroupPart>
   );
 }
 
+const dayFormat = new Intl.DateTimeFormat("fr-FR", {
+  timeZone: "UTC",
+  day: "numeric",
+});
+const weekdayFormat = new Intl.DateTimeFormat("fr-FR", {
+  timeZone: "UTC",
+  weekday: "short",
+});
+const monthFormat = new Intl.DateTimeFormat("fr-FR", {
+  timeZone: "UTC",
+  month: "short",
+});
+
 const styles = StyleSheet.create({
-  // A vertical list inside native horizontal paging must retain the page's constrained width.
-  list: { width: "100%" },
-  header: { gap: tokens.spacing.lg, marginBottom: tokens.spacing.lg },
-  toolbar: { gap: tokens.spacing.md, paddingVertical: tokens.spacing.sm },
-  day: {
+  dateHeading: { gap: tokens.spacing.xs, paddingRight: tokens.spacing.xs },
+  stackedDate: {
     flexDirection: "row",
-    gap: tokens.spacing.xs,
-    marginBottom: tokens.spacing.md,
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+    paddingVertical: tokens.spacing.sm,
   },
-  newDay: { marginTop: tokens.spacing.md },
-  rail: { width: 40 },
-  stacked: { flexDirection: "column" },
-  stackedDate: { alignSelf: "flex-start" },
-  dateHeading: { gap: tokens.spacing.xs },
   date: { ...tokens.typography.headingXl },
   dateMeta: { ...tokens.typography.metadata },
-  group: { flex: 1, minWidth: 0 },
-  groupInset: { padding: tokens.spacing.xs },
+  groupPart: {
+    borderLeftWidth: tokens.border.thin,
+    borderRightWidth: tokens.border.thin,
+    overflow: "hidden",
+  },
+  groupStart: {
+    borderTopWidth: tokens.border.thin,
+    borderTopLeftRadius: tokens.radius.panel,
+    borderTopRightRadius: tokens.radius.panel,
+  },
+  groupEnd: {
+    borderBottomWidth: tokens.border.thin,
+    borderBottomLeftRadius: tokens.radius.panel,
+    borderBottomRightRadius: tokens.radius.panel,
+    marginBottom: tokens.spacing.md,
+  },
+  groupInset: { padding: tokens.spacing.xs, paddingBottom: 0 },
   pool: {
     flexDirection: "row",
     alignItems: "center",
@@ -320,9 +371,10 @@ const styles = StyleSheet.create({
   identity: { flex: 1, minWidth: 0, gap: tokens.spacing.xs },
   poolName: { ...tokens.typography.strong },
   metadata: { ...tokens.typography.metadata },
-  matches: {
-    paddingHorizontal: tokens.spacing.md,
-    paddingVertical: tokens.spacing.lg,
-    gap: tokens.spacing.lg,
+  match: {
+    paddingHorizontal: tokens.spacing.lg,
+    paddingVertical: tokens.spacing.sm,
   },
+  firstMatch: { paddingTop: tokens.spacing.lg },
+  lastMatch: { paddingBottom: tokens.spacing.lg },
 });

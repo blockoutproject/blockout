@@ -42,3 +42,16 @@ export function searchResults(page: DiscoveryPage): SearchResult[] {
     }),
   );
 }
+
+/** A resource moved between accepted pages keeps one card and contributes once to the loaded count. */
+export function uniqueSearchResults(
+  pages: readonly DiscoveryPage[] | undefined,
+): SearchResult[] {
+  return [
+    ...new Map(
+      (pages ?? [])
+        .flatMap(searchResults)
+        .map((item) => [item.identity.id, item]),
+    ).values(),
+  ];
+}

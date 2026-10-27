@@ -1,13 +1,15 @@
 import { SportingCalendar } from "../components/sporting-calendar";
-import { SportingPager } from "../components/sporting-pager";
+import { SportingCompactHeader } from "../components/sporting-compact-header";
+import { TabLegendList } from "react-native-collapsible-tab/legend-list";
+import { PagedTabs, PagerTabBar } from "../../../shared/components/paged-tabs";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { ResourceText } from "../components/resource-text";
-import { Tabs } from "../../../shared/components/tabs";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { PageHeader } from "../../../shared/components/page-header";
 import {
   Page,
+  PageContent,
   PageScrollView,
   pageContentStyle,
 } from "../../../shared/components/page";
@@ -18,7 +20,7 @@ import { Surface } from "../../../shared/components/surface";
 import { hashKey, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Globe, Mail, MapPin, Phone } from "lucide-react-native";
-import { FlatList, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { tokens } from "../../../shared/theme/tokens";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { Button } from "../../../shared/components/button";
@@ -48,7 +50,10 @@ export function ClubScreen(props: ClubScreenProps) {
   );
 }
 
-/** Retains a valid season across common reads; only successful disappearance derives the fallback. */
+/**
+ * Retains a valid season across common reads; only successful disappearance derives the fallback.
+ * The season keys RNCT's native scroll context while the selected category remains owned here.
+ */
 function ClubPage({ clubId }: ClubScreenProps) {
   const queries = useConsultationQueries();
   const club = useQuery(queries.club(clubId));
@@ -87,18 +92,14 @@ function ClubPage({ clubId }: ClubScreenProps) {
         .join(" ")}
     />
   ) : undefined;
-  const toolbar = (
-    <>
-      <Tabs
-        selected={tab}
-        onSelect={setTab}
-        items={[
-          { id: "info", label: "Infos" },
-          { id: "teams", label: "Équipes" },
-          { id: "upcoming", label: "À venir" },
-          { id: "completed", label: "Terminés" },
-        ]}
-      />
+  const tabs = [
+    { id: "info", label: "Infos" },
+    { id: "teams", label: "Équipes" },
+    { id: "upcoming", label: "À venir" },
+    { id: "completed", label: "Terminés" },
+  ] as const;
+  const seasonControls = (
+    <View style={styles.season}>
       {tab !== "info" && (
         <>
           {season ? (
@@ -124,164 +125,176 @@ function ClubPage({ clubId }: ClubScreenProps) {
             ))}
         </>
       )}
-    </>
+    </View>
   );
   const blockingState = !data ? <ReadFeedback query={club} /> : undefined;
   return (
-    <Page>
-      <PageHeader title="Club" />
+    <Page edges={blockingState ? undefined : ["left", "right", "bottom"]}>
       {blockingState ? (
-        <PageScrollView
-          refreshControl={
-            <DataRefreshControl
-              refreshing={club.isRefetching}
-              onRefresh={() => void refresh()}
-            />
-          }
-        >
-          <ScreenState>{blockingState}</ScreenState>
-        </PageScrollView>
+        <>
+          <PageHeader title="Club" />
+          <PageScrollView
+            refreshControl={
+              <DataRefreshControl
+                refreshing={club.isRefetching}
+                onRefresh={() => void refresh()}
+              />
+            }
+          >
+            <ScreenState>{blockingState}</ScreenState>
+          </PageScrollView>
+        </>
       ) : (
-        <SportingPager
+        <PagedTabs
+          key={season?.id}
           selected={tab}
           onSelect={setTab}
-          panels={(["info", "teams", "upcoming", "completed"] as const).map(
-            (value) => ({
-              id: value,
-              content:
-                (value === "upcoming" || value === "completed") && season ? (
-                  <SportingCalendar
-                    key={season.id}
-                    selection={{ clubId, seasonId: season.id, category: value }}
-                    header={identity}
-                    toolbar={toolbar}
-                    active={tab === value}
-                  />
-                ) : (
-                  <FlatList
-                    alwaysBounceVertical
-                    refreshControl={
-                      value === "info" ||
-                      !data ||
-                      (value === "teams" && season) ? (
-                        <DataRefreshControl
-                          refreshing={
-                            value === "teams" && data
-                              ? teams.isRefetching
-                              : club.isRefetching
-                          }
-                          onRefresh={() => void refresh()}
-                        />
-                      ) : undefined
-                    }
-                    contentContainerStyle={pageContentStyle}
-                    ItemSeparatorComponent={ListSeparator}
-                    data={
-                      data && value === "teams" ? (teamData?.items ?? []) : []
-                    }
-                    keyExtractor={(item) => item.team.id}
-                    renderItem={({ item }) => (
-                      <Surface>
-                        <SportingLink
-                          kind="team"
-                          id={item.team.id}
-                          identity={item.team}
-                          label={item.team.name}
-                        />
-                        <ResourceText>
-                          {[
-                            item.classification.division?.name,
-                            item.season.label,
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </ResourceText>
-                      </Surface>
-                    )}
-                    ListHeaderComponent={
-                      <View style={styles.header}>
-                        {data && (
-                          <>
-                            {identity}
-                            {toolbar}
-                            {value === "info" ? (
-                              <>
-                                <Surface>
-                                  <ResourceText>Coordonnées</ResourceText>
-                                  <ContactLink
-                                    label="Site web"
-                                    value={data.contacts.website}
-                                    destination={safeWebsite(
-                                      data.contacts.website,
-                                    )}
-                                    icon={Globe}
-                                  />
-                                  <ContactLink
-                                    label="E-mail du club"
-                                    value={data.contacts.email}
-                                    destination={
-                                      data.contacts.email
-                                        ? `mailto:${encodeURIComponent(data.contacts.email)}`
-                                        : undefined
-                                    }
-                                    icon={Mail}
-                                  />
-                                  <ContactLink
-                                    label="Téléphone"
-                                    value={data.contacts.phone}
-                                    destination={phoneDestination(
-                                      data.contacts.phone,
-                                    )}
-                                    icon={Phone}
-                                  />
-                                </Surface>
-                                <Surface>
-                                  <ResourceText>Localisation</ResourceText>
-                                  <ResourceText>Commune du club</ResourceText>
-                                  {data.location ? (
-                                    <ContactLink
-                                      label="Ouvrir la commune sur la carte"
-                                      value={data.location.label}
-                                      destination={mapDestination(
-                                        `${data.location.latitude},${data.location.longitude}`,
-                                      )}
-                                      icon={MapPin}
-                                    />
-                                  ) : (
-                                    <ResourceText>
-                                      Commune non renseignée
-                                    </ResourceText>
-                                  )}
-                                  <ResourceText>
-                                    {[
-                                      data.contacts.address,
-                                      data.contacts.postalCode,
-                                      data.contacts.city,
-                                    ]
-                                      .filter(Boolean)
-                                      .join(", ") || "Adresse non renseignée"}
-                                  </ResourceText>
-                                </Surface>
-                              </>
-                            ) : (
-                              season &&
-                              value === "teams" && (
-                                <>
-                                  {!teamData && <ReadFeedback query={teams} />}
-                                  {teamData?.items.length === 0 && (
-                                    <EmptyState title="Aucune équipe pour cette saison" />
-                                  )}
-                                </>
-                              )
-                            )}
-                          </>
-                        )}
-                      </View>
-                    }
-                  />
-                ),
-            }),
+          header={
+            data && (
+              <SportingCompactHeader
+                title="Club"
+                identity={data.club}
+                kind="club"
+              />
+            )
+          }
+          collapsibleHeader={<PageContent>{identity}</PageContent>}
+          renderTabBar={(props) => (
+            <>
+              <PagerTabBar {...props} />
+              {tab !== "info" && seasonControls}
+            </>
           )}
+          tabs={tabs.map(({ id: value, label }) => ({
+            id: value,
+            label,
+            content:
+              (value === "upcoming" || value === "completed") && season ? (
+                <SportingCalendar
+                  selection={{ clubId, seasonId: season.id, category: value }}
+                  active={tab === value}
+                />
+              ) : (
+                <TabLegendList
+                  alwaysBounceVertical
+                  recycleItems
+                  refreshControl={
+                    value === "info" ||
+                    !data ||
+                    (value === "teams" && season) ? (
+                      <DataRefreshControl
+                        refreshing={
+                          value === "teams" && data
+                            ? teams.isRefetching
+                            : club.isRefetching
+                        }
+                        onRefresh={() => void refresh()}
+                        enabled={tab === value}
+                      />
+                    ) : undefined
+                  }
+                  contentContainerStyle={pageContentStyle}
+                  ItemSeparatorComponent={ListSeparator}
+                  data={
+                    data && value === "teams" ? (teamData?.items ?? []) : []
+                  }
+                  keyExtractor={(item) => item.team.id}
+                  renderItem={({ item }) => (
+                    <Surface>
+                      <SportingLink
+                        kind="team"
+                        id={item.team.id}
+                        identity={item.team}
+                        label={item.team.name}
+                      />
+                      <ResourceText>
+                        {[item.classification.division?.name, item.season.label]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </ResourceText>
+                    </Surface>
+                  )}
+                  ListHeaderComponent={
+                    <View style={styles.header}>
+                      {data && (
+                        <>
+                          {value === "info" ? (
+                            <>
+                              <Surface>
+                                <ResourceText>Coordonnées</ResourceText>
+                                <ContactLink
+                                  label="Site web"
+                                  value={data.contacts.website}
+                                  destination={safeWebsite(
+                                    data.contacts.website,
+                                  )}
+                                  icon={Globe}
+                                />
+                                <ContactLink
+                                  label="E-mail du club"
+                                  value={data.contacts.email}
+                                  destination={
+                                    data.contacts.email
+                                      ? `mailto:${encodeURIComponent(data.contacts.email)}`
+                                      : undefined
+                                  }
+                                  icon={Mail}
+                                />
+                                <ContactLink
+                                  label="Téléphone"
+                                  value={data.contacts.phone}
+                                  destination={phoneDestination(
+                                    data.contacts.phone,
+                                  )}
+                                  icon={Phone}
+                                />
+                              </Surface>
+                              <Surface>
+                                <ResourceText>Localisation</ResourceText>
+                                <ResourceText>Commune du club</ResourceText>
+                                {data.location ? (
+                                  <ContactLink
+                                    label="Ouvrir la commune sur la carte"
+                                    value={data.location.label}
+                                    destination={mapDestination(
+                                      `${data.location.latitude},${data.location.longitude}`,
+                                    )}
+                                    icon={MapPin}
+                                  />
+                                ) : (
+                                  <ResourceText>
+                                    Commune non renseignée
+                                  </ResourceText>
+                                )}
+                                <ResourceText>
+                                  {[
+                                    data.contacts.address,
+                                    data.contacts.postalCode,
+                                    data.contacts.city,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(", ") || "Adresse non renseignée"}
+                                </ResourceText>
+                              </Surface>
+                            </>
+                          ) : (
+                            season &&
+                            value === "teams" && (
+                              <>
+                                {!teamData && <ReadFeedback query={teams} />}
+                                {teamData?.items.length === 0 && (
+                                  <EmptyState title="Aucune équipe pour cette saison" />
+                                )}
+                              </>
+                            )
+                          )}
+                        </>
+                      )}
+                    </View>
+                  }
+                />
+              ),
+          }))}
         />
       )}
     </Page>
@@ -290,4 +303,9 @@ function ClubPage({ clubId }: ClubScreenProps) {
 
 const styles = StyleSheet.create({
   header: { gap: tokens.spacing.lg, marginBottom: tokens.layout.list.gap },
+  season: {
+    gap: tokens.spacing.sm,
+    paddingHorizontal: tokens.spacing.lg,
+    paddingBottom: tokens.spacing.sm,
+  },
 });

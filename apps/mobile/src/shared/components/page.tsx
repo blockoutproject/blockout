@@ -1,12 +1,12 @@
 import type { PropsWithChildren, Ref } from "react";
 import {
-  ScrollView,
   StyleSheet,
   View,
   type ScrollViewInstance,
   type ScrollViewProps,
   type ViewProps,
 } from "react-native";
+import Animated from "react-native-reanimated";
 import {
   SafeAreaView,
   type SafeAreaViewProps,
@@ -58,13 +58,13 @@ export interface PageScrollViewProps extends ScrollViewProps {
   ref?: Ref<ScrollViewInstance>;
 }
 
-/** Keeps native scroll APIs and refresh controls intact while allowing short states to fill the page. */
+/** Keeps native scroll APIs, worklet handlers and refresh intact while short states fill the useful area. */
 export function PageScrollView({
   contentContainerStyle,
   ...props
 }: PageScrollViewProps) {
   return (
-    <ScrollView
+    <Animated.ScrollView
       alwaysBounceVertical
       {...props}
       contentContainerStyle={[styles.scrollContent, contentContainerStyle]}

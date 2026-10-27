@@ -1,3 +1,7 @@
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { FlatList } from "react-native";
 import { SearchVisitProvider } from "../forms/search-visit";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import {
@@ -10,14 +14,20 @@ import {
   act,
   fireEvent,
   render,
+  renderHook,
   screen,
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
 import { SearchScreen } from "../screens/search-screen";
+import { useDiscoveryQuery } from "../api/use-discovery-query";
+import type { PropsWithChildren } from "react";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
+import {
+  AccountSessionProvider,
+  useAccountSession,
+} from "../../accounts/session/account-session-provider";
 import {
   mockAuth0,
   credentialsFor,
@@ -126,24 +136,93 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Supplies the actual required owners; the membership input only selects F13 presentation. */
+/** Supplies the actual required owners; membership changes presentation only. */
+function SearchOwners({
+  children,
+  proAccent = false,
+}: PropsWithChildren<{ proAccent?: boolean }>) {
+  return (
+    <GestureHandlerRootView>
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 390, height: 844 },
+          insets: { top: 0, right: 0, bottom: 0, left: 0 },
+        }}
+      >
+        <QueryClientProvider client={client}>
+          <ThemeProvider proAccent={proAccent}>
+            <ApplicationAccessProvider>
+              <AccountSessionProvider>
+                <AccountFeedbackProvider>
+                  <SearchVisitProvider>{children}</SearchVisitProvider>
+                </AccountFeedbackProvider>
+              </AccountSessionProvider>
+            </ApplicationAccessProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
+
+/** Keeps screen scenarios under the same query, session and native presentation owners. */
 async function renderSearch(proAccent = false) {
-  return render(<SearchScreen />, {
+  const result = await render(<SearchScreen />, {
     wrapper: ({ children }) => (
-      <QueryClientProvider client={client}>
-        <ThemeProvider proAccent={proAccent}>
-          <ApplicationAccessProvider>
-            <AccountSessionProvider>
-              <AccountFeedbackProvider>
-                <SearchVisitProvider>{children}</SearchVisitProvider>
-              </AccountFeedbackProvider>
-            </AccountSessionProvider>
-          </ApplicationAccessProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
+      <SearchOwners proAccent={proAccent}>{children}</SearchOwners>
     ),
   });
+  await layoutNativeTabs();
+  return result;
 }
+
+it.each(["success", "failure"])(
+  "leaves an inactive mounted search unread and retains its %s on tab return",
+  async (outcome) => {
+    // Given: native paging can mount a neighbour before it becomes the selected tab.
+    mockFetch.mockImplementation((url: string) =>
+      outcome === "failure" && new URL(url).pathname.endsWith("/clubs")
+        ? Promise.resolve(Response.json({ status: 503 }, { status: 503 }))
+        : publicReads(url),
+    );
+    const { result, rerender } = await renderHook(
+      ({ active }: { active: boolean }) => {
+        const query = useDiscoveryQuery("club", { q: "Volley" }, active);
+        return {
+          data: query.data,
+          isError: query.isError,
+          isFetched: query.isFetched,
+          status: useAccountSession().status,
+        };
+      },
+      { initialProps: { active: false }, wrapper: SearchOwners },
+    );
+    await waitFor(() => expect(result.current.status).toBe("guest"));
+
+    // Then: mounting the scene neither executes its search nor creates accepted data.
+    expect(result.current.data).toBeUndefined();
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(String(url)).pathname.endsWith("/clubs"),
+      ),
+    ).toHaveLength(0);
+
+    // When
+    await rerender({ active: true });
+    await waitFor(() => expect(result.current.isFetched).toBe(true));
+    await rerender({ active: false });
+    mockFetch.mockClear();
+    await act(async () => {
+      await client.refetchQueries({ queryKey: ["discovery"], type: "active" });
+    });
+    await rerender({ active: true });
+
+    // Then: hidden scenes are not active refetch targets, and returning replays no old read.
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(result.current.isError).toBe(outcome === "failure");
+    expect(result.current.data !== undefined).toBe(outcome === "success");
+  },
+);
 
 it.each(["guest", "free", "Pro", "unresolved"])(
   "allows all three public tabs for %s without waiting for Pro",
@@ -214,6 +293,102 @@ it("keeps distinct namesakes and presents only available public context without 
   expect(
     mockFetch.mock.calls.some(([url]) => String(url).includes("/logo")),
   ).toBe(false);
+});
+
+it("selects the search resource through native page settlement and retains its shared text on return", async () => {
+  // Given: only the current scene has performed a textual search.
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+  await screen.findByText("Volley professionnel");
+  expect(
+    mockFetch.mock.calls.some(([url]) => String(url).includes("/clubs?")),
+  ).toBe(false);
+
+  // When: the native pager settles on Clubs without a tab-bar press.
+  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
+    nativeEvent: { position: 2 },
+  });
+  await layoutNativeTabs();
+
+  // Then: business selection, accessible content and the common input agree with that page.
+  expect(await screen.findByText("Niort")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "2 résultats chargés" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("tab", { name: "Clubs", selected: true }),
+  ).toBeOnTheScreen();
+  expect(screen.getByPlaceholderText("Rechercher un club…")).toHaveDisplayValue(
+    "Volley",
+  );
+  expect(screen.queryByText("Volley professionnel")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Filtres" }),
+  ).not.toBeOnTheScreen();
+  mockFetch.mockClear();
+
+  // When
+  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
+    nativeEvent: { position: 0 },
+  });
+  await layoutNativeTabs();
+
+  // Then: the visited result and sporting controls return without a new request.
+  expect(await screen.findByText("Volley professionnel")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "1 résultat chargé" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("tab", { name: "Équipes", selected: true }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Filtres" })).toBeOnTheScreen();
+  expect(screen.getByLabelText("Rechercher")).toHaveDisplayValue("Volley");
+  expect(mockFetch).not.toHaveBeenCalled();
+});
+
+it("reads changed text only for the selected resource after all three scenes have been visited", async () => {
+  // Given: all three scene contexts exist, with their accepted result pages.
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+  await screen.findByText("Volley professionnel");
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await screen.findByText("Niort");
+  await user.press(screen.getByRole("tab", { name: "Poules" }));
+  await screen.findByText("Championnat public · Phase finale");
+  await user.press(screen.getByRole("tab", { name: "Équipes" }));
+  await screen.findByText("Volley professionnel");
+  // Spy only on the viewport's native command; Search, PagedTabs and RNCT remain real.
+  const scroll = jest.spyOn(FlatList.prototype, "scrollToOffset");
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await user.press(screen.getByRole("tab", { name: "Équipes" }));
+  expect(scroll).not.toHaveBeenCalled();
+  // A native value replacement with the same normalized criteria preserves the saved positions.
+  await fireEvent.changeText(screen.getByLabelText("Rechercher"), "VOLLEY");
+  expect(scroll).not.toHaveBeenCalled();
+  mockFetch.mockClear();
+
+  // When: the common RHF text changes while Teams is selected.
+  await fireEvent.changeText(screen.getByLabelText("Rechercher"), "Nouveau");
+  await screen.findByText("Volley professionnel");
+
+  // Then: retained neighbour contexts perform no read for that new text.
+  const reads = mockFetch.mock.calls
+    .map(([url]) => new URL(String(url)))
+    .filter((url) => /\/(clubs|teams|pools)$/.test(url.pathname));
+  expect(reads).toHaveLength(1);
+  expect(reads[0].pathname).toBe("/teams");
+  expect(reads[0].searchParams.get("q")).toBe("Nouveau");
+  expect(
+    screen.getByRole("header", { name: "1 résultat chargé" }),
+  ).toBeOnTheScreen();
+  // The same mounted list owners receive the reset even while the new contexts have no accepted rows.
+  expect(scroll.mock.calls).toEqual([
+    [{ offset: 0, animated: false }],
+    [{ offset: 0, animated: false }],
+    [{ offset: 0, animated: false }],
+  ]);
 });
 
 it("clears the shared query through the approved search action without fetching empty text", async () => {
@@ -442,11 +617,15 @@ it("does not replay a failed read on focus, reconnect or a visited-tab return", 
   await renderSearch();
   await user.paste(await screen.findByLabelText("Rechercher"), "Volley");
   await screen.findByRole("alert");
+  expect(screen.getByRole("header", { name: "Résultats" })).toBeOnTheScreen();
   mockFetch.mockClear();
 
   // When
   await user.press(screen.getByRole("tab", { name: "Clubs" }));
   await screen.findByText("Niort");
+  expect(
+    screen.getByRole("header", { name: "2 résultats chargés" }),
+  ).toBeOnTheScreen();
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
   await act(async () => {
     focusManager.setFocused(false);
@@ -457,6 +636,10 @@ it("does not replay a failed read on focus, reconnect or a visited-tab return", 
 
   // Then
   await waitFor(() => expect(screen.getByRole("alert")).toBeOnTheScreen());
+  expect(screen.getByRole("header", { name: "Résultats" })).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("header", { name: "2 résultats chargés" }),
+  ).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/teams?")),
   ).toHaveLength(0);

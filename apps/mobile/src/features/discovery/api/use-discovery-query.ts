@@ -6,10 +6,14 @@ import { useOrdinaryRequest } from "../../access/ordinary-request";
 import type { DiscoveryResource } from "./discovery-context";
 import { createDiscoveryQueryOptions } from "./discovery-queries";
 
-/** Observes only the current public text selection through the existing F05/F12 and F13 owners. */
+/**
+ * Subscribes only the visible public text scene through the existing F05/F12 and F13 owners.
+ * Native neighbour mounting starts no read; tab return keeps Query's no-refetch/no-retry-on-mount rules.
+ */
 export function useDiscoveryQuery(
   resource: DiscoveryResource,
   input: Omit<ListTeamsParams, "cursor" | "exampleIds">,
+  active = true,
 ) {
   const session = useAccountSession();
   const admission = useOrdinaryRequest();
@@ -21,5 +25,5 @@ export function useDiscoveryQuery(
     admission,
     getCredentials,
   );
-  return useInfiniteQuery(options);
+  return useInfiniteQuery({ ...options, subscribed: active });
 }

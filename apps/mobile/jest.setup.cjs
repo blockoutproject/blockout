@@ -1,9 +1,19 @@
 /* global jest */
+// The application root now mounts RNGH; retain the package's native Jest boundary in every root consumer.
+require("react-native-gesture-handler/jestSetup");
+
 // Expo's native UUID stub returns undefined; Node supplies the same UUID contract in Jest.
 jest.mock("expo-crypto", () => ({
   ...jest.requireActual("expo-crypto"),
   randomUUID: require("node:crypto").randomUUID,
 }));
+
+// Native screen metrics have upstream defaults; suites may still supply explicit provider metrics.
+jest.mock(
+  "react-native-safe-area-context",
+  () =>
+    jest.requireActual("react-native-safe-area-context/src/jest/mock").default,
+);
 
 // Use upstream Worklets mocking and Reanimated Jest support for native animation boundaries.
 jest.mock("react-native-worklets", () =>
