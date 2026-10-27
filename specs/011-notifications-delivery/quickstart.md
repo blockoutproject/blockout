@@ -163,3 +163,29 @@ and masking prerequisites. Preparation does not block ordinary local purge const
 | Design          | Reviewed inbox/match/guest flows in light/dark, narrow screens, enlarged text and screen readers.                                                                                                                            | Existing shared components remain usable; no deletion-progress or recovery screen is introduced. Native interfaces are separately qualified.                                                                                                                                                                                                          |
 
 Keep failed, unavailable and passed evidence distinct. Repository/prototype checks prove neither native push delivery nor owner design approval. Final planning publication requires both scoped design approvals recorded in the plan.
+
+## Native inbox construction
+
+The mobile inbox uses the generated F07 consumers and F05/F12 request context in the existing
+in-memory QueryClient. [Query cases](../../apps/mobile/src/features/notifications/__tests__/inbox.test.tsx)
+cover first-page replacement only on success, retained continuation boundaries, cancelled stale
+responses, monotone read confirmation, missing entries and one bounded member observation after a
+lost acknowledgement. [Clock cases](../../apps/mobile/src/features/notifications/__tests__/inbox-expiry.test.tsx)
+exercise the 29-elapsed-day cutoff and an unloaded summary expiry without a partial-page count.
+[Screen cases](../../apps/mobile/src/features/notifications/__tests__/inbox-screen.test.tsx) use real
+session/admission/Query owners with controlled native/HTTP I/O; [route cases](../../apps/mobile/src/features/notifications/__tests__/inbox-navigation.test.tsx)
+exercise Expo Router tabs, exact match navigation, guest return and zero badge removal.
+
+The native route group follows the existing ordinary access stack. Page content, feedback,
+sporting artwork and contextual palettes remain with their existing owners. Design references are
+Product Design [notification journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=1062-9319),
+[notification item](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=512-6869)
+and UI Library [bottom navigation](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/Blockout-UI-Library?node-id=223-415).
+The prototype remains the interaction source; native scroll, refresh and Router APIs implement
+its relevant behavior without copying its demo world or browser scroll machinery.
+
+These controlled cases establish neither physical system badge behavior nor push receipt,
+subscription lifecycle or full cross-owner qualification. T025, T030/T041, T052 and T058/T060
+retain their independent evidence obligations. Support actions and the shared Pro offer remain
+with their existing feature owners. Revision-specific checks, native captures and review outcomes
+belong in the delivery PR.
