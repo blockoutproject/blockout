@@ -302,6 +302,14 @@ it.each([1, 2])(
     const row = notificationResponse();
     row.match.home.name = "Volley des Deux Rives et de la Vallée";
     row.match.pool.pool.name = "Poule de Prénationale au libellé complet";
+    row.title =
+      "Petit tour du terrain : le match Volley des Deux Rives et de la Vallée – Équipe B. Score final : 3–0.";
+    row.match.result = {
+      state: "final",
+      homeSets: 3,
+      awaySets: 0,
+      observedAt: row.createdAt,
+    };
     const onPress = jest.fn();
     const user = userEvent.setup();
 
@@ -315,11 +323,13 @@ it.each([1, 2])(
       { wrapper: Providers },
     );
     const link = screen.getByRole("link", {
-      name: /Poule de Prénationale au libellé complet.*Volley des Deux Rives et de la Vallée.*non lue$/,
+      name: /Poule de Prénationale au libellé complet.*Volley des Deux Rives et de la Vallée, Score domicile : 3.*Score extérieur : 0.*non lue$/,
     });
     await user.press(link);
 
     // Then
+    expect(screen.getByText("3")).toBeOnTheScreen();
+    expect(screen.getByText("0")).toBeOnTheScreen();
     expect(link).toBeDisabled();
     expect(screen.getByRole("link", { busy: true, disabled: true })).toBe(link);
     expect(onPress).not.toHaveBeenCalled();
