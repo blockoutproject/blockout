@@ -15,6 +15,7 @@ import {
   AdsConsent,
   AdsConsentStatus,
   AdsConsentPrivacyOptionsRequirementStatus,
+  type AdsConsentInfo,
 } from "react-native-google-mobile-ads";
 import RootLayout from "../../../app/_layout";
 import OrdinaryLayout from "../../../app/(ordinary)/_layout";
@@ -151,24 +152,29 @@ afterEach(async () => {
 });
 
 /** Real root/session/age/native-privacy owners and Router; only SDK/storage/HTTP I/O is controlled. */
-async function mountJourney(initialUrl = "/") {
+async function mountJourney(initialUrl = "/", caller = ProfileCaller) {
   await renderRouter(
     {
       _layout: () => <RootLayout />,
       "(operations)/_layout": () => <Stack />,
       "(ordinary)/_layout": OrdinaryLayout,
       "(ordinary)/(tabs)/_layout": () => <Stack />,
-      "(ordinary)/(tabs)/index": () => (
-        <>
-          <Text>Profile caller</Text>
-          <PrivacyEntry />
-        </>
-      ),
+      "(ordinary)/(tabs)/index": caller,
       "(ordinary)/privacy": PrivacyRoute,
       "(ordinary)/privacy-age": CorrectionRoute,
       access: () => <Text>Blocked admission</Text>,
     },
     { initialUrl },
+  );
+}
+
+/** Minimal ordinary caller; production privacy and root/session owners remain real. */
+function ProfileCaller() {
+  return (
+    <>
+      <Text>Profile caller</Text>
+      <PrivacyEntry />
+    </>
   );
 }
 
@@ -275,11 +281,7 @@ it("reconfigures a confirmed same-category correction and preserves it when nati
     category: "adult",
     declaredAt: expect.any(String),
   });
-  expect(
-    await screen.findByText(
-      "Impossible de mettre à jour vos choix publicitaires. Réessayez.",
-    ),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
   expect(screen.queryByText("private SDK failure")).toBeNull();
 });
 
@@ -327,6 +329,9 @@ it("shows understandable native failure and permits an explicit retry without fa
       "Impossible de mettre à jour vos choix publicitaires. Réessayez.",
     ),
   ).toBeOnTheScreen();
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "Impossible de mettre à jour vos choix publicitaires. Réessayez.",
+  );
   expect(screen.queryByText("private native payload")).toBeNull();
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
   await waitFor(() =>
@@ -404,19 +409,7 @@ it("keeps privacy controls accessible to known active Pro without a new consent 
     customerInfo: native,
     created: false,
   });
-  await renderRouter(
-    {
-      _layout: () => <RootLayout />,
-      "(operations)/_layout": () => <Stack />,
-      "(ordinary)/_layout": OrdinaryLayout,
-      "(ordinary)/(tabs)/_layout": () => <Stack />,
-      "(ordinary)/(tabs)/index": ProCaller,
-      "(ordinary)/privacy": PrivacyRoute,
-      "(ordinary)/privacy-age": CorrectionRoute,
-      access: () => <Text>Blocked admission</Text>,
-    },
-    { initialUrl: "/" },
-  );
+  await mountJourney("/", ProCaller);
   await screen.findByText("Pro: active");
   jest.mocked(AdsConsent.gatherConsent).mockClear();
   const user = userEvent.setup();
@@ -432,4 +425,54 @@ it("keeps privacy controls accessible to known active Pro without a new consent 
     screen.getByRole("button", { name: "Corriger mon âge" }),
   ).toBeOnTheScreen();
   expect(AdsConsent.gatherConsent).not.toHaveBeenCalled();
+});
+
+it("reveals required Pro options when the sheet opens before obsolete consent preparation settles", async () => {
+  // Given: real F09 association and native UMP complete in the opposite order from privacy entry.
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor("auth0|privacy-race"),
+  );
+  mockPurchases.isConfigured.mockResolvedValue(true);
+  const rights =
+    Promise.withResolvers<Awaited<ReturnType<typeof mockPurchases.logIn>>>();
+  mockPurchases.logIn.mockReturnValueOnce(rights.promise);
+  const consent = Promise.withResolvers<AdsConsentInfo>();
+  jest.mocked(AdsConsent.gatherConsent).mockReturnValueOnce(consent.promise);
+  await mountJourney("/", ProCaller);
+  await waitFor(() =>
+    expect(AdsConsent.gatherConsent).toHaveBeenCalledTimes(1),
+  );
+  const right = entitlement();
+  const native = customerInfo({
+    active: { "Blockout Pro": right },
+    all: { "Blockout Pro": right },
+    verification: right.verification,
+  });
+  mockPurchases.getCustomerInfo.mockResolvedValue(native);
+  await act(() => rights.resolve({ customerInfo: native, created: false }));
+  await screen.findByText("Pro: active");
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("link", { name: "Confidentialité" }));
+  await screen.findByRole("header", { name: "Confidentialité" });
+
+  // When
+  await act(() =>
+    consent.resolve({
+      status: AdsConsentStatus.OBTAINED,
+      canRequestAds: true,
+      isConsentFormAvailable: true,
+      privacyOptionsRequirementStatus:
+        AdsConsentPrivacyOptionsRequirementStatus.REQUIRED,
+    }),
+  );
+
+  // Then: the existing root owner refreshes information after settlement, without a second consent prompt.
+  expect(
+    await screen.findByRole("button", { name: "Choix publicitaires" }),
+  ).toBeOnTheScreen();
+  expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledWith({
+    tagForUnderAgeOfConsent: false,
+  });
+  expect(AdsConsent.gatherConsent).toHaveBeenCalledTimes(1);
 });

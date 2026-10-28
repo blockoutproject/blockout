@@ -38,7 +38,7 @@ export interface AdvertisingPrivacySnapshot {
   choices: AdvertisingChoices | null;
   privacyOptionsRequired: boolean;
   pending: boolean;
-  failed: boolean;
+  failure: "gather" | "refresh" | "options" | null;
 }
 
 /** Current context reader and optional configured V2 unit; absent units authorize no ad request. */
@@ -67,13 +67,14 @@ export function createAdvertisingPrivacy({
     choices: null,
     privacyOptionsRequired: false,
     pending: false,
-    failed: false,
+    failure: null,
   };
   let attempted: string | null = null;
   let revision = 0;
   let disposed = false;
   let initialized = false;
-  let lastAction: "gather" | "refresh" | "options" = "gather";
+  // Applied native request context only; consent decisions remain entirely SDK-owned.
+  let consentCategory: AgeDeclaration["category"] | null = null;
   let trackingRequested = false;
   const listeners = new Set<() => void>();
   const interstitial = adUnitId
@@ -90,11 +91,22 @@ export function createAdvertisingPrivacy({
   }
 
   /** Suspends loads before retiring even same-mode preparation; the sporting count survives. */
-  function suspend() {
+  function retirePreparation() {
     revision++;
     attempted = null;
-    publish({ ...snapshot, choices: null, failed: false });
+    publish({
+      ...snapshot,
+      choices: null,
+      privacyOptionsRequired: false,
+      failure: null,
+    });
     interstitial?.invalidate();
+  }
+
+  /** Owner changes require a fresh native information/gathering acknowledgement before options can resume ads. */
+  function suspend() {
+    consentCategory = null;
+    retirePreparation();
   }
 
   /** Reads the SDK's current helpers, then permits tracking only for eligible consenting adults. */
@@ -162,11 +174,17 @@ export function createAdvertisingPrivacy({
     const context = getContext();
     const key = contextKey(context);
     const session = context.account.getSnapshot();
-    suspend();
+    const privacyOptionsRequired =
+      consentCategory === context.category && snapshot.privacyOptionsRequired;
+    retirePreparation();
     const attempt = revision;
     attempted = key;
-    lastAction = action;
-    publish({ ...snapshot, pending: true, failed: false });
+    publish({
+      ...snapshot,
+      privacyOptionsRequired,
+      pending: true,
+      failure: null,
+    });
     const current = () =>
       !disposed && revision === attempt && contextKey(getContext()) === key;
 
@@ -189,7 +207,13 @@ export function createAdvertisingPrivacy({
         let info: AdsConsentInfo;
         let optionsShown = action !== "options";
         if (action === "options") {
-          info = await AdsConsent.getConsentInfo();
+          if (consentCategory !== context.category) {
+            info = await AdsConsent.gatherConsent({
+              tagForUnderAgeOfConsent: context.category === "under16",
+            });
+            if (!current()) return false;
+            consentCategory = context.category;
+          } else info = await AdsConsent.getConsentInfo();
           if (!current()) return false;
           if (
             info.privacyOptionsRequirementStatus !==
@@ -212,6 +236,7 @@ export function createAdvertisingPrivacy({
               : await AdsConsent.requestInfoUpdate(options);
         }
         if (!current()) return false;
+        consentCategory = context.category;
         publish({
           ...snapshot,
           privacyOptionsRequired:
@@ -233,7 +258,7 @@ export function createAdvertisingPrivacy({
         interstitial?.preload();
         return optionsShown;
       } catch {
-        if (current()) publish({ ...snapshot, choices: null, failed: true });
+        if (current()) publish({ ...snapshot, choices: null, failure: action });
         throw new Error("Advertising choices could not be established");
       } finally {
         if (!disposed) publish({ ...snapshot, pending: false });
@@ -264,19 +289,11 @@ export function createAdvertisingPrivacy({
     /** Native applicability is rechecked at activation; an unavailable form is never invoked. */
     showOptions: () => start("options"),
     /** Retries only the failed native interaction, after an explicit user action. */
-    retry: () => (snapshot.failed ? start(lastAction) : undefined),
+    retry: () => (snapshot.failure ? start(snapshot.failure) : undefined),
     /** Synchronizes changed owner inputs once; errors for unchanged inputs never cause an automatic retry. */
     synchronize() {
       if (contextKey(getContext()) === attempted || snapshot.pending) return;
-      if (
-        !getAdvertisingEligibility({ ...getContext(), choices: null })
-          .canPrepareChoices
-      ) {
-        suspend();
-        attempted = contextKey(getContext());
-        return;
-      }
-      return start("gather");
+      return start(getContext().pro.status === "active" ? "refresh" : "gather");
     },
     /** Existing sporting consumers retain intent/failure ownership and the one shared threshold. */
     openSportingTransition(action: SportingAdTransition) {

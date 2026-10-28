@@ -6,17 +6,13 @@ import {
   type LucideIcon,
 } from "lucide-react-native";
 import { useEffect } from "react";
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type PressableProps,
-} from "react-native";
+import { Pressable, StyleSheet, Text, type PressableProps } from "react-native";
 import { Sheet } from "../../../shared/components/sheet";
 import { Surface } from "../../../shared/components/surface";
 import { Button } from "../../../shared/components/button";
 import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ErrorState } from "../../../shared/components/state-card";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { useAgeDeclaration } from "../../advertising/age-declaration-provider";
@@ -70,12 +66,38 @@ export function PrivacyEntry() {
 /** Two approved actions only; native UMP owns availability, consent persistence and its own form. */
 export function PrivacySheet() {
   const router = useRouter();
-  const { colors } = useTheme();
   const { privacy, nativePrivacy, pending } = useAgeDeclaration();
+  const feedback = useActionFeedback();
   useEffect(() => {
-    if (!privacy.getSnapshot().failed)
+    if (!privacy.getSnapshot().failure)
       void privacy.refreshOptions()?.catch(() => undefined);
   }, [privacy]);
+
+  /** Keeps action errors on the shared original-scope toast; native state alone owns retry admission. */
+  function openOptions() {
+    const attempt = privacy.showOptions();
+    if (!attempt) return;
+    feedback.clear();
+    void attempt.catch(() =>
+      feedback.error(
+        "Impossible de mettre à jour vos choix publicitaires. Réessayez.",
+      ),
+    );
+  }
+
+  /** Retries the failed interaction explicitly; information failures retain their common read feedback. */
+  function retry() {
+    const failedAction = nativePrivacy.failure;
+    const attempt = privacy.retry();
+    if (!attempt) return;
+    feedback.clear();
+    void attempt.catch(() => {
+      if (failedAction === "options")
+        feedback.error(
+          "Impossible de mettre à jour vos choix publicitaires. Réessayez.",
+        );
+    });
+  }
   return (
     <Sheet
       title="Confidentialité"
@@ -88,7 +110,7 @@ export function PrivacySheet() {
             label="Choix publicitaires"
             icon={ShieldCheck}
             disabled={nativePrivacy.pending || pending}
-            onPress={() => void privacy.showOptions()?.catch(() => undefined)}
+            onPress={openOptions}
           />
         )}
         <PrivacyAction
@@ -99,19 +121,10 @@ export function PrivacySheet() {
         />
       </Surface>
       {nativePrivacy.pending && <RequestLoading />}
-      {nativePrivacy.failed && (
-        <View style={styles.feedback}>
-          <Text
-            accessibilityLiveRegion="polite"
-            style={[tokens.typography.body, { color: colors.text }]}
-          >
-            Impossible de mettre à jour vos choix publicitaires. Réessayez.
-          </Text>
-          <Button
-            label="Réessayer"
-            onPress={() => void privacy.retry()?.catch(() => undefined)}
-          />
-        </View>
+      {nativePrivacy.failure === "options" ? (
+        <Button label="Réessayer" onPress={retry} />
+      ) : (
+        nativePrivacy.failure && <ErrorState onRetry={retry} />
       )}
     </Sheet>
   );
@@ -126,5 +139,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.lg,
   },
   label: { ...tokens.typography.strong, flex: 1 },
-  feedback: { gap: tokens.layout.form.gap },
 });

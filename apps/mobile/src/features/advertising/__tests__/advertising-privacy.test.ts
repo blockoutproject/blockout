@@ -20,6 +20,7 @@ import {
   type AdvertisingPrivacyContext,
 } from "../advertising-privacy";
 import { controlledInterstitial } from "../test-support/interstitial";
+import { entitlement } from "../../pro/test-support/customer-info";
 
 jest.mock("react-native-google-mobile-ads", () => ({
   __esModule: true,
@@ -480,5 +481,78 @@ it("sets Meta's documented tracking flag only on older iOS before initialization
 
   // Then
   expect(setAdvertiserTrackingEnabled).toHaveBeenCalledWith(true);
+  privacy.dispose();
+});
+
+it("reestablishes UMP age treatment before privacy options can recover a failed correction", async () => {
+  // Given: an initialized adult ad must never survive a confirmed child correction.
+  jest.replaceProperty(Platform, "OS", "android");
+  const privacy = createAdvertisingPrivacy({
+    getContext: () => context,
+    adUnitId: "test-unit",
+  });
+  await privacy.prepare();
+  context.category = "under16";
+  mockAds.setRequestConfiguration.mockRejectedValueOnce(
+    new Error("private configuration error"),
+  );
+  await privacy.prepare()?.catch(() => undefined);
+  expect(privacy.getSnapshot().privacyOptionsRequired).toBe(false);
+
+  // When
+  const consent = Promise.withResolvers<AdsConsentInfo>();
+  jest.mocked(AdsConsent.gatherConsent).mockReturnValueOnce(consent.promise);
+  const recovery = privacy.showOptions();
+  await Promise.resolve();
+  await Promise.resolve();
+
+  // Then: native options are not a bypass around the corrected UMP under-age flag.
+  expect(AdsConsent.gatherConsent).toHaveBeenLastCalledWith({
+    tagForUnderAgeOfConsent: true,
+  });
+  expect(InterstitialAd.createForAdRequest).toHaveBeenCalledTimes(1);
+  consent.resolve({
+    ...consentInfo,
+    privacyOptionsRequirementStatus:
+      AdsConsentPrivacyOptionsRequirementStatus.NOT_REQUIRED,
+  });
+  await recovery;
+  expect(AdsConsent.showPrivacyOptionsForm).not.toHaveBeenCalled();
+  expect(privacy.getSnapshot().choices?.authorizedMode).toBe("contextual");
+  privacy.dispose();
+});
+
+it("refreshes Pro privacy applicability after an obsolete in-flight free preparation settles", async () => {
+  // Given: permission work started while the current entitlement was unknown.
+  jest.replaceProperty(Platform, "OS", "ios");
+  context = {
+    ...context,
+    pro: { status: "unavailable", reason: "customer-info", operation: "idle" },
+  };
+  const consent = Promise.withResolvers<AdsConsentInfo>();
+  jest.mocked(AdsConsent.gatherConsent).mockReturnValueOnce(consent.promise);
+  const privacy = createAdvertisingPrivacy({ getContext: () => context });
+  const preparation = privacy.prepare();
+  await Promise.resolve();
+  context = {
+    ...context,
+    pro: { status: "active", entitlement: entitlement(), operation: "idle" },
+  };
+  privacy.suspend();
+  expect(privacy.refreshOptions()).toBeUndefined();
+
+  // When
+  consent.resolve(consentInfo);
+  await preparation;
+  await privacy.synchronize();
+
+  // Then: Pro keeps its required native controls without a new consent or ATT prompt.
+  expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledWith({
+    tagForUnderAgeOfConsent: false,
+  });
+  expect(privacy.getSnapshot().privacyOptionsRequired).toBe(true);
+  expect(AdsConsent.gatherConsent).toHaveBeenCalledTimes(1);
+  expect(requestTrackingPermissionsAsync).not.toHaveBeenCalled();
+  expect(mockAds.initialize).not.toHaveBeenCalled();
   privacy.dispose();
 });

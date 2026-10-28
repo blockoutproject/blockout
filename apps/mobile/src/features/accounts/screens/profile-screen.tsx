@@ -185,8 +185,8 @@ export function ProfileScreen({
                       loading={guest.pending}
                     />
                   )}
-                  {privacyEntry}
                   {proEntry}
+                  {privacyEntry}
                   <PublicAccountLinks />
                 </PageContent>
               </>
