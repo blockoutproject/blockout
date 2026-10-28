@@ -137,6 +137,8 @@ class InitialReconstructionIntegrationTest {
 
   /**
    * Recreates only the task-owned disposable database and a synthetic explicitly granted account.
+   *
+   * @throws Exception if the disposable database reset or synthetic account preparation fails
    */
   @BeforeEach
   void prepareOperator() throws Exception {
@@ -1114,6 +1116,7 @@ class InitialReconstructionIntegrationTest {
             SourceValidationStateEnum.QUALIFIED,
             NOW,
             seasonReads.collectionState(source.seasonId()).label(),
+            null,
             null));
   }
 

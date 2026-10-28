@@ -25,7 +25,13 @@ import lombok.NoArgsConstructor;
 public final class CollectionState {
   /** Bounded current evidence in stable scope/stage/phase order. */
   public record ResultPage(List<CollectionResult> items, long page, boolean hasNext) {
-    /** Detaches current evidence from persistence. */
+    /**
+     * Detaches current evidence from persistence.
+     *
+     * @param items current scope evidence
+     * @param page zero-based requested page
+     * @param hasNext whether another page is available
+     */
     public ResultPage {
       items = List.copyOf(items);
     }
@@ -83,32 +89,17 @@ public final class CollectionState {
       CollectionProviderEnum provider,
       String organizerReference) {}
 
-  /** Terminal collector evidence, bound to the exact admitted candidate. */
+  /**
+   * Terminal collector evidence, bound to the exact admitted candidate. A null reasonType retains
+   * an unknown failure category.
+   */
   public record SourceValidation(
       UUID cycleId,
       SourceValidationStateEnum state,
       Instant observedAt,
       String seasonEvidence,
       String reason,
-      URI reasonType) {
-    /**
-     * Retains compatibility with evidence whose failure category is unknown.
-     *
-     * @param cycleId original admitted validation
-     * @param state terminal qualification state
-     * @param observedAt actual completion
-     * @param seasonEvidence attributable seasonal evidence, when available
-     * @param reason safe bounded explanation
-     */
-    public SourceValidation(
-        UUID cycleId,
-        SourceValidationStateEnum state,
-        Instant observedAt,
-        String seasonEvidence,
-        String reason) {
-      this(cycleId, state, observedAt, seasonEvidence, reason, null);
-    }
-  }
+      URI reasonType) {}
 
   /** Current preparation state; proposed and accepted references remain independent. */
   @Builder(toBuilder = true)
@@ -147,7 +138,23 @@ public final class CollectionState {
       Instant lastSuccessAt,
       Set<UUID> sourceBindingIds,
       Set<UUID> scopeIds) {
-    /** Detaches pending selections from managed collections. */
+    /**
+     * Detaches pending selections from managed collections.
+     *
+     * @param id current control identity
+     * @param seasonId owning season, absent for seasonless collection
+     * @param family independently controlled acquisition family
+     * @param revision current editing revision
+     * @param enabled desired periodic eligibility
+     * @param requestId pending explicit request, when present
+     * @param requestedMode pending explicit collection mode
+     * @param currentCycleId most recent admitted cycle, when present
+     * @param lastStartedAt most recent admitted start, when known
+     * @param lastAttemptAt most recent observed attempt, when known
+     * @param lastSuccessAt most recent successful observation, when known
+     * @param sourceBindingIds requested roots, empty for the whole family
+     * @param scopeIds requested narrower scopes, empty for the whole selection
+     */
     public Control {
       sourceBindingIds = Set.copyOf(sourceBindingIds);
       scopeIds = Set.copyOf(scopeIds);
@@ -159,7 +166,12 @@ public final class CollectionState {
 
   /** Read-only work projection; its construction never claims work. */
   public record Work(List<ControlWork> controls, List<Candidate> validations) {
-    /** Detaches the complete, configuration-bounded lists. */
+    /**
+     * Detaches the complete, configuration-bounded lists.
+     *
+     * @param controls current independent scheduling contexts
+     * @param validations candidates awaiting validation
+     */
     public Work {
       controls = List.copyOf(controls);
       validations = List.copyOf(validations);
@@ -216,7 +228,12 @@ public final class CollectionState {
 
   /** Database snapshot page without personal values or a total-count query. */
   public record SnapshotPage(List<Target> items, boolean hasNext) {
-    /** Detaches the selected immutable rows. */
+    /**
+     * Detaches the selected immutable rows.
+     *
+     * @param items admitted frozen targets
+     * @param hasNext whether another snapshot page exists
+     */
     public SnapshotPage {
       items = List.copyOf(items);
     }
@@ -224,7 +241,13 @@ public final class CollectionState {
 
   /** Stable bounded read of the admitted snapshot, without a total-count query. */
   public record TargetPage(List<ServedTarget> items, long page, boolean hasNext) {
-    /** Detaches page contents from persistence. */
+    /**
+     * Detaches page contents from persistence.
+     *
+     * @param items served targets with current permitted locality
+     * @param page zero-based requested page
+     * @param hasNext whether another snapshot page exists
+     */
     public TargetPage {
       items = List.copyOf(items);
     }

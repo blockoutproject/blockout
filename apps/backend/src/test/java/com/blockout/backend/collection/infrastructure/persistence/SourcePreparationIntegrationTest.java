@@ -813,6 +813,6 @@ class SourcePreparationIntegrationTest {
    * @return immutable evidence with a deterministic completion instant
    */
   private SourceValidation result(SourceValidationStateEnum state, String evidence, String reason) {
-    return new SourceValidation(CYCLE, state, NOW.plusSeconds(1), evidence, reason);
+    return new SourceValidation(CYCLE, state, NOW.plusSeconds(1), evidence, reason, null);
   }
 }

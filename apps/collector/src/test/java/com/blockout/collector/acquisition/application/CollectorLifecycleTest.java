@@ -107,7 +107,12 @@ class CollectorLifecycleTest {
     CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(null, CONTROL, 0, null);
     CollectionBackend.Validation result =
         new CollectionBackend.Validation(
-            admitted.getCycle().id(), SourceValidationStateEnum.QUALIFIED, NOW, "2026/2027", null);
+            admitted.getCycle().id(),
+            SourceValidationStateEnum.QUALIFIED,
+            NOW,
+            "2026/2027",
+            null,
+            null);
     doThrow(uncertain()).when(backend).validate(CONTROL, result);
     when(backend.cycle(admitted.getCycle().id()))
         .thenReturn(completed(admitted, NOW.plusSeconds(1)));

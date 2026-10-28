@@ -238,3 +238,7 @@ Parallel markers require completed prerequisites and distinct files. Serialize s
 2. Add US2 local age and ordinary native consent/permission integration, then connect actual sporting transitions and qualify the shared lifecycle. Use one counter, one prepared ad and existing SDK/platform mechanisms throughout.
 3. Deliver US3 static legal reading independently, and integrate US4/US5 privacy proof through their real owners rather than copying contact/support implementations. Complete release truthfulness before publishing the files.
 4. Validate manual rights, provider/store declarations and V1/existing-user continuity through US6 and F14. Reuse native, restore and provider evidence across owners; complete acceptance only when each required outcome is demonstrated, with accepted limits intact.
+
+## Phase 10: Retired representation maintenance
+
+- [x] T044 [US3] Remove the three unpublished, uninstanced private custom legal-reader sources from the designated Product Design Account page, following FR-016 and the approved native-browser handoff. Check incoming prototype references, preserve all current screens and the independent sporting reader, independently review the removal decision, and record exact node IDs, rendering evidence and unresolved consent-simulation candidates in `quickstart.md#retired-legal-reader-authoring-sources`.

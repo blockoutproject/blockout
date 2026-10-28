@@ -234,3 +234,7 @@ Serialize edits to `access.xml` (T007/T015), the F05 response mapper and shared 
 2. **Incremental settings and admission**: Deliver US2's atomic settings, then US3's server/native gates. Develop with bounded F05/F13/F14 inputs; retain actual owner/native proofs as explicit obligations rather than waiting for all feature programmes before coding.
 3. **Complete maintenance and versions**: Integrate US4 with F07 and finish US5 native stores/settings/preparation. Validate combined restrictions and monotonic observations through actual consumers; no privileged bootstrap or withdrawn recovery circuit.
 4. **Close only supported evidence**: Complete polish and each story's acceptance evidence. Documentation, generated schema validation, mocked providers and native screenshots each retain their limits; production and F14 launch operations require their own authorization.
+
+## Phase 9: Retired representation maintenance
+
+- [x] T046 [US3] Remove the two unpublished, uninstanced private gate-help sources from the designated Product Design System page under FR-013. Check incoming prototype references and current gate screens, preserve ordinary outside-gate access and the authorized administrator text action, independently review the decision, and record exact node IDs and evidence limits in `quickstart.md#retired-gate-help-authoring-sources`.

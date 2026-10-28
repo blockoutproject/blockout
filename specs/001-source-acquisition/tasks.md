@@ -298,3 +298,7 @@ Serialize edits to `collection.xml`, `CollectionStore.java`, `AdmitCollectionCyc
 3. **Operational increments**: Deliver US5 native scheduling/commands, then US4 club/geocoding and US6 observability. Reuse F13 UI/native mechanisms; retain manual recovery and supplier limitations without a new framework.
 4. **Controlled reconstruction**: Complete US7 with real F07/F14 boundaries, current coverage and terminal closure. Qualification prepares the release decision; it does not execute or approve a production reset/cutover.
 5. **Close only supported evidence**: Run polish, preserve unresolved qualifications and report precise obtained/rejected/unavailable scope. No fabricated freshness, coverage, recovery or native approval follows from documentation checks.
+
+## Phase 11: Validation evidence maintenance
+
+- [x] T073 Remove the unused five-argument validation constructors in `apps/backend/src/main/java/com/blockout/backend/collection/application/model/CollectionState.java` and `apps/collector/src/main/java/com/blockout/collector/acquisition/application/CollectionBackend.java`; migrate their four test-fixture consumers to the canonical representation with an explicit nullable failure category. Preserve the ingestion contract and current evidence semantics, verify fresh generation and both module suites, and independently review the complete touched source/test files. Record the bounded results in `quickstart.md#boundary-evidence`.
