@@ -18,6 +18,7 @@ import { PublicAccountLinks } from "../components/public-account-links";
 import { SignInArtwork } from "../components/sign-in-artwork";
 import { useGuestNavigation } from "../hooks/use-guest-navigation";
 import { useAccountSession } from "../session/account-session-provider";
+import type { SupportOrigin } from "../../support";
 
 /** Current ordinary admission supplied by F12; real gate composition belongs to F12 T028. */
 export interface SignInScreenProps {
@@ -50,6 +51,9 @@ function SignInJourney() {
   const mounted = useRef(false);
   // This journey owns explicit login feedback; the SDK still owns the resulting session error.
   const [loginAttempted, setLoginAttempted] = useState(false);
+  const [supportOrigin, setSupportOrigin] = useState<SupportOrigin>({
+    screen: "sign-in",
+  });
   const busy =
     session.status === "authenticating" ||
     session.status === "signing-out" ||
@@ -66,6 +70,7 @@ function SignInJourney() {
   /** Starts either hosted authentication or a targeted retry using still-valid SDK credentials. */
   async function signIn() {
     if (busy || session.getSnapshot().operation) return;
+    setSupportOrigin({ screen: "sign-in" });
     feedback.clear();
     const audience = process.env.EXPO_PUBLIC_AUTH0_AUDIENCE;
     if (session.status !== "authenticated" && !audience) {
@@ -93,6 +98,17 @@ function SignInJourney() {
         router.replace("/profile");
     } catch (error) {
       if (!mounted.current || !session.isCurrent(generation)) return;
+      setSupportOrigin({
+        screen: "sign-in",
+        failureStage: authenticating
+          ? "authentication"
+          : "account-establishment",
+        failureReason:
+          error instanceof WebAuthError &&
+          error.type === WebAuthErrorCodes.USER_CANCELLED
+            ? "cancelled"
+            : "unavailable",
+      });
       if (!authenticating) {
         feedback.error(undefined, generation);
         return;
@@ -209,7 +225,7 @@ function SignInJourney() {
               Continuer en tant qu’invité
             </Text>
           </Pressable>
-          <PublicAccountLinks />
+          <PublicAccountLinks supportOrigin={supportOrigin} />
         </View>
       </SafeAreaView>
     </ScrollView>

@@ -1,3 +1,4 @@
+import { SportingSupportAction } from "../components/sporting-actions";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingCompactHeader } from "../components/sporting-compact-header";
 import { TabScrollView } from "react-native-collapsible-tab";
@@ -92,7 +93,12 @@ function PoolPage({
     <Page edges={blockingState ? undefined : ["left", "right", "bottom"]}>
       {blockingState ? (
         <>
-          <PageHeader title="Poule" />
+          <PageHeader
+            title="Poule"
+            action={
+              <SportingSupportAction target={{ type: "pool", id: poolId }} />
+            }
+          />
           <PageScrollView
             refreshControl={
               <DataRefreshControl
@@ -111,6 +117,11 @@ function PoolPage({
           header={
             data && (
               <SportingCompactHeader
+                action={
+                  <SportingSupportAction
+                    target={{ type: "pool", id: poolId }}
+                  />
+                }
                 title="Poule"
                 identity={data.pool.pool}
                 division={data.pool.classification.division}

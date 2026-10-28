@@ -18,6 +18,9 @@ import OperationsLayout from "../../../app/(operations)/_layout";
 import AdministrationRoute from "../../../app/(operations)/administration";
 import RootLayout from "../../../app/_layout";
 import OnboardingRoute from "../../../app/onboarding";
+import SupportLayout from "../../../app/(ordinary)/support/_layout";
+import SupportRoute from "../../../app/(ordinary)/support/index";
+import SupportChoiceRoute from "../../../app/(ordinary)/support/choice";
 import { completeDiscovery } from "../../onboarding/discovery-state";
 import { useAccountSession } from "../../accounts/current-account";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
@@ -26,6 +29,11 @@ import {
   mockAuth0,
 } from "../../accounts/test-support/native-auth0";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+
+// The real support form uses the shared keyboard owner; its native I/O uses the upstream Jest boundary.
+jest.mock("react-native-keyboard-controller", () =>
+  jest.requireActual("react-native-keyboard-controller/jest"),
+);
 
 // Native manifest projection of the documented expo-router plugin option in app.config.ts.
 jest.mock("expo-constants", () => {
@@ -115,7 +123,9 @@ async function openRoute(path: string) {
       access: AccessGateScreen,
       "+not-found": NotFoundRoute,
       "(ordinary)/index": () => <Text>Ordinary home</Text>,
-      "(ordinary)/support": () => <Text>Support route</Text>,
+      "(ordinary)/support/_layout": SupportLayout,
+      "(ordinary)/support/index": SupportRoute,
+      "(ordinary)/support/choice": SupportChoiceRoute,
       "(ordinary)/legal": () => <Text>Legal route</Text>,
       "(ordinary)/sign-in": SignInProbe,
       "(operations)/administration/index": AdministrationRoute,
@@ -126,6 +136,22 @@ async function openRoute(path: string) {
     { initialUrl: path },
   );
 }
+
+it("opens the actual shared support route as a guest without acquiring credentials", async () => {
+  // Given
+  mockFetch.mockResolvedValue(Response.json(applicationAccessResponse()));
+
+  // When
+  await openRoute("/support?originScreen=profile");
+
+  // Then
+  expect(
+    await screen.findByRole("header", { name: "Assistance et suggestions" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("E-mail de réponse")).toHaveDisplayValue("");
+  expect(screen.getByText("Profil")).toBeOnTheScreen();
+  expect(mockAuth0.getCredentials).not.toHaveBeenCalled();
+});
 
 it("starts the public request while F14 initialization has not completed", async () => {
   // Given
@@ -181,6 +207,7 @@ it.each(["/support", "/legal", "/sign-in", "/administration"])(
     expect(
       screen.queryByText(/^(Support|Legal|Sign-in|Operational) route$/),
     ).toBeNull();
+    expect(screen.queryByLabelText("E-mail de réponse")).toBeNull();
   },
 );
 
@@ -263,6 +290,7 @@ it.each(["maintenance", "update"] as const)(
     // Then
     expect(screen.getByRole("header", { name: title })).toBeOnTheScreen();
     expect(screen.queryByText(/^(Support|Legal|Sign-in) route$/)).toBeNull();
+    expect(screen.queryByLabelText("E-mail de réponse")).toBeNull();
     expect(
       screen.queryByRole("link", { name: "Accès administrateur" }),
     ).toBeNull();
