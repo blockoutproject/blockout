@@ -14,7 +14,7 @@ Use the native Google Mobile Ads/UMP integration and Meta mediation for eligible
 
 **Language/Version**: TypeScript/Expo mobile and Java/Spring Boot backend; versions follow the [F13 technical context](../003-shared-quality/plan.md#technical-context).
 
-**Primary Dependencies**: `react-native-google-mobile-ads` 17.2.0 and its compatible scoped Facebook mediation package/config plugin; SDK-pinned native dependencies, not manually upgraded adapters. Expo-compatible `expo-tracking-transparency` and `expo-web-browser`; `@react-native-community/slider` 5.2.0 for the selected Expo baseline. F13 owns the dependency installation/build toolchain.
+**Primary Dependencies**: `react-native-google-mobile-ads` 17.4.0 and its compatible scoped Facebook mediation package/config plugin; SDK-pinned native dependencies, not manually upgraded adapters. Expo-compatible `expo-tracking-transparency` and `expo-web-browser`; `@react-native-community/slider` 5.2.0 for the selected Expo baseline. F13 owns the dependency installation/build toolchain.
 
 **Storage**: Installation-local age category and declaration date; provider-owned native consent storage; memory-only advertising count and prepared ad. Static HTML files bundled with the backend. F02 PostgreSQL contact metadata for field restrictions. No server age/consent table or advertising-event history.
 
