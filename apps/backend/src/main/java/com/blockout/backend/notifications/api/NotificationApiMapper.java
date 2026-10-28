@@ -6,6 +6,10 @@ import com.blockout.backend.generated.mobile.model.NotificationResponse;
 import com.blockout.backend.generated.mobile.model.NotificationSummaryResponse;
 import com.blockout.backend.generated.mobile.model.NotificationsResponse;
 import com.blockout.backend.generated.mobile.model.ResultStateEnum;
+import com.blockout.backend.generated.mobile.model.ReplacePushSubscriptionRequest;
+import com.blockout.backend.generated.mobile.model.PushSubscriptionResponse;
+import com.blockout.backend.notifications.application.PushSubscriptionStore.Association;
+import com.blockout.backend.notifications.application.PushSubscriptionStore.Registration;
 import com.blockout.backend.notifications.application.InboxViews.Entry;
 import com.blockout.backend.notifications.application.InboxViews.Page;
 import com.blockout.backend.notifications.application.InboxViews.Summary;
@@ -18,12 +22,30 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import org.mapstruct.ValueMapping;
+import java.util.UUID;
 
 /** Canonical transport mapping reuses F03 sporting DTOs and the stable F07 editorial choice. */
 @Mapper(
     config = MappingConfiguration.class,
     uses = {ConsultationApiMapper.class, TemporalMapping.class})
 public interface NotificationApiMapper {
+  /**
+   * Maps complete generated intent with the authenticated original owner and addressed connection.
+   * @param request validated complete request
+   * @param id connection UUID
+   * @param accountId verified original owner UUID
+   * @return complete application registration, with no caller-selected owner
+   */
+  Registration toRegistration(ReplacePushSubscriptionRequest request, UUID id, UUID accountId);
+
+  /**
+   * Maps only public connection metadata, omitting the private address and internal account/version.
+   * @param association accepted current metadata
+   * @return canonical address-free response
+   */
+  @Mapping(target = "additionalProperties", ignore = true)
+  PushSubscriptionResponse toDto(Association association);
+
   /**
    * Maps current authorized facts into the generated notification representation.
    *

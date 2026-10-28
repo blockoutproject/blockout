@@ -7,6 +7,11 @@ function setBadge(count: number) {
   void setBadgeCountAsync(count).catch(() => undefined);
 }
 
+/** Clears only the app-controlled badge; SDK failures and launcher-owned indicators never block departure. */
+export function clearNotificationBadge() {
+  setBadge(0);
+}
+
 /**
  * Projects only a confirmed current summary; unknown or zero clears the app-controlled badge.
  * F05 invalidation clears immediately, including A → guest → A. Platform-owned indicators and
@@ -18,8 +23,8 @@ export function useNotificationBadge(
 ) {
   const { subscribe, generation, accountId, isCurrent } = session;
   useLayoutEffect(() => {
-    setBadge(0);
-    return subscribe(() => setBadge(0));
+    clearNotificationBadge();
+    return subscribe(clearNotificationBadge);
   }, [subscribe]);
   useEffect(() => {
     if (isCurrent(generation)) setBadge(count ?? 0);

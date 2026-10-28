@@ -57,6 +57,18 @@ export type AccountCommandSession = Pick<
 > &
   Pick<SessionGeneration, "isCurrent" | "setAccount">;
 
+/** Captured F07 exact-removal operation; must settle within its bounded wait before SDK credentials are discarded. */
+export type AccountCredentialCleanup = (
+  session: Pick<SessionSnapshot, "generation"> &
+    Pick<SessionGeneration, "isCurrent">,
+) => Promise<void>;
+
+/** Root composition supplies the existing push owner without transferring session or subscription authority. */
+export interface AccountSessionProviderProps extends PropsWithChildren {
+  fallback?: ReactNode;
+  preparePushRemoval?: () => AccountCredentialCleanup | undefined;
+}
+
 type Initialization =
   | { status: "initializing" }
   | { status: "initialization-error"; error: unknown }
@@ -72,7 +84,8 @@ const AccountSessionContext = createContext<AccountSession | null>(null);
 export function AccountSessionProvider({
   children,
   fallback = null,
-}: PropsWithChildren<{ fallback?: ReactNode }>) {
+  preparePushRemoval,
+}: AccountSessionProviderProps) {
   const [initialization, setInitialization] = useState<Initialization>({
     status: "initializing",
   });
@@ -113,6 +126,7 @@ export function AccountSessionProvider({
       initialization={initialization}
       retryInitialization={() => setInitializationAttempt((value) => value + 1)}
       retryAuthentication={() => setRestorationAttempt((value) => value + 1)}
+      preparePushRemoval={preparePushRemoval}
     >
       {children}
     </SessionScope>
@@ -138,10 +152,12 @@ function SessionScope({
   initialization,
   retryInitialization,
   retryAuthentication,
+  preparePushRemoval,
 }: PropsWithChildren<{
   initialization: Exclude<Initialization, { status: "initializing" }>;
   retryInitialization: () => void;
   retryAuthentication: () => void;
+  preparePushRemoval?: AccountSessionProviderProps["preparePushRemoval"];
 }>) {
   const auth = useAuth0();
   const [session] = useState(createSessionGeneration);
@@ -161,6 +177,21 @@ function SessionScope({
   else if (reauthenticationRequired) status = "reauthentication-required";
   else if (auth.user) status = "authenticated";
   else if (auth.error) status = "authentication-error";
+
+  /** Captures the old exact destination before synchronous invalidation; cleanup failure never prevents departure. */
+  function beginDeparture(operation: "authenticating" | "signing-out") {
+    const active = session.getSnapshot().operation;
+    if (active === "signing-out" || active === operation) return;
+    const remove = preparePushRemoval?.();
+    const generation = session.beginOperation(operation);
+    if (!generation) return;
+    return {
+      generation,
+      removal: Promise.resolve()
+        .then(() => remove?.({ generation, isCurrent: session.isCurrent }))
+        .catch(() => undefined),
+    };
+  }
   const value: AccountSession = {
     ...session,
     ...snapshot,
@@ -180,9 +211,12 @@ function SessionScope({
     async signIn(audience) {
       if (initialization.status !== "ready")
         throw new Error("Native authentication is unavailable");
-      const generation = session.beginOperation("authenticating");
-      if (!generation) return;
+      const departure = beginDeparture("authenticating");
+      if (!departure) return;
+      const { generation } = departure;
       try {
+        await departure.removal;
+        if (!session.isCurrent(generation)) return;
         await auth.authorize({
           audience,
           scope: "openid profile email offline_access",
@@ -199,18 +233,22 @@ function SessionScope({
       }
     },
     async clearCredentials() {
-      const generation = session.beginOperation("signing-out");
-      if (!generation) return;
+      const departure = beginDeparture("signing-out");
+      if (!departure) return;
+      const { generation } = departure;
       try {
+        await departure.removal;
         if (initialization.status === "ready") await auth.clearCredentials();
       } finally {
         session.finishOperation(generation);
       }
     },
     async signOut() {
-      const generation = session.beginOperation("signing-out");
-      if (!generation) return;
+      const departure = beginDeparture("signing-out");
+      if (!departure) return;
+      const { generation } = departure;
       try {
+        await departure.removal;
         if (initialization.status === "ready") await signOutNativeSession(auth);
       } finally {
         session.finishOperation(generation);
