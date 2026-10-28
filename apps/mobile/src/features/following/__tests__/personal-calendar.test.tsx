@@ -531,6 +531,7 @@ it.each([sportingId, undefined])(
     expect(
       observer.getCurrentResult().data?.pages.at(-1)?.hasAvailableFollows,
     ).toBe(false);
+    expect(observer.getCurrentResult().isFetchNextPageError).toBe(false);
     const combined = client.getQueryData<
       InfiniteData<PersonalMatchCalendarResponse>
     >(all.queryKey);

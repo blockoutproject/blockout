@@ -861,3 +861,46 @@ it("captures the current loading zone when selecting a new personal season", asy
     [newer.id, "America/New_York"],
   ]);
 });
+
+it("captures the loading zone at first activation of an inactive new-season category", async () => {
+  // Given
+  let deviceZone = "Europe/Paris";
+  const resolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
+  jest
+    .spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions")
+    .mockImplementation(function (this: Intl.DateTimeFormat) {
+      return { ...resolvedOptions.call(this), timeZone: deviceZone };
+    });
+  await mount();
+  await layoutNativeTabs();
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
+  await layoutNativeTabs();
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await userEvent.press(screen.getByRole("tab", { name: "À venir" }));
+  await layoutNativeTabs();
+  await userEvent.press(
+    screen.getByRole("button", { name: "Saison des suivis" }),
+  );
+  await userEvent.press(screen.getByRole("radio", { name: newer.label }));
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  deviceZone = "America/New_York";
+  mockFetch.mockClear();
+
+  // When: the already-mounted category has no loaded traversal for the new season yet.
+  await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
+  await layoutNativeTabs();
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+
+  // Then
+  const reads = mockFetch.mock.calls
+    .map(([url]) => new URL(url))
+    .filter((url) => url.pathname === `/accounts/${accountId}/matches`);
+  expect(
+    reads.map((url) => [
+      url.searchParams.get("seasonId"),
+      url.searchParams.get("category"),
+      url.searchParams.get("timeZone"),
+    ]),
+  ).toEqual([[newer.id, "completed", "America/New_York"]]);
+});

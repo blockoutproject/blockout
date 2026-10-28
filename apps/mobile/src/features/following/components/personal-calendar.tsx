@@ -37,11 +37,16 @@ export function PersonalCalendar({
 }: PersonalCalendarProps) {
   const client = useQueryClient();
   const router = useRouter();
-  const [zone, setZone] = useState(currentSportingTimeZone);
+  const [zone, setZone] = useState(() =>
+    active ? currentSportingTimeZone() : undefined,
+  );
+  const loadingZone = zone ?? currentSportingTimeZone();
+  // A mounted hidden category has no traversal yet; capture only when it first becomes active.
+  if (active && zone === undefined) setZone(loadingZone);
   const options = createPersonalCalendarOptions(
     owner,
     request,
-    { seasonId, category, timeZone: zone },
+    { seasonId, category, timeZone: loadingZone },
     read,
     bypass,
   );
@@ -63,7 +68,7 @@ export function PersonalCalendar({
   });
   /** Failed refresh keeps the old loading zone and authorized rows; follow changes use native resetQueries. */
   async function refresh(timeZone: string) {
-    if (zone !== timeZone)
+    if (loadingZone !== timeZone)
       await client.cancelQueries({ queryKey: options.queryKey, exact: true });
     await refreshCalendar(
       client,

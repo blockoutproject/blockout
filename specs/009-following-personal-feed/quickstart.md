@@ -148,8 +148,10 @@ and distinguish no available follows from no matches with a working Search actio
 continuation establishing no available follows withdraws former rows across categories and
 overlapping seasons in the same owner/admission context; unaffected seasons remain retained.
 An original-account 404 without a seasonal selector withdraws the whole private calendar collection.
-A newly selected season captures the current device zone without regrouping retained same-season
-rows on foreground return. A current F03 match-detail
+A new seasonal category captures the current device zone at its first active read, including a
+previously mounted inactive category, without regrouping retained same-season rows on foreground
+return. Established empty selections retire cancelled continuation errors instead of exposing an
+ineffective retry footer. A current F03 match-detail
 refusal cancels older personal continuations and removes that UUID in the same original-owner
 admission context, without reclassifying other rows or reloading the calendar on return. Exact match
 UUID routing is exercised. HTTP and native I/O/focus are controlled; this establishes no provider,
@@ -159,6 +161,16 @@ full native accessibility or complete account-erasure journey.
 ./mvnw -B -ntp -pl apps/backend verify -Dtest=PersonalCalendarWebMvcTest,FollowOptionsWebMvcTest,FollowStateWebMvcTest -Dit.test=PersonalCalendarIntegrationTest,ReadMatchCalendarIntegrationTest
 npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/following/__tests__/personal-calendar.test.tsx src/features/following/__tests__/personal-screen.test.tsx src/features/sporting/__tests__/sporting-calendar.test.tsx
 ```
+
+Native construction observations use the aligned F13 development clients on iOS 27.1 Duo and
+Android 17 / Pixel 9, with controlled HTTP and native Auth0 RPC only. The actual entry, generated
+validation, session/admission/Query owners, RNCT pager and LegendList composition remain real.
+Observed cases include system light/dark, missing/provisional results, native season selection and
+Search, complete-day continuation, retained page failure and same-cursor explicit retry, retained
+rows after a failed ordinary pull, and cross-category withdrawal after successful no-follow evidence.
+On iOS, the enlarged empty card requires scrolling; the Search action was reached above the floating
+navigation and activated at accessibility-medium. This is scoped rendering/gesture evidence, not
+complete screen-reader, minimum-runtime, live backend/provider, account-erasure or F11 qualification.
 
 T036 retains the uncomposed single F11 transition owner from
 [F11 T009](../004-advertising-privacy-legal/tasks.md#phase-3-user-story-1--view-content-with-predictable-advertising-frequency-priority-p1--mvp).

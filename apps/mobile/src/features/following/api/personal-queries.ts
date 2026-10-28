@@ -234,6 +234,8 @@ async function withdrawUnavailableFollows(
     const unavailable =
       seasonId === undefined || selectedSeason(query.queryKey) === seasonId;
     query.setState({
+      // Established empty applicability supersedes a cancelled continuation's obsolete error.
+      ...(unavailable ? { error: null, status: "success" as const } : {}),
       data: {
         ...data,
         pages: data.pages.map((page) =>
