@@ -11,6 +11,7 @@ import { refreshInbox, refreshNotificationSummary } from "../api/inbox-queries";
 import { useInboxQueries } from "../api/use-inbox-queries";
 import type { PushRegistration } from "./push-registration";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { useSportingTransition } from "../../advertising/use-sporting-transition";
 
 // SDK 58 otherwise presents foreground messages while F14/native authentication is still initializing.
 Notifications.setNotificationHandler({
@@ -43,6 +44,7 @@ export function NotificationLifecycle({
   const { generation, accountId, isCurrent, getSnapshot, subscribe } = session;
   const client = useQueryClient();
   const auth = useAuth0();
+  const transition = useSportingTransition();
   const router = useRouter();
   const navigation = useRootNavigationState();
   const feedback = useActionFeedback();
@@ -118,14 +120,16 @@ export function NotificationLifecycle({
           })
           .finally(() => observer.reset());
       }
-      try {
-        router.push({
-          pathname: "/matches/[matchId]",
-          params: { matchId: data.data.matchId },
-        });
-      } catch {
-        if (owner.isCurrent(owner.generation)) feedback.error();
-      }
+      void transition.open({
+        kind: "match",
+        target: data.data.matchId,
+        open: () =>
+          router.push({
+            pathname: "/matches/[matchId]",
+            params: { matchId: data.data.matchId },
+          }),
+        onFailure: () => feedback.error(),
+      });
     },
   );
 

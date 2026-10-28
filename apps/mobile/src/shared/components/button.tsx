@@ -8,7 +8,7 @@ import {
   type PressableProps,
 } from "react-native";
 import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { tokens, type ContextColors } from "../theme/tokens";
 import { LoadingIndicator } from "./loading-indicator";
 
 // UI Library 156:5 and 156:79 SVG endpoints, with export shadow padding (10, 6) removed.
@@ -41,8 +41,14 @@ export interface ButtonProps {
   /** Selected state is announced independently of the label, colour and busy state. */
   selected?: boolean;
   accessibilityHint?: string;
-  /** Effective F02 #RRGGBB accent; only the inverse action's contextual border consumes it. */
+  /** Destination openings use link semantics; commands retain the default button role. */
+  accessibilityRole?: "button" | "link";
+  /** Effective #RRGGBB accent: inverse border or the primary action's approved context paint. */
   contextColor?: string;
+  /** Three qualified authored primary-action stops; null/absence uses the primary-to-8%-darker default. */
+  contextGradient?: readonly string[] | null;
+  /** Caller-resolved black/white contrast against contextColor, independent of system appearance. */
+  contextForeground?: string;
   /** Source-owned paints: gradient primary, flat success, bordered secondary or semantic inverse. */
   variant?: "primary" | "success" | "secondary" | "inverse";
   /** Decorative trailing glyph from the library; busy state replaces it with the shared indicator. */
@@ -61,15 +67,28 @@ export function Button({
   size = "regular",
   selected,
   accessibilityHint,
+  accessibilityRole = "button",
   contextColor,
+  contextGradient,
+  contextForeground,
   variant = "primary",
   trailingIcon: TrailingIcon,
   leadingIcon: LeadingIcon,
 }: ButtonProps) {
-  const { context, colors } = useTheme();
+  const { context, colors, scheme } = useTheme();
+  const contextualPrimary = variant === "primary" && contextColor !== undefined;
+  const actionContext: ContextColors = contextualPrimary
+    ? {
+        primary: contextColor,
+        actionStart: contextColor,
+        actionEnd: darkerEndpoint(contextColor),
+        onAction: contextForeground ?? context.onAction,
+        shadow: scheme === "dark" ? "#00000033" : `${contextColor}1A`,
+      }
+    : context;
   const foreground =
     variant === "primary"
-      ? context.onAction
+      ? actionContext.onAction
       : variant === "success"
         ? colors.onSuccessAction
         : variant === "inverse"
@@ -84,13 +103,17 @@ export function Button({
       <Icon accessible={false} size={tokens.size.icon.md} color={foreground} />
     ));
   const gradient = fullWidth ? containerGradient : contentGradient;
+  const stops =
+    contextualPrimary && contextGradient
+      ? contextGradient
+      : [actionContext.actionStart, actionContext.actionEnd];
   const background = `<svg xmlns="http://www.w3.org/2000/svg" width="${gradient.width}" height="48" viewBox="0 0 ${gradient.width} 48" preserveAspectRatio="none">
     <defs><linearGradient id="fill" x1="${gradient.x1}" y1="${gradient.y1}" x2="${gradient.x2}" y2="${gradient.y2}" gradientUnits="userSpaceOnUse">
-    <stop stop-color="${context.actionStart}"/><stop offset="1" stop-color="${context.actionEnd}"/></linearGradient></defs>
+    ${stops.map((color, index) => `<stop offset="${index / (stops.length - 1)}" stop-color="${color}"/>`).join("")}</linearGradient></defs>
     <rect width="${gradient.width}" height="48" fill="url(#fill)"/></svg>`;
   return (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole={accessibilityRole}
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
       accessibilityState={{
@@ -116,7 +139,7 @@ export function Button({
             {
               backgroundColor:
                 variant === "primary"
-                  ? context.primary
+                  ? actionContext.primary
                   : variant === "success"
                     ? colors.successAction
                     : variant === "inverse"
@@ -143,7 +166,7 @@ export function Button({
                         offsetX: tokens.elevation.offsetX,
                         offsetY: tokens.elevation.offsetY,
                         blurRadius: tokens.elevation.blur,
-                        color: context.shadow,
+                        color: actionContext.shadow,
                       },
                     ],
             },
@@ -153,7 +176,7 @@ export function Button({
             <Image
               accessible={false}
               source={{ uri: `data:image/svg+xml;base64,${btoa(background)}` }}
-              recyclingKey={`${context.actionStart}/${context.actionEnd}`}
+              recyclingKey={stops.join("/")}
               contentFit="fill"
               style={styles.gradient}
             />
@@ -172,6 +195,17 @@ export function Button({
       )}
     </Pressable>
   );
+}
+
+/** UI Library Color 3193:125: mix a qualified six-digit primary with 8% black for its default endpoint. */
+function darkerEndpoint(primary: string): string {
+  return `#${[1, 3, 5]
+    .map((start) =>
+      Math.round(Number.parseInt(primary.slice(start, start + 2), 16) * 0.92)
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")}`;
 }
 
 const styles = StyleSheet.create({

@@ -1,5 +1,5 @@
 import { divisionTextColor } from "../presentation";
-import { useRouter } from "expo-router";
+import { useSportingNavigation } from "../navigation";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { MatchSummaryResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "../../../shared/theme/tokens";
@@ -31,7 +31,7 @@ export function MatchSummary({
   displayTimeZone,
   presentation = "summary",
 }: MatchSummaryProps) {
-  const router = useRouter();
+  const sporting = useSportingNavigation();
   const { colors, context } = useTheme();
   const division = match.pool.classification.division;
   const accent = division?.color ?? context.primary;
@@ -142,12 +142,7 @@ export function MatchSummary({
                 <Pressable
                   accessibilityRole="link"
                   accessibilityLabel={`${team.name} · Score ${side} : ${score ?? "indisponible"}`}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/teams/[teamId]",
-                      params: { teamId: team.id },
-                    })
-                  }
+                  onPress={() => void sporting.navigate("team", team.id)}
                   style={({ pressed }) => [
                     styles.team,
                     { opacity: pressed ? tokens.opacity.pressed : 1 },

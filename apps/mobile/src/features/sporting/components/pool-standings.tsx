@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
+import { useSportingNavigation } from "../navigation";
 import { Columns3, List } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -28,6 +28,8 @@ import { StandingCards } from "./standing-cards";
 export interface PoolStandingsProps {
   pool: PoolSummaryResponse;
   highlightTeamId?: string;
+  /** RNCT retains visited panels; an inactive table cannot release an old sporting opening. */
+  active?: boolean;
   /** Optional phase navigation belongs above this table in a team participation panel. */
   children?: ReactNode;
 }
@@ -36,6 +38,7 @@ export interface PoolStandingsProps {
 export function PoolStandings({
   pool,
   highlightTeamId,
+  active = true,
   children,
 }: PoolStandingsProps) {
   const queries = useConsultationQueries();
@@ -102,13 +105,18 @@ export function PoolStandings({
               ))}
             </View>
             {layout === "cards" ? (
-              <StandingCards rows={data.rows} columns={columns} />
+              <StandingCards
+                rows={data.rows}
+                columns={columns}
+                active={active}
+              />
             ) : (
               <View>
                 {data.rows.map((row, index) => (
                   <StandingEntry
-                    key={index}
+                    key={`${index}:${row.team?.id ?? "unlinked"}`}
                     row={row}
+                    active={active}
                     columns={columns}
                     highlighted={
                       row.team !== undefined && row.team.id === highlightTeamId
@@ -156,6 +164,7 @@ interface StandingEntryProps {
   highlighted: boolean;
   color?: string;
   last: boolean;
+  active: boolean;
 }
 
 /** Preserves source labels and optional values; only an explicitly associated team opens a route. */
@@ -165,9 +174,10 @@ function StandingEntry({
   highlighted,
   color,
   last,
+  active,
 }: StandingEntryProps) {
   const { colors } = useTheme();
-  const router = useRouter();
+  const sporting = useSportingNavigation(active);
   const statistics = columns
     .map((column) => `${column} : ${row.statistics[column] ?? "non renseigné"}`)
     .join(", ");
@@ -277,9 +287,7 @@ function StandingEntry({
         accessibilityRole="link"
         accessibilityLabel={label}
         accessibilityState={{ selected: highlighted }}
-        onPress={() =>
-          router.push({ pathname: "/teams/[teamId]", params: { teamId } })
-        }
+        onPress={() => void sporting.navigate("team", teamId)}
         style={style}
       >
         {content}

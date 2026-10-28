@@ -1,4 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
+import type { ComponentType } from "react";
 import {
   act,
   cleanup,
@@ -27,6 +28,25 @@ import { ownContributions } from "../test-support/contribution-data";
 import { MatchScreen } from "../../sporting/screens/match-screen";
 import { matchDetail } from "../../sporting/test-support/consultation-data";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
+import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
+import * as proSessionModule from "../../pro/pro-session";
+import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
+
+jest.mock("@sentry/react-native", () => ({
+  init: jest.fn(),
+  captureException: jest.fn(),
+  wrap: (component: ComponentType) => component,
+}));
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("../../pro/test-support/native-purchases")
+    .mockPurchases,
+}));
 
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
@@ -40,6 +60,7 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ push: mockPush }),
+  useNavigation: () => ({ isFocused: () => true }),
 }));
 const mockPush = jest.fn();
 jest.mock("expo/fetch", () => ({
@@ -60,6 +81,12 @@ function Entry() {
 let client = createQueryClient();
 let context = ownContributions();
 beforeEach(() => {
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
+  prepareProNativeIO();
   client = createQueryClient();
   mockPush.mockReset();
   Object.assign(process.env, {
@@ -114,7 +141,9 @@ it.each(["refused", "owner outage", "profile outage"])(
           <ApplicationAccessProvider>
             <AccountSessionProvider>
               <AccountFeedbackProvider>
-                <MatchScreen matchId={matchDetail().match.id} />
+                <AdvertisingProviders>
+                  <MatchScreen matchId={matchDetail().match.id} />
+                </AdvertisingProviders>
               </AccountFeedbackProvider>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
@@ -151,6 +180,7 @@ afterEach(async () => {
   await cleanup();
   client.clear();
   process.env = { ...previous };
+  jest.restoreAllMocks();
 });
 
 it.each([true, false])(

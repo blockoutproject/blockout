@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useSportingNavigation } from "../navigation";
 import { CircleAlert } from "lucide-react-native";
 import {
   Pressable,
@@ -18,13 +18,19 @@ import { SportingLogo } from "./sporting-identity";
 export interface CalendarMatchProps {
   match: MatchSummaryResponse;
   displayTimeZone: string;
+  /** Mounted native tabs retain their rows; only the active tab can continue an accepted opening. */
+  active?: boolean;
 }
 
 /** Approved Match Row: full-width result indication, team rows, then time or supplied scores. */
-export function CalendarMatch({ match, displayTimeZone }: CalendarMatchProps) {
+export function CalendarMatch({
+  match,
+  displayTimeZone,
+  active = true,
+}: CalendarMatchProps) {
   const { colors, context } = useTheme();
   const { fontScale } = useWindowDimensions();
-  const router = useRouter();
+  const sporting = useSportingNavigation(active);
   const division = match.pool.classification.division;
   const accent = division?.color ?? context.primary;
   const foreground = division ? divisionTextColor(accent) : context.onAction;
@@ -49,12 +55,7 @@ export function CalendarMatch({ match, displayTimeZone }: CalendarMatchProps) {
     <Pressable
       accessibilityRole="link"
       accessibilityLabel={`Ouvrir le match ${match.home.name} — ${match.away.name}, ${hasScore ? `${result.homeSets} à ${result.awaySets}` : schedule.time}${status ? `, ${status}` : ""}${result?.specialLabel ? `, ${result.specialLabel}` : ""}`}
-      onPress={() =>
-        router.push({
-          pathname: "/matches/[matchId]",
-          params: { matchId: match.id },
-        })
-      }
+      onPress={() => void sporting.navigate("match", match.id)}
       style={({ pressed }) => [
         styles.card,
         {

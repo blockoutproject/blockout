@@ -22,6 +22,7 @@ import {
 } from "../../accounts/session/account-session-provider";
 import { useCurrentAccount } from "../../accounts/current-account";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
+import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import { accountResponse } from "../../accounts/test-support/account-response";
 import {
   credentialsFor,
@@ -35,6 +36,17 @@ import { notificationMessageSamples } from "../test-support/notification-message
 import { useLayoutEffect, type PropsWithChildren } from "react";
 import { setBadgeCountAsync } from "expo-notifications";
 
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("../../pro/test-support/native-purchases")
+    .mockPurchases,
+}));
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
@@ -153,7 +165,9 @@ async function showInbox() {
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              <Harness>{children}</Harness>
+              <AdvertisingProviders>
+                <Harness>{children}</Harness>
+              </AdvertisingProviders>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>

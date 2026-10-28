@@ -1,4 +1,3 @@
-import { SportingSupportAction } from "../components/sporting-actions";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
@@ -18,11 +17,13 @@ import { useConsultationQueries } from "../api/use-consultation-queries";
 
 import {
   MatchContributionAction,
+  SportingSupportAction,
   useMatchContributionAction,
 } from "../components/sporting-actions";
 import { MatchSummary } from "../components/match-summary";
 import { MatchSetScores } from "../components/match-set-scores";
 import { MatchInformation } from "../components/match-information";
+import { MatchLinks } from "../components/match-links";
 import { currentSportingTimeZone } from "../model/sporting-time";
 
 /** Exact dated public match identity; contextual actions remain with their feature owners. */
@@ -106,6 +107,7 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
                       }
                     />
                     <MatchSetScores match={data.match} sets={data.sets} />
+                    <MatchLinks detail={data} />
                     <MatchInformation
                       detail={data}
                       displayTimeZone={presentation.timeZone}

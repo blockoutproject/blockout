@@ -29,6 +29,31 @@ it.each([
   },
 );
 
+it("announces a contextual destination as one named link", async () => {
+  // Given
+  const onPress = jest.fn();
+  const user = userEvent.setup();
+  await render(
+    <ThemeProvider>
+      <Button
+        label="Ouvrir le lien"
+        accessibilityRole="link"
+        contextColor="#C74750"
+        contextGradient={["#C74750", "#A73A42", "#892D36"]}
+        contextForeground="#FFFFFF"
+        onPress={onPress}
+      />
+    </ThemeProvider>,
+  );
+
+  // When
+  await user.press(screen.getByRole("link", { name: "Ouvrir le lien" }));
+
+  // Then
+  expect(onPress).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole("button")).toBeNull();
+});
+
 it.each([
   { disabled: true, loading: false, trailingIcon: undefined },
   { disabled: false, loading: true, trailingIcon: undefined },

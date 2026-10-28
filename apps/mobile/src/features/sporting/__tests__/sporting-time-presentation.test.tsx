@@ -1,4 +1,5 @@
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import type { PropsWithChildren } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -20,6 +21,17 @@ import { matchDetail, sportingId } from "../test-support/consultation-data";
 import { MatchSummary } from "../components/match-summary";
 import { MatchScreen } from "../screens/match-screen";
 
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("../../pro/test-support/native-purchases")
+    .mockPurchases,
+}));
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
@@ -32,6 +44,7 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ back: jest.fn(), push: jest.fn() }),
+  useNavigation: () => ({ isFocused: () => true }),
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),
@@ -77,7 +90,9 @@ function Providers({ children }: PropsWithChildren) {
       <ThemeProvider>
         <ActionFeedbackProvider scopeKey="test">
           <ApplicationAccessProvider>
-            <AccountSessionProvider>{children}</AccountSessionProvider>
+            <AccountSessionProvider>
+              <AdvertisingProviders>{children}</AdvertisingProviders>
+            </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ActionFeedbackProvider>
       </ThemeProvider>

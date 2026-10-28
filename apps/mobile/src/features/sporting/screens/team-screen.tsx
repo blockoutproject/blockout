@@ -83,6 +83,7 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
     >
       {data.team.club && (
         <SportingLink
+          key={data.team.club.id}
           kind="club"
           id={data.team.club.id}
           label={`Voir le club ${data.team.club.name}`}
@@ -153,10 +154,16 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
                   active={tab === item.id}
                 />
               ) : participation && !renderStandings ? (
-                <PoolStandings pool={participation} highlightTeamId={teamId}>
+                <PoolStandings
+                  pool={participation}
+                  highlightTeamId={teamId}
+                  active={tab === item.id}
+                >
                   <Surface>
                     <SportingLink
+                      key={participation.pool.id}
                       kind="pool"
+                      active={tab === item.id}
                       id={participation.pool.id}
                       label={poolLabel(participation)}
                       identity={participation.classification.division}
@@ -171,7 +178,9 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
                       <>
                         <Surface>
                           <SportingLink
+                            key={participation.pool.id}
                             kind="pool"
+                            active={tab === item.id}
                             id={participation.pool.id}
                             label={poolLabel(participation)}
                             identity={participation.classification.division}

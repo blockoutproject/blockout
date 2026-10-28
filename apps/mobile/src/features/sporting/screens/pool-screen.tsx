@@ -141,7 +141,7 @@ function PoolPage({
                   active={tab === value}
                 />
               ) : value === "standings" && data && !renderStandings ? (
-                <PoolStandings pool={data.pool} />
+                <PoolStandings pool={data.pool} active={tab === value} />
               ) : (
                 <TabScrollView alwaysBounceVertical>
                   <PageContent>
