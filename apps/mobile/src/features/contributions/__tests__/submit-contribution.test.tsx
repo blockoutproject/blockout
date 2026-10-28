@@ -262,7 +262,7 @@ it("retains dirty input through refresh and a refused submission", async () => {
     await screen.findByLabelText("Adresse du lien"),
     accepted.contribution.url,
   );
-  fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await waitFor(() =>
     expect(
       screen.getByRole("button", { name: "Soumettre le lien" }),

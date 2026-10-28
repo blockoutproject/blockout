@@ -28,7 +28,7 @@ import { useConsultationQueries } from "../../sporting/match-consultation";
 import { contributionKeys } from "./contribution-keys";
 
 /** Shares the authoritative original-account eligibility read between the match entry and its form. */
-export function useOwnContributionsRead(matchId: string) {
+export function useOwnContributionsRead(matchId: string, enabled = true) {
   const session = useAccountSession();
   const profile = useCurrentAccount();
   const admission = useOrdinaryRequest();
@@ -77,7 +77,7 @@ export function useOwnContributionsRead(matchId: string) {
   }
   const query = useInfiniteQuery({
     queryKey,
-    enabled: usable,
+    enabled: usable && enabled,
     gcTime: 0,
     refetchOnMount: "always",
     refetchOnReconnect: false,

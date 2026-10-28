@@ -92,7 +92,7 @@ owner collection through the existing F05 session, F12 admission and single Quer
 Query with controlled native credentials, HTTP and navigation. Cases cover unavailable eligibility, guest/profile distinctions, concise form copy, local URL validation, retained dirty input after refresh
 and refusal, duplicate suppression, moderator eligibility without a Pro condition, invalid
 response rejection, late-session rejection, conflict observation and confirmed acknowledgement
-independent of derivative-read failure. `contribution-entry.test.tsx` reads current eligibility through the same original-account Query owner, omits an unavailable match entry (including account-age refusal), keeps the guest invitation distinct from support and carries no post-authentication command.
+independent of derivative-read failure. `contribution-entry.test.tsx` reads current eligibility through the same original-account Query owner, omits an unavailable match entry (including account-age refusal), keeps the guest invitation distinct from support and carries no post-authentication command. Its real-match refresh cases recover from changed eligibility, an owner-read outage and a profile-read outage without remounting.
 
 `PublicContributionIntegrationTest` exercises actual submitted active/pending versions and
 F03's generated response, including current match withdrawal. The existing

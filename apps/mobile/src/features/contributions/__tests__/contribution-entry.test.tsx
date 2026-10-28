@@ -1,6 +1,8 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
+  act,
   cleanup,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -14,11 +16,17 @@ import {
   credentialsFor,
   mockAuth0,
 } from "../../accounts/test-support/native-auth0";
-import { MatchContributionAction } from "../../sporting/components/sporting-actions";
+import {
+  MatchContributionAction,
+  useMatchContributionAction,
+} from "../../sporting/components/sporting-actions";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { accountResponse } from "../../accounts/test-support/account-response";
 import { ownContributions } from "../test-support/contribution-data";
+import { MatchScreen } from "../../sporting/screens/match-screen";
+import { matchDetail } from "../../sporting/test-support/consultation-data";
+import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
@@ -42,6 +50,13 @@ const mockFetch = jest.fn<
   [RequestInfo | URL, RequestInit?]
 >();
 const previous = { ...process.env };
+/** Uses the actual public action and its read owner, as the match refresh composition does. */
+function Entry() {
+  const entry = useMatchContributionAction(
+    "00000000-0000-4000-8000-000000000002",
+  );
+  return <MatchContributionAction entry={entry} />;
+}
 let client = createQueryClient();
 let context = ownContributions();
 beforeEach(() => {
@@ -63,10 +78,76 @@ beforeEach(() => {
     if (path.endsWith("/application-access"))
       return Response.json(applicationAccessResponse());
     if (path.endsWith("/me")) return Response.json(accountResponse());
-    return Response.json(context);
+    return Response.json(
+      path.includes("/stream-contributions") ? context : matchDetail(),
+    );
   });
 });
+
+it.each(["refused", "owner outage", "profile outage"])(
+  "offers the action after match refresh recovers from %s",
+  async (initial) => {
+    // Given: an initially unavailable action on the real match screen and Query owners.
+    context = ownContributions({
+      eligibility: {
+        canSubmit: false,
+        requiresApproval: false,
+        reason: "Le compte doit avoir au moins sept jours.",
+      },
+    });
+    let recovering = false;
+    const peer = mockFetch.getMockImplementation();
+    mockFetch.mockImplementation(async (url, init) => {
+      if (
+        !recovering &&
+        ((initial === "owner outage" &&
+          String(url).includes("/stream-contributions")) ||
+          (initial === "profile outage" && String(url).endsWith("/me")))
+      )
+        throw new TypeError("Controlled test network failure");
+      if (!peer) throw new Error("Missing test HTTP boundary");
+      return peer(url, init);
+    });
+    await render(
+      <QueryClientProvider client={client}>
+        <ThemeProvider>
+          <ApplicationAccessProvider>
+            <AccountSessionProvider>
+              <AccountFeedbackProvider>
+                <MatchScreen matchId={matchDetail().match.id} />
+              </AccountFeedbackProvider>
+            </AccountSessionProvider>
+          </ApplicationAccessProvider>
+        </ThemeProvider>
+      </QueryClientProvider>,
+    );
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining(
+          initial === "profile outage" ? "/me" : "/stream-contributions",
+        ),
+        expect.anything(),
+      ),
+    );
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    expect(
+      screen.queryByRole("button", { name: "Stream link" }),
+    ).not.toBeOnTheScreen();
+    // When: time-dependent eligibility changes and the user refreshes the match itself.
+    recovering = true;
+    context = ownContributions();
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    // Then: the same entry becomes usable without remount, polling or a separate permission flow.
+    expect(
+      await screen.findByRole("button", { name: "Stream link" }),
+    ).toBeOnTheScreen();
+  },
+);
 afterEach(async () => {
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await act(async () => {
+    await client.cancelQueries();
+  });
   await cleanup();
   client.clear();
   process.env = { ...previous };
@@ -75,7 +156,7 @@ afterEach(async () => {
 it.each([true, false])(
   "opens only a neutral native entry for authenticated=%s",
   async (authenticated) => {
-    // Given: the real session owner; no Pro SDK, private contribution or support data is needed to offer the entry.
+    // Given: the real session and eligibility owners; neither Pro nor support controls the entry.
     mockAuth0.hasValidCredentials.mockResolvedValue(authenticated);
     const user = userEvent.setup();
     await render(
@@ -83,7 +164,7 @@ it.each([true, false])(
         <ThemeProvider>
           <AccountSessionProvider>
             <ApplicationAccessProvider>
-              <MatchContributionAction matchId="00000000-0000-4000-8000-000000000002" />
+              <Entry />
             </ApplicationAccessProvider>
           </AccountSessionProvider>
         </ThemeProvider>
@@ -119,12 +200,19 @@ it.each([
   context = ownContributions({
     eligibility: { canSubmit: false, requiresApproval: false, reason },
   });
+  const response = Promise.withResolvers<Response>();
+  const peer = mockFetch.getMockImplementation();
+  mockFetch.mockImplementation((url, init) => {
+    if (String(url).includes("/stream-contributions")) return response.promise;
+    if (!peer) throw new Error("Missing test HTTP boundary");
+    return peer(url, init);
+  });
   await render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
         <AccountSessionProvider>
           <ApplicationAccessProvider>
-            <MatchContributionAction matchId="00000000-0000-4000-8000-000000000002" />
+            <Entry />
           </ApplicationAccessProvider>
         </AccountSessionProvider>
       </ThemeProvider>
@@ -137,6 +225,9 @@ it.each([
       expect.anything(),
     ),
   );
+  await act(async () => {
+    response.resolve(Response.json(context));
+  });
   await waitFor(() => expect(client.isFetching()).toBe(0));
   // Then: there is no disabled action, refusal copy, or navigation to an unusable form.
   expect(
