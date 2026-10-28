@@ -11,7 +11,10 @@ import {
 import { Pressable, Text } from "react-native";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
+import {
+  useApplicationAccess,
+  ApplicationAccessProvider,
+} from "../../access/queries/use-application-access";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import {
   AccountSessionProvider,
@@ -48,9 +51,18 @@ jest.mock("expo-router", () => ({
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, init?: RequestInit) =>
     String(url).endsWith("/application-access")
-      ? Promise.resolve(Response.json(mockApplicationAccessResponse()))
+      ? Promise.resolve(
+          Response.json({
+            ...mockApplicationAccessResponse(),
+            maintenance: {
+              ...mockApplicationAccessResponse().maintenance,
+              active: mockMaintenance,
+            },
+          }),
+        )
       : mockFetch(url, init),
 }));
+let mockMaintenance = false;
 const mockPush = jest.fn();
 const mockBack = jest.fn();
 const mockFetch = jest.fn<
@@ -78,6 +90,7 @@ let failRefresh = false;
 let posts: RequestInit[] = [];
 beforeEach(() => {
   client = createQueryClient();
+  mockMaintenance = false;
   context = ownContributions();
   failRefresh = false;
   posts = [];
@@ -120,6 +133,7 @@ beforeEach(() => {
   });
 });
 afterEach(async () => {
+  await waitFor(() => expect(client.isFetching()).toBe(0));
   await act(async () => {
     await client.cancelQueries();
   });
@@ -148,6 +162,7 @@ async function mount() {
 /** Exercises the actual session invalidation while a generated write is pending. */
 function SessionExit() {
   const session = useAccountSession();
+  const access = useApplicationAccess();
   return (
     <>
       <Pressable
@@ -156,6 +171,15 @@ function SessionExit() {
         onPress={() => void session.clearCredentials()}
       >
         <Text>Quitter</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Activer le contournement"
+        accessibilityState={{ disabled: !session.accountId }}
+        disabled={!session.accountId}
+        onPress={() => access.bypass.request(session.getSnapshot(), true)}
+      >
+        <Text>Contournement</Text>
       </Pressable>
       <Pressable
         accessibilityRole="button"
@@ -486,4 +510,90 @@ it("does not replay a guest invitation after explicit sign-in", async () => {
   );
   expect(posts).toHaveLength(0);
   expect(mockBack).not.toHaveBeenCalled();
+});
+
+it("explains a new time restriction after a confirmed business refusal", async () => {
+  // Given
+  const user = userEvent.setup();
+  await mount();
+  await user.type(
+    await screen.findByLabelText("Adresse du lien"),
+    accepted.contribution.url,
+  );
+  context = ownContributions({
+    eligibility: {
+      canSubmit: false,
+      requiresApproval: false,
+      reason: "La publication ouvre une heure avant le match.",
+      eligibleAt: "2026-11-01T14:00:00+01:00",
+    },
+  });
+  mockFetch.mockImplementationOnce(async (_url, init) => {
+    if (init) posts.push(init);
+    return Response.json(
+      {
+        type: "urn:blockout:problem:unprocessable-content",
+        title: "Refused",
+        status: 422,
+      },
+      { status: 422 },
+    );
+  });
+  // When
+  await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  // Then
+  expect(
+    await screen.findByText(context.eligibility.reason ?? ""),
+  ).toBeOnTheScreen();
+  expect(screen.getByText(/Disponible à partir du/)).toBeOnTheScreen();
+  expect(screen.getByDisplayValue(accepted.contribution.url)).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Soumettre le lien" }),
+  ).toBeDisabled();
+  expect(posts).toHaveLength(1);
+});
+
+it("refreshes the actual F03 match key after a publication under explicit maintenance bypass", async () => {
+  // Given
+  mockMaintenance = true;
+  const moderator = accountResponse({
+    permissions: {
+      ...account.permissions,
+      moderateStreamLinks: true,
+      bypassMaintenance: true,
+    },
+  });
+  const reads = mockFetch.getMockImplementation();
+  let matchReads = 0;
+  mockFetch.mockImplementation(async (url, init) => {
+    if (String(url).endsWith("/me")) return Response.json(moderator);
+    if (new URL(String(url)).pathname === `/matches/${match.match.id}`)
+      matchReads++;
+    if (!reads) throw new Error("Missing test HTTP boundary");
+    return reads(url, init);
+  });
+  const user = userEvent.setup();
+  await mount();
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Activer le contournement" }),
+    ).toBeEnabled(),
+  );
+  await user.press(
+    screen.getByRole("button", { name: "Activer le contournement" }),
+  );
+  await user.type(
+    await screen.findByLabelText("Adresse du lien"),
+    accepted.contribution.url,
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const before = matchReads;
+  // When
+  await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  // Then
+  await waitFor(() => expect(matchReads).toBeGreaterThan(before));
+  expect(posts).toHaveLength(1);
+  expect(new Headers(posts[0].headers).get("Blockout-Maintenance-Bypass")).toBe(
+    "true",
+  );
 });

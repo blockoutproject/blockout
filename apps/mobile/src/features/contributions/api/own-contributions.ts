@@ -24,6 +24,7 @@ import {
   useCurrentAccount,
 } from "../../accounts/current-account";
 import { useOrdinaryRequest } from "../../access/ordinary-request";
+import { useConsultationQueries } from "../../sporting/match-consultation";
 import { contributionKeys } from "./contribution-keys";
 
 /** Current original-account reads and one submission; Query owns all request and recovery state. */
@@ -33,6 +34,7 @@ export function useOwnContributions(matchId: string) {
   const admission = useOrdinaryRequest();
   const auth = useAuth0();
   const client = useQueryClient();
+  const matchKey = useConsultationQueries().match(matchId).queryKey;
   const actor = { ...session, accountId: session.accountId ?? "" };
   const queryKey = [
     ...contributionKeys.own(actor, matchId),
@@ -99,10 +101,7 @@ export function useOwnContributions(matchId: string) {
       accepted,
     );
     void client.invalidateQueries({ queryKey, exact: true });
-    void client.invalidateQueries({
-      predicate: ({ queryKey: key }) =>
-        key[0] === "consultation" && key.includes(`/matches/${matchId}`),
-    });
+    void client.invalidateQueries({ queryKey: matchKey, exact: true });
   }
   const submit = useCommand(
     {

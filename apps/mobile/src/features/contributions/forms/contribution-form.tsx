@@ -82,11 +82,18 @@ export function ContributionForm({ current, editing }: ContributionFormProps) {
       router.back();
     } catch (error) {
       if (!mounted.current || !session.isCurrent(session.generation)) return;
-      if (error instanceof ApiError && error.status === 422)
+      if (error instanceof ApiError && error.status === 422) {
         setError("url", {
           message: "Le lien a été refusé. Votre saisie est conservée.",
         });
-      else if (requiresRevisionRead(error)) await reread();
+        const result = await editing.refresh();
+        if (
+          mounted.current &&
+          session.isCurrent(session.generation) &&
+          result?.isError
+        )
+          feedback.error();
+      } else if (requiresRevisionRead(error)) await reread();
       else
         feedback.error(
           "La contribution est indisponible. Votre saisie est conservée.",
