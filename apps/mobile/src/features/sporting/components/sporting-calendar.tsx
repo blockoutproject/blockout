@@ -1,5 +1,5 @@
 import type { LegendListRef } from "@legendapp/list/react-native";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useNavigation } from "expo-router";
 import {
   useEffect,
@@ -35,11 +35,11 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import {
   createCalendarOptions,
-  refreshCalendar,
   calendarDays,
   type CalendarSelection,
 } from "../api/sporting-calendar";
 import { useConsultationQueries } from "../api/use-consultation-queries";
+import { useCalendarGrouping } from "../api/use-calendar-grouping";
 import { calendarRows, type CalendarRow } from "../model/calendar-rows";
 import {
   currentSportingTimeZone,
@@ -66,10 +66,12 @@ export function SportingCalendar({
   active = true,
 }: SportingCalendarProps) {
   const queries = useConsultationQueries();
-  const client = useQueryClient();
   const navigation = useNavigation();
   const feedback = useActionFeedback();
-  const [zone, setZone] = useState(currentSportingTimeZone);
+  const { timeZone: zone, refresh: refreshGrouping } = useCalendarGrouping(
+    (timeZone) => createCalendarOptions(queries, { ...selection, timeZone }),
+    active,
+  );
   const [displayZone, setDisplayZone] = useState(currentSportingTimeZone);
   const [refreshing, setRefreshing] = useState(false);
   const list = useRef<LegendListRef>(null);
@@ -114,13 +116,7 @@ export function SportingCalendar({
     setRefreshing(true);
     const nextZone = currentSportingTimeZone();
     try {
-      if (nextZone !== zone)
-        await client.cancelQueries({ queryKey: options.queryKey, exact: true });
-      await refreshCalendar(
-        client,
-        createCalendarOptions(queries, { ...selection, timeZone: nextZone }),
-      );
-      setZone(nextZone);
+      await refreshGrouping(nextZone);
       list.current?.scrollToOffset({ offset: 0, animated: false });
     } catch (error) {
       if (calendar.data && !isAccessDenied(error)) feedback.error();
