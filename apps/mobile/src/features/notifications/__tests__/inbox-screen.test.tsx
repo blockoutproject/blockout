@@ -31,6 +31,7 @@ import { initializeV2Installation } from "../../onboarding/initialize-v2-install
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { notificationResponse } from "../test-support/notification-data";
+import { notificationMessageSamples } from "../test-support/notification-message-samples";
 import { useLayoutEffect, type PropsWithChildren } from "react";
 import { setBadgeCountAsync } from "expo-notifications";
 
@@ -174,6 +175,64 @@ it("shows the whole confirmed count while displaying one unread card and never m
   expect(mockFetch.mock.calls.some(([, init]) => init.method === "PATCH")).toBe(
     false,
   );
+});
+
+it("keeps four family choices in server order through refresh and reopening", async () => {
+  // Given: generated clients validate these server examples into the real private Query cache.
+  rows = notificationMessageSamples
+    .filter((_, index) => index % 3 === 0)
+    .map(([family, title], index) => ({
+      ...notificationResponse(),
+      id: `00000000-0000-4000-8000-${String(600 + index).padStart(12, "0")}`,
+      family,
+      title,
+      read: index % 2 === 0,
+      match: {
+        ...row.match,
+        home: { ...row.match.home, name: "Nantes" },
+        away: { ...row.match.away, name: "Tours" },
+        result: {
+          state: "final",
+          homeSets: 3,
+          awaySets: 1,
+          observedAt: row.createdAt,
+        },
+      },
+    }));
+  const view = await showInbox();
+  await screen.findByText(rows[0].title);
+  const originalNames = screen
+    .getAllByRole("link")
+    .map((link) => link.props.accessibilityLabel);
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(url).pathname.endsWith("/notifications"),
+      ),
+    ).toHaveLength(2),
+  );
+  await view.rerender(<Text>Autre écran</Text>);
+  await view.rerender(<NotificationsScreen />);
+
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.getAllByRole("link").map((link) => link.props.accessibilityLabel),
+    ).toEqual(originalNames),
+  );
+  for (const entry of rows)
+    expect(screen.getByText(entry.title)).toBeOnTheScreen();
+  expect(mockFetch.mock.calls.some(([, init]) => init.method === "PATCH")).toBe(
+    false,
+  );
+  expect(
+    screen.queryByRole("button", {
+      name: /supprimer|archiver|réglages|campagne/i,
+    }),
+  ).toBeNull();
 });
 
 it("keeps confirmed reading after navigation fails, including a discreet lost-response observation", async () => {
