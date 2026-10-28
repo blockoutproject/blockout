@@ -89,12 +89,10 @@ Qualify ordinary contribution/replacement, personal-contribution and report scre
 The ordinary match contribution route composes F03's current match summary and the F08
 owner collection through the existing F05 session, F12 admission and single QueryClient.
 `submit-contribution.test.tsx` exercises the real screen, RHF form, generated transport and
-Query with controlled native credentials, HTTP and navigation. Cases cover current eligibility
-reasons, guest/profile distinctions, local URL validation, retained dirty input after refresh
+Query with controlled native credentials, HTTP and navigation. Cases cover unavailable eligibility, guest/profile distinctions, concise form copy, local URL validation, retained dirty input after refresh
 and refusal, duplicate suppression, moderator eligibility without a Pro condition, invalid
 response rejection, late-session rejection, conflict observation and confirmed acknowledgement
-independent of derivative-read failure. `contribution-entry.test.tsx` keeps the neutral match
-entry distinct from support and carries no post-authentication command.
+independent of derivative-read failure. `contribution-entry.test.tsx` reads current eligibility through the same original-account Query owner, omits an unavailable match entry (including account-age refusal), keeps the guest invitation distinct from support and carries no post-authentication command.
 
 `PublicContributionIntegrationTest` exercises actual submitted active/pending versions and
 F03's generated response, including current match withdrawal. The existing

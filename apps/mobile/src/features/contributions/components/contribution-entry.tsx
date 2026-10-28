@@ -1,9 +1,9 @@
 import { useRouter } from "expo-router";
 import { Plus } from "lucide-react-native";
 import { Button } from "../../../shared/components/button";
-import { useAccountSession } from "../../accounts/current-account";
+import { useOwnContributionsRead } from "../api/own-contributions";
 
-/** Public match entry; private eligibility is read on opening and never inferred from Pro or a cached link. */
+/** Public match entry offered to guests or currently eligible accounts, independently of Pro. */
 export interface ContributionEntryProps {
   matchId: string;
   contextColor?: string;
@@ -14,7 +14,12 @@ export function ContributionEntry({
   contextColor,
 }: ContributionEntryProps) {
   const router = useRouter();
-  const session = useAccountSession();
+  const { session, query, usable } = useOwnContributionsRead(matchId);
+  if (
+    session.status !== "guest" &&
+    (!usable || query.isError || !query.data?.pages[0]?.eligibility.canSubmit)
+  )
+    return null;
   return (
     <Button
       label="Stream link"

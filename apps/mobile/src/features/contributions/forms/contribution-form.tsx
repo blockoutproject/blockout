@@ -123,9 +123,6 @@ export function ContributionForm({
       >
         Proposer un lien
       </Text>
-      <Text style={[tokens.typography.body, { color: colors.text }]}>
-        Une adresse de diffusion pour ce match.
-      </Text>
       <View style={styles.form}>
         <Controller
           control={control}
@@ -142,58 +139,17 @@ export function ContributionForm({
               keyboardType="url"
               editable={!busy}
               error={fieldState.error?.message}
-              helper="YouTube, Twitch ou Facebook : vidéo, chaîne ou page. L’adresse ne prouve pas la disponibilité d’un direct ou d’un replay."
+              helper="YouTube, Twitch ou Facebook"
             />
           )}
         />
-        {!current.eligibility.canSubmit && (
-          <Text
-            accessibilityLiveRegion="polite"
-            style={[tokens.typography.body, { color: colors.text }]}
-          >
-            {current.eligibility.reason ??
-              "La contribution n’est pas autorisée dans la situation actuelle."}
-          </Text>
-        )}
-        {!current.eligibility.canSubmit &&
-          editing.profile.data?.principalCreatedAt === null &&
-          editing.profile.data.permissions.moderateStreamLinks !== true && (
-            <Button
-              label="Vérifier mon profil"
-              variant="secondary"
-              onPress={() => router.push("/profile")}
-            />
-          )}
-        {current.eligibility.eligibleAt && (
-          <Text
-            style={[
-              tokens.typography.metadata,
-              { color: colors.secondaryText },
-            ]}
-          >
-            Disponible à partir du{" "}
-            {new Intl.DateTimeFormat("fr-FR", {
-              dateStyle: "medium",
-              timeStyle: "short",
-            }).format(new Date(current.eligibility.eligibleAt))}{" "}
-            (heure locale).
-          </Text>
-        )}
         {current.eligibility.requiresApproval && (
           <Text
             style={[tokens.typography.body, { color: colors.secondaryText }]}
           >
-            Votre proposition attendra une validation. Le lien déjà publié reste
-            disponible.
+            Ce lien sera soumis à validation.
           </Text>
         )}
-        <Text
-          style={[tokens.typography.metadata, { color: colors.secondaryText }]}
-        >
-          {current.quota.versionsUsed}/3 versions pour ce match ·{" "}
-          {current.quota.dailyMatchesUsed}/3 matchs aujourd’hui (heure de
-          Paris).
-        </Text>
         {query.isError && !submit.needsRead && (
           <Button
             label="Réessayer la lecture"
@@ -238,6 +194,7 @@ export function ContributionForm({
         )}
         <Button
           label="Soumettre le lien"
+          fullWidth
           onPress={() => void handleSubmit(send)()}
           disabled={disabled || busy || submit.needsRead}
           loading={submit.executing}

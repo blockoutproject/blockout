@@ -27,14 +27,13 @@ import { useOrdinaryRequest } from "../../access/ordinary-request";
 import { useConsultationQueries } from "../../sporting/match-consultation";
 import { contributionKeys } from "./contribution-keys";
 
-/** Current original-account reads and one submission; Query owns all request and recovery state. */
-export function useOwnContributions(matchId: string) {
+/** Shares the authoritative original-account eligibility read between the match entry and its form. */
+export function useOwnContributionsRead(matchId: string) {
   const session = useAccountSession();
   const profile = useCurrentAccount();
   const admission = useOrdinaryRequest();
   const auth = useAuth0();
   const client = useQueryClient();
-  const matchKey = useConsultationQueries().match(matchId).queryKey;
   const actor = { ...session, accountId: session.accountId ?? "" };
   const queryKey = [
     ...contributionKeys.own(actor, matchId),
@@ -92,6 +91,15 @@ export function useOwnContributions(matchId: string) {
       ),
     getNextPageParam: (page) => page.nextPage,
   });
+  return { query, queryKey, actor, request, session, profile, usable };
+}
+
+/** Current original-account reads and one submission; Query owns all request and recovery state. */
+export function useOwnContributions(matchId: string) {
+  const { query, queryKey, actor, request, session, profile, usable } =
+    useOwnContributionsRead(matchId);
+  const client = useQueryClient();
+  const matchKey = useConsultationQueries().match(matchId).queryKey;
   /** Accepts only the validated member acknowledgement; aggregate freshness never fabricates eligibility or reverses success. */
   async function accept(accepted: OwnStreamContributionDetailResponse) {
     await client.cancelQueries({ queryKey, exact: true });

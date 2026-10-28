@@ -214,20 +214,26 @@ it.each([
   "L’heure du match doit être confirmée.",
   "La publication ouvre une heure avant le match.",
   "Les contributions ne sont pas disponibles pour ce match professionnel.",
-])("explains current refusal: %s", async (reason) => {
-  // Given
-  context = ownContributions({
-    eligibility: { canSubmit: false, requiresApproval: false, reason },
-  });
-  await mount();
-  // When
-  await screen.findByText(reason);
-  // Then
-  expect(
-    screen.getByRole("button", { name: "Soumettre le lien" }),
-  ).toBeDisabled();
-  expect(posts).toHaveLength(0);
-});
+])(
+  "keeps a refused form unavailable without an eligibility ledger: %s",
+  async (reason) => {
+    // Given
+    context = ownContributions({
+      eligibility: { canSubmit: false, requiresApproval: false, reason },
+    });
+    await mount();
+    // When
+    await screen.findByLabelText("Adresse du lien");
+    // Then
+    expect(
+      screen.getByRole("button", { name: "Soumettre le lien" }),
+    ).toBeDisabled();
+    expect(screen.queryByText(reason)).not.toBeOnTheScreen();
+    expect(screen.queryByText(/Disponible à partir du/)).not.toBeOnTheScreen();
+    expect(screen.queryByText(/versions pour ce match/)).not.toBeOnTheScreen();
+    expect(posts).toHaveLength(0);
+  },
+);
 
 it("validates unsupported addresses before any request", async () => {
   // Given
@@ -512,7 +518,7 @@ it("does not replay a guest invitation after explicit sign-in", async () => {
   expect(mockBack).not.toHaveBeenCalled();
 });
 
-it("explains a new time restriction after a confirmed business refusal", async () => {
+it("retains the address after a new time restriction without adding availability copy", async () => {
   // Given
   const user = userEvent.setup();
   await mount();
@@ -543,14 +549,30 @@ it("explains a new time restriction after a confirmed business refusal", async (
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
   // Then
   expect(
-    await screen.findByText(context.eligibility.reason ?? ""),
+    await screen.findByText(
+      "Le lien a été refusé. Votre saisie est conservée.",
+    ),
   ).toBeOnTheScreen();
-  expect(screen.getByText(/Disponible à partir du/)).toBeOnTheScreen();
+  expect(screen.queryByText(/Disponible à partir du/)).not.toBeOnTheScreen();
   expect(screen.getByDisplayValue(accepted.contribution.url)).toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Soumettre le lien" }),
   ).toBeDisabled();
   expect(posts).toHaveLength(1);
+});
+
+it("presents only the address and supported platforms before submission", async () => {
+  // Given
+  await mount();
+  // When
+  await screen.findByLabelText("Adresse du lien");
+  // Then: the ordinary form has no repeated introduction, availability disclaimer or quota counters.
+  expect(screen.getByText("YouTube, Twitch ou Facebook")).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Une adresse de diffusion pour ce match."),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByText(/L’adresse ne prouve pas/)).not.toBeOnTheScreen();
+  expect(screen.queryByText(/versions pour ce match/)).not.toBeOnTheScreen();
 });
 
 it("refreshes the actual F03 match key after a publication under explicit maintenance bypass", async () => {
