@@ -613,3 +613,17 @@ it("shows compact match context without inventing unknown scores or extra sporti
     screen.queryByRole("link", { name: /Home · Score/ }),
   ).not.toBeOnTheScreen();
 });
+
+it("delegates failed native session restoration to F05 instead of showing an endless loader", async () => {
+  // Given
+  mockAuth0.getCredentials.mockRejectedValue(
+    new Error("Synthetic native restoration failure"),
+  );
+  const user = userEvent.setup();
+  await mount();
+  // When
+  await user.press(await screen.findByRole("button", { name: "Se connecter" }));
+  // Then
+  expect(mockPush).toHaveBeenCalledWith("/sign-in");
+  expect(posts).toHaveLength(0);
+});

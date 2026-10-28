@@ -76,7 +76,15 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
               </ScreenState>
             ) : !authenticated ? (
               <ScreenState>
-                <RequestLoading />
+                {editing.session.status === "restoring" ||
+                editing.session.operation ? (
+                  <RequestLoading />
+                ) : (
+                  <Button
+                    label="Se connecter"
+                    onPress={() => router.push("/sign-in")}
+                  />
+                )}
               </ScreenState>
             ) : !editing.profile.data ? (
               <ScreenState>
