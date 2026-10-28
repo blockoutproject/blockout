@@ -31,5 +31,18 @@
       <column name="account_id"/><column name="is_read"/>
     </createIndex>
     <createIndex tableName="notification" indexName="ix_notification_age"><column name="created_at"/></createIndex>
+    <createTable tableName="push_subscription">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="subscription_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="installation_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="account_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="expo_push_token" type="TEXT"><constraints nullable="false"/></column>
+      <column name="revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+    </createTable>
+    <addForeignKeyConstraint baseTableName="push_subscription" baseColumnNames="account_id" referencedTableName="account" referencedColumnNames="id" constraintName="fk_push_subscription_account" onDelete="CASCADE"/>
+    <addUniqueConstraint tableName="push_subscription" columnNames="subscription_id" constraintName="uk_push_subscription_connection"/>
+    <addUniqueConstraint tableName="push_subscription" columnNames="installation_id" constraintName="uk_push_subscription_installation"/>
+    <addUniqueConstraint tableName="push_subscription" columnNames="expo_push_token" constraintName="uk_push_subscription_address"/>
+    <createIndex tableName="push_subscription" indexName="ix_push_subscription_account"><column name="account_id"/></createIndex>
   </changeSet>
 </databaseChangeLog>

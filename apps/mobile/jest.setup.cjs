@@ -2,6 +2,19 @@
 // The application root now mounts RNGH; retain the package's native Jest boundary in every root consumer.
 require("react-native-gesture-handler/jestSetup");
 
+// Root consumers share this native notifications boundary. Lifecycle suites explicitly supply SDK events/outcomes.
+jest.mock("expo-notifications", () => ({
+  setNotificationHandler: jest.fn(),
+  setBadgeCountAsync: jest.fn().mockResolvedValue(true),
+  getLastNotificationResponse: jest.fn().mockReturnValue(null),
+  clearLastNotificationResponse: jest.fn(),
+  addPushTokenListener: jest.fn(() => ({ remove: jest.fn() })),
+  addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  addNotificationResponseReceivedListener: jest.fn(() => ({
+    remove: jest.fn(),
+  })),
+}));
+
 // Expo's native UUID stub returns undefined; Node supplies the same UUID contract in Jest.
 jest.mock("expo-crypto", () => ({
   ...jest.requireActual("expo-crypto"),

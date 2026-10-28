@@ -32,11 +32,16 @@ import {
   AgeDeclarationProvider,
   useAgeDeclaration,
 } from "../features/advertising/age-declaration-provider";
+import { NotificationLifecycle } from "../features/notifications/native/notification-lifecycle";
+import {
+  createPushRegistration,
+  type PushRegistration,
+} from "../features/notifications/native/push-registration";
 
 initializeSentry();
 
-/** Binds private cache cleanup and separates protected ordinary/operational navigation. */
-function Navigation() {
+/** Binds private cache/push lifecycle and separates protected ordinary/operational navigation. */
+function Navigation({ registration }: { registration: PushRegistration }) {
   const theme = useTheme();
   const client = useQueryClient();
   const { subscribe, isCurrent } = useAccountSession();
@@ -49,6 +54,10 @@ function Navigation() {
   );
   return (
     <AccountAdmissionProvider admitted={access.ordinary}>
+      <NotificationLifecycle
+        registration={registration}
+        enabled={access.ordinary && discovery.complete}
+      />
       <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
       {discovery.loading ? (
         <StartupAccessGate />
@@ -85,24 +94,32 @@ function Navigation() {
 }
 
 /** Defers age I/O until discovery releases ordinary entry, preserving independent discovery read/retry. */
-function InstallationNavigation() {
+function InstallationNavigation({
+  registration,
+}: {
+  registration: PushRegistration;
+}) {
   const discovery = useDiscovery();
   return (
     <AgeDeclarationProvider enabled={discovery.complete}>
-      <Navigation />
+      <Navigation registration={registration} />
     </AgeDeclarationProvider>
   );
 }
 
 /** Projects SDK-active membership into the sole system theme owner without remounting routes. */
-function ThemedNavigation() {
+function ThemedNavigation({
+  registration,
+}: {
+  registration: PushRegistration;
+}) {
   const { state } = usePro();
   const session = useAccountSession();
   return (
     <ThemeProvider proAccent={state.status === "active"}>
       <ActionFeedbackProvider scopeKey={session.generation}>
         <DiscoveryProvider>
-          <InstallationNavigation />
+          <InstallationNavigation registration={registration} />
         </DiscoveryProvider>
       </ActionFeedbackProvider>
     </ThemeProvider>
@@ -112,12 +129,14 @@ function ThemedNavigation() {
 /** Starts public checking above F14/Auth0; all session restoration and returns preserve that process owner. */
 function RootLayout() {
   const [queryClient] = useState(createQueryClient);
+  const [registration] = useState(createPushRegistration);
   useEffect(() => () => queryClient.clear(), [queryClient]);
   return (
     <GestureHandlerRootView style={styles.root}>
       <QueryClientProvider client={queryClient}>
         <ApplicationAccessProvider>
           <AccountSessionProvider
+            preparePushRemoval={registration.prepareRemoval}
             fallback={
               <ThemeProvider>
                 <ActionFeedbackProvider scopeKey="startup">
@@ -128,7 +147,7 @@ function RootLayout() {
           >
             <AccessAdmissionProvider>
               <ProProvider>
-                <ThemedNavigation />
+                <ThemedNavigation registration={registration} />
               </ProProvider>
             </AccessAdmissionProvider>
           </AccountSessionProvider>
