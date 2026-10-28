@@ -508,7 +508,12 @@ it.each(["hidden", "network"])(
     expect(screen.queryByText("private failure")).not.toBeOnTheScreen();
     expect(screen).toHavePathname(`/clubs/${secondId}`);
     await act(async () => router.back());
-    expect(await screen.findByText("Niort")).toBeOnTheScreen();
+    expect(await screen.findByText("Lyon")).toBeOnTheScreen();
+    if (outcome === "network")
+      expect(screen.getByText("Niort")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("tab", { name: "Clubs", selected: true }),
+    ).toBeOnTheScreen();
     expect(screen.getByLabelText("Rechercher")).toHaveDisplayValue("Volley");
   },
 );
