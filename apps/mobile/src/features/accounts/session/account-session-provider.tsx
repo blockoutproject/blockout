@@ -167,7 +167,12 @@ function SessionScope({
 
   useLayoutEffect(() => () => session.invalidate(), [session]);
   useLayoutEffect(() => {
-    if (reauthenticationRequired) session.invalidate();
+    // Departure already invalidated private work; an old SDK error must not release its synchronous reservation.
+    if (
+      reauthenticationRequired &&
+      session.getSnapshot().operation !== "signing-out"
+    )
+      session.invalidate();
   }, [session, reauthenticationRequired]);
 
   let status: AuthenticationStatus = "guest";
@@ -239,6 +244,7 @@ function SessionScope({
       const { generation } = departure;
       try {
         await departure.removal;
+        if (!session.isCurrent(generation)) return;
         if (initialization.status === "ready") await auth.clearCredentials();
       } finally {
         session.finishOperation(generation);
@@ -250,6 +256,7 @@ function SessionScope({
       const { generation } = departure;
       try {
         await departure.removal;
+        if (!session.isCurrent(generation)) return;
         if (initialization.status === "ready") await signOutNativeSession(auth);
       } finally {
         session.finishOperation(generation);

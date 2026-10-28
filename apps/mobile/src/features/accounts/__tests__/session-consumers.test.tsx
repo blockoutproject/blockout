@@ -20,6 +20,11 @@ import {
   entitlement,
 } from "../../pro/test-support/customer-info";
 import type { CustomerInfo } from "react-native-purchases";
+import {
+  useAuth0,
+  CredentialsManagerErrorCodes,
+  type Credentials,
+} from "react-native-auth0";
 
 jest.mock("expo-constants", () => ({
   __esModule: true,
@@ -63,7 +68,104 @@ beforeEach(() => {
     .mockReset()
     .mockRejectedValue(new Error("Browser unavailable"));
   mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockAuth0.webAuth
+    .mockReset()
+    .mockResolvedValue(credentialsFor("synthetic-new-owner"));
+  mockAuth0.saveCredentials.mockReset().mockResolvedValue();
 });
+
+it.each(["signOut", "clearCredentials"] as const)(
+  "keeps %s reserved when old SDK credential work fails during push removal",
+  async (command) => {
+    // Given: only SDK I/O and the bounded F07 removal are controlled; the real Auth0 reducer publishes the error.
+    const removal = Promise.withResolvers<void>();
+    const credential = Promise.withResolvers<Credentials>();
+    const prepare = jest
+      .fn()
+      .mockReturnValueOnce(() => removal.promise)
+      .mockReturnValue(undefined);
+    const hook = await renderHook(
+      () => ({ session: useAccountSession(), auth: useAuth0() }),
+      {
+        wrapper: ({ children }) => (
+          <AccountSessionProvider preparePushRemoval={prepare}>
+            {children}
+          </AccountSessionProvider>
+        ),
+      },
+    );
+    mockAuth0.getCredentials.mockReturnValueOnce(credential.promise);
+    const lookup = hook.result.current.auth
+      .getCredentials()
+      .catch(() => undefined);
+    let departure: Promise<void> | undefined;
+    await act(async () => {
+      departure = hook.result.current.session[command]();
+    });
+
+    // When
+    await act(async () => {
+      credential.reject({
+        code: CredentialsManagerErrorCodes.NO_REFRESH_TOKEN,
+        message: "Credentials unavailable",
+      });
+      await lookup;
+    });
+    const duringRemoval = hook.result.current.session.status;
+    await act(async () => {
+      await hook.result.current.session.signIn("synthetic-audience");
+    });
+    await act(async () => {
+      removal.resolve();
+      await departure;
+    });
+
+    // Then
+    expect(duringRemoval).toBe("signing-out");
+    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+    expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
+    expect(hook.result.current.session.status).toBe("guest");
+  },
+);
+
+it.each(["signOut", "clearCredentials"] as const)(
+  "does not launch an obsolete %s after a new authenticated generation replaces its pending removal",
+  async (command) => {
+    // Given
+    const removal = Promise.withResolvers<void>();
+    const prepare = jest
+      .fn()
+      .mockReturnValueOnce(() => removal.promise)
+      .mockReturnValue(undefined);
+    const hook = await renderHook(useAccountSession, {
+      wrapper: ({ children }) => (
+        <AccountSessionProvider preparePushRemoval={prepare}>
+          {children}
+        </AccountSessionProvider>
+      ),
+    });
+    let departure: Promise<void> | undefined;
+    await act(async () => {
+      departure = hook.result.current[command]();
+    });
+
+    // When
+    await act(async () => hook.result.current.invalidate());
+    await act(async () => {
+      await hook.result.current.signIn("synthetic-audience");
+    });
+    await act(async () => {
+      removal.resolve();
+      await departure;
+    });
+
+    // Then
+    expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
+    expect(mockAuth0.webAuthLogout).not.toHaveBeenCalled();
+    expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+    expect(hook.result.current.status).toBe("authenticated");
+  },
+);
 afterEach(async () => {
   await cleanup();
   jest.restoreAllMocks();
