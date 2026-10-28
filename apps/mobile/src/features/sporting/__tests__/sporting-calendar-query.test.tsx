@@ -2,8 +2,10 @@ import {
   InfiniteQueryObserver,
   focusManager,
   onlineManager,
+  QueryClientProvider,
 } from "@tanstack/react-query";
-import { waitFor } from "@testing-library/react-native";
+import { act, renderHook, waitFor } from "@testing-library/react-native";
+import type { PropsWithChildren } from "react";
 import type { MatchCalendarResponse } from "../../../../.generated/schemas/index.zod";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { createSessionGeneration } from "../../accounts/session/session-generation";
@@ -14,6 +16,7 @@ import {
   refreshCalendar,
 } from "../api/sporting-calendar";
 import { matchDetail, sportingId } from "../test-support/consultation-data";
+import { useCalendarGrouping } from "../api/use-calendar-grouping";
 
 jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),
@@ -318,6 +321,60 @@ it("deduplicates appended identities while preserving server day pool and catego
 
   // Then
   expect(days.map((day) => day.date)).toEqual(["2026-09-20", "2026-09-22"]);
+});
+
+it("keeps a successful new-zone first page through native zero-delay collection until the calendar closes", async () => {
+  // Given: native Query timers control collection; HTTP, generated validation and the grouping owner stay real.
+  jest.useFakeTimers();
+  try {
+    const accepted = { ...page("2026-09-20"), timeZone: "America/New_York" };
+    mockFetch.mockImplementation(async () => Response.json(accepted));
+    /** Supplies only the root Query context for the real grouping hook. */
+    function Provider({ children }: PropsWithChildren) {
+      return (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      );
+    }
+    const { result, unmount } = await renderHook(
+      () =>
+        useCalendarGrouping((timeZone) =>
+          createCalendarOptions(queries, { ...selection, timeZone }),
+        ),
+      { wrapper: Provider },
+    );
+
+    // When: native collection runs before React's next data observer adopts the new key.
+    await act(async () => {
+      await result.current.refresh("America/New_York");
+    });
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(0);
+    });
+
+    // Then
+    const options = createCalendarOptions(queries, {
+      ...selection,
+      timeZone: "America/New_York",
+    });
+    expect(client.getQueryData(options.queryKey)).toEqual({
+      pages: [accepted],
+      pageParams: [undefined],
+    });
+    const observer = new InfiniteQueryObserver(client, options);
+    const unsubscribe = observer.subscribe(() => {});
+    expect(observer.getCurrentResult().isSuccess).toBe(true);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    // When / Then: the closed calendar still releases its unobserved traversal immediately.
+    unsubscribe();
+    await unmount();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(0);
+    });
+    expect(client.getQueryData(options.queryKey)).toBeUndefined();
+  } finally {
+    jest.useRealTimers();
+  }
 });
 
 it.each(["resource", "season", "category", "session"] as const)(

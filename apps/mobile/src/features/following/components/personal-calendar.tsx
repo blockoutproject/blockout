@@ -1,13 +1,14 @@
 import { Search } from "lucide-react-native";
-import { useState } from "react";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import type { CalendarCategoryEnum } from "../../../../.generated/schemas/index.zod";
 import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
 import { EmptyState } from "../../../shared/components/state-card";
 import { Button } from "../../../shared/components/button";
-import { SportingCalendarView, refreshCalendar } from "../../sporting/calendar";
-import { currentSportingTimeZone } from "../../sporting/model/sporting-time";
+import {
+  SportingCalendarView,
+  useCalendarGrouping,
+} from "../../sporting/calendar";
 import type { FollowingOwner } from "../api/following-keys";
 import {
   createPersonalCalendarOptions,
@@ -35,18 +36,22 @@ export function PersonalCalendar({
   active,
   bypass,
 }: PersonalCalendarProps) {
-  const client = useQueryClient();
   const router = useRouter();
-  const [zone, setZone] = useState(() =>
-    active ? currentSportingTimeZone() : undefined,
+  const { timeZone, refresh } = useCalendarGrouping(
+    (zone) =>
+      createPersonalCalendarOptions(
+        owner,
+        request,
+        { seasonId, category, timeZone: zone },
+        read,
+        bypass,
+      ),
+    active,
   );
-  const loadingZone = zone ?? currentSportingTimeZone();
-  // A mounted hidden category has no traversal yet; capture only when it first becomes active.
-  if (active && zone === undefined) setZone(loadingZone);
   const options = createPersonalCalendarOptions(
     owner,
     request,
-    { seasonId, category, timeZone: loadingZone },
+    { seasonId, category, timeZone },
     read,
     bypass,
   );
@@ -66,22 +71,6 @@ export function PersonalCalendar({
       };
     },
   });
-  /** Failed refresh keeps the old loading zone and authorized rows; follow changes use native resetQueries. */
-  async function refresh(timeZone: string) {
-    if (loadingZone !== timeZone)
-      await client.cancelQueries({ queryKey: options.queryKey, exact: true });
-    await refreshCalendar(
-      client,
-      createPersonalCalendarOptions(
-        owner,
-        request,
-        { seasonId, category, timeZone },
-        read,
-        bypass,
-      ),
-    );
-    setZone(timeZone);
-  }
   return (
     <SportingCalendarView
       calendar={calendar}

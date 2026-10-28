@@ -154,7 +154,9 @@ return. Established empty selections retire cancelled continuation errors instea
 ineffective retry footer. A current F03 match-detail
 refusal cancels older personal continuations and removes that UUID in the same original-owner
 admission context, without reclassifying other rows or reloading the calendar on return. Exact match
-UUID routing is exercised. HTTP and native I/O/focus are controlled; this establishes no provider,
+UUID routing is exercised. The shared zero-delay collection regression advances native Query timers
+before data-observer adoption, then verifies the successful new-zone page survives without another
+request and is collected after calendar closure. HTTP and native I/O/focus are controlled; this establishes no provider,
 full native accessibility or complete account-erasure journey.
 
 ```sh

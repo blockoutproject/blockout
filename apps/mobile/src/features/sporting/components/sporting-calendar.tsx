@@ -1,7 +1,6 @@
 import type { LegendListRef } from "@legendapp/list/react-native";
 import {
   useInfiniteQuery,
-  useQueryClient,
   isCancelledError,
   type InfiniteData,
   type UseInfiniteQueryResult,
@@ -45,11 +44,11 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import {
   createCalendarOptions,
-  refreshCalendar,
   calendarDays,
   type CalendarSelection,
 } from "../api/sporting-calendar";
 import { useConsultationQueries } from "../api/use-consultation-queries";
+import { useCalendarGrouping } from "../api/use-calendar-grouping";
 import { calendarRows, type CalendarRow } from "../model/calendar-rows";
 import {
   currentSportingTimeZone,
@@ -76,26 +75,18 @@ export function SportingCalendar({
   active = true,
 }: SportingCalendarProps) {
   const queries = useConsultationQueries();
-  const client = useQueryClient();
-  const [zone, setZone] = useState(currentSportingTimeZone);
+  const { timeZone, refresh } = useCalendarGrouping(
+    (zone) => createCalendarOptions(queries, { ...selection, timeZone: zone }),
+    active,
+  );
   const options = createCalendarOptions(queries, {
     ...selection,
-    timeZone: zone,
+    timeZone,
   });
   const calendar = useInfiniteQuery({
     ...options,
     enabled: (query) => active && query.state.status !== "error",
   });
-  /** Adopts a changed grouping zone only after the new first page succeeds. */
-  async function refresh(nextZone: string) {
-    if (nextZone !== zone)
-      await client.cancelQueries({ queryKey: options.queryKey, exact: true });
-    await refreshCalendar(
-      client,
-      createCalendarOptions(queries, { ...selection, timeZone: nextZone }),
-    );
-    setZone(nextZone);
-  }
   return (
     <SportingCalendarView
       calendar={calendar}
