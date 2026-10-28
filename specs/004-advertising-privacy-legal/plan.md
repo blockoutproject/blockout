@@ -14,7 +14,7 @@ Use the native Google Mobile Ads/UMP integration and Meta mediation for eligible
 
 **Language/Version**: TypeScript/Expo mobile and Java/Spring Boot backend; versions follow the [F13 technical context](../003-shared-quality/plan.md#technical-context).
 
-**Primary Dependencies**: `react-native-google-mobile-ads` 17.2.0 and its compatible scoped Facebook mediation package/config plugin; SDK-pinned native dependencies, not manually upgraded adapters. Expo-compatible `expo-tracking-transparency` and `expo-web-browser`; `@react-native-community/slider` 5.2.0 for the selected Expo baseline. F13 owns the dependency installation/build toolchain.
+**Primary Dependencies**: `react-native-google-mobile-ads` 17.4.0 and its compatible scoped Facebook mediation package/config plugin; SDK-pinned native dependencies, not manually upgraded adapters. Expo-compatible `expo-tracking-transparency` and `expo-web-browser`; `@react-native-community/slider` 5.2.0 for the selected Expo baseline. F13 owns the dependency installation/build toolchain.
 
 **Storage**: Installation-local age category and declaration date; provider-owned native consent storage; memory-only advertising count and prepared ad. Static HTML files bundled with the backend. F02 PostgreSQL contact metadata for field restrictions. No server age/consent table or advertising-event history.
 
@@ -87,6 +87,14 @@ Blockout-owned age/privacy controls consume the [F13 UI foundation](../003-share
 6. Initialize Google Mobile Ads only after applicable configuration and eligibility, with delayed app measurement configured as documented. Meta uses the supported mediation adapter and UMP Additional Consent integration. On supported older iOS versions apply the adapter's documented advertiser-tracking setting; current iOS versions use native ATT status. Do not substitute US limited-data-use settings for European consent.
 
 The advertising-choice row calls `AdsConsent.showPrivacyOptionsForm()` only when native `privacyOptionsRequirementStatus` is `REQUIRED`; otherwise hide the entry, following UMP guidance. Reevaluate the status after the native information update and after changes. A privacy/age change suspends new loads and invalidates prepared ads. After a confirmed age correction, await `mobileAds().setRequestConfiguration()` with the new treatment, then `AdsConsent.gatherConsent()` with the updated under-age flag. Resume requests only with the current configuration and applicable native consent; if these cannot be established, continue without ads. Reuse the existing privacy flow for retry, without resetting consent. An interrupted correction does not become a new declaration.
+
+### Runtime composition
+
+The existing `AgeDeclarationProvider` composes installation persistence, the native privacy boundary in `advertising-privacy.ts` and at most one `createInterstitialLifecycle`. No additional advertising provider is introduced. Its narrow context exposes native readiness and the existing sporting-transition entry; actual F03/F04/F06 callsite integration remains T009. Absent V2 unit configuration creates no interstitial instance.
+
+Eligibility consumes F09's public current `ProState` projection. Native callbacks obtain that projection through `usePro().getState()`; they do not read F09's private session owner or retain `CustomerInfo`. F05 notifications suspend preparation synchronously. A confirmed installation write invalidates before persistence, including a correction within the same category, then reapplies configuration and native gathering. The prior declaration remains on storage failure or cancellation.
+
+The native SDK interaction has one in-flight owner, with no queued duplicate actions. Each awaited result is checked against its captured F05/treatment/admission context before continuing. Changed contexts may synchronize after obsolete calls settle; a failure in an unchanged context requires an explicit retry. The transient snapshot holds readiness, privacy-options applicability and pending/failure presentation only. Native consent strings and persistence stay with UMP. Known Pro refreshes privacy information on a changed context without forcing a new consent or ATT prompt, including after an obsolete in-flight call settles. A successfully acknowledged native information/gathering age context gates privacy-options recovery; owner changes clear that transient context, so a failed correction cannot resume with an older UMP under-age flag. The existing native `formSheet` routes replace each other for correction/return; the menu is not retained beneath the age sheet.
 
 ### Mediation and presentation
 

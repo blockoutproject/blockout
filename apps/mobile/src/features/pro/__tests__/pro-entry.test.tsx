@@ -29,9 +29,15 @@ import { mockPurchases } from "../test-support/native-purchases";
 import { ProEntry } from "../components/pro-entry";
 import { ProProfileEntry } from "../components/pro-profile-entry";
 import { ProProvider } from "../pro-provider";
+import { PrivacyEntry } from "../../privacy/components/privacy-sheet";
 
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
+);
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
 );
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
@@ -126,7 +132,11 @@ it("places a distinct Pro action before Privacy in the existing admitted profile
   // Given
   await mount(
     <ProProvider>
-      <ProfileScreen admitted proEntry={<ProProfileEntry />} />
+      <ProfileScreen
+        privacyEntry={<PrivacyEntry />}
+        admitted
+        proEntry={<ProProfileEntry />}
+      />
     </ProProvider>,
   );
   await screen.findByText("Session: guest");
@@ -138,12 +148,16 @@ it("places a distinct Pro action before Privacy in the existing admitted profile
   // Then
   expect(mockRouter.push).toHaveBeenCalledWith("/sign-in-invitation");
   expect(screen.getByText("Blockout Pro")).toBeOnTheScreen();
-  expect(screen.getByText("Confidentialité")).toBeOnTheScreen();
+  expect(screen.getAllByRole("link", { name: "Confidentialité" })).toHaveLength(
+    2,
+  );
   const actions = screen.getAllByRole(/button|link/);
   expect(
     actions.indexOf(screen.getByRole("button", { name: "Blockout Pro" })),
   ).toBeLessThan(
-    actions.indexOf(screen.getByRole("link", { name: "Confidentialité" })),
+    actions.indexOf(
+      screen.getAllByRole("link", { name: "Confidentialité" })[0],
+    ),
   );
   expect(screen.getByText("Besoin d’aide ?")).toBeOnTheScreen();
   expect(mockPurchases.getCustomerInfo).not.toHaveBeenCalled();
@@ -158,7 +172,11 @@ it("keeps Pro and its direct invitation behind ordinary F12 admission", async ()
   await mount(
     <>
       <ProProvider>
-        <ProfileScreen admitted={admitted} proEntry={<ProProfileEntry />} />
+        <ProfileScreen
+          privacyEntry={null}
+          admitted={admitted}
+          proEntry={<ProProfileEntry />}
+        />
       </ProProvider>
       <SignInInvitationScreen admitted={admitted} message={message} />
     </>,

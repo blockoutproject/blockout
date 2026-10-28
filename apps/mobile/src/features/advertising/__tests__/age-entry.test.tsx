@@ -193,8 +193,8 @@ it("persists the first explicit age once and suppresses a concurrent different a
     .spyOn(AsyncStorage, "setItem")
     .mockReturnValueOnce(acknowledgement.promise);
   write.mockClear();
-  let first: Promise<void> | undefined;
-  let second: Promise<void> | undefined;
+  let first: Promise<boolean> | undefined;
+  let second: Promise<boolean> | undefined;
 
   // When
   await act(() => {
@@ -213,10 +213,10 @@ it("persists the first explicit age once and suppresses a concurrent different a
   expect(screen.getByText("Category: under16")).toBeOnTheScreen();
 
   // When
-  await act(async () => {
+  await act(() => {
     acknowledgement.resolve();
-    await first;
   });
+  await expect(first).resolves.toBe(true);
 
   // Then
   expect(screen.getByText("Category: 16–17")).toBeOnTheScreen();

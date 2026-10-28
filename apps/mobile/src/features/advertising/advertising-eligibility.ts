@@ -1,6 +1,6 @@
 import type { AccountSession, SessionSnapshot } from "../accounts";
 import type { useAccessAdmission } from "../access/queries/use-access-admission";
-import { getProState, type ProSessionState } from "../pro/pro-state";
+import type { ProState } from "../pro";
 
 /**
  * Transient result of the native privacy owner for a captured F05 context.
@@ -16,7 +16,7 @@ export interface AdvertisingChoices {
 /** Existing owners are read at evaluation; callers must reevaluate before loading or presenting. */
 export interface AdvertisingEligibilityInput {
   readonly account: Pick<AccountSession, "status" | "getSnapshot">;
-  readonly nativePro: ProSessionState | null;
+  readonly pro: ProState;
   readonly admission: Pick<ReturnType<typeof useAccessAdmission>, "ordinary">;
   readonly choices: AdvertisingChoices | null;
 }
@@ -36,11 +36,10 @@ export interface AdvertisingEligibility {
  */
 export function getAdvertisingEligibility({
   account,
-  nativePro,
+  pro,
   admission,
   choices,
 }: AdvertisingEligibilityInput): AdvertisingEligibility {
-  const pro = getProState(account, nativePro);
   const current = account.getSnapshot();
   const canPrepareChoices = admission.ordinary && pro.status !== "active";
   const canServeAds =

@@ -22,6 +22,8 @@ export const sheetScreenOptions = {
 /** Short contextual content without text entry; the caller owns choices, actions and dismissal. */
 export interface SheetProps extends PropsWithChildren {
   onClose: () => void;
+  /** Holds the native presenter while the owning confirmed action is in progress. */
+  closeDisabled?: boolean;
   title: string;
   message?: string;
   /** Disable for compact content in a native fitToContents route; its root keeps its natural height. */
@@ -33,6 +35,7 @@ export interface SheetProps extends PropsWithChildren {
 /** Supplies system bottom spacing and either scrolling or natural-height content for its native route. */
 export function Sheet({
   onClose,
+  closeDisabled = false,
   title,
   message,
   scrollable = true,
@@ -56,7 +59,7 @@ export function Sheet({
           >
             {title}
           </Text>
-          <IconButton label="Fermer" onPress={onClose}>
+          <IconButton label="Fermer" onPress={onClose} disabled={closeDisabled}>
             <X
               accessible={false}
               size={tokens.size.icon.lg}

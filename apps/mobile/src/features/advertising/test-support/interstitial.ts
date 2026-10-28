@@ -7,7 +7,7 @@ export function advertisingContext() {
   const session = createSessionGeneration();
   const input: AdvertisingEligibilityInput = {
     account: { status: "guest", getSnapshot: session.getSnapshot },
-    nativePro: null,
+    pro: { status: "guest" },
     admission: { ordinary: true },
     choices: {
       session: session.getSnapshot(),

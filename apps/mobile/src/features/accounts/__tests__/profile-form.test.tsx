@@ -149,7 +149,7 @@ async function mountProfile() {
         <ApplicationAccessProvider>
           <AccountSessionProvider>
             <AccountFeedbackProvider>
-              <ProfileScreen admitted proEntry={null} />
+              <ProfileScreen admitted proEntry={null} privacyEntry={null} />
               <SessionActions />
             </AccountFeedbackProvider>
           </AccountSessionProvider>

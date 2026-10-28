@@ -17,6 +17,8 @@ import { proSession } from "./pro-session";
 /** Current-session presentation and explicit commands; callbacks retain their rendering session. */
 export interface ProContext {
   state: ProState;
+  /** Reads the owner’s current projection for native callbacks, without copying SDK evidence. */
+  getState(): ProState;
   refreshing: boolean;
   verificationFailed: boolean;
   /** Returns the current accepted read outcome, or undefined for an obsolete/unstarted attempt. */
@@ -100,6 +102,7 @@ export function ProProvider({ children }: PropsWithChildren) {
     <ProSessionContext
       value={{
         state: getProState(account, native.evidence),
+        getState: () => getProState(account, proSession.getSnapshot().evidence),
         refreshing: current && native.read !== null,
         verificationFailed: current && native.verificationFailed,
         refresh,

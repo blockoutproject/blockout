@@ -18,11 +18,17 @@ import { ageValues } from "./age-values";
 /** A confirmed explicit age is transient; the caller owns category/date persistence and subsequent navigation. */
 export interface AgeFormProps {
   pending: boolean;
+  /** Entry continues; correction uses the approved save action without changing selection semantics. */
+  submitLabel?: "Continuer" | "Enregistrer";
   onSubmit(age: number): Promise<unknown> | undefined;
 }
 
 /** Shared neutral entry/renewal/correction control; unmounting cancels unsubmitted edits without saving. */
-export function AgeForm({ pending, onSubmit }: AgeFormProps) {
+export function AgeForm({
+  pending,
+  onSubmit,
+  submitLabel = "Continuer",
+}: AgeFormProps) {
   const { colors } = useTheme();
   const feedback = useActionFeedback();
   const { control, handleSubmit } = useForm<AgeValues, unknown, AgeSubmission>({
@@ -83,7 +89,7 @@ export function AgeForm({ pending, onSubmit }: AgeFormProps) {
                   accessible
                   accessibilityRole="adjustable"
                   accessibilityLabel="Âge en années révolues"
-                  accessibilityHint="Choisissez votre âge de zéro à cent ans ou plus, puis confirmez avec Continuer."
+                  accessibilityHint={`Choisissez votre âge de zéro à cent ans ou plus, puis confirmez avec ${submitLabel}.`}
                   accessibilityValue={{
                     min: 0,
                     max: 100,
@@ -119,7 +125,7 @@ export function AgeForm({ pending, onSubmit }: AgeFormProps) {
               </View>
             </View>
             <Button
-              label="Continuer"
+              label={submitLabel}
               fullWidth
               loading={pending}
               disabled={pending || value === null}

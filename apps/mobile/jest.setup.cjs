@@ -48,3 +48,21 @@ jest.mock(
     return { __esModule: true, default: RefreshControl };
   },
 );
+
+// The application root composes native advertising readiness; SDK I/O remains controlled in Jest.
+jest.mock(
+  "react-native-google-mobile-ads",
+  () =>
+    jest.requireActual("./src/features/advertising/test-support/native-privacy")
+      .nativeAdvertising,
+);
+jest.mock("@react-native-google-mobile-ads/facebook", () => ({
+  setAdvertiserTrackingEnabled: jest.fn(),
+}));
+jest.mock("expo-tracking-transparency", () => ({
+  getTrackingPermissionsAsync: jest.fn(async () => ({
+    status: "denied",
+    canAskAgain: false,
+  })),
+  requestTrackingPermissionsAsync: jest.fn(),
+}));

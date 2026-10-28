@@ -1,0 +1,73 @@
+import { useRouter, usePreventRemove } from "expo-router";
+import { useEffect, useRef, useState } from "react";
+import { Sheet } from "../../../shared/components/sheet";
+import { AgeForm } from "../../advertising/forms/age-form";
+import { useAgeDeclaration } from "../../advertising/age-declaration-provider";
+import { useAccountSession } from "../../accounts/current-account";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+
+/** Replaces the privacy menu with the same neutral form; dismissal never changes the declaration. */
+export function AgeCorrectionSheet() {
+  const router = useRouter();
+  const age = useAgeDeclaration();
+  const feedback = useActionFeedback({ retainOnUnmount: true });
+  const session = useAccountSession();
+  const active = useRef(true);
+  const [leaving, setLeaving] = useState(false);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
+
+  /** Native swipe/back returns to privacy after removal, without revealing an older stacked sheet. */
+  const disablePrevention = usePreventRemove(!leaving, ({ data, repeat }) => {
+    if (data.action.type === "GO_BACK" || data.action.type === "POP") {
+      if (!age.pending) returnToPrivacy();
+    } else {
+      setLeaving(true);
+      repeat();
+    }
+  });
+
+  /** Explicit close and successful save share the same caller, with captured F05 attribution. */
+  function returnToPrivacy(privacyReady = true) {
+    if (
+      !active.current ||
+      !session.isCurrent(session.generation) ||
+      session.getSnapshot().accountId !== session.accountId
+    )
+      return;
+    if (!privacyReady && age.privacy.getSnapshot().failure)
+      feedback.error(
+        "Impossible de mettre à jour vos choix publicitaires. Réessayez.",
+      );
+    setLeaving(true);
+    disablePrevention();
+    router.replace("/privacy");
+  }
+
+  /** Persistence remains installation-owned; obsolete forms cannot navigate after an acknowledged write. */
+  function confirm(value: number) {
+    const attempt = age.confirm(value);
+    return attempt?.then(returnToPrivacy);
+  }
+  return (
+    <Sheet
+      title="Corriger mon âge"
+      onClose={() => {
+        if (!age.pending) returnToPrivacy();
+      }}
+      closeDisabled={age.pending}
+      scrollable={false}
+    >
+      <AgeForm
+        key={`${session.generation}:${session.accountId}`}
+        pending={age.pending || age.nativePrivacy.pending}
+        submitLabel="Enregistrer"
+        onSubmit={confirm}
+      />
+    </Sheet>
+  );
+}

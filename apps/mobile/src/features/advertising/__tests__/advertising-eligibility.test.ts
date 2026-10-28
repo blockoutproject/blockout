@@ -3,7 +3,7 @@ import Purchases, {
   type PurchasesEntitlementInfo,
 } from "react-native-purchases";
 import { createSessionGeneration, type AccountSession } from "../../accounts";
-import type { ProSessionState } from "../../pro/pro-state";
+import { getProState, type ProSessionState } from "../../pro/pro-state";
 import {
   customerInfo,
   entitlement,
@@ -60,7 +60,7 @@ it("lets an admitted guest prepare choices and serve ads without any account ent
   // When
   const eligibility = getAdvertisingEligibility({
     account,
-    nativePro: null,
+    pro: getProState(account, null),
     admission: { ordinary: true },
     choices: {
       session: session.getSnapshot(),
@@ -96,7 +96,7 @@ it.each([
     // When
     const eligibility = getAdvertisingEligibility({
       account,
-      nativePro,
+      pro: getProState(account, nativePro),
       admission: { ordinary: true },
       choices: {
         session: session.getSnapshot(),
@@ -135,7 +135,7 @@ it.each(["absent", "pending", "failed", "missing-info"] as const)(
     // When
     const eligibility = getAdvertisingEligibility({
       account,
-      nativePro,
+      pro: getProState(account, nativePro),
       admission: { ordinary: true },
       choices: {
         session: session.getSnapshot(),
@@ -169,7 +169,7 @@ it.each([
     // When
     const eligibility = getAdvertisingEligibility({
       account,
-      nativePro: nativeState(session.getSnapshot()),
+      pro: getProState(account, nativeState(session.getSnapshot())),
       admission: { ordinary: true },
       choices: {
         session: session.getSnapshot(),
@@ -193,7 +193,7 @@ it.each(["personalized", "contextual", "limited"] as const)(
     // When
     const eligibility = getAdvertisingEligibility({
       account,
-      nativePro,
+      pro: getProState(account, nativePro),
       admission: { ordinary: true },
       choices: {
         session: session.getSnapshot(),
@@ -253,7 +253,7 @@ describe.each(["guest", "inactive"] as const)(
         // When
         const eligibility = getAdvertisingEligibility({
           account,
-          nativePro,
+          pro: getProState(account, nativePro),
           admission,
           choices: choices
             ? { ...choices, session: session.getSnapshot() }
@@ -284,7 +284,7 @@ it.each(["active", "inactive"] as const)(
     session.setAccount(session.getSnapshot().generation, b);
     const eligibility = getAdvertisingEligibility({
       account,
-      nativePro: previous,
+      pro: getProState(account, previous),
       admission: { ordinary: true },
       choices: {
         session: session.getSnapshot(),
@@ -314,7 +314,7 @@ it.each(["active", "inactive"] as const)(
     account.status = "guest";
     const guest = getAdvertisingEligibility({
       account,
-      nativePro: previous,
+      pro: getProState(account, previous),
       admission: { ordinary: true },
       choices: {
         session: session.getSnapshot(),
@@ -328,7 +328,7 @@ it.each(["active", "inactive"] as const)(
     account.status = "authenticated";
     const returned = getAdvertisingEligibility({
       account,
-      nativePro: previous,
+      pro: getProState(account, previous),
       admission: { ordinary: true },
       choices: {
         session: session.getSnapshot(),
@@ -369,7 +369,7 @@ it.each(["direct-switch", "guest-return"] as const)(
     );
     const eligibility = getAdvertisingEligibility({
       account,
-      nativePro: nativeState(session.getSnapshot()),
+      pro: getProState(account, nativeState(session.getSnapshot())),
       admission: { ordinary: true },
       choices,
     });
@@ -396,7 +396,7 @@ it("requires current choices when a guest becomes an established account within 
   session.setAccount(session.getSnapshot().generation, a);
   const eligibility = getAdvertisingEligibility({
     account,
-    nativePro: nativeState(session.getSnapshot()),
+    pro: getProState(account, nativeState(session.getSnapshot())),
     admission: { ordinary: true },
     choices,
   });
@@ -413,7 +413,7 @@ it("rechecks changed native rights before presentation without retaining a forme
   // Given
   const input = {
     account,
-    nativePro: nativeState(session.getSnapshot()),
+    pro: getProState(account, nativeState(session.getSnapshot())),
     admission: { ordinary: true },
     choices: {
       session: session.getSnapshot(),
@@ -426,7 +426,10 @@ it("rechecks changed native rights before presentation without retaining a forme
   // When
   const active = getAdvertisingEligibility({
     ...input,
-    nativePro: nativeState(session.getSnapshot(), entitlement()),
+    pro: getProState(
+      account,
+      nativeState(session.getSnapshot(), entitlement()),
+    ),
   });
 
   // Then

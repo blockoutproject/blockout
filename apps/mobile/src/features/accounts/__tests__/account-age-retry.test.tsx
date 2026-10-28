@@ -141,7 +141,11 @@ async function renderProfile(admitted = true) {
         <ApplicationAccessProvider>
           <AccountSessionProvider>
             <AccountFeedbackProvider>
-              <ProfileScreen admitted={admitted} proEntry={null} />
+              <ProfileScreen
+                admitted={admitted}
+                proEntry={null}
+                privacyEntry={null}
+              />
               <SessionActions />
             </AccountFeedbackProvider>
           </AccountSessionProvider>

@@ -2,11 +2,21 @@ import {
   createContext,
   useContext,
   useEffect,
+  useLayoutEffect,
+  useSyncExternalStore,
   useRef,
   useState,
   type PropsWithChildren,
 } from "react";
 import { usePro } from "../pro";
+import Constants from "expo-constants";
+import { Platform } from "react-native";
+import { useAccountSession } from "../accounts/current-account";
+import { useAccessAdmission } from "../access/queries/use-access-admission";
+import {
+  createAdvertisingPrivacy,
+  type AdvertisingPrivacySnapshot,
+} from "./advertising-privacy";
 import {
   getAgeDeclarationStatus,
   getAdvertisingAgeCategory,
@@ -24,10 +34,13 @@ interface InstallationAge {
   loading: boolean;
   readFailed: boolean;
   pending: boolean;
+  /** Single SDK readiness and interstitial lifecycle, independent of installation persistence. */
+  privacy: ReturnType<typeof createAdvertisingPrivacy>;
+  nativePrivacy: AdvertisingPrivacySnapshot;
   /** Retries only the installation read after an explicit failure. */
   retryRead(): void;
-  /** Starts one acknowledged write; an already active or disposed owner suppresses the action without success. */
-  confirm(age: number): Promise<void> | undefined;
+  /** Acknowledges the write and native preparation before navigation; SDK failure never rolls back storage. */
+  confirm(age: number): Promise<boolean> | undefined;
 }
 
 const AgeContext = createContext<InstallationAge | null>(null);
@@ -42,18 +55,113 @@ export function AgeDeclarationProvider({
   children,
   enabled,
 }: PropsWithChildren<{ enabled: boolean }>) {
-  const { state: pro } = usePro();
+  const proOwner = usePro();
+  const pro = proOwner.state;
+  const account = useAccountSession();
+  const admission = useAccessAdmission();
   const [state, setState] = useState<DeclarationState>(() => ({
     status: "loading",
     evaluatedAt: new Date(),
   }));
   const mounted = useRef(false);
-  const submission = useRef<Promise<void> | undefined>(undefined);
+  const submission = useRef<Promise<boolean> | undefined>(undefined);
+  const committed = useRef<
+    | {
+        declaration: AgeDeclaration;
+        complete(ready: boolean): void;
+      }
+    | undefined
+  >(undefined);
   const [pending, setPending] = useState(false);
+  const category = getAdvertisingAgeCategory(
+    state.status === "ready" ? state.declaration : null,
+    state.evaluatedAt,
+  );
+  const [privacy] = useState(() =>
+    createAdvertisingPrivacy({
+      getContext: () => ({
+        account,
+        pro: proOwner.getState(),
+        admission,
+        category,
+      }),
+      adUnitId:
+        Platform.OS === "ios"
+          ? Constants.expoConfig?.extra?.advertising?.iosInterstitialUnitId
+          : Constants.expoConfig?.extra?.advertising?.androidInterstitialUnitId,
+    }),
+  );
+  useLayoutEffect(() => {
+    privacy.setContext(() => ({
+      account,
+      pro: proOwner.getState(),
+      admission,
+      category,
+    }));
+  });
+  const nativePrivacy = useSyncExternalStore(
+    privacy.subscribe,
+    privacy.getSnapshot,
+  );
+  const ready =
+    enabled &&
+    state.status === "ready" &&
+    admission.ordinary &&
+    (pro.status === "active" ||
+      getAgeDeclarationStatus(state.declaration, state.evaluatedAt) ===
+        "current");
+  useLayoutEffect(() => {
+    privacy.suspend();
+  }, [
+    privacy,
+    account.generation,
+    account.accountId,
+    account.status,
+    pro.status,
+    category,
+    ready,
+  ]);
+  useEffect(() => {
+    if (ready && !submission.current)
+      void privacy.synchronize()?.catch(() => undefined);
+  }, [
+    privacy,
+    ready,
+    account.generation,
+    account.accountId,
+    account.status,
+    pro.status,
+    category,
+    nativePrivacy.pending,
+    pending,
+    state,
+  ]);
+  useLayoutEffect(() => {
+    const confirmation = committed.current;
+    if (
+      !confirmation ||
+      state.status !== "ready" ||
+      state.declaration !== confirmation.declaration
+    )
+      return;
+    committed.current = undefined;
+    const preparation = privacy.synchronize();
+    if (!preparation) confirmation.complete(false);
+    else
+      void preparation.then(confirmation.complete, () =>
+        confirmation.complete(false),
+      );
+  }, [privacy, state]);
+  const { subscribe } = account;
+  useLayoutEffect(() => subscribe(privacy.suspend), [subscribe, privacy]);
+  useEffect(() => () => privacy.dispose(), [privacy]);
+
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
+      committed.current?.complete(false);
+      committed.current = undefined;
     };
   }, []);
 
@@ -91,14 +199,20 @@ export function AgeDeclarationProvider({
   }
 
   /** One installation operation owns admission and busy state across form mounts; F05 neither cancels nor replays it. */
-  function confirm(age: number): Promise<void> | undefined {
-    if (!mounted.current || submission.current) return;
+  function confirm(age: number): Promise<boolean> | undefined {
+    if (!mounted.current || submission.current || privacy.getSnapshot().pending)
+      return;
+    privacy.suspend();
     setPending(true);
     const now = new Date();
     const operation = submitAgeDeclaration(age, now)
       .then((saved) => {
-        if (mounted.current)
+        if (!mounted.current) return false;
+        return new Promise<boolean>((complete) => {
+          // The next committed context supplies the acknowledged category to the single SDK owner.
+          committed.current = { declaration: saved, complete };
           setState({ status: "ready", evaluatedAt: now, declaration: saved });
+        });
       })
       .finally(() => {
         if (submission.current === operation) {
@@ -116,12 +230,14 @@ export function AgeDeclarationProvider({
     <AgeContext
       value={{
         declaration,
-        category: getAdvertisingAgeCategory(declaration, state.evaluatedAt),
+        category,
         required: pro.status !== "active" && status !== "current",
         renewal: status === "expired",
         loading: state.status === "loading",
         readFailed: state.status === "read-error",
         pending,
+        privacy,
+        nativePrivacy,
         retryRead,
         confirm,
       }}

@@ -331,7 +331,9 @@ it("never bootstraps an absent account during restoration or a profile read retr
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   const user = userEvent.setup();
-  await renderJourney(<ProfileScreen admitted proEntry={null} />);
+  await renderJourney(
+    <ProfileScreen admitted proEntry={null} privacyEntry={null} />,
+  );
   expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
 
   // When
@@ -350,7 +352,9 @@ it("renders the local editable profile after ordinary restoration", async () => 
   mockFetch.mockImplementation(async () => json(account));
 
   // When
-  await renderJourney(<ProfileScreen admitted proEntry={null} />);
+  await renderJourney(
+    <ProfileScreen admitted proEntry={null} privacyEntry={null} />,
+  );
 
   // Then
   expect(await screen.findByDisplayValue("Player_169")).toBeOnTheScreen();
@@ -374,7 +378,7 @@ it.each(["sign-in", "profile"])(
       <>
         <AccountReadProbe />
         {entry === "profile" ? (
-          <ProfileScreen admitted proEntry={null} />
+          <ProfileScreen admitted proEntry={null} privacyEntry={null} />
         ) : (
           <SignInScreen admitted />
         )}
@@ -421,7 +425,7 @@ it.each(["sign-in", "profile"])(
       <>
         <AccountReadProbe />
         {entry === "profile" ? (
-          <ProfileScreen admitted proEntry={null} />
+          <ProfileScreen admitted proEntry={null} privacyEntry={null} />
         ) : (
           <SignInScreen admitted />
         )}
@@ -457,7 +461,7 @@ it.each(["sign-in", "profile"])(
     await renderJourney(
       <>
         {entry === "profile" ? (
-          <ProfileScreen admitted proEntry={null} />
+          <ProfileScreen admitted proEntry={null} privacyEntry={null} />
         ) : (
           <SignInScreen admitted />
         )}
