@@ -313,6 +313,66 @@ it.each([
   },
 );
 
+it.each(["configuration", "gathering"])(
+  "keeps the same native action available after %s fails while recovering a corrected age",
+  async (failure) => {
+    // Given
+    jest.replaceProperty(Platform, "OS", "android");
+    const privacy = createAdvertisingPrivacy({
+      getContext: () => context,
+      adUnitId: "test-unit",
+    });
+    await privacy.prepare();
+    context = { ...context, category: "under16" };
+    privacy.suspend();
+    mockAds.setRequestConfiguration.mockRejectedValueOnce(
+      new Error("private failure"),
+    );
+    await privacy.prepare()?.catch(() => undefined);
+    const priorGatherings = jest.mocked(AdsConsent.gatherConsent).mock.calls
+      .length;
+    const priorRequests = jest.mocked(InterstitialAd.createForAdRequest).mock
+      .calls.length;
+
+    // When
+    await privacy.refreshOptions();
+
+    // Then: opening the menu only reads native applicability; the action must reestablish the corrected age.
+    expect(privacy.getSnapshot()).toMatchObject({
+      privacyOptionsRequired: true,
+      choices: null,
+      failure: "gather",
+    });
+    expect(AdsConsent.gatherConsent).toHaveBeenCalledTimes(priorGatherings);
+    expect(InterstitialAd.createForAdRequest).toHaveBeenCalledTimes(
+      priorRequests,
+    );
+    expect(privacy.synchronize()).toBeUndefined();
+    if (failure === "configuration")
+      mockAds.setRequestConfiguration.mockRejectedValueOnce(
+        new Error("private failure"),
+      );
+    else
+      jest
+        .mocked(AdsConsent.gatherConsent)
+        .mockRejectedValueOnce(new Error("private failure"));
+    await privacy.showOptions()?.catch(() => undefined);
+    expect(privacy.getSnapshot()).toMatchObject({
+      privacyOptionsRequired: true,
+      choices: null,
+      failure: "options",
+    });
+    expect(AdsConsent.showPrivacyOptionsForm).not.toHaveBeenCalled();
+    await privacy.showOptions();
+    expect(AdsConsent.gatherConsent).toHaveBeenLastCalledWith({
+      tagForUnderAgeOfConsent: true,
+    });
+    expect(AdsConsent.showPrivacyOptionsForm).toHaveBeenCalledTimes(1);
+    expect(AdsConsent.reset).not.toHaveBeenCalled();
+    privacy.dispose();
+  },
+);
+
 it("reuses native cached choices and supports limited advertising after optional processing is refused", async () => {
   // Given
   jest.replaceProperty(Platform, "OS", "android");

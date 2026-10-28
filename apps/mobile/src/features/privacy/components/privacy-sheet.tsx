@@ -9,9 +9,7 @@ import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, type PressableProps } from "react-native";
 import { Sheet } from "../../../shared/components/sheet";
 import { Surface } from "../../../shared/components/surface";
-import { Button } from "../../../shared/components/button";
 import { RequestLoading } from "../../../shared/components/request-feedback";
-import { ErrorState } from "../../../shared/components/state-card";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -69,8 +67,7 @@ export function PrivacySheet() {
   const { privacy, nativePrivacy, pending } = useAgeDeclaration();
   const feedback = useActionFeedback();
   useEffect(() => {
-    if (!privacy.getSnapshot().failure)
-      void privacy.refreshOptions()?.catch(() => undefined);
+    void privacy.refreshOptions();
   }, [privacy]);
 
   /** Keeps action errors on the shared original-scope toast; native state alone owns retry admission. */
@@ -85,19 +82,6 @@ export function PrivacySheet() {
     );
   }
 
-  /** Retries the failed interaction explicitly; information failures retain their common read feedback. */
-  function retry() {
-    const failedAction = nativePrivacy.failure;
-    const attempt = privacy.retry();
-    if (!attempt) return;
-    feedback.clear();
-    void attempt.catch(() => {
-      if (failedAction === "options")
-        feedback.error(
-          "Impossible de mettre à jour vos choix publicitaires. Réessayez.",
-        );
-    });
-  }
   return (
     <Sheet
       title="Confidentialité"
@@ -121,11 +105,6 @@ export function PrivacySheet() {
         />
       </Surface>
       {nativePrivacy.pending && <RequestLoading />}
-      {nativePrivacy.failure === "options" ? (
-        <Button label="Réessayer" onPress={retry} />
-      ) : (
-        nativePrivacy.failure && <ErrorState onRetry={retry} />
-      )}
     </Sheet>
   );
 }

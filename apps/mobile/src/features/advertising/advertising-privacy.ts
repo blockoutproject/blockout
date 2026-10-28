@@ -175,7 +175,8 @@ export function createAdvertisingPrivacy({
     const key = contextKey(context);
     const session = context.account.getSnapshot();
     const privacyOptionsRequired =
-      consentCategory === context.category && snapshot.privacyOptionsRequired;
+      (action === "options" || consentCategory === context.category) &&
+      snapshot.privacyOptionsRequired;
     retirePreparation();
     const attempt = revision;
     attempted = key;
@@ -267,6 +268,38 @@ export function createAdvertisingPrivacy({
     return run();
   }
 
+  /** Reads native entry-point applicability without changing consent, readiness, failure or frequency. */
+  function refreshOptions(): Promise<boolean> | undefined {
+    if (disposed || snapshot.pending || !getContext().admission.ordinary)
+      return;
+    const key = contextKey(getContext());
+    const attempt = revision;
+    const current = () =>
+      !disposed && revision === attempt && contextKey(getContext()) === key;
+    publish({ ...snapshot, pending: true });
+    return AdsConsent.getConsentInfo()
+      .then(
+        (info) => {
+          if (!current()) return false;
+          publish({
+            ...snapshot,
+            privacyOptionsRequired:
+              info.privacyOptionsRequirementStatus ===
+              AdsConsentPrivacyOptionsRequirementStatus.REQUIRED,
+          });
+          return true;
+        },
+        () => {
+          if (current())
+            publish({ ...snapshot, privacyOptionsRequired: false });
+          return false;
+        },
+      )
+      .finally(() => {
+        if (!disposed) publish({ ...snapshot, pending: false });
+      });
+  }
+
   return {
     getSnapshot: () => snapshot,
     /** Rebinds live React owners after commit; the constructor never reads them during render. */
@@ -283,9 +316,7 @@ export function createAdvertisingPrivacy({
     suspend,
     /** Explicit preparation/retry; UMP reuses applicable decisions through its own persistence. */
     prepare: () => start("gather"),
-    /** Rechecks applicable choices; known Pro refreshes information without forcing a new consent form. */
-    refreshOptions: () =>
-      start(getContext().pro.status === "active" ? "refresh" : "gather"),
+    refreshOptions,
     /** Native applicability is rechecked at activation; an unavailable form is never invoked. */
     showOptions: () => start("options"),
     /** Retries only the failed native interaction, after an explicit user action. */

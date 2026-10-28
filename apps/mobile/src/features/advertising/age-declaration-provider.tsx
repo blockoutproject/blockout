@@ -39,8 +39,8 @@ interface InstallationAge {
   nativePrivacy: AdvertisingPrivacySnapshot;
   /** Retries only the installation read after an explicit failure. */
   retryRead(): void;
-  /** Starts one acknowledged write; an already active or disposed owner suppresses the action without success. */
-  confirm(age: number): Promise<void> | undefined;
+  /** Acknowledges the write and native preparation before navigation; SDK failure never rolls back storage. */
+  confirm(age: number): Promise<boolean> | undefined;
 }
 
 const AgeContext = createContext<InstallationAge | null>(null);
@@ -64,7 +64,14 @@ export function AgeDeclarationProvider({
     evaluatedAt: new Date(),
   }));
   const mounted = useRef(false);
-  const submission = useRef<Promise<void> | undefined>(undefined);
+  const submission = useRef<Promise<boolean> | undefined>(undefined);
+  const committed = useRef<
+    | {
+        declaration: AgeDeclaration;
+        complete(ready: boolean): void;
+      }
+    | undefined
+  >(undefined);
   const [pending, setPending] = useState(false);
   const category = getAdvertisingAgeCategory(
     state.status === "ready" ? state.declaration : null,
@@ -115,7 +122,8 @@ export function AgeDeclarationProvider({
     ready,
   ]);
   useEffect(() => {
-    if (ready && !pending) void privacy.synchronize()?.catch(() => undefined);
+    if (ready && !submission.current)
+      void privacy.synchronize()?.catch(() => undefined);
   }, [
     privacy,
     ready,
@@ -128,6 +136,22 @@ export function AgeDeclarationProvider({
     pending,
     state,
   ]);
+  useLayoutEffect(() => {
+    const confirmation = committed.current;
+    if (
+      !confirmation ||
+      state.status !== "ready" ||
+      state.declaration !== confirmation.declaration
+    )
+      return;
+    committed.current = undefined;
+    const preparation = privacy.synchronize();
+    if (!preparation) confirmation.complete(false);
+    else
+      void preparation.then(confirmation.complete, () =>
+        confirmation.complete(false),
+      );
+  }, [privacy, state]);
   const { subscribe } = account;
   useLayoutEffect(() => subscribe(privacy.suspend), [subscribe, privacy]);
   useEffect(() => () => privacy.dispose(), [privacy]);
@@ -136,6 +160,8 @@ export function AgeDeclarationProvider({
     mounted.current = true;
     return () => {
       mounted.current = false;
+      committed.current?.complete(false);
+      committed.current = undefined;
     };
   }, []);
 
@@ -173,15 +199,20 @@ export function AgeDeclarationProvider({
   }
 
   /** One installation operation owns admission and busy state across form mounts; F05 neither cancels nor replays it. */
-  function confirm(age: number): Promise<void> | undefined {
-    if (!mounted.current || submission.current) return;
+  function confirm(age: number): Promise<boolean> | undefined {
+    if (!mounted.current || submission.current || privacy.getSnapshot().pending)
+      return;
     privacy.suspend();
     setPending(true);
     const now = new Date();
     const operation = submitAgeDeclaration(age, now)
       .then((saved) => {
-        if (mounted.current)
+        if (!mounted.current) return false;
+        return new Promise<boolean>((complete) => {
+          // The next committed context supplies the acknowledged category to the single SDK owner.
+          committed.current = { declaration: saved, complete };
           setState({ status: "ready", evaluatedAt: now, declaration: saved });
+        });
       })
       .finally(() => {
         if (submission.current === operation) {
