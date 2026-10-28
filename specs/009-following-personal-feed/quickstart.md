@@ -144,7 +144,10 @@ query binding, owner isolation, no-store and safe failures with controlled appli
 transport validation, shared-season/session/admission owners and the reused F03 calendar.
 They distinguish ordinary failed refresh from confirmed-follow reset, preserve failed continuation,
 cancel obsolete pages/selections, defer covered Home and inactive tabs, clear refused private rows,
-and distinguish no available follows from no matches with a working Search action. Exact match
+and distinguish no available follows from no matches with a working Search action. A successful
+continuation establishing no available follows withdraws former rows. A current F03 match-detail
+refusal cancels older personal continuations and removes that UUID in the same original-owner
+admission context, without reclassifying other rows or reloading the calendar on return. Exact match
 UUID routing is exercised. HTTP and native I/O/focus are controlled; this establishes no provider,
 full native accessibility or complete account-erasure journey.
 

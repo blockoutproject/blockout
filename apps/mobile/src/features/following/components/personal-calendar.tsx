@@ -48,11 +48,18 @@ export function PersonalCalendar({
   const calendar = useInfiniteQuery({
     ...options,
     enabled: (query) => active && query.state.status !== "error",
-    select: (data) => ({
-      ...data,
-      pages: data.pages.map((page) => page.calendar),
-      hasAvailableFollows: data.pages[0]?.hasAvailableFollows,
-    }),
+    select: (data) => {
+      const latest = data.pages.at(-1);
+      return {
+        ...data,
+        // A successful current false withdraws every former selecting origin, unlike a failed page.
+        pages:
+          latest?.hasAvailableFollows === false
+            ? [latest.calendar]
+            : data.pages.map((page) => page.calendar),
+        hasAvailableFollows: latest?.hasAvailableFollows,
+      };
+    },
   });
   /** Failed refresh keeps the old loading zone and authorized rows; follow changes use native resetQueries. */
   async function refresh(timeZone: string) {

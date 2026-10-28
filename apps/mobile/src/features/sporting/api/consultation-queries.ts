@@ -36,6 +36,10 @@ import type { SessionSnapshot } from "../../accounts/session/session-generation"
 import type { useOrdinaryRequest } from "../../access/ordinary-request";
 import { resourceUnavailable } from "../model/consultation-availability";
 import { removeUnavailableCalendarMatch } from "./sporting-calendar";
+import {
+  captureFollowingOwner,
+  removeUnavailablePersonalCalendarMatch,
+} from "../../following/calendar";
 
 /** Captured F05 generation guards public completions without requiring an established account. */
 type ConsultationSession = SessionSnapshot &
@@ -261,12 +265,21 @@ export function createConsultationQueries(
           try {
             return await getMatch(matchId, await request(context));
           } catch (error) {
-            if (!context.signal.aborted && resourceUnavailable(error))
+            if (!context.signal.aborted && resourceUnavailable(error)) {
               await removeUnavailableCalendarMatch(
                 context.client,
                 key(getListMatchesQueryKey()),
                 matchId,
               );
+              const owner = captureFollowingOwner(session);
+              if (owner)
+                await removeUnavailablePersonalCalendarMatch(
+                  context.client,
+                  owner,
+                  Boolean(intent),
+                  matchId,
+                );
+            }
             return rejectUnavailable(error, context);
           }
         },

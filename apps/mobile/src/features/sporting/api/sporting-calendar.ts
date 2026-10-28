@@ -130,25 +130,31 @@ export async function removeUnavailableCalendarMatch(
       query.setState({
         data: {
           ...data,
-          pages: data.pages.map((page) => ({
-            ...page,
-            days: page.days
-              .map((day) => ({
-                ...day,
-                pools: day.pools
-                  .map((pool) => ({
-                    ...pool,
-                    matches: pool.matches.filter(
-                      (match) => match.id !== matchId,
-                    ),
-                  }))
-                  .filter((pool) => pool.matches.length > 0),
-              }))
-              .filter((day) => day.pools.length > 0),
-          })),
+          pages: data.pages.map((page) => withoutCalendarMatch(page, matchId)),
         },
       });
   }
+}
+
+/** Removes only a currently refused identity and its empty groups, preserving source context/cursor. */
+export function withoutCalendarMatch(
+  page: MatchCalendarResponse,
+  matchId: string,
+): MatchCalendarResponse {
+  return {
+    ...page,
+    days: page.days
+      .map((day) => ({
+        ...day,
+        pools: day.pools
+          .map((pool) => ({
+            ...pool,
+            matches: pool.matches.filter((match) => match.id !== matchId),
+          }))
+          .filter((pool) => pool.matches.length > 0),
+      }))
+      .filter((day) => day.pools.length > 0),
+  };
 }
 
 /** Deduplicates moved encounters for rendering without mutating the server's retained pages. */

@@ -11,6 +11,7 @@ import {
   calendarDays,
   refreshCalendar,
 } from "../../sporting/api/sporting-calendar";
+import { createConsultationQueries } from "../../sporting/api/consultation-queries";
 import {
   createFollowOptionsQueryOptions,
   createPersonalCalendarOptions,
@@ -340,3 +341,69 @@ it.each([401, 403])(
     expect(client.getQueryData(anotherSeason.queryKey)).toBeUndefined();
   },
 );
+
+it("removes a currently refused F03 match from personal pages and cancels a late append in the same admission context", async () => {
+  // Given: real generated F03/F06 reads share the original session and root cache.
+  session.setAccount(owner.generation, accountId);
+  const queries = createConsultationQueries(
+    { ...session.getSnapshot(), isCurrent: session.isCurrent },
+    { request: (options) => options },
+    jest.fn(),
+  );
+  const options = createPersonalCalendarOptions(
+    owner,
+    request,
+    selection,
+    read,
+  );
+  const bypass = createPersonalCalendarOptions(
+    owner,
+    request,
+    selection,
+    read,
+    true,
+  );
+  const first = page("2026-10-29", sportingId, "2026-10-29");
+  const retainedId = "00000000-0000-4000-8000-000000000231";
+  first.calendar.days[0].pools[0].matches.push({
+    ...matchDetail().match,
+    id: retainedId,
+  });
+  mockFetch.mockImplementation(async () => Response.json(first));
+  await client.infiniteQuery(bypass);
+  const observer = new InfiniteQueryObserver(client, options);
+  const close = observer.subscribe(() => {});
+  await waitFor(() => expect(observer.getCurrentResult().isSuccess).toBe(true));
+  const late = Promise.withResolvers<Response>();
+  mockFetch.mockReturnValueOnce(late.promise);
+  const append = observer.fetchNextPage();
+  await waitFor(() =>
+    expect(observer.getCurrentResult().isFetchingNextPage).toBe(true),
+  );
+  mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
+
+  // When: the old response ignores abort after the detail establishes a current restriction.
+  await expect(client.query(queries.match(sportingId))).rejects.toBeDefined();
+  late.resolve(Response.json(page("2026-10-30")));
+  await append;
+
+  // Then
+  expect(
+    observer
+      .getCurrentResult()
+      .data?.pages[0].calendar.days[0].pools[0].matches.map(
+        (match) => match.id,
+      ),
+  ).toEqual([retainedId]);
+  expect(observer.getCurrentResult().data?.pages[0].calendar.nextDay).toBe(
+    "2026-10-29",
+  );
+  expect(observer.getCurrentResult().data?.pages[0].calendar.evaluatedAt).toBe(
+    first.calendar.evaluatedAt,
+  );
+  expect(client.getQueryData(bypass.queryKey)).toEqual({
+    pages: [first],
+    pageParams: [undefined],
+  });
+  close();
+});

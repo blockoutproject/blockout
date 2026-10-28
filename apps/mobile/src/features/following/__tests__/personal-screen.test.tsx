@@ -12,7 +12,12 @@ import {
   within,
 } from "@testing-library/react-native";
 import { View } from "react-native";
-import { useEffect, type ReactNode, type PropsWithChildren } from "react";
+import {
+  useEffect,
+  useState,
+  type ReactNode,
+  type PropsWithChildren,
+} from "react";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import {
   createQueryClient,
@@ -34,6 +39,7 @@ import { initializeV2Installation } from "../../onboarding/initialize-v2-install
 import { ClubScreen } from "../../sporting/screens/club-screen";
 import { SearchScreen } from "../../discovery/screens/search-screen";
 import { SearchVisitProvider } from "../../discovery/forms/search-visit";
+import { MatchScreen } from "../../sporting/screens/match-screen";
 import {
   clubDetail,
   matchDetail,
@@ -52,7 +58,7 @@ jest.mock("react-native-auth0", () => {
 });
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, back: mockBack, canGoBack: () => true }),
   useNavigation: () => ({ isFocused: () => mockFocus.focused }),
   useIsFocused: () => {
     const { useSyncExternalStore } =
@@ -78,6 +84,7 @@ jest.mock("expo/fetch", () => ({
   fetch: (url: string, request?: RequestInit) => mockFetch(url, request),
 }));
 const mockPush = jest.fn();
+const mockBack = jest.fn();
 const mockFocus = { focused: true, listeners: new Set<() => void>() };
 const mockFetch = jest.fn<Promise<Response>, [string, RequestInit?]>();
 const accountId = "00000000-0000-4000-8000-000000000001";
@@ -203,6 +210,8 @@ beforeEach(() => {
   mockAuth0.clearCredentials.mockReset().mockResolvedValue();
   mockAuth0.webAuthLogout.mockReset().mockResolvedValue();
   mockFetch.mockReset().mockImplementation(transport);
+  mockPush.mockReset();
+  mockBack.mockReset();
   proposed = older;
   mockFocus.focused = true;
 });
@@ -700,4 +709,85 @@ it("withdraws a refused calendar after refresh and presents its card without a d
     screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
   ).not.toBeOnTheScreen();
   expect(screen.getAllByRole("alert")).toHaveLength(1);
+});
+
+it("withdraws obsolete personal rows when a successful continuation establishes no available follows", async () => {
+  // Given
+  mockFetch.mockImplementation(async (url, request) => {
+    const response = await transport(url, request);
+    if (new URL(url).pathname !== `/accounts/${accountId}/matches`)
+      return response;
+    const first = await response.json();
+    return Response.json(
+      new URL(url).searchParams.has("nextDay")
+        ? {
+            hasAvailableFollows: false,
+            calendar: { ...first.calendar, days: [] },
+          }
+        : { ...first, calendar: { ...first.calendar, nextDay: "2026-10-29" } },
+    );
+  });
+  await mount();
+  await layoutNativeTabs();
+  const match = await screen.findByRole("link", {
+    name: /Ouvrir le match Home — Away/,
+  });
+
+  // When: native continuation succeeds after the last followed origin becomes unavailable.
+  await fireEvent(match, "endReached");
+
+  // Then
+  await screen.findByRole("button", {
+    name: "Rechercher une équipe ou une poule",
+  });
+  expect(
+    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).not.toBeOnTheScreen();
+});
+
+it("returns from a refused actual match screen without exposing its retained personal card", async () => {
+  // Given: only native navigation/focus is controlled; both screen/query owners remain real.
+  /** Models the native stack covering Home and returning without unmounting its retained owner. */
+  function OpenedMatch() {
+    const [open, setOpen] = useState(false);
+    useEffect(() => {
+      mockPush.mockImplementation(() => {
+        mockFocus.focused = false;
+        mockFocus.listeners.forEach((listener) => listener());
+        setOpen(true);
+      });
+      mockBack.mockImplementation(() => {
+        setOpen(false);
+        mockFocus.focused = true;
+        mockFocus.listeners.forEach((listener) => listener());
+      });
+    }, []);
+    return open ? <MatchScreen matchId={matchDetail().match.id} /> : null;
+  }
+  mockFetch.mockImplementation((url, request) =>
+    new URL(url).pathname.startsWith("/matches/")
+      ? Promise.resolve(new Response(null, { status: 404 }))
+      : transport(url, request),
+  );
+  await mount(<OpenedMatch />);
+  await layoutNativeTabs();
+  const match = await screen.findByRole("link", {
+    name: /Ouvrir le match Home — Away/,
+  });
+
+  // When
+  await userEvent.press(match);
+  await screen.findByRole("button", { name: "Réessayer" });
+  await userEvent.press(screen.getByRole("button", { name: "Retour" }));
+
+  // Then
+  await screen.findByText("Aucun match pour cette sélection");
+  expect(
+    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(
+      ([url]) => new URL(url).pathname === `/accounts/${accountId}/matches`,
+    ),
+  ).toHaveLength(1);
 });
