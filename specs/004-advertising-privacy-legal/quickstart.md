@@ -56,6 +56,12 @@ Local native evidence with the released 17.4.0 wrapper is attached to the [deliv
 
 These guest checks used a synthetic local admission response and sample advertising app IDs, with no production ad unit or signed-in account. They qualify only the captured simulator/emulator behavior. Physical devices, VoiceOver/TalkBack, native ATT grant, production UMP configuration, actual serving/mediation/Additional Consent and full platform accessibility remain unverified. The existing live Dynamic Type and shared Duo navigation-layout limits are outside this privacy scope. T020 remains open.
 
+## Retired legal-reader authoring sources
+
+The 2026-10-28 removal pass applied [FR-016](spec.md#legal-documents) and the [approved native-browser handoff](plan.md#constitution-check) to the private Product Design sources. The unused custom-reader components `5197:5298` (Document body), `5200:5642` (Document body · 200%) and `5200:5644` (Loading document) were removed from the [Account authoring section](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=2131-9913). Each was unpublished, had zero instances and had no incoming prototype reaction or flow start across the file's eleven pages. All 111 current Account screen text/geometry signatures remained unchanged; the [native-browser indication](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=5197-5826) was visually checked afterward. Public document requirements, sporting-document readers and pending native browser qualification remain intact.
+
+The uninstanced UMP authoring simulations (`5272:10362`, `5297:11455`, `5303:12023`, `5303:12166`, `5303:12294`, `5642:15737`) remain **unresolved removal candidates**: native consent remains accepted, and absence of instances does not prove these provider illustrations were abandoned. The differently named `5308:12231` remains consumed by notification read feedback. Neither family was removed. This review establishes Figma structure and representative rendering only, not SDK, native-device, provider or legal-content approval.
+
 ## Native setup boundary (T001/T002)
 
 Follow the README's [installation/verification](../../README.md#verification) and [native build/prebuild](../../README.md#application-processes) instructions, using the [mobile environment example](../../apps/mobile/.env.example) for public inputs and fallbacks. Allocate a device and Metro port explicitly for native checks.

@@ -115,7 +115,7 @@ class CollectionContractWebMvcTest {
     Instant observedAt = Instant.parse("2026-10-20T09:00:00Z");
     CollectionState.SourceValidation result =
         new CollectionState.SourceValidation(
-            cycleId, SourceValidationStateEnum.QUALIFIED, observedAt, "2026/2027", null);
+            cycleId, SourceValidationStateEnum.QUALIFIED, observedAt, "2026/2027", null, null);
     when(sourceValidation.submitValidation(sourceId, result))
         .thenReturn(
             CollectionState.Source.builder()

@@ -22,7 +22,12 @@ import lombok.Builder;
 public interface CollectionBackend {
   /** Current read-only intent; polling never admits work or refreshes a remembered fallback. */
   record Work(List<ControlWork> controls, List<ValidationWork> validations) {
-    /** Detaches the complete current configuration lists. */
+    /**
+     * Detaches the complete current configuration lists.
+     *
+     * @param controls current independent scheduling contexts
+     * @param validations candidates awaiting admission
+     */
     public Work {
       controls = List.copyOf(controls);
       validations = List.copyOf(validations);
@@ -114,7 +119,13 @@ public interface CollectionBackend {
 
   /** Bounded snapshot page, without a persistent checkpoint or total count. */
   record TargetPage(List<Target> items, long page, boolean hasNext) {
-    /** Detaches the admitted selection. */
+    /**
+     * Detaches the admitted selection.
+     *
+     * @param items current page of admitted targets
+     * @param page zero-based snapshot page
+     * @param hasNext whether another snapshot page exists
+     */
     public TargetPage {
       items = List.copyOf(items);
     }
@@ -167,7 +178,7 @@ public interface CollectionBackend {
 
   /**
    * Terminal candidate evidence; interpretation and backend application remain source-preparation
-   * responsibilities.
+   * responsibilities. A null reasonType retains an unknown failure category.
    */
   record Validation(
       UUID cycleId,
@@ -175,25 +186,7 @@ public interface CollectionBackend {
       Instant observedAt,
       String seasonEvidence,
       String reason,
-      URI reasonType) {
-    /**
-     * Represents older evidence without a known failure category.
-     *
-     * @param cycleId original validation context
-     * @param state terminal qualification
-     * @param observedAt actual completion
-     * @param seasonEvidence attributable season, when available
-     * @param reason safe bounded explanation
-     */
-    public Validation(
-        UUID cycleId,
-        SourceValidationStateEnum state,
-        Instant observedAt,
-        String seasonEvidence,
-        String reason) {
-      this(cycleId, state, observedAt, seasonEvidence, reason, null);
-    }
-  }
+      URI reasonType) {}
 
   /**
    * Reads current registration without claiming it.
