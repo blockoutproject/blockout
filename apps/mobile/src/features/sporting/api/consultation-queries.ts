@@ -47,6 +47,7 @@ import {
 import {
   discardCalendarSelection,
   removeUnavailableCalendarMatch,
+  removeUnavailableCalendarPool,
 } from "./sporting-calendar";
 
 /** Captured F05 generation guards public completions without requiring an established account. */
@@ -170,6 +171,11 @@ export function createConsultationQueries(
       [...key(getListMatchesQueryKey()), { poolId }],
       context.queryKey,
       error,
+    );
+    await removeUnavailableCalendarPool(
+      context.client,
+      key(getListMatchesQueryKey()),
+      poolId,
     );
   }
 

@@ -43,6 +43,7 @@ export function createCalendarOptions(
   ];
   return infiniteQueryOptions({
     queryKey: first.queryKey,
+    meta: { consultationResource: "calendar-traversal" },
     initialPageParam: undefined as string | undefined,
     queryFn: async (context) => {
       try {
@@ -177,6 +178,56 @@ export function filterCalendarMatches(
             matches: pool.matches.filter(retain),
           }))
           .filter((pool) => pool.matches.length > 0),
+      }))
+      .filter((day) => day.pools.length > 0),
+  };
+}
+
+/**
+ * Removes only a refused pool from retained team/club windows and traversals in this context.
+ * Older mixed reads are cancelled before they can restore its groups; other groups, source times,
+ * loading zones and continuation remain unchanged. Direct other-pool selections are untouched.
+ * @param client existing root QueryClient
+ * @param queryKey generated calendar collection prefix in the captured session/admission context
+ * @param poolId exact pool refused by a current owner read
+ */
+export async function removeUnavailableCalendarPool(
+  client: QueryClient,
+  queryKey: QueryKey,
+  poolId: string,
+) {
+  const filters = { queryKey: [...queryKey, { poolId: undefined }] };
+  await client.cancelQueries(filters, { revert: false });
+  for (const query of client.getQueryCache().findAll(filters)) {
+    if (query.meta?.consultationResource === "calendar-traversal") {
+      const data = client.getQueryData<InfiniteData<MatchCalendarResponse>>(
+        query.queryKey,
+      );
+      if (data)
+        query.setState({
+          data: {
+            ...data,
+            pages: data.pages.map((page) => withoutPool(page, poolId)),
+          },
+        });
+    } else {
+      const data = client.getQueryData<MatchCalendarResponse>(query.queryKey);
+      if (data) query.setState({ data: withoutPool(data, poolId) });
+    }
+  }
+}
+
+/** Keeps the page's attribution/progression while dropping only groups with the refused exact pool. */
+function withoutPool(
+  page: MatchCalendarResponse,
+  poolId: string,
+): MatchCalendarResponse {
+  return {
+    ...page,
+    days: page.days
+      .map((day) => ({
+        ...day,
+        pools: day.pools.filter((pool) => pool.poolId !== poolId),
       }))
       .filter((day) => day.pools.length > 0),
   };

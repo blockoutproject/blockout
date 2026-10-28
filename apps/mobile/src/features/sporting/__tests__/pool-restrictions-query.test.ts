@@ -52,6 +52,7 @@ function page(poolId: string): MatchCalendarResponse {
             matches: [
               {
                 ...matchDetail().match,
+                id: poolId,
                 pool: { ...pool, pool: { ...pool.pool, id: poolId } },
               },
             ],
@@ -230,4 +231,118 @@ it("cancels older table and calendar reads before they can republish a refused p
   } finally {
     close();
   }
+});
+
+it.each(["team", "club"] as const)(
+  "removes the refused pool from a retained %s calendar without changing its other groups or progression",
+  async (kind) => {
+    // Given
+    const queries = publicQueries();
+    const firstPool = page(sportingId).days[0].pools[0];
+    const secondPool = page(otherPool).days[0].pools[0];
+    const mixed: MatchCalendarResponse = {
+      ...page(sportingId),
+      nextDay: "2026-11-14",
+      days: [{ date: "2026-11-14", pools: [firstPool, secondPool] }],
+    };
+    const selection =
+      kind === "team"
+        ? {
+            teamId: sportingId,
+            category: "upcoming" as const,
+            timeZone: "Europe/Paris",
+          }
+        : {
+            clubId: sportingId,
+            seasonId: pool.season.id,
+            category: "upcoming" as const,
+            timeZone: "Europe/Paris",
+          };
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).pathname === "/matches"
+        ? Promise.resolve(Response.json(mixed))
+        : reads(url),
+    );
+    const observer = new InfiniteQueryObserver(
+      client,
+      createCalendarOptions(queries, selection),
+    );
+    const close = observer.subscribe(() => undefined);
+    try {
+      await waitFor(() =>
+        expect(observer.getCurrentResult().isSuccess).toBe(true),
+      );
+      const original = observer.getCurrentResult().data;
+      let finish: ((response: Response) => void) | undefined;
+      let signal: AbortSignal | undefined;
+      mockFetch.mockImplementation((url: string, options?: RequestInit) => {
+        if (new URL(url).pathname === "/matches") {
+          signal = options?.signal ?? undefined;
+          return new Promise<Response>((resolve) => {
+            finish = resolve;
+          });
+        }
+        return Promise.resolve(Response.json({}, { status: 404 }));
+      });
+      const late = observer.refetch();
+      await waitFor(() => expect(finish).toBeDefined());
+
+      // When
+      await expect(
+        client.query(queries.standings(sportingId)),
+      ).rejects.toMatchObject({ status: 404 });
+      finish?.(Response.json(mixed));
+      await late;
+
+      // Then
+      expect(signal?.aborted).toBe(true);
+      expect(observer.getCurrentResult().data?.pages[0]).toEqual({
+        ...mixed,
+        days: [{ date: "2026-11-14", pools: [secondPool] }],
+      });
+      expect(observer.getCurrentResult().data?.pageParams).toEqual(
+        original?.pageParams,
+      );
+    } finally {
+      close();
+    }
+  },
+);
+
+it("preserves the generated direct calendar window when removing a refused pool's groups", async () => {
+  // Given
+  const queries = publicQueries();
+  const secondPool = page(otherPool).days[0].pools[0];
+  const mixed: MatchCalendarResponse = {
+    ...page(sportingId),
+    nextDay: "2026-11-14",
+    days: [
+      {
+        date: "2026-11-14",
+        pools: [page(sportingId).days[0].pools[0], secondPool],
+      },
+    ],
+  };
+  const options = queries.calendar({
+    teamId: sportingId,
+    category: "upcoming",
+    timeZone: "Europe/Paris",
+  });
+  mockFetch
+    .mockResolvedValueOnce(Response.json(mixed))
+    .mockResolvedValueOnce(Response.json({}, { status: 404 }));
+  await client.query(options);
+  const timestamp = client.getQueryState(options.queryKey)?.dataUpdatedAt;
+
+  // When
+  await expect(client.query(queries.pool(sportingId))).rejects.toMatchObject({
+    status: 404,
+  });
+
+  // Then
+  expect(client.getQueryData(options.queryKey)).toEqual({
+    ...mixed,
+    days: [{ date: "2026-11-14", pools: [secondPool] }],
+  });
+  expect(client.getQueryState(options.queryKey)?.dataUpdatedAt).toBe(timestamp);
 });
