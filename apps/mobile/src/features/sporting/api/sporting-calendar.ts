@@ -78,6 +78,8 @@ export function createCalendarOptions(
     staleTime: "static",
     gcTime: 0,
     refetchOnMount: false,
+    // A visited initial failure stays on its card until an explicit read retry.
+    retryOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     retry: false,
@@ -87,7 +89,8 @@ export function createCalendarOptions(
 
 /**
  * Cancels obsolete append work before a supported first-page stale fetch.
- * Native Query replaces data only after success; ordinary failure retains permitted pages.
+ * Native Query replaces cached pages only after success. Ordinary failure retains authorized
+ * groups; the view reports explicit refresh failure without changing the loading zone.
  */
 export async function refreshCalendar(
   client: QueryClient,

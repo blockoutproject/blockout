@@ -25,6 +25,7 @@ import { ProfileLoading } from "../components/profile-loading";
 import { useAccountSession } from "../session/account-session-provider";
 import { useGuestNavigation } from "../hooks/use-guest-navigation";
 import { PageHeader } from "../../../shared/components/page-header";
+import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import {
   getChangeAccountProfileMutationKey,
@@ -92,92 +93,100 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
   }
 
   return (
-    <Page>
-      <PageHeader title="Modifier mon profil" />
-      <FormScrollView
-        refreshControl={
-          admitted && session.status === "authenticated" ? (
-            <DataRefreshControl
-              enabled={!saving}
-              refreshing={account.isRefetching || photoRefreshing}
-              onRefresh={() => void refresh()}
-            />
-          ) : undefined
-        }
-      >
-        {!admitted ? (
-          <ScreenState>
-            <ErrorState />
-          </ScreenState>
-        ) : (
-          <>
-            {session.status === "restoring" ? (
-              <ScreenState>
-                <RequestLoading />
-              </ScreenState>
-            ) : session.status === "authenticated" && account.isPending ? (
-              <PageContent>
-                <ProfileLoading />
-              </PageContent>
-            ) : session.status !== "authenticated" ? (
-              <ScreenState>
-                <Button
-                  label="Se connecter"
-                  fullWidth
-                  onPress={() => router.replace("/sign-in")}
+    <Page edges={["left", "right", "bottom"]}>
+      <ScrollChrome header={<PageHeader title="Modifier mon profil" />}>
+        {({ onScroll, headerHeight }) => (
+          <FormScrollView
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            scrollIndicatorInsets={{ top: headerHeight }}
+            contentContainerStyle={{ paddingTop: headerHeight }}
+            refreshControl={
+              admitted && session.status === "authenticated" ? (
+                <DataRefreshControl
+                  progressViewOffset={headerHeight}
+                  enabled={!saving}
+                  refreshing={account.isRefetching || photoRefreshing}
+                  onRefresh={() => void refresh()}
                 />
+              ) : undefined
+            }
+          >
+            {!admitted ? (
+              <ScreenState>
+                <ErrorState />
               </ScreenState>
             ) : (
               <>
-                {account.isError && !account.data && (
+                {session.status === "restoring" ? (
                   <ScreenState>
-                    <ErrorState
-                      onRetry={() => void account.refetch()}
-                      retrying={account.isFetching}
-                    />
-                    {missing && (
-                      <Button
-                        label="Se connecter"
-                        fullWidth
-                        onPress={() => router.replace("/sign-in")}
-                      />
-                    )}
+                    <RequestLoading />
                   </ScreenState>
-                )}
-                {account.data && (
+                ) : session.status === "authenticated" && account.isPending ? (
                   <PageContent>
-                    {account.isSuccess &&
-                      account.data.principalCreatedAt === null && (
-                        <AccountAgeRetry
-                          key={`age:${session.generation}:${account.data.accountId}`}
-                        />
-                      )}
-                    <ProfileForm
-                      key={`${session.generation}:${account.data.accountId}`}
-                      account={account.data}
-                      disabled={!account.isSuccess}
-                      onContinueAsGuest={guest.continueAsGuest}
-                      leaving={guest.pending}
-                    />
+                    <ProfileLoading />
                   </PageContent>
+                ) : session.status !== "authenticated" ? (
+                  <ScreenState>
+                    <Button
+                      label="Se connecter"
+                      fullWidth
+                      onPress={() => router.replace("/sign-in")}
+                    />
+                  </ScreenState>
+                ) : (
+                  <>
+                    {account.isError && !account.data && (
+                      <ScreenState>
+                        <ErrorState
+                          onRetry={() => void account.refetch()}
+                          retrying={account.isFetching}
+                        />
+                        {missing && (
+                          <Button
+                            label="Se connecter"
+                            fullWidth
+                            onPress={() => router.replace("/sign-in")}
+                          />
+                        )}
+                      </ScreenState>
+                    )}
+                    {account.data && (
+                      <PageContent>
+                        {account.isSuccess &&
+                          account.data.principalCreatedAt === null && (
+                            <AccountAgeRetry
+                              key={`age:${session.generation}:${account.data.accountId}`}
+                            />
+                          )}
+                        <ProfileForm
+                          key={`${session.generation}:${account.data.accountId}`}
+                          account={account.data}
+                          disabled={!account.isSuccess}
+                          onContinueAsGuest={guest.continueAsGuest}
+                          leaving={guest.pending}
+                        />
+                      </PageContent>
+                    )}
+                  </>
                 )}
+                <PageContent>
+                  <AdministrationEntry />
+                  {!(session.status === "authenticated" && account.data) && (
+                    <Button
+                      label="Continuer en tant qu’invité"
+                      onPress={() => void guest.continueAsGuest()}
+                      loading={guest.pending}
+                    />
+                  )}
+                  {proEntry}
+                  <PublicAccountLinks />
+                </PageContent>
               </>
             )}
-            <PageContent>
-              <AdministrationEntry />
-              {!(session.status === "authenticated" && account.data) && (
-                <Button
-                  label="Continuer en tant qu’invité"
-                  onPress={() => void guest.continueAsGuest()}
-                  loading={guest.pending}
-                />
-              )}
-              {proEntry}
-              <PublicAccountLinks />
-            </PageContent>
-          </>
+          </FormScrollView>
         )}
-      </FormScrollView>
+      </ScrollChrome>
     </Page>
   );
 }

@@ -13,10 +13,12 @@ import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { PageHeader } from "../../../shared/components/page-header";
-import { useRouter } from "expo-router";
+import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+import { useNavigation, useRouter } from "expo-router";
 import { CalendarDays, MapPin, Users } from "lucide-react-native";
 import { useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 
 import type {
   CollectionFamilyEnum,
@@ -25,6 +27,7 @@ import type {
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { Button } from "../../../shared/components/button";
 import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ListContinuation } from "../../../shared/components/list-continuation";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import {
@@ -47,139 +50,123 @@ const familyLabels: Record<CollectionFamilyEnum, string> = {
   geocoding: "Géocodage",
 };
 
-/** Lists competition seasons and independent club destinations; entering or refreshing performs only reads. */
+/** Keeps authorized bounded seasons through technical rereads; independent club destinations have no pagination. */
 export function CollectionDashboardScreen() {
   const { authority, query } = useCollectionSeasons();
   const feedback = useActionFeedback();
   const { colors } = useTheme();
   const router = useRouter();
+  const denied = isAccessDenied(query.error);
+  /** Native refresh retains authorized data after a technical failure; an initial read still owns its error card. */
+  async function refresh() {
+    const result = authority.enabled
+      ? await query.refetch({ cancelRefetch: false })
+      : await authority.account.refetch({ cancelRefetch: false });
+    if (result.isError && result.data && !isAccessDenied(result.error))
+      feedback.error();
+  }
   const blockingState = !authority.enabled ? (
     <AccessFeedback {...authority} />
   ) : undefined;
   return (
-    <Page>
-      <PageHeader title="Collectes" />
-      <PageScrollView
-        refreshControl={
-          authority.sessionStatus === "authenticated" ? (
-            <DataRefreshControl
-              refreshing={query.isRefetching || authority.account.isRefetching}
-              onRefresh={() => {
-                if (authority.enabled)
-                  void query
-                    .refetch({ cancelRefetch: false })
-                    .then((result) => {
-                      if (
-                        result.isError &&
-                        result.data &&
-                        !isAccessDenied(result.error)
-                      )
-                        feedback.error();
-                    });
-                else
-                  void authority.account
-                    .refetch({ cancelRefetch: false })
-                    .then((result) => {
-                      if (
-                        result.isError &&
-                        result.data &&
-                        !isAccessDenied(result.error)
-                      )
-                        feedback.error();
-                    });
-              }}
-            />
-          ) : undefined
-        }
-      >
-        {blockingState ? (
-          <ScreenState>{blockingState}</ScreenState>
-        ) : (
-          <PageContent>
-            {authority.enabled && (
-              <>
-                <Text
-                  accessibilityRole="header"
-                  style={[tokens.typography.heading, { color: colors.text }]}
-                >
-                  Compétitions
-                </Text>
-                {(!isAccessDenied(query.error)
-                  ? query.data?.items
-                  : undefined
-                )?.map((season) => (
-                  <PreparationLink
-                    key={season.id}
-                    label={season.label}
-                    detail={seasonStatus(season)}
-                    icon={CalendarDays}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/collection/[seasonId]",
-                        params: { seasonId: season.id },
-                      })
-                    }
-                  />
-                ))}
-                {!isAccessDenied(query.error) &&
-                  query.data?.items.length === 0 && (
-                    <EmptyState title="Aucune saison découverte" />
-                  )}
-                {isAccessDenied(query.error) ? (
-                  <ErrorState
-                    onRetry={() => void query.refetch()}
-                    retrying={query.isFetching}
-                  />
-                ) : query.isError && !query.data ? (
-                  <ErrorState
-                    onRetry={() =>
-                      void query
-                        .refetch({ cancelRefetch: false })
-                        .then((result) => {
-                          if (
-                            result.isError &&
-                            result.data &&
-                            !isAccessDenied(result.error)
-                          )
-                            feedback.error();
+    <Page edges={["left", "right", "bottom"]}>
+      <ScrollChrome header={<PageHeader title="Collectes" />}>
+        {({ onScroll, headerHeight }) => (
+          <PageScrollView
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            scrollIndicatorInsets={{ top: headerHeight }}
+            contentContainerStyle={{ paddingTop: headerHeight }}
+            refreshControl={
+              authority.sessionStatus === "authenticated" ? (
+                <DataRefreshControl
+                  progressViewOffset={headerHeight}
+                  refreshing={
+                    query.isRefetching || authority.account.isRefetching
+                  }
+                  onRefresh={() => void refresh()}
+                />
+              ) : undefined
+            }
+          >
+            {blockingState ? (
+              <ScreenState>{blockingState}</ScreenState>
+            ) : (
+              <PageContent>
+                {authority.enabled && (
+                  <>
+                    <Text
+                      accessibilityRole="header"
+                      style={[
+                        tokens.typography.heading,
+                        { color: colors.text },
+                      ]}
+                    >
+                      Compétitions
+                    </Text>
+                    {(!denied ? query.data?.items : undefined)?.map(
+                      (season) => (
+                        <PreparationLink
+                          key={season.id}
+                          label={season.label}
+                          detail={seasonStatus(season)}
+                          icon={CalendarDays}
+                          onPress={() =>
+                            router.push({
+                              pathname: "/collection/[seasonId]",
+                              params: { seasonId: season.id },
+                            })
+                          }
+                        />
+                      ),
+                    )}
+                    {!denied && query.data?.items.length === 0 && (
+                      <EmptyState title="Aucune saison découverte" />
+                    )}
+                    {denied || (query.isError && !query.data) ? (
+                      <ErrorState
+                        onRetry={() => void refresh()}
+                        retrying={query.isFetching}
+                      />
+                    ) : (
+                      !query.data && <CollectionLoading />
+                    )}
+                    <Text
+                      accessibilityRole="header"
+                      style={[
+                        tokens.typography.heading,
+                        { color: colors.text },
+                      ]}
+                    >
+                      Clubs · indépendants des saisons
+                    </Text>
+                    <PreparationLink
+                      label="Fiches clubs"
+                      icon={Users}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/collection/clubs/[family]",
+                          params: { family: "club-sheets" },
                         })
-                    }
-                    retrying={query.isFetching}
-                  />
-                ) : (
-                  !query.data && <CollectionLoading />
+                      }
+                    />
+                    <PreparationLink
+                      label="Géocodage"
+                      icon={MapPin}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/collection/clubs/[family]",
+                          params: { family: "geocoding" },
+                        })
+                      }
+                    />
+                  </>
                 )}
-                <Text
-                  accessibilityRole="header"
-                  style={[tokens.typography.heading, { color: colors.text }]}
-                >
-                  Clubs · indépendants des saisons
-                </Text>
-                <PreparationLink
-                  label="Fiches clubs"
-                  icon={Users}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/collection/clubs/[family]",
-                      params: { family: "club-sheets" },
-                    })
-                  }
-                />
-                <PreparationLink
-                  label="Géocodage"
-                  icon={MapPin}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/collection/clubs/[family]",
-                      params: { family: "geocoding" },
-                    })
-                  }
-                />
-              </>
+              </PageContent>
             )}
-          </PageContent>
+          </PageScrollView>
         )}
-      </PageScrollView>
+      </ScrollChrome>
     </Page>
   );
 }
@@ -211,65 +198,73 @@ function SeasonControlScope({
   const feedback = useActionFeedback();
   if (!authority.enabled || !season.data || isAccessDenied(season.error))
     return (
-      <Page>
-        <PageHeader title={familyLabels[family]} />
-        <PageScrollView
-          refreshControl={
-            authority.sessionStatus === "authenticated" ? (
-              <DataRefreshControl
-                refreshing={
-                  season.isRefetching || authority.account.isRefetching
-                }
-                onRefresh={() => {
-                  if (authority.enabled)
-                    void season
-                      .refetch({ cancelRefetch: false })
-                      .then((result) => {
+      <Page edges={["left", "right", "bottom"]}>
+        <ScrollChrome header={<PageHeader title={familyLabels[family]} />}>
+          {({ onScroll, headerHeight }) => (
+            <PageScrollView
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              scrollIndicatorInsets={{ top: headerHeight }}
+              contentContainerStyle={{ paddingTop: headerHeight }}
+              refreshControl={
+                authority.sessionStatus === "authenticated" ? (
+                  <DataRefreshControl
+                    progressViewOffset={headerHeight}
+                    refreshing={
+                      season.isRefetching || authority.account.isRefetching
+                    }
+                    onRefresh={() => {
+                      if (authority.enabled)
+                        void season
+                          .refetch({ cancelRefetch: false })
+                          .then((result) => {
+                            if (
+                              result.isError &&
+                              result.data &&
+                              !isAccessDenied(result.error)
+                            )
+                              feedback.error();
+                          });
+                      else
+                        void authority.account
+                          .refetch({ cancelRefetch: false })
+                          .then((result) => {
+                            if (
+                              result.isError &&
+                              result.data &&
+                              !isAccessDenied(result.error)
+                            )
+                              feedback.error();
+                          });
+                    }}
+                  />
+                ) : undefined
+              }
+            >
+              <ScreenState>
+                {!authority.enabled ? (
+                  <AccessFeedback {...authority} />
+                ) : season.isError ? (
+                  <ErrorState
+                    onRetry={() =>
+                      void season.refetch().then((result) => {
                         if (
                           result.isError &&
                           result.data &&
                           !isAccessDenied(result.error)
                         )
                           feedback.error();
-                      });
-                  else
-                    void authority.account
-                      .refetch({ cancelRefetch: false })
-                      .then((result) => {
-                        if (
-                          result.isError &&
-                          result.data &&
-                          !isAccessDenied(result.error)
-                        )
-                          feedback.error();
-                      });
-                }}
-              />
-            ) : undefined
-          }
-        >
-          <ScreenState>
-            {!authority.enabled ? (
-              <AccessFeedback {...authority} />
-            ) : season.isError ? (
-              <ErrorState
-                onRetry={() =>
-                  void season.refetch().then((result) => {
-                    if (
-                      result.isError &&
-                      result.data &&
-                      !isAccessDenied(result.error)
-                    )
-                      feedback.error();
-                  })
-                }
-                retrying={season.isFetching}
-              />
-            ) : (
-              <RequestLoading />
-            )}
-          </ScreenState>
-        </PageScrollView>
+                      })
+                    }
+                    retrying={season.isFetching}
+                  />
+                ) : (
+                  <RequestLoading />
+                )}
+              </ScreenState>
+            </PageScrollView>
+          )}
+        </ScrollChrome>
       </Page>
     );
   return (
@@ -311,67 +306,75 @@ function ControlScope({
     );
   if (!authority.enabled || !selected)
     return (
-      <Page>
-        <PageHeader title={familyLabels[family]} />
-        <PageScrollView
-          refreshControl={
-            authority.sessionStatus === "authenticated" ? (
-              <DataRefreshControl
-                refreshing={
-                  query.isRefetching || authority.account.isRefetching
-                }
-                onRefresh={() => {
-                  if (authority.enabled)
-                    void query
-                      .refetch({ cancelRefetch: false })
-                      .then((result) => {
+      <Page edges={["left", "right", "bottom"]}>
+        <ScrollChrome header={<PageHeader title={familyLabels[family]} />}>
+          {({ onScroll, headerHeight }) => (
+            <PageScrollView
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              scrollIndicatorInsets={{ top: headerHeight }}
+              contentContainerStyle={{ paddingTop: headerHeight }}
+              refreshControl={
+                authority.sessionStatus === "authenticated" ? (
+                  <DataRefreshControl
+                    progressViewOffset={headerHeight}
+                    refreshing={
+                      query.isRefetching || authority.account.isRefetching
+                    }
+                    onRefresh={() => {
+                      if (authority.enabled)
+                        void query
+                          .refetch({ cancelRefetch: false })
+                          .then((result) => {
+                            if (
+                              result.isError &&
+                              result.data &&
+                              !isAccessDenied(result.error)
+                            )
+                              feedback.error();
+                          });
+                      else
+                        void authority.account
+                          .refetch({ cancelRefetch: false })
+                          .then((result) => {
+                            if (
+                              result.isError &&
+                              result.data &&
+                              !isAccessDenied(result.error)
+                            )
+                              feedback.error();
+                          });
+                    }}
+                  />
+                ) : undefined
+              }
+            >
+              <ScreenState>
+                {!authority.enabled ? (
+                  <AccessFeedback {...authority} />
+                ) : query.isError ? (
+                  <ErrorState
+                    onRetry={() =>
+                      void query.refetch().then((result) => {
                         if (
                           result.isError &&
                           result.data &&
                           !isAccessDenied(result.error)
                         )
                           feedback.error();
-                      });
-                  else
-                    void authority.account
-                      .refetch({ cancelRefetch: false })
-                      .then((result) => {
-                        if (
-                          result.isError &&
-                          result.data &&
-                          !isAccessDenied(result.error)
-                        )
-                          feedback.error();
-                      });
-                }}
-              />
-            ) : undefined
-          }
-        >
-          <ScreenState>
-            {!authority.enabled ? (
-              <AccessFeedback {...authority} />
-            ) : query.isError ? (
-              <ErrorState
-                onRetry={() =>
-                  void query.refetch().then((result) => {
-                    if (
-                      result.isError &&
-                      result.data &&
-                      !isAccessDenied(result.error)
-                    )
-                      feedback.error();
-                  })
-                }
-                retrying={query.isFetching}
-              />
-            ) : query.data ? (
-              <ErrorState />
-            ) : (
-              <RequestLoading />
-            )}
-          </ScreenState>
-        </PageScrollView>
+                      })
+                    }
+                    retrying={query.isFetching}
+                  />
+                ) : query.data ? (
+                  <ErrorState />
+                ) : (
+                  <RequestLoading />
+                )}
+              </ScreenState>
+            </PageScrollView>
+          )}
+        </ScrollChrome>
       </Page>
     );
   return (
@@ -387,7 +390,7 @@ function ControlScope({
   );
 }
 
-/** Virtualized current evidence remains readable after failed refresh; no execution-history or source-editing surface. */
+/** Visible list edges append current evidence; technical failures retain authorized rows without changing command ownership. */
 function ControlDashboard({
   controlId,
   family,
@@ -408,6 +411,7 @@ function ControlDashboard({
   const feedback = useActionFeedback();
   const { colors } = useTheme();
   const router = useRouter();
+  const navigation = useNavigation();
   const [diagnostics, setDiagnostics] = useState(false);
   const refreshing =
     query.isRefetching ||
@@ -419,9 +423,10 @@ function ControlDashboard({
     !isAccessDenied(query.error) &&
     current?.family === family &&
     current.seasonId === season?.id;
-  const rows = isAccessDenied(results.error)
-    ? []
-    : (results.data?.pages.flatMap((page) => page.items) ?? []);
+  const rows =
+    isAccessDenied(query.error) || isAccessDenied(results.error)
+      ? []
+      : (results.data?.pages.flatMap((page) => page.items) ?? []);
   /** Refresh reads each projection only; command reconciliation is released by its separate explicit reread action. */
   async function refresh() {
     if (
@@ -449,6 +454,25 @@ function ControlDashboard({
         !isAccessDenied(resultRead.error))
     )
       feedback.error();
+  }
+  /** The shared continuation command preserves scope; automatic edges separately exclude read errors. */
+  function loadMore() {
+    if (
+      !authority.enabled ||
+      !authority.session.isCurrent(authority.session.generation) ||
+      !matches ||
+      !navigation.isFocused() ||
+      !results.hasNextPage ||
+      isAccessDenied(query.error) ||
+      isAccessDenied(results.error) ||
+      results.isFetching ||
+      refreshing ||
+      query.isFetching ||
+      editing.activity.isPending() ||
+      editing.request.isPending()
+    )
+      return;
+    void results.fetchNextPage({ cancelRefetch: false });
   }
   const header = (
     <View style={styles.section}>
@@ -524,114 +548,115 @@ function ControlDashboard({
     </View>
   );
   return (
-    <Page>
-      <PageHeader title={familyLabels[family]} />
-      {!authority.enabled || !matches ? (
-        <PageScrollView
-          refreshControl={
-            authority.sessionStatus === "authenticated" ? (
-              <DataRefreshControl
-                refreshing={refreshing}
-                onRefresh={() => void refresh()}
-              />
-            ) : undefined
-          }
-        >
-          <ScreenState>
-            {!authority.enabled ? (
-              <AccessFeedback {...authority} />
-            ) : query.isError ? (
-              <ErrorState
-                onRetry={() => void query.refetch()}
-                retrying={query.isFetching}
-              />
-            ) : current ? (
-              <ErrorState />
-            ) : (
-              <RequestLoading />
-            )}
-          </ScreenState>
-        </PageScrollView>
-      ) : (
-        <FlatList
-          alwaysBounceVertical
-          refreshControl={
-            authority.sessionStatus === "authenticated" ? (
-              <DataRefreshControl
-                enabled={
-                  !editing.activity.pending && !results.isFetchingNextPage
-                }
-                refreshing={refreshing}
-                onRefresh={() => void refresh()}
-              />
-            ) : undefined
-          }
-          data={authority.enabled && matches ? rows : []}
-          keyExtractor={(row) => `${row.scopeId}/${row.stage}/${row.phase}`}
-          contentContainerStyle={pageContentStyle}
-          ListHeaderComponent={header}
-          ItemSeparatorComponent={ListSeparator}
-          renderItem={({ item }) => (
-            <CollectionResult result={item} diagnostics={diagnostics} />
-          )}
-          ListFooterComponent={
-            authority.enabled && matches ? (
-              <View style={styles.footer}>
-                {isAccessDenied(results.error) ? (
-                  <ErrorState
-                    onRetry={() => void results.refetch()}
-                    retrying={results.isFetching}
+    <Page edges={["left", "right", "bottom"]}>
+      <ScrollChrome header={<PageHeader title={familyLabels[family]} />}>
+        {({ onScroll, headerHeight }) =>
+          !authority.enabled || !matches ? (
+            <PageScrollView
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              scrollIndicatorInsets={{ top: headerHeight }}
+              contentContainerStyle={{ paddingTop: headerHeight }}
+              refreshControl={
+                authority.sessionStatus === "authenticated" ? (
+                  <DataRefreshControl
+                    progressViewOffset={headerHeight}
+                    refreshing={refreshing}
+                    onRefresh={() => void refresh()}
                   />
+                ) : undefined
+              }
+            >
+              <ScreenState>
+                {!authority.enabled ? (
+                  <AccessFeedback {...authority} />
+                ) : query.isError ? (
+                  <ErrorState
+                    onRetry={() => void query.refetch()}
+                    retrying={query.isFetching}
+                  />
+                ) : current ? (
+                  <ErrorState />
                 ) : (
-                  results.isError &&
-                  !results.data && (
+                  <RequestLoading />
+                )}
+              </ScreenState>
+            </PageScrollView>
+          ) : (
+            <Animated.FlatList
+              testID="collection-results-list"
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              scrollIndicatorInsets={{ top: headerHeight }}
+              alwaysBounceVertical
+              refreshControl={
+                authority.sessionStatus === "authenticated" ? (
+                  <DataRefreshControl
+                    progressViewOffset={headerHeight}
+                    enabled={
+                      !editing.activity.pending && !results.isFetchingNextPage
+                    }
+                    refreshing={refreshing}
+                    onRefresh={() => void refresh()}
+                  />
+                ) : undefined
+              }
+              data={authority.enabled && matches ? rows : []}
+              keyExtractor={(row) => `${row.scopeId}/${row.stage}/${row.phase}`}
+              contentContainerStyle={[
+                pageContentStyle,
+                { paddingTop: headerHeight + tokens.layout.content.start },
+              ]}
+              ListHeaderComponent={header}
+              ItemSeparatorComponent={ListSeparator}
+              onEndReached={() => {
+                if (!query.isError && !results.isError) loadMore();
+              }}
+              onEndReachedThreshold={0.5}
+              renderItem={({ item }) => (
+                <CollectionResult result={item} diagnostics={diagnostics} />
+              )}
+              ListEmptyComponent={
+                <ScreenState>
+                  {isAccessDenied(results.error) ||
+                  (results.isError && !results.data) ? (
                     <ErrorState
                       onRetry={() =>
-                        void results.refetch().then((result) => {
-                          if (
-                            result.isError &&
-                            result.data &&
-                            !isAccessDenied(result.error)
-                          )
-                            feedback.error();
-                        })
+                        void results.refetch({ cancelRefetch: false })
                       }
                       retrying={results.isFetching}
                     />
-                  )
-                )}
-                {results.isPending && <RequestLoading />}
-                {!isAccessDenied(results.error) &&
-                  results.data &&
-                  rows.length === 0 && (
+                  ) : results.isPending ? (
+                    <RequestLoading />
+                  ) : (
                     <EmptyState
                       title="Aucun résultat observé"
                       description="Aucun succès ne peut être confirmé."
                     />
                   )}
-                {!isAccessDenied(results.error) && results.hasNextPage && (
-                  <Button
-                    label={
-                      results.isFetchNextPageError
-                        ? "Réessayer"
-                        : "Charger la suite"
-                    }
-                    variant="secondary"
-                    disabled={results.isFetching}
-                    loading={results.isFetchingNextPage}
-                    onPress={() =>
-                      void results.fetchNextPage().then((result) => {
-                        if (result.isError && !isAccessDenied(result.error))
-                          feedback.error();
-                      })
-                    }
-                  />
-                )}
-              </View>
-            ) : undefined
-          }
-        />
-      )}
+                </ScreenState>
+              }
+              ListFooterComponent={
+                !isAccessDenied(results.error) && results.hasNextPage ? (
+                  <View style={styles.footer}>
+                    <ListContinuation
+                      loading={results.isFetchingNextPage}
+                      failed={results.isFetchNextPageError}
+                      disabled={
+                        results.isFetching ||
+                        refreshing ||
+                        query.isFetching ||
+                        editing.activity.pending
+                      }
+                      onRetry={loadMore}
+                    />
+                  </View>
+                ) : undefined
+              }
+            />
+          )
+        }
+      </ScrollChrome>
     </Page>
   );
 }

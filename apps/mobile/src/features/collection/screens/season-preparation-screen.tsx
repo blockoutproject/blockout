@@ -1,3 +1,4 @@
+import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import { seasonStatus } from "../components/source-summary";
 import { PreparationLink } from "../components/preparation-link";
 import { AccessFeedback } from "../../access/components/access-feedback";
@@ -53,69 +54,83 @@ export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
     )
   ) : undefined;
   return (
-    <Page>
-      <PageHeader title={season.data?.label ?? "Saison"} />
-      <PageScrollView
-        refreshControl={
-          authority.sessionStatus === "authenticated" ? (
-            <DataRefreshControl
-              refreshing={season.isRefetching || authority.account.isRefetching}
-              onRefresh={() => void refresh()}
-            />
-          ) : undefined
-        }
+    <Page edges={["left", "right", "bottom"]}>
+      <ScrollChrome
+        header={<PageHeader title={season.data?.label ?? "Saison"} />}
       >
-        {blockingState ? (
-          <ScreenState>{blockingState}</ScreenState>
-        ) : (
-          <PageContent>
-            {authority.enabled && season.data && (
-              <>
-                <Text
-                  style={[tokens.typography.strong, { color: colors.text }]}
-                >
-                  Collectes de la saison · {seasonStatus(season.data)}
-                </Text>
-                <PreparationLink
-                  label="FFVB"
-                  detail="National, régional et départemental"
-                  icon={Globe}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/collection/[seasonId]/controls/[provider]",
-                      params: { seasonId, provider: "ffvb" },
-                    })
+        {({ onScroll, headerHeight }) => (
+          <PageScrollView
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            scrollIndicatorInsets={{ top: headerHeight }}
+            contentContainerStyle={{ paddingTop: headerHeight }}
+            refreshControl={
+              authority.sessionStatus === "authenticated" ? (
+                <DataRefreshControl
+                  progressViewOffset={headerHeight}
+                  refreshing={
+                    season.isRefetching || authority.account.isRefetching
                   }
+                  onRefresh={() => void refresh()}
                 />
-                <PreparationLink
-                  label="LNV"
-                  detail="Les trois championnats professionnels"
-                  icon={Trophy}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/collection/[seasonId]/controls/[provider]",
-                      params: { seasonId, provider: "lnv" },
-                    })
-                  }
-                />
-                {season.data.state !== "closed" && (
-                  <Button
-                    label="Clôturer la saison"
-                    variant="secondary"
-                    disabled={season.isError || season.isFetching}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/collection/[seasonId]/closure",
-                        params: { seasonId },
-                      })
-                    }
-                  />
+              ) : undefined
+            }
+          >
+            {blockingState ? (
+              <ScreenState>{blockingState}</ScreenState>
+            ) : (
+              <PageContent>
+                {authority.enabled && season.data && (
+                  <>
+                    <Text
+                      style={[tokens.typography.strong, { color: colors.text }]}
+                    >
+                      Collectes de la saison · {seasonStatus(season.data)}
+                    </Text>
+                    <PreparationLink
+                      label="FFVB"
+                      detail="National, régional et départemental"
+                      icon={Globe}
+                      onPress={() =>
+                        router.push({
+                          pathname:
+                            "/collection/[seasonId]/controls/[provider]",
+                          params: { seasonId, provider: "ffvb" },
+                        })
+                      }
+                    />
+                    <PreparationLink
+                      label="LNV"
+                      detail="Les trois championnats professionnels"
+                      icon={Trophy}
+                      onPress={() =>
+                        router.push({
+                          pathname:
+                            "/collection/[seasonId]/controls/[provider]",
+                          params: { seasonId, provider: "lnv" },
+                        })
+                      }
+                    />
+                    {season.data.state !== "closed" && (
+                      <Button
+                        label="Clôturer la saison"
+                        variant="secondary"
+                        disabled={season.isError || season.isFetching}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/collection/[seasonId]/closure",
+                            params: { seasonId },
+                          })
+                        }
+                      />
+                    )}
+                  </>
                 )}
-              </>
+              </PageContent>
             )}
-          </PageContent>
+          </PageScrollView>
         )}
-      </PageScrollView>
+      </ScrollChrome>
     </Page>
   );
 }

@@ -183,7 +183,11 @@ export const tokens = {
   border: { thin: 1 },
   opacity: { disabled: 0.45, pressed: 0.9 },
   elevation: { offsetX: 0, offsetY: 4, blur: 10 },
-  motion: { slow: 480 },
+  motion: {
+    slow: 480,
+    // UI Library Motion / Navigation 3194:109; selection remains immediate while its decoration follows.
+    navigation: { duration: 280, iconScale: 1.04, iconLift: 1 },
+  },
   // Product Design 977:174 / 977:251 / 980:324; Context border/default resolves to #RRGGBB4D.
   sporting: {
     borderAlpha: "4D",

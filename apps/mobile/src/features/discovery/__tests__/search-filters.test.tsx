@@ -1,5 +1,8 @@
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { router, Stack } from "expo-router";
-import { Text } from "react-native";
+import { FlatList, Text } from "react-native";
 import { renderRouter } from "expo-router/testing-library";
 import SearchLayout from "../../../app/(ordinary)/(tabs)/search/_layout";
 import { SearchFilters } from "../components/search-filters";
@@ -134,7 +137,7 @@ afterEach(async () => {
 
 /** Supplies the actual required owners; the membership input only selects F13 presentation. */
 async function renderSearch() {
-  return renderRouter(
+  const result = await renderRouter(
     {
       _layout: () => (
         <Stack screenOptions={{ headerShown: false, animation: "none" }} />
@@ -148,18 +151,31 @@ async function renderSearch() {
     {
       initialUrl: "/search",
       wrapper: ({ children }) => (
-        <QueryClientProvider client={client}>
-          <ThemeProvider>
-            <ApplicationAccessProvider>
-              <AccountSessionProvider>
-                <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
-              </AccountSessionProvider>
-            </ApplicationAccessProvider>
-          </ThemeProvider>
-        </QueryClientProvider>
+        <GestureHandlerRootView>
+          <SafeAreaProvider
+            initialMetrics={{
+              frame: { x: 0, y: 0, width: 390, height: 844 },
+              insets: { top: 0, right: 0, bottom: 0, left: 0 },
+            }}
+          >
+            <QueryClientProvider client={client}>
+              <ThemeProvider>
+                <ApplicationAccessProvider>
+                  <AccountSessionProvider>
+                    <AccountFeedbackProvider>
+                      {children}
+                    </AccountFeedbackProvider>
+                  </AccountSessionProvider>
+                </ApplicationAccessProvider>
+              </ThemeProvider>
+            </QueryClientProvider>
+          </SafeAreaProvider>
+        </GestureHandlerRootView>
       ),
     },
   );
+  await layoutNativeTabs();
+  return result;
 }
 
 it("opens sporting filters without waiting for an account", async () => {
@@ -241,6 +257,41 @@ it("retains independent team and pool criteria through Clubs with shared text", 
     gender: "female",
   });
   expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
+});
+
+it("resets only the active native list when applied criteria return to a cached selection", async () => {
+  // Given: every resource has a mounted list, and Teams has both default and filtered results cached.
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+  await screen.findByText("Volley professionnel");
+  await user.press(screen.getByRole("tab", { name: "Poules" }));
+  await screen.findByText("Championnat public · Phase finale");
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await screen.findByText("Lyon");
+  await user.press(screen.getByRole("tab", { name: "Équipes" }));
+  await openFilters();
+  await choose("Genre", "Féminin");
+  await applyFilters();
+  await screen.findByText("Volley professionnel");
+  await openFilters();
+  await user.press(
+    screen.getByRole("button", { name: "Réinitialiser les filtres" }),
+  );
+  // Only the native viewport command is observed; the cached list, filters, router and RNCT remain real.
+  const scroll = jest.spyOn(FlatList.prototype, "scrollToOffset");
+
+  // When: applying changed filters selects the already accepted default context.
+  await applyFilters();
+  await screen.findByText("Volley professionnel");
+
+  // Then: the active Teams list receives a non-animated reset; retained Pools/Clubs receive none.
+  expect(scroll).toHaveBeenCalledTimes(1);
+  expect(scroll).toHaveBeenCalledWith({ offset: 0, animated: false });
+  const list = scroll.mock.contexts[0] as FlatList<unknown>;
+  expect(list.props.data?.[0]).toEqual(
+    expect.objectContaining({ kind: "team" }),
+  );
 });
 
 it("discards a closed draft and resets to the newest currently offered season only when applied", async () => {
@@ -485,6 +536,7 @@ it("reads options again on a new visit after an initial failure without data", a
 
   // When: a new visit reads current choices without pressing a retry or filter control.
   await act(() => router.push("/search"));
+  await layoutNativeTabs();
   await user.paste(screen.getByLabelText("Rechercher"), "Volley");
 
   // Then

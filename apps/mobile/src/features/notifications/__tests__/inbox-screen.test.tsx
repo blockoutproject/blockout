@@ -55,8 +55,9 @@ jest.mock("expo-router", () => ({
   useNavigation: () => mockNavigation,
 }));
 const mockPush = jest.fn();
+let mockFocused = true;
 const mockNavigation = {
-  isFocused: () => true,
+  isFocused: () => mockFocused,
   addListener: jest.fn(() => () => undefined),
 };
 const mockFetch = jest.fn();
@@ -132,6 +133,7 @@ beforeEach(() => {
   total = 7;
   nextExpiry = "2026-11-10T00:00:00Z";
   readResponseLost = false;
+  mockFocused = true;
 });
 afterEach(async () => {
   await cleanup();
@@ -198,7 +200,7 @@ it("keeps confirmed reading after navigation fails, including a discreet lost-re
   await waitFor(() => expect(setBadgeCountAsync).toHaveBeenLastCalledWith(6));
 });
 
-it("distinguishes initial failure from empty and retains cards after failed manual refresh", async () => {
+it("uses the initial error card but retains authorized cards with a toast after failed pull-to-refresh", async () => {
   // Given
   mockFetch.mockImplementation((url: string, init: RequestInit) =>
     new URL(url).pathname.endsWith("/notifications")
@@ -224,13 +226,24 @@ it("distinguishes initial failure from empty and retains cards after failed manu
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
-  await waitFor(() =>
-    expect(screen.getByRole("link", { name: /non lue$/ })).toBeOnTheScreen(),
-  );
+  await screen.findByRole("alert", { name: /Une erreur est survenue/ });
+  expect(screen.getByRole("link", { name: /non lue$/ })).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: /Réessayer/ }),
+  ).not.toBeOnTheScreen();
   expect(screen.queryByText("Aucune notification pour le moment")).toBeNull();
+
+  // When
+  mockFetch.mockImplementation(response);
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: /non lue$/ }),
+  ).toBeOnTheScreen();
 });
 
-it("removes expired content while active offline and clears an unprovable total", async () => {
+it("removes known expired content while active offline without restoring it after a failed read", async () => {
   // Given
   rows = [
     {
@@ -333,7 +346,7 @@ it("clears the app badge on session invalidation and excludes guest private read
   ).toBe(false);
 });
 
-it("retains loaded cards and the same cursor through next-page failure and explicit retry", async () => {
+it("loads only the focused inbox and retains rows while its compact footer retries the same failed cursor", async () => {
   // Given
   const second = {
     ...row,
@@ -346,35 +359,71 @@ it("retains loaded cards and the same cursor through next-page failure and expli
     if (!target.pathname.endsWith("/notifications")) return response(url, init);
     if (!target.searchParams.has("cursor"))
       return Promise.resolve(
-        Response.json({ notifications: [row], nextCursor: "same-boundary" }),
+        Response.json(
+          failNext
+            ? { notifications: [row], nextCursor: "same-boundary" }
+            : { notifications: [second] },
+        ),
       );
     if (failNext) return Promise.reject(new TypeError("offline"));
     return Promise.resolve(Response.json({ notifications: [second] }));
   });
   await showInbox();
   const user = userEvent.setup();
+  const first = await screen.findByRole("link", {
+    name: /^Le résultat.*non lue$/,
+  });
 
-  // When
-  await user.press(
-    await screen.findByRole("button", { name: "Charger la suite" }),
-  );
+  // When: only the focused list consumes a native end-of-list event.
+  mockFocused = false;
+  await fireEvent(first, "endReached");
 
   // Then
   expect(
-    await screen.findByRole("button", { name: "Réessayer" }),
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).searchParams.has("cursor"),
+    ),
+  ).toHaveLength(0);
+
+  // When
+  mockFocused = true;
+  await fireEvent(first, "endReached");
+
+  // Then
+  expect(
+    await screen.findByRole("button", {
+      name: /Une erreur est survenue.*Réessayer/,
+    }),
   ).toBeOnTheScreen();
+  await fireEvent(first, "endReached");
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).searchParams.has("cursor"),
+    ),
+  ).toHaveLength(1);
   expect(
     screen.getByRole("link", { name: /^Le résultat.*non lue$/ }),
   ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 
   // When
   failNext = false;
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(screen.getByRole("button", { name: /Réessayer/ }));
 
   // Then
   expect(
     await screen.findByRole("link", { name: /^Un lien.*non lue$/ }),
   ).toBeOnTheScreen();
+  await fireEvent(
+    screen.getByRole("link", { name: /^Un lien.*non lue$/ }),
+    "endReached",
+  );
+  expect(
+    screen.queryByRole("button", { name: /Réessayer/ }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Charger la suite" }),
+  ).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls
       .filter(([url]) => new URL(url).searchParams.has("cursor"))

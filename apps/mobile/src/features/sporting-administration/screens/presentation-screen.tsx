@@ -1,3 +1,4 @@
+import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { PageHeader } from "../../../shared/components/page-header";
@@ -125,40 +126,48 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
       )))
     : undefined;
   return (
-    <Page>
-      <PageHeader title={title} />
-      <FormScrollView
-        refreshControl={
-          sessionStatus === "authenticated" &&
-          target.kind !== "division-creation" ? (
-            <DataRefreshControl
-              enabled={!editing.save.pending}
-              refreshing={
-                editing.query.isRefetching ||
-                account.isRefetching ||
-                logoRefreshing
-              }
-              onRefresh={() => void refresh()}
-            />
-          ) : undefined
-        }
-      >
-        {blockingState ? (
-          <ScreenState>{blockingState}</ScreenState>
-        ) : (
-          <PageContent>
-            {presentation && (
-              <PresentationForm
-                key={`${session.generation}:${target.kind}:${target.id}`}
-                presentation={presentation}
-                target={target}
-                editing={editing}
-                disabled={!canManage || editing.query.isError}
-              />
+    <Page edges={["left", "right", "bottom"]}>
+      <ScrollChrome header={<PageHeader title={title} />}>
+        {({ onScroll, headerHeight }) => (
+          <FormScrollView
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            scrollIndicatorInsets={{ top: headerHeight }}
+            contentContainerStyle={{ paddingTop: headerHeight }}
+            refreshControl={
+              sessionStatus === "authenticated" &&
+              target.kind !== "division-creation" ? (
+                <DataRefreshControl
+                  progressViewOffset={headerHeight}
+                  enabled={!editing.save.pending}
+                  refreshing={
+                    editing.query.isRefetching ||
+                    account.isRefetching ||
+                    logoRefreshing
+                  }
+                  onRefresh={() => void refresh()}
+                />
+              ) : undefined
+            }
+          >
+            {blockingState ? (
+              <ScreenState>{blockingState}</ScreenState>
+            ) : (
+              <PageContent>
+                {presentation && (
+                  <PresentationForm
+                    key={`${session.generation}:${target.kind}:${target.id}`}
+                    presentation={presentation}
+                    target={target}
+                    editing={editing}
+                    disabled={!canManage || editing.query.isError}
+                  />
+                )}
+              </PageContent>
             )}
-          </PageContent>
+          </FormScrollView>
         )}
-      </FormScrollView>
+      </ScrollChrome>
     </Page>
   );
 }

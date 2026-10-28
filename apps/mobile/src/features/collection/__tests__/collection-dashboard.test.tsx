@@ -44,6 +44,7 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ back: mockBack, push: mockPush }),
+  useNavigation: () => ({ isFocused: mockIsFocused }),
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, options?: RequestInit) =>
@@ -55,10 +56,12 @@ const mockFetch = jest.fn<
 >();
 const mockPush = jest.fn();
 const mockBack = jest.fn();
+const mockIsFocused = jest.fn(() => true);
 const environment = { ...process.env };
 let peer: ReturnType<typeof collectionPeer>;
 let client = createQueryClient();
 beforeEach(() => {
+  mockIsFocused.mockReset().mockReturnValue(true);
   peer = collectionPeer();
   client = createQueryClient();
   Object.assign(process.env, {
@@ -113,6 +116,48 @@ it("separates competition seasons from the two seasonless controls", async () =>
       ([, options]) => !options?.method || options.method === "GET",
     ),
   ).toBe(true);
+});
+
+it("retains authorized seasons after a failed overview refresh with discreet feedback and no refresh button", async () => {
+  // Given
+  let unavailable = false;
+  mockFetch.mockImplementation((url, options) =>
+    unavailable && new URL(String(url)).pathname.endsWith("/collection-seasons")
+      ? Promise.resolve(refused(503))
+      : peer.reads(url, options),
+  );
+  await renderCollection(<CollectionDashboardScreen />, client);
+  await screen.findByRole("link", { name: /2026\/2027/ });
+
+  // When
+  unavailable = true;
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: /2026\/2027/ })).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: "Fiches clubs" })).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: "Géocodage" })).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  unavailable = false;
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: /2026\/2027/ }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", { name: "Une erreur est survenue" }),
+  ).not.toBeOnTheScreen();
 });
 
 it("refreshes only reads and retains uncertain integration and absent measurements while paused", async () => {
@@ -565,7 +610,7 @@ it("retains running evidence while pause cancels an unstarted request", async ()
   expect(screen.getByRole("button", { name: "En cours" })).toBeDisabled();
 });
 
-it("retains earlier rows and retries the failed next results page", async () => {
+it("retains result rows and retries the failed page locally without replaying automatic edges", async () => {
   // Given
   const user = userEvent.setup();
   let pageAvailable = false;
@@ -597,15 +642,43 @@ it("retains earlier rows and retries the failed next results page", async () => 
     client,
   );
 
+  await screen.findByText("Nationale 2 · Poule A · Calendrier");
+
+  // When
+  mockIsFocused.mockReturnValue(false);
+  await fireEvent(screen.getByTestId("collection-results-list"), "endReached");
+
+  // Then
+  expect(
+    mockFetch.mock.calls.filter(([url]) => String(url).includes("page=1")),
+  ).toHaveLength(0);
+
+  // When
+  mockIsFocused.mockReturnValue(true);
+  await fireEvent(screen.getByTestId("collection-results-list"), "endReached");
+  await screen.findByRole("button", {
+    name: "Une erreur est survenue. Réessayer.",
+  });
+  pageAvailable = true;
+  await fireEvent(screen.getByTestId("collection-results-list"), "endReached");
+
+  // Then
+  expect(
+    screen.getByText("Nationale 2 · Poule A · Calendrier"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByText(
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
+    ),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) => String(url).includes("page=1")),
+  ).toHaveLength(1);
+
   // When
   await user.press(
-    await screen.findByRole("button", { name: "Charger la suite" }),
+    screen.getByRole("button", { name: "Une erreur est survenue. Réessayer." }),
   );
-  await screen.findByText(
-    "Une erreur est survenue. Veuillez réessayer plus tard.",
-  );
-  pageAvailable = true;
-  await user.press(await screen.findByRole("button", { name: "Réessayer" }));
 
   // Then
   expect(
@@ -618,6 +691,62 @@ it("retains earlier rows and retries the failed next results page", async () => 
     mockFetch.mock.calls.filter(([url]) => String(url).includes("page=1")),
   ).toHaveLength(2);
 });
+
+it.each([
+  { projection: "results", status: 503 },
+  { projection: "control", status: 500 },
+] as const)(
+  "retains authorized result rows after a failed $projection refresh with ordinary discreet feedback",
+  async ({ projection, status }) => {
+    // Given
+    peer.results = [result()];
+    let unavailable = false;
+    const failedPath =
+      projection === "results"
+        ? "/results"
+        : `/collection-controls/${control().id}`;
+    mockFetch.mockImplementation((url, options) =>
+      unavailable && new URL(String(url)).pathname.endsWith(failedPath)
+        ? Promise.resolve(refused(status))
+        : peer.reads(url, options),
+    );
+    await renderCollection(
+      <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+      client,
+    );
+    await screen.findByText("Nationale 2 · Poule A · Calendrier");
+
+    // When
+    unavailable = true;
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then
+    expect(
+      await screen.findByRole("alert", {
+        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText("Nationale 2 · Poule A · Calendrier"),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Réessayer" }),
+    ).not.toBeOnTheScreen();
+
+    // When
+    unavailable = false;
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+
+    // Then
+    expect(
+      await screen.findByText("Nationale 2 · Poule A · Calendrier"),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("alert", { name: "Une erreur est survenue" }),
+    ).not.toBeOnTheScreen();
+  },
+);
 
 it("rejects a malformed command acknowledgement and keeps the uncertain scope locked after a failed reread", async () => {
   // Given
@@ -857,19 +986,23 @@ it("keeps completion freshness already read at the same editing revision as a de
   expect(screen.queryByText("Collecte en cours")).toBeNull();
 });
 
-it("disables pull-to-refresh while a collection command is awaiting acknowledgement", async () => {
+it("blocks refresh and automatic paging while a collection command is awaiting acknowledgement", async () => {
   // Given
   const user = userEvent.setup();
   const acknowledgement = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "POST"
-      ? acknowledgement.promise
-      : peer.reads(url, options),
-  );
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "POST") return acknowledgement.promise;
+    if (new URL(String(url)).pathname.endsWith("/results"))
+      return Promise.resolve(
+        json({ items: [result()], page: 0, hasNext: true }),
+      );
+    return peer.reads(url, options);
+  });
   await renderCollection(
     <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
     client,
   );
+  await screen.findByText("Nationale 2 · Poule A · Calendrier");
 
   // When
   await user.press(await screen.findByRole("button", { name: "Relancer" }));
@@ -887,6 +1020,7 @@ it("disables pull-to-refresh while a collection command is awaiting acknowledgem
   mockFetch.mockClear();
   // When
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await fireEvent(screen.getByTestId("collection-results-list"), "endReached");
   // Then
   expect(mockFetch).not.toHaveBeenCalled();
 

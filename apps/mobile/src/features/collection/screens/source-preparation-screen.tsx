@@ -1,3 +1,4 @@
+import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import { AccessFeedback } from "../../access/components/access-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
@@ -52,58 +53,66 @@ export function SourcePreparationScreen({
     )
   ) : undefined;
   return (
-    <Page>
-      <PageHeader title={current?.label ?? "Source"} />
-      <FormScrollView
-        refreshControl={
-          authority.sessionStatus === "authenticated" ? (
-            <DataRefreshControl
-              refreshing={
-                source.isRefetching ||
-                season.isRefetching ||
-                authority.account.isRefetching
-              }
-              enabled={!editing.candidate.pending}
-              onRefresh={() => {
-                if (editing.candidate.isPending()) return;
-                if (!authority.enabled)
-                  void authority.account
-                    .refetch({ cancelRefetch: false })
-                    .then((result) => {
-                      if (result.isError && retained) feedback.error();
-                    });
-                else {
-                  void source
-                    .refetch({ cancelRefetch: false })
-                    .then((result) => {
-                      if (result.isError && retained) feedback.error();
-                    });
-                  void season
-                    .refetch({ cancelRefetch: false })
-                    .then((result) => {
-                      if (result.isError && retained) feedback.error();
-                    });
-                }
-              }}
-            />
-          ) : undefined
-        }
-      >
-        {blockingState ? (
-          <ScreenState>{blockingState}</ScreenState>
-        ) : (
-          <PageContent>
-            {current && season.data && current.seasonId === seasonId && (
-              <SourceCandidateForm
-                key={`${authority.session.generation}:${sourceId}`}
-                source={current}
-                season={season.data}
-                editing={editing}
-              />
+    <Page edges={["left", "right", "bottom"]}>
+      <ScrollChrome header={<PageHeader title={current?.label ?? "Source"} />}>
+        {({ onScroll, headerHeight }) => (
+          <FormScrollView
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            scrollIndicatorInsets={{ top: headerHeight }}
+            contentContainerStyle={{ paddingTop: headerHeight }}
+            refreshControl={
+              authority.sessionStatus === "authenticated" ? (
+                <DataRefreshControl
+                  progressViewOffset={headerHeight}
+                  refreshing={
+                    source.isRefetching ||
+                    season.isRefetching ||
+                    authority.account.isRefetching
+                  }
+                  enabled={!editing.candidate.pending}
+                  onRefresh={() => {
+                    if (editing.candidate.isPending()) return;
+                    if (!authority.enabled)
+                      void authority.account
+                        .refetch({ cancelRefetch: false })
+                        .then((result) => {
+                          if (result.isError && retained) feedback.error();
+                        });
+                    else {
+                      void source
+                        .refetch({ cancelRefetch: false })
+                        .then((result) => {
+                          if (result.isError && retained) feedback.error();
+                        });
+                      void season
+                        .refetch({ cancelRefetch: false })
+                        .then((result) => {
+                          if (result.isError && retained) feedback.error();
+                        });
+                    }
+                  }}
+                />
+              ) : undefined
+            }
+          >
+            {blockingState ? (
+              <ScreenState>{blockingState}</ScreenState>
+            ) : (
+              <PageContent>
+                {current && season.data && current.seasonId === seasonId && (
+                  <SourceCandidateForm
+                    key={`${authority.session.generation}:${sourceId}`}
+                    source={current}
+                    season={season.data}
+                    editing={editing}
+                  />
+                )}
+              </PageContent>
             )}
-          </PageContent>
+          </FormScrollView>
         )}
-      </FormScrollView>
+      </ScrollChrome>
     </Page>
   );
 }

@@ -41,3 +41,22 @@ it("returns home when a direct entry has no previous destination", async () => {
   // Then
   expect(await screen.findByText("Accueil")).toBeOnTheScreen();
 });
+
+it("keeps the accessible heading when compact content replaces the visual title", async () => {
+  // Given
+  const compactRoutes = {
+    ...routes,
+    compact: () => (
+      <PageHeader title="Équipe">
+        <Text accessible={false}>Nom compact</Text>
+      </PageHeader>
+    ),
+  };
+
+  // When
+  await renderRouter(compactRoutes, { initialUrl: "/compact" });
+
+  // Then
+  expect(screen.getByRole("header", { name: "Équipe" })).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Retour" })).toBeOnTheScreen();
+});

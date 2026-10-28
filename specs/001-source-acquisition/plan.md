@@ -121,7 +121,7 @@ Operational projections retain current outcome, last attempt, last successful ob
 
 ## Contracts and validation
 
-The [contract overview](contracts/README.md) owns interface coordination and links canonical definitions. F12 projects the optional `manageCollection` capability on the existing account response; current backend grants remain authoritative. Source/season/control mutations use the established body-revision conventions, shared descriptive Problem Details, no automatic mobile mutation retry and current-state reads after uncertain responses.
+The [contract overview](contracts/README.md) owns interface coordination and links canonical definitions. F12 projects the optional `manageCollection` capability on the existing account response; current backend grants remain authoritative. Source/season/control mutations use the established body-revision conventions, shared descriptive Problem Details, no automatic mobile mutation retry and current-state reads after uncertain responses. Paginated discovered children and control-result history use [F13's automatic continuation and retained-row footer feedback](../003-shared-quality/plan.md#repeated-interaction-conventions), while their Query, authorization and command owners retain their scopes.
 
 The [research](research.md) separates official documented capabilities, direct provider observations and remaining qualifications. The [quickstart](quickstart.md) records executable construction checks, their controlled boundaries and remaining provider/native/environment qualifications. No constitutional exception is proposed.
 

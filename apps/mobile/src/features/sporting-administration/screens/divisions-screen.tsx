@@ -1,6 +1,7 @@
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { AccessFeedback } from "../../access/components/access-feedback";
 import { PageHeader } from "../../../shared/components/page-header";
+import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import {
   Page,
   PageScrollView,
@@ -15,7 +16,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useRouter } from "expo-router";
 import { ChevronRight, Plus } from "lucide-react-native";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
 import { IconButton } from "../../../shared/components/icon-button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
@@ -66,51 +68,21 @@ export function DivisionsScreen() {
     <AccessFeedback {...authority} />
   ) : undefined;
   return (
-    <Page>
-      <PageHeader title="Divisions" />
-      {blockingState ? (
-        <PageScrollView
-          refreshControl={
-            authority.sessionStatus === "authenticated" ? (
-              <DataRefreshControl
-                refreshing={authority.account.isRefetching}
-                onRefresh={() =>
-                  void authority.account.refetch().then((result) => {
-                    if (
-                      result.isError &&
-                      result.data &&
-                      !isAccessDenied(result.error)
-                    )
-                      feedback.error();
-                  })
-                }
-              />
-            ) : undefined
-          }
-        >
-          <ScreenState>{blockingState}</ScreenState>
-        </PageScrollView>
-      ) : (
-        <>
-          <FlatList
-            alwaysBounceVertical
-            refreshControl={
-              authority.sessionStatus === "authenticated" ? (
-                <DataRefreshControl
-                  refreshing={
-                    query.isRefetching || authority.account.isRefetching
-                  }
-                  onRefresh={() => {
-                    if (authority.enabled)
-                      void query.refetch().then((result) => {
-                        if (
-                          result.isError &&
-                          result.data &&
-                          !isAccessDenied(result.error)
-                        )
-                          feedback.error();
-                      });
-                    else
+    <Page edges={["left", "right", "bottom"]}>
+      <ScrollChrome header={<PageHeader title="Divisions" />}>
+        {({ onScroll, headerHeight }) =>
+          blockingState ? (
+            <PageScrollView
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              scrollIndicatorInsets={{ top: headerHeight }}
+              contentContainerStyle={{ paddingTop: headerHeight }}
+              refreshControl={
+                authority.sessionStatus === "authenticated" ? (
+                  <DataRefreshControl
+                    progressViewOffset={headerHeight}
+                    refreshing={authority.account.isRefetching}
+                    onRefresh={() =>
                       void authority.account.refetch().then((result) => {
                         if (
                           result.isError &&
@@ -118,177 +90,225 @@ export function DivisionsScreen() {
                           !isAccessDenied(result.error)
                         )
                           feedback.error();
-                      });
-                  }}
-                />
-              ) : undefined
-            }
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            data={items}
-            keyExtractor={(division) => division.id}
-            contentContainerStyle={
-              items.length ? pageContentStyle : styles.list
-            }
-            ItemSeparatorComponent={ListSeparator}
-            ListHeaderComponent={
-              <View
-                style={[!items.length && pageContentStyle, styles.controls]}
-              >
-                <View style={styles.toolbar}>
-                  <View style={styles.search}>
-                    <Controller
-                      control={control}
-                      name="search"
-                      render={({ field, fieldState }) => (
-                        <SearchField
-                          ref={field.ref}
-                          label="Rechercher une division"
-                          placeholder="Rechercher une division…"
-                          value={field.value}
-                          onChangeText={field.onChange}
-                          onBlur={field.onBlur}
-                          onClear={() => reset(divisionSearchValues())}
-                          error={fieldState.error?.message}
-                        />
-                      )}
+                      })
+                    }
+                  />
+                ) : undefined
+              }
+            >
+              <ScreenState>{blockingState}</ScreenState>
+            </PageScrollView>
+          ) : (
+            <>
+              <Animated.FlatList
+                onScroll={onScroll}
+                scrollEventThrottle={16}
+                scrollIndicatorInsets={{ top: headerHeight }}
+                alwaysBounceVertical
+                refreshControl={
+                  authority.sessionStatus === "authenticated" ? (
+                    <DataRefreshControl
+                      progressViewOffset={headerHeight}
+                      refreshing={
+                        query.isRefetching || authority.account.isRefetching
+                      }
+                      onRefresh={() => {
+                        if (authority.enabled)
+                          void query.refetch().then((result) => {
+                            if (
+                              result.isError &&
+                              result.data &&
+                              !isAccessDenied(result.error)
+                            )
+                              feedback.error();
+                          });
+                        else
+                          void authority.account.refetch().then((result) => {
+                            if (
+                              result.isError &&
+                              result.data &&
+                              !isAccessDenied(result.error)
+                            )
+                              feedback.error();
+                          });
+                      }}
                     />
-                  </View>
-                  {authority.permissions?.manageDivisionLifecycle === true && (
-                    <View
-                      style={[
-                        styles.add,
-                        {
-                          backgroundColor: colors.raised,
-                        },
-                      ]}
-                    >
-                      <IconButton
-                        label="Créer une division"
-                        size="control"
-                        onPress={() =>
-                          router.push("/administration/divisions/new")
-                        }
-                      >
-                        <Plus
-                          accessible={false}
-                          size={tokens.size.icon.lg}
-                          color={colors.icon}
+                  ) : undefined
+                }
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                data={items}
+                keyExtractor={(division) => division.id}
+                contentContainerStyle={[
+                  items.length ? pageContentStyle : styles.list,
+                  {
+                    paddingTop:
+                      headerHeight +
+                      (items.length ? tokens.layout.content.start : 0),
+                  },
+                ]}
+                ItemSeparatorComponent={ListSeparator}
+                ListHeaderComponent={
+                  <View
+                    style={[!items.length && pageContentStyle, styles.controls]}
+                  >
+                    <View style={styles.toolbar}>
+                      <View style={styles.search}>
+                        <Controller
+                          control={control}
+                          name="search"
+                          render={({ field, fieldState }) => (
+                            <SearchField
+                              ref={field.ref}
+                              label="Rechercher une division"
+                              placeholder="Rechercher une division…"
+                              value={field.value}
+                              onChangeText={field.onChange}
+                              onBlur={field.onBlur}
+                              onClear={() => reset(divisionSearchValues())}
+                              error={fieldState.error?.message}
+                            />
+                          )}
                         />
-                      </IconButton>
-                      <View
-                        pointerEvents="none"
-                        accessible={false}
-                        style={[
-                          styles.addBorder,
-                          { borderColor: colors.border },
-                        ]}
-                      />
-                    </View>
-                  )}
-                </View>
-                <View style={styles.filters}>
-                  {[true, false].map((value) => (
-                    <Pressable
-                      key={String(value)}
-                      accessibilityRole="tab"
-                      accessibilityLabel={value ? "Actives" : "Inactives"}
-                      accessibilityState={{ selected: active === value }}
-                      onPress={() => setActive(value)}
-                      style={styles.filterTarget}
-                    >
-                      {({ pressed }) => (
+                      </View>
+                      {authority.permissions?.manageDivisionLifecycle ===
+                        true && (
                         <View
                           style={[
-                            styles.filter,
+                            styles.add,
                             {
-                              backgroundColor:
-                                active === value
-                                  ? membership.fill
-                                  : colors.subtle,
-                              borderColor:
-                                active === value
-                                  ? membership.border
-                                  : colors.border,
-                              opacity: pressed ? tokens.opacity.pressed : 1,
+                              backgroundColor: colors.raised,
                             },
                           ]}
                         >
-                          <Text
-                            style={[
-                              tokens.typography.metadata,
-                              {
-                                color:
-                                  active === value
-                                    ? membership.content
-                                    : colors.secondaryText,
-                              },
-                            ]}
+                          <IconButton
+                            label="Créer une division"
+                            size="control"
+                            onPress={() =>
+                              router.push("/administration/divisions/new")
+                            }
                           >
-                            {value ? "Actives" : "Inactives"}
-                          </Text>
+                            <Plus
+                              accessible={false}
+                              size={tokens.size.icon.lg}
+                              color={colors.icon}
+                            />
+                          </IconButton>
+                          <View
+                            pointerEvents="none"
+                            accessible={false}
+                            style={[
+                              styles.addBorder,
+                              { borderColor: colors.border },
+                            ]}
+                          />
                         </View>
                       )}
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-            }
-            ListEmptyComponent={
-              query.isPending && !denied ? (
-                <View style={pageContentStyle}>
-                  <DivisionsLoading />
-                </View>
-              ) : (
-                <ScreenState>
-                  {denied ? (
-                    <ErrorState
-                      onRetry={() => void query.refetch()}
-                      retrying={query.isFetching}
-                    />
-                  ) : query.isError && !query.data ? (
-                    <ErrorState
-                      onRetry={() =>
-                        void query.refetch().then((result) => {
-                          if (
-                            result.isError &&
-                            result.data &&
-                            !isAccessDenied(result.error)
-                          )
-                            feedback.error();
-                        })
-                      }
-                      retrying={query.isFetching}
-                    />
-                  ) : (
-                    <EmptyState
-                      title={
-                        search.trim()
-                          ? "Aucune division ne correspond à votre recherche."
-                          : active
-                            ? "Aucune division active"
-                            : "Aucune division inactive"
-                      }
-                    />
-                  )}
-                </ScreenState>
-              )
-            }
-            renderItem={({ item }) => (
-              <DivisionCard
-                division={item}
-                canEdit={canEdit}
-                onPress={() =>
-                  router.push({
-                    pathname: "/administration/divisions/[id]",
-                    params: { id: item.id },
-                  })
+                    </View>
+                    <View style={styles.filters}>
+                      {[true, false].map((value) => (
+                        <Pressable
+                          key={String(value)}
+                          accessibilityRole="tab"
+                          accessibilityLabel={value ? "Actives" : "Inactives"}
+                          accessibilityState={{ selected: active === value }}
+                          onPress={() => setActive(value)}
+                          style={styles.filterTarget}
+                        >
+                          {({ pressed }) => (
+                            <View
+                              style={[
+                                styles.filter,
+                                {
+                                  backgroundColor:
+                                    active === value
+                                      ? membership.fill
+                                      : colors.subtle,
+                                  borderColor:
+                                    active === value
+                                      ? membership.border
+                                      : colors.border,
+                                  opacity: pressed ? tokens.opacity.pressed : 1,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  tokens.typography.metadata,
+                                  {
+                                    color:
+                                      active === value
+                                        ? membership.content
+                                        : colors.secondaryText,
+                                  },
+                                ]}
+                              >
+                                {value ? "Actives" : "Inactives"}
+                              </Text>
+                            </View>
+                          )}
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
                 }
+                ListEmptyComponent={
+                  query.isPending && !denied ? (
+                    <View style={pageContentStyle}>
+                      <DivisionsLoading />
+                    </View>
+                  ) : (
+                    <ScreenState>
+                      {denied ? (
+                        <ErrorState
+                          onRetry={() => void query.refetch()}
+                          retrying={query.isFetching}
+                        />
+                      ) : query.isError && !query.data ? (
+                        <ErrorState
+                          onRetry={() =>
+                            void query.refetch().then((result) => {
+                              if (
+                                result.isError &&
+                                result.data &&
+                                !isAccessDenied(result.error)
+                              )
+                                feedback.error();
+                            })
+                          }
+                          retrying={query.isFetching}
+                        />
+                      ) : (
+                        <EmptyState
+                          title={
+                            search.trim()
+                              ? "Aucune division ne correspond à votre recherche."
+                              : active
+                                ? "Aucune division active"
+                                : "Aucune division inactive"
+                          }
+                        />
+                      )}
+                    </ScreenState>
+                  )
+                }
+                renderItem={({ item }) => (
+                  <DivisionCard
+                    division={item}
+                    canEdit={canEdit}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/administration/divisions/[id]",
+                        params: { id: item.id },
+                      })
+                    }
+                  />
+                )}
               />
-            )}
-          />
-        </>
-      )}
+            </>
+          )
+        }
+      </ScrollChrome>
     </Page>
   );
 }

@@ -1,4 +1,5 @@
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import { useEffect, type ReactNode, type ReactElement } from "react";
 import { QueryClientProvider, useInfiniteQuery } from "@tanstack/react-query";
@@ -11,6 +12,7 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { Text, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Button } from "../../../shared/components/button";
 import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
 import {
@@ -59,6 +61,7 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ push: mockPush }),
+  useNavigation: () => ({ isFocused: () => true }),
   useLocalSearchParams: () => mockRouteParams,
 }));
 jest.mock("expo/fetch", () => ({
@@ -111,21 +114,23 @@ function SessionProbe({ children }: { children: ReactNode }) {
   return children;
 }
 
-/** Real Query, theme, F12 and F05 providers; only native identity I/O and HTTP are controlled. */
+/** Real gesture, Query, theme, F12 and F05 providers; native I/O, route focus, viewport and HTTP are controlled. */
 async function renderFollowing(children: ReactElement) {
   return render(children, {
     wrapper: ({ children }) => (
-      <QueryClientProvider client={client}>
-        <ThemeProvider>
-          <ApplicationAccessProvider>
-            <AccountSessionProvider>
-              <AccountFeedbackProvider>
-                <SessionProbe>{children}</SessionProbe>
-              </AccountFeedbackProvider>
-            </AccountSessionProvider>
-          </ApplicationAccessProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
+      <GestureHandlerRootView>
+        <QueryClientProvider client={client}>
+          <ThemeProvider>
+            <ApplicationAccessProvider>
+              <AccountSessionProvider>
+                <AccountFeedbackProvider>
+                  <SessionProbe>{children}</SessionProbe>
+                </AccountFeedbackProvider>
+              </AccountSessionProvider>
+            </ApplicationAccessProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </GestureHandlerRootView>
     ),
   });
 }
@@ -325,6 +330,7 @@ it.each(["team", "pool"] as const)(
     await renderFollowing(type === "team" ? <TeamRoute /> : <PoolRoute />);
     await waitFor(() => expect(session.status).toBe("authenticated"));
     await screen.findByText(type === "team" ? "Volley Démo" : "Phase 01");
+    await layoutNativeTabs();
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
     );

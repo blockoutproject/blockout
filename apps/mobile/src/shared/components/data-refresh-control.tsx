@@ -4,7 +4,12 @@ import { useTheme } from "../theme/theme-provider";
 /** Native refresh inputs; ScrollView also injects its Android child and layout into this element. */
 export type DataRefreshControlProps = Pick<
   RefreshControlProps,
-  "refreshing" | "onRefresh" | "enabled" | "children" | "style"
+  | "refreshing"
+  | "onRefresh"
+  | "enabled"
+  | "children"
+  | "style"
+  | "progressViewOffset"
 >;
 
 /**

@@ -2,6 +2,7 @@ import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { PageHeader } from "../../../shared/components/page-header";
+import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import {
   Page,
   PageScrollView,
@@ -52,36 +53,44 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
   }
   const blockingState = !data ? <ReadFeedback query={match} /> : undefined;
   return (
-    <Page>
-      <PageHeader />
-      <PageScrollView
-        refreshControl={
-          <DataRefreshControl
-            refreshing={match.isRefetching}
-            onRefresh={() => void refresh()}
-          />
-        }
-      >
-        {blockingState ? (
-          <ScreenState>{blockingState}</ScreenState>
-        ) : (
-          <PageContent>
-            {data && (
-              <>
-                <MatchSummary
-                  match={data.match}
-                  displayTimeZone={presentation.timeZone}
-                />
-                <MatchSetScores match={data.match} sets={data.sets} />
-                <MatchInformation
-                  detail={data}
-                  displayTimeZone={presentation.timeZone}
-                />
-              </>
+    <Page edges={["left", "right", "bottom"]}>
+      <ScrollChrome header={<PageHeader />}>
+        {({ onScroll, headerHeight }) => (
+          <PageScrollView
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            scrollIndicatorInsets={{ top: headerHeight }}
+            contentContainerStyle={{ paddingTop: headerHeight }}
+            refreshControl={
+              <DataRefreshControl
+                progressViewOffset={headerHeight}
+                refreshing={match.isRefetching}
+                onRefresh={() => void refresh()}
+              />
+            }
+          >
+            {blockingState ? (
+              <ScreenState>{blockingState}</ScreenState>
+            ) : (
+              <PageContent>
+                {data && (
+                  <>
+                    <MatchSummary
+                      match={data.match}
+                      displayTimeZone={presentation.timeZone}
+                    />
+                    <MatchSetScores match={data.match} sets={data.sets} />
+                    <MatchInformation
+                      detail={data}
+                      displayTimeZone={presentation.timeZone}
+                    />
+                  </>
+                )}
+              </PageContent>
             )}
-          </PageContent>
+          </PageScrollView>
         )}
-      </PageScrollView>
+      </ScrollChrome>
     </Page>
   );
 }

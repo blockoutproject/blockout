@@ -1,7 +1,8 @@
 import { SportingCalendar } from "../components/sporting-calendar";
-import { SportingPager } from "../components/sporting-pager";
+import { SportingCompactHeader } from "../components/sporting-compact-header";
+import { TabScrollView } from "react-native-collapsible-tab";
+import { PagedTabs } from "../../../shared/components/paged-tabs";
 import { ResourceText } from "../components/resource-text";
-import { Tabs } from "../../../shared/components/tabs";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
@@ -92,29 +93,38 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
       )}
     </SportingIdentity>
   ) : undefined;
-  const toolbar = (
-    <Tabs selected={tab ?? "upcoming"} onSelect={setSelected} items={tabs} />
-  );
   const blockingState = !data ? <ReadFeedback query={team} /> : undefined;
   return (
-    <Page>
-      <PageHeader title="Équipe" />
+    <Page edges={blockingState ? undefined : ["left", "right", "bottom"]}>
       {blockingState ? (
-        <PageScrollView
-          refreshControl={
-            <DataRefreshControl
-              refreshing={team.isRefetching}
-              onRefresh={() => void refresh()}
-            />
-          }
-        >
-          <ScreenState>{blockingState}</ScreenState>
-        </PageScrollView>
+        <>
+          <PageHeader title="Équipe" />
+          <PageScrollView
+            refreshControl={
+              <DataRefreshControl
+                refreshing={team.isRefetching}
+                onRefresh={() => void refresh()}
+              />
+            }
+          >
+            <ScreenState>{blockingState}</ScreenState>
+          </PageScrollView>
+        </>
       ) : (
-        <SportingPager
+        <PagedTabs
           selected={tab ?? "upcoming"}
           onSelect={setSelected}
-          panels={tabs.map((item) => {
+          header={
+            data && (
+              <SportingCompactHeader
+                title="Équipe"
+                identity={data.team.team}
+                kind="team"
+              />
+            )
+          }
+          collapsibleHeader={<PageContent>{identity}</PageContent>}
+          tabs={tabs.map((item) => {
             const participation = data?.participations.find(
               (pool) => pool.pool.id === item.id,
             );
@@ -124,18 +134,15 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
                 : undefined;
             return {
               id: item.id,
+              label: item.label,
               content: category ? (
                 <SportingCalendar
                   selection={{ teamId, category }}
-                  header={identity}
-                  toolbar={toolbar}
                   active={tab === item.id}
                 />
               ) : (
-                <PageScrollView>
+                <TabScrollView alwaysBounceVertical>
                   <PageContent>
-                    {identity}
-                    {toolbar}
                     {participation && (
                       <>
                         <Surface>
@@ -157,7 +164,7 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
                       </>
                     )}
                   </PageContent>
-                </PageScrollView>
+                </TabScrollView>
               ),
             };
           })}

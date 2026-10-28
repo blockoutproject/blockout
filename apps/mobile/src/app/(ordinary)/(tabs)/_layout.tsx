@@ -1,11 +1,20 @@
-import type { ComponentPropsWithRef } from "react";
+import { useEffect, useState, type ComponentPropsWithRef } from "react";
 import {
   Pressable,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
+  type LayoutRectangle,
 } from "react-native";
+import Animated, {
+  Easing,
+  ReduceMotion,
+  interpolateColor,
+  useAnimatedStyle,
+  useDerivedValue,
+  withTiming,
+} from "react-native-reanimated";
 import {
   Tabs,
   TabList,
@@ -21,14 +30,20 @@ import {
   type LucideIcon,
 } from "lucide-react-native";
 import { useQuery, queryOptions } from "@tanstack/react-query";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useInboxQueries } from "../../../features/notifications/api/use-inbox-queries";
 import { confirmedUnreadCount } from "../../../features/notifications/state/inbox-expiry";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import { useReducedMotion } from "../../../shared/theme/use-reduced-motion";
+import { SelectionIndicator } from "../../../shared/components/selection-indicator";
+import { BottomNavigationInsetContext } from "../../../shared/components/bottom-navigation-inset";
 
-/** Expo owns tab selection/history; native flex layout retains the approved two rows for enlarged text. */
+/** Expo owns focus/history; the measured floating capsule retains native two-row layout for enlarged text. */
 export default function TabsLayout() {
   const { session, queries } = useInboxQueries();
   const summary = useQuery({
@@ -46,52 +61,115 @@ export default function TabsLayout() {
   const { colors, membership } = useTheme();
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
+  const reducedMotion = useReducedMotion();
+  const [selectionLayout, setSelectionLayout] = useState<LayoutRectangle>();
+  const [capsuleHeight, setCapsuleHeight] = useState(0);
   const guest = session.status === "guest";
   const columns =
     fontScale >= 1.5 && !guest ? styles.twoColumns : styles.oneRow;
   return (
-    <Tabs
-      style={[styles.tabs, { backgroundColor: colors.canvas }]}
-      options={{ backBehavior: "history" }}
+    <BottomNavigationInsetContext
+      value={
+        capsuleHeight > 0
+          ? capsuleHeight + insets.bottom + tokens.spacing.sm
+          : 0
+      }
     >
-      <TabSlot />
-      <TabList
-        style={[
-          styles.capsule,
-          {
-            marginBottom: insets.bottom + tokens.spacing.sm,
-            marginHorizontal:
-              fontScale >= 1.5 ? tokens.spacing.lg : tokens.spacing.sm,
-            borderColor: membership.border,
-            backgroundColor: colors.raised,
-          },
-        ]}
+      <Tabs
+        style={[styles.tabs, { backgroundColor: colors.canvas }]}
+        options={{ backBehavior: "history" }}
       >
-        <TabTrigger name="index" href="/" asChild>
-          <TabButton
-            label="Accueil"
-            icon={House}
-            hidden={guest}
-            style={columns}
-          />
-        </TabTrigger>
-        <TabTrigger name="search" href="/search" asChild>
-          <TabButton label="Rechercher" icon={Search} style={columns} />
-        </TabTrigger>
-        <TabTrigger name="notifications" href="/notifications" asChild>
-          <TabButton
-            label="Notifications"
-            icon={Bell}
-            count={count}
-            hidden={guest}
-            style={columns}
-          />
-        </TabTrigger>
-        <TabTrigger name="profile" href="/profile" asChild>
-          <TabButton label="Profil" icon={UserRound} style={columns} />
-        </TabTrigger>
-      </TabList>
-    </Tabs>
+        <TabSlot />
+        <TabList asChild>
+          <NavigationCapsule
+            onLayout={({ nativeEvent }) =>
+              setCapsuleHeight(nativeEvent.layout.height)
+            }
+            layout={selectionLayout}
+            reducedMotion={reducedMotion}
+            style={{
+              marginBottom: insets.bottom + tokens.spacing.sm,
+              marginHorizontal:
+                fontScale >= 1.5 ? tokens.spacing.lg : tokens.spacing.sm,
+              borderColor: membership.border,
+              backgroundColor: colors.raised,
+            }}
+          >
+            <TabTrigger name="index" href="/" asChild>
+              <TabButton
+                label="Accueil"
+                icon={House}
+                hidden={guest}
+                style={columns}
+                reducedMotion={reducedMotion}
+                onFocusedLayout={setSelectionLayout}
+              />
+            </TabTrigger>
+            <TabTrigger name="search" href="/search" asChild>
+              <TabButton
+                label="Rechercher"
+                icon={Search}
+                style={columns}
+                reducedMotion={reducedMotion}
+                onFocusedLayout={setSelectionLayout}
+              />
+            </TabTrigger>
+            <TabTrigger name="notifications" href="/notifications" asChild>
+              <TabButton
+                label="Notifications"
+                icon={Bell}
+                count={count}
+                hidden={guest}
+                style={columns}
+                reducedMotion={reducedMotion}
+                onFocusedLayout={setSelectionLayout}
+              />
+            </TabTrigger>
+            <TabTrigger name="profile" href="/profile" asChild>
+              <TabButton
+                label="Profil"
+                icon={UserRound}
+                style={columns}
+                reducedMotion={reducedMotion}
+                onFocusedLayout={setSelectionLayout}
+              />
+            </TabTrigger>
+          </NavigationCapsule>
+        </TabList>
+      </Tabs>
+    </BottomNavigationInsetContext>
+  );
+}
+
+/** TabList's public slot retains direct trigger discovery while a borderless inner view owns measurement. */
+interface NavigationCapsuleProps extends ComponentPropsWithRef<typeof View> {
+  layout?: LayoutRectangle;
+  reducedMotion: boolean;
+}
+
+/** Retains TabList's horizontal safe areas and forwards its native props around the decorative selected well. */
+function NavigationCapsule({
+  children,
+  layout,
+  reducedMotion,
+  style,
+  ...props
+}: NavigationCapsuleProps) {
+  return (
+    <SafeAreaView
+      {...props}
+      edges={{ left: "additive", right: "additive" }}
+      style={[style, styles.capsule]}
+    >
+      <View style={styles.row}>
+        <SelectionIndicator
+          layout={layout}
+          reducedMotion={reducedMotion}
+          radius={tokens.radius.panelInset}
+        />
+        {children}
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -103,9 +181,11 @@ interface TabButtonProps extends Omit<TabTriggerSlotProps, "ref"> {
   icon: LucideIcon;
   count?: number;
   hidden?: boolean;
+  reducedMotion: boolean;
+  onFocusedLayout: (layout: LayoutRectangle | undefined) => void;
 }
 
-/** Native accessible trigger only; no local selection, manual navigation dispatch or badge counter. */
+/** Router alone selects the trigger; native geometry and one focus animation drive its decoration. */
 function TabButton({
   label,
   icon: Icon,
@@ -113,10 +193,38 @@ function TabButton({
   hidden = false,
   isFocused,
   style,
+  onLayout,
+  reducedMotion,
+  onFocusedLayout,
   ...props
 }: TabButtonProps) {
   const { colors, membership } = useTheme();
-  const foreground = isFocused ? membership.content : colors.icon;
+  const [layout, setLayout] = useState<LayoutRectangle>();
+  useEffect(() => {
+    if (isFocused) onFocusedLayout(hidden ? undefined : layout);
+  }, [isFocused, hidden, layout, onFocusedLayout]);
+  const focus = useDerivedValue(() =>
+    withTiming(isFocused ? 1 : 0, {
+      duration: reducedMotion ? 0 : tokens.motion.navigation.duration,
+      easing: Easing.out(Easing.cubic),
+      reduceMotion: ReduceMotion.System,
+    }),
+  );
+  const labelStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(
+      focus.value,
+      [0, 1],
+      [colors.text, membership.content],
+    ),
+  }));
+  const iconStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: 1 + focus.value * (tokens.motion.navigation.iconScale - 1) },
+      { translateY: -focus.value * tokens.motion.navigation.iconLift },
+    ],
+  }));
+  const inactiveStyle = useAnimatedStyle(() => ({ opacity: 1 - focus.value }));
+  const activeStyle = useAnimatedStyle(() => ({ opacity: focus.value }));
   return (
     <Pressable
       {...props}
@@ -127,23 +235,45 @@ function TabButton({
           ? `${label}, ${count} non ${count === 1 ? "lue" : "lues"}`
           : label
       }
+      onLayout={(event) => {
+        onLayout?.(event);
+        const next = event.nativeEvent.layout;
+        setLayout((current) =>
+          current?.x === next.x &&
+          current.y === next.y &&
+          current.width === next.width &&
+          current.height === next.height
+            ? current
+            : next,
+        );
+      }}
       style={(state) => [
         typeof style === "function" ? style(state) : style,
         // Router sizing survives; this composition owns vertical icon/label alignment.
         styles.button,
         {
-          backgroundColor: isFocused ? membership.fill : "transparent",
           opacity: state.pressed ? tokens.opacity.pressed : 1,
         },
         hidden && styles.hidden,
       ]}
     >
       <View>
-        <Icon
-          accessible={false}
-          color={foreground}
-          size={tokens.size.icon.lg}
-        />
+        <Animated.View style={[styles.icon, iconStyle]}>
+          <Animated.View style={inactiveStyle}>
+            <Icon
+              accessible={false}
+              color={colors.icon}
+              size={tokens.size.icon.lg}
+            />
+          </Animated.View>
+          <Animated.View style={[StyleSheet.absoluteFill, activeStyle]}>
+            <Icon
+              accessible={false}
+              color={membership.content}
+              size={tokens.size.icon.lg}
+            />
+          </Animated.View>
+        </Animated.View>
         {count !== undefined && count > 0 && (
           <View
             accessible={false}
@@ -160,7 +290,7 @@ function TabButton({
           </View>
         )}
       </View>
-      <Text style={[styles.label, { color: foreground }]}>{label}</Text>
+      <Animated.Text style={[styles.label, labelStyle]}>{label}</Animated.Text>
     </Pressable>
   );
 }
@@ -168,15 +298,21 @@ function TabButton({
 const styles = StyleSheet.create({
   tabs: { flex: 1 },
   capsule: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+    flexDirection: "column",
+    padding: tokens.spacing.xs,
+    borderRadius: tokens.radius.panel,
+    borderWidth: tokens.border.thin,
+  },
+  row: {
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "stretch",
     gap: tokens.spacing.xs,
-    padding: tokens.spacing.xs,
-    marginHorizontal: tokens.spacing.sm,
-    marginTop: tokens.spacing.lg,
-    borderRadius: tokens.radius.panel,
-    borderWidth: tokens.border.thin,
   },
   button: {
     flexDirection: "column",
@@ -191,6 +327,7 @@ const styles = StyleSheet.create({
   oneRow: { flexGrow: 1, flexBasis: 0 },
   twoColumns: { flexGrow: 1, flexBasis: "45%" },
   hidden: { display: "none" },
+  icon: { width: tokens.size.icon.lg, height: tokens.size.icon.lg },
   label: { ...tokens.typography.navigationLabel, textAlign: "center" },
   badge: {
     position: "absolute",

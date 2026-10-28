@@ -1,3 +1,4 @@
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   cleanup,
@@ -11,6 +12,7 @@ import { renderRouter } from "expo-router/testing-library";
 import { Stack } from "expo-router";
 import { Dimensions, Text } from "react-native";
 import { useLayoutEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import TabsLayout from "../../../app/(ordinary)/(tabs)/_layout";
 import NotificationsRoute from "../../../app/(ordinary)/(tabs)/notifications";
 import SearchLayout from "../../../app/(ordinary)/(tabs)/search/_layout";
@@ -75,18 +77,20 @@ function SessionRoutes() {
   );
 }
 
-/** Owns one in-memory cache for this route-tree integration scenario. */
+/** Owns one cache and the real gesture root; pager/list geometry remains a controlled native boundary. */
 function Root() {
   return (
-    <QueryClientProvider client={client}>
-      <ThemeProvider>
-        <ApplicationAccessProvider>
-          <AccountSessionProvider>
-            <SessionRoutes />
-          </AccountSessionProvider>
-        </ApplicationAccessProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={client}>
+        <ThemeProvider>
+          <ApplicationAccessProvider>
+            <AccountSessionProvider>
+              <SessionRoutes />
+            </AccountSessionProvider>
+          </ApplicationAccessProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -187,6 +191,8 @@ it("routes a guest to public search without requesting a personal inbox or showi
 
   // When
   await openInbox();
+  await screen.findByRole("tab", { name: "Équipes" });
+  await layoutNativeTabs();
 
   // Then
   await waitFor(() => expect(screen).toHavePathname("/search"));
@@ -203,6 +209,8 @@ it("retains the public search visit through its native sheets and a bottom-tab r
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(false);
   await openInbox();
+  await screen.findByRole("tab", { name: "Équipes" });
+  await layoutNativeTabs();
   const user = userEvent.setup();
   await user.press(await screen.findByRole("button", { name: "Filtres" }));
   await user.press(await screen.findByRole("button", { name: "Genre" }));
@@ -212,10 +220,14 @@ it("retains the public search visit through its native sheets and a bottom-tab r
   );
   await waitFor(() => expect(screen).toHavePathname("/search"));
 
+  await layoutNativeTabs();
+
   // When
   await user.press(screen.getByRole("button", { name: "Profil" }));
   await waitFor(() => expect(screen).toHavePathname("/profile"));
   await user.press(screen.getByRole("button", { name: "Rechercher" }));
+  await waitFor(() => expect(screen).toHavePathname("/search"));
+  await layoutNativeTabs();
   await user.press(
     await screen.findByRole("button", { name: "Filtres actifs" }),
   );
@@ -270,8 +282,9 @@ it("restarts from newest on tab return while a continuation is still in flight",
   });
   await openInbox();
   const user = userEvent.setup();
-  await user.press(
-    await screen.findByRole("button", { name: "Charger la suite" }),
+  await fireEvent(
+    await screen.findByRole("link", { name: /^Le résultat/ }),
+    "endReached",
   );
 
   // When
@@ -309,6 +322,7 @@ it("retains every native tab action and its full accessible name with enlarged t
   await waitFor(() => expect(screen).toHavePathname("/profile"));
   await user.press(screen.getByRole("button", { name: "Rechercher" }));
   await waitFor(() => expect(screen).toHavePathname("/search"));
+  await layoutNativeTabs();
   await user.press(
     screen.getByRole("button", { name: "Notifications, 7 non lues" }),
   );

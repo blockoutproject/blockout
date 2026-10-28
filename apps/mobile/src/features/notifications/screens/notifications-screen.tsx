@@ -5,14 +5,18 @@ import {
 } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useEffectEvent, useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 import {
   Page,
   PageContent,
+  PageScrollView,
   pageContentStyle,
 } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
-import { Button } from "../../../shared/components/button";
+import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+import { BottomNavigationSpacer } from "../../../shared/components/bottom-navigation-inset";
+import { ListContinuation } from "../../../shared/components/list-continuation";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
@@ -35,18 +39,28 @@ export function NotificationsScreen() {
   const { account } = authority;
   if (!authority.queries)
     return (
-      <Page edges={["top", "left", "right"]}>
-        <PageHeader title="Notifications" />
-        <ScreenState>
-          {account.isPending ? (
-            <RequestLoading />
-          ) : (
-            <ErrorState
-              onRetry={() => void account.refetch()}
-              retrying={account.isFetching}
-            />
+      <Page edges={["left", "right"]}>
+        <ScrollChrome header={<PageHeader title="Notifications" />}>
+          {({ onScroll, headerHeight }) => (
+            <PageScrollView
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              scrollIndicatorInsets={{ top: headerHeight }}
+              contentContainerStyle={{ paddingTop: headerHeight }}
+            >
+              <ScreenState>
+                {account.isPending ? (
+                  <RequestLoading />
+                ) : (
+                  <ErrorState
+                    onRetry={() => void account.refetch()}
+                    retrying={account.isFetching}
+                  />
+                )}
+              </ScreenState>
+            </PageScrollView>
           )}
-        </ScreenState>
+        </ScrollChrome>
       </Page>
     );
   return (
@@ -87,7 +101,7 @@ function Inbox({
     ).values(),
   ];
 
-  /** Opening/focus requests the first page and whole summary; failure retains authorized content. */
+  /** Opening/focus requests the first page and whole summary; Query owns the resulting read state. */
   const open = useEffectEvent(() => {
     void refreshInbox(client, queries).catch(() => undefined);
     void refreshNotificationSummary(client, queries).catch(() => undefined);
@@ -97,7 +111,7 @@ function Inbox({
     return navigation.addListener("focus", () => open());
   }, [navigation]);
 
-  /** User refresh reports failure discreetly and swaps traversal only after a successful native Query fetch. */
+  /** Explicit refresh retains authorized rows on ordinary failure and reports it through the existing toast. */
   async function refresh() {
     feedback.clear();
     const outcomes = await Promise.allSettled([
@@ -113,96 +127,115 @@ function Inbox({
     )
       feedback.error();
   }
-  /** Failed continuation leaves loaded rows and the exact same cursor available for explicit retry. */
+  /** The focused current owner may retry the failed cursor explicitly; native edge events never replay it. */
   async function loadMore() {
-    const result = await query.fetchNextPage({ cancelRefetch: false });
     if (
-      owner.isCurrent(owner.generation) &&
-      result.isError &&
-      !isAccessDenied(result.error)
+      !navigation.isFocused() ||
+      !owner.isCurrent(owner.generation) ||
+      !query.hasNextPage ||
+      query.isFetching ||
+      (query.isError && !query.isFetchNextPageError)
     )
-      feedback.error();
+      return;
+    await query.fetchNextPage({ cancelRefetch: false });
   }
   return (
-    <Page edges={["top", "left", "right"]}>
-      <View style={styles.header}>
-        <Text
-          accessibilityRole="header"
-          style={[tokens.typography.navigation, { color: colors.text }]}
-        >
-          Notifications
-        </Text>
-      </View>
-      <FlatList
-        alwaysBounceVertical
-        data={rows}
-        keyExtractor={(item) => item.id}
-        ItemSeparatorComponent={ListSeparator}
-        contentContainerStyle={rows.length ? pageContentStyle : styles.empty}
-        refreshControl={
-          <DataRefreshControl
-            refreshing={query.isRefetching && !query.isFetchingNextPage}
-            onRefresh={() => void refresh()}
-          />
+    <Page edges={["left", "right"]}>
+      <ScrollChrome
+        header={
+          <View style={styles.header}>
+            <Text
+              accessibilityRole="header"
+              style={[tokens.typography.navigation, { color: colors.text }]}
+            >
+              Notifications
+            </Text>
+          </View>
         }
-        ListEmptyComponent={
-          query.data ? (
-            <ScreenState>
-              <EmptyState
-                title="Aucune notification pour le moment"
-                description="Les nouvelles de vos équipes et poules suivies apparaîtront ici."
-              />
-            </ScreenState>
-          ) : query.isError ? (
-            <ScreenState>
-              <ErrorState
-                onRetry={() => void refresh()}
-                retrying={query.isFetching}
-              />
-            </ScreenState>
-          ) : (
-            <NotificationLoading />
-          )
-        }
-        ListFooterComponent={
-          query.hasNextPage ? (
-            <View style={styles.continuation}>
-              <Button
-                label={
-                  query.isFetchNextPageError ? "Réessayer" : "Charger la suite"
-                }
-                variant="secondary"
-                loading={query.isFetchingNextPage}
-                disabled={query.isFetching}
-                onPress={() => void loadMore()}
-              />
-            </View>
-          ) : undefined
-        }
-        renderItem={({ item }) => (
-          <NotificationItem
-            notification={item}
-            pending={command.isPending && command.variables === item.id}
-            onPress={() => {
-              if (!owner.isCurrent(owner.generation)) return;
-              // Both intents start on tap; either can fail without reversing the other.
-              command.mutate(item.id, {
-                onError: () => {
-                  if (owner.isCurrent(owner.generation)) feedback.error();
-                },
-              });
-              try {
-                router.push({
-                  pathname: "/matches/[matchId]",
-                  params: { matchId: item.match.id },
-                });
-              } catch {
-                feedback.error();
-              }
+      >
+        {({ onScroll, headerHeight }) => (
+          <Animated.FlatList
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            scrollIndicatorInsets={{ top: headerHeight }}
+            alwaysBounceVertical
+            data={rows}
+            onEndReached={() => {
+              if (!query.isError) void loadMore();
             }}
+            keyExtractor={(item) => item.id}
+            ItemSeparatorComponent={ListSeparator}
+            contentContainerStyle={[
+              rows.length ? pageContentStyle : styles.empty,
+              {
+                paddingTop:
+                  headerHeight +
+                  (rows.length ? tokens.layout.content.start : 0),
+              },
+            ]}
+            refreshControl={
+              <DataRefreshControl
+                progressViewOffset={headerHeight}
+                refreshing={query.isRefetching && !query.isFetchingNextPage}
+                onRefresh={() => void refresh()}
+              />
+            }
+            ListEmptyComponent={
+              query.isError && !query.data ? (
+                <ScreenState>
+                  <ErrorState
+                    onRetry={() => void refresh()}
+                    retrying={query.isFetching}
+                  />
+                </ScreenState>
+              ) : query.data ? (
+                <ScreenState>
+                  <EmptyState
+                    title="Aucune notification pour le moment"
+                    description="Les nouvelles de vos équipes et poules suivies apparaîtront ici."
+                  />
+                </ScreenState>
+              ) : (
+                <NotificationLoading />
+              )
+            }
+            ListFooterComponent={
+              <>
+                <ListContinuation
+                  loading={query.isFetchingNextPage}
+                  failed={!!query.data && query.isFetchNextPageError}
+                  disabled={query.isFetching}
+                  onRetry={() => void loadMore()}
+                />
+                <BottomNavigationSpacer />
+              </>
+            }
+            renderItem={({ item }) => (
+              <NotificationItem
+                notification={item}
+                pending={command.isPending && command.variables === item.id}
+                onPress={() => {
+                  if (!owner.isCurrent(owner.generation)) return;
+                  // Both intents start on tap; either can fail without reversing the other.
+                  command.mutate(item.id, {
+                    onError: () => {
+                      if (owner.isCurrent(owner.generation)) feedback.error();
+                    },
+                  });
+                  try {
+                    router.push({
+                      pathname: "/matches/[matchId]",
+                      params: { matchId: item.match.id },
+                    });
+                  } catch {
+                    feedback.error();
+                  }
+                }}
+              />
+            )}
           />
         )}
-      />
+      </ScrollChrome>
     </Page>
   );
 }
@@ -236,7 +269,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   empty: { flexGrow: 1 },
-  continuation: { marginTop: tokens.spacing.lg },
   skeletons: { gap: tokens.layout.list.gap },
   skeleton: { gap: tokens.spacing.md, paddingBottom: tokens.spacing.md },
 });

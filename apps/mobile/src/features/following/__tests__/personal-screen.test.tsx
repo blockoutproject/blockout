@@ -1,4 +1,6 @@
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   act,
   cleanup,
@@ -48,6 +50,7 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ push: mockPush }),
+  useNavigation: () => ({ isFocused: () => true }),
 }));
 // The official native-inset double supplies the Modal window's measurement event in Jest.
 jest.mock(
@@ -113,20 +116,22 @@ function SessionBinding({ children }: PropsWithChildren) {
 /** Provides the actual F05/F12, Query, theme and feedback composition required by Home and follow actions. */
 async function mount(extra?: ReactNode) {
   return render(
-    <QueryClientProvider client={client}>
-      <ThemeProvider>
-        <ApplicationAccessProvider>
-          <AccountSessionProvider>
-            <AccountFeedbackProvider>
-              <SessionBinding>
-                <PersonalScreen />
-                {extra}
-              </SessionBinding>
-            </AccountFeedbackProvider>
-          </AccountSessionProvider>
-        </ApplicationAccessProvider>
-      </ThemeProvider>
-    </QueryClientProvider>,
+    <GestureHandlerRootView>
+      <QueryClientProvider client={client}>
+        <ThemeProvider>
+          <ApplicationAccessProvider>
+            <AccountSessionProvider>
+              <AccountFeedbackProvider>
+                <SessionBinding>
+                  <PersonalScreen />
+                  {extra}
+                </SessionBinding>
+              </AccountFeedbackProvider>
+            </AccountSessionProvider>
+          </ApplicationAccessProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>,
   );
 }
 
@@ -323,11 +328,11 @@ it("leaves the actual club-season and search-input owners unchanged", async () =
       </SearchVisitProvider>
     </>,
   );
-  await user.press(
-    await within(screen.getByLabelText("Public club")).findByRole("tab", {
-      name: "Équipes",
-    }),
-  );
+  const clubTeams = await within(
+    screen.getByLabelText("Public club"),
+  ).findByRole("tab", { name: "Équipes" });
+  await layoutNativeTabs();
+  await user.press(clubTeams);
   await screen.findByRole("button", { name: `Saison ${older.label}` });
   await user.type(screen.getByLabelText("Rechercher"), "Volleyball");
   await screen.findByText("Aucun résultat pour ces critères");

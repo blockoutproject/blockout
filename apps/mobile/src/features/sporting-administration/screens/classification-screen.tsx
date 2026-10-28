@@ -1,3 +1,4 @@
+import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import { AccessFeedback } from "../../access/components/access-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
@@ -45,59 +46,71 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
     )
   ) : undefined;
   return (
-    <Page>
-      <PageHeader
-        title={
-          target.kind === "pack"
-            ? "Classification du pack"
-            : "Classification de la poule"
-        }
-      />
-      <FormScrollView
-        refreshControl={
-          authority.sessionStatus === "authenticated" ? (
-            <DataRefreshControl
-              enabled={!editing.save.pending}
-              refreshing={
-                editing.query.isRefetching ||
-                divisions.query.isRefetching ||
-                authority.account.isRefetching
-              }
-              onRefresh={() => {
-                if (editing.save.isPending()) return;
-                if (!authority.enabled) {
-                  void authority.account.refetch().then((result) => {
-                    if (result.isError && result.data) feedback.error();
-                  });
-                  return;
-                }
-                void editing.query.refetch().then((result) => {
-                  if (result.isError && result.data) feedback.error();
-                });
-                void divisions.query.refetch().then((result) => {
-                  if (result.isError && result.data) feedback.error();
-                });
-              }}
-            />
-          ) : undefined
+    <Page edges={["left", "right", "bottom"]}>
+      <ScrollChrome
+        header={
+          <PageHeader
+            title={
+              target.kind === "pack"
+                ? "Classification du pack"
+                : "Classification de la poule"
+            }
+          />
         }
       >
-        {blockingState ? (
-          <ScreenState>{blockingState}</ScreenState>
-        ) : (
-          <PageContent>
-            {current && (
-              <ClassificationForm
-                key={`${authority.session.generation}:${target.kind}:${target.id}`}
-                target={target}
-                current={current}
-                editing={editing}
-                divisions={divisions}
-              />
+        {({ onScroll, headerHeight }) => (
+          <FormScrollView
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            scrollIndicatorInsets={{ top: headerHeight }}
+            contentContainerStyle={{ paddingTop: headerHeight }}
+            refreshControl={
+              authority.sessionStatus === "authenticated" ? (
+                <DataRefreshControl
+                  progressViewOffset={headerHeight}
+                  enabled={!editing.save.pending}
+                  refreshing={
+                    editing.query.isRefetching ||
+                    divisions.query.isRefetching ||
+                    authority.account.isRefetching
+                  }
+                  onRefresh={() => {
+                    if (editing.save.isPending()) return;
+                    if (!authority.enabled) {
+                      void authority.account.refetch().then((result) => {
+                        if (result.isError && result.data) feedback.error();
+                      });
+                      return;
+                    }
+                    void editing.query.refetch().then((result) => {
+                      if (result.isError && result.data) feedback.error();
+                    });
+                    void divisions.query.refetch().then((result) => {
+                      if (result.isError && result.data) feedback.error();
+                    });
+                  }}
+                />
+              ) : undefined
+            }
+          >
+            {blockingState ? (
+              <ScreenState>{blockingState}</ScreenState>
+            ) : (
+              <PageContent>
+                {current && (
+                  <ClassificationForm
+                    key={`${authority.session.generation}:${target.kind}:${target.id}`}
+                    target={target}
+                    current={current}
+                    editing={editing}
+                    divisions={divisions}
+                  />
+                )}
+              </PageContent>
             )}
-          </PageContent>
+          </FormScrollView>
         )}
-      </FormScrollView>
+      </ScrollChrome>
     </Page>
   );
 }

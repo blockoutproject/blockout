@@ -1,3 +1,7 @@
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { FlatList } from "react-native";
 import { SearchVisitProvider } from "../forms/search-visit";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import {
@@ -10,14 +14,20 @@ import {
   act,
   fireEvent,
   render,
+  renderHook,
   screen,
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
 import { SearchScreen } from "../screens/search-screen";
+import { useDiscoveryQuery } from "../api/use-discovery-query";
+import type { PropsWithChildren } from "react";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
+import {
+  AccountSessionProvider,
+  useAccountSession,
+} from "../../accounts/session/account-session-provider";
 import {
   mockAuth0,
   credentialsFor,
@@ -38,6 +48,10 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),
 }));
+jest.mock("expo-router", () => ({
+  ...jest.requireActual("expo-router"),
+  useNavigation: () => ({ isFocused: mockIsFocused }),
+}));
 jest.mock("../../../shared/api/binary-image-preview", () => ({
   binaryImagePreview: jest
     .fn()
@@ -45,6 +59,7 @@ jest.mock("../../../shared/api/binary-image-preview", () => ({
 }));
 
 const mockFetch = jest.fn();
+const mockIsFocused = jest.fn(() => true);
 const environment = { ...process.env };
 const firstId = "00000000-0000-4000-8000-000000000001";
 const secondId = "00000000-0000-4000-8000-000000000002";
@@ -106,6 +121,7 @@ function publicReads(url: string): Promise<Response> {
 }
 
 beforeEach(() => {
+  mockIsFocused.mockReset().mockReturnValue(true);
   client = createQueryClient();
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
@@ -126,24 +142,93 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Supplies the actual required owners; the membership input only selects F13 presentation. */
+/** Supplies the actual required owners; membership changes presentation only. */
+function SearchOwners({
+  children,
+  proAccent = false,
+}: PropsWithChildren<{ proAccent?: boolean }>) {
+  return (
+    <GestureHandlerRootView>
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 390, height: 844 },
+          insets: { top: 0, right: 0, bottom: 0, left: 0 },
+        }}
+      >
+        <QueryClientProvider client={client}>
+          <ThemeProvider proAccent={proAccent}>
+            <ApplicationAccessProvider>
+              <AccountSessionProvider>
+                <AccountFeedbackProvider>
+                  <SearchVisitProvider>{children}</SearchVisitProvider>
+                </AccountFeedbackProvider>
+              </AccountSessionProvider>
+            </ApplicationAccessProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
+
+/** Keeps screen scenarios under the same query, session and native presentation owners. */
 async function renderSearch(proAccent = false) {
-  return render(<SearchScreen />, {
+  const result = await render(<SearchScreen />, {
     wrapper: ({ children }) => (
-      <QueryClientProvider client={client}>
-        <ThemeProvider proAccent={proAccent}>
-          <ApplicationAccessProvider>
-            <AccountSessionProvider>
-              <AccountFeedbackProvider>
-                <SearchVisitProvider>{children}</SearchVisitProvider>
-              </AccountFeedbackProvider>
-            </AccountSessionProvider>
-          </ApplicationAccessProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
+      <SearchOwners proAccent={proAccent}>{children}</SearchOwners>
     ),
   });
+  await layoutNativeTabs();
+  return result;
 }
+
+it.each(["success", "failure"])(
+  "leaves an inactive mounted search unread and retains its %s on tab return",
+  async (outcome) => {
+    // Given: native paging can mount a neighbour before it becomes the selected tab.
+    mockFetch.mockImplementation((url: string) =>
+      outcome === "failure" && new URL(url).pathname.endsWith("/clubs")
+        ? Promise.resolve(Response.json({ status: 503 }, { status: 503 }))
+        : publicReads(url),
+    );
+    const { result, rerender } = await renderHook(
+      ({ active }: { active: boolean }) => {
+        const query = useDiscoveryQuery("club", { q: "Volley" }, active);
+        return {
+          data: query.data,
+          isError: query.isError,
+          isFetched: query.isFetched,
+          status: useAccountSession().status,
+        };
+      },
+      { initialProps: { active: false }, wrapper: SearchOwners },
+    );
+    await waitFor(() => expect(result.current.status).toBe("guest"));
+
+    // Then: mounting the scene neither executes its search nor creates accepted data.
+    expect(result.current.data).toBeUndefined();
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(String(url)).pathname.endsWith("/clubs"),
+      ),
+    ).toHaveLength(0);
+
+    // When
+    await rerender({ active: true });
+    await waitFor(() => expect(result.current.isFetched).toBe(true));
+    await rerender({ active: false });
+    mockFetch.mockClear();
+    await act(async () => {
+      await client.refetchQueries({ queryKey: ["discovery"], type: "active" });
+    });
+    await rerender({ active: true });
+
+    // Then: hidden scenes are not active refetch targets, and returning replays no old read.
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(result.current.isError).toBe(outcome === "failure");
+    expect(result.current.data !== undefined).toBe(outcome === "success");
+  },
+);
 
 it.each(["guest", "free", "Pro", "unresolved"])(
   "allows all three public tabs for %s without waiting for Pro",
@@ -214,6 +299,102 @@ it("keeps distinct namesakes and presents only available public context without 
   expect(
     mockFetch.mock.calls.some(([url]) => String(url).includes("/logo")),
   ).toBe(false);
+});
+
+it("selects the search resource through native page settlement and retains its shared text on return", async () => {
+  // Given: only the current scene has performed a textual search.
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+  await screen.findByText("Volley professionnel");
+  expect(
+    mockFetch.mock.calls.some(([url]) => String(url).includes("/clubs?")),
+  ).toBe(false);
+
+  // When: the native pager settles on Clubs without a tab-bar press.
+  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
+    nativeEvent: { position: 2 },
+  });
+  await layoutNativeTabs();
+
+  // Then: business selection, accessible content and the common input agree with that page.
+  expect(await screen.findByText("Niort")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "2 résultats chargés" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("tab", { name: "Clubs", selected: true }),
+  ).toBeOnTheScreen();
+  expect(screen.getByPlaceholderText("Rechercher un club…")).toHaveDisplayValue(
+    "Volley",
+  );
+  expect(screen.queryByText("Volley professionnel")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Filtres" }),
+  ).not.toBeOnTheScreen();
+  mockFetch.mockClear();
+
+  // When
+  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
+    nativeEvent: { position: 0 },
+  });
+  await layoutNativeTabs();
+
+  // Then: the visited result and sporting controls return without a new request.
+  expect(await screen.findByText("Volley professionnel")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "1 résultat chargé" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("tab", { name: "Équipes", selected: true }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Filtres" })).toBeOnTheScreen();
+  expect(screen.getByLabelText("Rechercher")).toHaveDisplayValue("Volley");
+  expect(mockFetch).not.toHaveBeenCalled();
+});
+
+it("reads changed text only for the selected resource after all three scenes have been visited", async () => {
+  // Given: all three scene contexts exist, with their accepted result pages.
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+  await screen.findByText("Volley professionnel");
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await screen.findByText("Niort");
+  await user.press(screen.getByRole("tab", { name: "Poules" }));
+  await screen.findByText("Championnat public · Phase finale");
+  await user.press(screen.getByRole("tab", { name: "Équipes" }));
+  await screen.findByText("Volley professionnel");
+  // Spy only on the viewport's native command; Search, PagedTabs and RNCT remain real.
+  const scroll = jest.spyOn(FlatList.prototype, "scrollToOffset");
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await user.press(screen.getByRole("tab", { name: "Équipes" }));
+  expect(scroll).not.toHaveBeenCalled();
+  // A native value replacement with the same normalized criteria preserves the saved positions.
+  await fireEvent.changeText(screen.getByLabelText("Rechercher"), "VOLLEY");
+  expect(scroll).not.toHaveBeenCalled();
+  mockFetch.mockClear();
+
+  // When: the common RHF text changes while Teams is selected.
+  await fireEvent.changeText(screen.getByLabelText("Rechercher"), "Nouveau");
+  await screen.findByText("Volley professionnel");
+
+  // Then: retained neighbour contexts perform no read for that new text.
+  const reads = mockFetch.mock.calls
+    .map(([url]) => new URL(String(url)))
+    .filter((url) => /\/(clubs|teams|pools)$/.test(url.pathname));
+  expect(reads).toHaveLength(1);
+  expect(reads[0].pathname).toBe("/teams");
+  expect(reads[0].searchParams.get("q")).toBe("Nouveau");
+  expect(
+    screen.getByRole("header", { name: "1 résultat chargé" }),
+  ).toBeOnTheScreen();
+  // The same mounted list owners receive the reset even while the new contexts have no accepted rows.
+  expect(scroll.mock.calls).toEqual([
+    [{ offset: 0, animated: false }],
+    [{ offset: 0, animated: false }],
+    [{ offset: 0, animated: false }],
+  ]);
 });
 
 it("clears the shared query through the approved search action without fetching empty text", async () => {
@@ -442,11 +623,15 @@ it("does not replay a failed read on focus, reconnect or a visited-tab return", 
   await renderSearch();
   await user.paste(await screen.findByLabelText("Rechercher"), "Volley");
   await screen.findByRole("alert");
+  expect(screen.getByRole("header", { name: "Résultats" })).toBeOnTheScreen();
   mockFetch.mockClear();
 
   // When
   await user.press(screen.getByRole("tab", { name: "Clubs" }));
   await screen.findByText("Niort");
+  expect(
+    screen.getByRole("header", { name: "2 résultats chargés" }),
+  ).toBeOnTheScreen();
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
   await act(async () => {
     focusManager.setFocused(false);
@@ -457,6 +642,10 @@ it("does not replay a failed read on focus, reconnect or a visited-tab return", 
 
   // Then
   await waitFor(() => expect(screen.getByRole("alert")).toBeOnTheScreen());
+  expect(screen.getByRole("header", { name: "Résultats" })).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("header", { name: "2 résultats chargés" }),
+  ).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/teams?")),
   ).toHaveLength(0);
@@ -651,42 +840,167 @@ it.each(["empty", "error"])(
   },
 );
 
-it("retries only the failed continuation and keeps one row per resource", async () => {
-  // Given
+it("continues only the active resource and shares one pending native end request", async () => {
+  // Given: RNCT retains the club scene after selecting another resource.
   const user = userEvent.setup();
-  let nextPageAvailable = false;
+  const pending = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url: string) => {
     const parsed = new URL(url);
     if (!parsed.pathname.endsWith("/clubs")) return publicReads(url);
-    const first = { club: { id: firstId, name: "Volley Lyon" }, city: "Lyon" };
-    if (!parsed.searchParams.has("cursor"))
-      return Promise.resolve(
-        Response.json({ clubs: [first], nextCursor: "next-page" }),
-      );
+    if (parsed.searchParams.has("cursor")) return pending.promise;
     return Promise.resolve(
-      nextPageAvailable
-        ? Response.json({
-            clubs: [
-              first,
-              { club: { id: secondId, name: "Volley Niort" }, city: "Niort" },
-            ],
-          })
-        : Response.json({ title: "Unavailable", status: 500 }, { status: 500 }),
+      Response.json({
+        clubs: [{ club: { id: firstId, name: "Volley Lyon" }, city: "Lyon" }],
+        nextCursor: "next-page",
+      }),
     );
   });
   await renderSearch();
   await user.paste(await screen.findByLabelText("Rechercher"), "Volley");
   await user.press(screen.getByRole("tab", { name: "Clubs" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Charger la suite" }),
+  await screen.findByText("Volley Lyon");
+  await user.press(screen.getByRole("tab", { name: "Équipes" }));
+  await screen.findByText("Volley professionnel");
+  mockFetch.mockClear();
+
+  // When: layout may reach the end of an inactive retained scene.
+  await fireEvent(
+    screen.getByText("Volley Lyon", { includeHiddenElements: true }),
+    "endReached",
+    { distanceFromEnd: 0 },
   );
-  await screen.findByRole("button", { name: "Réessayer" });
+
+  // Then: it cannot advance that query while another resource is selected.
+  expect(mockFetch).not.toHaveBeenCalled();
+
+  // When: Router retains Search beneath another main tab or a filter sheet.
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  mockIsFocused.mockReturnValue(false);
+  await fireEvent(await screen.findByText("Volley Lyon"), "endReached", {
+    distanceFromEnd: 0,
+  });
+
+  // Then: internal tab selection does not authorize a hidden route's continuation.
+  expect(mockFetch).not.toHaveBeenCalled();
+
+  // When: the focused scene reaches its end twice while its page is pending.
+  mockIsFocused.mockReturnValue(true);
+  await fireEvent(screen.getByText("Volley Lyon"), "endReached", {
+    distanceFromEnd: 0,
+  });
+  expect(
+    await screen.findByRole("progressbar", { name: "Chargement en cours" }),
+  ).toBeOnTheScreen();
+  await fireEvent(screen.getByText("Volley Lyon"), "endReached", {
+    distanceFromEnd: 0,
+  });
+  await act(async () => {
+    pending.resolve(
+      Response.json({
+        clubs: [
+          { club: { id: secondId, name: "Volley Niort" }, city: "Niort" },
+        ],
+      }),
+    );
+  });
+
+  // Then: TanStack Query admits one continuation, retaining the first page and shared draft.
+  expect(await screen.findByText("Volley Niort")).toBeOnTheScreen();
   expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(
+    new URL(String(mockFetch.mock.calls[0][0])).searchParams.get("cursor"),
+  ).toBe("next-page");
+  expect(screen.queryByRole("button", { name: "Charger la suite" })).toBeNull();
+});
+
+it("retains loaded rows and retries the failed cursor only through its compact continuation", async () => {
+  // Given
+  const user = userEvent.setup();
+  const retry = Promise.withResolvers<Response>();
+  const first = { club: { id: firstId, name: "Volley Lyon" }, city: "Lyon" };
+  let nextPageAvailable = false;
+  mockFetch.mockImplementation((url: string) => {
+    const parsed = new URL(url);
+    if (!parsed.pathname.endsWith("/clubs")) return publicReads(url);
+    if (!parsed.searchParams.has("cursor"))
+      return Promise.resolve(
+        Response.json({ clubs: [first], nextCursor: "next-page" }),
+      );
+    return nextPageAvailable
+      ? retry.promise
+      : Promise.resolve(
+          Response.json({ title: "Unavailable", status: 500 }, { status: 500 }),
+        );
+  });
+  await renderSearch();
+  await user.paste(await screen.findByLabelText("Rechercher"), "Volley");
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await fireEvent(await screen.findByText("Volley Lyon"), "endReached", {
+    distanceFromEnd: 0,
+  });
+  await screen.findByRole("button", {
+    name: "Une erreur est survenue. Réessayer.",
+  });
+  expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "1 résultat chargé" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Actualiser les données"),
+  ).not.toBeOnTheScreen();
   nextPageAvailable = true;
   mockFetch.mockClear();
 
+  // When: repeated native end events and returning to the failed context never replay it.
+  await fireEvent(screen.getByText("Volley Lyon"), "endReached", {
+    distanceFromEnd: 0,
+  });
+  await user.press(screen.getByRole("tab", { name: "Équipes" }));
+  await screen.findByText("Volley professionnel");
+  mockFetch.mockClear();
+  await fireEvent(
+    screen.getByText("Volley Lyon", { includeHiddenElements: true }),
+    "endReached",
+    { distanceFromEnd: 0 },
+  );
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await fireEvent(await screen.findByText("Volley Lyon"), "endReached", {
+    distanceFromEnd: 0,
+  });
+  expect(mockFetch).not.toHaveBeenCalled();
+
   // When
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(
+    screen.getByRole("button", {
+      name: "Une erreur est survenue. Réessayer.",
+    }),
+  );
+
+  // Then: the same continuation becomes pending while already loaded rows stay readable.
+  expect(
+    await screen.findByRole("progressbar", { name: "Chargement en cours" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", {
+      name: "Une erreur est survenue. Réessayer.",
+    }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await act(async () => {
+    retry.resolve(
+      Response.json({
+        clubs: [
+          first,
+          { club: { id: secondId, name: "Volley Niort" }, city: "Niort" },
+        ],
+      }),
+    );
+  });
 
   // Then
   expect(await screen.findByText("Volley Niort")).toBeOnTheScreen();
@@ -697,14 +1011,19 @@ it("retries only the failed continuation and keeps one row per resource", async 
   expect(
     screen.queryByRole("button", { name: "Charger la suite" }),
   ).not.toBeOnTheScreen();
+  await fireEvent(screen.getByText("Volley Niort"), "endReached", {
+    distanceFromEnd: 0,
+  });
   expect(mockFetch).toHaveBeenCalledTimes(1);
   expect(
-    new URL(String(mockFetch.mock.calls[0][0])).searchParams.get("cursor"),
-  ).toBe("next-page");
+    mockFetch.mock.calls.map(([url]) =>
+      new URL(String(url)).searchParams.get("cursor"),
+    ),
+  ).toEqual(["next-page"]);
 });
 
 it.each([false, true])(
-  "retains loaded pages after a failed background read and accepts the next traversal: %s",
+  "retains accepted pages through a failed background read and accepts the next traversal: %s",
   async (fails) => {
     // Given
     const user = userEvent.setup();
@@ -734,9 +1053,9 @@ it.each([false, true])(
     await renderSearch();
     await user.paste(await screen.findByLabelText("Rechercher"), "Volley");
     await user.press(screen.getByRole("tab", { name: "Clubs" }));
-    await user.press(
-      await screen.findByRole("button", { name: "Charger la suite" }),
-    );
+    await fireEvent(await screen.findByText("Volley Lyon"), "endReached", {
+      distanceFromEnd: 0,
+    });
     await screen.findByText("Volley Niort");
     mockFetch.mockClear();
     mockFetch.mockImplementation((url: string) =>
@@ -767,8 +1086,15 @@ it.each([false, true])(
       await client.refetchQueries({ queryKey: ["discovery"], type: "active" });
     });
     if (fails) {
-      expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
+      await user.press(screen.getByRole("tab", { name: "Équipes" }));
+      await screen.findByText("Volley professionnel");
+      await user.press(screen.getByRole("tab", { name: "Clubs" }));
+      expect(await screen.findByText("Volley Lyon")).toBeOnTheScreen();
       expect(screen.getByText("Volley Niort")).toBeOnTheScreen();
+      expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+      expect(
+        screen.getByRole("header", { name: "2 résultats chargés" }),
+      ).toBeOnTheScreen();
       expect(mockFetch).toHaveBeenCalledTimes(1);
       mockFetch.mockClear();
       mockFetch.mockImplementation((url: string) =>
@@ -834,9 +1160,9 @@ it("cancels pending pagination before a background read and rejects its late res
   await renderSearch();
   await user.paste(await screen.findByLabelText("Rechercher"), "Volley");
   await user.press(screen.getByRole("tab", { name: "Clubs" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Charger la suite" }),
-  );
+  await fireEvent(await screen.findByText("Volley Lyon"), "endReached", {
+    distanceFromEnd: 0,
+  });
   await waitFor(() => expect(pageSignal).toBeDefined());
   mockFetch.mockClear();
 
@@ -845,11 +1171,7 @@ it("cancels pending pagination before a background read and rejects its late res
     await client.refetchQueries({ queryKey: ["discovery"], type: "active" });
   });
   await waitFor(() => expect(pageSignal?.aborted).toBe(true));
-  await waitFor(() =>
-    expect(
-      screen.getByRole("button", { name: "Charger la suite" }),
-    ).toBeEnabled(),
-  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
   await act(async () =>
     pending.resolve(
       Response.json({
