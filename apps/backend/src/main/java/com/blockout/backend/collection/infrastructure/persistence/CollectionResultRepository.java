@@ -1,6 +1,7 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
 import com.blockout.backend.collection.application.model.CollectionAttempt;
+import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,18 @@ interface CollectionResultRepository
   @Query(
       "SELECT NEW com.blockout.backend.collection.application.model.CollectionAttempt(r.scopeId, r.stage, r.lastAttemptAt, r.lastSuccessAt, r.outcome, r.cycleOrder, r.readOrdinal) FROM CollectionResultEntity r WHERE r.controlId = :controlId AND r.scopeId IN :scopeIds AND r.phase = com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum.ACQUISITION")
   List<CollectionAttempt> attempts(UUID controlId, List<UUID> scopeIds);
+
+  /**
+   * Selects only actual acquisition attempts in descending logical observation order.
+   *
+   * @param scopeId exact resource identity
+   * @param stage independent acquisition group
+   * @param page native one-row bound
+   * @return newest attempt if one exists, excluding integration evidence
+   */
+  @Query(
+      "SELECT NEW com.blockout.backend.collection.application.model.CollectionAttempt(r.scopeId, r.stage, r.lastAttemptAt, r.lastSuccessAt, r.outcome, r.cycleOrder, r.readOrdinal) FROM CollectionResultEntity r WHERE r.scopeId = :scopeId AND r.stage = :stage AND r.phase = com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum.ACQUISITION ORDER BY r.cycleOrder DESC, r.readOrdinal DESC")
+  List<CollectionAttempt> latestAcquisition(UUID scopeId, CollectionStageEnum stage, Pageable page);
 
   /**
    * Pages current evidence in canonical order without counting all results.

@@ -1,15 +1,23 @@
 package com.blockout.backend.sporting.application;
 
+import com.blockout.backend.collection.application.model.CollectionAttempt;
+import com.blockout.backend.collection.application.service.ReadCollectionWork;
 import com.blockout.backend.contributions.application.ReadPublicContribution;
+import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
+import com.blockout.backend.generated.ingestion.model.StandingsPublicationStateEnum;
+import com.blockout.backend.generated.mobile.model.StandingsAvailabilityEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.shared.mapping.TemporalMapping;
 import com.blockout.backend.sporting.application.ConsultationRequest.ClubSeasonRequest;
 import com.blockout.backend.sporting.application.ConsultationStore.MatchInput;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.MatchDetails;
+import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
+import com.blockout.backend.sporting.application.model.SportingPresentation.Locality;
 import com.blockout.backend.sporting.application.model.SportingPresentation.View;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
@@ -17,6 +25,7 @@ import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import com.blockout.backend.sporting.application.model.SportingVisibility;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
+import com.blockout.backend.sporting.application.model.StandingsView;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
 import java.time.Clock;
@@ -44,6 +53,7 @@ public class ReadSportingResources {
   private final ConsultationViewMapper mapper;
   private final Clock clock;
   private final ReadPublicContribution contributions;
+  private final ReadCollectionWork collection;
 
   /**
    * Reads only the current public club identity for summary consumers.
@@ -149,6 +159,94 @@ public class ReadSportingResources {
    */
   public ConsultationViews.PoolDetail pool(UUID id) {
     return new ConsultationViews.PoolDetail(poolSummary(id));
+  }
+
+  /**
+   * Reads the retained official table independently from participants and calendars.
+   *
+   * @param poolId exact contextual pool
+   * @return official order, absence and original table freshness with current acquisition evidence
+   * @throws SportingResourceNotFoundException when the pool is hidden or unknown
+   */
+  public ConsultationViews.Standings standings(UUID poolId) {
+    poolSummary(poolId);
+    StandingsView source = owners.publicStandings(poolId).orElse(null);
+    CollectionAttempt attempt =
+        collection.latestAcquisition(poolId, CollectionStageEnum.STANDINGS).orElse(null);
+    boolean failed =
+        attempt != null
+            && attempt.outcome() != CollectionOutcomeEnum.SUCCESS
+            && (source == null
+                || new ObservationOrder(attempt.cycleOrder(), attempt.readOrdinal())
+                        .compareTo(new ObservationOrder(source.cycleOrder(), source.readOrdinal()))
+                    > 0);
+    if (source == null || !source.tableAvailable()) {
+      return new ConsultationViews.Standings(
+          poolId,
+          source != null && source.publicationState() == StandingsPublicationStateEnum.NOT_PUBLISHED
+              ? StandingsAvailabilityEnum.NOT_PUBLISHED
+              : StandingsAvailabilityEnum.UNAVAILABLE,
+          null,
+          failed,
+          List.of(),
+          List.of());
+    }
+    Set<UUID> teamIds =
+        source.rows().stream()
+            .map(StandingsView.Row::teamId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+    Map<UUID, ConsultationViews.Identity> teams =
+        facts.presentations(SportingProjectionChanges.Kind.TEAM, teamIds).values().stream()
+            .collect(Collectors.toUnmodifiableMap(View::id, mapper::toView));
+    return new ConsultationViews.Standings(
+        poolId,
+        StandingsAvailabilityEnum.AVAILABLE,
+        TemporalMapping.toDate(source.tableObservedAt()),
+        failed,
+        source.columns(),
+        source.rows().stream()
+            .map(row -> mapper.toView(row, row.teamId() == null ? null : teams.get(row.teamId())))
+            .toList());
+  }
+
+  /**
+   * Reads every current participant independently of official table publication or geography.
+   *
+   * @param poolId exact contextual pool
+   * @return effective-name/UUID ordered participants with only reliable municipality pairs
+   * @throws SportingResourceNotFoundException when the pool is hidden or unknown
+   */
+  public ConsultationViews.Participants participants(UUID poolId) {
+    poolSummary(poolId);
+    List<ConsultationViews.TeamSummary> teams =
+        teamSummaries(reads.participantTeamIds(poolId)).values().stream()
+            .sorted(
+                Comparator.comparing((ConsultationViews.TeamSummary team) -> team.team().name())
+                    .thenComparing(team -> team.team().id()))
+            .toList();
+    Map<UUID, Locality> localities =
+        reads.localities(
+            teams.stream()
+                .map(ConsultationViews.TeamSummary::club)
+                .filter(Objects::nonNull)
+                .map(ConsultationViews.Identity::id)
+                .collect(Collectors.toSet()));
+    return new ConsultationViews.Participants(
+        poolId,
+        teams.stream()
+            .map(
+                team -> {
+                  Locality locality = team.club() == null ? null : localities.get(team.club().id());
+                  ConsultationViews.Location location =
+                      locality == null
+                              || locality.latitude() == null
+                              || locality.longitude() == null
+                          ? null
+                          : mapper.toView(locality);
+                  return new ConsultationViews.Participant(team, location);
+                })
+            .toList());
   }
 
   /**

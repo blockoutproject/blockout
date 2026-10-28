@@ -2,6 +2,7 @@ package com.blockout.backend.sporting.application;
 
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
@@ -69,6 +70,22 @@ public interface ConsultationStore {
    * @return detached existing metadata keyed by identity
    */
   Map<UUID, DivisionDetail> divisions(Set<UUID> ids);
+
+  /**
+   * Selects current eligible pool memberships independently of table publication.
+   *
+   * @param poolId exact pool already admitted by the application reader
+   * @return every currently viewable participating team identity
+   */
+  Set<UUID> participantTeamIds(UUID poolId);
+
+  /**
+   * Loads permitted municipality pairs for distinct already admitted clubs without artwork.
+   *
+   * @param clubIds distinct current participant clubs
+   * @return detached localities; missing or restricted coordinates remain absent
+   */
+  Map<UUID, SportingPresentation.Locality> localities(Set<UUID> clubIds);
 
   /**
    * Reads accepted teams as scalar values without repeating parent or image loads per summary.

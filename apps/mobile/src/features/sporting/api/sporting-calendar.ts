@@ -43,6 +43,7 @@ export function createCalendarOptions(
   ];
   return infiniteQueryOptions({
     queryKey: first.queryKey,
+    meta: { consultationResource: "calendar-traversal" },
     initialPageParam: undefined as string | undefined,
     queryFn: async (context) => {
       try {
@@ -54,25 +55,17 @@ export function createCalendarOptions(
           .queryFn(context);
       } catch (error) {
         if (
+          !selection.poolId &&
           !context.signal.aborted &&
           error instanceof Error &&
           resourceUnavailable(error)
         ) {
-          await context.client.cancelQueries({
-            queryKey: scopeKey,
-            predicate: (query) => query.queryHash !== hashKey(context.queryKey),
-          });
-          context.client
-            .getQueryCache()
-            .findAll({ queryKey: scopeKey })
-            .forEach((query) =>
-              query.setState({
-                data: undefined,
-                dataUpdatedAt: 0,
-                error,
-                status: "error",
-              }),
-            );
+          await discardCalendarSelection(
+            context.client,
+            scopeKey,
+            context.queryKey,
+            error,
+          );
         }
         throw error;
       }
@@ -88,6 +81,36 @@ export function createCalendarOptions(
     retry: false,
     networkMode: "always",
   });
+}
+
+/**
+ * Suppresses a refused selector without replacing it with a successful empty calendar.
+ * The pool read family also calls this for its independent detail/standings/participant reads.
+ * @param client existing root QueryClient
+ * @param scopeKey native partial generated key for this selector and captured session/admission
+ * @param currentKey request currently reporting the refusal; its original error must settle normally
+ * @param error current admitted refusal retained for explicit retry
+ */
+export async function discardCalendarSelection(
+  client: QueryClient,
+  scopeKey: QueryKey,
+  currentKey: QueryKey,
+  error: Error,
+) {
+  await client.cancelQueries(
+    {
+      queryKey: scopeKey,
+      predicate: (query) => query.queryHash !== hashKey(currentKey),
+    },
+    { revert: false },
+  );
+  for (const query of client.getQueryCache().findAll({ queryKey: scopeKey }))
+    query.setState({
+      data: undefined,
+      dataUpdatedAt: 0,
+      error,
+      status: "error",
+    });
 }
 
 /**
@@ -155,6 +178,56 @@ export function filterCalendarMatches(
             matches: pool.matches.filter(retain),
           }))
           .filter((pool) => pool.matches.length > 0),
+      }))
+      .filter((day) => day.pools.length > 0),
+  };
+}
+
+/**
+ * Removes only a refused pool from retained team/club windows and traversals in this context.
+ * Older mixed reads are cancelled before they can restore its groups; other groups, source times,
+ * loading zones and continuation remain unchanged. Direct other-pool selections are untouched.
+ * @param client existing root QueryClient
+ * @param queryKey generated calendar collection prefix in the captured session/admission context
+ * @param poolId exact pool refused by a current owner read
+ */
+export async function removeUnavailableCalendarPool(
+  client: QueryClient,
+  queryKey: QueryKey,
+  poolId: string,
+) {
+  const filters = { queryKey: [...queryKey, { poolId: undefined }] };
+  await client.cancelQueries(filters, { revert: false });
+  for (const query of client.getQueryCache().findAll(filters)) {
+    if (query.meta?.consultationResource === "calendar-traversal") {
+      const data = client.getQueryData<InfiniteData<MatchCalendarResponse>>(
+        query.queryKey,
+      );
+      if (data)
+        query.setState({
+          data: {
+            ...data,
+            pages: data.pages.map((page) => withoutCalendarPool(page, poolId)),
+          },
+        });
+    } else {
+      const data = client.getQueryData<MatchCalendarResponse>(query.queryKey);
+      if (data) query.setState({ data: withoutCalendarPool(data, poolId) });
+    }
+  }
+}
+
+/** Keeps the page's attribution/progression while dropping only groups with the refused exact pool. */
+export function withoutCalendarPool(
+  page: MatchCalendarResponse,
+  poolId: string,
+): MatchCalendarResponse {
+  return {
+    ...page,
+    days: page.days
+      .map((day) => ({
+        ...day,
+        pools: day.pools.filter((pool) => pool.poolId !== poolId),
       }))
       .filter((day) => day.pools.length > 0),
   };

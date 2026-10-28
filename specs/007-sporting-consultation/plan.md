@@ -4,7 +4,7 @@
 
 **Input**: [spec.md](spec.md), [F02 sporting data](../002-sporting-data/plan.md) and [F09 entitlements](../006-pro-subscriptions/plan.md).
 
-**Status**: Approved technical plan. Foundation [T001–T005](tasks.md) and the complete-day calendar slice T020/T022, T024–T031 are implemented with [scoped qualification](quickstart.md#complete-day-calendar-qualification--t020t022-t024t031). Remaining native and integrated story qualification stays pending. Preparatory decisions and both scoped design revisions retain their approved scope.
+**Status**: Approved technical plan. Foundation [T001–T005](tasks.md) and the complete-day calendar slice T020/T022, T024–T031 are implemented with [scoped qualification](quickstart.md#complete-day-calendar-qualification--t020t022-t024t031). Official standings and independent participant reads T032/T033/T036/T037 are implemented with [scoped qualification](quickstart.md#official-standings-and-participant-reads--t032t033t036t037). Remaining native and integrated story qualification stays pending. Preparatory decisions and both scoped design revisions retain their approved scope.
 
 ## Summary
 

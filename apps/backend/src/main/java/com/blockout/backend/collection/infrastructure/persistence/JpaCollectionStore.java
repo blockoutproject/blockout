@@ -259,6 +259,12 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
+  public Optional<CollectionAttempt> latestAcquisition(UUID scopeId, CollectionStageEnum stage) {
+    return results.latestAcquisition(scopeId, stage, PageRequest.of(0, 1)).stream().findFirst();
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public List<CollectionAttempt> attempts(UUID controlId, List<UUID> scopeIds) {
     return scopeIds.isEmpty() ? List.of() : results.attempts(controlId, scopeIds);
   }

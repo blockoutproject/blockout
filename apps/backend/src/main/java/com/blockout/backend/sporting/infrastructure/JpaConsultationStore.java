@@ -7,6 +7,7 @@ import com.blockout.backend.sporting.application.ConsultationRequest.CalendarReq
 import com.blockout.backend.sporting.application.ConsultationRequest.CalendarWindow;
 import com.blockout.backend.sporting.application.ConsultationStore;
 import com.blockout.backend.sporting.application.MatchPresentation;
+import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
@@ -41,6 +42,8 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class JpaConsultationStore implements ConsultationStore, ConsultationMatchSelection {
   private final MatchRepository matches;
+  private final ParticipationRepository participations;
+  private final ClubRepository clubs;
   private final DivisionRepository divisions;
   private final TeamRepository teams;
   private final PoolRepository pools;
@@ -258,6 +261,20 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
     return divisions.findSummariesByIdIn(ids).stream()
         .map(mapper::toDetail)
         .collect(Collectors.toUnmodifiableMap(DivisionDetail::id, value -> value));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Set<UUID> participantTeamIds(UUID poolId) {
+    return Set.copyOf(participations.findVisibleTeamIds(poolId));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Map<UUID, SportingPresentation.Locality> localities(Set<UUID> clubIds) {
+    if (clubIds.isEmpty()) return Map.of();
+    return clubs.findLocalities(clubIds).stream()
+        .collect(Collectors.toUnmodifiableMap(ClubLocalityRow::id, mapper::toLocality));
   }
 
   /** {@inheritDoc} */

@@ -99,6 +99,16 @@ function reads(url: string): Promise<Response> {
     return Promise.resolve(Response.json(club));
   if (path.endsWith(`/teams/${sportingId}`))
     return Promise.resolve(Response.json(team));
+  if (path.endsWith("/standings"))
+    return Promise.resolve(
+      Response.json({
+        poolId: path.split("/")[2],
+        availability: "unavailable",
+        lastAttemptFailed: false,
+        columns: [],
+        rows: [],
+      }),
+    );
   if (path.endsWith(`/pools/${sportingId}`))
     return Promise.resolve(Response.json(pool));
   if (path.endsWith(`/matches/${sportingId}`))
@@ -181,6 +191,7 @@ async function renderPage(content: ReactElement) {
   });
   await waitFor(() => expect(client.isFetching()).toBe(0));
   await layoutNativeTabs();
+  await waitFor(() => expect(client.isFetching()).toBe(0));
   return rendered;
 }
 
@@ -823,7 +834,9 @@ it("suppresses a retained team after a current visibility refusal", async () => 
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "Une erreur est survenue",
   );
-  expect(screen.queryByText(team.team.team.name)).not.toBeOnTheScreen();
+  await waitFor(() =>
+    expect(screen.queryByText(team.team.team.name)).not.toBeOnTheScreen(),
+  );
   // When
   await user.press(screen.getByRole("button", { name: "Retour" }));
   // Then

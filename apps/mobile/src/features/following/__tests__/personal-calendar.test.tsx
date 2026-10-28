@@ -411,6 +411,96 @@ it("removes a currently refused F03 match from personal pages and cancels a late
   close();
 });
 
+it("removes a currently refused F03 pool from retained personal pages without restoring it through a late append", async () => {
+  // Given: real generated reads share the owner; the other admission keeps its own envelope.
+  session.setAccount(owner.generation, accountId);
+  const queries = createConsultationQueries(
+    { ...session.getSnapshot(), isCurrent: session.isCurrent },
+    { request: (options) => options },
+    jest.fn(),
+  );
+  const options = createPersonalCalendarOptions(
+    owner,
+    request,
+    selection,
+    read,
+  );
+  const bypass = createPersonalCalendarOptions(
+    owner,
+    request,
+    selection,
+    read,
+    true,
+  );
+  const first = page("2026-10-29", sportingId, "2026-10-30");
+  const retainedId = "00000000-0000-4000-8000-000000000231";
+  const retainedPool = {
+    poolId: retainedId,
+    matches: [
+      {
+        ...matchDetail().match,
+        id: retainedId,
+        pool: {
+          ...matchDetail().match.pool,
+          pool: { ...matchDetail().match.pool.pool, id: retainedId },
+        },
+      },
+    ],
+  };
+  first.calendar.days[0].pools.push(retainedPool);
+  first.calendar.days.push(page("2026-10-30").calendar.days[0]);
+  mockFetch.mockImplementation(async () => Response.json(first));
+  await client.infiniteQuery(bypass);
+  const observer = new InfiniteQueryObserver(client, options);
+  const close = observer.subscribe(() => {});
+  try {
+    await waitFor(() =>
+      expect(observer.getCurrentResult().isSuccess).toBe(true),
+    );
+    const updatedAt = client.getQueryState(options.queryKey)?.dataUpdatedAt;
+    const late = Promise.withResolvers<Response>();
+    mockFetch.mockReturnValueOnce(late.promise);
+    const append = observer.fetchNextPage();
+    await waitFor(() =>
+      expect(observer.getCurrentResult().isFetchingNextPage).toBe(true),
+    );
+    mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
+
+    // When: a current standings refusal precedes an old response that ignores abort.
+    await expect(
+      client.query(queries.standings(sportingId)),
+    ).rejects.toMatchObject({
+      status: 404,
+    });
+    late.resolve(Response.json(page("2026-10-31")));
+    await append;
+
+    // Then: only that pool and its now-empty day disappear; attribution and continuation stay exact.
+    expect(observer.getCurrentResult().data).toEqual({
+      pages: [
+        {
+          ...first,
+          calendar: {
+            ...first.calendar,
+            days: [{ ...first.calendar.days[0], pools: [retainedPool] }],
+          },
+        },
+      ],
+      pageParams: [undefined],
+    });
+    expect(client.getQueryState(options.queryKey)?.dataUpdatedAt).toBe(
+      updatedAt,
+    );
+    expect(client.getQueryData(bypass.queryKey)).toEqual({
+      pages: [first],
+      pageParams: [undefined],
+    });
+    expect(mockFetch).toHaveBeenCalledTimes(4);
+  } finally {
+    close();
+  }
+});
+
 it("withdraws all cached seasons after an original-account NotFound without a seasonal selector", async () => {
   // Given
   const seasonal = createPersonalCalendarOptions(

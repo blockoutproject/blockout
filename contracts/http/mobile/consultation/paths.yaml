@@ -181,7 +181,7 @@ Standings:
   get:
     operationId: getPoolStandings
     tags:
-      - Sporting
+      - Consultation
     summary: Read official pool standings
     description:
       Returns the published table or explicit absence/unavailability. No rank or missing statistic is
@@ -224,7 +224,7 @@ Participants:
   get:
     operationId: listPoolParticipants
     tags:
-      - Sporting
+      - Consultation
     summary: Read pool participants
     description:
       Returns all viewable participants independently of standings, with only reliable municipality points.

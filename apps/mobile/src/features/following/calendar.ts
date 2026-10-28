@@ -1,6 +1,12 @@
 import type { InfiniteData, QueryClient } from "@tanstack/react-query";
-import type { PersonalMatchCalendarResponse } from "../../../.generated/schemas/index.zod";
-import { filterCalendarMatches } from "../sporting/calendar-data";
+import type {
+  MatchCalendarResponse,
+  PersonalMatchCalendarResponse,
+} from "../../../.generated/schemas/index.zod";
+import {
+  filterCalendarMatches,
+  withoutCalendarPool,
+} from "../sporting/calendar-data";
 import {
   personalCalendarCollectionKey,
   type FollowingOwner,
@@ -20,6 +26,30 @@ export async function removeUnavailablePersonalCalendarMatch(
   bypass: boolean,
   matchId: string,
 ) {
+  await filterPersonalCalendars(client, owner, bypass, (calendar) =>
+    filterCalendarMatches(calendar, (match) => match.id !== matchId),
+  );
+}
+
+/** Removes a currently refused F03 pool from this owner's envelopes without changing follow availability. */
+export async function removeUnavailablePersonalCalendarPool(
+  client: QueryClient,
+  owner: FollowingOwner,
+  bypass: boolean,
+  poolId: string,
+) {
+  await filterPersonalCalendars(client, owner, bypass, (calendar) =>
+    withoutCalendarPool(calendar, poolId),
+  );
+}
+
+/** Cancels obsolete pages before projecting a known restriction within the original owner/admission. */
+async function filterPersonalCalendars(
+  client: QueryClient,
+  owner: FollowingOwner,
+  bypass: boolean,
+  retain: (calendar: MatchCalendarResponse) => MatchCalendarResponse,
+) {
   const queryKey = personalCalendarCollectionKey(owner, bypass);
   await client.cancelQueries({ queryKey }, { revert: false });
   for (const query of client.getQueryCache().findAll({ queryKey })) {
@@ -32,10 +62,7 @@ export async function removeUnavailablePersonalCalendarMatch(
           ...data,
           pages: data.pages.map((page) => ({
             ...page,
-            calendar: filterCalendarMatches(
-              page.calendar,
-              (match) => match.id !== matchId,
-            ),
+            calendar: retain(page.calendar),
           })),
         },
       });

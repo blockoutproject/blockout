@@ -9,6 +9,7 @@ import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
+import com.blockout.backend.sporting.application.model.StandingsView;
 import java.time.Instant;
 import java.util.Map;
 import org.mapstruct.Mapper;
@@ -93,6 +94,16 @@ public interface ConsultationViewMapper {
         source.get(ContactField.PHONE),
         UriMapping.toUri(source.get(ContactField.WEBSITE)));
   }
+
+  /**
+   * Combines an official row with its independently admitted exact team identity.
+   *
+   * @param source accepted official text, order and optional rank
+   * @param team current viewable identity, or null for an unmatched or hidden participant
+   * @return detached row without native provider references or invented statistics
+   */
+  @Mapping(target = "team", source = "team")
+  ConsultationViews.StandingRow toView(StandingsView.Row source, ConsultationViews.Identity team);
 
   /**
    * Preserves an absent official result independently of retained observation metadata.
