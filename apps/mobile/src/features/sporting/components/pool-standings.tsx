@@ -3,7 +3,10 @@ import { useRouter } from "expo-router";
 import { Columns3, List } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { TabScrollView } from "react-native-collapsible-tab";
+import {
+  TabScrollView,
+  useCollapsingTabsContext,
+} from "react-native-collapsible-tab";
 import type {
   PoolSummaryResponse,
   StandingRowResponse,
@@ -39,6 +42,7 @@ export function PoolStandings({
   const standings = useQuery(queries.standings(pool.pool.id));
   const feedback = useActionFeedback();
   const { colors } = useTheme();
+  const { containerHeight, paddingTop } = useCollapsingTabsContext();
   const [layout, setLayout] = useState<"list" | "cards">("list");
   const data = standings.data;
   const columns = data?.columns ?? [];
@@ -118,7 +122,8 @@ export function PoolStandings({
           </View>
         </PageContent>
       ) : (
-        <>
+        // RNCT's extra collapse range is scroll space, outside the visible feedback area.
+        <View style={{ minHeight: Math.max(0, containerHeight - paddingTop) }}>
           {children && <PageContent>{children}</PageContent>}
           <ScreenState>
             {!data ? (
@@ -138,7 +143,7 @@ export function PoolStandings({
               />
             )}
           </ScreenState>
-        </>
+        </View>
       )}
     </TabScrollView>
   );
