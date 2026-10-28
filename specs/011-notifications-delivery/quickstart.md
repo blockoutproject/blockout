@@ -217,7 +217,31 @@ The prototype remains the interaction source; native scroll, refresh and Router 
 its relevant behavior without copying its demo world or browser scroll machinery.
 
 These controlled cases establish neither physical system badge behavior nor push receipt,
-subscription lifecycle or full cross-owner qualification. T025, T030/T041, T052 and T058/T060
+subscription lifecycle or full cross-owner qualification. T025, T030/T041, T052 and T060
 retain their independent evidence obligations. Support actions and the shared Pro offer remain
 with their existing feature owners. Revision-specific checks, native captures and review outcomes
 belong in the delivery PR.
+
+## Four-family presentation construction
+
+T059 and the implemented part of T058 reuse the existing inbox and F03 sporting presentation boundary. The
+[presentation cases](../../apps/mobile/src/features/notifications/__tests__/notification-presentation.test.tsx)
+consume twelve wire-text examples from the actual `NotificationMessage` variants through the
+generated response schema. They preserve the supplied French text, distinguish absent and zero
+scores, cover special/withdrawn results and unavailable links, and keep complete accessible
+names and read states. Blank team names display explicit absence rather than an assumed identity.
+The [screen cases](../../apps/mobile/src/features/notifications/__tests__/inbox-screen.test.tsx)
+exercise all four families through generated HTTP consumers and the real Query/session/admission
+owners, preserving server order and editorial choices through refresh and reopening.
+
+Received instants use the current phone zone and F03's established-instant clock formatter;
+Paris/New York cases cover differing DST weeks, spring jumps, autumn repeated hours and local
+day changes. Formatting changes neither the original creation instant nor retention/read state.
+Cards open the ordinary match destination; they expose no video URL or new action. F03/F08 own
+the neutral Stream link presentation on that destination. The current match screen does not yet
+compose that section; T058 stays open for the actual destination assertion after its owning
+[F03 T047/T052](../007-sporting-consultation/tasks.md) implementation. A Router destination double
+is not evidence for that label or interaction. The existing notification pattern
+and [200% screen](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=1072-24724)
+remain the visual references. Automated semantic cases do not establish narrow-screen geometry,
+native text resizing or VoiceOver/TalkBack behavior; T060 retains those qualifications separately.

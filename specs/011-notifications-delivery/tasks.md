@@ -206,9 +206,11 @@ description: "Implementation tasks for F07 notifications, inbox and push"
 
 - [ ] T058 [P] [US6] Write failing actual presentation cases in `apps/mobile/src/features/notifications/__tests__/notification-presentation.test.tsx` with generated responses from T012 and US2's real families. Cover all three-or-more variants/family, score/name absence, special/withdrawn results, unavailable links, stable choice across refresh/device, Paris/New York instants and neutral F03 Stream link destination. Include narrow/large-text/read-unread accessibility and no manual cleanup/settings/campaign affordances.
 
+  Presentation and inbox cases are implemented. The actual neutral Stream link destination remains unqualified: the current match screen does not yet compose the F03 link section owned by [F03 T047/T052](../007-sporting-consultation/tasks.md). Keep this coverage open rather than substituting a route double for that destination. Native layout/reader evidence remains T060.
+
 ### Implementation and qualification for User Story 6
 
-- [ ] T059 [US6] Complete `apps/mobile/src/features/notifications/components/notification-item.tsx` and `screens/notifications-screen.tsx` using F03 local-time formatting/F13 UI and actual four-family responses, making T058 pass. Retain backend variant/facts, accessible French content and original creation order; display changes cannot trigger announcements. Reuse [approved inbox/match/guest design](plan.md#design-and-qualification), with no new foreground alert, deletion-progress screen, LNV TV collector or code-to-video inference.
+- [x] T059 [US6] Complete `apps/mobile/src/features/notifications/components/notification-item.tsx` and `screens/notifications-screen.tsx` using F03 local-time formatting/F13 UI and actual four-family responses, making T058 pass. Retain backend variant/facts, accessible French content and original creation order; display changes cannot trigger announcements. Reuse [approved inbox/match/guest design](plan.md#design-and-qualification), with no new foreground alert, deletion-progress screen, LNV TV collector or code-to-video inference.
 - [ ] T060 [US6] Execute A38–A43 via `specs/011-notifications-delivery/quickstart.md#essential-scenarios` on actual iOS/Android builds with light/dark/system appearance, enlarged text and VoiceOver/TalkBack. Verify same instants/elapsed age across DST/time zones, accurate delayed wording and guest/changed-account return. Keep Figma/prototype approval distinct from native presentation, transport and accessibility evidence.
 
 ---
