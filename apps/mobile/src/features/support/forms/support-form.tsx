@@ -141,7 +141,7 @@ export function SupportForm({ onSubmit }: SupportFormProps) {
           )}
         />
       </View>
-      <FieldMessage helper="N’ajoutez pas de mot de passe, de code de connexion ou de justificatif de paiement." />
+      <FieldMessage helper="Évitez les informations personnelles inutiles, mots de passe et justificatifs de paiement. Aucune capture n’est obligatoire." />
       <Button
         label="Envoyer la demande"
         loading={isSubmitting}
