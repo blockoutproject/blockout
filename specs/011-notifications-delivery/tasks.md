@@ -204,7 +204,9 @@ description: "Implementation tasks for F07 notifications, inbox and push"
 
 ### Tests for User Story 6
 
-- [x] T058 [P] [US6] Write failing actual presentation cases in `apps/mobile/src/features/notifications/__tests__/notification-presentation.test.tsx` with generated responses from T012 and US2's real families. Cover all three-or-more variants/family, score/name absence, special/withdrawn results, unavailable links, stable choice across refresh/device, Paris/New York instants and neutral F03 Stream link destination. Include narrow/large-text/read-unread accessibility and no manual cleanup/settings/campaign affordances.
+- [ ] T058 [P] [US6] Write failing actual presentation cases in `apps/mobile/src/features/notifications/__tests__/notification-presentation.test.tsx` with generated responses from T012 and US2's real families. Cover all three-or-more variants/family, score/name absence, special/withdrawn results, unavailable links, stable choice across refresh/device, Paris/New York instants and neutral F03 Stream link destination. Include narrow/large-text/read-unread accessibility and no manual cleanup/settings/campaign affordances.
+
+  Presentation and inbox cases are implemented. The actual neutral Stream link destination remains unqualified: the current match screen does not yet compose the F03 link section owned by [F03 T047/T052](../007-sporting-consultation/tasks.md). Keep this coverage open rather than substituting a route double for that destination. Native layout/reader evidence remains T060.
 
 ### Implementation and qualification for User Story 6
 

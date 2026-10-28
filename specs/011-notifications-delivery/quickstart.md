@@ -195,7 +195,7 @@ belong in the delivery PR.
 
 ## Four-family presentation construction
 
-T058/T059 reuse the existing inbox and F03 sporting presentation boundary. The
+T059 and the implemented part of T058 reuse the existing inbox and F03 sporting presentation boundary. The
 [presentation cases](../../apps/mobile/src/features/notifications/__tests__/notification-presentation.test.tsx)
 consume twelve wire-text examples from the actual `NotificationMessage` variants through the
 generated response schema. They preserve the supplied French text, distinguish absent and zero
@@ -209,7 +209,10 @@ Received instants use the current phone zone and F03's established-instant clock
 Paris/New York cases cover differing DST weeks, spring jumps, autumn repeated hours and local
 day changes. Formatting changes neither the original creation instant nor retention/read state.
 Cards open the ordinary match destination; they expose no video URL or new action. F03/F08 own
-the neutral Stream link presentation on that destination. The existing notification pattern
+the neutral Stream link presentation on that destination. The current match screen does not yet
+compose that section; T058 stays open for the actual destination assertion after its owning
+[F03 T047/T052](../007-sporting-consultation/tasks.md) implementation. A Router destination double
+is not evidence for that label or interaction. The existing notification pattern
 and [200% screen](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=1072-24724)
 remain the visual references. Automated semantic cases do not establish narrow-screen geometry,
 native text resizing or VoiceOver/TalkBack behavior; T060 retains those qualifications separately.
