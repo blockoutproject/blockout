@@ -37,10 +37,6 @@ export function useCalendarGrouping<TPage, TKey extends QueryKey>(
     const changed = nextZone !== timeZone;
     const options = create(nextZone);
     if (changed) {
-      await client.cancelQueries({
-        queryKey: create(timeZone).queryKey,
-        exact: true,
-      });
       release.current?.();
       const observer = new InfiniteQueryObserver<
         TPage,
@@ -52,9 +48,15 @@ export function useCalendarGrouping<TPage, TKey extends QueryKey>(
         ...options,
         enabled: false,
       });
+      // Subscribe before awaiting cancellation so closure can always release this observer.
       release.current = observer.subscribe(() => {});
     }
     try {
+      if (changed)
+        await client.cancelQueries({
+          queryKey: create(timeZone).queryKey,
+          exact: true,
+        });
       await refreshCalendar(client, options);
       setZone(nextZone);
     } catch (error) {

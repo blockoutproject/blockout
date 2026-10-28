@@ -28,6 +28,8 @@ export function SearchResults({
   return (
     <TabLegendList
       {...pagedListDefaults}
+      accessibilityRole="list"
+      accessibilityLabel="Résultats de recherche"
       alwaysBounceVertical
       onEndReached={onEndReached}
       ListFooterComponent={
@@ -40,7 +42,7 @@ export function SearchResults({
       }
       data={items}
       ListEmptyComponent={emptyComponent}
-      keyExtractor={(item) => item.identity.id}
+      keyExtractor={(item) => item.identity.id.toLowerCase()}
       getItemType={(item) => item.kind}
       recycleItems
       keyboardShouldPersistTaps="handled"
@@ -62,7 +64,7 @@ export interface SearchHeadingProps {
 
 /**
  * Product Design Search Heading 7130:19183; clearing preserves the selected resource tab.
- * The title wraps within the remaining row width while the clear action keeps its own target.
+ * The title and clear label stay vertically centered while wrapping preserves the action's native target.
  */
 export function SearchHeading({ count, onClear }: SearchHeadingProps) {
   const { colors } = useTheme();
@@ -103,7 +105,7 @@ const styles = StyleSheet.create({
   continuation: { paddingTop: tokens.spacing.lg },
   toolbar: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     minHeight: tokens.layout.collection.toolbarMinHeight,
     gap: tokens.spacing.sm,
   },
@@ -111,6 +113,6 @@ const styles = StyleSheet.create({
   clear: {
     minHeight: tokens.touch.minimum,
     minWidth: tokens.touch.minimum,
-    justifyContent: "flex-start",
+    justifyContent: "center",
   },
 });
