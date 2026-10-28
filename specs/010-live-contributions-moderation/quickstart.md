@@ -105,3 +105,5 @@ evidence must identify the executed revision, platform and exact
 [approved nodes](plan.md#design-reconciliation-and-evidence); controlled JavaScript evidence
 alone does not qualify native networking, provider behavior or screen-reader announcements.
 Full moderation/lifecycle and extended uncertain-response recovery retain their owning tasks.
+
+Scoped iOS/Android observations at `e9a6ece6`, including builds and controlled fixtures, are recorded in the [native contribution evidence](https://github.com/blockoutproject/blockout/pull/557#issuecomment-6475614201). Available-entry/form composition, keyboard/back, retained drafts, real refusal/explicit retry, acknowledgement and exact active public projection were observed. Live Android text enlargement cropped unchanged labels, and OS reconfiguration produced development navigation warnings. Screen-reader announcements and the minimum-OS matrix were not qualified. T015/T016 remain unchecked for the outstanding native qualification; T056 retains full cross-story coverage.
