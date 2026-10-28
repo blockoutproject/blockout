@@ -1,5 +1,6 @@
 import {
   queryOptions,
+  hashKey,
   type QueryFunctionContext,
   type Query,
   type QueryKey,
@@ -39,11 +40,14 @@ import { getSessionQueryKey } from "../../../shared/query/query-client";
 import type { SessionSnapshot } from "../../accounts/session/session-generation";
 import type { useOrdinaryRequest } from "../../access/ordinary-request";
 import { resourceUnavailable } from "../model/consultation-availability";
-import { removeUnavailableCalendarMatch } from "./sporting-calendar";
 import {
   captureFollowingOwner,
   removeUnavailablePersonalCalendarMatch,
 } from "../../following/calendar";
+import {
+  discardCalendarSelection,
+  removeUnavailableCalendarMatch,
+} from "./sporting-calendar";
 
 /** Captured F05 generation guards public completions without requiring an established account. */
 type ConsultationSession = SessionSnapshot &
@@ -135,6 +139,38 @@ export function createConsultationQueries(
         },
       });
     }
+  }
+
+  /** Suppresses this refused pool's independent representations without rereading sibling tabs. */
+  async function discardPool(
+    context: QueryFunctionContext,
+    poolId: string,
+    error: Error,
+  ) {
+    const keys = [
+      key(getGetPoolQueryKey(poolId)),
+      key(getGetPoolStandingsQueryKey(poolId)),
+      key(getListPoolParticipantsQueryKey(poolId)),
+    ];
+    for (const queryKey of keys) {
+      if (hashKey(queryKey) !== hashKey(context.queryKey))
+        await context.client.cancelQueries(
+          { queryKey, exact: true },
+          { revert: false },
+        );
+      context.client.getQueryCache().find({ queryKey, exact: true })?.setState({
+        data: undefined,
+        dataUpdatedAt: 0,
+        error,
+        status: "error",
+      });
+    }
+    await discardCalendarSelection(
+      context.client,
+      [...key(getListMatchesQueryKey()), { poolId }],
+      context.queryKey,
+      error,
+    );
   }
 
   /** Prepares fresh F12 options after credentials, preserving current refusal cleanup. */
@@ -251,10 +287,19 @@ export function createConsultationQueries(
       queryOptions({
         ...consultationOpeningPolicy,
         queryKey: key(getGetPoolQueryKey(poolId)),
-        queryFn: async (context) =>
-          getPool(poolId, await request(context)).catch((error: unknown) =>
-            rejectUnavailable(error, context),
-          ),
+        queryFn: async (context) => {
+          try {
+            return await getPool(poolId, await request(context));
+          } catch (error) {
+            if (
+              !context.signal.aborted &&
+              error instanceof Error &&
+              resourceUnavailable(error)
+            )
+              await discardPool(context, poolId, error);
+            return rejectUnavailable(error, context);
+          }
+        },
       }),
     /** A new page opening rereads the official table; already mounted RNCT panels remain retained. */
     standings: (poolId: string) =>
@@ -262,19 +307,37 @@ export function createConsultationQueries(
         ...consultationOpeningPolicy,
         meta: { consultationResource: "standings" },
         queryKey: key(getGetPoolStandingsQueryKey(poolId)),
-        queryFn: async (context) =>
-          getPoolStandings(poolId, await request(context)).catch(
-            (error: unknown) => rejectUnavailable(error, context),
-          ),
+        queryFn: async (context) => {
+          try {
+            return await getPoolStandings(poolId, await request(context));
+          } catch (error) {
+            if (
+              !context.signal.aborted &&
+              error instanceof Error &&
+              resourceUnavailable(error)
+            )
+              await discardPool(context, poolId, error);
+            return rejectUnavailable(error, context);
+          }
+        },
       }),
     /** Viewable pool participants, regardless of standings availability or map coverage. */
     participants: (poolId: string) =>
       queryOptions({
         queryKey: key(getListPoolParticipantsQueryKey(poolId)),
-        queryFn: async (context) =>
-          listPoolParticipants(poolId, await request(context)).catch(
-            (error: unknown) => rejectUnavailable(error, context),
-          ),
+        queryFn: async (context) => {
+          try {
+            return await listPoolParticipants(poolId, await request(context));
+          } catch (error) {
+            if (
+              !context.signal.aborted &&
+              error instanceof Error &&
+              resourceUnavailable(error)
+            )
+              await discardPool(context, poolId, error);
+            return rejectUnavailable(error, context);
+          }
+        },
       }),
     /** One immutable calendar request; story tasks own infinite traversal and successful refresh. */
     calendar: (input: ListMatchesParams) => {
@@ -291,10 +354,20 @@ export function createConsultationQueries(
       new Intl.DateTimeFormat("en", { timeZone: params.timeZone });
       return {
         queryKey: key(getListMatchesQueryKey(params)),
-        queryFn: async (context: QueryFunctionContext) =>
-          listMatches(params, await request(context)).catch((error: unknown) =>
-            rejectUnavailable(error, context),
-          ),
+        queryFn: async (context: QueryFunctionContext) => {
+          try {
+            return await listMatches(params, await request(context));
+          } catch (error) {
+            if (
+              params.poolId &&
+              !context.signal.aborted &&
+              error instanceof Error &&
+              resourceUnavailable(error)
+            )
+              await discardPool(context, params.poolId, error);
+            return rejectUnavailable(error, context);
+          }
+        },
       };
     },
     /** Current dated match facts on opening; foreground refresh belongs to the match story. */

@@ -54,25 +54,17 @@ export function createCalendarOptions(
           .queryFn(context);
       } catch (error) {
         if (
+          !selection.poolId &&
           !context.signal.aborted &&
           error instanceof Error &&
           resourceUnavailable(error)
         ) {
-          await context.client.cancelQueries({
-            queryKey: scopeKey,
-            predicate: (query) => query.queryHash !== hashKey(context.queryKey),
-          });
-          context.client
-            .getQueryCache()
-            .findAll({ queryKey: scopeKey })
-            .forEach((query) =>
-              query.setState({
-                data: undefined,
-                dataUpdatedAt: 0,
-                error,
-                status: "error",
-              }),
-            );
+          await discardCalendarSelection(
+            context.client,
+            scopeKey,
+            context.queryKey,
+            error,
+          );
         }
         throw error;
       }
@@ -88,6 +80,36 @@ export function createCalendarOptions(
     retry: false,
     networkMode: "always",
   });
+}
+
+/**
+ * Suppresses a refused selector without replacing it with a successful empty calendar.
+ * The pool read family also calls this for its independent detail/standings/participant reads.
+ * @param client existing root QueryClient
+ * @param scopeKey native partial generated key for this selector and captured session/admission
+ * @param currentKey request currently reporting the refusal; its original error must settle normally
+ * @param error current admitted refusal retained for explicit retry
+ */
+export async function discardCalendarSelection(
+  client: QueryClient,
+  scopeKey: QueryKey,
+  currentKey: QueryKey,
+  error: Error,
+) {
+  await client.cancelQueries(
+    {
+      queryKey: scopeKey,
+      predicate: (query) => query.queryHash !== hashKey(currentKey),
+    },
+    { revert: false },
+  );
+  for (const query of client.getQueryCache().findAll({ queryKey: scopeKey }))
+    query.setState({
+      data: undefined,
+      dataUpdatedAt: 0,
+      error,
+      status: "error",
+    });
 }
 
 /**
