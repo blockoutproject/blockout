@@ -1,3 +1,4 @@
+import { SportingSupportAction } from "../components/sporting-actions";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
@@ -54,7 +55,15 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
   const blockingState = !data ? <ReadFeedback query={match} /> : undefined;
   return (
     <Page edges={["left", "right", "bottom"]}>
-      <ScrollChrome header={<PageHeader />}>
+      <ScrollChrome
+        header={
+          <PageHeader
+            action={
+              <SportingSupportAction target={{ type: "match", id: matchId }} />
+            }
+          />
+        }
+      >
         {({ onScroll, headerHeight }) => (
           <PageScrollView
             onScroll={onScroll}

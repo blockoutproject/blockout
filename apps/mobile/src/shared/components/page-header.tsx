@@ -11,10 +11,12 @@ export interface PageHeaderProps {
   title?: string;
   /** A composed compact identity may replace the plain title while preserving the balanced rails. */
   children?: ReactNode;
+  /** An owner-supplied action remains available independently of the detail read. */
+  action?: ReactNode;
 }
 
 /** UI Library Top Bar: equal control rails keep the title centered as native text grows. */
-export function PageHeader({ title, children }: PageHeaderProps) {
+export function PageHeader({ title, children, action }: PageHeaderProps) {
   const router = useRouter();
   const { colors } = useTheme();
   return (
@@ -55,7 +57,7 @@ export function PageHeader({ title, children }: PageHeaderProps) {
       ) : (
         <View style={styles.title} />
       )}
-      <View style={styles.rail} />
+      <View style={styles.rail}>{action}</View>
     </View>
   );
 }

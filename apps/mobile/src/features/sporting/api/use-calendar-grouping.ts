@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { InfiniteQueryObserver, useQueryClient } from "@tanstack/react-query";
+import {
+  InfiniteQueryObserver,
+  useQueryClient,
+  type InfiniteData,
+  type QueryKey,
+} from "@tanstack/react-query";
 import { currentSportingTimeZone } from "../model/sporting-time";
 import { refreshCalendar } from "./sporting-calendar";
 
@@ -12,8 +17,10 @@ import { refreshCalendar } from "./sporting-calendar";
  * @param active whether this category may begin its first traversal
  * @returns the retained loading zone and an explicit first-page refresh that propagates failures
  */
-export function useCalendarGrouping(
-  create: (timeZone: string) => Parameters<typeof refreshCalendar>[1],
+export function useCalendarGrouping<TPage, TKey extends QueryKey>(
+  create: (
+    timeZone: string,
+  ) => Parameters<typeof refreshCalendar<TPage, TKey>>[1],
   active = true,
 ) {
   const client = useQueryClient();
@@ -31,7 +38,13 @@ export function useCalendarGrouping(
     const options = create(nextZone);
     if (changed) {
       release.current?.();
-      const observer = new InfiniteQueryObserver(client, {
+      const observer = new InfiniteQueryObserver<
+        TPage,
+        Error,
+        InfiniteData<TPage>,
+        TKey,
+        string | undefined
+      >(client, {
         ...options,
         enabled: false,
       });

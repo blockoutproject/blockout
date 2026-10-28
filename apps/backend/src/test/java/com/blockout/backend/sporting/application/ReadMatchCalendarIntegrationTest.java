@@ -221,7 +221,7 @@ class ReadMatchCalendarIntegrationTest {
             })
         .doCallRealMethod()
         .when(store)
-        .calendarDays(any(), any());
+        .calendarDays(any(), any(), any());
 
     // When
     ConsultationViews.Calendar response = calendars.read(request(null));

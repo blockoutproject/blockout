@@ -2,6 +2,7 @@ package com.blockout.backend.sporting.application;
 
 import com.blockout.backend.shared.mapping.TemporalMapping;
 import com.blockout.backend.sporting.application.ConsultationRequest.CalendarRequest;
+import com.blockout.backend.sporting.application.ConsultationRequest.CalendarWindow;
 import com.blockout.backend.sporting.application.ConsultationStore.CalendarEntry;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
@@ -36,16 +37,28 @@ public class ReadMatchCalendar {
    * @throws SportingResourceNotFoundException when the exact selector or club season is unavailable
    */
   public ConsultationViews.Calendar read(CalendarRequest request) {
-    Instant now = clock.instant();
     owners
         .publicPresentation(request.kind(), request.id())
         .orElseThrow(SportingResourceNotFoundException::new);
     if (request.seasonId() != null && owners.season(request.seasonId()).isEmpty())
       throw new SportingResourceNotFoundException();
-    List<LocalDate> selected = store.calendarDays(request, now);
+    return read(request.window(), store.calendarSelection(request));
+  }
+
+  /**
+   * Composes current owner-selected matches through the same F03 category and complete-day query.
+   *
+   * @param request captured category, loading zone and exclusive continuation
+   * @param selection consumer-owned predicate over scalar sporting identities
+   * @return at most seven complete nonempty days of currently viewable matches
+   */
+  public ConsultationViews.Calendar read(
+      CalendarWindow request, ConsultationMatchSelection.Filter selection) {
+    Instant now = clock.instant();
+    List<LocalDate> selected = store.calendarDays(request, selection, now);
     List<LocalDate> days = selected.subList(0, Math.min(7, selected.size()));
     Map<LocalDate, Map<UUID, List<ConsultationViews.MatchSummary>>> grouped = new LinkedHashMap<>();
-    for (CalendarEntry entry : store.calendarMatches(request, days, now)) {
+    for (CalendarEntry entry : store.calendarMatches(request, selection, days, now)) {
       grouped
           .computeIfAbsent(entry.day(), ignored -> new LinkedHashMap<>())
           .computeIfAbsent(entry.match().poolId(), ignored -> new ArrayList<>())

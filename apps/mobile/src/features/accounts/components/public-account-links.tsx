@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import { supportHref, type SupportOrigin } from "../../support";
 
 const destinations = [
   { href: "/legals/terms", label: "Conditions d’utilisation", icon: undefined },
@@ -16,12 +17,23 @@ const destinations = [
   { href: "/support", label: "Besoin d’aide ?", icon: undefined },
 ] as const;
 
+/** The existing account consumer supplies only known navigation or safe failed-sign-in facts. */
+export interface PublicAccountLinksProps {
+  supportOrigin?: SupportOrigin;
+}
+
 /** Public links share native targets and label alignment; F10/F11 retain destinations and F12 guards. */
-export function PublicAccountLinks() {
+export function PublicAccountLinks({
+  supportOrigin = { screen: "profile" },
+}: PublicAccountLinksProps = {}) {
   return (
     <View style={styles.links}>
       {destinations.map(({ href, label, icon }) => (
-        <Link key={href} href={href} asChild>
+        <Link
+          key={href}
+          href={href === "/support" ? supportHref(supportOrigin) : href}
+          asChild
+        >
           <PublicLinkAction label={label} icon={icon} />
         </Link>
       ))}

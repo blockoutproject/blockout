@@ -30,6 +30,21 @@ Run the normal workspace verification, including `AccountAccessWebMvcTest`, `Aut
 
 Mobile `account-age-retry.test.tsx` exercises the profile with real session, Query, generated transport and form owners. A user-triggered bodyless POST reuses valid credentials, preserves username/photo drafts and current administration access, and rejects malformed evidence and old-generation results. Delayed POST/PATCH responses in both orders preserve confirmed photos and provider evidence through field-owned cache updates. Null evidence retains explicit retry without blocking profile editing. Run these suites through the normal README verification commands. Controlled cleanup fixtures establish neither real provider deletion/recreation nor F08/F14 integration; T023 remains pending.
 
+### Push and entitlement session consumers
+
+The root supplies F07's exact-association removal to the existing F05 session owner. A departure
+captures that resource synchronously, invalidates private generations immediately, waits at most
+three seconds for F07's single removal attempt, then performs native credential clearing. Network,
+badge or browser failure supplies no retry credential or queue. `ProProvider` remains the sole
+RevenueCat owner and receives invalidation without waiting for push cleanup.
+
+The [session-consumer cases](../../apps/mobile/src/features/accounts/__tests__/session-consumers.test.tsx)
+cover removal ordering/failure and a delayed actual RevenueCat consumer through sign-out. The
+[F07 construction](../011-notifications-delivery/quickstart.md#push-association-and-session-construction)
+owns generated DELETE, token acquisition, badge and old-push cases; existing profile/preparation
+and private-query cases retain their old-generation coverage. These controlled SDK/network boundaries
+do not qualify physical credential storage, provider delivery or the following T020/device scenarios.
+
 ### Provider and device qualification
 
 1. **Sign in on physical iOS/Android:** production Google/Apple and dedicated preproduction email/password signup. Exercise callback, cancellation, outage, explicit restoration retry, renewal and failed browser logout. **Expected:** configured environment/client/audience restrictions apply, and local logout clears credentials/private state despite browser failure, using the native SDK lifecycle. Business-generation tests do not certify native storage or SDK-internal ordering. This does not claim global provider logout.

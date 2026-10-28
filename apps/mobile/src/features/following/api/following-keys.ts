@@ -121,6 +121,18 @@ export function personalCalendarKey(
   );
 }
 
+/** Captures every personal calendar selection within one original session/account/admission context. */
+export function personalCalendarCollectionKey(
+  owner: FollowingOwner,
+  bypass = false,
+) {
+  return privateKey(
+    owner,
+    getListPersonalMatchesQueryKey(owner.accountId),
+    bypass,
+  );
+}
+
 /** Public counts share their generated key; explicit F12 bypass adds the captured personal scope. */
 export function followerCountKey(
   target: FollowingTarget,

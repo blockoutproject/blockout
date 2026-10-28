@@ -23,6 +23,8 @@ jest.mock("react-native-purchases", () => ({
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   Stack: jest.fn(),
+  // This cache-owner suite replaces the navigator; native tap routing has its own real-router evidence.
+  useRootNavigationState: () => ({ key: "synthetic-root" }),
 }));
 jest.mock("@sentry/react-native", () => ({
   init: jest.fn(),

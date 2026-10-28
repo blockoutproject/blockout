@@ -29,6 +29,7 @@ import com.blockout.backend.following.application.FollowContext.TargetType;
 import com.blockout.backend.following.application.FollowState;
 import com.blockout.backend.following.application.FollowUnavailableTargetException;
 import com.blockout.backend.following.application.ReadFollowOptions;
+import com.blockout.backend.following.application.ReadPersonalCalendar;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import java.util.Optional;
 import java.util.Set;
@@ -74,6 +75,7 @@ class FollowStateWebMvcTest {
   @Autowired private MockMvc mvc;
   @MockitoBean private FollowState state;
   @MockitoBean private ReadFollowOptions options;
+  @MockitoBean private ReadPersonalCalendar calendars;
   @MockitoBean private FollowingApiMapper mapper;
   @MockitoBean private AccountAccess accounts;
   @MockitoBean private AccessSettingsStore settings;

@@ -66,6 +66,20 @@ with [T052 and T051](tasks.md).
 
 ## Association identity and native lifecycle
 
+Construction separates the public sign-in UUID from the [native JPA-generated row identity](https://docs.hibernate.org/orm/7.4/introduction/html_single/#identifiers).
+A native version restarts when a deleted row is recreated; matching the private generated row UUID
+as well as revision/address prevents that old receipt tuple from becoming valid again. This uses
+ordinary `GenerationType.UUID` and `@Version`, without version seeding, a tombstone, revocation
+registry or retained invalid-address row. Replacement writes remove only the exact owner/connection
+bindings reselected under account locks; a conflict arriving after that selection is left to native
+uniqueness and rollback, rather than discovered and deleted by a later broad predicate.
+
+The native token callback passes its APNs/FCM value only as the SDK's `devicePushToken` input to
+`getExpoPushTokenAsync`; only the resulting Expo address is posted. The [SDK warning](https://docs.expo.dev/versions/v58.0.0/sdk/notifications/#pushtokenlistenertoken)
+explains why reacquiring a native token from that callback can recursively emit the listener.
+The process-level handler is installed while loading the native lifecycle module, before F14's
+asynchronous initialization, so the SDK's foreground-presenting default cannot fill that wait.
+
 **Decision.** Random installation UUID, fresh association UUID per sign-in, native token listener and ordinary registration opportunities. Guard removal by exact association and invalidation by its current JPA revision. No persisted logout retry. Keep current-account match navigation independent from notification read success. Reset the app-controlled badge at sign-out/account change or confirmed erasure. Leave presented system notifications to platform behavior; handle and clear tap responses only for ordinary navigation. Keep the foreground receive listener for discreet inbox refresh alongside the SDK handler that suppresses presentation.
 
 **Rationale.** An address rotates and proves no ownership. A distinct association prevents an old logout or receipt from removing a newer binding, including returning to the same account. Native events and ordinary lifecycle refresh satisfy best-effort synchronization without polling or background tasks. A push from a former account does not justify requesting that account's inbox.

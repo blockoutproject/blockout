@@ -184,6 +184,47 @@ async function renderPage(content: ReactElement) {
   return rendered;
 }
 
+it.each(["club", "team", "pool", "match"] as const)(
+  "keeps support available after a failed %s detail read",
+  async (kind) => {
+    // Given
+    mockFetch.mockImplementation((url: string) =>
+      String(url).endsWith("/application-access")
+        ? Promise.resolve(Response.json(applicationAccessResponse()))
+        : Promise.resolve(
+            Response.json(
+              {
+                type: "urn:blockout:problem:not-found",
+                title: "Not found",
+                status: 404,
+              },
+              { status: 404 },
+            ),
+          ),
+    );
+    const page = {
+      club: <ClubScreen clubId={sportingId} />,
+      team: <TeamScreen teamId={sportingId} />,
+      pool: <PoolScreen poolId={sportingId} />,
+      match: <MatchScreen matchId={sportingId} />,
+    }[kind];
+    await renderPage(page);
+    await screen.findByRole("alert", { name: "Une erreur est survenue" });
+    const user = userEvent.setup();
+
+    // When
+    await user.press(
+      await screen.findByRole("button", { name: "Signaler un problème" }),
+    );
+
+    // Then
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/support",
+      params: { originScreen: kind, targetType: kind, targetId: sportingId },
+    });
+  },
+);
+
 it("shares the newest/selected club season between teams and both calendar entries", async () => {
   // Given
   const user = userEvent.setup();
