@@ -21,7 +21,7 @@ import { MatchSetScores } from "../components/match-set-scores";
 import { MatchInformation } from "../components/match-information";
 import { currentSportingTimeZone } from "../model/sporting-time";
 
-/** Exact dated public match identity; document/contribution/support integrations remain owner work. */
+/** Exact dated public match identity; contextual actions remain with their feature owners. */
 export interface MatchScreenProps {
   matchId: string;
 }

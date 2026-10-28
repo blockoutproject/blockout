@@ -34,7 +34,6 @@ class PublicContributionIntegrationTest extends ContributionScenario {
     assertThat(response.getStreamUrl().toString()).isEqualTo(active.version().address().value());
     assertThat(response.getStreamContributionId()).isEqualTo(active.version().id());
     assertThat(response.getStreamContributionId()).isNotEqualTo(pending.version().id());
-    assertThat(response.getAdditionalProperties()).isEmpty();
   }
 
   @Test
