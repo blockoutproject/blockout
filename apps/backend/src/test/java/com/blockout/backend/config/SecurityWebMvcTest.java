@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -110,6 +111,7 @@ class SecurityWebMvcTest {
     registry.add("blockout.security.ingestion-client-id", () -> "collector-client");
   }
 
+  /** Clears test-owned effects independently of authentication or admission configuration. */
   @BeforeEach
   void resetEffects() {
     boundary.reset();
@@ -168,6 +170,29 @@ class SecurityWebMvcTest {
     // Then
     response.andExpect(status().isUnauthorized());
     assertThat(boundary.erasedAccounts()).isZero();
+  }
+
+  @Test
+  @DisplayName("Rejects an actually expired bearer before support maintenance bypass")
+  void refusesExpiredSupportBypass() throws Exception {
+    // Given
+    String token =
+        signed(
+            claims("mobile-preproduction", "mobile-client")
+                .issuedAt(Instant.now().minusSeconds(7200))
+                .expiresAt(Instant.now().minusSeconds(3600))
+                .build(),
+            trusted);
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            post("/support-requests")
+                .header("Authorization", "Bearer " + token)
+                .header("Blockout-Maintenance-Bypass", "true"));
+
+    // Then
+    response.andExpect(status().isUnauthorized());
   }
 
   @Test

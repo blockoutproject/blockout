@@ -10,6 +10,7 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useReducedMotion } from "../../../shared/theme/use-reduced-motion";
 import { SportingLogo } from "./sporting-identity";
+import type { ReactNode } from "react";
 
 /** A compact copy uses the same canonical logo; the large identity remains the sole action/reading region. */
 export interface SportingCompactHeaderProps {
@@ -17,6 +18,8 @@ export interface SportingCompactHeaderProps {
   identity: SportingIdentityResponse;
   kind: "team" | "pool" | "club";
   division?: SportingDivisionResponse;
+  /** Kept outside the fading identity so ordinary detail failures never own action availability. */
+  action?: ReactNode;
 }
 
 /** Fades the accepted 28px identity into the pinned navigation as RNCT collapses the real profile. */
@@ -25,6 +28,7 @@ export function SportingCompactHeader({
   identity,
   kind,
   division,
+  action,
 }: SportingCompactHeaderProps) {
   const progress = useCollapseProgress();
   const reducedMotion = useReducedMotion();
@@ -33,7 +37,7 @@ export function SportingCompactHeader({
     opacity: reducedMotion ? (progress.value >= 1 ? 1 : 0) : progress.value,
   }));
   return (
-    <PageHeader title={title}>
+    <PageHeader title={title} action={action}>
       <Animated.View
         pointerEvents="none"
         accessibilityElementsHidden

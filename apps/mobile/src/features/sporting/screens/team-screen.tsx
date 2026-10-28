@@ -1,3 +1,4 @@
+import { SportingSupportAction } from "../components/sporting-actions";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingCompactHeader } from "../components/sporting-compact-header";
 import { TabScrollView } from "react-native-collapsible-tab";
@@ -98,7 +99,12 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
     <Page edges={blockingState ? undefined : ["left", "right", "bottom"]}>
       {blockingState ? (
         <>
-          <PageHeader title="Équipe" />
+          <PageHeader
+            title="Équipe"
+            action={
+              <SportingSupportAction target={{ type: "team", id: teamId }} />
+            }
+          />
           <PageScrollView
             refreshControl={
               <DataRefreshControl
@@ -117,6 +123,11 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
           header={
             data && (
               <SportingCompactHeader
+                action={
+                  <SportingSupportAction
+                    target={{ type: "team", id: teamId }}
+                  />
+                }
                 title="Équipe"
                 identity={data.team.team}
                 kind="team"
