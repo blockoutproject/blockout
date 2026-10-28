@@ -8,9 +8,13 @@ import {
 import { renderRouter } from "expo-router/testing-library";
 import { Stack, router } from "expo-router";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Alert, Text } from "react-native";
+import { Alert, Button, Text } from "react-native";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { createQueryClient } from "../../../shared/query/query-client";
+import {
+  AccessAdmissionProvider,
+  useAccessAdmission,
+} from "../../access/queries/use-access-admission";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
@@ -143,4 +147,113 @@ it("leaves an acknowledged clean form without asking to discard the saved addres
     expect(screen.getByText("Match origin")).toBeOnTheScreen(),
   );
   expect(Alert.alert).not.toHaveBeenCalled();
+});
+
+/** Applies the production F12 guard, so a business dependency failure removes ordinary route owners. */
+function ProtectedNavigation() {
+  const access = useAccessAdmission();
+  return (
+    <Stack>
+      <Stack.Protected guard={!access.ordinary}>
+        <Stack.Screen name="access" />
+      </Stack.Protected>
+      <Stack.Protected guard={access.ordinary}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="matches/[matchId]/contribution" />
+      </Stack.Protected>
+    </Stack>
+  );
+}
+/** Uses the same actual providers as Layout, adding F12 admission and protected native routes. */
+function ProtectedLayout() {
+  return (
+    <QueryClientProvider client={client}>
+      <ThemeProvider>
+        <ApplicationAccessProvider>
+          <AccountSessionProvider>
+            <AccountFeedbackProvider>
+              <AccessAdmissionProvider>
+                <ProtectedNavigation />
+              </AccessAdmissionProvider>
+            </AccountFeedbackProvider>
+          </AccountSessionProvider>
+        </ApplicationAccessProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
+/** The gate retries only the real public check and existing-account read. */
+function AccessRetry() {
+  const access = useAccessAdmission();
+  return <Button title="Vérifier accès" onPress={() => access.retry()} />;
+}
+
+it("retains the original draft and unresolved command across F12 protected-route removal", async () => {
+  // Given
+  const reads = mockFetch.getMockImplementation();
+  let failRead = false;
+  mockFetch.mockImplementation(async (url, init) => {
+    if (String(url).includes("/stream-contributions")) {
+      if (init?.method === "POST") {
+        failRead = true;
+        throw new TypeError("Response lost");
+      }
+      if (failRead)
+        return Response.json(
+          {
+            type: "urn:blockout:problem:unavailable",
+            title: "Unavailable",
+            status: 503,
+          },
+          { status: 503 },
+        );
+    }
+    if (!reads) throw new Error("Missing test HTTP boundary");
+    return reads(url, init);
+  });
+  await renderRouter(
+    {
+      _layout: ProtectedLayout,
+      access: AccessRetry,
+      index: () => <Text>Match origin</Text>,
+      "matches/[matchId]/contribution": () => (
+        <ContributionScreen matchId={match.match.id} />
+      ),
+    },
+    { initialUrl: "/" },
+  );
+  await screen.findByText("Match origin");
+  await act(() =>
+    router.push({
+      pathname: "/matches/[matchId]/contribution",
+      params: { matchId: match.match.id },
+    }),
+  );
+  const user = userEvent.setup();
+  await user.type(
+    await screen.findByLabelText("Adresse du lien"),
+    "https://youtu.be/example",
+  );
+  // When
+  await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await screen.findByRole("button", { name: "Vérifier accès" });
+  failRead = false;
+  await user.press(screen.getByRole("button", { name: "Vérifier accès" }));
+  await screen.findByText("Match origin");
+  await act(() =>
+    router.push({
+      pathname: "/matches/[matchId]/contribution",
+      params: { matchId: match.match.id },
+    }),
+  );
+  // Then
+  expect(
+    await screen.findByDisplayValue("https://youtu.be/example"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Vérifier la contribution" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Soumettre le lien" }),
+  ).toBeDisabled();
 });

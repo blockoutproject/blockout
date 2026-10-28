@@ -597,3 +597,19 @@ it("refreshes the actual F03 match key after a publication under explicit mainte
     "true",
   );
 });
+
+it("shows compact match context without inventing unknown scores or extra sporting navigation", async () => {
+  // Given
+  await mount();
+  await screen.findByLabelText("Adresse du lien");
+  // When / Then
+  expect(screen.getByText("Home")).toBeOnTheScreen();
+  expect(screen.getByText("Away")).toBeOnTheScreen();
+  expect(screen.queryByText("À venir")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Score domicile : indisponible"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: /Home · Score/ }),
+  ).not.toBeOnTheScreen();
+});

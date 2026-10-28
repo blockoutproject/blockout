@@ -39,3 +39,14 @@
 The owner approved prototype [5413817](https://github.com/blockoutproject/product-prototype/commit/54138170f14775fe11132aaa61433329059cbfbb), then the scoped Figma reconciliation linked in [plan.md](plan.md), in the planning conversation. Prototype tests (206), TypeScript and its build passed; browser checks covered complete moderator actions, unavailable report reasons and current-state recovery. These observations establish fictional web behavior only.
 
 Documentation establishes native capabilities, not their integrated execution. Generation/compilation, real PostgreSQL concurrency, native mobile networking/accessibility and F07 integration remain [future qualifications](quickstart.md). No provider account or application runtime was configured and no dependency upgrade was selected.
+
+## Contribution draft lifetime under admission gates
+
+F12 ordinary dependency refusals can remove the ordinary native stack, including its form.
+A route-local `useForm` therefore loses a dirty address during a failed submission observation.
+Retain the actual RHF control under the original account/session and match, following the
+existing settings/classification editors; release it on clean departure, explicit abandonment,
+acknowledged submission or session invalidation. Commands and validated responses remain in
+Query. This preserves the existing F12 gates without a copied draft store, persistence, replay
+or a change to access policy. A real protected-router regression covers the 503 detour and
+explicit reopening with the same draft and unresolved-command guard.

@@ -95,7 +95,12 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
               </ScreenState>
             ) : (
               <PageContent>
-                {match.data && <MatchSummary match={match.data.match} />}
+                {match.data && (
+                  <MatchSummary
+                    match={match.data.match}
+                    presentation="context"
+                  />
+                )}
                 {editing.profile.isError && (
                   <Button
                     label="Réessayer le profil"
@@ -105,6 +110,7 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
                 )}
                 <ContributionForm
                   key={`${editing.session.generation}:${editing.session.accountId}:${matchId}`}
+                  matchId={matchId}
                   current={current}
                   editing={editing}
                 />

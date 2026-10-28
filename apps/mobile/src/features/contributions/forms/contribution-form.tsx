@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useFormState } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
 import type { OwnStreamContributionsResponse } from "../../../../.generated/schemas/index.zod";
@@ -18,32 +18,43 @@ import {
   contributionSchema,
   type ContributionValues,
 } from "../schemas/contribution-schema";
+import { contributionEditor } from "./contribution-editor";
 import { contributionValues } from "./contribution-values";
 
-/** One route-local address draft; current context disables dispatch without replacing its values. */
+/** One original-match address draft; current context disables dispatch while RHF retains values across admission detours. */
 export interface ContributionFormProps {
+  matchId: string;
   current: OwnStreamContributionsResponse;
   editing: ReturnType<typeof useOwnContributions>;
 }
 /** Retains typed addresses through refusals/refetches and leaves only after a current acknowledged submission. */
-export function ContributionForm({ current, editing }: ContributionFormProps) {
+export function ContributionForm({
+  matchId,
+  current,
+  editing,
+}: ContributionFormProps) {
   const { colors } = useTheme();
   const router = useRouter();
   const feedback = useActionFeedback();
+  const [editor] = useState(() => contributionEditor(editing.session, matchId));
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
+      if (!editor.form.getFieldState("url").isDirty) editor.release();
     };
-  }, []);
+  }, [editor]);
   const { control, handleSubmit, reset, setError } =
     useForm<ContributionValues>({
       resolver: zodResolver(contributionSchema),
-      defaultValues: contributionValues(),
+      formControl: editor.form.formControl,
     });
   const { isDirty } = useFormState({ control });
-  useDiscardChanges(isDirty, () => reset(contributionValues()));
+  useDiscardChanges(isDirty, () => {
+    reset(contributionValues());
+    editor.release();
+  });
   const { session, submit, query } = editing;
   const busy = submit.pending || query.isFetching;
   const disabled =
@@ -77,9 +88,10 @@ export function ContributionForm({ current, editing }: ContributionFormProps) {
     if (!attempt) return;
     try {
       const accepted = await attempt;
-      if (!mounted.current || !session.isCurrent(session.generation)) return;
+      if (!session.isCurrent(session.generation)) return;
       reset(contributionValues(accepted.contribution.url));
-      router.back();
+      editor.release();
+      if (mounted.current) router.back();
     } catch (error) {
       if (!mounted.current || !session.isCurrent(session.generation)) return;
       if (error instanceof ApiError && error.status === 422) {

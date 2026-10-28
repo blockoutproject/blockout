@@ -102,7 +102,7 @@ F03's generated response, including current match withdrawal. The existing
 professional URLs and private-field absence. Version identity is supplied only with the exact
 active contributed URL; no private owner, quota, report or moderation data enters F03.
 
-The form uses the current F13 page/scroll/keyboard composition. Native interaction and design
+The form uses the current F13 page/scroll/keyboard composition and the compact F03 match-context variant. `contribution-navigation.test.tsx` mounts actual protected native routes to verify draft/recovery retention after a F12 503 detour and a clean return after acknowledgement. Native interaction and design
 evidence must identify the executed revision, platform and exact
 [approved nodes](plan.md#design-reconciliation-and-evidence); controlled JavaScript evidence
 alone does not qualify native networking, provider behavior or screen-reader announcements.
