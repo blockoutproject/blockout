@@ -43,6 +43,7 @@ import { resourceUnavailable } from "../model/consultation-availability";
 import {
   captureFollowingOwner,
   removeUnavailablePersonalCalendarMatch,
+  removeUnavailablePersonalCalendarPool,
 } from "../../following/calendar";
 import {
   discardCalendarSelection,
@@ -177,6 +178,14 @@ export function createConsultationQueries(
       key(getListMatchesQueryKey()),
       poolId,
     );
+    const owner = captureFollowingOwner(session);
+    if (owner)
+      await removeUnavailablePersonalCalendarPool(
+        context.client,
+        owner,
+        Boolean(intent),
+        poolId,
+      );
   }
 
   /** Prepares fresh F12 options after credentials, preserving current refusal cleanup. */

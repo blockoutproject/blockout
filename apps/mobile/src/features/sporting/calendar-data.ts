@@ -2,4 +2,5 @@
 export {
   refreshCalendar,
   filterCalendarMatches,
+  withoutCalendarPool,
 } from "./api/sporting-calendar";

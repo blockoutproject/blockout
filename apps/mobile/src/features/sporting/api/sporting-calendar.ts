@@ -207,18 +207,18 @@ export async function removeUnavailableCalendarPool(
         query.setState({
           data: {
             ...data,
-            pages: data.pages.map((page) => withoutPool(page, poolId)),
+            pages: data.pages.map((page) => withoutCalendarPool(page, poolId)),
           },
         });
     } else {
       const data = client.getQueryData<MatchCalendarResponse>(query.queryKey);
-      if (data) query.setState({ data: withoutPool(data, poolId) });
+      if (data) query.setState({ data: withoutCalendarPool(data, poolId) });
     }
   }
 }
 
 /** Keeps the page's attribution/progression while dropping only groups with the refused exact pool. */
-function withoutPool(
+export function withoutCalendarPool(
   page: MatchCalendarResponse,
   poolId: string,
 ): MatchCalendarResponse {
