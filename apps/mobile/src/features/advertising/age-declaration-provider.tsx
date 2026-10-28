@@ -1,6 +1,4 @@
 import {
-  createContext,
-  useContext,
   useEffect,
   useLayoutEffect,
   useSyncExternalStore,
@@ -13,10 +11,8 @@ import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { useAccountSession } from "../accounts/current-account";
 import { useAccessAdmission } from "../access/queries/use-access-admission";
-import {
-  createAdvertisingPrivacy,
-  type AdvertisingPrivacySnapshot,
-} from "./advertising-privacy";
+import { createAdvertisingPrivacy } from "./advertising-privacy";
+import { AgeContext } from "./age-declaration-context";
 import {
   getAgeDeclarationStatus,
   getAdvertisingAgeCategory,
@@ -24,26 +20,6 @@ import {
   submitAgeDeclaration,
   type AgeDeclaration,
 } from "./age-declaration";
-
-/** Installation state survives account changes; F09 only suppresses unnecessary entry prompts. */
-interface InstallationAge {
-  declaration: AgeDeclaration | null;
-  category: AgeDeclaration["category"];
-  required: boolean;
-  renewal: boolean;
-  loading: boolean;
-  readFailed: boolean;
-  pending: boolean;
-  /** Single SDK readiness and interstitial lifecycle, independent of installation persistence. */
-  privacy: ReturnType<typeof createAdvertisingPrivacy>;
-  nativePrivacy: AdvertisingPrivacySnapshot;
-  /** Retries only the installation read after an explicit failure. */
-  retryRead(): void;
-  /** Acknowledges the write and native preparation before navigation; SDK failure never rolls back storage. */
-  confirm(age: number): Promise<boolean> | undefined;
-}
-
-const AgeContext = createContext<InstallationAge | null>(null);
 
 /** One acknowledged installation value and its read lifecycle; raw age remains in the submitting form. */
 type DeclarationState =
@@ -247,10 +223,5 @@ export function AgeDeclarationProvider({
   );
 }
 
-/** Reads the single local declaration owner; it authorizes no ad processing, account access or Pro right. */
-export function useAgeDeclaration(): InstallationAge {
-  const value = useContext(AgeContext);
-  if (!value)
-    throw new Error("Age declaration requires AgeDeclarationProvider");
-  return value;
-}
+/** Consumers share the same context without importing installation storage or SDK orchestration. */
+export { useAgeDeclaration } from "./age-declaration-context";

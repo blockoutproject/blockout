@@ -1,5 +1,6 @@
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { QueryClientProvider } from "@tanstack/react-query";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   cleanup,
   act,
@@ -10,7 +11,7 @@ import {
 } from "@testing-library/react-native";
 import { renderRouter } from "expo-router/testing-library";
 import { Stack } from "expo-router";
-import { Dimensions, Text } from "react-native";
+import { Dimensions, Linking, Text } from "react-native";
 import { useLayoutEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import TabsLayout from "../../../app/(ordinary)/(tabs)/_layout";
@@ -19,6 +20,7 @@ import SearchLayout from "../../../app/(ordinary)/(tabs)/search/_layout";
 import SearchRoute from "../../../app/(ordinary)/(tabs)/search/index";
 import SearchFiltersRoute from "../../../app/(ordinary)/(tabs)/search/filters";
 import SearchChoiceRoute from "../../../app/(ordinary)/(tabs)/search/choice";
+import MatchRoute from "../../../app/(ordinary)/matches/[matchId]";
 import { NotificationState } from "../state/notification-state";
 import {
   createQueryClient,
@@ -39,6 +41,28 @@ import { initializeV2Installation } from "../../onboarding/initialize-v2-install
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { notificationResponse } from "../test-support/notification-data";
+import type { MatchDetailResponse } from "../../../../.generated/schemas/index.zod";
+import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
+import { ProProvider } from "../../pro";
+import { AgeDeclarationProvider } from "../../advertising/age-declaration-provider";
+import { submitAgeDeclaration } from "../../advertising/age-declaration";
+import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
+import * as proSessionModule from "../../pro/pro-session";
+import { ownContributions } from "../../contributions/test-support/contribution-data";
+
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("../../pro/test-support/native-purchases")
+    .mockPurchases,
+}));
+jest.mock("@sentry/react-native", () => ({
+  captureException: jest.fn(),
+}));
 
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
@@ -60,8 +84,11 @@ const env = { ...process.env };
 const row = notificationResponse();
 let client = createQueryClient();
 let total = 7;
+const streamUrl =
+  "https://www.youtube.com/watch?v=synthetic&edition=exact%2Fone";
+let match: MatchDetailResponse;
 
-/** Real native router and all business providers; secondary destinations are controlled route fixtures. */
+/** Real inbox/match Router and session/privacy owners; native SDKs and HTTP remain controlled. */
 function SessionRoutes() {
   const session = useAccountSession();
   useLayoutEffect(
@@ -70,9 +97,15 @@ function SessionRoutes() {
   );
   return (
     <AccountFeedbackProvider>
-      <NotificationState>
-        <Stack screenOptions={{ headerShown: false }} />
-      </NotificationState>
+      <AccessAdmissionProvider>
+        <ProProvider>
+          <AgeDeclarationProvider enabled>
+            <NotificationState>
+              <Stack screenOptions={{ headerShown: false }} />
+            </NotificationState>
+          </AgeDeclarationProvider>
+        </ProProvider>
+      </AccessAdmissionProvider>
     </AccountFeedbackProvider>
   );
 }
@@ -94,10 +127,19 @@ function Root() {
   );
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.useFakeTimers({ now: new Date("2026-10-27T12:00:00Z") });
   client = createQueryClient();
   total = 7;
+  match = { match: { ...row.match }, documents: [], streamUrl };
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
+  prepareProNativeIO();
+  await AsyncStorage.clear();
+  await submitAgeDeclaration(30);
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "synthetic-client";
@@ -130,6 +172,10 @@ beforeEach(() => {
         );
       if (path.endsWith("/notifications"))
         return Response.json({ notifications: [row] });
+      if (path.endsWith(`/matches/${row.match.id}`))
+        return Response.json(match);
+      if (path.endsWith("/stream-contributions"))
+        return Response.json(ownContributions());
       if (
         path.endsWith(`/notifications/${row.id}`) &&
         init.method === "PATCH"
@@ -149,7 +195,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Production tab/search/inbox entries retain their owners; Home, profile and match destinations are controlled. */
+/** Production tab/search/inbox/match entries retain their owners; Home and profile are controlled destinations. */
 async function openInbox() {
   return renderRouter(
     {
@@ -162,27 +208,134 @@ async function openInbox() {
       "(tabs)/search/choice": SearchChoiceRoute,
       "(tabs)/profile": () => <Text>Profil</Text>,
       "(tabs)/notifications": NotificationsRoute,
-      "matches/[matchId]": () => <Text>Destination du match</Text>,
+      "matches/[matchId]": MatchRoute,
     },
     { initialUrl: "/notifications" },
   );
 }
 
-it("projects seven unread into the real tab, opens the exact match, and refreshes when returning", async () => {
+it.each(["professional", "contributed"] as const)(
+  "opens the current match's exact %s stream destination from the real inbox",
+  async (source) => {
+    // Given
+    if (source === "contributed")
+      match.streamContributionId = "00000000-0000-4000-8000-000000000290";
+    await openInbox();
+    const open = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    await screen.findByRole("link", { name: /non lue$/ });
+    expect(
+      await screen.findByRole("button", { name: "Notifications, 7 non lues" }),
+    ).toBeOnTheScreen();
+
+    // When
+    await user.press(screen.getByRole("link", { name: /non lue$/ }));
+    await user.press(
+      await screen.findByRole("link", { name: "Ouvrir le lien" }),
+    );
+
+    // Then
+    expect(screen).toHavePathname(`/matches/${row.match.id}`);
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(open).toHaveBeenCalledWith(streamUrl);
+  },
+);
+
+it("offers no fictional stream opening when the current match has no link", async () => {
+  // Given
+  delete match.streamUrl;
+  const open = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
+  await openInbox();
+  const user = userEvent.setup();
+
+  // When
+  await user.press(await screen.findByRole("link", { name: /non lue$/ }));
+  await screen.findByRole("header", { name: "Informations" });
+
+  // Then: the distinct contribution action does not become a fictional viewing destination.
+  expect(screen.queryByRole("link", { name: "Ouvrir le lien" })).toBeNull();
+  expect(
+    await screen.findByRole("button", { name: "Stream link" }),
+  ).toBeOnTheScreen();
+  expect(open).not.toHaveBeenCalled();
+});
+
+it("keeps the match available after a failed stream handoff and retries only on another press", async () => {
+  // Given
+  const open = jest
+    .spyOn(Linking, "openURL")
+    .mockRejectedValueOnce(new Error("No native handler"))
+    .mockResolvedValue(undefined);
+  await openInbox();
+  const user = userEvent.setup();
+  await user.press(await screen.findByRole("link", { name: /non lue$/ }));
+
+  // When
+  await user.press(await screen.findByRole("link", { name: "Ouvrir le lien" }));
+
+  // Then
+  expect(await screen.findByRole("alert")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "Informations" }),
+  ).toBeOnTheScreen();
+  expect(open).toHaveBeenCalledTimes(1);
+  await user.press(screen.getByRole("link", { name: "Ouvrir le lien" }));
+  await waitFor(() => expect(open).toHaveBeenCalledTimes(2));
+  expect(open).toHaveBeenLastCalledWith(streamUrl);
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
+it.each(["before", "after-without-result", "definitive-result"] as const)(
+  "retains the neutral stream label for a match %s",
+  async (state) => {
+    // Given
+    if (state !== "definitive-result") {
+      delete match.match.result;
+      match.match.category = state === "before" ? "upcoming" : "completed";
+      match.match.schedule = {
+        localDate: state === "before" ? "2026-10-28" : "2026-10-26",
+        timeZone: "Europe/Paris",
+        instant:
+          state === "before" ? "2026-10-28T17:00:00Z" : "2026-10-26T17:00:00Z",
+        observedAt: "2026-10-25T12:00:00Z",
+      };
+    }
+    await openInbox();
+    const user = userEvent.setup();
+
+    // When
+    await user.press(await screen.findByRole("link", { name: /non lue$/ }));
+
+    // Then
+    expect(
+      await screen.findByRole("header", { name: "Stream link" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole("link", { name: "Ouvrir le lien" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("link", { name: /live|replay/i })).toBeNull();
+  },
+);
+
+it("refreshes the real inbox summary after returning from the match destination", async () => {
   // Given
   await openInbox();
   const user = userEvent.setup();
-  await screen.findByRole("link", { name: /non lue$/ });
-  expect(
-    await screen.findByRole("button", { name: "Notifications, 7 non lues" }),
-  ).toBeOnTheScreen();
+  await user.press(await screen.findByRole("link", { name: /non lue$/ }));
+  await screen.findByRole("header", { name: "Stream link" });
+  total = 0;
 
   // When
-  await user.press(screen.getByRole("link", { name: /non lue$/ }));
+  await user.press(screen.getByRole("button", { name: "Retour" }));
 
   // Then
-  expect(await screen.findByText("Destination du match")).toBeOnTheScreen();
-  expect(screen).toHavePathname(`/matches/${row.match.id}`);
+  expect(
+    await screen.findByRole("button", { name: "Notifications" }),
+  ).toBeOnTheScreen();
+  expect(screen).toHavePathname("/notifications");
+  expect(
+    screen.queryByRole("button", { name: /Notifications, .* non lues/ }),
+  ).toBeNull();
 });
 
 it("routes a guest to public search without requesting a personal inbox or showing its tab", async () => {

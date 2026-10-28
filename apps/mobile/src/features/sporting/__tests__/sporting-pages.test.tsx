@@ -1,4 +1,5 @@
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import type { ReactElement } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -36,6 +37,17 @@ import { TeamScreen } from "../screens/team-screen";
 import { PoolScreen } from "../screens/pool-screen";
 import { MatchScreen } from "../screens/match-screen";
 
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("../../pro/test-support/native-purchases")
+    .mockPurchases,
+}));
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
@@ -180,7 +192,9 @@ async function renderPage(content: ReactElement) {
             <ThemeProvider>
               <ActionFeedbackProvider scopeKey="test">
                 <ApplicationAccessProvider>
-                  <AccountSessionProvider>{children}</AccountSessionProvider>
+                  <AccountSessionProvider>
+                    <AdvertisingProviders>{children}</AdvertisingProviders>
+                  </AccountSessionProvider>
                 </ApplicationAccessProvider>
               </ActionFeedbackProvider>
             </ThemeProvider>

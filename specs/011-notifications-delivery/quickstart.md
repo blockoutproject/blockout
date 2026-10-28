@@ -166,10 +166,15 @@ native/network I/O. They cover token/generation races, a three-second bound over
 foreground silence, one-time tap clearing and independent read/navigation. An already transmitted
 old PUT retains the [accepted transport limit](plan.md#expo-handoff-and-association-lifecycle).
 
+Both inbox activation and native response handling now enter the installation's single F11
+sporting-transition owner. Reading the original owner's inbox entry starts independently of
+advertising and destination navigation. Response deduplication and clearing still precede that
+opening; passive receipt and foreground refresh do not enter the counter. The
+[entry composition cases](../../apps/mobile/src/features/advertising/__tests__/sporting-ad-entry.test.tsx)
+exercise the real consumers with controlled native SDK and HTTP boundaries.
+
 These cases establish no provider receipt, physical badge/credential behavior, after-commit sender,
-F11 native ads, erasure orchestration or release qualification. T037 remains open for the actual
-[F11 T009 composition](../004-advertising-privacy-legal/tasks.md#phase-3-user-story-1--view-content-with-predictable-advertising-frequency-priority-p1--mvp),
-which is absent from this base; direct match navigation cannot establish its counter integration.
+native ad serving, erasure orchestration or release qualification.
 [T030/T038–T041](tasks.md) and
 [F05 T020](../005-accounts-identity/tasks.md) retain their owning obligations. Revision-specific
 executed checks and unavailable evidence belong in the delivery PR.
@@ -224,7 +229,7 @@ belong in the delivery PR.
 
 ## Four-family presentation construction
 
-T059 and the implemented part of T058 reuse the existing inbox and F03 sporting presentation boundary. The
+T058/T059 reuse the existing inbox and F03 sporting presentation boundary. The
 [presentation cases](../../apps/mobile/src/features/notifications/__tests__/notification-presentation.test.tsx)
 consume twelve wire-text examples from the actual `NotificationMessage` variants through the
 generated response schema. They preserve the supplied French text, distinguish absent and zero
@@ -238,10 +243,14 @@ Received instants use the current phone zone and F03's established-instant clock
 Paris/New York cases cover differing DST weeks, spring jumps, autumn repeated hours and local
 day changes. Formatting changes neither the original creation instant nor retention/read state.
 Cards open the ordinary match destination; they expose no video URL or new action. F03/F08 own
-the neutral Stream link presentation on that destination. The current match screen does not yet
-compose that section; T058 stays open for the actual destination assertion after its owning
-[F03 T047/T052](../007-sporting-consultation/tasks.md) implementation. A Router destination double
-is not evidence for that label or interaction. The existing notification pattern
+the neutral Stream link presentation on that destination. The
+[route cases](../../apps/mobile/src/features/notifications/__tests__/inbox-navigation.test.tsx)
+now mount the actual match route and generated current response, then activate its real link.
+They verify the exact public URL, absent destination, explicit retry after native handoff failure,
+neutral wording before/after the result and return to the refreshed inbox. The opening uses the
+same F11 owner as resource navigation; the exact contributed version remains attached to its URL.
+This stream-only composition does not complete the document/reporting scope of
+[F03 T047/T052](../007-sporting-consultation/tasks.md). The existing notification pattern
 and [200% screen](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=1072-24724)
 remain the visual references. Automated semantic cases do not establish narrow-screen geometry,
 native text resizing or VoiceOver/TalkBack behavior; T060 retains those qualifications separately.

@@ -32,7 +32,9 @@ import {
 import { notificationResponse } from "../test-support/notification-data";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
+import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("@react-native-async-storage/async-storage", () =>
   jest.requireActual(
     "@react-native-async-storage/async-storage/jest/async-storage-mock",
@@ -40,6 +42,11 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 );
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
+}));
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("../../pro/test-support/native-purchases")
+    .mockPurchases,
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
@@ -148,7 +155,9 @@ function Root() {
       <QueryClientProvider client={client}>
         <ApplicationAccessProvider>
           <AccountSessionProvider preparePushRemoval={push.prepareRemoval}>
-            <Capture />
+            <AdvertisingProviders>
+              <Capture />
+            </AdvertisingProviders>
           </AccountSessionProvider>
         </ApplicationAccessProvider>
       </QueryClientProvider>

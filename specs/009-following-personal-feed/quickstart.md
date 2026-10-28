@@ -174,10 +174,14 @@ On iOS, the enlarged empty card requires scrolling; the Search action was reache
 navigation and activated at accessibility-medium. This is scoped rendering/gesture evidence, not
 complete screen-reader, minimum-runtime, live backend/provider, account-erasure or F11 qualification.
 
-T036 retains the uncomposed single F11 transition owner from
-[F11 T009](../004-advertising-privacy-legal/tasks.md#phase-3-user-story-1--view-content-with-predictable-advertising-frequency-priority-p1--mvp).
-The calendar keeps F03's current exact route; it adds no second navigation counter. T037 and the
-cross-view portions of T022/T029 remain open for integrated qualification.
+The shared F03 calendar row now opens its exact match through the installation's single F11
+transition owner. Public and personal calendars use the same component and navigation boundary;
+F06 adds no counter, ad preparation or destination copy. The
+[entry composition cases](../../apps/mobile/src/features/advertising/__tests__/sporting-ad-entry.test.tsx)
+exercise that real row and shared owner, while the personal screen cases retain actual pagination
+and UUID routing. Native ad serving remains with
+[F11 T010/T020](../004-advertising-privacy-legal/tasks.md). T037 and the cross-view portions of
+T022/T029 remain open for their broader integrated qualification.
 
 ### Integrated journeys to qualify
 

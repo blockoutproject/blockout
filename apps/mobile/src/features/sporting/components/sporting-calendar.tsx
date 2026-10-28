@@ -238,7 +238,12 @@ export function SportingCalendarView({
                 item.last && styles.lastMatch,
               ]}
             >
-              <CalendarMatch match={item.match} displayTimeZone={displayZone} />
+              <CalendarMatch
+                key={item.match.id}
+                match={item.match}
+                displayTimeZone={displayZone}
+                active={active}
+              />
             </View>
           </CalendarGroupPart>
         )

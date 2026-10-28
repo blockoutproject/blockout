@@ -3,7 +3,7 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useNavigation, useRouter } from "expo-router";
+import { useNavigation } from "expo-router";
 import { useEffect, useEffectEvent, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
@@ -32,6 +32,7 @@ import { refreshInbox, refreshNotificationSummary } from "../api/inbox-queries";
 import { createReadNotificationOptions } from "../api/inbox-mutations";
 import { notificationExpiry } from "../state/inbox-expiry";
 import { NotificationItem } from "../components/notification-item";
+import { useSportingNavigation } from "../../sporting/navigation";
 
 /** Current F05/F12 admission precedes private inbox observers, including direct guest entry. */
 export function NotificationsScreen() {
@@ -86,7 +87,7 @@ function Inbox({
   const command = useMutation(
     createReadNotificationOptions(client, owner, queries),
   );
-  const router = useRouter();
+  const sporting = useSportingNavigation();
   const navigation = useNavigation();
   const feedback = useActionFeedback();
   const { colors } = useTheme();
@@ -222,14 +223,7 @@ function Inbox({
                       if (owner.isCurrent(owner.generation)) feedback.error();
                     },
                   });
-                  try {
-                    router.push({
-                      pathname: "/matches/[matchId]",
-                      params: { matchId: item.match.id },
-                    });
-                  } catch {
-                    feedback.error();
-                  }
+                  void sporting.navigate("match", item.match.id);
                 }}
               />
             )}

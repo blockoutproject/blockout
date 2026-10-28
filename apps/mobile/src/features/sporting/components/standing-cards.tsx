@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useSportingNavigation } from "../navigation";
 import { useId, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
@@ -11,13 +11,19 @@ import { SportingLogo } from "./sporting-identity";
 export interface StandingCardsProps {
   rows: readonly StandingRowResponse[];
   columns: readonly string[];
+  /** The caller's currently selected native tab owns accepted card openings. */
+  active?: boolean;
 }
 
 /**
  * Projects one unambiguous official podium in the approved 2–1–3 composition.
  * Other rows keep source order; incomplete or duplicate podium ranks keep every row in that order.
  */
-export function StandingCards({ rows, columns }: StandingCardsProps) {
+export function StandingCards({
+  rows,
+  columns,
+  active = true,
+}: StandingCardsProps) {
   const podium = [2, 1, 3].flatMap((position) => {
     const matching = rows.filter((row) => row.position === position);
     return matching.length === 1 ? matching : [];
@@ -32,8 +38,9 @@ export function StandingCards({ rows, columns }: StandingCardsProps) {
         <View style={styles.podium}>
           {podium.map((row) => (
             <StandingCard
-              key={row.position}
+              key={`${row.position}:${row.team?.id ?? "unlinked"}`}
               row={row}
+              active={active}
               columns={columns}
               podium
             />
@@ -41,7 +48,12 @@ export function StandingCards({ rows, columns }: StandingCardsProps) {
         </View>
       )}
       {remaining.map((row, index) => (
-        <StandingCard key={index} row={row} columns={columns} />
+        <StandingCard
+          key={`${index}:${row.team?.id ?? "unlinked"}`}
+          row={row}
+          columns={columns}
+          active={active}
+        />
       ))}
     </View>
   );
@@ -52,11 +64,17 @@ interface StandingCardProps {
   row: StandingRowResponse;
   columns: readonly string[];
   podium?: boolean;
+  active: boolean;
 }
 
 /** Source identity, square admitted artwork and exact statistics share one optional real-team link. */
-function StandingCard({ row, columns, podium = false }: StandingCardProps) {
-  const router = useRouter();
+function StandingCard({
+  row,
+  columns,
+  podium = false,
+  active,
+}: StandingCardProps) {
+  const sporting = useSportingNavigation(active);
   const { colors } = useTheme();
   const rank =
     row.position === 1
@@ -178,9 +196,7 @@ function StandingCard({ row, columns, podium = false }: StandingCardProps) {
       <Pressable
         accessibilityRole="link"
         accessibilityLabel={label}
-        onPress={() =>
-          router.push({ pathname: "/teams/[teamId]", params: { teamId } })
-        }
+        onPress={() => void sporting.navigate("team", teamId)}
         style={style}
       >
         {content}

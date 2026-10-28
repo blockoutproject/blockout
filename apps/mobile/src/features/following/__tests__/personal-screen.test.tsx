@@ -17,6 +17,7 @@ import {
   useState,
   type ReactNode,
   type PropsWithChildren,
+  type ComponentType,
 } from "react";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import {
@@ -46,6 +47,25 @@ import {
 } from "../../sporting/test-support/consultation-data";
 import { PersonalScreen } from "../screens/personal-screen";
 import { FollowButton } from "../components/follow-button";
+import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
+import * as proSessionModule from "../../pro/pro-session";
+import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
+
+jest.mock("@sentry/react-native", () => ({
+  init: jest.fn(),
+  captureException: jest.fn(),
+  wrap: (component: ComponentType) => component,
+}));
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("../../pro/test-support/native-purchases")
+    .mockPurchases,
+}));
 
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
@@ -137,7 +157,7 @@ function SessionBinding({ children }: PropsWithChildren) {
   return children;
 }
 
-/** Provides the actual F05/F12, Query, theme and feedback composition required by Home and follow actions. */
+/** Provides real session, admission, advertising, Query and presentation owners for Home and follow actions. */
 async function mount(extra?: ReactNode) {
   return render(
     <GestureHandlerRootView>
@@ -146,10 +166,12 @@ async function mount(extra?: ReactNode) {
           <ApplicationAccessProvider>
             <AccountSessionProvider>
               <AccountFeedbackProvider>
-                <SessionBinding>
-                  <PersonalScreen />
-                  {extra}
-                </SessionBinding>
+                <AdvertisingProviders>
+                  <SessionBinding>
+                    <PersonalScreen />
+                    {extra}
+                  </SessionBinding>
+                </AdvertisingProviders>
               </AccountFeedbackProvider>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
@@ -192,6 +214,12 @@ async function transport(url: string, request?: RequestInit) {
 }
 
 beforeEach(() => {
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
+  prepareProNativeIO();
   client = createQueryClient();
   client.setDefaultOptions({
     queries: { ...client.getDefaultOptions().queries, gcTime: Infinity },

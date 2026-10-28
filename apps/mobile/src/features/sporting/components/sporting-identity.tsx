@@ -1,6 +1,6 @@
 import { genderLabel, formatLabel } from "../classification-presentation";
 import { hashKey, useQuery } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
+import { useSportingNavigation } from "../navigation";
 import { ChevronRight } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -184,29 +184,25 @@ export interface SportingLinkProps {
   id: string;
   label: string;
   identity?: SportingIdentityResponse;
+  /** A retained inactive native panel must not continue a former resource-link action. */
+  active?: boolean;
 }
 
 /** Whole-row accessible resource link with an optional original-color identity image. */
-export function SportingLink({ kind, id, label, identity }: SportingLinkProps) {
-  const router = useRouter();
+export function SportingLink({
+  kind,
+  id,
+  label,
+  identity,
+  active = true,
+}: SportingLinkProps) {
+  const sporting = useSportingNavigation(active);
   const { colors } = useTheme();
   return (
     <Pressable
       accessibilityRole="link"
       accessibilityLabel={label}
-      onPress={() => {
-        if (kind === "club")
-          router.push({ pathname: "/clubs/[clubId]", params: { clubId: id } });
-        else if (kind === "team")
-          router.push({ pathname: "/teams/[teamId]", params: { teamId: id } });
-        else if (kind === "pool")
-          router.push({ pathname: "/pools/[poolId]", params: { poolId: id } });
-        else
-          router.push({
-            pathname: "/matches/[matchId]",
-            params: { matchId: id },
-          });
-      }}
+      onPress={() => void sporting.navigate(kind, id)}
       style={({ pressed }) => [
         styles.link,
         { opacity: pressed ? tokens.opacity.pressed : 1 },

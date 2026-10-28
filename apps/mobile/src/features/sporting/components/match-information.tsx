@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useSportingNavigation } from "../navigation";
 import { CalendarDays } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import type { MatchDetailResponse } from "../../../../.generated/schemas/index.zod";
@@ -24,7 +24,7 @@ export function MatchInformation({
   detail,
   displayTimeZone,
 }: MatchInformationProps) {
-  const router = useRouter();
+  const sporting = useSportingNavigation();
   const { colors } = useTheme();
   const match = detail.match;
   const division = match.pool.classification.division;
@@ -64,12 +64,7 @@ export function MatchInformation({
             .filter(Boolean)
             .join(" · ") || undefined
         }
-        onPress={() =>
-          router.push({
-            pathname: "/pools/[poolId]",
-            params: { poolId: match.pool.pool.id },
-          })
-        }
+        onPress={() => void sporting.navigate("pool", match.pool.pool.id)}
       />
       <ContactLink
         presentation="information"

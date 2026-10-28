@@ -1,5 +1,6 @@
 import { divisionTextColor } from "../presentation";
-import { useRouter } from "expo-router";
+import { useSportingNavigation } from "../navigation";
+import type { PropsWithChildren } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { MatchSummaryResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "../../../shared/theme/tokens";
@@ -31,7 +32,6 @@ export function MatchSummary({
   displayTimeZone,
   presentation = "summary",
 }: MatchSummaryProps) {
-  const router = useRouter();
   const { colors, context } = useTheme();
   const division = match.pool.classification.division;
   const accent = division?.color ?? context.primary;
@@ -139,22 +139,13 @@ export function MatchSummary({
               {contextual ? (
                 <View style={[styles.team, styles.contextTeam]}>{content}</View>
               ) : (
-                <Pressable
-                  accessibilityRole="link"
-                  accessibilityLabel={`${team.name} · Score ${side} : ${score ?? "indisponible"}`}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/teams/[teamId]",
-                      params: { teamId: team.id },
-                    })
-                  }
-                  style={({ pressed }) => [
-                    styles.team,
-                    { opacity: pressed ? tokens.opacity.pressed : 1 },
-                  ]}
+                <TeamScoreLink
+                  key={team.id}
+                  teamId={team.id}
+                  label={`${team.name} · Score ${side} : ${score ?? "indisponible"}`}
                 >
                   {content}
-                </Pressable>
+                </TeamScoreLink>
               )}
             </View>
           );
@@ -173,6 +164,28 @@ export function MatchSummary({
         </Text>
       )}
     </MatchSurface>
+  );
+}
+
+/** Only the full consultation's actual team action consumes sporting navigation; informational context stays independent. */
+function TeamScoreLink({
+  teamId,
+  label,
+  children,
+}: PropsWithChildren<{ teamId: string; label: string }>) {
+  const sporting = useSportingNavigation();
+  return (
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={label}
+      onPress={() => void sporting.navigate("team", teamId)}
+      style={({ pressed }) => [
+        styles.team,
+        { opacity: pressed ? tokens.opacity.pressed : 1 },
+      ]}
+    >
+      {children}
+    </Pressable>
   );
 }
 

@@ -225,7 +225,9 @@ function ClubPage({ clubId }: ClubScreenProps) {
                   renderItem={({ item }) => (
                     <Surface>
                       <SportingLink
+                        key={item.team.id}
                         kind="team"
+                        active={tab === value}
                         id={item.team.id}
                         identity={item.team}
                         label={item.team.name}

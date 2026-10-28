@@ -1,4 +1,5 @@
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   cleanup,
@@ -30,6 +31,17 @@ import {
   TECHNICAL_ERROR_TITLE,
 } from "../../../shared/components/error-copy";
 
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("../../pro/test-support/native-purchases")
+    .mockPurchases,
+}));
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
@@ -147,7 +159,9 @@ async function open(
             <ThemeProvider>
               <ActionFeedbackProvider scopeKey="standings-test">
                 <ApplicationAccessProvider>
-                  <AccountSessionProvider>{children}</AccountSessionProvider>
+                  <AccountSessionProvider>
+                    <AdvertisingProviders>{children}</AdvertisingProviders>
+                  </AccountSessionProvider>
                 </ApplicationAccessProvider>
               </ActionFeedbackProvider>
             </ThemeProvider>
