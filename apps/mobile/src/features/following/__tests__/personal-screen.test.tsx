@@ -791,3 +791,73 @@ it("returns from a refused actual match screen without exposing its retained per
     ),
   ).toHaveLength(1);
 });
+
+it("keeps current absence across previously visited personal categories", async () => {
+  // Given
+  await mount();
+  await layoutNativeTabs();
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
+  await layoutNativeTabs();
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  mockFetch.mockImplementation(async (url, request) => {
+    const response = await transport(url, request);
+    if (new URL(url).pathname !== `/accounts/${accountId}/matches`)
+      return response;
+    const body = await response.json();
+    return Response.json({
+      hasAvailableFollows: false,
+      calendar: { ...body.calendar, days: [] },
+    });
+  });
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await screen.findByText("Aucun suivi à afficher");
+  mockFetch.mockClear();
+  await userEvent.press(screen.getByRole("tab", { name: "À venir" }));
+  await layoutNativeTabs();
+
+  // Then
+  await screen.findByText("Aucun suivi à afficher");
+  expect(
+    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).not.toBeOnTheScreen();
+  expect(mockFetch).not.toHaveBeenCalled();
+});
+
+it("captures the current loading zone when selecting a new personal season", async () => {
+  // Given: native Intl owns the zone; retained same-season groups stay unchanged.
+  let deviceZone = "Europe/Paris";
+  const resolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
+  jest
+    .spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions")
+    .mockImplementation(function (this: Intl.DateTimeFormat) {
+      return { ...resolvedOptions.call(this), timeZone: deviceZone };
+    });
+  await mount();
+  await layoutNativeTabs();
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  deviceZone = "America/New_York";
+
+  // When
+  await userEvent.press(
+    screen.getByRole("button", { name: "Saison des suivis" }),
+  );
+  await userEvent.press(screen.getByRole("radio", { name: newer.label }));
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+
+  // Then
+  const reads = mockFetch.mock.calls
+    .map(([url]) => new URL(url))
+    .filter((url) => url.pathname === `/accounts/${accountId}/matches`);
+  expect(
+    reads.map((url) => [
+      url.searchParams.get("seasonId"),
+      url.searchParams.get("timeZone"),
+    ]),
+  ).toEqual([
+    [older.id, "Europe/Paris"],
+    [newer.id, "America/New_York"],
+  ]);
+});

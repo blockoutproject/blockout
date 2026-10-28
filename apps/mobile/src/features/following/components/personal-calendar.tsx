@@ -14,7 +14,7 @@ import {
   type PersonalCalendarRead,
 } from "../api/personal-queries";
 
-/** One exact personal category uses the shared season and the same F03 native calendar. */
+/** One exact personal category/season owns its loading zone and uses the same F03 native calendar. */
 export interface PersonalCalendarProps {
   owner: FollowingOwner;
   request: (signal?: AbortSignal) => Promise<ApiFetchOptions>;

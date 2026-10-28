@@ -11,6 +11,7 @@ import type {
   ListMatchesParams,
   MatchCalendarResponse,
   MatchDayResponse,
+  MatchSummaryResponse,
 } from "../../../../.generated/schemas/index.zod";
 import type { createConsultationQueries } from "./consultation-queries";
 import { resourceUnavailable } from "../model/consultation-availability";
@@ -130,16 +131,18 @@ export async function removeUnavailableCalendarMatch(
       query.setState({
         data: {
           ...data,
-          pages: data.pages.map((page) => withoutCalendarMatch(page, matchId)),
+          pages: data.pages.map((page) =>
+            filterCalendarMatches(page, (match) => match.id !== matchId),
+          ),
         },
       });
   }
 }
 
-/** Removes only a currently refused identity and its empty groups, preserving source context/cursor. */
-export function withoutCalendarMatch(
+/** Filters currently unauthorized rows and their empty groups while preserving source context/cursor. */
+export function filterCalendarMatches(
   page: MatchCalendarResponse,
-  matchId: string,
+  retain: (match: MatchSummaryResponse) => boolean,
 ): MatchCalendarResponse {
   return {
     ...page,
@@ -149,7 +152,7 @@ export function withoutCalendarMatch(
         pools: day.pools
           .map((pool) => ({
             ...pool,
-            matches: pool.matches.filter((match) => match.id !== matchId),
+            matches: pool.matches.filter(retain),
           }))
           .filter((pool) => pool.matches.length > 0),
       }))

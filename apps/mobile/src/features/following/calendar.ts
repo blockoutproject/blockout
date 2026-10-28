@@ -1,6 +1,6 @@
 import type { InfiniteData, QueryClient } from "@tanstack/react-query";
 import type { PersonalMatchCalendarResponse } from "../../../.generated/schemas/index.zod";
-import { withoutCalendarMatch } from "../sporting/calendar-data";
+import { filterCalendarMatches } from "../sporting/calendar-data";
 import {
   personalCalendarCollectionKey,
   type FollowingOwner,
@@ -32,7 +32,10 @@ export async function removeUnavailablePersonalCalendarMatch(
           ...data,
           pages: data.pages.map((page) => ({
             ...page,
-            calendar: withoutCalendarMatch(page.calendar, matchId),
+            calendar: filterCalendarMatches(
+              page.calendar,
+              (match) => match.id !== matchId,
+            ),
           })),
         },
       });

@@ -1,4 +1,7 @@
-import { InfiniteQueryObserver } from "@tanstack/react-query";
+import {
+  InfiniteQueryObserver,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react-native";
 import type { PersonalMatchCalendarResponse } from "../../../../.generated/schemas/index.zod";
 import { createQueryClient } from "../../../shared/query/query-client";
@@ -407,3 +410,144 @@ it("removes a currently refused F03 match from personal pages and cancels a late
   });
   close();
 });
+
+it("withdraws all cached seasons after an original-account NotFound without a seasonal selector", async () => {
+  // Given
+  const seasonal = createPersonalCalendarOptions(
+    owner,
+    request,
+    selection,
+    read,
+  );
+  const all = createPersonalCalendarOptions(
+    owner,
+    request,
+    { ...selection, seasonId: undefined },
+    read,
+  );
+  mockFetch.mockImplementation(async () => Response.json(page("2026-10-29")));
+  await client.infiniteQuery(seasonal);
+  await client.infiniteQuery(all);
+  mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
+
+  // When
+  await expect(refreshCalendar(client, all)).rejects.toBeDefined();
+
+  // Then
+  expect(client.getQueryData(seasonal.queryKey)).toBeUndefined();
+  expect(client.getQueryData(all.queryKey)).toBeUndefined();
+});
+
+it.each([sportingId, undefined])(
+  "withdraws current unavailable-follow effects from overlapping season/category caches for season %s",
+  async (seasonId) => {
+    // Given: all selections use real validated envelopes; only HTTP supplies current availability.
+    const current = createPersonalCalendarOptions(
+      owner,
+      request,
+      { ...selection, seasonId },
+      read,
+    );
+    const completed = createPersonalCalendarOptions(
+      owner,
+      request,
+      { ...selection, category: "completed" },
+      read,
+    );
+    const otherSeasonId = "00000000-0000-4000-8000-000000000231";
+    const other = createPersonalCalendarOptions(
+      owner,
+      request,
+      { ...selection, seasonId: otherSeasonId },
+      read,
+    );
+    const all = createPersonalCalendarOptions(
+      owner,
+      request,
+      { ...selection, seasonId: undefined },
+      read,
+    );
+    const first = page("2026-10-29");
+    const another = page("2026-10-30", otherSeasonId);
+    const otherMatch = another.calendar.days[0].pools[0].matches[0];
+    another.calendar.days[0].pools[0].matches[0] = {
+      ...otherMatch,
+      pool: {
+        ...otherMatch.pool,
+        season: { ...otherMatch.pool.season, id: otherSeasonId },
+      },
+    };
+    mockFetch.mockResolvedValueOnce(
+      Response.json({
+        ...first,
+        calendar: {
+          ...first.calendar,
+          category: "completed",
+          nextDay: "2026-10-29",
+        },
+      }),
+    );
+    const observer = new InfiniteQueryObserver(client, completed);
+    const close = observer.subscribe(() => {});
+    await waitFor(() =>
+      expect(observer.getCurrentResult().isSuccess).toBe(true),
+    );
+    mockFetch.mockResolvedValueOnce(Response.json(another));
+    await client.infiniteQuery(other);
+    mockFetch.mockResolvedValueOnce(
+      Response.json({
+        ...first,
+        calendar: {
+          ...first.calendar,
+          days: [...first.calendar.days, ...another.calendar.days],
+        },
+      }),
+    );
+    await client.infiniteQuery(all);
+    const late = Promise.withResolvers<Response>();
+    mockFetch.mockReturnValueOnce(late.promise);
+    const append = observer.fetchNextPage();
+    await waitFor(() =>
+      expect(observer.getCurrentResult().isFetchingNextPage).toBe(true),
+    );
+    mockFetch.mockResolvedValueOnce(
+      Response.json({
+        hasAvailableFollows: false,
+        calendar: { ...first.calendar, days: [] },
+      }),
+    );
+
+    // When
+    await refreshCalendar(client, current);
+    late.resolve(Response.json(first));
+    await append;
+
+    // Then
+    expect(
+      observer
+        .getCurrentResult()
+        .data?.pages.flatMap((page) => page.calendar.days),
+    ).toEqual([]);
+    expect(
+      observer.getCurrentResult().data?.pages.at(-1)?.hasAvailableFollows,
+    ).toBe(false);
+    const combined = client.getQueryData<
+      InfiniteData<PersonalMatchCalendarResponse>
+    >(all.queryKey);
+    expect(
+      combined?.pages.flatMap((page) =>
+        page.calendar.days.flatMap((day) =>
+          day.pools.flatMap((pool) =>
+            pool.matches.map((match) => match.pool.season.id),
+          ),
+        ),
+      ),
+    ).toEqual(seasonId ? [otherSeasonId] : []);
+    expect(
+      client.getQueryData<InfiniteData<PersonalMatchCalendarResponse>>(
+        other.queryKey,
+      )?.pages[0].calendar.days,
+    ).toEqual(seasonId ? another.calendar.days : []);
+    close();
+  },
+);

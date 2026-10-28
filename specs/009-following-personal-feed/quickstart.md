@@ -145,7 +145,11 @@ transport validation, shared-season/session/admission owners and the reused F03 
 They distinguish ordinary failed refresh from confirmed-follow reset, preserve failed continuation,
 cancel obsolete pages/selections, defer covered Home and inactive tabs, clear refused private rows,
 and distinguish no available follows from no matches with a working Search action. A successful
-continuation establishing no available follows withdraws former rows. A current F03 match-detail
+continuation establishing no available follows withdraws former rows across categories and
+overlapping seasons in the same owner/admission context; unaffected seasons remain retained.
+An original-account 404 without a seasonal selector withdraws the whole private calendar collection.
+A newly selected season captures the current device zone without regrouping retained same-season
+rows on foreground return. A current F03 match-detail
 refusal cancels older personal continuations and removes that UUID in the same original-owner
 admission context, without reclassifying other rows or reloading the calendar on return. Exact match
 UUID routing is exercised. HTTP and native I/O/focus are controlled; this establishes no provider,

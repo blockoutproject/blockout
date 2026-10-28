@@ -181,6 +181,7 @@ function PersonalSpace({
             content:
               id === "upcoming" || id === "completed" ? (
                 <PersonalCalendar
+                  key={season.seasonId ?? "all-seasons"}
                   owner={owner}
                   request={request}
                   read={season.read}
