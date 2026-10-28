@@ -23,9 +23,9 @@ export function AgeCorrectionSheet() {
 
   /** Native swipe/back returns to privacy after removal, without revealing an older stacked sheet. */
   const disablePrevention = usePreventRemove(!leaving, ({ data, repeat }) => {
-    if (data.action.type === "GO_BACK" || data.action.type === "POP")
-      returnToPrivacy();
-    else {
+    if (data.action.type === "GO_BACK" || data.action.type === "POP") {
+      if (!age.pending) returnToPrivacy();
+    } else {
       setLeaving(true);
       repeat();
     }
@@ -56,7 +56,10 @@ export function AgeCorrectionSheet() {
   return (
     <Sheet
       title="Corriger mon âge"
-      onClose={returnToPrivacy}
+      onClose={() => {
+        if (!age.pending) returnToPrivacy();
+      }}
+      closeDisabled={age.pending}
       scrollable={false}
     >
       <AgeForm
