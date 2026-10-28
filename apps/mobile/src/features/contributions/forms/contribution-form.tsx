@@ -90,8 +90,11 @@ export function ContributionForm({
       const accepted = await attempt;
       if (!session.isCurrent(session.generation)) return;
       reset(contributionValues(accepted.contribution.url));
-      editor.release();
-      if (mounted.current) router.back();
+      // A reopened route may already own this control while the original callback is detached.
+      if (mounted.current) {
+        editor.release();
+        router.back();
+      }
     } catch (error) {
       if (!mounted.current || !session.isCurrent(session.generation)) return;
       if (error instanceof ApiError && error.status === 422) {

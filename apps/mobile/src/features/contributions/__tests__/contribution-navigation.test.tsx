@@ -257,3 +257,123 @@ it("retains the original draft and unresolved command across F12 protected-route
     screen.getByRole("button", { name: "Soumettre le lien" }),
   ).toBeDisabled();
 });
+
+it("keeps a reopened draft retained when the original detached submission acknowledges later", async () => {
+  // Given
+  const acknowledged = Promise.withResolvers<Response>();
+  const reads = mockFetch.getMockImplementation();
+  let refuseMatch = false;
+  mockFetch.mockImplementation(async (url, init) => {
+    const path = new URL(String(url)).pathname;
+    if (path.includes("/stream-contributions") && init?.method === "POST")
+      return acknowledged.promise;
+    if (path === `/matches/${match.match.id}` && refuseMatch)
+      return Response.json(
+        {
+          type: "urn:blockout:problem:unavailable",
+          title: "Unavailable",
+          status: 503,
+        },
+        { status: 503 },
+      );
+    if (!reads) throw new Error("Missing test HTTP boundary");
+    return reads(url, init);
+  });
+  await renderRouter(
+    {
+      _layout: ProtectedLayout,
+      access: AccessRetry,
+      index: () => <Text>Match origin</Text>,
+      "matches/[matchId]/contribution": () => (
+        <ContributionScreen matchId={match.match.id} />
+      ),
+    },
+    { initialUrl: "/" },
+  );
+  await screen.findByText("Match origin");
+  await act(() =>
+    router.push({
+      pathname: "/matches/[matchId]/contribution",
+      params: { matchId: match.match.id },
+    }),
+  );
+  const user = userEvent.setup();
+  await user.type(
+    await screen.findByLabelText("Adresse du lien"),
+    "https://youtu.be/example",
+  );
+  await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+
+  // When: a separate current match read closes admission during the pending command.
+  refuseMatch = true;
+  await act(async () => {
+    await client.refetchQueries({
+      predicate: (query) =>
+        query.queryKey.includes(`/matches/${match.match.id}`),
+    });
+  });
+  await screen.findByRole("button", { name: "Vérifier accès" });
+  refuseMatch = false;
+  await user.press(screen.getByRole("button", { name: "Vérifier accès" }));
+  await screen.findByText("Match origin");
+  await act(() =>
+    router.push({
+      pathname: "/matches/[matchId]/contribution",
+      params: { matchId: match.match.id },
+    }),
+  );
+  await screen.findByDisplayValue("https://youtu.be/example");
+  await act(async () =>
+    acknowledged.resolve(
+      Response.json(
+        {
+          revision: "next",
+          contribution: {
+            id: "00000000-0000-4000-8000-000000000003",
+            url: "https://youtu.be/example",
+            platform: "youtube",
+            state: "active",
+            submittedAt: "2026-10-28T10:00:00Z",
+            canCancel: false,
+            canWithdraw: true,
+          },
+        },
+        { status: 201 },
+      ),
+    ),
+  );
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Soumettre le lien" }),
+    ).toBeEnabled(),
+  );
+  await user.clear(screen.getByLabelText("Adresse du lien"));
+  await user.type(
+    screen.getByLabelText("Adresse du lien"),
+    "https://youtu.be/new-draft",
+  );
+
+  // When: the reopened form crosses a second independent admission detour.
+  refuseMatch = true;
+  await act(async () => {
+    await client.refetchQueries({
+      predicate: (query) =>
+        query.queryKey.includes(`/matches/${match.match.id}`),
+    });
+  });
+  await screen.findByRole("button", { name: "Vérifier accès" });
+  refuseMatch = false;
+  await user.press(screen.getByRole("button", { name: "Vérifier accès" }));
+  await screen.findByText("Match origin");
+  await act(() =>
+    router.push({
+      pathname: "/matches/[matchId]/contribution",
+      params: { matchId: match.match.id },
+    }),
+  );
+
+  // Then
+  expect(
+    await screen.findByDisplayValue("https://youtu.be/new-draft"),
+  ).toBeOnTheScreen();
+});

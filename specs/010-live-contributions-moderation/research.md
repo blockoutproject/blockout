@@ -46,7 +46,7 @@ F12 ordinary dependency refusals can remove the ordinary native stack, including
 A route-local `useForm` therefore loses a dirty address during a failed submission observation.
 Retain the actual RHF control under the original account/session and match, following the
 existing settings/classification editors; release it on clean departure, explicit abandonment,
-acknowledged submission or session invalidation. Commands and validated responses remain in
+departure after acknowledgement or session invalidation. A detached acknowledged write resets the retained control but leaves its registration available to an already reopened form. Commands and validated responses remain in
 Query. This preserves the existing F12 gates without a copied draft store, persistence, replay
 or a change to access policy. A real protected-router regression covers the 503 detour and
 explicit reopening with the same draft and unresolved-command guard.
