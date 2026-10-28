@@ -203,12 +203,13 @@ interface SportingPersistenceMapper {
   MatchView toView(MatchEntity source);
 
   /**
-   * Detaches the fetched match graph while preserving independent source observation times.
+   * Detaches match facts and the fetched pool context while preserving independent observation
+   * times. Participant identity access does not initialize their lazy entity references.
    *
-   * @param source already selected dated match with its to-one owner graph
-   * @return accepted consultation inputs without visibility or presentation decisions
+   * @param source already selected dated match with its pool season and classification
+   * @return accepted consultation inputs and the existing pool presentation without authorizing the
+   *     selection
    */
-  @Mapping(target = "poolId", source = "pool.id")
   @Mapping(target = "homeTeamId", source = "homeTeam.id")
   @Mapping(target = "awayTeamId", source = "awayTeam.id")
   @Mapping(target = "season", source = "pool.season")
@@ -604,8 +605,8 @@ interface SportingPersistenceMapper {
   }
 
   /**
-   * Maps managed team/club state for editor reads/writes, calendar admission and fetched-graph
-   * composition. A fetched graph needs no additional scalar presentation query per encounter.
+   * Maps managed team/club state for editor reads/writes and calendar selector admission. Public
+   * match summaries use scalar presentation reads instead of loading this entity graph.
    *
    * @param source managed team and optional club in the caller's transaction
    * @return detached presentation using the common scalar presentation rule
@@ -629,8 +630,8 @@ interface SportingPersistenceMapper {
   }
 
   /**
-   * Maps managed pool names for editor reads/writes, calendar admission and fetched-graph
-   * composition, without inventing artwork or re-querying an already loaded presentation.
+   * Maps managed pool names for editor reads/writes, calendar selector admission and detached match
+   * context without inventing artwork or re-querying an already loaded presentation.
    *
    * @param source managed pool in the caller's transaction
    * @return detached presentation using the common scalar presentation rule

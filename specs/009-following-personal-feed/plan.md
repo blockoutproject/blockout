@@ -70,6 +70,8 @@ contracts/http/     # canonical mobile routes and existing shared definitions
 
 Use two association tables with UUID identity, account/target foreign keys and uniqueness on each account–target pair. Deletion removes the relation; recreating it assigns a new identity. Hidden targets retain relationships. Account erasure removes all relations atomically, including hidden ones. See [data model](data-model.md).
 
+The shared HTTP current-account resolver returns ordinary absence explicitly; following maps absent or different original identity to its opaque 404. Required-account consumers keep their own 403 behavior, and storage failure remains unavailable rather than absent.
+
 Every write targets the authenticated owner's original usable account. Use F05's short account-row lock for follow writes and erasure; check sporting eligibility through F02-owned rules. Preserve the common lock order if an operation also requires sporting locks. No provider call or notification delivery occurs inside the transaction. A target that subsequently becomes hidden is filtered from reads without deleting the relation.
 
 The operation replaces desired follow state: repeating true keeps the same relation; repeating false leaves it absent. Between devices, last server-recorded state wins, including delayed requests. No gesture timestamp, optimistic version conflict, tombstone or request ledger.

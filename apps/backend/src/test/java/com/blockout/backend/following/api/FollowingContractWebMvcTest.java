@@ -27,6 +27,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,7 +71,7 @@ public class FollowingContractWebMvcTest {
   void owner() {
     adapter.page = null;
     adapter.season = null;
-    when(current.id()).thenReturn(UUID.fromString(ACCOUNT));
+    when(current.findId()).thenReturn(Optional.of(UUID.fromString(ACCOUNT)));
   }
 
   @ParameterizedTest

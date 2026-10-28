@@ -5,6 +5,7 @@ import com.blockout.backend.access.domain.MaintenanceSettings;
 import com.blockout.backend.access.domain.Permission;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ReadAccessConfiguration {
   private final AccessSettingsStore store;
-  private final ActionAuthorization authorization;
+  private final CurrentPermissions permissions;
 
   /** Complete coherent stored groups; this internal value never establishes mobile admission. */
   public record Snapshot(MaintenanceSettings maintenance, ApplicationVersionSettings versions) {}
@@ -25,14 +26,15 @@ public class ReadAccessConfiguration {
   }
 
   /**
-   * Checks the current grant under the original account lock before exposing prepared content.
+   * Checks the current read grant before exposing prepared content, without locking the account.
    *
-   * @param account original business UUID; no replacement principal is resolved under the lock
+   * @param account original business UUID; no replacement principal is resolved
    * @return the complete authorized stored group
+   * @throws AccessDeniedException if the current grant is absent
    */
-  @Transactional
+  @Transactional(readOnly = true)
   public MaintenanceSettings maintenance(UUID account) {
-    authorization.require(account, Permission.MANAGE_MAINTENANCE);
+    permissions.requireForRead(account, Permission.MANAGE_MAINTENANCE);
     return store.maintenance();
   }
 
@@ -41,10 +43,11 @@ public class ReadAccessConfiguration {
    *
    * @param account original business UUID
    * @return both authorized platforms and their shared revision/message
+   * @throws AccessDeniedException if the current grant is absent
    */
-  @Transactional
+  @Transactional(readOnly = true)
   public ApplicationVersionSettings versions(UUID account) {
-    authorization.require(account, Permission.MANAGE_APPLICATION_VERSIONS);
+    permissions.requireForRead(account, Permission.MANAGE_APPLICATION_VERSIONS);
     return store.versions();
   }
 }

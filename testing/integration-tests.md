@@ -1088,6 +1088,8 @@ Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction managem
 | `requiresWriteTransaction`               | Refuses a settings write without its application transaction.                           |
 | `requiresMutationLoadTransaction`        | Refuses optimistic mutation loading without a transaction retaining the check.          |
 | `readsFixedGroups`                       | Seeds exactly two independently versioned fixed groups.                                 |
+| `readsDuringAccountChange`               | Reads private groups without waiting for an unrelated account-row lock.                 |
+| `refusesReadAfterWithdrawal`             | Refuses the selected private group after its current grant is withdrawn.                |
 | `preservesActivation`                    | Saving content retains activation and leaves the versions group untouched.              |
 | `distinguishesNoops`                     | Matching no-ops preserve revision while stale no-ops conflict.                          |
 | `clearsOptionalImage`                    | Null clears only the image and omission keeps the content.                              |
@@ -1330,6 +1332,8 @@ Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction managem
 | `rejectsUnselectedRole`                  | Rejects a result for a role absent from the authorized snapshot.                       |
 | `checksChildMembership`                  | Resolves match and team scopes through their actual admitted calendar.                 |
 | `checksLogoMembershipWithBoundedReads`   | Logo authorization keeps bounded reads across retained pool memberships.               |
+| `attributesInitialChildEvidence`         | Reuses the admitted calendar source for initial detail/logo acquisition evidence.      |
+| `attributesSharedProfessionalLogo`       | Preserves the unique LNV source attribution across several admitted parent calendars.  |
 
 ### SourcePreparationIntegrationTest
 
@@ -1740,6 +1744,18 @@ Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction managem
 | `handsOffSourceRenaming`                 | Source renaming reaches dependent teams and pools after commit.                     |
 | `hydratesCurrentCanonicalValues`         | Projection hydration rereads permitted city, scoped aliases and current visibility. |
 | `projectsUnattachedProfessionalTeam`     | Professional projection keeps absent club context null.                             |
+
+### MatchSummaryIntegrationTest
+
+Source: [apps/backend/src/test/java/com/blockout/backend/sporting/application/MatchSummaryIntegrationTest.java](../apps/backend/src/test/java/com/blockout/backend/sporting/application/MatchSummaryIntegrationTest.java). Classification: **application/persistence integration / Failsafe**.
+
+Real components: migrated PostgreSQL, Hibernate statistics, transaction management, `ReadSportingResources`, `ReadMatchCalendar` and sporting persistence ports/adapters. Controlled/absent boundaries: fixture sporting observations; no supplier or native rendering.
+
+| Scenario (all declared parameter values)  | Protected behavior / detectable regression                                                  |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `readsPresentationWithoutArtworkEntities` | Preserves effective names and team/club logo precedence without loading team/club entities. |
+| `readsCalendarWithoutArtworkEntities`     | Composes the complete selected calendar day without loading participant/club entities.      |
+| `keepsBatchQueryCountConstant`            | More distinct match participants add no per-match presentation queries.                     |
 
 ### SportingResourcesIntegrationTest
 

@@ -2,7 +2,6 @@ package com.blockout.backend.access.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -18,6 +17,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.blockout.backend.access.application.AccessSettingsStore;
 import com.blockout.backend.access.application.ActionAuthorization;
+import com.blockout.backend.access.application.CurrentPermissions;
+import com.blockout.backend.access.application.PermissionStore;
 import com.blockout.backend.access.application.ReadAccessConfiguration;
 import com.blockout.backend.access.application.UpdateAccessSettings;
 import com.blockout.backend.access.domain.AccessSettingsUnavailableException;
@@ -28,6 +29,7 @@ import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -41,7 +43,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.MediaType;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -49,8 +50,8 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.TransactionSystemException;
 
 /**
- * Real generated MVC binding, mapping and use cases; persistence and current-action checks are
- * controlled.
+ * Real generated MVC binding, mapping, read grants and use cases; persistence and locked mutation
+ * authorization are controlled.
  */
 @WebMvcTest(AdministrationSettingsController.class)
 @Import({
@@ -59,6 +60,7 @@ import org.springframework.transaction.TransactionSystemException;
   ApiExceptionHandler.class,
   AccessSettingsExceptionHandler.class,
   AccessApiMapperImpl.class,
+  CurrentPermissions.class,
   UpdateAccessSettings.class,
   ReadAccessConfiguration.class
 })
@@ -70,6 +72,7 @@ class AdministrationSettingsWebMvcTest {
   @Autowired private MockMvc mvc;
   @MockitoBean private CurrentAccount account;
   @MockitoBean private ActionAuthorization authorization;
+  @MockitoBean private PermissionStore permissions;
   @MockitoBean private AccessSettingsStore store;
 
   @ParameterizedTest
@@ -92,9 +95,8 @@ class AdministrationSettingsWebMvcTest {
   void refusesMaintenanceWithoutGrant() throws Exception {
     // Given
     when(account.id()).thenReturn(ID);
-    doThrow(new AccessDeniedException("denied"))
-        .when(authorization)
-        .require(ID, Permission.MANAGE_MAINTENANCE);
+    when(permissions.findByAccountId(ID))
+        .thenReturn(Set.of(Permission.MANAGE_APPLICATION_VERSIONS));
 
     // When
     mvc.perform(get("/administration/maintenance").with(mobile()))
@@ -109,9 +111,7 @@ class AdministrationSettingsWebMvcTest {
   void refusesVersionsWithoutGrant() throws Exception {
     // Given
     when(account.id()).thenReturn(ID);
-    doThrow(new AccessDeniedException("denied"))
-        .when(authorization)
-        .require(ID, Permission.MANAGE_APPLICATION_VERSIONS);
+    when(permissions.findByAccountId(ID)).thenReturn(Set.of(Permission.MANAGE_MAINTENANCE));
 
     // When
     mvc.perform(get("/administration/application-versions").with(mobile()))
@@ -177,6 +177,7 @@ class AdministrationSettingsWebMvcTest {
   void readsStoredMaintenance() throws Exception {
     // Given
     when(account.id()).thenReturn(ID);
+    when(permissions.findByAccountId(ID)).thenReturn(Set.of(Permission.MANAGE_MAINTENANCE));
     when(store.maintenance()).thenReturn(new MaintenanceSettings(4, false, "Prepared", null));
 
     // When
@@ -298,6 +299,8 @@ class AdministrationSettingsWebMvcTest {
   void readsCompleteVersions() throws Exception {
     // Given
     when(account.id()).thenReturn(ID);
+    when(permissions.findByAccountId(ID))
+        .thenReturn(Set.of(Permission.MANAGE_APPLICATION_VERSIONS));
     when(store.versions()).thenReturn(emptyVersions());
 
     // When
@@ -331,7 +334,7 @@ class AdministrationSettingsWebMvcTest {
         .andExpect(jsonPath("$.maintenance.message").isEmpty())
         .andExpect(jsonPath("$.maintenance.imageUrl").isEmpty())
         .andExpect(jsonPath("$.versions.ios.minimumVersion").isEmpty());
-    verifyNoInteractions(account, authorization);
+    verifyNoInteractions(account, authorization, permissions);
   }
 
   @ParameterizedTest

@@ -71,7 +71,7 @@ apps/mobile/                        # Thin routes, sporting queries/maps/PDF rea
 
 ## Backend reads and ownership
 
-`ReadSportingResources` composes detached batch summaries for direct reads, relationship lists and Search using the same owner rules. Scalar projections supply current names and logo presence without loading image bytes; actual binary reads retain their own authorization and storage boundary. The [shared composition plan](../003-shared-quality/plan.md#common-backend-composition) owns the technical pattern and verification requirements.
+`ReadSportingResources` composes detached batch summaries for direct reads, relationship lists, Search, calendars and notification match hydration using the same owner rules. Match inputs carry scalar participant identities; the shared presentation batch supplies their current names and logo links without fetching team/club image-bearing entities. Scalar projections supply current names and logo presence without loading image bytes; actual binary reads retain their own authorization and storage boundary. The [shared composition plan](../003-shared-quality/plan.md#common-backend-composition) owns the technical pattern and verification requirements.
 
 The backend supplies the mobile API. F02 owns identities, classifications, source/manual effective values, result interpretation, visibility and stored references. F03 owns presentation projections and calendar categories. Return public summaries needed by cards and relationships in their read response; do not expose editing revisions, source contact fallbacks or user follow state in public data.
 

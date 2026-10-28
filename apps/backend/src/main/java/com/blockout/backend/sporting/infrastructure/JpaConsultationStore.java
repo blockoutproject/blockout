@@ -19,7 +19,6 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Fetch;
-import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
@@ -104,12 +103,6 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
     Fetch<MatchEntity, PoolEntity> pool = match.fetch("pool");
     pool.fetch("season");
     pool.fetch("division");
-    for (String participant : List.of("homeTeam", "awayTeam")) {
-      Fetch<MatchEntity, TeamEntity> team = match.fetch(participant);
-      team.fetch("season");
-      team.fetch("division");
-      team.fetch("club", JoinType.LEFT);
-    }
     Expression<LocalDate> day = displayDay(builder, match, request);
     boolean upcoming = request.category() == CalendarCategoryEnum.UPCOMING;
     query

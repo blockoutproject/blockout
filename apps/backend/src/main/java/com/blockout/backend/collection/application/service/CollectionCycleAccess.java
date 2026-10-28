@@ -28,7 +28,8 @@ public class CollectionCycleAccess {
   /**
    * Authorizes source artwork only through an existing admitted calendar membership. The sporting
    * owner supplies retained pool identities; this method acquires the runtime/season/cycle fence
-   * before any sporting root or account lock, and holds it through the caller's commit.
+   * before any sporting root or account lock, and holds it through the caller's commit. Parent
+   * resolution shares the result-recording query and does not load one target per pool.
    *
    * @param id current cycle
    * @param teamId exact team resolved by the sporting owner
@@ -43,10 +44,8 @@ public class CollectionCycleAccess {
         store.target(id, teamId, CollectionTargetKindEnum.LOGO);
     if (selected.isPresent() && poolIds.contains(selected.orElseThrow().poolId()))
       return selected.orElseThrow();
-    return poolIds.stream()
-        .map(poolId -> store.target(id, poolId, CollectionTargetKindEnum.CALENDAR))
-        .flatMap(Optional::stream)
-        .findFirst()
+    return store
+        .firstTarget(id, poolIds, CollectionTargetKindEnum.CALENDAR)
         .orElseThrow(CollectionConflictException::invalidContext);
   }
 

@@ -2,6 +2,7 @@ package com.blockout.backend.collection.infrastructure.persistence;
 
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -20,24 +21,13 @@ interface CollectionTargetRepository
   Slice<CollectionTargetEntity> findByCycleIdOrderByKindAscScopeIdAsc(UUID cycleId, Pageable page);
 
   /**
-   * Checks the admitted role as well as its resource identity.
-   *
-   * @param cycleId current admitted context
-   * @param scopeId stable resource
-   * @param kind expected acquisition role
-   * @return exact snapshot membership
-   */
-  boolean existsByCycleIdAndScopeIdAndKind(
-      UUID cycleId, UUID scopeId, CollectionTargetKindEnum kind);
-
-  /**
-   * Checks all candidate parent identities in one existence query.
+   * Resolves one admitted parent across all candidate identities without per-pool queries.
    *
    * @param cycleId current admitted context
    * @param scopeIds nonempty retained parent identities
    * @param kind expected acquisition role
-   * @return whether any candidate has exact snapshot membership
+   * @return first exact snapshot membership in scope UUID order, or empty when none is admitted
    */
-  boolean existsByCycleIdAndScopeIdInAndKind(
+  Optional<CollectionTargetEntity> findFirstByCycleIdAndScopeIdInAndKindOrderByScopeIdAsc(
       UUID cycleId, List<UUID> scopeIds, CollectionTargetKindEnum kind);
 }

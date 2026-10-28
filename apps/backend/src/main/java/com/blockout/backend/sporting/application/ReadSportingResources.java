@@ -30,6 +30,7 @@ import com.blockout.backend.sporting.application.port.SportingStore;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -262,7 +264,7 @@ public class ReadSportingResources {
     MatchInput input = reads.matches(Set.of(id)).get(id);
     MatchDetails details = facts.matchDetails(id);
     return new ConsultationViews.MatchDetail(
-        matchSummary(input, evaluatedAt),
+        composeMatchSummaries(List.of(input), evaluatedAt).get(id),
         details.sets() == null
             ? null
             : new ConsultationViews.Sets(
@@ -323,8 +325,7 @@ public class ReadSportingResources {
    */
   public Map<UUID, ConsultationViews.MatchSummary> matchSummaries(Set<UUID> ids, Instant now) {
     if (ids.size() > 20) throw new IllegalArgumentException("At most twenty matches per read");
-    return reads.matches(ids).values().stream()
-        .collect(Collectors.toUnmodifiableMap(MatchInput::id, input -> matchSummary(input, now)));
+    return composeMatchSummaries(reads.matches(ids).values(), now);
   }
 
   /**
@@ -439,37 +440,45 @@ public class ReadSportingResources {
   }
 
   /**
-   * Applies the one consultation presentation rule to detached, already admitted match facts.
+   * Composes already admitted matches using their pool context and one scalar team presentation
+   * read. Calendar days retain every selected match; bounded consumers keep their own selection
+   * limit.
    *
-   * @param input current accepted sporting input from the same consistent read
+   * @param inputs current accepted sporting inputs from the same consistent read
    * @param now common presentation instant
-   * @return public summary with current owner-controlled names and independent attribution
+   * @return public summaries with current owner-controlled names and independent attribution,
+   *     without loading participant or club entities and their retained artwork
    */
-  ConsultationViews.MatchSummary matchSummary(MatchInput input, Instant now) {
-    ConsultationViews.Result result = mapper.toView(input.result(), input.resultObservedAt());
-    ConsultationViews.PoolSummary pool =
-        new ConsultationViews.PoolSummary(
-            mapper.toView(
-                facts
-                    .presentation(SportingProjectionChanges.Kind.POOL, input.poolId())
-                    .orElseThrow()),
-            input.season(),
-            mapper.toView(input.classification(), input.division()),
-            null,
-            null);
-    return new ConsultationViews.MatchSummary(
-        input.id(),
-        pool,
-        mapper.toView(
-            facts
-                .presentation(SportingProjectionChanges.Kind.TEAM, input.homeTeamId())
-                .orElseThrow()),
-        mapper.toView(
-            facts
-                .presentation(SportingProjectionChanges.Kind.TEAM, input.awayTeamId())
-                .orElseThrow()),
-        input.schedule(),
-        MatchPresentation.category(input.schedule(), result, now),
-        result);
+  Map<UUID, ConsultationViews.MatchSummary> composeMatchSummaries(
+      Collection<MatchInput> inputs, Instant now) {
+    Map<UUID, View> teams =
+        facts.presentations(
+            SportingProjectionChanges.Kind.TEAM,
+            inputs.stream()
+                .flatMap(input -> Stream.of(input.homeTeamId(), input.awayTeamId()))
+                .collect(Collectors.toSet()));
+    return inputs.stream()
+        .collect(
+            Collectors.toUnmodifiableMap(
+                MatchInput::id,
+                input -> {
+                  ConsultationViews.Result result =
+                      mapper.toView(input.result(), input.resultObservedAt());
+                  ConsultationViews.PoolSummary pool =
+                      new ConsultationViews.PoolSummary(
+                          mapper.toView(input.pool()),
+                          input.season(),
+                          mapper.toView(input.classification(), input.division()),
+                          null,
+                          null);
+                  return new ConsultationViews.MatchSummary(
+                      input.id(),
+                      pool,
+                      mapper.toView(Objects.requireNonNull(teams.get(input.homeTeamId()))),
+                      mapper.toView(Objects.requireNonNull(teams.get(input.awayTeamId()))),
+                      input.schedule(),
+                      MatchPresentation.category(input.schedule(), result, now),
+                      result);
+                }));
   }
 }

@@ -13,6 +13,7 @@ import com.blockout.backend.access.domain.AccessSettingsUnavailableException;
 import com.blockout.backend.access.domain.ApplicationVersionSettings;
 import com.blockout.backend.access.domain.InvalidAccessSettingsException;
 import com.blockout.backend.access.domain.MaintenanceSettings;
+import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.access.domain.StaleSettingsRevisionException;
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
@@ -26,12 +27,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -143,6 +146,59 @@ class AccessSettingsIntegrationTest {
     assertThat(result.maintenance().active()).isFalse();
     assertThat(result.versions().ios().minimumVersion()).isNull();
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM access_settings", Long.class)).isEqualTo(2);
+  }
+
+  @Test
+  @DisplayName("Reads protected settings while an account profile change holds its row lock")
+  void readsDuringAccountChange() {
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      transaction.executeWithoutResult(
+          state -> {
+            // Given
+            sql.queryForObject("SELECT id FROM account WHERE id = ? FOR UPDATE", UUID.class, first);
+
+            // When
+            Future<ReadAccessConfiguration.Snapshot> read =
+                worker.submit(
+                    () ->
+                        new ReadAccessConfiguration.Snapshot(
+                            reads.maintenance(first), reads.versions(first)));
+
+            // Then
+            try {
+              ReadAccessConfiguration.Snapshot result = read.get(15, TimeUnit.SECONDS);
+              assertThat(result.maintenance().message()).isEqualTo("Prepared");
+              assertThat(result.versions().revision()).isZero();
+            } catch (Exception failure) {
+              throw new IllegalStateException(
+                  "Protected read waited for the account lock", failure);
+            }
+          });
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = Permission.class,
+      names = {"MANAGE_MAINTENANCE", "MANAGE_APPLICATION_VERSIONS"})
+  @DisplayName("Refuses a private settings group after its current grant is withdrawn")
+  void refusesReadAfterWithdrawal(Permission permission) {
+    // Given
+    assertThat(reads.maintenance(first).message()).isEqualTo("Prepared");
+    assertThat(reads.versions(first).revision()).isZero();
+    sql.update(
+        "DELETE FROM account_permission WHERE account_id = ? AND permission = ?",
+        first,
+        permission.getValue());
+
+    // When
+    ThrowingCallable read =
+        permission == Permission.MANAGE_MAINTENANCE
+            ? () -> reads.maintenance(first)
+            : () -> reads.versions(first);
+
+    // Then
+    assertThatThrownBy(read).isInstanceOf(AccessDeniedException.class);
   }
 
   @ParameterizedTest
