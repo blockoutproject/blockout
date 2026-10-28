@@ -23,3 +23,9 @@ Use F13's selected Java/Expo dependencies and generated clients. Provide an isol
 | Design                  | Approved affected screens in both themes, narrow width, keyboard, reader labels and large text.                                                        | Sending is bounded, errors ordinary and draft retained. No recovery/history journey or third-party console recreated.                                                               |
 
 Use JUnit/Spring MVC with controlled provider/process boundaries and Jest Expo/React Native Testing Library for application behavior. Actual CLI uploads, private permissions and native image handling require their own controlled integration checks. No database ticket exists to justify an F10 persistence test suite, and no additional E2E framework is selected.
+
+## Guided form construction evidence
+
+At `7c6b7abd1a243678893ec66ebc28126f6d4701ce`, [CI verify](https://github.com/blockoutproject/blockout/actions/runs/40665625906/job/122739238262) passed repository formatting, contract generation, backend/collector/mobile verification and telemetry configuration validation. The automated construction scope covers T007–T014: ordinary support admission, supplied invalid/actually expired JWTs, controlled current F12 bypass decisions, canonical editing bounds, allowlisted context, actual F05 generation disposal, failed sign-in/detail entries and the real F12 root guards. A local targeted run passed 171 mobile cases, with ESLint and TypeScript passing separately.
+
+The form prepares input and retains it after ordinary unavailable feedback. It creates no provider request or receipt. These results establish neither native rendering/gestures nor the complete A01–A07/SC-001 qualification in T015/T016; those tasks remain unchecked. Complete sending, native images, actual private-provider access and exceptional erasure retain their later task owners and prerequisites.
