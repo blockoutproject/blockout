@@ -26,6 +26,8 @@ jest.mock("react-native-purchases", () => ({
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   Stack: jest.fn(),
+  // This installation-owner suite supplies a navigator boundary; native tap routing is qualified separately.
+  useRootNavigationState: () => ({ key: "synthetic-root" }),
 }));
 jest.mock("@sentry/react-native", () => ({
   init: jest.fn(),

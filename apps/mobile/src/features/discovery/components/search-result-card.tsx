@@ -19,7 +19,7 @@ import { tokens } from "../../../shared/theme/tokens";
 /** Entity Card metadata uses a 24-point badge minimum; its loading representation shares this owner. */
 export const resultBadgeSize = 24;
 
-/** Product Design Entity Card 354:565; activation and its disclosure remain with US4. */
+/** Product Design Entity Card 354:565 announces available distinguishing context together; activation belongs to T031. */
 export function SearchResultCard({
   kind,
   identity,
@@ -43,6 +43,14 @@ export function SearchResultCard({
   ].filter(({ label }) => label !== undefined);
   return (
     <View
+      accessible
+      accessibilityLabel={[
+        identity.name,
+        subtitle,
+        ...metadata.map(({ label }) => label),
+      ]
+        .filter(Boolean)
+        .join(", ")}
       style={[
         styles.card,
         {

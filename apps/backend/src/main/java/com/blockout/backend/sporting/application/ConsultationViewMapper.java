@@ -20,6 +20,16 @@ import org.mapstruct.Mapping;
     uses = {TemporalMapping.class, UriMapping.class})
 public interface ConsultationViewMapper {
   /**
+   * Projects only the public URL and exact active identity supplied by F08.
+   *
+   * @param source authorized current contribution pair, without private history
+   * @return public stream pair retaining the literal address
+   */
+  @Mapping(target = "url", source = "address")
+  ConsultationViews.StreamLink toView(
+      com.blockout.backend.contributions.application.ReadPublicContribution.Link source);
+
+  /**
    * Removes source/manual metadata from an admitted effective identity.
    *
    * @param source current authorized owner presentation

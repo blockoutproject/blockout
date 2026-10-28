@@ -53,5 +53,25 @@ public final class ConsultationRequest {
       if (kind == Kind.MATCH || (kind == Kind.CLUB) != (seasonId != null))
         throw new IllegalArgumentException("Calendar requires a club/season, team or pool");
     }
+
+    /** Captures the F03 traversal independently from this already admitted public selector. */
+    public CalendarWindow window() {
+      return new CalendarWindow(category, timeZone, nextDay);
+    }
+  }
+
+  /** Captured complete-day traversal, independent of the resource or personal selector. */
+  public record CalendarWindow(CalendarCategoryEnum category, ZoneId timeZone, LocalDate nextDay) {
+    /**
+     * Requires the shared classification and grouping inputs before any database read.
+     *
+     * @param category upcoming or completed
+     * @param timeZone loading zone retained throughout traversal
+     * @param nextDay exclusive continuation, or null for the first window
+     */
+    public CalendarWindow {
+      Objects.requireNonNull(category, "Category is required");
+      Objects.requireNonNull(timeZone, "Grouping zone is required");
+    }
   }
 }

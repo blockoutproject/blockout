@@ -3,3 +3,7 @@ export { MatchSurface } from "./components/match-surface";
 export { SportingLogo, SportingArtwork } from "./components/sporting-identity";
 export { DivisionPaint } from "./components/division-paint";
 export { divisionTextColor } from "./presentation";
+export {
+  currentSportingTimeZone,
+  formatSportingTime,
+} from "./model/sporting-time";

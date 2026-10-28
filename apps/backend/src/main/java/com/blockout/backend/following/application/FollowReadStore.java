@@ -1,5 +1,6 @@
 package com.blockout.backend.following.application;
 
+import com.blockout.backend.sporting.application.ConsultationMatchSelection;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,6 +16,15 @@ public interface FollowReadStore {
    * @return choices ordered by descending sporting start year, then ascending UUID
    */
   List<SeasonChoice> seasons(UUID accountId);
+
+  /**
+   * Selects the union of this owner's team and pool follows before F03 pages complete days.
+   *
+   * @param accountId admitted original account
+   * @param seasonId exact optional sporting season, or null for all seasons
+   * @return database predicate over scalar match identities; F03 retains visibility ownership
+   */
+  ConsultationMatchSelection.Filter calendarSelection(UUID accountId, UUID seasonId);
 
   /**
    * One scalar season projection and whether this original owner has a viewable follow in it.

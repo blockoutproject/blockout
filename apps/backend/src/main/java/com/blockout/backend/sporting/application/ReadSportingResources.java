@@ -1,5 +1,6 @@
 package com.blockout.backend.sporting.application;
 
+import com.blockout.backend.contributions.application.ReadPublicContribution;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.shared.mapping.TemporalMapping;
@@ -42,6 +43,7 @@ public class ReadSportingResources {
   private final SportingStore facts;
   private final ConsultationViewMapper mapper;
   private final Clock clock;
+  private final ReadPublicContribution contributions;
 
   /**
    * Reads only the current public club identity for summary consumers.
@@ -170,7 +172,7 @@ public class ReadSportingResources {
         details.venueName(),
         details.venueAddress(),
         details.referees(),
-        null,
+        contributions.read(id).map(mapper::toView).orElse(null),
         null,
         List.of());
   }

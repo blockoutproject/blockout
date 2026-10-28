@@ -4,6 +4,7 @@ import com.blockout.backend.following.api.FollowingRequest.QueryShape;
 import com.blockout.backend.following.application.FollowContext.TargetType;
 import com.blockout.backend.following.application.FollowState;
 import com.blockout.backend.following.application.ReadFollowOptions;
+import com.blockout.backend.following.application.ReadPersonalCalendar;
 import com.blockout.backend.generated.mobile.api.FollowingApi;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
 import com.blockout.backend.generated.mobile.model.FollowOptionsResponse;
@@ -13,8 +14,10 @@ import com.blockout.backend.generated.mobile.model.PersonalMatchCalendarResponse
 import com.blockout.backend.generated.mobile.model.PoolFollowsResponse;
 import com.blockout.backend.generated.mobile.model.ReplaceFollowStateRequest;
 import com.blockout.backend.generated.mobile.model.TeamFollowsResponse;
+import com.blockout.backend.sporting.application.ConsultationRequest.CalendarWindow;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
@@ -23,12 +26,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-/** Canonical following routes; later stories own collections, calendars and counts. */
+/** Canonical following routes; later stories own collections and counts. */
 @RestController
 @RequiredArgsConstructor
 public class FollowingController implements FollowingApi {
   private final FollowState state;
   private final ReadFollowOptions options;
+  private final ReadPersonalCalendar calendars;
   private final FollowingApiMapper mapper;
   private final FollowingRequest requests;
   private final HttpServletRequest request;
@@ -123,6 +127,14 @@ public class FollowingController implements FollowingApi {
       Boolean bypass,
       UUID seasonId,
       LocalDate nextDay) {
-    throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED);
+    requests.validateQuery(request, QueryShape.CALENDAR);
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(
+            mapper.toDto(
+                calendars.read(
+                    requests.requireOwner(accountId),
+                    seasonId,
+                    new CalendarWindow(category, ZoneId.of(timeZone), nextDay))));
   }
 }

@@ -128,8 +128,8 @@ actual F05 erasure, mobile expiry, sender/provider or operational restoration ev
 The [delivery evidence](https://github.com/blockoutproject/blockout/pull/497) for [T047/T049](tasks.md) records exact
 commands and local/CI outcomes. Qualification uses actual Spring/JPA transactions and current
 inbox reads, with a controlled clock and test-only SQL interruption. No sender/ephemeral-work
-or installation-subscription persistence exists at this base; their lifecycle remains with its
-owning construction, and these results do not qualify sending after failed deletion.
+is qualified by those purge cases; subscription construction is described below, and those
+purge results do not qualify sending after failed deletion.
 
 T048 prepares the following cases for [F13's initial isolated restore](../003-shared-quality/quickstart.md#initial-restore-and-activation-condition)
 and the existing [pre-reopen reconciliation](../../infra/operations/README.md#reconcile-before-access-or-sends).
@@ -144,6 +144,35 @@ and masking prerequisites. Preparation does not block ordinary local purge const
 | Match facts preserved versus genuinely lost in the restored copy                              | Preserve available category/composition facts independently of inbox purge. Inspect no permanent recipient history. Lost facts may exceptionally repeat a sporting announcement, but permit no expired/erased personal data or renewed creation date.                                                                                                                            |
 | Partial active/offline inbox, seven unread but two loaded, earliest expiry on an unloaded row | Execute T018/T023 with the actual native inbox: at age 29 remove loaded expired content before display/resume and while active, invalidate an unprovable whole count/badge, then reconcile through ordinary refresh. Fixtures/server-only checks do not qualify this mobile boundary.                                                                                            |
 | Evidence and cleanup                                                                          | Keep source backup time, original timestamps, isolated target, current-obligation decisions, per-case outcomes and remaining gaps in the existing private F13 operational evidence. No private attachments/diagnostics enter this public repository; restoration never renews backup retention.                                                                                  |
+
+## Push association and session construction
+
+`ChangePushSubscriptions` groups complete replacement and exact removal under the existing
+[F13 command conventions](../003-shared-quality/plan.md#application-use-case-families).
+[SQL cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/PushSubscriptionIntegrationTest.java)
+exercise migrated uniqueness, sorted account locks, reassociation/conflict rollback, rotation,
+unchanged JPA version advancement, deletion/recreation of the same sign-in ID, the final-selection/write
+race and stale DELETE/receipt protection.
+[MVC cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/api/PushSubscriptionsWebMvcTest.java)
+exercise generated binding, strict complete intent, original ownership and private status/body semantics.
+Actual F05 erasure orchestration and participant races remain [T038](tasks.md).
+
+The root connects one push registration owner to F05's existing generation/credential lifecycle,
+without moving inbox or RevenueCat authority. [SDK/session cases](../../apps/mobile/src/features/notifications/__tests__/native-notifications.test.tsx),
+[registration cases](../../apps/mobile/src/features/notifications/__tests__/push-registration.test.ts) and
+[F05 consumer cases](../../apps/mobile/src/features/accounts/__tests__/session-consumers.test.tsx)
+retain real session, Query/generated transport, inbox mutation and Pro consumers with controlled
+native/network I/O. They cover token/generation races, a three-second bound over exact removal,
+foreground silence, one-time tap clearing and independent read/navigation. An already transmitted
+old PUT retains the [accepted transport limit](plan.md#expo-handoff-and-association-lifecycle).
+
+These cases establish no provider receipt, physical badge/credential behavior, after-commit sender,
+F11 native ads, erasure orchestration or release qualification. T037 remains open for the actual
+[F11 T009 composition](../004-advertising-privacy-legal/tasks.md#phase-3-user-story-1--view-content-with-predictable-advertising-frequency-priority-p1--mvp),
+which is absent from this base; direct match navigation cannot establish its counter integration.
+[T030/T038–T041](tasks.md) and
+[F05 T020](../005-accounts-identity/tasks.md) retain their owning obligations. Revision-specific
+executed checks and unavailable evidence belong in the delivery PR.
 
 ## Essential scenarios
 
@@ -188,7 +217,31 @@ The prototype remains the interaction source; native scroll, refresh and Router 
 its relevant behavior without copying its demo world or browser scroll machinery.
 
 These controlled cases establish neither physical system badge behavior nor push receipt,
-subscription lifecycle or full cross-owner qualification. T025, T030/T041, T052 and T058/T060
+subscription lifecycle or full cross-owner qualification. T025, T030/T041, T052 and T060
 retain their independent evidence obligations. Support actions and the shared Pro offer remain
 with their existing feature owners. Revision-specific checks, native captures and review outcomes
 belong in the delivery PR.
+
+## Four-family presentation construction
+
+T059 and the implemented part of T058 reuse the existing inbox and F03 sporting presentation boundary. The
+[presentation cases](../../apps/mobile/src/features/notifications/__tests__/notification-presentation.test.tsx)
+consume twelve wire-text examples from the actual `NotificationMessage` variants through the
+generated response schema. They preserve the supplied French text, distinguish absent and zero
+scores, cover special/withdrawn results and unavailable links, and keep complete accessible
+names and read states. Blank team names display explicit absence rather than an assumed identity.
+The [screen cases](../../apps/mobile/src/features/notifications/__tests__/inbox-screen.test.tsx)
+exercise all four families through generated HTTP consumers and the real Query/session/admission
+owners, preserving server order and editorial choices through refresh and reopening.
+
+Received instants use the current phone zone and F03's established-instant clock formatter;
+Paris/New York cases cover differing DST weeks, spring jumps, autumn repeated hours and local
+day changes. Formatting changes neither the original creation instant nor retention/read state.
+Cards open the ordinary match destination; they expose no video URL or new action. F03/F08 own
+the neutral Stream link presentation on that destination. The current match screen does not yet
+compose that section; T058 stays open for the actual destination assertion after its owning
+[F03 T047/T052](../007-sporting-consultation/tasks.md) implementation. A Router destination double
+is not evidence for that label or interaction. The existing notification pattern
+and [200% screen](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=1072-24724)
+remain the visual references. Automated semantic cases do not establish narrow-screen geometry,
+native text resizing or VoiceOver/TalkBack behavior; T060 retains those qualifications separately.

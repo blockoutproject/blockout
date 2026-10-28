@@ -74,7 +74,7 @@ The [F07 qualification](../011-notifications-delivery/quickstart.md#atomic-produ
 owns announcement timing, handoff and allowance evidence. Controlled hiding/new exempt-version
 and personal-row deletion fixtures are not real moderation-command or scheduled-purge
 qualification; those remain [F07 T046 and T052](../011-notifications-delivery/tasks.md). Actual F05 erasure and native/mobile
-journeys remain with their existing tasks. F08 T016/F03 public projection is not implemented here.
+journeys remain with their existing tasks. F08 T016/F03 public projection is qualified separately below.
 
 ## Reads and mobile
 
@@ -83,3 +83,27 @@ Use more than twenty versions/reports/matches where applicable, including identi
 With Jest Expo/React Native Testing Library and native device checks, preserve drafts on refusal, disable duplicate in-flight actions and reread affected views after confirmation. Lose a response, delay its completion and fail the bounded read: show ordinary error/retry without replay or invented historical success. A failed refresh after confirmed success must not undo that success. Sign out/change accounts during reads/writes and reject old callbacks, including returning to the same account. No reconnect replay, polling or offline queue.
 
 Qualify ordinary contribution/replacement, personal-contribution and report screens with the same content and current-journey drafts. Short filters use sheets; simple confirmation uses the platform alert and cancellation has no mutation effect. Exercise first/last inputs, final scrolling actions and keyboard/back separately on both platforms. Review the [approved design references](plan.md#design-reconciliation-and-evidence), light/dark themes, narrow screens, VoiceOver/TalkBack, enlarged text, focus and accessible action states. Existing sports foreground refresh and advertising behavior remain unchanged. Prototype tests and Figma approval do not qualify native networking, SQL concurrency, provider availability or accessibility.
+
+### Native submission and public entry — T009/T015/T016
+
+The ordinary match contribution route composes F03's current match summary and the F08
+owner collection through the existing F05 session, F12 admission and single QueryClient.
+`submit-contribution.test.tsx` exercises the real screen, RHF form, generated transport and
+Query with controlled native credentials, HTTP and navigation. Cases cover unavailable eligibility, guest/profile distinctions, concise form copy, local URL validation, retained dirty input after refresh
+and refusal, duplicate suppression, moderator eligibility without a Pro condition, invalid
+response rejection, late-session rejection, conflict observation and confirmed acknowledgement
+independent of derivative-read failure. `contribution-entry.test.tsx` reads current eligibility through the same original-account Query owner, omits an unavailable match entry (including account-age refusal), keeps the guest invitation distinct from support and carries no post-authentication command. Its real-match refresh cases recover from changed eligibility, an owner-read outage and a profile-read outage without remounting.
+
+`PublicContributionIntegrationTest` exercises actual submitted active/pending versions and
+F03's generated response, including current match withdrawal. The existing
+`ConsultationContractJsonTest` separately qualifies omission of contribution identity for
+professional URLs and private-field absence. Version identity is supplied only with the exact
+active contributed URL; no private owner, quota, report or moderation data enters F03.
+
+The form uses the current F13 page/scroll/keyboard composition and the compact F03 match-context variant. `contribution-navigation.test.tsx` mounts actual protected native routes to verify draft/recovery retention after a F12 503 detour and a clean return after acknowledgement. Native interaction and design
+evidence must identify the executed revision, platform and exact
+[approved nodes](plan.md#design-reconciliation-and-evidence); controlled JavaScript evidence
+alone does not qualify native networking, provider behavior or screen-reader announcements.
+Full moderation/lifecycle and extended uncertain-response recovery retain their owning tasks.
+
+Scoped iOS/Android observations at `e9a6ece6`, including builds and controlled fixtures, are recorded in the [native contribution evidence](https://github.com/blockoutproject/blockout/pull/557#issuecomment-6475614201). Available-entry/form composition, keyboard/back, retained drafts, real refusal/explicit retry, acknowledgement and exact active public projection were observed. Live Android text enlargement cropped unchanged labels, and OS reconfiguration produced development navigation warnings. Screen-reader announcements and the minimum-OS matrix were not qualified. T015/T016 remain unchecked for the outstanding native qualification; T056 retains full cross-story coverage.

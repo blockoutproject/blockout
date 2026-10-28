@@ -34,6 +34,8 @@ jest.unmock("react-native/Libraries/Utilities/useColorScheme");
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   Stack: jest.fn(),
+  // This theme-owner suite replaces the navigator; notification events control their navigation boundary separately.
+  useRootNavigationState: () => ({ key: "synthetic-root" }),
 }));
 jest.mock("expo-constants", () => ({
   __esModule: true,

@@ -11,6 +11,19 @@ export function currentSportingTimeZone(): string {
   return new Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
+/** Formats an established instant with its date-specific offset, without reconstructing a source clock. */
+export function formatSportingTime(
+  instant: string,
+  displayTimeZone = currentSportingTimeZone(),
+): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: displayTimeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(instant));
+}
+
 /** Extracts a Gregorian day with Intl's date-specific zone rules, including DST. */
 function dayInZone(instant: Date, timeZone: string): string {
   const parts = new Intl.DateTimeFormat("en", {
@@ -87,12 +100,7 @@ export function formatSportingSchedule(
       now,
     ),
     time: schedule.instant
-      ? new Intl.DateTimeFormat("fr-FR", {
-          timeZone: displayTimeZone,
-          hour: "2-digit",
-          minute: "2-digit",
-          hourCycle: "h23",
-        }).format(new Date(schedule.instant))
+      ? formatSportingTime(schedule.instant, displayTimeZone)
       : "Heure à définir",
   };
 }

@@ -393,7 +393,7 @@ it("retains the captured groups after a failed new-zone refresh and retries that
   expect(mockFetch).toHaveBeenCalledTimes(1);
 
   // When
-  mockFetch.mockResolvedValue(
+  mockFetch.mockImplementation(async () =>
     Response.json({ ...calendar, timeZone: deviceZone, days: [] }),
   );
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");

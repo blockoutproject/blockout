@@ -344,10 +344,9 @@ function SearchScene({
 }
 
 const styles = StyleSheet.create({
-  // Figma 7130:19183: the heading is fixed within the continuous blurred chrome, four points below the input.
+  // Figma 7130:19183: the centered row's native touch minimum owns its space below the input.
   resultsHeading: {
     paddingHorizontal: tokens.spacing.screen,
-    paddingTop: tokens.spacing.xs,
   },
   toolbar: {
     flexDirection: "row",
@@ -374,7 +373,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // The fixed heading owns the following gap when a textual search is present.
+  // The fixed heading owns its own vertical space when a textual search is present.
   controls: {
     paddingHorizontal: tokens.spacing.screen,
     paddingTop: tokens.spacing.sm,

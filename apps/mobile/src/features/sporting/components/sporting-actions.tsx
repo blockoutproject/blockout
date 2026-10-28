@@ -1,4 +1,11 @@
-import type { SportingSeasonResponse } from "../../../../.generated/schemas/index.zod";
+import type {
+  SportingSeasonResponse,
+  SupportTargetRequest,
+} from "../../../../.generated/schemas/index.zod";
+import { useRouter } from "expo-router";
+import { Flag } from "lucide-react-native";
+import { IconButton } from "../../../shared/components/icon-button";
+import { supportHref } from "../../support";
 import { StyleSheet, View } from "react-native";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -21,9 +28,42 @@ export function SportingActions(props: SportingActionsProps) {
   );
 }
 
+/** Attempted navigation identity; no successful detail read or invented public name is required. */
+export interface SportingSupportActionProps {
+  target: SupportTargetRequest;
+}
+
+/** Keeps the shared support form reachable from every existing sporting detail state. */
+export function SportingSupportAction({ target }: SportingSupportActionProps) {
+  const router = useRouter();
+  const { colors } = useTheme();
+  return (
+    <IconButton
+      label="Signaler un problème"
+      onPress={() =>
+        router.push(
+          supportHref({
+            screen: target.type,
+            targetType: target.type,
+            targetId: target.id,
+          }),
+        )
+      }
+    >
+      <Flag accessible={false} size={tokens.size.icon.lg} color={colors.icon} />
+    </IconButton>
+  );
+}
+
 const styles = StyleSheet.create({
   actions: {
     borderTopWidth: tokens.border.thin,
     paddingTop: tokens.spacing.md,
   },
 });
+
+/** Match contribution entry stays owned by F08; other sporting actions retain their owners. */
+export {
+  ContributionEntry as MatchContributionAction,
+  useContributionEntry as useMatchContributionAction,
+} from "../../contributions/entry";

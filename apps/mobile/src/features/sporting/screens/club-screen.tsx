@@ -1,3 +1,4 @@
+import { SportingSupportAction } from "../components/sporting-actions";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingCompactHeader } from "../components/sporting-compact-header";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";
@@ -143,7 +144,12 @@ function ClubPage({ clubId }: ClubScreenProps) {
     <Page edges={blockingState ? undefined : ["left", "right", "bottom"]}>
       {blockingState ? (
         <>
-          <PageHeader title="Club" />
+          <PageHeader
+            title="Club"
+            action={
+              <SportingSupportAction target={{ type: "club", id: clubId }} />
+            }
+          />
           <PageScrollView
             refreshControl={
               <DataRefreshControl
@@ -163,6 +169,11 @@ function ClubPage({ clubId }: ClubScreenProps) {
           header={
             data && (
               <SportingCompactHeader
+                action={
+                  <SportingSupportAction
+                    target={{ type: "club", id: clubId }}
+                  />
+                }
                 title="Club"
                 identity={data.club}
                 kind="club"

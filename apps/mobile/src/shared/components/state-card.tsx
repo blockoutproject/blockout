@@ -12,17 +12,25 @@ export interface EmptyStateProps {
   description?: string;
   /** Feature-owned decorative illustration; omitted consumers use the shared volleyball artwork. */
   artwork?: ReactNode;
+  children?: ReactNode;
 }
 
 /** Shared empty-state anatomy; the feature supplies contextual copy and any approved illustration. */
-export function EmptyState({ title, description, artwork }: EmptyStateProps) {
+export function EmptyState({
+  title,
+  description,
+  artwork,
+  children,
+}: EmptyStateProps) {
   return (
     <StateCard
       kind="empty"
       title={title}
       description={description}
       artwork={artwork}
-    />
+    >
+      {children}
+    </StateCard>
   );
 }
 
@@ -54,7 +62,7 @@ function StateCard({
   description,
   artwork,
   children,
-}: EmptyStateProps & { kind: "empty" | "error"; children?: ReactNode }) {
+}: EmptyStateProps & { kind: "empty" | "error" }) {
   const { colors, scheme } = useTheme();
   return (
     <View

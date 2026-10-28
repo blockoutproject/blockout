@@ -1,4 +1,10 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import type { NotificationResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -8,9 +14,11 @@ import {
   SportingArtwork,
   DivisionPaint,
   divisionTextColor,
+  currentSportingTimeZone,
+  formatSportingTime,
 } from "../../sporting/notification-presentation";
 
-/** The exact personal entry owns tap intent; list rendering never marks it read. */
+/** Validated current entry and exact tap intent; pending blocks repetition without changing its read state. */
 export interface NotificationItemProps {
   notification: NotificationResponse;
   onPress: () => void;
@@ -24,22 +32,43 @@ export function NotificationItem({
   pending = false,
 }: NotificationItemProps) {
   const { colors } = useTheme();
+  const { fontScale } = useWindowDimensions();
+  // Approved normal/large score slots are 36/48 points; text keeps native scaling beyond those minima.
+  const scoreSize =
+    fontScale >= 1.5
+      ? tokens.size.control.default
+      : tokens.size.control.compact;
   const division = row.division;
   const foreground = divisionTextColor(division.color);
-  const date = new Intl.DateTimeFormat("fr-FR", {
+  const timeZone = currentSportingTimeZone();
+  const receivedDay = new Intl.DateTimeFormat("fr-FR", {
+    timeZone,
     day: "numeric",
     month: "short",
     year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
   }).format(new Date(row.createdAt));
+  const date = `${receivedDay} à ${formatSportingTime(row.createdAt, timeZone)}`;
   const result =
     row.match.result?.state === "final" ? row.match.result : undefined;
   const score = result?.homeSets !== undefined && result.awaySets !== undefined;
+  const teams = [
+    { name: row.match.home.name, value: result?.homeSets, side: "domicile" },
+    { name: row.match.away.name, value: result?.awaySets, side: "extérieur" },
+  ].map((team) => ({
+    ...team,
+    name: team.name.trim() ? team.name : "Nom indisponible",
+  }));
+  const teamDescription = teams
+    .map(
+      ({ name, value, side }) =>
+        `${name}${score ? `, Score ${side} : ${value}` : ""}`,
+    )
+    .join(". ");
   return (
     <Pressable
       accessibilityRole="link"
-      accessibilityLabel={`${row.title}. ${row.match.pool.pool.name}. ${row.match.home.name}${score ? ` ${result.homeSets}` : ""}, ${row.match.away.name}${score ? ` ${result.awaySets}` : ""}. ${date} — ${row.read ? "lue" : "non lue"}`}
+      accessibilityLabel={`${row.title} ${row.match.pool.pool.name}. ${teamDescription}. ${date} — ${row.read ? "lue" : "non lue"}`}
+      accessibilityHint="Ouvrir la fiche du match"
       accessibilityState={{ disabled: pending, busy: pending }}
       disabled={pending}
       onPress={onPress}
@@ -75,17 +104,21 @@ export function NotificationItem({
             {row.title}
           </Text>
           <View style={styles.teams}>
-            {[
-              { team: row.match.home, value: result?.homeSets },
-              { team: row.match.away, value: result?.awaySets },
-            ].map(({ team, value }, index) => (
-              <View key={index} style={styles.team}>
+            {teams.map(({ name, value, side }) => (
+              <View key={side} style={styles.team}>
                 <Text style={[styles.teamName, { color: colors.text }]}>
-                  {team.name}
+                  {name}
                 </Text>
                 {score && (
                   <View
-                    style={[styles.score, { backgroundColor: colors.subtle }]}
+                    style={[
+                      styles.score,
+                      {
+                        backgroundColor: colors.subtle,
+                        minWidth: scoreSize,
+                        minHeight: scoreSize,
+                      },
+                    ]}
                   >
                     <Text
                       style={[
@@ -114,7 +147,7 @@ const styles = StyleSheet.create({
     padding: tokens.spacing.md,
     overflow: "hidden",
   },
-  identity: { flex: 1, gap: tokens.spacing.xs, minWidth: 0 },
+  identity: { flex: 1, gap: tokens.spacing.optical, minWidth: 0 },
   dot: {
     width: tokens.spacing.sm,
     height: tokens.spacing.sm,
@@ -125,11 +158,9 @@ const styles = StyleSheet.create({
   team: { flexDirection: "row", alignItems: "center", gap: tokens.spacing.sm },
   teamName: { ...tokens.typography.strong, flex: 1 },
   score: {
-    minWidth: tokens.size.control.compact,
-    minHeight: tokens.size.control.compact,
     borderRadius: tokens.radius.sm,
     paddingHorizontal: tokens.spacing.sm,
-    paddingVertical: tokens.spacing.xs,
+    paddingVertical: tokens.spacing.optical,
     alignItems: "center",
     justifyContent: "center",
   },

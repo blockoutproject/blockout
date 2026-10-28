@@ -44,7 +44,7 @@ Unique installation and destination constraints prevent equivalent active bindin
 
 An old registration already in transit may replace a newer association even after successful disassociation. It can leave the current account without push until its next successful ordinary registration; F05/F07 explicitly accept this transport limit. Obsolete mobile callbacks and still-controllable requests are discarded/cancelled. No client-time ordering, persistent revocation registry or repair loop is claimed. Erasure deletes all account bindings atomically, while other accounts/installations remain.
 
-A receipt invalidates only the association ID/revision/address captured for that send, using a conditional repository operation or ordinary optimistic version check. Once replaced, the old target cannot invalidate the new binding. No external call is inside this transaction.
+A receipt invalidates only the native row identity/revision/address captured for that send, using a conditional repository operation or ordinary optimistic version check. JPA generates this private row UUID independently of the public sign-in association ID. Recreating a deleted binding can reset its native version but cannot reuse its former row identity; an old receipt therefore cannot remove that recreation. No row identity or version is echoed publicly, retained after removal or used for authorization. No external call is inside this transaction. The [research](research.md#association-identity-and-native-lifecycle) records the persistence rationale.
 
 ## Ephemeral processing and mobile data
 
