@@ -16,12 +16,16 @@ import { useEffect, useState } from "react";
 import { AppState } from "react-native";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 
+import {
+  MatchContributionAction,
+  useMatchContributionAction,
+} from "../components/sporting-actions";
 import { MatchSummary } from "../components/match-summary";
 import { MatchSetScores } from "../components/match-set-scores";
 import { MatchInformation } from "../components/match-information";
 import { currentSportingTimeZone } from "../model/sporting-time";
 
-/** Exact dated public match identity; document/contribution/support integrations remain owner work. */
+/** Exact dated public match identity; contextual actions remain with their feature owners. */
 export interface MatchScreenProps {
   matchId: string;
 }
@@ -45,11 +49,18 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
   const queries = useConsultationQueries();
   const match = useQuery(queries.match(matchId));
   const data = match.data;
+  const contribution = useMatchContributionAction(matchId, !!data);
   const feedback = useActionFeedback();
   /** A failed explicit refresh keeps authorized content and reports only the attempted read. */
   async function refresh() {
-    const result = await match.refetch({ cancelRefetch: false });
-    if (result.isError && result.data && !isAccessDenied(result.error))
+    const [result, entryResult] = await Promise.all([
+      match.refetch({ cancelRefetch: false }),
+      contribution.refresh(),
+    ]);
+    if (
+      (result.isError && result.data && !isAccessDenied(result.error)) ||
+      (entryResult?.isError && !isAccessDenied(entryResult.error))
+    )
       feedback.error();
   }
   const blockingState = !data ? <ReadFeedback query={match} /> : undefined;
@@ -73,7 +84,7 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
             refreshControl={
               <DataRefreshControl
                 progressViewOffset={headerHeight}
-                refreshing={match.isRefetching}
+                refreshing={match.isRefetching || contribution.refreshing}
                 onRefresh={() => void refresh()}
               />
             }
@@ -87,6 +98,12 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
                     <MatchSummary
                       match={data.match}
                       displayTimeZone={presentation.timeZone}
+                    />
+                    <MatchContributionAction
+                      entry={contribution}
+                      contextColor={
+                        data.match.pool.classification.division?.color
+                      }
                     />
                     <MatchSetScores match={data.match} sets={data.sets} />
                     <MatchInformation

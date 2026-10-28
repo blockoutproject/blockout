@@ -61,3 +61,9 @@ const styles = StyleSheet.create({
     paddingTop: tokens.spacing.md,
   },
 });
+
+/** Match contribution entry stays owned by F08; other sporting actions retain their owners. */
+export {
+  ContributionEntry as MatchContributionAction,
+  useContributionEntry as useMatchContributionAction,
+} from "../../contributions/entry";
