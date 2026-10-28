@@ -324,7 +324,14 @@ it("deduplicates appended identities while preserving server day pool and catego
 });
 
 it("keeps a successful new-zone first page through native zero-delay collection until the calendar closes", async () => {
-  // Given: native Query timers control collection; HTTP, generated validation and the grouping owner stay real.
+  // Given: native Query timers control collection and Intl supplies a fixed initial device zone.
+  // Pin native Intl before the fake timer adapter wraps each formatter's methods.
+  const resolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
+  const deviceZone = jest
+    .spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions")
+    .mockImplementation(function (this: Intl.DateTimeFormat) {
+      return { ...resolvedOptions.call(this), timeZone: "Europe/Paris" };
+    });
   jest.useFakeTimers();
   try {
     const accepted = { ...page("2026-09-20"), timeZone: "America/New_York" };
@@ -342,6 +349,7 @@ it("keeps a successful new-zone first page through native zero-delay collection 
         ),
       { wrapper: Provider },
     );
+    expect(result.current.timeZone).toBe("Europe/Paris");
 
     // When: native collection runs before React's next data observer adopts the new key.
     await act(async () => {
@@ -373,6 +381,7 @@ it("keeps a successful new-zone first page through native zero-delay collection 
     });
     expect(client.getQueryData(options.queryKey)).toBeUndefined();
   } finally {
+    deviceZone.mockRestore();
     jest.useRealTimers();
   }
 });
