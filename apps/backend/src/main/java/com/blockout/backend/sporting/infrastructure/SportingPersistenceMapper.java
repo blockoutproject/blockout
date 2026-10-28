@@ -728,13 +728,32 @@ interface SportingPersistenceMapper {
    * @return permitted current locality with its independent logical order
    */
   default SportingPresentation.Locality toLocality(ClubEntity source) {
-    String city = toContactValue(source.getCity()).effectiveValue();
+    return toLocality(
+        new ClubLocalityRow(
+            source.getId(),
+            source.getLocalityRevision(),
+            source.getCity(),
+            source.getPostalCode(),
+            source.getLatitude(),
+            source.getLongitude(),
+            source.getLocalityCycleOrder(),
+            source.getLocalityReadOrdinal()));
+  }
+
+  /**
+   * Applies the same current-contact restriction to entity and scalar municipality reads.
+   *
+   * @param source detached municipality fields without artwork
+   * @return permitted point with its original logical attribution, never an old hidden city
+   */
+  default SportingPresentation.Locality toLocality(ClubLocalityRow source) {
+    String city = toContactValue(source.city()).effectiveValue();
     return new SportingPresentation.Locality(
-        Long.toString(source.getLocalityRevision()),
+        Long.toString(source.localityRevision()),
         city,
-        toContactValue(source.getPostalCode()).effectiveValue(),
-        city == null ? null : source.getLatitude(),
-        city == null ? null : source.getLongitude(),
-        toOrder(source.getLocalityCycleOrder(), source.getLocalityReadOrdinal()));
+        toContactValue(source.postalCode()).effectiveValue(),
+        city == null ? null : source.latitude(),
+        city == null ? null : source.longitude(),
+        toOrder(source.localityCycleOrder(), source.localityReadOrdinal()));
   }
 }

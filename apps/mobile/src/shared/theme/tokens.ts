@@ -26,6 +26,16 @@ export const appearanceColors = {
     // UI Library media/logo-surface stays white in both appearances; fallback content retains neutral ink.
     logoSurface: reference.white,
     logoInk: reference.neutral900,
+    // UI Library rank/* semantic aliases; only an explicitly published position selects a medal.
+    rank: {
+      first: "#EDD79C",
+      firstContent: "#4E3911",
+      second: "#DCE2EC",
+      secondContent: "#283344",
+      third: "#EBBD9F",
+      thirdContent: "#513423",
+      neutral: "#EDEDF0",
+    },
     skeleton: "#EDEDEE",
     onDarkAccent: reference.white,
     onLightAccent: "#000000",
@@ -67,6 +77,15 @@ export const appearanceColors = {
     mediaPlaceholder: "#2B2B2D",
     logoSurface: reference.white,
     logoInk: reference.neutral900,
+    rank: {
+      first: "#E8CD87",
+      firstContent: "#4E3911",
+      second: "#C5CFDE",
+      secondContent: "#283344",
+      third: "#D6A17F",
+      thirdContent: "#513423",
+      neutral: "#242528",
+    },
     skeleton: "#2B2B2D",
     onDarkAccent: reference.white,
     onLightAccent: "#000000",
@@ -177,7 +196,7 @@ export const tokens = {
   size: {
     control: { default: 48, compact: 36 },
     icon: { sm: 16, md: 20, lg: 24 },
-    media: { row: 40, entity: 48 },
+    media: { row: 40, entity: 48, match: 32 },
   },
   touch,
   border: { thin: 1 },
@@ -203,6 +222,12 @@ export const tokens = {
     coverBlur: 20,
     coverOpacity: 0.32,
     coverVeilOpacity: 0.28,
+    // Product Design compact official standings row 4502:39958.
+    standingsRankWidth: 28,
+    standingsRankHeight: 32,
+    standingsMarkerWidth: 3,
+    standingsMarkerHeight: 40,
+    standingsPointsWidth: 34,
     haloSize: 120,
     haloTop: -26,
   } as const,
@@ -212,6 +237,14 @@ export const tokens = {
     strong: { fontFamily: "Outfit-SemiBold", fontSize: 14, lineHeight: 20 },
     title: { fontFamily: "Outfit-SemiBold", fontSize: 18, lineHeight: 24 },
     heading: { fontFamily: "Outfit-Bold", fontSize: 20, lineHeight: 26 },
+    // UI Library Heading/S and Heading/L, used by the official standings composition.
+    headingSm: { fontFamily: "Outfit-Bold", fontSize: 16, lineHeight: 22 },
+    headingLg: {
+      fontFamily: "Outfit-Bold",
+      fontSize: 24,
+      lineHeight: 30,
+      letterSpacing: -0.12,
+    },
     // UI Library Heading/XL and Display/Age (3681:14), used by Product Design 6650:4930.
     headingXl: {
       fontFamily: "Outfit-Bold",

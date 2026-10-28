@@ -7,6 +7,8 @@ import com.blockout.backend.generated.mobile.model.ClubTeamsResponse;
 import com.blockout.backend.generated.mobile.model.MatchCalendarResponse;
 import com.blockout.backend.generated.mobile.model.MatchDetailResponse;
 import com.blockout.backend.generated.mobile.model.PoolDetailResponse;
+import com.blockout.backend.generated.mobile.model.PoolParticipantsResponse;
+import com.blockout.backend.generated.mobile.model.PoolStandingsResponse;
 import com.blockout.backend.generated.mobile.model.TeamDetailResponse;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.sporting.application.ConsultationRequest.CalendarRequest;
@@ -89,6 +91,23 @@ public class ConsultationController implements ConsultationApi {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(mapper.toDto(resources.pool(poolId)));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public ResponseEntity<PoolStandingsResponse> getPoolStandings(UUID poolId, Boolean bypass) {
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(mapper.toDto(resources.standings(poolId)));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public ResponseEntity<PoolParticipantsResponse> listPoolParticipants(
+      UUID poolId, Boolean bypass) {
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(mapper.toDto(resources.participants(poolId)));
   }
 
   /** {@inheritDoc} */

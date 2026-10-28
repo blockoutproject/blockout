@@ -1,4 +1,5 @@
 import { SportingSupportAction } from "../components/sporting-actions";
+import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingCompactHeader } from "../components/sporting-compact-header";
 import { TabScrollView } from "react-native-collapsible-tab";
@@ -139,6 +140,8 @@ function PoolPage({
                   selection={{ poolId, category: value }}
                   active={tab === value}
                 />
+              ) : value === "standings" && data && !renderStandings ? (
+                <PoolStandings pool={data.pool} />
               ) : (
                 <TabScrollView alwaysBounceVertical>
                   <PageContent>

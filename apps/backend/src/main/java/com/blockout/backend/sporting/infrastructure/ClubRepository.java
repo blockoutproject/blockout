@@ -29,6 +29,16 @@ interface ClubRepository extends JpaRepository<ClubEntity, UUID> {
   List<SportingPresentationRow> findPresentations(Set<UUID> ids);
 
   /**
+   * Projects municipality inputs without artwork or a per-participant club entity load.
+   *
+   * @param ids distinct current participant clubs
+   * @return detached point/context fields, still subject to F02's effective-contact mapping
+   */
+  @Query(
+      "SELECT NEW com.blockout.backend.sporting.infrastructure.ClubLocalityRow(c.id, c.localityRevision, c.city, c.postalCode, c.latitude, c.longitude, c.localityCycleOrder, c.localityReadOrdinal) FROM ClubEntity c WHERE c.id IN :ids")
+  List<ClubLocalityRow> findLocalities(Set<UUID> ids);
+
+  /**
    * Selects current seasonless acquisition candidates strictly after the visited identity boundary.
    *
    * @param geocoding whether to select current municipal needs

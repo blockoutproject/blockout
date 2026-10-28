@@ -1,4 +1,5 @@
 import { SportingSupportAction } from "../components/sporting-actions";
+import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingCompactHeader } from "../components/sporting-compact-header";
 import { TabScrollView } from "react-native-collapsible-tab";
@@ -151,6 +152,18 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
                   selection={{ teamId, category }}
                   active={tab === item.id}
                 />
+              ) : participation && !renderStandings ? (
+                <PoolStandings pool={participation} highlightTeamId={teamId}>
+                  <Surface>
+                    <SportingLink
+                      kind="pool"
+                      id={participation.pool.id}
+                      label={poolLabel(participation)}
+                      identity={participation.classification.division}
+                    />
+                    <ResourceText>{participation.competitionName}</ResourceText>
+                  </Surface>
+                </PoolStandings>
               ) : (
                 <TabScrollView alwaysBounceVertical>
                   <PageContent>

@@ -403,6 +403,15 @@ public interface CollectionStore {
       UUID controlId, UUID scopeId, CollectionStageEnum stage, CollectionPhaseEnum phase);
 
   /**
+   * Reads the newest actual acquisition evidence across controls for one resource and stage.
+   *
+   * @param scopeId exact sporting resource
+   * @param stage independently acquired fact group
+   * @return latest logical attempt, without integration outcomes or private diagnostics
+   */
+  Optional<CollectionAttempt> latestAcquisition(UUID scopeId, CollectionStageEnum stage);
+
+  /**
    * Replaces one current result under its cycle lock.
    *
    * @param controlId admitted owner
