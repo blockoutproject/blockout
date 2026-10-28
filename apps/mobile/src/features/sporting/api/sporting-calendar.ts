@@ -2,6 +2,8 @@ import {
   hashKey,
   infiniteQueryOptions,
   type InfiniteData,
+  type InfiniteQueryExecuteOptions,
+  type GetNextPageParamFunction,
   type QueryClient,
   type QueryKey,
 } from "@tanstack/react-query";
@@ -9,6 +11,7 @@ import type {
   ListMatchesParams,
   MatchCalendarResponse,
   MatchDayResponse,
+  MatchSummaryResponse,
 } from "../../../../.generated/schemas/index.zod";
 import type { createConsultationQueries } from "./consultation-queries";
 import { resourceUnavailable } from "../model/consultation-availability";
@@ -92,9 +95,15 @@ export function createCalendarOptions(
  * Native Query replaces cached pages only after success. Ordinary failure retains authorized
  * groups; the view reports explicit refresh failure without changing the loading zone.
  */
-export async function refreshCalendar(
+export async function refreshCalendar<TPage, TKey extends QueryKey>(
   client: QueryClient,
-  options: ReturnType<typeof createCalendarOptions>,
+  options: InfiniteQueryExecuteOptions<
+    TPage,
+    Error,
+    InfiniteData<TPage>,
+    TKey,
+    string | undefined
+  > & { getNextPageParam: GetNextPageParamFunction<string | undefined, TPage> },
 ) {
   await client.cancelQueries({ queryKey: options.queryKey, exact: true });
   return client.infiniteQuery({ ...options, staleTime: 0, pages: 1 });
@@ -122,25 +131,33 @@ export async function removeUnavailableCalendarMatch(
       query.setState({
         data: {
           ...data,
-          pages: data.pages.map((page) => ({
-            ...page,
-            days: page.days
-              .map((day) => ({
-                ...day,
-                pools: day.pools
-                  .map((pool) => ({
-                    ...pool,
-                    matches: pool.matches.filter(
-                      (match) => match.id !== matchId,
-                    ),
-                  }))
-                  .filter((pool) => pool.matches.length > 0),
-              }))
-              .filter((day) => day.pools.length > 0),
-          })),
+          pages: data.pages.map((page) =>
+            filterCalendarMatches(page, (match) => match.id !== matchId),
+          ),
         },
       });
   }
+}
+
+/** Filters currently unauthorized rows and their empty groups while preserving source context/cursor. */
+export function filterCalendarMatches(
+  page: MatchCalendarResponse,
+  retain: (match: MatchSummaryResponse) => boolean,
+): MatchCalendarResponse {
+  return {
+    ...page,
+    days: page.days
+      .map((day) => ({
+        ...day,
+        pools: day.pools
+          .map((pool) => ({
+            ...pool,
+            matches: pool.matches.filter(retain),
+          }))
+          .filter((pool) => pool.matches.length > 0),
+      }))
+      .filter((day) => day.pools.length > 0),
+  };
 }
 
 /** Deduplicates moved encounters for rendering without mutating the server's retained pages. */

@@ -19,24 +19,40 @@ import java.util.UUID;
  */
 public interface ConsultationStore {
   /**
+   * Builds the exact public resource predicate; consumers use their own selection instead.
+   *
+   * @param request already admitted public selector
+   * @return selector over scalar match identities
+   */
+  ConsultationMatchSelection.Filter calendarSelection(ConsultationRequest.CalendarRequest request);
+
+  /**
    * Selects up to eight nonempty days, including one lookahead, under the caller's transaction.
    *
-   * @param request admitted selector and captured grouping context
+   * @param request captured grouping context
+   * @param selection owner-supplied scalar selection
    * @param now common classification instant
    * @return distinct ordered display days after the exclusive continuation
    */
-  List<LocalDate> calendarDays(ConsultationRequest.CalendarRequest request, Instant now);
+  List<LocalDate> calendarDays(
+      ConsultationRequest.CalendarWindow request,
+      ConsultationMatchSelection.Filter selection,
+      Instant now);
 
   /**
    * Reads every eligible row in the selected complete days without a match-count cap.
    *
-   * @param request same admitted selector/category/zone used for day selection
+   * @param request same category/zone used for day selection
+   * @param selection same scalar selection used for day selection
    * @param days at most seven selected nonempty display days
    * @param now same classification instant as day selection
    * @return ordered detached entries from the same repeatable-read snapshot
    */
   List<CalendarEntry> calendarMatches(
-      ConsultationRequest.CalendarRequest request, List<LocalDate> days, Instant now);
+      ConsultationRequest.CalendarWindow request,
+      ConsultationMatchSelection.Filter selection,
+      List<LocalDate> days,
+      Instant now);
 
   /**
    * One accepted match and its PostgreSQL-derived display day, without a fabricated instant.

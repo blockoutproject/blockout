@@ -21,6 +21,7 @@ import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.following.application.FollowState;
 import com.blockout.backend.following.application.ReadFollowOptions;
 import com.blockout.backend.following.application.ReadFollowOptions.Options;
+import com.blockout.backend.following.application.ReadPersonalCalendar;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import com.blockout.backend.sporting.api.ConsultationApiMapperImpl;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
@@ -67,6 +68,7 @@ class FollowOptionsWebMvcTest {
   @Autowired private MockMvc mvc;
   @MockitoBean private FollowState state;
   @MockitoBean private ReadFollowOptions options;
+  @MockitoBean private ReadPersonalCalendar calendars;
   @MockitoBean private AccountAccess accounts;
   @MockitoBean private AccessSettingsStore settings;
   @MockitoBean private PermissionStore permissions;

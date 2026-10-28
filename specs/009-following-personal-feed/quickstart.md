@@ -1,6 +1,6 @@
 # Quickstart: qualify following and the personal feed
 
-The executable workspace, T001–T005 contract/context foundation and T006/T007/T009/T010/T012/T013 backend relation slice are available. Full erasure orchestration, calendar and native scenarios below retain their owning qualifications. Use the actual [README verification commands](../../README.md#verification) and the owning task scope; passing foundation checks does not complete the later journeys.
+The executable workspace, T001–T005 contract/context foundation and T006/T007/T009/T010/T012/T013 backend relation slice are available. Full erasure orchestration and integrated/native scenarios below retain their owning qualifications. Use the actual [README verification commands](../../README.md#verification) and the owning task scope; passing foundation checks does not complete the later journeys.
 
 ## Prerequisites
 
@@ -112,11 +112,10 @@ blocking across a subsequent network failure until a successful read. The select
 event owns refresh feedback inside its Modal surface; retained Query errors emit no toast by effect.
 These tests establish neither native networking nor provider qualification.
 
-The existing `apps/mobile/src/app/(ordinary)/(tabs)/index.tsx` retains its entry/age guards and composes
-only the personal context and controls. F07 owns its ordinary tab placement;
-the personal context and controls remain with F06. US3/US4 still own the business
-lists/calendar and their scrolling. T021 supplies the bounded read boundary; T022/T029/T037 retain
-qualification through those actual views and endpoints.
+The existing `apps/mobile/src/app/(ordinary)/(tabs)/index.tsx` retains its entry/age guards.
+F07 owns its ordinary tab placement; the personal context, controls and calendar remain with F06.
+US3 retains the follow-list composition. T021 supplies the bounded read boundary; T022/T029/T037
+retain qualification through all actual views and endpoints.
 
 Compare the [Home controls](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5075-4799)
 with the UI Library's [compact tabs](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=841-983)
@@ -128,6 +127,57 @@ and its HTML select control are interaction references; their rendering is not n
 ./mvnw -B -ntp -pl apps/backend verify -Dtest=FollowOptionsWebMvcTest,FollowStateWebMvcTest -Dit.test=FollowOptionsIntegrationTest
 npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/following/__tests__/personal-season.test.tsx src/features/following/__tests__/personal-screen.test.tsx
 ```
+
+### Personal complete-day calendar (T030–T035, T036 construction)
+
+`PersonalCalendarIntegrationTest` exercises the production F06/F03 readers on migrated PostgreSQL,
+including overlapping follow origins, typed seasonal identities, qualified absence/reappearance,
+independent restrictions, categories, date precision and both loading zones. Seven complete
+nonempty days retain all 26 encounters on a busy first day; continuation is exclusive. A committed
+follow/visibility change between reads proves one read-only repeatable-read response. Statement
+counts stay constant from one to 25 encounters with distinct participants, exercising F03's
+existing fetched presentation graph. Only time and the concurrent-write interleaving are controlled.
+`PersonalCalendarWebMvcTest` exercises the production controller and generated mapper, strict
+query binding, owner isolation, no-store and safe failures with controlled application reads.
+
+`personal-calendar.test.tsx` and `personal-screen.test.tsx` exercise actual Query, generated
+transport validation, shared-season/session/admission owners and the reused F03 calendar.
+They distinguish ordinary failed refresh from confirmed-follow reset, preserve failed continuation,
+cancel obsolete pages/selections, defer covered Home and inactive tabs, clear refused private rows,
+and distinguish no available follows from no matches with a working Search action. A successful
+continuation establishing no available follows withdraws former rows across categories and
+overlapping seasons in the same owner/admission context; unaffected seasons remain retained.
+An original-account 404 without a seasonal selector withdraws the whole private calendar collection.
+A new seasonal category captures the current device zone at its first active read, including a
+previously mounted inactive category, without regrouping retained same-season rows on foreground
+return. Established empty selections retire cancelled continuation errors instead of exposing an
+ineffective retry footer. A current F03 match-detail
+refusal cancels older personal continuations and removes that UUID in the same original-owner
+admission context, without reclassifying other rows or reloading the calendar on return. Exact match
+UUID routing is exercised. The shared zero-delay collection regression advances native Query timers
+before data-observer adoption, then verifies the successful new-zone page survives without another
+request and is collected after calendar closure. HTTP and native I/O/focus are controlled; this establishes no provider,
+full native accessibility or complete account-erasure journey.
+
+```sh
+./mvnw -B -ntp -pl apps/backend verify -Dtest=PersonalCalendarWebMvcTest,FollowOptionsWebMvcTest,FollowStateWebMvcTest -Dit.test=PersonalCalendarIntegrationTest,ReadMatchCalendarIntegrationTest
+npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/following/__tests__/personal-calendar.test.tsx src/features/following/__tests__/personal-screen.test.tsx src/features/sporting/__tests__/sporting-calendar.test.tsx
+```
+
+Native construction observations use the aligned F13 development clients on iOS 27.1 Duo and
+Android 17 / Pixel 9, with controlled HTTP and native Auth0 RPC only. The actual entry, generated
+validation, session/admission/Query owners, RNCT pager and LegendList composition remain real.
+Observed cases include system light/dark, missing/provisional results, native season selection and
+Search, complete-day continuation, retained page failure and same-cursor explicit retry, retained
+rows after a failed ordinary pull, and cross-category withdrawal after successful no-follow evidence.
+On iOS, the enlarged empty card requires scrolling; the Search action was reached above the floating
+navigation and activated at accessibility-medium. This is scoped rendering/gesture evidence, not
+complete screen-reader, minimum-runtime, live backend/provider, account-erasure or F11 qualification.
+
+T036 retains the uncomposed single F11 transition owner from
+[F11 T009](../004-advertising-privacy-legal/tasks.md#phase-3-user-story-1--view-content-with-predictable-advertising-frequency-priority-p1--mvp).
+The calendar keeps F03's current exact route; it adds no second navigation counter. T037 and the
+cross-view portions of T022/T029 remain open for integrated qualification.
 
 ### Integrated journeys to qualify
 
