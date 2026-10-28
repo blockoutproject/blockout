@@ -1,9 +1,6 @@
 import type { AdvertisingEligibilityInput } from "../advertising-eligibility";
 import { AdEventType } from "react-native-google-mobile-ads";
-import {
-  customerInfo,
-  entitlement,
-} from "../../pro/test-support/customer-info";
+import { entitlement } from "../../pro/test-support/customer-info";
 import { createInterstitialLifecycle } from "../interstitial-lifecycle";
 import { openSportingAdTransition } from "../sporting-ad-transition";
 import {
@@ -242,19 +239,14 @@ it.each(["active", "unknown"])(
         canRequestAds: true,
         authorizedMode: "limited",
       },
-      nativePro:
+      pro:
         rights === "unknown"
-          ? null
-          : {
-              session: session.getSnapshot(),
-              association: "associated",
+          ? {
+              status: "unavailable",
+              reason: "customer-info",
               operation: "idle",
-              customerInfo: customerInfo({
-                active: { "Blockout Pro": right },
-                all: { "Blockout Pro": right },
-                verification: right.verification,
-              }),
-            },
+            }
+          : { status: "active", entitlement: right, operation: "idle" },
     };
 
     // When
@@ -265,16 +257,7 @@ it.each(["active", "unknown"])(
     expect(lifecycle.count).toBe(9);
     current = {
       ...current,
-      nativePro: {
-        session: session.getSnapshot(),
-        association: "associated",
-        operation: "idle",
-        customerInfo: customerInfo({
-          active: {},
-          all: {},
-          verification: right.verification,
-        }),
-      },
+      pro: { status: "inactive", operation: "idle" },
     };
     await openSportingAdTransition(lifecycle, action());
     expect(lifecycle.count).toBe(10);

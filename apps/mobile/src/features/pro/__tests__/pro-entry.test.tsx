@@ -126,7 +126,11 @@ it("places a distinct Pro action before Privacy in the existing admitted profile
   // Given
   await mount(
     <ProProvider>
-      <ProfileScreen admitted proEntry={<ProProfileEntry />} />
+      <ProfileScreen
+        privacyEntry={null}
+        admitted
+        proEntry={<ProProfileEntry />}
+      />
     </ProProvider>,
   );
   await screen.findByText("Session: guest");
@@ -158,7 +162,11 @@ it("keeps Pro and its direct invitation behind ordinary F12 admission", async ()
   await mount(
     <>
       <ProProvider>
-        <ProfileScreen admitted={admitted} proEntry={<ProProfileEntry />} />
+        <ProfileScreen
+          privacyEntry={null}
+          admitted={admitted}
+          proEntry={<ProProfileEntry />}
+        />
       </ProProvider>
       <SignInInvitationScreen admitted={admitted} message={message} />
     </>,

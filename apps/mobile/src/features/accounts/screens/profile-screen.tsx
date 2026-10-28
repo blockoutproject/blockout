@@ -38,10 +38,16 @@ export interface ProfileScreenProps {
   admitted: boolean;
   /** Required route-owned F09 composition; focused consumers may explicitly omit it with null. */
   proEntry: ReactNode;
+  /** Required route-owned privacy controls; focused consumers may omit with null. */
+  privacyEntry: ReactNode;
 }
 
 /** Retains confirmed profile content and its draft through a failed background refresh. */
-export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
+export function ProfileScreen({
+  admitted,
+  proEntry,
+  privacyEntry,
+}: ProfileScreenProps) {
   const session = useAccountSession();
   const account = useCurrentAccount();
   const client = useQueryClient();
@@ -179,6 +185,7 @@ export function ProfileScreen({ admitted, proEntry }: ProfileScreenProps) {
                       loading={guest.pending}
                     />
                   )}
+                  {privacyEntry}
                   {proEntry}
                   <PublicAccountLinks />
                 </PageContent>

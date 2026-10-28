@@ -88,6 +88,14 @@ Blockout-owned age/privacy controls consume the [F13 UI foundation](../003-share
 
 The advertising-choice row calls `AdsConsent.showPrivacyOptionsForm()` only when native `privacyOptionsRequirementStatus` is `REQUIRED`; otherwise hide the entry, following UMP guidance. Reevaluate the status after the native information update and after changes. A privacy/age change suspends new loads and invalidates prepared ads. After a confirmed age correction, await `mobileAds().setRequestConfiguration()` with the new treatment, then `AdsConsent.gatherConsent()` with the updated under-age flag. Resume requests only with the current configuration and applicable native consent; if these cannot be established, continue without ads. Reuse the existing privacy flow for retry, without resetting consent. An interrupted correction does not become a new declaration.
 
+### Runtime composition
+
+The existing `AgeDeclarationProvider` composes installation persistence, the native privacy boundary in `advertising-privacy.ts` and at most one `createInterstitialLifecycle`. No additional advertising provider is introduced. Its narrow context exposes native readiness and the existing sporting-transition entry; actual F03/F04/F06 callsite integration remains T009. Absent V2 unit configuration creates no interstitial instance.
+
+Eligibility consumes F09's public current `ProState` projection. Native callbacks obtain that projection through `usePro().getState()`; they do not read F09's private session owner or retain `CustomerInfo`. F05 notifications suspend preparation synchronously. A confirmed installation write invalidates before persistence, including a correction within the same category, then reapplies configuration and native gathering. The prior declaration remains on storage failure or cancellation.
+
+The native SDK interaction has one in-flight owner, with no queued duplicate actions. Each awaited result is checked against its captured F05/treatment/admission context before continuing. Changed contexts may synchronize after obsolete calls settle; a failure in an unchanged context requires an explicit retry. The transient snapshot holds readiness, privacy-options applicability and pending/failure presentation only. Native consent strings and persistence stay with UMP. Known Pro refreshes privacy information without forcing a new consent or ATT prompt. The existing native `formSheet` routes replace each other for correction/return; the menu is not retained beneath the age sheet.
+
 ### Mediation and presentation
 
 Create one V2 interstitial ad unit per platform, shared by navigation and live actions, with corresponding Google/Meta mediation groups. Keep V1 units/configuration usable during transition. Equativ is not selected for V2. Provider console identifiers are deployment configuration, not new business identities.

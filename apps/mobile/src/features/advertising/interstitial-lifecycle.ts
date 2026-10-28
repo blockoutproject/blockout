@@ -1,7 +1,6 @@
 import * as Sentry from "@sentry/react-native";
 import { AdEventType, InterstitialAd } from "react-native-google-mobile-ads";
 import type { SessionSnapshot } from "../accounts";
-import { getProState } from "../pro/pro-state";
 import {
   getAdvertisingEligibility,
   type AdvertisingEligibilityInput,
@@ -19,7 +18,7 @@ export interface InterstitialLifecycleOptions {
   readonly getInput: () => AdvertisingEligibilityInput;
 }
 
-/** Process-local owner, composed once by the future advertising provider. */
+/** Process-local owner, composed once by the installation advertising owner. */
 export type InterstitialLifecycle = ReturnType<
   typeof createInterstitialLifecycle
 >;
@@ -243,7 +242,7 @@ export function createInterstitialLifecycle({
         session: input.account.getSnapshot(),
         released: false,
       };
-      const pro = getProState(input.account, input.nativePro);
+      const pro = input.pro;
       const freeAction =
         input.admission.ordinary &&
         (pro.status === "guest" || pro.status === "inactive");
