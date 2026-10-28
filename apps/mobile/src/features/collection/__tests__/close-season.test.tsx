@@ -156,8 +156,12 @@ it.each([409, "lost"])(
       screen.getByRole("button", { name: "Clôturer définitivement" }),
     ).toBeDisabled();
     // When
+    // A remount may still be reading; only an available action can start explicit reconciliation.
     await user.press(
-      await screen.findByRole("button", { name: "Relire l’état" }),
+      await screen.findByRole("button", {
+        name: "Relire l’état",
+        disabled: false,
+      }),
     );
     // Then
     await waitFor(() =>
