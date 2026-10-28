@@ -28,6 +28,8 @@ export function SearchResults({
   return (
     <TabLegendList
       {...pagedListDefaults}
+      accessibilityRole="list"
+      accessibilityLabel="Résultats de recherche"
       alwaysBounceVertical
       onEndReached={onEndReached}
       ListFooterComponent={
@@ -40,7 +42,7 @@ export function SearchResults({
       }
       data={items}
       ListEmptyComponent={emptyComponent}
-      keyExtractor={(item) => item.identity.id}
+      keyExtractor={(item) => item.identity.id.toLowerCase()}
       getItemType={(item) => item.kind}
       recycleItems
       keyboardShouldPersistTaps="handled"

@@ -43,7 +43,10 @@ export function searchResults(page: DiscoveryPage): SearchResult[] {
   );
 }
 
-/** A resource moved between accepted pages keeps one card and contributes once to the loaded count. */
+/**
+ * A repeated UUID keeps its first position and latest accepted summary, including intentional absence.
+ * UUID casing is immaterial; equal names never merge distinct identities. This is a render-time projection.
+ */
 export function uniqueSearchResults(
   pages: readonly DiscoveryPage[] | undefined,
 ): SearchResult[] {
@@ -51,7 +54,7 @@ export function uniqueSearchResults(
     ...new Map(
       (pages ?? [])
         .flatMap(searchResults)
-        .map((item) => [item.identity.id, item]),
+        .map((item) => [item.identity.id.toLowerCase(), item]),
     ).values(),
   ];
 }
