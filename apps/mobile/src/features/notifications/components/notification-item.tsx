@@ -1,4 +1,10 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import type { NotificationResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -26,6 +32,12 @@ export function NotificationItem({
   pending = false,
 }: NotificationItemProps) {
   const { colors } = useTheme();
+  const { fontScale } = useWindowDimensions();
+  // Approved normal/large score slots are 36/48 points; text keeps native scaling beyond those minima.
+  const scoreSize =
+    fontScale >= 1.5
+      ? tokens.size.control.default
+      : tokens.size.control.compact;
   const division = row.division;
   const foreground = divisionTextColor(division.color);
   const timeZone = currentSportingTimeZone();
@@ -99,7 +111,14 @@ export function NotificationItem({
                 </Text>
                 {score && (
                   <View
-                    style={[styles.score, { backgroundColor: colors.subtle }]}
+                    style={[
+                      styles.score,
+                      {
+                        backgroundColor: colors.subtle,
+                        minWidth: scoreSize,
+                        minHeight: scoreSize,
+                      },
+                    ]}
                   >
                     <Text
                       style={[
@@ -139,11 +158,9 @@ const styles = StyleSheet.create({
   team: { flexDirection: "row", alignItems: "center", gap: tokens.spacing.sm },
   teamName: { ...tokens.typography.strong, flex: 1 },
   score: {
-    minWidth: tokens.size.control.compact,
-    minHeight: tokens.size.control.compact,
     borderRadius: tokens.radius.sm,
     paddingHorizontal: tokens.spacing.sm,
-    paddingVertical: tokens.spacing.xs,
+    paddingVertical: tokens.spacing.optical,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { Dimensions } from "react-native";
 import {
   cleanup,
   render,
@@ -33,6 +34,10 @@ jest.mock("expo/fetch", () => ({
 const mockFetch = jest.fn();
 const environment = { ...process.env };
 const NativeDateTimeFormat = Intl.DateTimeFormat;
+const originalDimensions = {
+  window: Dimensions.get("window"),
+  screen: Dimensions.get("screen"),
+};
 let deviceZone: string;
 let client = createQueryClient();
 
@@ -60,6 +65,7 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  Dimensions.set(originalDimensions);
   jest.restoreAllMocks();
   jest.useRealTimers();
   process.env = { ...environment };
@@ -285,30 +291,37 @@ it.each([
   },
 );
 
-it("exposes the full names and reading state while a tap is pending", async () => {
-  // Given: native narrow/200% layout remains a device qualification, not a Jest geometry claim.
-  const row = notificationResponse();
-  row.match.home.name = "Volley des Deux Rives et de la Vallée";
-  row.match.pool.pool.name = "Poule de Prénationale au libellé complet";
-  const onPress = jest.fn();
-  const user = userEvent.setup();
+it.each([1, 2])(
+  "exposes full names and reading state in a narrow context at font scale %s while a tap is pending",
+  async (fontScale) => {
+    // Given: native narrow/200% layout remains a device qualification, not a Jest geometry claim.
+    Dimensions.set({
+      window: { ...originalDimensions.window, width: 320, fontScale },
+      screen: originalDimensions.screen,
+    });
+    const row = notificationResponse();
+    row.match.home.name = "Volley des Deux Rives et de la Vallée";
+    row.match.pool.pool.name = "Poule de Prénationale au libellé complet";
+    const onPress = jest.fn();
+    const user = userEvent.setup();
 
-  // When
-  await render(
-    <NotificationItem
-      notification={NotificationResponse.parse(row)}
-      onPress={onPress}
-      pending
-    />,
-    { wrapper: Providers },
-  );
-  const link = screen.getByRole("link", {
-    name: /Poule de Prénationale au libellé complet.*Volley des Deux Rives et de la Vallée.*non lue$/,
-  });
-  await user.press(link);
+    // When
+    await render(
+      <NotificationItem
+        notification={NotificationResponse.parse(row)}
+        onPress={onPress}
+        pending
+      />,
+      { wrapper: Providers },
+    );
+    const link = screen.getByRole("link", {
+      name: /Poule de Prénationale au libellé complet.*Volley des Deux Rives et de la Vallée.*non lue$/,
+    });
+    await user.press(link);
 
-  // Then
-  expect(link).toBeDisabled();
-  expect(screen.getByRole("link", { busy: true, disabled: true })).toBe(link);
-  expect(onPress).not.toHaveBeenCalled();
-});
+    // Then
+    expect(link).toBeDisabled();
+    expect(screen.getByRole("link", { busy: true, disabled: true })).toBe(link);
+    expect(onPress).not.toHaveBeenCalled();
+  },
+);
