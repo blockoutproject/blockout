@@ -4,6 +4,7 @@ import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
 import com.blockout.backend.sporting.application.ConsultationMatchSelection;
 import com.blockout.backend.sporting.application.ConsultationRequest.CalendarRequest;
+import com.blockout.backend.sporting.application.ConsultationRequest.CalendarWindow;
 import com.blockout.backend.sporting.application.ConsultationStore;
 import com.blockout.backend.sporting.application.MatchPresentation;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
@@ -49,7 +50,28 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
 
   /** {@inheritDoc} */
   @Override
-  public List<LocalDate> calendarDays(CalendarRequest request, Instant now) {
+  public ConsultationMatchSelection.Filter calendarSelection(CalendarRequest request) {
+    return (query, builder, match) ->
+        switch (request.kind()) {
+          case POOL -> builder.equal(match.poolId(), request.id());
+          case TEAM ->
+              builder.or(
+                  builder.equal(match.homeTeamId(), request.id()),
+                  builder.equal(match.awayTeamId(), request.id()));
+          case CLUB ->
+              builder.and(
+                  builder.equal(match.seasonId(), request.seasonId()),
+                  builder.or(
+                      builder.equal(match.homeClubId(), request.id()),
+                      builder.equal(match.awayClubId(), request.id())));
+          case MATCH -> throw new IllegalArgumentException("A match cannot select a calendar");
+        };
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<LocalDate> calendarDays(
+      CalendarWindow request, ConsultationMatchSelection.Filter selection, Instant now) {
     CriteriaBuilder builder = entityManager.getCriteriaBuilder();
     CriteriaQuery<LocalDate> query = builder.createQuery(LocalDate.class);
     Root<MatchEntity> match = query.from(MatchEntity.class);
@@ -57,7 +79,7 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
     query
         .select(day)
         .distinct(true)
-        .where(calendarScope(query, builder, match, day, request, now))
+        .where(calendarScope(query, builder, match, day, request, selection, now))
         .orderBy(
             request.category() == CalendarCategoryEnum.UPCOMING
                 ? builder.asc(day)
@@ -68,7 +90,10 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
   /** {@inheritDoc} */
   @Override
   public List<CalendarEntry> calendarMatches(
-      CalendarRequest request, List<LocalDate> days, Instant now) {
+      CalendarWindow request,
+      ConsultationMatchSelection.Filter selection,
+      List<LocalDate> days,
+      Instant now) {
     if (days.isEmpty()) return List.of();
     CriteriaBuilder builder = entityManager.getCriteriaBuilder();
     CriteriaQuery<Tuple> query = builder.createTupleQuery();
@@ -86,7 +111,9 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
     boolean upcoming = request.category() == CalendarCategoryEnum.UPCOMING;
     query
         .multiselect(day, match)
-        .where(builder.and(calendarScope(query, builder, match, day, request, now), day.in(days)))
+        .where(
+            builder.and(
+                calendarScope(query, builder, match, day, request, selection, now), day.in(days)))
         .orderBy(
             upcoming ? builder.asc(day) : builder.desc(day),
             builder.asc(match.get("pool").get("id")),
@@ -117,7 +144,7 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
    * @return typed display-day expression shared by both calendar queries
    */
   private Expression<LocalDate> displayDay(
-      CriteriaBuilder builder, Root<MatchEntity> match, CalendarRequest request) {
+      CriteriaBuilder builder, Root<MatchEntity> match, CalendarWindow request) {
     return builder
         .<LocalDate>selectCase()
         .when(builder.isNull(match.get("reliableStart")), match.get("localDate"))
@@ -140,7 +167,8 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
    * @param builder native criteria builder
    * @param match accepted match root
    * @param day loading-zone day expression
-   * @param request admitted selector and exclusive continuation
+   * @param request captured category, zone and exclusive continuation
+   * @param selection owner-supplied match selection
    * @param now one application-sampled evaluation instant
    * @return eligible rows without joins that multiply encounter identities
    */
@@ -149,25 +177,20 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
       CriteriaBuilder builder,
       Root<MatchEntity> match,
       Expression<LocalDate> day,
-      CalendarRequest request,
+      CalendarWindow request,
+      ConsultationMatchSelection.Filter selection,
       Instant now) {
     List<Predicate> conditions = new ArrayList<>();
     conditions.add(match.get("id").in(visibleIds(query, builder)));
     conditions.add(
-        switch (request.kind()) {
-          case POOL -> builder.equal(match.get("pool").get("id"), request.id());
-          case TEAM ->
-              builder.or(
-                  builder.equal(match.get("homeTeam").get("id"), request.id()),
-                  builder.equal(match.get("awayTeam").get("id"), request.id()));
-          case CLUB ->
-              builder.and(
-                  builder.equal(match.get("pool").get("season").get("id"), request.seasonId()),
-                  builder.or(
-                      builder.equal(match.get("homeTeam").get("club").get("id"), request.id()),
-                      builder.equal(match.get("awayTeam").get("club").get("id"), request.id())));
-          case MATCH -> throw new IllegalArgumentException("A match cannot select a calendar");
-        });
+        selection.select(
+            query,
+            builder,
+            new ConsultationMatchSelection.MatchFields(
+                match.get("pool").get("id"), match.get("pool").get("season").get("id"),
+                match.get("homeTeam").get("id"), match.get("awayTeam").get("id"),
+                match.get("homeTeam").get("club").get("id"),
+                    match.get("awayTeam").get("club").get("id"))));
     // Null result state is an ordinary unknown result, not SQL's unknown boolean in the complement.
     Predicate finalResult =
         builder.and(

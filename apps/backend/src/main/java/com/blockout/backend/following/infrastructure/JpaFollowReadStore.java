@@ -1,6 +1,7 @@
 package com.blockout.backend.following.infrastructure;
 
 import com.blockout.backend.following.application.FollowReadStore;
+import com.blockout.backend.sporting.application.ConsultationMatchSelection;
 import com.blockout.backend.sporting.application.SportingSeasonSelection;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -19,6 +20,33 @@ import org.springframework.stereotype.Repository;
 public class JpaFollowReadStore implements FollowReadStore {
   private final EntityManager entities;
   private final SportingSeasonSelection sporting;
+
+  /** {@inheritDoc} */
+  @Override
+  public ConsultationMatchSelection.Filter calendarSelection(UUID accountId, UUID seasonId) {
+    return (query, builder, match) -> {
+      Subquery<UUID> teamFollows = query.subquery(UUID.class);
+      Root<TeamFollowEntity> team = teamFollows.from(TeamFollowEntity.class);
+      teamFollows
+          .select(team.get("id"))
+          .where(
+              builder.equal(team.get("accountId"), accountId),
+              builder.or(
+                  builder.equal(team.get("teamId"), match.homeTeamId()),
+                  builder.equal(team.get("teamId"), match.awayTeamId())));
+      Subquery<UUID> poolFollows = query.subquery(UUID.class);
+      Root<PoolFollowEntity> pool = poolFollows.from(PoolFollowEntity.class);
+      poolFollows
+          .select(pool.get("id"))
+          .where(
+              builder.equal(pool.get("accountId"), accountId),
+              builder.equal(pool.get("poolId"), match.poolId()));
+      Predicate followed = builder.or(builder.exists(teamFollows), builder.exists(poolFollows));
+      return seasonId == null
+          ? followed
+          : builder.and(followed, builder.equal(match.seasonId(), seasonId));
+    };
+  }
 
   /** {@inheritDoc} */
   @Override

@@ -2,6 +2,8 @@ import {
   hashKey,
   infiniteQueryOptions,
   type InfiniteData,
+  type InfiniteQueryExecuteOptions,
+  type GetNextPageParamFunction,
   type QueryClient,
   type QueryKey,
 } from "@tanstack/react-query";
@@ -92,9 +94,15 @@ export function createCalendarOptions(
  * Native Query replaces cached pages only after success. Ordinary failure retains authorized
  * groups; the view reports explicit refresh failure without changing the loading zone.
  */
-export async function refreshCalendar(
+export async function refreshCalendar<TPage, TKey extends QueryKey>(
   client: QueryClient,
-  options: ReturnType<typeof createCalendarOptions>,
+  options: InfiniteQueryExecuteOptions<
+    TPage,
+    Error,
+    InfiniteData<TPage>,
+    TKey,
+    string | undefined
+  > & { getNextPageParam: GetNextPageParamFunction<string | undefined, TPage> },
 ) {
   await client.cancelQueries({ queryKey: options.queryKey, exact: true });
   return client.infiniteQuery({ ...options, staleTime: 0, pages: 1 });

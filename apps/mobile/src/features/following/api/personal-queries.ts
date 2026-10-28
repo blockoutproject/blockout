@@ -1,7 +1,24 @@
-import { queryOptions, type QueryClient } from "@tanstack/react-query";
-import { getFollowOptions } from "../../../../.generated/mobile";
+import type {
+  ListPersonalMatchesParams,
+  PersonalMatchCalendarResponse,
+} from "../../../../.generated/schemas/index.zod";
+import { isAccessDenied } from "../../../shared/api/access-denied";
+import {
+  hashKey,
+  infiniteQueryOptions,
+  queryOptions,
+  type QueryClient,
+} from "@tanstack/react-query";
+import {
+  getFollowOptions,
+  listPersonalMatches,
+} from "../../../../.generated/mobile";
 import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
-import { followOptionsKey, type FollowingOwner } from "./following-keys";
+import {
+  personalCalendarKey,
+  followOptionsKey,
+  type FollowingOwner,
+} from "./following-keys";
 
 /** One validated options cache for the original session; failure never means no seasons. */
 export function createFollowOptionsQueryOptions(
@@ -89,3 +106,89 @@ export async function readPersonalSelection<T>(
     throw error;
   }
 }
+
+/**
+ * Retains validated personal envelopes in the root Query cache. A continuation is an exclusive
+ * sporting day; visible observers alone load reset queries, without replaying failed reads.
+ */
+export function createPersonalCalendarOptions(
+  owner: FollowingOwner,
+  request: (signal?: AbortSignal) => Promise<ApiFetchOptions>,
+  selection: Omit<ListPersonalMatchesParams, "nextDay">,
+  read: PersonalCalendarRead,
+  bypass = false,
+) {
+  const queryKey = personalCalendarKey(owner, selection, bypass);
+  return infiniteQueryOptions({
+    queryKey,
+    initialPageParam: undefined as string | undefined,
+    queryFn: async ({ signal, pageParam, client }) => {
+      try {
+        return await read(selection.seasonId, signal, async () => {
+          const options = await request(signal);
+          const result = await listPersonalMatches(
+            owner.accountId,
+            {
+              ...selection,
+              ...(pageParam ? { nextDay: pageParam } : {}),
+            },
+            options,
+          );
+          if (
+            signal.aborted ||
+            options.signal?.aborted ||
+            !owner.isCurrent(owner.generation)
+          )
+            throw new ApiError("cancelled");
+          return result;
+        });
+      } catch (error) {
+        // Account refusals withdraw this private collection; seasonal NotFound stays scoped to its season.
+        if (
+          error instanceof Error &&
+          !signal.aborted &&
+          owner.isCurrent(owner.generation) &&
+          (isAccessDenied(error) ||
+            (error instanceof ApiError && error.status === 404))
+        ) {
+          const scope = [
+            ...queryKey.slice(0, -1),
+            ...(isAccessDenied(error)
+              ? []
+              : [{ seasonId: selection.seasonId }]),
+          ];
+          await client.cancelQueries({
+            queryKey: scope,
+            predicate: (query) => query.queryHash !== hashKey(queryKey),
+          });
+          for (const query of client
+            .getQueryCache()
+            .findAll({ queryKey: scope }))
+            query.setState({
+              data: undefined,
+              dataUpdatedAt: 0,
+              error,
+              status: "error",
+            });
+        }
+        throw error;
+      }
+    },
+    getNextPageParam: (last: PersonalMatchCalendarResponse) =>
+      last.calendar.nextDay,
+    staleTime: Infinity,
+    refetchOnMount: false,
+    retryOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false,
+    networkMode: "always",
+  });
+}
+
+/** The shared personal-season owner bounds NotFound reconciliation for the captured selection. */
+export type PersonalCalendarRead = <T>(
+  seasonId: string | undefined,
+  signal: AbortSignal,
+  operation: () => Promise<T>,
+) => Promise<T>;
