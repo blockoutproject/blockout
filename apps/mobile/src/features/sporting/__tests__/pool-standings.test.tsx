@@ -343,3 +343,48 @@ it("retries an initial failure without announcing a successful empty table", asy
   // Then
   expect(await screen.findByText("Official Z")).toBeOnTheScreen();
 });
+
+it("does not claim retained table information after a first failed acquisition", async () => {
+  // Given
+  table = {
+    poolId: pool.pool.id,
+    availability: "unavailable",
+    lastAttemptFailed: true,
+    columns: [],
+    rows: [],
+  };
+
+  // When
+  await open(panel());
+
+  // Then
+  expect(
+    await screen.findByText("Dernière acquisition échouée."),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText(/conservées restent affichées/)).toBeNull();
+});
+
+it.each(["unavailable", "not-published"] as const)(
+  "keeps %s honest when its later refresh fails",
+  async (availability) => {
+    // Given
+    table = {
+      poolId: pool.pool.id,
+      availability,
+      lastAttemptFailed: false,
+      columns: [],
+      rows: [],
+    };
+    await open(panel());
+    failed = true;
+
+    // When
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then
+    expect(
+      await screen.findByText("Dernière actualisation impossible."),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText(/conservées restent affichées/)).toBeNull();
+  },
+);

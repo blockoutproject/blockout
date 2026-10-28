@@ -1,6 +1,7 @@
 import {
   queryOptions,
   type QueryFunctionContext,
+  type Query,
   type QueryKey,
 } from "@tanstack/react-query";
 import {
@@ -27,7 +28,10 @@ import {
   getListMatchesQueryKey,
   getGetMatchQueryKey,
 } from "../../../../.generated/mobile";
-import type { TeamLogoSelectionEnum } from "../../../../.generated/schemas/index.zod";
+import type {
+  PoolStandingsResponse,
+  TeamLogoSelectionEnum,
+} from "../../../../.generated/schemas/index.zod";
 import { ListMatchesParams } from "../../../../.generated/schemas/index.zod";
 import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
 import { binaryImagePreview } from "../../../shared/api/binary-image-preview";
@@ -101,6 +105,36 @@ export function createConsultationQueries(
         ?.setState({ data: undefined, dataUpdatedAt: 0 });
     }
     throw error;
+  }
+
+  /** Cancels older tables in this same session/admission context before removing only the refused team link. */
+  async function unlinkUnavailableTeam(
+    context: QueryFunctionContext,
+    teamId: string,
+  ) {
+    const filters = {
+      queryKey: key([]),
+      predicate: (query: Query) =>
+        query.meta?.consultationResource === "standings",
+    };
+    await context.client.cancelQueries(filters, { revert: false });
+    for (const query of context.client.getQueryCache().findAll(filters)) {
+      const data = context.client.getQueryData<PoolStandingsResponse>(
+        query.queryKey,
+      );
+      if (!data?.rows.some((row) => row.team?.id === teamId)) continue;
+      query.setState({
+        data: {
+          ...data,
+          rows: data.rows.map((row) => {
+            if (row.team?.id !== teamId) return row;
+            const official = { ...row };
+            delete official.team;
+            return official;
+          }),
+        },
+      });
+    }
   }
 
   /** Prepares fresh F12 options after credentials, preserving current refusal cleanup. */
@@ -202,10 +236,15 @@ export function createConsultationQueries(
       queryOptions({
         ...consultationOpeningPolicy,
         queryKey: key(getGetTeamQueryKey(teamId)),
-        queryFn: async (context) =>
-          getTeam(teamId, await request(context)).catch((error: unknown) =>
-            rejectUnavailable(error, context),
-          ),
+        queryFn: async (context) => {
+          try {
+            return await getTeam(teamId, await request(context));
+          } catch (error) {
+            if (!context.signal.aborted && resourceUnavailable(error))
+              await unlinkUnavailableTeam(context, teamId);
+            return rejectUnavailable(error, context);
+          }
+        },
       }),
     /** Current pool facts on opening; standings and participants remain independent queries. */
     pool: (poolId: string) =>
@@ -217,9 +256,11 @@ export function createConsultationQueries(
             rejectUnavailable(error, context),
           ),
       }),
-    /** Official table availability and accepted freshness without locally computed statistics. */
+    /** A new page opening rereads the official table; already mounted RNCT panels remain retained. */
     standings: (poolId: string) =>
       queryOptions({
+        ...consultationOpeningPolicy,
+        meta: { consultationResource: "standings" },
         queryKey: key(getGetPoolStandingsQueryKey(poolId)),
         queryFn: async (context) =>
           getPoolStandings(poolId, await request(context)).catch(

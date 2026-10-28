@@ -189,14 +189,16 @@ export function PoolStandings({
         {content}
         {data?.lastAttemptFailed && (
           <ResourceText>
-            Dernière acquisition échouée ; les informations officielles
-            conservées restent affichées.
+            {data.availability === "available"
+              ? "Dernière acquisition échouée ; les informations officielles conservées restent affichées."
+              : "Dernière acquisition échouée."}
           </ResourceText>
         )}
         {data && standings.isError && (
           <ResourceText>
-            Dernière actualisation impossible ; les informations conservées
-            restent affichées.
+            {data.availability === "available"
+              ? "Dernière actualisation impossible ; les informations conservées restent affichées."
+              : "Dernière actualisation impossible."}
           </ResourceText>
         )}
       </PageContent>
