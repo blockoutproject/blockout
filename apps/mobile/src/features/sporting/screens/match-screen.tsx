@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { AppState } from "react-native";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 
+import { MatchContributionAction } from "../components/sporting-actions";
 import { MatchSummary } from "../components/match-summary";
 import { MatchSetScores } from "../components/match-set-scores";
 import { MatchInformation } from "../components/match-information";
@@ -78,6 +79,12 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
                     <MatchSummary
                       match={data.match}
                       displayTimeZone={presentation.timeZone}
+                    />
+                    <MatchContributionAction
+                      matchId={matchId}
+                      contextColor={
+                        data.match.pool.classification.division?.color
+                      }
                     />
                     <MatchSetScores match={data.match} sets={data.sets} />
                     <MatchInformation

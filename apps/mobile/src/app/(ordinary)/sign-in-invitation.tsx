@@ -9,9 +9,11 @@ export default function SignInInvitationRoute() {
     <SignInInvitationScreen
       admitted={useAccountAdmission()}
       message={
-        reason === "follow"
-          ? "Connectez-vous pour suivre vos équipes et vos poules"
-          : "Connectez-vous pour utiliser Blockout Pro"
+        reason === "contribution"
+          ? "Connectez-vous pour proposer un Stream link"
+          : reason === "follow"
+            ? "Connectez-vous pour suivre vos équipes et vos poules"
+            : "Connectez-vous pour utiliser Blockout Pro"
       }
     />
   );
