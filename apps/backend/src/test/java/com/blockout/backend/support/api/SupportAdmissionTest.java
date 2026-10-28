@@ -68,10 +68,20 @@ class SupportAdmissionTest {
   @DisplayName("Passes authenticated ordinary intent to the existing policy")
   void admitsOrdinaryPrincipal() throws Exception {
     // Given / When
-    mvc.perform(post("/support-requests").with(jwt().jwt(token -> token.issuer("https://identity.example.invalid/").subject("support-user").claim("azp", "mobile-test"))))
+    mvc.perform(
+            post("/support-requests")
+                .with(
+                    jwt()
+                        .jwt(
+                            token ->
+                                token
+                                    .issuer("https://identity.example.invalid/")
+                                    .subject("support-user")
+                                    .claim("azp", "mobile-test"))))
         // Then
         .andExpect(status().isNoContent());
-    verify(admission).requireOrdinaryAccess("https://identity.example.invalid/", "support-user", false);
+    verify(admission)
+        .requireOrdinaryAccess("https://identity.example.invalid/", "support-user", false);
   }
 
   @Test
@@ -79,7 +89,8 @@ class SupportAdmissionTest {
   void refusesMaintenance() throws Exception {
     // Given
     doThrow(new MaintenanceRequiredException(new MaintenanceSettings(7, true, "Pause", null)))
-        .when(admission).requireOrdinaryAccess(nullable(String.class), nullable(String.class), anyBoolean());
+        .when(admission)
+        .requireOrdinaryAccess(nullable(String.class), nullable(String.class), anyBoolean());
 
     // When
     mvc.perform(post("/support-requests"))
@@ -92,7 +103,9 @@ class SupportAdmissionTest {
   @DisplayName("A guest cannot gain active bypass by declaring personal intent")
   void refusesUnauthenticatedBypass() throws Exception {
     // Given
-    doThrow(new AccessDeniedException("Action is not permitted")).when(admission).requireOrdinaryAccess(null, null, true);
+    doThrow(new AccessDeniedException("Action is not permitted"))
+        .when(admission)
+        .requireOrdinaryAccess(null, null, true);
 
     // When
     mvc.perform(post("/support-requests").header("Blockout-Maintenance-Bypass", "true"))
@@ -104,10 +117,22 @@ class SupportAdmissionTest {
   @DisplayName("A revoked current grant refuses explicit bypass")
   void refusesRevokedBypass() throws Exception {
     // Given
-    doThrow(new AccessDeniedException("Action is not permitted")).when(admission).requireOrdinaryAccess("https://identity.example.invalid/", "support-user", true);
+    doThrow(new AccessDeniedException("Action is not permitted"))
+        .when(admission)
+        .requireOrdinaryAccess("https://identity.example.invalid/", "support-user", true);
 
     // When
-    mvc.perform(post("/support-requests").header("Blockout-Maintenance-Bypass", "true").with(jwt().jwt(token -> token.issuer("https://identity.example.invalid/").subject("support-user").claim("azp", "mobile-test"))))
+    mvc.perform(
+            post("/support-requests")
+                .header("Blockout-Maintenance-Bypass", "true")
+                .with(
+                    jwt()
+                        .jwt(
+                            token ->
+                                token
+                                    .issuer("https://identity.example.invalid/")
+                                    .subject("support-user")
+                                    .claim("azp", "mobile-test"))))
         // Then
         .andExpect(status().isForbidden());
   }
@@ -116,10 +141,21 @@ class SupportAdmissionTest {
   @DisplayName("Usable authenticated bypass is still decided by the current F12 policy")
   void admitsCurrentBypass() throws Exception {
     // Given / When
-    mvc.perform(post("/support-requests").header("Blockout-Maintenance-Bypass", "true").with(jwt().jwt(token -> token.issuer("https://identity.example.invalid/").subject("support-user").claim("azp", "mobile-test"))))
+    mvc.perform(
+            post("/support-requests")
+                .header("Blockout-Maintenance-Bypass", "true")
+                .with(
+                    jwt()
+                        .jwt(
+                            token ->
+                                token
+                                    .issuer("https://identity.example.invalid/")
+                                    .subject("support-user")
+                                    .claim("azp", "mobile-test"))))
         // Then
         .andExpect(status().isNoContent());
-    verify(admission).requireOrdinaryAccess("https://identity.example.invalid/", "support-user", true);
+    verify(admission)
+        .requireOrdinaryAccess("https://identity.example.invalid/", "support-user", true);
   }
 
   @Test
@@ -132,15 +168,21 @@ class SupportAdmissionTest {
     verifyNoInteractions(admission);
   }
 
-  /** Dispatch evidence only; these test endpoints perform no support, provider or account effect. */
+  /**
+   * Dispatch evidence only; these test endpoints perform no support, provider or account effect.
+   */
   @RestController
   static class Probe {
     /** Indicates only that support dispatch passed security, never that a request was received. */
     @PostMapping("/support-requests")
-    ResponseEntity<Void> support() { return ResponseEntity.noContent().build(); }
+    ResponseEntity<Void> support() {
+      return ResponseEntity.noContent().build();
+    }
 
     /** Indicates only that the independent access read passed security. */
     @GetMapping("/application-access")
-    ResponseEntity<Void> access() { return ResponseEntity.noContent().build(); }
+    ResponseEntity<Void> access() {
+      return ResponseEntity.noContent().build();
+    }
   }
 }

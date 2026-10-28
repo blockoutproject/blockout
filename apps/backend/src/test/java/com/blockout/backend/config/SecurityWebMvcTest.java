@@ -176,14 +176,20 @@ class SecurityWebMvcTest {
   @DisplayName("Rejects an actually expired bearer before support maintenance bypass")
   void refusesExpiredSupportBypass() throws Exception {
     // Given
-    String token = signed(claims("mobile-preproduction", "mobile-client")
-        .issuedAt(Instant.now().minusSeconds(7200))
-        .expiresAt(Instant.now().minusSeconds(3600)).build(), trusted);
+    String token =
+        signed(
+            claims("mobile-preproduction", "mobile-client")
+                .issuedAt(Instant.now().minusSeconds(7200))
+                .expiresAt(Instant.now().minusSeconds(3600))
+                .build(),
+            trusted);
 
     // When
-    ResultActions response = mvc.perform(post("/support-requests")
-        .header("Authorization", "Bearer " + token)
-        .header("Blockout-Maintenance-Bypass", "true"));
+    ResultActions response =
+        mvc.perform(
+            post("/support-requests")
+                .header("Authorization", "Bearer " + token)
+                .header("Blockout-Maintenance-Bypass", "true"));
 
     // Then
     response.andExpect(status().isUnauthorized());
