@@ -7,15 +7,11 @@ import {
   replacePushSubscription,
 } from "../../../../.generated/mobile";
 import { PushSubscriptionResponse } from "../../../../.generated/schemas/index.zod";
-import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
+import type { AccountCredentialCleanup } from "../../accounts";
 import type { InboxOwner, InboxRequest } from "../api/inbox-queries";
 import { readPushInstallation } from "./installation-identity";
 import { clearNotificationBadge } from "./notification-badge";
 
-/** Cleanup uses only the new lifecycle generation; its exact old resource is captured before invalidation. */
-export type PushRemoval = (
-  session: NonNullable<ApiFetchOptions["session"]>,
-) => Promise<void>;
 /** The sole installation registration owner; contains no inbox, session authority or persisted credentials. */
 export type PushRegistration = ReturnType<typeof createPushRegistration>;
 
@@ -59,6 +55,7 @@ export function createPushRegistration() {
       projectId: string,
       request: InboxRequest,
       credentials: () => Promise<{ accessToken: string } | undefined>,
+      devicePushToken?: Notifications.DevicePushToken,
     ) {
       if (!owner.accountId || !owner.isCurrent(owner.generation)) return;
       if (
@@ -100,7 +97,10 @@ export function createPushRegistration() {
         });
         const installationId = await installation;
         if (!current()) return;
-        const token = await Notifications.getExpoPushTokenAsync({ projectId });
+        // Reusing the listener's native token avoids getDevicePushTokenAsync re-emitting that listener.
+        const token = await Notifications.getExpoPushTokenAsync(
+          devicePushToken ? { projectId, devicePushToken } : { projectId },
+        );
         if (!current()) return;
         const options = await request(controller.signal);
         if (!current()) return;
@@ -121,7 +121,7 @@ export function createPushRegistration() {
     },
 
     /** Captures one exact old resource synchronously, clears memory/badge and bounds all cleanup I/O to three seconds. */
-    prepareRemoval(): PushRemoval | undefined {
+    prepareRemoval(): AccountCredentialCleanup | undefined {
       cancel();
       const original = connection;
       connection = undefined;

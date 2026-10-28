@@ -20,12 +20,15 @@ public class ChangePushSubscriptions {
   private final PushSubscriptionStore subscriptions;
 
   /**
-   * Locks all affected current accounts in UUID order, then rechecks the original target before writing.
-   * A newly affected owner aborts instead of acquiring an earlier lock or replaying the registration.
+   * Locks all affected current accounts in UUID order, then rechecks the original target before
+   * writing. A newly affected owner aborts instead of acquiring an earlier lock or replaying the
+   * registration.
+   *
    * @param registration complete original-owner connection intent
    * @return created/replaced address-free association
    * @throws NotificationNotFoundException for a missing owner or foreign exact connection identity
-   * @throws PushSubscriptionConflictException when concurrent changes require a new normal registration occasion
+   * @throws PushSubscriptionConflictException when concurrent changes require a new normal
+   *     registration occasion
    */
   @Transactional
   public Replacement replace(Registration registration) {
@@ -41,13 +44,19 @@ public class ChangePushSubscriptions {
     List<Association> current = subscriptions.affected(registration);
     if (current.stream().anyMatch(row -> !affected.contains(row.accountId())))
       throw new PushSubscriptionConflictException();
-    if (current.stream().anyMatch(row -> row.id().equals(registration.id()) && !row.accountId().equals(registration.accountId())))
+    if (current.stream()
+        .anyMatch(
+            row ->
+                row.id().equals(registration.id())
+                    && !row.accountId().equals(registration.accountId())))
       throw new NotificationNotFoundException();
-    return subscriptions.replace(registration);
+    return subscriptions.replace(registration, current);
   }
 
   /**
-   * Deletes only the addressed owner's exact association; another sign-in ID and other devices survive.
+   * Deletes only the addressed owner's exact association; another sign-in ID and other devices
+   * survive.
+   *
    * @param owner authenticated original owner
    * @param id exact connection identity, never an installation or provider address
    * @throws NotificationNotFoundException if the original owner no longer exists

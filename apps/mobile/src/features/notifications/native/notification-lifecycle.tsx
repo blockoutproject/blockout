@@ -10,6 +10,17 @@ import { createReadNotificationOptions } from "../api/inbox-mutations";
 import { refreshInbox, refreshNotificationSummary } from "../api/inbox-queries";
 import { useInboxQueries } from "../api/use-inbox-queries";
 import type { PushRegistration } from "./push-registration";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+
+// SDK 58 otherwise presents foreground messages while F14/native authentication is still initializing.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: false,
+    shouldShowList: false,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 
 const routing = z.object({
   ownerAccountId: z.string().uuid(),
@@ -34,6 +45,7 @@ export function NotificationLifecycle({
   const auth = useAuth0();
   const router = useRouter();
   const navigation = useRootNavigationState();
+  const feedback = useActionFeedback();
   const handled = useRef<string | undefined>(undefined);
   const projectId: unknown =
     Constants.easConfig?.projectId ??
@@ -55,28 +67,19 @@ export function NotificationLifecycle({
     };
   }, [registration, subscribe, getSnapshot]);
 
-  useEffect(() => {
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowBanner: false,
-        shouldShowList: false,
-        shouldPlaySound: false,
-        shouldSetBadge: false,
-      }),
-    });
-    return () => Notifications.setNotificationHandler(null);
-  }, []);
-
-  const register = useEffectEvent(() => {
-    if (!available || !queries || typeof projectId !== "string" || !projectId)
-      return;
-    void registration.register(
-      owner,
-      projectId,
-      queries.request,
-      auth.getCredentials,
-    );
-  });
+  const register = useEffectEvent(
+    (devicePushToken?: Notifications.DevicePushToken) => {
+      if (!available || !queries || typeof projectId !== "string" || !projectId)
+        return;
+      void registration.register(
+        owner,
+        projectId,
+        queries.request,
+        auth.getCredentials,
+        devicePushToken,
+      );
+    },
+  );
   const refresh = useEffectEvent(() => {
     if (!queries) return;
     void Promise.allSettled([
@@ -110,7 +113,9 @@ export function NotificationLifecycle({
         });
         void observer
           .mutate(data.data.notificationId)
-          .catch(() => undefined)
+          .catch(() => {
+            if (owner.isCurrent(owner.generation)) feedback.error();
+          })
           .finally(() => observer.reset());
       }
       try {
@@ -119,7 +124,7 @@ export function NotificationLifecycle({
           params: { matchId: data.data.matchId },
         });
       } catch {
-        // The ordinary current-match route owns access and presentation; read success never depends on navigation.
+        if (owner.isCurrent(owner.generation)) feedback.error();
       }
     },
   );
@@ -128,8 +133,8 @@ export function NotificationLifecycle({
     if (!available) return;
     const original = generation;
     register();
-    const token = Notifications.addPushTokenListener(() => {
-      if (isCurrent(original)) register();
+    const token = Notifications.addPushTokenListener((devicePushToken) => {
+      if (isCurrent(original)) register(devicePushToken);
     });
     const foreground = AppState.addEventListener("change", (state) => {
       if (state === "active" && isCurrent(original)) register();

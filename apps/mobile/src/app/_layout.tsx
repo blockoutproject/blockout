@@ -40,7 +40,7 @@ import {
 
 initializeSentry();
 
-/** Binds private cache cleanup and separates protected ordinary/operational navigation. */
+/** Binds private cache/push lifecycle and separates protected ordinary/operational navigation. */
 function Navigation({ registration }: { registration: PushRegistration }) {
   const theme = useTheme();
   const client = useQueryClient();

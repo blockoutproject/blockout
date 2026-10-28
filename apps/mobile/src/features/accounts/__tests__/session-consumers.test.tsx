@@ -10,7 +10,7 @@ import {
 } from "../session/account-session-provider";
 import { mockAuth0, credentialsFor } from "../test-support/native-auth0";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import type { PushRemoval } from "../../notifications/native/push-registration";
+import type { AccountCredentialCleanup } from "../session/account-session-provider";
 import * as proSessionModule from "../../pro/pro-session";
 import { ProProvider, usePro } from "../../pro/pro-provider";
 import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
@@ -132,9 +132,10 @@ it("clears actual RevenueCat presentation before push cleanup finishes and rejec
 it("invalidates immediately, waits for one captured push removal, then clears credentials despite browser failure", async () => {
   // Given: F07's bounded adapter is controlled here; its real generated DELETE is exercised in the F07 suite.
   const removal = Promise.withResolvers<void>();
-  const detach = jest.fn<ReturnType<PushRemoval>, Parameters<PushRemoval>>(
-    () => removal.promise,
-  );
+  const detach = jest.fn<
+    ReturnType<AccountCredentialCleanup>,
+    Parameters<AccountCredentialCleanup>
+  >(() => removal.promise);
   const prepare = jest.fn(() => detach);
   const hook = await renderHook(useAccountSession, {
     wrapper: ({ children }) => (

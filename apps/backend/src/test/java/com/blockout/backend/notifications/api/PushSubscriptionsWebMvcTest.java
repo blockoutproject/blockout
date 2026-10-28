@@ -1,6 +1,9 @@
 package com.blockout.backend.notifications.api;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -13,6 +16,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.blockout.backend.access.application.MaintenanceAdmission;
+import com.blockout.backend.access.domain.MaintenanceRequiredException;
+import com.blockout.backend.access.domain.MaintenanceSettings;
 import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.config.HttpConfiguration;
@@ -34,17 +39,31 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-/** Generated binding, current-owner admission and private status/body semantics with a controlled command owner. */
+/**
+ * Generated binding, current-owner admission and private status/body semantics with a controlled
+ * command owner.
+ */
 @WebMvcTest(PushSubscriptionsController.class)
-@Import({SecurityConfiguration.class, HttpConfiguration.class, ApiExceptionHandler.class, NotificationRequest.class, NotificationApiMapperImpl.class, com.blockout.backend.sporting.api.ConsultationApiMapperImpl.class, NotificationExceptionHandler.class, PushSubscriptionExceptionHandler.class})
+@Import({
+  SecurityConfiguration.class,
+  HttpConfiguration.class,
+  ApiExceptionHandler.class,
+  NotificationRequest.class,
+  NotificationApiMapperImpl.class,
+  com.blockout.backend.sporting.api.ConsultationApiMapperImpl.class,
+  NotificationExceptionHandler.class,
+  PushSubscriptionExceptionHandler.class
+})
 @DisplayName("Push subscription HTTP operations")
 class PushSubscriptionsWebMvcTest {
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000001");
   private static final UUID ID = UUID.fromString("10000000-0000-4000-8000-000000000001");
   private static final UUID INSTALLATION = UUID.fromString("20000000-0000-4000-8000-000000000001");
   private static final String RESOURCE = "/accounts/" + ACCOUNT + "/push-subscriptions/" + ID;
-  private static final String BODY = "{\"installationId\":\"" + INSTALLATION + "\",\"expoPushToken\":\"Expo[synthetic]\"}";
+  private static final String BODY =
+      "{\"installationId\":\"" + INSTALLATION + "\",\"expoPushToken\":\"Expo[synthetic]\"}";
   @Autowired private MockMvc mvc;
   @MockitoBean private CurrentAccount account;
   @MockitoBean private AccountAccess accounts;
@@ -57,14 +76,20 @@ class PushSubscriptionsWebMvcTest {
   void registers(boolean created) throws Exception {
     // Given
     when(account.id()).thenReturn(ACCOUNT);
-    when(changes.replace(any())).thenReturn(new Replacement(new Association(ID, INSTALLATION, ACCOUNT), created));
+    when(changes.replace(any()))
+        .thenReturn(new Replacement(new Association(ID, INSTALLATION, ACCOUNT), created));
 
     // When
-    mvc.perform(put(RESOURCE).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))).contentType(MediaType.APPLICATION_JSON).content(BODY))
+    mvc.perform(
+            put(RESOURCE)
+                .with(jwt().jwt(token -> token.claim("azp", "mobile-test")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(BODY))
         // Then
         .andExpect(status().is(created ? 201 : 200))
         .andExpect(header().string("Cache-Control", "no-store"))
-        .andExpect(created ? header().string("Location", RESOURCE) : header().doesNotExist("Location"))
+        .andExpect(
+            created ? header().string("Location", RESOURCE) : header().doesNotExist("Location"))
         .andExpect(jsonPath("$.id").value(ID.toString()))
         .andExpect(jsonPath("$.installationId").value(INSTALLATION.toString()))
         .andExpect(jsonPath("$.expoPushToken").doesNotExist())
@@ -72,14 +97,25 @@ class PushSubscriptionsWebMvcTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"{}", "{\"installationId\":null,\"expoPushToken\":\"x\"}", "{\"installationId\":\"20000000-0000-4000-8000-000000000001\",\"expoPushToken\":null}", "{\"installationId\":\"20000000-0000-4000-8000-000000000001\",\"expoPushToken\":\"\"}", "{\"installationId\":\"20000000-0000-4000-8000-000000000001\",\"expoPushToken\":\"x\",\"revision\":1}"})
+  @ValueSource(
+      strings = {
+        "{}",
+        "{\"installationId\":null,\"expoPushToken\":\"x\"}",
+        "{\"installationId\":\"20000000-0000-4000-8000-000000000001\",\"expoPushToken\":null}",
+        "{\"installationId\":\"20000000-0000-4000-8000-000000000001\",\"expoPushToken\":\"\"}",
+        "{\"installationId\":\"20000000-0000-4000-8000-000000000001\",\"expoPushToken\":\"x\",\"revision\":1}"
+      })
   @DisplayName("Rejects incomplete, null and additional registration fields before any write")
   void refusesInvalidBody(String body) throws Exception {
     // Given
     when(account.id()).thenReturn(ACCOUNT);
 
     // When
-    mvc.perform(put(RESOURCE).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))).contentType(MediaType.APPLICATION_JSON).content(body))
+    mvc.perform(
+            put(RESOURCE)
+                .with(jwt().jwt(token -> token.claim("azp", "mobile-test")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
         // Then
         .andExpect(status().isBadRequest());
     verifyNoInteractions(changes);
@@ -94,7 +130,8 @@ class PushSubscriptionsWebMvcTest {
     // When
     mvc.perform(delete(RESOURCE).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))))
         // Then
-        .andExpect(status().isNoContent()).andExpect(content().string(""))
+        .andExpect(status().isNoContent())
+        .andExpect(content().string(""))
         .andExpect(header().string("Cache-Control", "no-store"));
     verify(changes).remove(new NotificationContext(ACCOUNT), ID);
   }
@@ -107,9 +144,14 @@ class PushSubscriptionsWebMvcTest {
     when(changes.replace(any())).thenThrow(new PushSubscriptionConflictException());
 
     // When
-    mvc.perform(put(RESOURCE).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))).contentType(MediaType.APPLICATION_JSON).content(BODY))
+    mvc.perform(
+            put(RESOURCE)
+                .with(jwt().jwt(token -> token.claim("azp", "mobile-test")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(BODY))
         // Then
-        .andExpect(status().isConflict()).andExpect(jsonPath("$.type").value("urn:blockout:problem:conflict"))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:conflict"))
         .andExpect(header().string("Cache-Control", "no-store"));
   }
 
@@ -120,9 +162,71 @@ class PushSubscriptionsWebMvcTest {
     when(account.id()).thenReturn(UUID.fromString("00000000-0000-4000-8000-000000000002"));
 
     // When
-    mvc.perform(put(RESOURCE).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))).contentType(MediaType.APPLICATION_JSON).content(BODY))
+    mvc.perform(
+            put(RESOURCE)
+                .with(jwt().jwt(token -> token.claim("azp", "mobile-test")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(BODY))
         // Then
         .andExpect(status().isNotFound());
+    verifyNoInteractions(changes);
+  }
+
+  @Test
+  @DisplayName("A guest cannot register a destination")
+  void refusesGuest() throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request =
+        put(RESOURCE).contentType(MediaType.APPLICATION_JSON).content(BODY);
+
+    // When
+    mvc.perform(request)
+        // Then
+        .andExpect(status().isUnauthorized());
+    verifyNoInteractions(changes);
+  }
+
+  @Test
+  @DisplayName("Collector credentials cannot register a mobile destination")
+  void refusesCollector() throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request =
+        put(RESOURCE)
+            .with(jwt().jwt(token -> token.claim("azp", "collector-test")))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(BODY);
+
+    // When
+    mvc.perform(request)
+        // Then
+        .andExpect(status().isForbidden());
+    verifyNoInteractions(changes);
+  }
+
+  @Test
+  @DisplayName("Ordinary maintenance admission precedes destination changes")
+  void enforcesAdmission() throws Exception {
+    // Given
+    doThrow(new MaintenanceRequiredException(new MaintenanceSettings(7L, true, "Pause", null)))
+        .when(admission)
+        .requireOrdinaryAccess(anyString(), anyString(), eq(false));
+
+    // When
+    mvc.perform(
+            put(RESOURCE)
+                .with(
+                    jwt()
+                        .jwt(
+                            token ->
+                                token
+                                    .issuer("https://identity.example.invalid/")
+                                    .subject("synthetic-owner")
+                                    .claim("azp", "mobile-test")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(BODY))
+        // Then
+        .andExpect(status().isServiceUnavailable())
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:maintenance"));
     verifyNoInteractions(changes);
   }
 }

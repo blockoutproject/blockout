@@ -14,7 +14,10 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Generated push association boundary after ordinary F05/F12 authentication, owner checks and admission. */
+/**
+ * Generated push association boundary after ordinary F05/F12 authentication, owner checks and
+ * admission.
+ */
 @RestController
 @RequiredArgsConstructor
 public class PushSubscriptionsController implements PushSubscriptionsApi {
@@ -25,19 +28,24 @@ public class PushSubscriptionsController implements PushSubscriptionsApi {
 
   /** {@inheritDoc} */
   @Override
-  public ResponseEntity<PushSubscriptionResponse> replacePushSubscription(UUID accountId, UUID subscriptionId, ReplacePushSubscriptionRequest body, Boolean bypass) {
+  public ResponseEntity<PushSubscriptionResponse> replacePushSubscription(
+      UUID accountId, UUID subscriptionId, ReplacePushSubscriptionRequest body, Boolean bypass) {
     NotificationContext owner = request.owner(accountId);
     request.validateQuery(http, false);
-    Replacement result = changes.replace(mapper.toRegistration(body, subscriptionId, owner.accountId()));
-    ResponseEntity.BodyBuilder response = result.created()
-        ? ResponseEntity.created(URI.create("/accounts/" + accountId + "/push-subscriptions/" + subscriptionId))
-        : ResponseEntity.ok();
+    Replacement result =
+        changes.replace(mapper.toRegistration(body, subscriptionId, owner.accountId()));
+    ResponseEntity.BodyBuilder response =
+        result.created()
+            ? ResponseEntity.created(
+                URI.create("/accounts/" + accountId + "/push-subscriptions/" + subscriptionId))
+            : ResponseEntity.ok();
     return response.cacheControl(CacheControl.noStore()).body(mapper.toDto(result.association()));
   }
 
   /** {@inheritDoc} */
   @Override
-  public ResponseEntity<Void> deletePushSubscription(UUID accountId, UUID subscriptionId, Boolean bypass) {
+  public ResponseEntity<Void> deletePushSubscription(
+      UUID accountId, UUID subscriptionId, Boolean bypass) {
     NotificationContext owner = request.owner(accountId);
     request.validateQuery(http, false);
     changes.remove(owner, subscriptionId);

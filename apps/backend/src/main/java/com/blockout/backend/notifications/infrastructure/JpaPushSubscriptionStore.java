@@ -1,5 +1,6 @@
 package com.blockout.backend.notifications.infrastructure;
 
+import com.blockout.backend.notifications.application.PushSubscriptionConflictException;
 import com.blockout.backend.notifications.application.PushSubscriptionStore;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
@@ -11,7 +12,10 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/** JPA association writes under application-owned account locks, with native uniqueness and versioning. */
+/**
+ * JPA association writes under application-owned account locks, with native uniqueness and
+ * versioning.
+ */
 @Repository
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 @Transactional(propagation = Propagation.MANDATORY)
@@ -23,17 +27,30 @@ public class JpaPushSubscriptionStore implements PushSubscriptionStore {
   /** {@inheritDoc} */
   @Override
   public List<Association> affected(Registration registration) {
-    return List.copyOf(subscriptions.affected(registration.id(), registration.installationId(), registration.expoPushToken()));
+    return List.copyOf(
+        subscriptions.affected(
+            registration.id(), registration.installationId(), registration.expoPushToken()));
   }
 
   /** {@inheritDoc} */
   @Override
-  public Replacement replace(Registration registration) {
-    subscriptions.removeConflicts(registration.id(), registration.installationId(), registration.expoPushToken());
-    PushSubscriptionEntity entity = subscriptions.findById(registration.id()).orElse(null);
+  public Replacement replace(Registration registration, List<Association> lockedBindings) {
+    PushSubscriptionEntity entity =
+        subscriptions.findBySubscriptionId(registration.id()).orElse(null);
+    if (entity != null && !entity.getAccountId().equals(registration.accountId()))
+      throw new PushSubscriptionConflictException();
+    for (Association binding : lockedBindings) {
+      if (!binding.id().equals(registration.id()))
+        subscriptions.removeExact(binding.accountId(), binding.id());
+    }
     boolean created = entity == null;
     if (created) {
-      entity = new PushSubscriptionEntity(registration.id(), registration.installationId(), registration.accountId(), registration.expoPushToken());
+      entity =
+          new PushSubscriptionEntity(
+              registration.id(),
+              registration.installationId(),
+              registration.accountId(),
+              registration.expoPushToken());
       entities.persist(entity);
     } else {
       mapper.update(registration, entity);

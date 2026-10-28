@@ -38,9 +38,9 @@ type AuthenticationStatus =
 export interface AccountSession extends SessionSnapshot, SessionGeneration {
   /** Suspends business reads and invalidates private work before the SDK's explicit hosted login. */
   signIn(audience: string): Promise<AccountCommandSession | undefined>;
-  /** Invalidates private work immediately, then closes the native session with independent local clearing. */
+  /** Invalidates private work immediately, then attempts bounded push removal before independent native logout/clearing. */
   signOut(): Promise<void>;
-  /** Invalidates private work before native local clearing; the sign-out flow owns browser/network cleanup. */
+  /** Invalidates private work and attempts bounded push removal before local SDK clearing, without browser closure. */
   clearCredentials(): Promise<void>;
   status: AuthenticationStatus;
   error: unknown;
@@ -66,6 +66,7 @@ export type AccountCredentialCleanup = (
 /** Root composition supplies the existing push owner without transferring session or subscription authority. */
 export interface AccountSessionProviderProps extends PropsWithChildren {
   fallback?: ReactNode;
+  /** Captures the old exact association before invalidation; F07 owns one bounded attempt and retains no cleanup credential. */
   preparePushRemoval?: () => AccountCredentialCleanup | undefined;
 }
 

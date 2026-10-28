@@ -3,9 +3,14 @@ package com.blockout.backend.notifications.application;
 import java.util.List;
 import java.util.UUID;
 
-/** Persistence boundary for current connection associations; addresses never cross the public read boundary. */
+/**
+ * Persistence boundary for current connection associations; addresses never cross the public read
+ * boundary.
+ */
 public interface PushSubscriptionStore {
-  /** Complete authenticated association intent; installation metadata supplies no account authority. */
+  /**
+   * Complete authenticated association intent; installation metadata supplies no account authority.
+   */
   record Registration(UUID id, UUID installationId, UUID accountId, String expoPushToken) {}
 
   /** Detached ownership metadata used for sorted locking and the address-free response. */
@@ -16,6 +21,7 @@ public interface PushSubscriptionStore {
 
   /**
    * Selects current bindings conflicting by ID, installation or address, in one statement snapshot.
+   *
    * @param registration original complete intent
    * @return detached metadata for every currently affected owner
    */
@@ -24,13 +30,17 @@ public interface PushSubscriptionStore {
   /**
    * Replaces the complete binding and removes its conflicts in the caller's locked transaction.
    * Advances the native revision even when the address is unchanged.
-   * @param registration original complete intent, with all current affected accounts locked
+   *
+   * @param registration original complete intent, with all selected accounts locked
+   * @param lockedBindings exact bindings rechecked under those account locks; no later conflict may
+   *     be removed
    * @return address-free accepted association
    */
-  Replacement replace(Registration registration);
+  Replacement replace(Registration registration, List<Association> lockedBindings);
 
   /**
    * Removes only this exact original-owner connection, succeeding when already absent.
+   *
    * @param accountId authenticated original lifecycle
    * @param id exact sign-in association
    */
@@ -38,7 +48,9 @@ public interface PushSubscriptionStore {
 
   /**
    * Invalidates a captured provider target only while ID, native version and address still match.
-   * @param id captured association
+   *
+   * @param id captured native persistence identity, distinct from the public sign-in subscription
+   *     ID
    * @param revision captured native JPA version
    * @param address captured private Expo address
    * @return whether that exact target was removed

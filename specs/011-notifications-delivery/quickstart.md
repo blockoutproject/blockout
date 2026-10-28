@@ -151,7 +151,8 @@ and masking prerequisites. Preparation does not block ordinary local purge const
 [F13 command conventions](../003-shared-quality/plan.md#application-use-case-families).
 [SQL cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/PushSubscriptionIntegrationTest.java)
 exercise migrated uniqueness, sorted account locks, reassociation/conflict rollback, rotation,
-unchanged JPA version advancement and stale DELETE/receipt protection.
+unchanged JPA version advancement, deletion/recreation of the same sign-in ID, the final-selection/write
+race and stale DELETE/receipt protection.
 [MVC cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/api/PushSubscriptionsWebMvcTest.java)
 exercise generated binding, strict complete intent, original ownership and private status/body semantics.
 Actual F05 erasure orchestration and participant races remain [T038](tasks.md).
@@ -166,7 +167,10 @@ foreground silence, one-time tap clearing and independent read/navigation. An al
 old PUT retains the [accepted transport limit](plan.md#expo-handoff-and-association-lifecycle).
 
 These cases establish no provider receipt, physical badge/credential behavior, after-commit sender,
-F11 native ads, erasure orchestration or release qualification. [T030/T038–T041](tasks.md) and
+F11 native ads, erasure orchestration or release qualification. T037 remains open for the actual
+[F11 T009 composition](../004-advertising-privacy-legal/tasks.md#phase-3-user-story-1--view-content-with-predictable-advertising-frequency-priority-p1--mvp),
+which is absent from this base; direct match navigation cannot establish its counter integration.
+[T030/T038–T041](tasks.md) and
 [F05 T020](../005-accounts-identity/tasks.md) retain their owning obligations. Revision-specific
 executed checks and unavailable evidence belong in the delivery PR.
 
