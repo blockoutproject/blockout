@@ -193,8 +193,12 @@ it.each(["club", "team", "pool", "match"] as const)(
         ? Promise.resolve(Response.json(applicationAccessResponse()))
         : Promise.resolve(
             Response.json(
-              { type: "about:blank", title: "Unavailable", status: 503 },
-              { status: 503 },
+              {
+                type: "urn:blockout:problem:not-found",
+                title: "Not found",
+                status: 404,
+              },
+              { status: 404 },
             ),
           ),
     );
@@ -205,6 +209,7 @@ it.each(["club", "team", "pool", "match"] as const)(
       match: <MatchScreen matchId={sportingId} />,
     }[kind];
     await renderPage(page);
+    await screen.findByRole("alert", { name: "Une erreur est survenue" });
     const user = userEvent.setup();
 
     // When

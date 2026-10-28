@@ -50,7 +50,7 @@ export function SportingSupportAction({ target }: SportingSupportActionProps) {
         )
       }
     >
-      <Flag accessible={false} size={tokens.size.icon.md} color={colors.icon} />
+      <Flag accessible={false} size={tokens.size.icon.lg} color={colors.icon} />
     </IconButton>
   );
 }
