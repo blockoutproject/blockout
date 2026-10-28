@@ -834,7 +834,9 @@ it("suppresses a retained team after a current visibility refusal", async () => 
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "Une erreur est survenue",
   );
-  expect(screen.queryByText(team.team.team.name)).not.toBeOnTheScreen();
+  await waitFor(() =>
+    expect(screen.queryByText(team.team.team.name)).not.toBeOnTheScreen(),
+  );
   // When
   await user.press(screen.getByRole("button", { name: "Retour" }));
   // Then

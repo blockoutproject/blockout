@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { ImageOff } from "lucide-react-native";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { SportingIdentityResponse } from "../../../../.generated/schemas/index.zod";
 import { LoadingIndicator } from "../../../shared/components/loading-indicator";
@@ -17,6 +17,8 @@ export interface SportingMediaProps {
   /** The owning composition sizes the slot; Media/Logo and Entity Card retain their approved shapes. */
   size?: number;
   presentation?: "logo" | "entity";
+  /** The owner places both layers; a decoding failure removes the foreground and atmosphere together. */
+  renderWithAtmosphere?: (logo: ReactNode, atmosphere: ReactNode) => ReactNode;
 }
 
 /** White logo plate in both themes, with supplied monograms only and one accessible native image state. */
@@ -28,6 +30,7 @@ export function SportingMedia({
   kind,
   size = tokens.size.media.row,
   presentation = "logo",
+  renderWithAtmosphere,
 }: SportingMediaProps) {
   const { colors } = useTheme();
   const [failedUri, setFailedUri] = useState<string>();
@@ -51,7 +54,7 @@ export function SportingMedia({
         : "Logo absent";
   const borderRadius =
     presentation === "entity" ? tokens.radius.media : tokens.radius.sm;
-  return (
+  const logo = (
     <View
       style={[
         styles.media,
@@ -124,6 +127,27 @@ export function SportingMedia({
       )}
     </View>
   );
+  return renderWithAtmosphere
+    ? renderWithAtmosphere(
+        logo,
+        available ? (
+          <Image
+            accessible={false}
+            testID="sporting-logo-atmosphere"
+            pointerEvents="none"
+            source={{ uri }}
+            cachePolicy="none"
+            contentFit="contain"
+            blurRadius={tokens.sporting.coverBlur}
+            onError={() => setFailedUri(uri)}
+            style={[
+              StyleSheet.absoluteFill,
+              { opacity: tokens.sporting.standingsCard.atmosphereOpacity },
+            ]}
+          />
+        ) : null,
+      )
+    : logo;
 }
 
 /** Decorative cover and its tint disappear together after native decoding fails; no fallback artwork is invented. */

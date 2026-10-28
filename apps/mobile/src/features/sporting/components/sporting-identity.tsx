@@ -22,6 +22,8 @@ export interface SportingLogoProps {
   identity: SportingIdentityResponse;
   kind: "club" | "team" | "division";
   size?: number;
+  /** Places one admitted foreground logo and its optional same-image atmosphere in an owning card. */
+  renderWithAtmosphere?: (logo: ReactNode, atmosphere: ReactNode) => ReactNode;
 }
 
 /** Shares the canonical image query between the visible crest and its optional decorative cover. */
@@ -49,6 +51,7 @@ export function SportingLogo({
   identity,
   kind,
   size = tokens.size.media.row,
+  renderWithAtmosphere,
 }: SportingLogoProps) {
   const { query: logo, queryKey } = useSportingLogo(identity, kind);
   return (
@@ -60,6 +63,7 @@ export function SportingLogo({
       uri={identity.logoUrl ? logo.data : undefined}
       loading={!!identity.logoUrl && logo.isPending}
       error={!!identity.logoUrl && logo.isError}
+      renderWithAtmosphere={renderWithAtmosphere}
     />
   );
 }
@@ -81,7 +85,10 @@ export function SportingArtwork({
 }
 
 /** Common profile inputs; follow/actions remain supplied by their owner once available. */
-export interface SportingIdentityProps extends Omit<SportingLogoProps, "kind"> {
+export interface SportingIdentityProps extends Omit<
+  SportingLogoProps,
+  "kind" | "renderWithAtmosphere"
+> {
   kind: "club" | "team" | "pool";
   classification?: SportingClassificationResponse;
   season?: SportingSeasonResponse;

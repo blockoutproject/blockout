@@ -25,6 +25,10 @@ import { matchDetail, sportingId } from "../test-support/consultation-data";
 import { PoolScreen } from "../screens/pool-screen";
 import { TeamScreen } from "../screens/team-screen";
 import { PoolStandings } from "../components/pool-standings";
+import {
+  TECHNICAL_ERROR,
+  TECHNICAL_ERROR_TITLE,
+} from "../../../shared/components/error-copy";
 
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
@@ -203,12 +207,12 @@ it("preserves official labels positions and missing values without guessed links
 });
 
 it.each([
-  ["available", "Aucune ligne publiée"],
-  ["not-published", "Classement non publié"],
-  ["unavailable", "Classement indisponible pour le moment"],
+  ["available", "Aucune équipe dans ce classement", "header"],
+  ["not-published", "Pas de classement pour cette phase", "header"],
+  ["unavailable", TECHNICAL_ERROR_TITLE, "alert"],
 ] as const)(
-  "distinguishes %s from other empty states",
-  async (availability, message) => {
+  "presents an adapted state card for %s",
+  async (availability, message, role) => {
     // Given
     table = {
       poolId: pool.pool.id,
@@ -225,14 +229,19 @@ it.each([
     await open(panel());
 
     // Then
-    expect(await screen.findByText(message)).toBeOnTheScreen();
+    expect(await screen.findByRole(role, { name: message })).toBeOnTheScreen();
+    expect(
+      screen.queryByText(/Observé le|Date d’observation|Dernière acquisition/),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Réessayer" }) !== null).toBe(
+      availability === "unavailable",
+    );
   },
 );
 
-it("retains source freshness after a failed explicit refresh", async () => {
+it("retains source metadata silently after a failed explicit refresh", async () => {
   // Given
   await open(panel());
-  const observation = await screen.findByText(/Observé le/);
   failed = true;
 
   // When
@@ -241,13 +250,24 @@ it("retains source freshness after a failed explicit refresh", async () => {
 
   // Then
   expect(screen.getByText("Official Z")).toBeOnTheScreen();
-  expect(observation).toBeOnTheScreen();
   expect(
-    await screen.findByText(/Dernière actualisation impossible/),
+    screen.getByRole("alert", { name: TECHNICAL_ERROR }),
   ).toBeOnTheScreen();
+  expect(
+    screen.queryByText(
+      /Observé le|Dernière actualisation|conservées restent affichées/,
+    ),
+  ).toBeNull();
+  expect(
+    client
+      .getQueryCache()
+      .findAll()
+      .find((query) => query.meta?.consultationResource === "standings")?.state
+      .data,
+  ).toEqual(table);
 });
 
-it("exposes a failed acquisition independently of the usable table", async () => {
+it("keeps acquisition diagnostics out of the usable table presentation", async () => {
   // Given
   table.lastAttemptFailed = true;
 
@@ -255,10 +275,11 @@ it("exposes a failed acquisition independently of the usable table", async () =>
   await open(panel());
 
   // Then
-  expect(
-    await screen.findByText(/Dernière acquisition échouée/),
-  ).toBeOnTheScreen();
   expect(screen.getByText("Official Z")).toBeOnTheScreen();
+  expect(
+    screen.queryByText(/Observé le|Dernière acquisition|conservées/),
+  ).toBeNull();
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 it("loads team participation standings lazily and preserves them through calendar refresh", async () => {
@@ -310,7 +331,7 @@ it("keeps a pool calendar usable while standings fail", async () => {
   ).toBe(false);
 });
 
-it("switches to the exact official columns without another read", async () => {
+it("switches to the approved cards without another read or team emphasis", async () => {
   // Given
   const user = userEvent.setup();
   await open(panel());
@@ -318,15 +339,87 @@ it("switches to the exact official columns without another read", async () => {
   const reads = mockFetch.mock.calls.length;
 
   // When
-  await user.press(screen.getByRole("radio", { name: "Afficher en colonnes" }));
+  await user.press(screen.getByRole("radio", { name: "Afficher en cartes" }));
 
   // Then
   expect(
-    screen.getByRole("radio", { name: "Afficher en colonnes", checked: true }),
+    screen.getByRole("radio", { name: "Afficher en cartes", checked: true }),
   ).toBeOnTheScreen();
-  expect(screen.getByLabelText("Ratio : ∞")).toBeOnTheScreen();
-  expect(screen.getByLabelText("Pts : non renseigné")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: /Official Z.*Ratio : ∞/ }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("Unmatched")).toBeOnTheScreen();
+  expect(screen.queryByRole("link", { name: /Unmatched/ })).toBeNull();
+  expect(screen.queryByRole("link", { selected: true })).toBeNull();
   expect(mockFetch).toHaveBeenCalledTimes(reads);
+});
+
+it("projects only official podium ranks as 2–1–3 and preserves the remaining order", async () => {
+  // Given
+  const user = userEvent.setup();
+  table.rows = [
+    table.rows[0],
+    { ...table.rows[2], position: 1 },
+    {
+      sourceName: "Third",
+      position: 3,
+      statistics: { Pts: "9" },
+      team: { id: "00000000-0000-4000-8000-000000002093", name: "Third" },
+    },
+    {
+      sourceName: "Second",
+      position: 2,
+      statistics: { Pts: "12" },
+      team: { id: "00000000-0000-4000-8000-000000002094", name: "Second" },
+    },
+    table.rows[1],
+  ];
+  const sourceOrder = table.rows.map((row) => row.sourceName);
+  await open(panel());
+
+  // When
+  await user.press(screen.getByRole("radio", { name: "Afficher en cartes" }));
+
+  // Then
+  expect(
+    screen
+      .getAllByRole("link")
+      .map((node) => node.props.accessibilityLabel.split(".")[0]),
+  ).toEqual(["Second", "Official A", "Third", "Official Z"]);
+  expect(
+    client
+      .getQueryCache()
+      .findAll()
+      .find((query) => query.meta?.consultationResource === "standings")?.state
+      .data,
+  ).toMatchObject({ rows: sourceOrder.map((sourceName) => ({ sourceName })) });
+  expect(screen.getByText("Unmatched")).toBeOnTheScreen();
+});
+
+it("keeps ambiguous podium ranks in source order without inventing a place", async () => {
+  // Given
+  const user = userEvent.setup();
+  table.rows = [
+    table.rows[0],
+    { ...table.rows[2], position: 1 },
+    { sourceName: "Also first", position: 1, statistics: {} },
+    { sourceName: "Second", position: 2, statistics: {} },
+    { sourceName: "Third", position: 3, statistics: {} },
+  ];
+  await open(panel());
+
+  // When
+  await user.press(screen.getByRole("radio", { name: "Afficher en cartes" }));
+
+  // Then
+  expect(
+    screen
+      .getAllByRole("link")
+      .map((node) => node.props.accessibilityLabel.split(".")[0]),
+  ).toEqual(["Official Z", "Official A"]);
+  expect(screen.getByText("Also first")).toBeOnTheScreen();
+  expect(screen.getByText("Second")).toBeOnTheScreen();
+  expect(screen.getByText("Third")).toBeOnTheScreen();
 });
 
 it("retries an initial failure without announcing a successful empty table", async () => {
@@ -334,7 +427,9 @@ it("retries an initial failure without announcing a successful empty table", asy
   failed = true;
   const user = userEvent.setup();
   await open(panel());
-  expect(screen.queryByText("Aucune ligne publiée")).toBeNull();
+  expect(
+    screen.queryByRole("header", { name: "Aucune équipe dans ce classement" }),
+  ).toBeNull();
   failed = false;
 
   // When
@@ -359,9 +454,11 @@ it("does not claim retained table information after a first failed acquisition",
 
   // Then
   expect(
-    await screen.findByText("Dernière acquisition échouée."),
+    screen.getByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
   ).toBeOnTheScreen();
-  expect(screen.queryByText(/conservées restent affichées/)).toBeNull();
+  expect(
+    screen.queryByText(/Dernière acquisition|conservées restent affichées/),
+  ).toBeNull();
 });
 
 it.each(["unavailable", "not-published"] as const)(
@@ -383,8 +480,10 @@ it.each(["unavailable", "not-published"] as const)(
 
     // Then
     expect(
-      await screen.findByText("Dernière actualisation impossible."),
+      await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
     ).toBeOnTheScreen();
-    expect(screen.queryByText(/conservées restent affichées/)).toBeNull();
+    expect(
+      screen.queryByText(/Dernière actualisation|conservées restent affichées/),
+    ).toBeNull();
   },
 );

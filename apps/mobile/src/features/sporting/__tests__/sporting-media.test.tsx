@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import { View } from "react-native";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { SportingCover, SportingMedia } from "../components/sporting-media";
 
@@ -80,3 +81,62 @@ it("removes decorative artwork after a native decoding error event", async () =>
     screen.queryByTestId("sporting-decorative-cover"),
   ).not.toBeOnTheScreen();
 });
+
+it.each(["foreground", "atmosphere"] as const)(
+  "removes both same-logo card layers after a native %s decoding failure",
+  async (failedLayer) => {
+    // Given
+    const uri = "data:image/png;base64,c3ludGhldGljLWxvZ28=";
+    const identity = { name: "Volley des Rives" };
+    await render(
+      <ThemeProvider>
+        <SportingMedia
+          identity={identity}
+          kind="team"
+          uri={uri}
+          renderWithAtmosphere={(logo, atmosphere) => (
+            <View>
+              {atmosphere}
+              {logo}
+            </View>
+          )}
+        />
+        <SportingMedia
+          identity={{ name: "Autre équipe" }}
+          kind="team"
+          uri={uri}
+        />
+      </ThemeProvider>,
+    );
+    const foreground = screen.getByRole("image", {
+      name: `Logo : ${identity.name}`,
+    });
+    const atmosphere = screen.getByTestId("sporting-logo-atmosphere");
+    expect(foreground).toHaveProp("source", expect.arrayContaining([{ uri }]));
+    expect(atmosphere).toHaveProp("source", expect.arrayContaining([{ uri }]));
+
+    // When
+    await fireEvent(
+      failedLayer === "foreground" ? foreground : atmosphere,
+      "error",
+      { nativeEvent: { error: "Native decoder rejected the image" } },
+    );
+
+    // Then
+    expect(
+      screen.queryByRole("image", { name: `Logo : ${identity.name}` }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByTestId("sporting-logo-atmosphere"),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.getByRole("image", {
+        name: `Logo indisponible : ${identity.name}`,
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText("Logo indisponible")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("image", { name: "Logo : Autre équipe" }),
+    ).toBeOnTheScreen();
+  },
+);
