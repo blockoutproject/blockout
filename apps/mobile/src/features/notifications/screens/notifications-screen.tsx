@@ -138,7 +138,16 @@ function Inbox({
       (query.isError && !query.isFetchNextPageError)
     )
       return;
-    await query.fetchNextPage({ cancelRefetch: false });
+    feedback.clear();
+    const result = await query.fetchNextPage({ cancelRefetch: false });
+    if (
+      result.isFetchNextPageError &&
+      result.data &&
+      !isAccessDenied(result.error) &&
+      owner.isCurrent(owner.generation) &&
+      navigation.isFocused()
+    )
+      feedback.error();
   }
   return (
     <Page edges={["left", "right"]}>

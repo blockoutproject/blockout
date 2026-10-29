@@ -428,7 +428,7 @@ it("retains the captured groups after a failed new-zone refresh and retries that
   ]);
 });
 
-it("appends only the focused active calendar and retries a failed cursor from its compact footer", async () => {
+it("appends only the focused active calendar and reports a failed cursor by toast and retries it from its footer", async () => {
   // Given: two complete days arrive through the real Query owner, with a controlled continuation failure.
   calendar = { ...calendar, nextDay: "2026-09-21" };
   const nextMatch = {
@@ -510,19 +510,23 @@ it("appends only the focused active calendar and retries a failed cursor from it
     "endReached",
   );
   await screen.findByRole("button", {
-    name: /Une erreur est survenue.*Réessayer/,
+    name: "Réessayer",
   });
   await fireEvent(
     screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
     "endReached",
   );
 
-  // Then: the footer retains the rows without a duplicate toast or an automatic retry.
+  // Then: the toast reports the failure while rows and explicit retry remain; no automatic retry runs.
   expect(mockFetch).toHaveBeenCalledTimes(1);
   expect(
     screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
   ).toBeOnTheScreen();
-  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
 
   // When
   failNext = false;

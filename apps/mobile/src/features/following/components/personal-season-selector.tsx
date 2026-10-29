@@ -3,7 +3,7 @@ import { ChevronDown } from "lucide-react-native";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import type { FollowOptionsResponse } from "../../../../.generated/schemas/index.zod";
-import { Sheet } from "../../../shared/components/sheet";
+import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { ApiError } from "../../../shared/api/api-fetch";
 import {
   ActionFeedbackProvider,
@@ -163,35 +163,37 @@ function SeasonSheet({
   );
   return (
     <Sheet title="Saison des suivis" onClose={onClose}>
-      {options?.seasons.map((season) => (
+      <SheetContent>
+        {options?.seasons.map((season) => (
+          <SeasonChoice
+            key={season.id}
+            label={season.label}
+            selected={season.id === seasonId}
+            onPress={() => {
+              onSelect(season.id);
+              onClose();
+            }}
+          />
+        ))}
         <SeasonChoice
-          key={season.id}
-          label={season.label}
-          selected={season.id === seasonId}
+          label="Toutes les saisons"
+          selected={seasonId === undefined}
           onPress={() => {
-            onSelect(season.id);
+            onSelect(undefined);
             onClose();
           }}
         />
-      ))}
-      <SeasonChoice
-        label="Toutes les saisons"
-        selected={seasonId === undefined}
-        onPress={() => {
-          onSelect(undefined);
-          onClose();
-        }}
-      />
-      {proposed && proposed.id !== seasonId && (
-        <Button
-          variant="secondary"
-          label={`Revenir à la saison proposée (${proposed.label})`}
-          onPress={() => {
-            onReset();
-            onClose();
-          }}
-        />
-      )}
+        {proposed && proposed.id !== seasonId && (
+          <Button
+            variant="secondary"
+            label={`Revenir à la saison proposée (${proposed.label})`}
+            onPress={() => {
+              onReset();
+              onClose();
+            }}
+          />
+        )}
+      </SheetContent>
     </Sheet>
   );
 }

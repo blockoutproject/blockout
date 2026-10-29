@@ -419,7 +419,7 @@ it("clears the app badge on session invalidation and excludes guest private read
   ).toBe(false);
 });
 
-it("loads only the focused inbox and retains rows while its compact footer retries the same failed cursor", async () => {
+it("loads only the focused inbox and retains rows while its toast reports failure and the footer retries the same cursor", async () => {
   // Given
   const second = {
     ...row,
@@ -465,7 +465,7 @@ it("loads only the focused inbox and retains rows while its compact footer retri
   // Then
   expect(
     await screen.findByRole("button", {
-      name: /Une erreur est survenue.*Réessayer/,
+      name: "Réessayer",
     }),
   ).toBeOnTheScreen();
   await fireEvent(first, "endReached");
@@ -477,7 +477,11 @@ it("loads only the focused inbox and retains rows while its compact footer retri
   expect(
     screen.getByRole("link", { name: /^Le résultat.*non lue$/ }),
   ).toBeOnTheScreen();
-  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
 
   // When
   failNext = false;

@@ -456,7 +456,7 @@ function ControlDashboard({
       feedback.error();
   }
   /** The shared continuation command preserves scope; automatic edges separately exclude read errors. */
-  function loadMore() {
+  async function loadMore() {
     if (
       !authority.enabled ||
       !authority.session.isCurrent(authority.session.generation) ||
@@ -472,10 +472,19 @@ function ControlDashboard({
       editing.request.isPending()
     )
       return;
-    void results.fetchNextPage({ cancelRefetch: false });
+    feedback.clear();
+    const result = await results.fetchNextPage({ cancelRefetch: false });
+    if (
+      result.isFetchNextPageError &&
+      result.data &&
+      !isAccessDenied(result.error) &&
+      authority.session.isCurrent(authority.session.generation) &&
+      navigation.isFocused()
+    )
+      feedback.error();
   }
   const header = (
-    <View style={styles.section}>
+    <View style={[!rows.length && pageContentStyle, styles.section]}>
       {authority.enabled && (
         <>
           {season && <SeasonIdentity season={season} />}
@@ -604,8 +613,12 @@ function ControlDashboard({
               data={authority.enabled && matches ? rows : []}
               keyExtractor={(row) => `${row.scopeId}/${row.stage}/${row.phase}`}
               contentContainerStyle={[
-                pageContentStyle,
-                { paddingTop: headerHeight + tokens.layout.content.start },
+                rows.length ? pageContentStyle : styles.emptyList,
+                {
+                  paddingTop:
+                    headerHeight +
+                    (rows.length ? tokens.layout.content.start : 0),
+                },
               ]}
               ListHeaderComponent={header}
               ItemSeparatorComponent={ListSeparator}
@@ -661,6 +674,7 @@ function ControlDashboard({
   );
 }
 const styles = StyleSheet.create({
+  emptyList: { flexGrow: 1 },
   section: { gap: tokens.spacing.lg, paddingBottom: tokens.spacing.lg },
   footer: { gap: tokens.spacing.lg, paddingTop: tokens.spacing.lg },
 });

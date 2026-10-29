@@ -19,7 +19,7 @@ export const sheetScreenOptions = {
   sheetGrabberVisible: true,
 } as const;
 
-/** Short contextual content without text entry; the caller owns choices, actions and dismissal. */
+/** Short contextual content; scrollable routes compose SheetContent or ScreenState, while compact routes keep natural-height children. */
 export interface SheetProps extends PropsWithChildren {
   onClose: () => void;
   /** Holds the native presenter while the owning confirmed action is in progress. */
@@ -32,7 +32,7 @@ export interface SheetProps extends PropsWithChildren {
   refreshControl?: ScrollViewProps["refreshControl"];
 }
 
-/** Supplies system bottom spacing and either scrolling or natural-height content for its native route. */
+/** Supplies system bottom spacing and a growing scroll area so caller-owned blocking states can center below the title. */
 export function Sheet({
   onClose,
   closeDisabled = false,
@@ -46,9 +46,15 @@ export function Sheet({
   const content = (
     <SafeAreaView
       edges={["bottom"]}
-      style={[styles.content, !scrollable && styles.compactContent]}
+      style={[
+        scrollable
+          ? styles.scrollContent
+          : [styles.content, styles.compactContent],
+      ]}
     >
-      <View style={styles.introduction}>
+      <View
+        style={[styles.introduction, scrollable && styles.scrollIntroduction]}
+      >
         <View style={styles.titleRow}>
           <Text
             accessibilityRole="header"
@@ -93,10 +99,25 @@ export function Sheet({
   );
 }
 
+/** Insets ordinary scrollable-sheet content once; blocking ScreenState siblings own their useful-area padding instead. */
+export function SheetContent({ children }: PropsWithChildren) {
+  return <View style={styles.sheetContent}>{children}</View>;
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   scrollContent: { flexGrow: 1 },
   content: { padding: tokens.spacing.lg, gap: tokens.layout.section.gap },
+  scrollIntroduction: {
+    paddingTop: tokens.spacing.lg,
+    paddingHorizontal: tokens.spacing.lg,
+  },
+  sheetContent: {
+    paddingTop: tokens.layout.section.gap,
+    paddingHorizontal: tokens.spacing.lg,
+    paddingBottom: tokens.spacing.lg,
+    gap: tokens.layout.section.gap,
+  },
   // Product Design's 24-point handle area + 8-point header inset; the grabber is drawn by the native route.
   compactContent: {
     paddingTop: tokens.spacing["2xl"] + tokens.spacing.sm,

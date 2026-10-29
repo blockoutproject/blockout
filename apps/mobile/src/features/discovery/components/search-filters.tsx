@@ -2,10 +2,11 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
 import { useWatch } from "react-hook-form";
 import { StyleSheet, View } from "react-native";
-import { Sheet } from "../../../shared/components/sheet";
+import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { SelectField } from "../../../shared/components/select-field";
 import { Button } from "../../../shared/components/button";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { ScreenState } from "../../../shared/components/screen-state";
 import { tokens } from "../../../shared/theme/tokens";
 import {
   formatLabel,
@@ -45,59 +46,63 @@ export function SearchFilters() {
       onClose={() => router.back()}
     >
       {!options || !filters ? (
-        <ReadFeedback
-          query={{ ...query, isPending: query.isPending || query.isFetching }}
-        />
+        <ScreenState>
+          <ReadFeedback
+            query={{ ...query, isPending: query.isPending || query.isFetching }}
+          />
+        </ScreenState>
       ) : (
-        <View style={styles.form}>
-          <SelectField
-            label="Saison"
-            value={
-              options.seasons.find((season) => season.id === values.seasonId)
-                ?.label ?? "Toutes les saisons"
-            }
-            onPress={() => router.push("/search/choice?field=seasonId")}
-          />
-          <SelectField
-            label="Division"
-            value={
-              options.divisions.find(
-                (division) => division.id === values.divisionId,
-              )?.name ?? "Tout afficher"
-            }
-            onPress={() => router.push("/search/choice?field=divisionId")}
-          />
-          <SelectField
-            label="Format"
-            value={formatLabel(values.format) ?? "Tout afficher"}
-            onPress={() => router.push("/search/choice?field=format")}
-          />
-          <SelectField
-            label="Genre"
-            value={genderLabel(values.gender) ?? "Tout afficher"}
-            onPress={() => router.push("/search/choice?field=gender")}
-          />
-          <View style={styles.actions}>
-            <Button
-              label="Appliquer les filtres"
-              fullWidth
-              onPress={() =>
-                void visit.draft.handleSubmit((draft) => {
-                  apply(reconcileSearchFilters(draft, options));
-                  router.back();
-                })()
+        <SheetContent>
+          <View style={styles.form}>
+            <SelectField
+              label="Saison"
+              value={
+                options.seasons.find((season) => season.id === values.seasonId)
+                  ?.label ?? "Toutes les saisons"
               }
+              onPress={() => router.push("/search/choice?field=seasonId")}
             />
-            <Button
-              label="Réinitialiser les filtres"
-              fullWidth
-              variant="secondary"
-              onPress={() =>
-                visit.draft.reset(reconcileSearchFilters(undefined, options))
+            <SelectField
+              label="Division"
+              value={
+                options.divisions.find(
+                  (division) => division.id === values.divisionId,
+                )?.name ?? "Tout afficher"
               }
+              onPress={() => router.push("/search/choice?field=divisionId")}
             />
+            <SelectField
+              label="Format"
+              value={formatLabel(values.format) ?? "Tout afficher"}
+              onPress={() => router.push("/search/choice?field=format")}
+            />
+            <SelectField
+              label="Genre"
+              value={genderLabel(values.gender) ?? "Tout afficher"}
+              onPress={() => router.push("/search/choice?field=gender")}
+            />
+            <View style={styles.actions}>
+              <Button
+                label="Appliquer les filtres"
+                fullWidth
+                onPress={() =>
+                  void visit.draft.handleSubmit((draft) => {
+                    apply(reconcileSearchFilters(draft, options));
+                    router.back();
+                  })()
+                }
+              />
+              <Button
+                label="Réinitialiser les filtres"
+                fullWidth
+                variant="secondary"
+                onPress={() =>
+                  visit.draft.reset(reconcileSearchFilters(undefined, options))
+                }
+              />
+            </View>
           </View>
-        </View>
+        </SheetContent>
       )}
     </Sheet>
   );

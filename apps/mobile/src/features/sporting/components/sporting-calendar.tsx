@@ -139,7 +139,7 @@ export function SportingCalendarView({
   const columns = stacked
     ? 1
     : Math.max(2, Math.min(8, Math.floor(availableWidth / (40 * fontScale))));
-  const { headerHeight, collapseRange, tabBarHeight } =
+  const { headerHeight, collapseRange, tabBarHeight, focusedTab } =
     useCollapsingTabsContext();
   const days = useMemo(() => calendarDays(calendar.data), [calendar.data]);
   const rows = useMemo(() => calendarRows(days, stacked), [days, stacked]);
@@ -175,16 +175,27 @@ export function SportingCalendarView({
     }
   }
   /** The focused idle list may retry a failed cursor explicitly; its edge callback blocks automatic error replay. */
-  function loadMore() {
+  async function loadMore() {
     if (
-      active &&
-      navigation.isFocused() &&
-      calendar.hasNextPage &&
-      !refreshing &&
-      !calendar.isFetching &&
-      (!calendar.isError || calendar.isFetchNextPageError)
+      !active ||
+      !navigation.isFocused() ||
+      !calendar.hasNextPage ||
+      refreshing ||
+      calendar.isFetching ||
+      (calendar.isError && !calendar.isFetchNextPageError)
     )
-      void calendar.fetchNextPage({ cancelRefetch: false });
+      return;
+    feedback.clear();
+    const tab = focusedTab.value;
+    const result = await calendar.fetchNextPage({ cancelRefetch: false });
+    if (
+      result.isFetchNextPageError &&
+      result.data &&
+      !resourceUnavailable(result.error) &&
+      navigation.isFocused() &&
+      focusedTab.value === tab
+    )
+      feedback.error();
   }
   return (
     <TabLegendList<CalendarRow>
@@ -193,7 +204,7 @@ export function SportingCalendarView({
       key={columns}
       ref={list}
       alwaysBounceVertical
-      contentContainerStyle={pageContentStyle}
+      contentContainerStyle={rows.length ? pageContentStyle : styles.emptyList}
       data={rows}
       numColumns={columns}
       onLayout={({ nativeEvent }) => setListWidth(nativeEvent.layout.width)}
@@ -402,6 +413,7 @@ const monthFormat = new Intl.DateTimeFormat("fr-FR", {
 });
 
 const styles = StyleSheet.create({
+  emptyList: { flexGrow: 1 },
   dateHeading: { gap: tokens.spacing.xs, paddingRight: tokens.spacing.xs },
   stackedDate: {
     flexDirection: "row",

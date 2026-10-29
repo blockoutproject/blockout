@@ -6,8 +6,9 @@ import {
   SupportRequestKindEnum,
   SupportRequestSubjectEnum,
 } from "../../../../.generated/schemas/index.zod";
-import { Sheet } from "../../../shared/components/sheet";
+import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { ErrorState } from "../../../shared/components/state-card";
+import { ScreenState } from "../../../shared/components/screen-state";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useSupportVisit } from "../forms/support-visit";
@@ -30,7 +31,9 @@ export function SupportChoice({ field }: SupportChoiceProps) {
   if (field !== "kind" && field !== "subject")
     return (
       <Sheet title="Assistance" onClose={() => router.back()}>
-        <ErrorState />
+        <ScreenState>
+          <ErrorState />
+        </ScreenState>
       </Sheet>
     );
   const choices = Object.entries(
@@ -41,44 +44,46 @@ export function SupportChoice({ field }: SupportChoiceProps) {
       title={field === "kind" ? "Nature de la demande" : "Sujet (facultatif)"}
       onClose={() => router.back()}
     >
-      {choices.map(([value, label]) => (
-        <Pressable
-          key={value}
-          accessibilityRole="radio"
-          accessibilityLabel={label}
-          accessibilityState={{ checked: values[field] === value }}
-          onPress={() => {
-            if (field === "kind")
-              form.setValue(field, SupportRequestKindEnum.parse(value), {
-                shouldDirty: true,
-                shouldTouch: true,
-              });
-            else
-              form.setValue(
-                field,
-                value === "" ? "" : SupportRequestSubjectEnum.parse(value),
-                { shouldDirty: true, shouldTouch: true },
-              );
-            router.back();
-          }}
-          style={({ pressed }) => [
-            styles.option,
-            {
-              borderColor: colors.border,
-              opacity: pressed ? tokens.opacity.pressed : 1,
-            },
-          ]}
-        >
-          <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
-          {values[field] === value && (
-            <Check
-              accessible={false}
-              size={tokens.size.icon.md}
-              color={colors.icon}
-            />
-          )}
-        </Pressable>
-      ))}
+      <SheetContent>
+        {choices.map(([value, label]) => (
+          <Pressable
+            key={value}
+            accessibilityRole="radio"
+            accessibilityLabel={label}
+            accessibilityState={{ checked: values[field] === value }}
+            onPress={() => {
+              if (field === "kind")
+                form.setValue(field, SupportRequestKindEnum.parse(value), {
+                  shouldDirty: true,
+                  shouldTouch: true,
+                });
+              else
+                form.setValue(
+                  field,
+                  value === "" ? "" : SupportRequestSubjectEnum.parse(value),
+                  { shouldDirty: true, shouldTouch: true },
+                );
+              router.back();
+            }}
+            style={({ pressed }) => [
+              styles.option,
+              {
+                borderColor: colors.border,
+                opacity: pressed ? tokens.opacity.pressed : 1,
+              },
+            ]}
+          >
+            <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+            {values[field] === value && (
+              <Check
+                accessible={false}
+                size={tokens.size.icon.md}
+                color={colors.icon}
+              />
+            )}
+          </Pressable>
+        ))}
+      </SheetContent>
     </Sheet>
   );
 }

@@ -1105,7 +1105,7 @@ it("loads the next child page only from the visible idle list and retains bounde
   ).not.toBeOnTheScreen();
 });
 
-it("retains child rows and retries the failed page from its compact continuation without a toast", async () => {
+it("retains child rows and retries the failed page after a toast while retaining explicit continuation", async () => {
   // Given
   const user = userEvent.setup();
   let fails = true;
@@ -1135,7 +1135,7 @@ it("retains child rows and retries the failed page from its compact continuation
     "endReached",
   );
   await screen.findByRole("button", {
-    name: "Une erreur est survenue. Réessayer.",
+    name: "Réessayer",
   });
   fails = false;
 
@@ -1148,10 +1148,10 @@ it("retains child rows and retries the failed page from its compact continuation
   // Then
   expect(screen.getByText("Phase régulière")).toBeOnTheScreen();
   expect(
-    screen.queryByText(
-      "Une erreur est survenue. Veuillez réessayer plus tard.",
-    ),
-  ).not.toBeOnTheScreen();
+    screen.getByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(
       ([url]) =>
@@ -1161,9 +1161,7 @@ it("retains child rows and retries the failed page from its compact continuation
   ).toHaveLength(1);
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Une erreur est survenue. Réessayer." }),
-  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
   expect(await screen.findByText("Phase finale")).toBeOnTheScreen();
@@ -1216,11 +1214,6 @@ it("retains authorized child rows after a failed native refresh with discreet fe
   expect(screen.getByText("Groupe conservé")).toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Réessayer" }),
-  ).not.toBeOnTheScreen();
-  expect(
-    screen.queryByRole("button", {
-      name: "Une erreur est survenue. Réessayer.",
-    }),
   ).not.toBeOnTheScreen();
 });
 

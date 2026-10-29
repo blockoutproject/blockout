@@ -915,7 +915,7 @@ it("continues only the active resource and shares one pending native end request
   expect(screen.queryByRole("button", { name: "Charger la suite" })).toBeNull();
 });
 
-it("retains loaded rows and retries the failed cursor only through its compact continuation", async () => {
+it("retains loaded rows with failure toast and retries only the same cursor", async () => {
   // Given
   const user = userEvent.setup();
   const retry = Promise.withResolvers<Response>();
@@ -941,13 +941,17 @@ it("retains loaded rows and retries the failed cursor only through its compact c
     distanceFromEnd: 0,
   });
   await screen.findByRole("button", {
-    name: "Une erreur est survenue. Réessayer.",
+    name: "Réessayer",
   });
   expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
   expect(
     screen.getByRole("header", { name: "1 résultat chargé" }),
   ).toBeOnTheScreen();
-  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
   expect(
     screen.queryByLabelText("Actualiser les données"),
   ).not.toBeOnTheScreen();
@@ -975,7 +979,7 @@ it("retains loaded rows and retries the failed cursor only through its compact c
   // When
   await user.press(
     screen.getByRole("button", {
-      name: "Une erreur est survenue. Réessayer.",
+      name: "Réessayer",
     }),
   );
 
@@ -986,7 +990,7 @@ it("retains loaded rows and retries the failed cursor only through its compact c
   expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
   expect(
     screen.queryByRole("button", {
-      name: "Une erreur est survenue. Réessayer.",
+      name: "Réessayer",
     }),
   ).not.toBeOnTheScreen();
 

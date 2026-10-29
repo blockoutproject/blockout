@@ -50,7 +50,7 @@ export function SourceChildrenScreen({
       feedback.error();
   }
   /** Shared continuation command keeps traversal and scope; automatic edges separately exclude failed reads. */
-  function loadMore() {
+  async function loadMore() {
     if (
       !authority.enabled ||
       !authority.session.isCurrent(authority.session.generation) ||
@@ -61,7 +61,16 @@ export function SourceChildrenScreen({
       authority.account.isFetching
     )
       return;
-    void query.fetchNextPage({ cancelRefetch: false });
+    feedback.clear();
+    const result = await query.fetchNextPage({ cancelRefetch: false });
+    if (
+      result.isFetchNextPageError &&
+      result.data &&
+      !isAccessDenied(result.error) &&
+      authority.session.isCurrent(authority.session.generation) &&
+      navigation.isFocused()
+    )
+      feedback.error();
   }
   return (
     <Page edges={["left", "right", "bottom"]}>

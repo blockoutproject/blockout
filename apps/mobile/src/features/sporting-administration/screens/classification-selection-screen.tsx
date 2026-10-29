@@ -2,6 +2,7 @@ import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { ScreenState } from "../../../shared/components/screen-state";
 import { AccessFeedback } from "../../access/components/access-feedback";
 import {
   sportingGenderLabels,
@@ -11,7 +12,7 @@ import { useRouter } from "expo-router";
 import { useWatch } from "react-hook-form";
 import { Check } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Sheet } from "../../../shared/components/sheet";
+import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -38,7 +39,9 @@ export function ClassificationSelectionScreen({
     <Selection editor={editor} field={field} target={target} />
   ) : (
     <Sheet title="Classification" onClose={() => router.back()}>
-      <ErrorState />
+      <ScreenState>
+        <ErrorState />
+      </ScreenState>
     </Sheet>
   );
 }
@@ -119,54 +122,68 @@ function Selection({
     >
       {!divisions.authority.enabled &&
         field === "divisionId" &&
-        choices.length === 0 && <AccessFeedback {...divisions.authority} />}
+        choices.length === 0 && (
+          <ScreenState>
+            <AccessFeedback {...divisions.authority} />
+          </ScreenState>
+        )}
       {divisions.authority.enabled && field === "divisionId" && !catalog && (
-        <ReadFeedback query={divisions.query} />
+        <ScreenState>
+          <ReadFeedback query={divisions.query} />
+        </ScreenState>
       )}
       {divisions.authority.enabled &&
         field === "divisionId" &&
         catalog &&
-        choices.length === 0 && <EmptyState title="Aucune division active" />}
-      {choices.map((choice) => (
-        <Pressable
-          key={choice.value}
-          accessibilityRole="radio"
-          accessibilityLabel={choice.label}
-          accessibilityState={{ checked: choice.value === value, disabled }}
-          disabled={disabled}
-          onPress={() => {
-            editor.form.setValue(field, choice.value, {
-              shouldDirty: true,
-              shouldValidate: true,
-            });
-            router.back();
-          }}
-          style={({ pressed }) => [
-            styles.option,
-            {
-              borderColor: colors.border,
-              opacity: disabled
-                ? tokens.opacity.disabled
-                : pressed
-                  ? tokens.opacity.pressed
-                  : 1,
-            },
-          ]}
-        >
-          <Text style={[styles.label, { color: colors.text }]}>
-            {choice.label}
-          </Text>
-          {choice.value === value ? (
-            <Check
-              accessible={false}
-              size={tokens.size.icon.md}
-              color={colors.icon}
-            />
-          ) : (
-            <View style={styles.icon} />
-          )}
-        </Pressable>
-      ))}
+        choices.length === 0 && (
+          <ScreenState>
+            <EmptyState title="Aucune division active" />
+          </ScreenState>
+        )}
+      {choices.length > 0 && (
+        <SheetContent>
+          {choices.map((choice) => (
+            <Pressable
+              key={choice.value}
+              accessibilityRole="radio"
+              accessibilityLabel={choice.label}
+              accessibilityState={{ checked: choice.value === value, disabled }}
+              disabled={disabled}
+              onPress={() => {
+                editor.form.setValue(field, choice.value, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+                router.back();
+              }}
+              style={({ pressed }) => [
+                styles.option,
+                {
+                  borderColor: colors.border,
+                  opacity: disabled
+                    ? tokens.opacity.disabled
+                    : pressed
+                      ? tokens.opacity.pressed
+                      : 1,
+                },
+              ]}
+            >
+              <Text style={[styles.label, { color: colors.text }]}>
+                {choice.label}
+              </Text>
+              {choice.value === value ? (
+                <Check
+                  accessible={false}
+                  size={tokens.size.icon.md}
+                  color={colors.icon}
+                />
+              ) : (
+                <View style={styles.icon} />
+              )}
+            </Pressable>
+          ))}
+        </SheetContent>
+      )}
     </Sheet>
   );
 }

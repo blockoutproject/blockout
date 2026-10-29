@@ -216,7 +216,11 @@ function ClubPage({ clubId }: ClubScreenProps) {
                       />
                     ) : undefined
                   }
-                  contentContainerStyle={pageContentStyle}
+                  contentContainerStyle={
+                    value === "teams" && !teamData?.items.length
+                      ? styles.emptyList
+                      : pageContentStyle
+                  }
                   ItemSeparatorComponent={ListSeparator}
                   data={
                     data && value === "teams" ? (teamData?.items ?? []) : []
@@ -240,82 +244,71 @@ function ClubPage({ clubId }: ClubScreenProps) {
                     </Surface>
                   )}
                   ListHeaderComponent={
-                    <View style={styles.header}>
-                      {data && (
-                        <>
-                          {value === "info" ? (
-                            <>
-                              <Surface>
-                                <ResourceText>Coordonnées</ResourceText>
-                                <ContactLink
-                                  label="Site web"
-                                  value={data.contacts.website}
-                                  destination={safeWebsite(
-                                    data.contacts.website,
-                                  )}
-                                  icon={Globe}
-                                />
-                                <ContactLink
-                                  label="E-mail du club"
-                                  value={data.contacts.email}
-                                  destination={
-                                    data.contacts.email
-                                      ? `mailto:${encodeURIComponent(data.contacts.email)}`
-                                      : undefined
-                                  }
-                                  icon={Mail}
-                                />
-                                <ContactLink
-                                  label="Téléphone"
-                                  value={data.contacts.phone}
-                                  destination={phoneDestination(
-                                    data.contacts.phone,
-                                  )}
-                                  icon={Phone}
-                                />
-                              </Surface>
-                              <Surface>
-                                <ResourceText>Localisation</ResourceText>
-                                <ResourceText>Commune du club</ResourceText>
-                                {data.location ? (
-                                  <ContactLink
-                                    label="Ouvrir la commune sur la carte"
-                                    value={data.location.label}
-                                    destination={mapDestination(
-                                      `${data.location.latitude},${data.location.longitude}`,
-                                    )}
-                                    icon={MapPin}
-                                  />
-                                ) : (
-                                  <ResourceText>
-                                    Commune non renseignée
-                                  </ResourceText>
-                                )}
-                                <ResourceText>
-                                  {[
-                                    data.contacts.address,
-                                    data.contacts.postalCode,
-                                    data.contacts.city,
-                                  ]
-                                    .filter(Boolean)
-                                    .join(", ") || "Adresse non renseignée"}
-                                </ResourceText>
-                              </Surface>
-                            </>
+                    data && value === "info" ? (
+                      <View style={styles.header}>
+                        <Surface>
+                          <ResourceText>Coordonnées</ResourceText>
+                          <ContactLink
+                            label="Site web"
+                            value={data.contacts.website}
+                            destination={safeWebsite(data.contacts.website)}
+                            icon={Globe}
+                          />
+                          <ContactLink
+                            label="E-mail du club"
+                            value={data.contacts.email}
+                            destination={
+                              data.contacts.email
+                                ? `mailto:${encodeURIComponent(data.contacts.email)}`
+                                : undefined
+                            }
+                            icon={Mail}
+                          />
+                          <ContactLink
+                            label="Téléphone"
+                            value={data.contacts.phone}
+                            destination={phoneDestination(data.contacts.phone)}
+                            icon={Phone}
+                          />
+                        </Surface>
+                        <Surface>
+                          <ResourceText>Localisation</ResourceText>
+                          <ResourceText>Commune du club</ResourceText>
+                          {data.location ? (
+                            <ContactLink
+                              label="Ouvrir la commune sur la carte"
+                              value={data.location.label}
+                              destination={mapDestination(
+                                `${data.location.latitude},${data.location.longitude}`,
+                              )}
+                              icon={MapPin}
+                            />
                           ) : (
-                            season &&
-                            value === "teams" && (
-                              <>
-                                {!teamData && <ReadFeedback query={teams} />}
-                                {teamData?.items.length === 0 && (
-                                  <EmptyState title="Aucune équipe pour cette saison" />
-                                )}
-                              </>
-                            )
+                            <ResourceText>Commune non renseignée</ResourceText>
                           )}
-                        </>
-                      )}
-                    </View>
+                          <ResourceText>
+                            {[
+                              data.contacts.address,
+                              data.contacts.postalCode,
+                              data.contacts.city,
+                            ]
+                              .filter(Boolean)
+                              .join(", ") || "Adresse non renseignée"}
+                          </ResourceText>
+                        </Surface>
+                      </View>
+                    ) : undefined
+                  }
+                  ListEmptyComponent={
+                    season && value === "teams" ? (
+                      <ScreenState>
+                        {!teamData ? (
+                          <ReadFeedback query={teams} />
+                        ) : (
+                          <EmptyState title="Aucune équipe pour cette saison" />
+                        )}
+                      </ScreenState>
+                    ) : undefined
                   }
                 />
               ),
@@ -327,6 +320,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
 }
 
 const styles = StyleSheet.create({
+  emptyList: { flexGrow: 1 },
   header: { gap: tokens.spacing.lg, marginBottom: tokens.layout.list.gap },
   season: {
     gap: tokens.spacing.sm,
