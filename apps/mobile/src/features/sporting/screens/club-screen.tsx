@@ -151,14 +151,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
               <SportingSupportAction target={{ type: "club", id: clubId }} />
             }
           />
-          <PageScrollView
-            refreshControl={
-              <DataRefreshControl
-                refreshing={club.isRefetching}
-                onRefresh={() => void refresh()}
-              />
-            }
-          >
+          <PageScrollView>
             <ScreenState>{blockingState}</ScreenState>
           </PageScrollView>
         </>
@@ -200,11 +193,13 @@ function ClubPage({ clubId }: ClubScreenProps) {
               ) : value === "teams" && season && !teamData?.items.length ? (
                 <PagedStateScrollView
                   refreshControl={
-                    <DataRefreshControl
-                      refreshing={teams.isRefetching}
-                      onRefresh={() => void refresh()}
-                      enabled={tab === value}
-                    />
+                    teamData ? (
+                      <DataRefreshControl
+                        refreshing={teams.isRefetching}
+                        onRefresh={() => void refresh()}
+                        enabled={tab === value}
+                      />
+                    ) : undefined
                   }
                 >
                   <ScreenState>

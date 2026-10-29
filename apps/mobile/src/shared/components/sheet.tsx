@@ -89,7 +89,7 @@ export function Sheet({
           maxHeight: frame.height - insets.top,
         },
       ]}
-      alwaysBounceVertical
+      alwaysBounceVertical={!!refreshControl}
       refreshControl={refreshControl}
       nestedScrollEnabled
       keyboardShouldPersistTaps="handled"

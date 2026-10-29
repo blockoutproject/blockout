@@ -27,7 +27,7 @@ export function FormScrollView({
     <Animated.ScrollView
       {...props}
       contentContainerStyle={[styles.content, contentContainerStyle]}
-      alwaysBounceVertical
+      alwaysBounceVertical={!!props.refreshControl}
       automaticallyAdjustKeyboardInsets
       keyboardShouldPersistTaps="handled"
     >
@@ -39,7 +39,7 @@ export function FormScrollView({
       <KeyboardAwareScrollView
         {...props}
         contentContainerStyle={[styles.content, contentContainerStyle]}
-        alwaysBounceVertical
+        alwaysBounceVertical={!!props.refreshControl}
         keyboardShouldPersistTaps="handled"
       >
         {children}

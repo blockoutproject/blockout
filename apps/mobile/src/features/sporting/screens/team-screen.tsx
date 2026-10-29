@@ -7,15 +7,12 @@ import { PagedTabs } from "../../../shared/components/paged-tabs";
 import { ResourceText } from "../components/resource-text";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { PageHeader } from "../../../shared/components/page-header";
 import {
   Page,
   PageScrollView,
   PageContent,
 } from "../../../shared/components/page";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Surface } from "../../../shared/components/surface";
 import { hashKey, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
@@ -56,13 +53,6 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
   const team = useQuery(queries.team(teamId));
   const [selected, setSelected] = useState<string>();
   const data = team.data;
-  const feedback = useActionFeedback();
-  /** A failed explicit refresh keeps authorized content and reports only the attempted read. */
-  async function refresh() {
-    const result = await team.refetch({ cancelRefetch: false });
-    if (result.isError && result.data && !isAccessDenied(result.error))
-      feedback.error();
-  }
   const tabs = [
     { id: "upcoming", label: "À venir" },
     { id: "completed", label: "Terminés" },
@@ -107,14 +97,7 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
               <SportingSupportAction target={{ type: "team", id: teamId }} />
             }
           />
-          <PageScrollView
-            refreshControl={
-              <DataRefreshControl
-                refreshing={team.isRefetching}
-                onRefresh={() => void refresh()}
-              />
-            }
-          >
+          <PageScrollView>
             <ScreenState>{blockingState}</ScreenState>
           </PageScrollView>
         </>

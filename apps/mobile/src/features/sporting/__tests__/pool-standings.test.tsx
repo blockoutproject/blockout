@@ -250,6 +250,9 @@ it.each([
     expect(screen.queryByRole("button", { name: "Réessayer" }) !== null).toBe(
       availability === "unavailable",
     );
+    expect(screen.queryByLabelText("Actualiser les données") !== null).toBe(
+      availability !== "unavailable",
+    );
   },
 );
 
@@ -441,16 +444,25 @@ it("retries an initial failure without announcing a successful empty table", asy
   failed = true;
   const user = userEvent.setup();
   await open(panel());
+  await screen.findByRole("button", { name: "Réessayer" });
   expect(
     screen.queryByRole("header", { name: "Aucune équipe dans ce classement" }),
   ).toBeNull();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
   failed = false;
+  mockFetch.mockClear();
 
   // When
   await user.press(await screen.findByRole("button", { name: "Réessayer" }));
 
   // Then
   expect(await screen.findByText("Official Z")).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(String(url)).pathname.endsWith("/standings"),
+    ),
+  ).toHaveLength(1);
+  expect(screen.getByLabelText("Actualiser les données")).toBeOnTheScreen();
 });
 
 it("does not claim retained table information after a first failed acquisition", async () => {
@@ -476,7 +488,7 @@ it("does not claim retained table information after a first failed acquisition",
 });
 
 it.each(["unavailable", "not-published"] as const)(
-  "keeps %s honest when its later refresh fails",
+  "keeps %s honest when its available recovery action fails",
   async (availability) => {
     // Given
     table = {
@@ -488,14 +500,37 @@ it.each(["unavailable", "not-published"] as const)(
     };
     await open(panel());
     failed = true;
+    mockFetch.mockClear();
 
     // When
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    if (availability === "unavailable") {
+      expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+      await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+    } else
+      await fireEvent(
+        screen.getByLabelText("Actualiser les données"),
+        "refresh",
+      );
 
     // Then
     expect(
-      await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
+      await screen.findByRole("alert", {
+        name:
+          availability === "unavailable"
+            ? TECHNICAL_ERROR_TITLE
+            : TECHNICAL_ERROR,
+      }),
     ).toBeOnTheScreen();
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    if (availability === "unavailable") {
+      await screen.findByRole("button", { name: "Réessayer", busy: false });
+      expect(screen.queryByRole("alert", { name: TECHNICAL_ERROR })).toBeNull();
+    }
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(String(url)).pathname.endsWith("/standings"),
+      ),
+    ).toHaveLength(1);
     expect(
       screen.queryByText(/Dernière actualisation|conservées restent affichées/),
     ).toBeNull();

@@ -46,89 +46,81 @@ export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
           />
         }
       >
-        {({ onScroll, headerHeight }) => (
-          <FormScrollView
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            scrollIndicatorInsets={{ top: headerHeight }}
-            contentContainerStyle={{ paddingTop: headerHeight }}
-            refreshControl={
-              admitted && session.status === "authenticated" ? (
+        {({ onScroll, headerHeight }) =>
+          admitted && session.status === "authenticated" && account.data ? (
+            <ProfileForm
+              key={`${session.generation}:${account.data.accountId}`}
+              scroll={{ onScroll, headerHeight }}
+              refreshControl={
                 <DataRefreshControl
                   progressViewOffset={headerHeight}
                   enabled={!saving}
                   refreshing={refreshing}
                   onRefresh={() => void refresh()}
                 />
-              ) : undefined
-            }
-          >
-            {!admitted ? (
-              <ScreenState>
-                <ErrorState />
-              </ScreenState>
-            ) : (
-              <>
-                {session.status === "restoring" ||
+              }
+              account={account.data}
+              disabled={!account.isSuccess}
+              onRetryRead={() => void account.refetch()}
+              retryingRead={account.isFetching}
+              onCancel={close}
+              onSaved={close}
+            />
+          ) : (
+            <FormScrollView
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              scrollIndicatorInsets={{ top: headerHeight }}
+              contentContainerStyle={{ paddingTop: headerHeight }}
+            >
+              {!admitted ? (
+                <ScreenState>
+                  <ErrorState />
+                </ScreenState>
+              ) : session.status === "restoring" ||
                 session.status === "authenticating" ||
                 session.status === "signing-out" ||
                 (session.status === "authenticated" && account.isPending) ? (
-                  <PageContent>
-                    <ProfileLoading editor />
-                  </PageContent>
-                ) : session.status === "initialization-error" ||
-                  session.status === "authentication-error" ||
-                  session.status === "reauthentication-required" ? (
-                  <ScreenState>
-                    <ErrorState
-                      onRetry={
-                        session.status === "initialization-error"
-                          ? session.retryInitialization
-                          : session.status === "authentication-error"
-                            ? session.retryAuthentication
-                            : () => router.replace("/sign-in")
-                      }
-                    />
-                  </ScreenState>
-                ) : session.status !== "authenticated" ? (
-                  <ScreenState>
-                    <Button
-                      label="Se connecter"
-                      fullWidth
-                      onPress={() => router.replace("/sign-in")}
-                    />
-                  </ScreenState>
-                ) : (
-                  <>
-                    {account.isError && !account.data && (
-                      <ScreenState>
-                        <ErrorState
-                          onRetry={
-                            missing
-                              ? () => router.replace("/sign-in")
-                              : () => void account.refetch()
-                          }
-                          retrying={account.isFetching}
-                        />
-                      </ScreenState>
-                    )}
-                    {account.data && (
-                      <ProfileForm
-                        key={`${session.generation}:${account.data.accountId}`}
-                        account={account.data}
-                        disabled={!account.isSuccess}
-                        onRetryRead={() => void account.refetch()}
-                        retryingRead={account.isFetching}
-                        onCancel={close}
-                        onSaved={close}
-                      />
-                    )}
-                  </>
-                )}
-              </>
-            )}
-          </FormScrollView>
-        )}
+                <PageContent>
+                  <ProfileLoading editor />
+                </PageContent>
+              ) : session.status === "initialization-error" ||
+                session.status === "authentication-error" ||
+                session.status === "reauthentication-required" ? (
+                <ScreenState>
+                  <ErrorState
+                    onRetry={
+                      session.status === "initialization-error"
+                        ? session.retryInitialization
+                        : session.status === "authentication-error"
+                          ? session.retryAuthentication
+                          : () => router.replace("/sign-in")
+                    }
+                  />
+                </ScreenState>
+              ) : session.status !== "authenticated" ? (
+                <ScreenState>
+                  <Button
+                    label="Se connecter"
+                    fullWidth
+                    onPress={() => router.replace("/sign-in")}
+                  />
+                </ScreenState>
+              ) : account.isError ? (
+                <ScreenState>
+                  <ErrorState
+                    onRetry={
+                      missing
+                        ? () => router.replace("/sign-in")
+                        : () => void account.refetch()
+                    }
+                    retrying={account.isFetching}
+                  />
+                </ScreenState>
+              ) : null}
+            </FormScrollView>
+          )
+        }
       </ScrollChrome>
     </Page>
   );

@@ -407,6 +407,7 @@ it("recovers a whole-page initial account failure without establishing an accoun
   const retry = screen.getByRole("button", { name: "Réessayer" });
 
   // Then
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
   expect(screen.getByRole("button", { name: "Besoin d’aide ?" })).toBeEnabled();
   expect(
     screen.queryByRole("link", { name: "Politique de confidentialité" }),
@@ -419,11 +420,13 @@ it("recovers a whole-page initial account failure without establishing an accoun
   ).not.toBeOnTheScreen();
 
   // When
-  mockFetch.mockImplementation(async () => Response.json(account));
+  mockFetch.mockClear().mockImplementation(async () => Response.json(account));
   await user.press(retry);
 
   // Then
   expect(await screen.findByText(account.username)).toBeOnTheScreen();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
   expect(
     screen.queryByRole("alert", { name: "Une erreur est survenue" }),
   ).not.toBeOnTheScreen();
@@ -598,8 +601,10 @@ it("withholds all overview groups while the initial account is pending", async (
   try {
     // When
     await screen.findByRole("progressbar", { name: "Chargement du profil" });
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled());
 
     // Then
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
     expect(
       screen.queryByRole("header", { name: "Informations légales" }),
     ).not.toBeOnTheScreen();
@@ -703,6 +708,7 @@ it("waits for the initial existing photo before admitting the complete overview"
       screen.getByRole("progressbar", { name: "Chargement du profil" }),
     ).toBeOnTheScreen();
     expect(screen.queryByText(account.username)).not.toBeOnTheScreen();
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
     expect(
       screen.queryByRole("header", { name: "Mon compte" }),
     ).not.toBeOnTheScreen();
@@ -714,6 +720,7 @@ it("waits for the initial existing photo before admitting the complete overview"
     expect(
       await screen.findByRole("alert", { name: "Une erreur est survenue" }),
     ).toBeOnTheScreen();
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Modifier mon profil" }),
     ).not.toBeOnTheScreen();
@@ -722,11 +729,13 @@ it("waits for the initial existing photo before admitting the complete overview"
     ).not.toBeOnTheScreen();
     // When
     const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
-    mockFetch.mockImplementation(async (url) =>
-      String(url).endsWith("/photo")
-        ? new Response(png, { headers: { "Content-Type": "image/png" } })
-        : Response.json({ ...account, hasPhoto: true }),
-    );
+    mockFetch
+      .mockClear()
+      .mockImplementation(async (url) =>
+        String(url).endsWith("/photo")
+          ? new Response(png, { headers: { "Content-Type": "image/png" } })
+          : Response.json({ ...account, hasPhoto: true }),
+      );
     await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
     // Then
@@ -734,6 +743,8 @@ it("waits for the initial existing photo before admitting the complete overview"
       await screen.findByRole("image", { name: "Photo de profil" }),
     ).toBeOnTheScreen();
     expect(screen.getByText(account.username)).toBeOnTheScreen();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
     expect(
       screen.getByRole("header", { name: "Mon compte" }),
     ).toBeOnTheScreen();
@@ -762,6 +773,7 @@ it("removes the complete overview after a current account refusal and restores i
   // Then
   await screen.findByRole("alert", { name: "Une erreur est survenue" });
   expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
   expect(screen.queryByText(account.username)).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("header", { name: "Mon compte" }),
@@ -801,6 +813,7 @@ it("retains the accepted overview after a technical refresh failure without an i
 
   // Then
   await screen.findByText(TECHNICAL_ERROR);
+  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
   expect(screen.getByText(account.username)).toBeOnTheScreen();
   expect(screen.getByRole("header", { name: "Mon compte" })).toBeOnTheScreen();
   expect(

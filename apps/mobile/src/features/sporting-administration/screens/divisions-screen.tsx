@@ -77,24 +77,6 @@ export function DivisionsScreen() {
               scrollEventThrottle={16}
               scrollIndicatorInsets={{ top: headerHeight }}
               contentContainerStyle={{ paddingTop: headerHeight }}
-              refreshControl={
-                authority.sessionStatus === "authenticated" ? (
-                  <DataRefreshControl
-                    progressViewOffset={headerHeight}
-                    refreshing={authority.account.isRefetching}
-                    onRefresh={() =>
-                      void authority.account.refetch().then((result) => {
-                        if (
-                          result.isError &&
-                          result.data &&
-                          !isAccessDenied(result.error)
-                        )
-                          feedback.error();
-                      })
-                    }
-                  />
-                ) : undefined
-              }
             >
               <ScreenState>{blockingState}</ScreenState>
             </PageScrollView>
@@ -104,8 +86,10 @@ export function DivisionsScreen() {
                 onScroll={onScroll}
                 scrollEventThrottle={16}
                 scrollIndicatorInsets={{ top: headerHeight }}
-                alwaysBounceVertical
+                alwaysBounceVertical={!!query.data && !denied}
                 refreshControl={
+                  query.data &&
+                  !denied &&
                   authority.sessionStatus === "authenticated" ? (
                     <DataRefreshControl
                       progressViewOffset={headerHeight}

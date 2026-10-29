@@ -83,11 +83,13 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
             scrollIndicatorInsets={{ top: headerHeight }}
             contentContainerStyle={{ paddingTop: headerHeight }}
             refreshControl={
-              <DataRefreshControl
-                progressViewOffset={headerHeight}
-                refreshing={match.isRefetching || contribution.refreshing}
-                onRefresh={() => void refresh()}
-              />
+              data ? (
+                <DataRefreshControl
+                  progressViewOffset={headerHeight}
+                  refreshing={match.isRefetching || contribution.refreshing}
+                  onRefresh={() => void refresh()}
+                />
+              ) : undefined
             }
           >
             {blockingState ? (

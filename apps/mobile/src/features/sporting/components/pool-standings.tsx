@@ -51,18 +51,24 @@ export function PoolStandings({
   async function refresh() {
     feedback.clear();
     const result = await standings.refetch({ cancelRefetch: false });
-    if (result.isError && result.data && !resourceUnavailable(result.error))
+    if (
+      result.isError &&
+      result.data &&
+      result.data.availability !== "unavailable" &&
+      !resourceUnavailable(result.error)
+    )
       feedback.error();
   }
 
   const hasRows = data?.availability === "available" && data.rows.length > 0;
 
-  const refreshControl = (
-    <DataRefreshControl
-      refreshing={standings.isRefetching}
-      onRefresh={() => void refresh()}
-    />
-  );
+  const refreshControl =
+    data && data.availability !== "unavailable" ? (
+      <DataRefreshControl
+        refreshing={standings.isRefetching}
+        onRefresh={() => void refresh()}
+      />
+    ) : undefined;
   if (!hasRows)
     return (
       <PagedStateScrollView refreshControl={refreshControl}>

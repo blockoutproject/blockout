@@ -96,6 +96,7 @@ function Selection({
       onClose={() => router.back()}
       refreshControl={
         field === "divisionId" &&
+        catalog &&
         divisions.authority.sessionStatus === "authenticated" ? (
           <DataRefreshControl
             refreshing={

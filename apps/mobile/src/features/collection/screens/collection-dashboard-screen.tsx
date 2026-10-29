@@ -78,7 +78,7 @@ export function CollectionDashboardScreen() {
             scrollIndicatorInsets={{ top: headerHeight }}
             contentContainerStyle={{ paddingTop: headerHeight }}
             refreshControl={
-              authority.sessionStatus === "authenticated" ? (
+              authority.enabled ? (
                 <DataRefreshControl
                   progressViewOffset={headerHeight}
                   refreshing={
@@ -206,40 +206,6 @@ function SeasonControlScope({
               scrollEventThrottle={16}
               scrollIndicatorInsets={{ top: headerHeight }}
               contentContainerStyle={{ paddingTop: headerHeight }}
-              refreshControl={
-                authority.sessionStatus === "authenticated" ? (
-                  <DataRefreshControl
-                    progressViewOffset={headerHeight}
-                    refreshing={
-                      season.isRefetching || authority.account.isRefetching
-                    }
-                    onRefresh={() => {
-                      if (authority.enabled)
-                        void season
-                          .refetch({ cancelRefetch: false })
-                          .then((result) => {
-                            if (
-                              result.isError &&
-                              result.data &&
-                              !isAccessDenied(result.error)
-                            )
-                              feedback.error();
-                          });
-                      else
-                        void authority.account
-                          .refetch({ cancelRefetch: false })
-                          .then((result) => {
-                            if (
-                              result.isError &&
-                              result.data &&
-                              !isAccessDenied(result.error)
-                            )
-                              feedback.error();
-                          });
-                    }}
-                  />
-                ) : undefined
-              }
             >
               <ScreenState>
                 {!authority.enabled ? (
@@ -314,40 +280,6 @@ function ControlScope({
               scrollEventThrottle={16}
               scrollIndicatorInsets={{ top: headerHeight }}
               contentContainerStyle={{ paddingTop: headerHeight }}
-              refreshControl={
-                authority.sessionStatus === "authenticated" ? (
-                  <DataRefreshControl
-                    progressViewOffset={headerHeight}
-                    refreshing={
-                      query.isRefetching || authority.account.isRefetching
-                    }
-                    onRefresh={() => {
-                      if (authority.enabled)
-                        void query
-                          .refetch({ cancelRefetch: false })
-                          .then((result) => {
-                            if (
-                              result.isError &&
-                              result.data &&
-                              !isAccessDenied(result.error)
-                            )
-                              feedback.error();
-                          });
-                      else
-                        void authority.account
-                          .refetch({ cancelRefetch: false })
-                          .then((result) => {
-                            if (
-                              result.isError &&
-                              result.data &&
-                              !isAccessDenied(result.error)
-                            )
-                              feedback.error();
-                          });
-                    }}
-                  />
-                ) : undefined
-              }
             >
               <ScreenState>
                 {!authority.enabled ? (
@@ -566,15 +498,6 @@ function ControlDashboard({
               scrollEventThrottle={16}
               scrollIndicatorInsets={{ top: headerHeight }}
               contentContainerStyle={{ paddingTop: headerHeight }}
-              refreshControl={
-                authority.sessionStatus === "authenticated" ? (
-                  <DataRefreshControl
-                    progressViewOffset={headerHeight}
-                    refreshing={refreshing}
-                    onRefresh={() => void refresh()}
-                  />
-                ) : undefined
-              }
             >
               <ScreenState>
                 {!authority.enabled ? (

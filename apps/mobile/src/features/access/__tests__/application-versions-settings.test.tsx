@@ -186,6 +186,7 @@ it("shows loading without publishing defaults, then retries a failed initial rea
   expect(
     screen.queryByRole("button", { name: "Enregistrer" }),
   ).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
 
   // When
   await act(async () =>
@@ -204,6 +205,7 @@ it("shows loading without publishing defaults, then retries a failed initial rea
   // Then
   expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
   expect(screen.queryByLabelText("Message commun")).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
 
   // When
   mockFetch.mockImplementation(async (url) =>

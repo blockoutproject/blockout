@@ -98,7 +98,7 @@ export function AdministrationScreen({
             scrollIndicatorInsets={{ top: headerHeight }}
             contentContainerStyle={{ paddingTop: headerHeight }}
             refreshControl={
-              admitted && sessionStatus === "authenticated" ? (
+              !blocked && sessionStatus === "authenticated" ? (
                 <DataRefreshControl
                   progressViewOffset={headerHeight}
                   refreshing={account.isRefetching}

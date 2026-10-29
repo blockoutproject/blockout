@@ -96,7 +96,7 @@ export function PageScrollView({
 }: PageScrollViewProps) {
   return (
     <Animated.ScrollView
-      alwaysBounceVertical
+      alwaysBounceVertical={!!props.refreshControl}
       {...props}
       contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
     >

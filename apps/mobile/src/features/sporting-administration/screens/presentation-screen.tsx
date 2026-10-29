@@ -135,6 +135,7 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
             scrollIndicatorInsets={{ top: headerHeight }}
             contentContainerStyle={{ paddingTop: headerHeight }}
             refreshControl={
+              !blockingState &&
               sessionStatus === "authenticated" &&
               target.kind !== "division-creation" ? (
                 <DataRefreshControl

@@ -90,7 +90,7 @@ function GateView({
       </View>
       <PageScrollView
         refreshControl={
-          !onClose && onRefresh && gate !== "checking" ? (
+          !onClose && onRefresh && !simple ? (
             <DataRefreshControl refreshing={checking} onRefresh={onRefresh} />
           ) : undefined
         }

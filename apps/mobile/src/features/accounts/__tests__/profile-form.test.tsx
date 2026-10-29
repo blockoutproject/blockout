@@ -267,6 +267,7 @@ it("refreshes the profile without changing a dirty draft or replaying a save", a
     await screen.findByDisplayValue("updated@example.invalid"),
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Unsaved")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
   expect(mockFetch).toHaveBeenCalledTimes(1);
   expect(mockFetch.mock.calls[0][1]?.method).toBe("GET");
 });
@@ -360,6 +361,7 @@ it.each([401, 403])(
   "presents an initial account refusal %s with opaque copy and owner-controlled retry",
   async (status) => {
     // Given
+    const user = userEvent.setup();
     mockFetch.mockResolvedValue(json({ title: "Denied", status }, status));
 
     // When
@@ -370,8 +372,29 @@ it.each([401, 403])(
       await screen.findByRole("alert", { name: "Une erreur est survenue" }),
     ).toBeOnTheScreen();
     expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
     expect(screen.queryByLabelText("Pseudo")).toBeNull();
     expect(screen.getByRole("button", { name: "Retour" })).toBeEnabled();
+
+    // When
+    const retry = Promise.withResolvers<Response>();
+    mockFetch.mockClear().mockReturnValue(retry.promise);
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(
+      await screen.findByRole("progressbar", { name: "Chargement du profil" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+
+    // When
+    await act(() => retry.resolve(json(account)));
+
+    // Then
+    expect(await screen.findByDisplayValue("Original")).toBeOnTheScreen();
+    expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   },
 );
 
@@ -397,6 +420,7 @@ it("keeps a refused profile draft read-only through a failed recheck until a suc
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Annuler" })).toBeEnabled();
   expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
 
   // When
   mockFetch.mockResolvedValue(json({ title: "Unavailable", status: 503 }, 503));
@@ -471,6 +495,7 @@ it("announces the initial profile read without exposing profile commands", async
     await screen.findByRole("progressbar", { name: "Chargement du profil" }),
   ).toBeOnTheScreen();
   expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
   expect(
     screen.queryByRole("button", { name: "Enregistrer" }),
   ).not.toBeOnTheScreen();
@@ -488,6 +513,7 @@ it("announces the initial profile read without exposing profile commands", async
 
 it("withholds the whole editor until its initial existing photo is ready", async () => {
   // Given
+  const user = userEvent.setup();
   const photoRead = Promise.withResolvers<Response>();
   mockFetch.mockImplementation(async (url) =>
     String(url).endsWith("/photo")
@@ -503,7 +529,7 @@ it("withholds the whole editor until its initial existing photo is ready", async
   expect(
     screen.getByRole("progressbar", { name: "Chargement du profil" }),
   ).toBeOnTheScreen();
-  expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
   expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Enregistrer" }),
@@ -514,11 +540,35 @@ it("withholds the whole editor until its initial existing photo is ready", async
 
   // Then
   expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
   expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Annuler" }),
   ).not.toBeOnTheScreen();
+
+  // When
+  const retry = Promise.withResolvers<Response>();
+  mockFetch.mockClear().mockReturnValue(retry.promise);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(String(mockFetch.mock.calls[0][0])).toMatch(/\/photo$/);
+  expect(
+    await screen.findByRole("progressbar", { name: "Chargement du profil" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+
+  // When
+  await act(() => retry.resolve(new Response(null, { status: 503 })));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer", busy: false }),
+  ).toBeEnabled();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
 });
 
 it("preserves the active save and suspends refresh and cancellation", async () => {

@@ -17,6 +17,11 @@ import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { ImageField } from "../../../shared/components/image-field";
 import { PageContent } from "../../../shared/components/page";
+import {
+  FormScrollView,
+  type FormScrollViewProps,
+} from "../../../shared/components/form-scroll-view";
+import type { ScrollChromeContentProps } from "../../../shared/components/scroll-chrome";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { ProfileLoading } from "../components/profile-loading";
 import { TextField } from "../../../shared/components/text-field";
@@ -33,6 +38,9 @@ import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 
 /** An editable snapshot of this original account; parent identity/generation changes remount it. */
 export interface ProfileFormProps {
+  /** Existing page chrome and native refresh; initial photo admission withholds the refresh control. */
+  scroll: ScrollChromeContentProps;
+  refreshControl: FormScrollViewProps["refreshControl"];
   account: AccountResponse;
   /** Keeps the local draft visible while the current account read cannot authorize personal edits. */
   disabled: boolean;
@@ -47,6 +55,8 @@ export interface ProfileFormProps {
 
 /** Keeps drafts through refetch/refusal and requires original-target reconciliation before an explicit uncertain retry. */
 export function ProfileForm({
+  scroll: { onScroll, headerHeight },
+  refreshControl,
   account,
   disabled,
   onRetryRead,
@@ -226,115 +236,124 @@ export function ProfileForm({
     }
   }
 
-  if (!admitted && !photoReady)
-    return photo.isError || disabled ? (
-      <ScreenState>
-        <ErrorState
-          onRetry={disabled ? onRetryRead : () => void photo.refetch()}
-          retrying={retryingRead || photo.isFetching}
-        />
-      </ScreenState>
-    ) : (
-      <PageContent>
-        <ProfileLoading editor />
-      </PageContent>
-    );
-
   return (
-    <PageContent>
-      <View style={styles.form}>
-        <Surface>
-          <View style={styles.photo}>
-            <Text style={[tokens.typography.title, { color: colors.text }]}>
-              Photo de profil
-            </Text>
-            <Controller
-              control={control}
-              name="photo"
-              render={({ fieldState }) => (
-                <ImageField
-                  images={images}
-                  selection={selection}
-                  placeholderIcon={UserRound}
-                  disabled={disabled || busy}
-                  chooseLabel="Choisir une photo de profil"
-                  helper="Facultatif. PNG/JPEG, jusqu’à 5 Mio."
-                  error={fieldState.error?.message}
-                  onRemove={() => replacePhoto({ action: "remove" })}
-                />
-              )}
+    <FormScrollView
+      onScroll={onScroll}
+      scrollEventThrottle={16}
+      scrollIndicatorInsets={{ top: headerHeight }}
+      contentContainerStyle={{ paddingTop: headerHeight }}
+      refreshControl={admitted || photoReady ? refreshControl : undefined}
+    >
+      {!admitted && !photoReady ? (
+        photo.isError || disabled ? (
+          <ScreenState>
+            <ErrorState
+              onRetry={disabled ? onRetryRead : () => void photo.refetch()}
+              retrying={retryingRead || photo.isFetching}
             />
-          </View>
-        </Surface>
-        <Surface>
+          </ScreenState>
+        ) : (
+          <PageContent>
+            <ProfileLoading editor />
+          </PageContent>
+        )
+      ) : (
+        <PageContent>
           <View style={styles.form}>
-            <Controller
-              control={control}
-              name="username"
-              render={({ field, fieldState }) => (
-                <TextField
-                  ref={field.ref}
-                  label="Pseudo"
-                  value={field.value}
-                  onChangeText={field.onChange}
-                  onBlur={field.onBlur}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!disabled && !busy}
-                  helper="3 à 32 caractères : lettres sans accent, chiffres, point, tiret ou soulignement. Les espaces autour sont retirés."
-                  error={fieldState.error?.message}
+            <Surface>
+              <View style={styles.photo}>
+                <Text style={[tokens.typography.title, { color: colors.text }]}>
+                  Photo de profil
+                </Text>
+                <Controller
+                  control={control}
+                  name="photo"
+                  render={({ fieldState }) => (
+                    <ImageField
+                      images={images}
+                      selection={selection}
+                      placeholderIcon={UserRound}
+                      disabled={disabled || busy}
+                      chooseLabel="Choisir une photo de profil"
+                      helper="Facultatif. PNG/JPEG, jusqu’à 5 Mio."
+                      error={fieldState.error?.message}
+                      onRemove={() => replacePhoto({ action: "remove" })}
+                    />
+                  )}
                 />
-              )}
+              </View>
+            </Surface>
+            <Surface>
+              <View style={styles.form}>
+                <Controller
+                  control={control}
+                  name="username"
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      ref={field.ref}
+                      label="Pseudo"
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      onBlur={field.onBlur}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      editable={!disabled && !busy}
+                      helper="3 à 32 caractères : lettres sans accent, chiffres, point, tiret ou soulignement. Les espaces autour sont retirés."
+                      error={fieldState.error?.message}
+                    />
+                  )}
+                />
+                <TextField
+                  label="Adresse e-mail"
+                  value={account.email}
+                  readOnly
+                  helper="L’adresse e-mail est liée au compte et ne peut pas être modifiée ici."
+                />
+              </View>
+            </Surface>
+            {(uncertain || needsRead) &&
+              (needsRead ? (
+                <Text
+                  accessibilityLiveRegion="polite"
+                  style={[tokens.typography.body, { color: colors.text }]}
+                >
+                  Le résultat de la sauvegarde est incertain. Vérifiez votre
+                  profil avant de réessayer.
+                </Text>
+              ) : (
+                <Text
+                  accessibilityLiveRegion="polite"
+                  style={[tokens.typography.body, { color: colors.text }]}
+                >
+                  Le profil a été relu. Vérifiez votre brouillon avant de
+                  l’enregistrer à nouveau.
+                </Text>
+              ))}
+            {needsRead && (
+              <Button
+                label="Vérifier mon profil"
+                loading={original.isFetching}
+                onPress={() => void readOriginal()}
+              />
+            )}
+            <Button
+              label="Enregistrer"
+              fullWidth
+              onPress={() => void handleSubmit(submit)()}
+              disabled={!isDirty || disabled || busy || needsRead}
+              loading={save.executing}
             />
-            <TextField
-              label="Adresse e-mail"
-              value={account.email}
-              readOnly
-              helper="L’adresse e-mail est liée au compte et ne peut pas être modifiée ici."
+            <Button
+              label="Annuler"
+              variant="secondary"
+              fullWidth
+              disabled={busy}
+              onPress={onCancel}
             />
           </View>
-        </Surface>
-        {(uncertain || needsRead) &&
-          (needsRead ? (
-            <Text
-              accessibilityLiveRegion="polite"
-              style={[tokens.typography.body, { color: colors.text }]}
-            >
-              Le résultat de la sauvegarde est incertain. Vérifiez votre profil
-              avant de réessayer.
-            </Text>
-          ) : (
-            <Text
-              accessibilityLiveRegion="polite"
-              style={[tokens.typography.body, { color: colors.text }]}
-            >
-              Le profil a été relu. Vérifiez votre brouillon avant de
-              l’enregistrer à nouveau.
-            </Text>
-          ))}
-        {needsRead && (
-          <Button
-            label="Vérifier mon profil"
-            loading={original.isFetching}
-            onPress={() => void readOriginal()}
-          />
-        )}
-        <Button
-          label="Enregistrer"
-          fullWidth
-          onPress={() => void handleSubmit(submit)()}
-          disabled={!isDirty || disabled || busy || needsRead}
-          loading={save.executing}
-        />
-        <Button
-          label="Annuler"
-          variant="secondary"
-          fullWidth
-          disabled={busy}
-          onPress={onCancel}
-        />
-      </View>
-    </PageContent>
+        </PageContent>
+      )}
+    </FormScrollView>
   );
 }
 const styles = StyleSheet.create({

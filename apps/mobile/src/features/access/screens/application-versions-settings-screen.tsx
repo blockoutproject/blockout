@@ -88,7 +88,7 @@ export function ApplicationVersionsSettingsScreen() {
             scrollIndicatorInsets={{ top: headerHeight }}
             contentContainerStyle={{ paddingTop: headerHeight }}
             refreshControl={
-              sessionStatus === "authenticated" ? (
+              settings && sessionStatus === "authenticated" ? (
                 <DataRefreshControl
                   progressViewOffset={headerHeight}
                   enabled={!editing.content.pending}

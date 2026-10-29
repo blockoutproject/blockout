@@ -525,6 +525,7 @@ it.each([404, 503])(
     // Then
     expect(error).toHaveTextContent("Une erreur est survenue");
     expect(screen.queryByText(team.team.team.name)).not.toBeOnTheScreen();
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
   },
 );
 
@@ -751,6 +752,7 @@ it("distinguishes an empty club season from a failed team read", async () => {
   expect(
     screen.queryByText("Aucune équipe pour cette saison"),
   ).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
   // When: a failed initial catalogue is revisited, only its explicit card action may retry.
   await user.press(screen.getByRole("tab", { name: "Infos" }));
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
@@ -768,6 +770,7 @@ it("distinguishes an empty club season from a failed team read", async () => {
   expect(
     await screen.findByText("Aucune équipe pour cette saison"),
   ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Actualiser les données")).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/teams?")),
   ).toHaveLength(2);
@@ -1145,7 +1148,8 @@ it.each(["network", "503"])(
     );
 
     // When
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(
         "Une erreur est survenue",

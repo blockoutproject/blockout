@@ -200,13 +200,13 @@ export function SportingCalendarView({
     )
       feedback.error();
   }
-  const refreshControl = (
+  const refreshControl = calendar.data ? (
     <DataRefreshControl
       refreshing={refreshing}
       onRefresh={() => void refresh()}
       enabled={active}
     />
-  );
+  ) : undefined;
   if (rows.length === 0)
     return (
       <PagedStateScrollView refreshControl={refreshControl}>

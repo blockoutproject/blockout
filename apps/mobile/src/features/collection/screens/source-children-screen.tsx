@@ -81,9 +81,9 @@ export function SourceChildrenScreen({
             onScroll={onScroll}
             scrollEventThrottle={16}
             scrollIndicatorInsets={{ top: headerHeight }}
-            alwaysBounceVertical
+            alwaysBounceVertical={authority.enabled && !denied && !!query.data}
             refreshControl={
-              authority.sessionStatus === "authenticated" ? (
+              authority.enabled && !denied && query.data ? (
                 <DataRefreshControl
                   progressViewOffset={headerHeight}
                   enabled={!query.isFetchingNextPage}

@@ -168,7 +168,7 @@ function Inbox({
             onScroll={onScroll}
             scrollEventThrottle={16}
             scrollIndicatorInsets={{ top: headerHeight }}
-            alwaysBounceVertical
+            alwaysBounceVertical={!!query.data}
             data={rows}
             onEndReached={() => {
               if (!query.isError) void loadMore();
@@ -184,11 +184,13 @@ function Inbox({
               },
             ]}
             refreshControl={
-              <DataRefreshControl
-                progressViewOffset={headerHeight}
-                refreshing={query.isRefetching && !query.isFetchingNextPage}
-                onRefresh={() => void refresh()}
-              />
+              query.data ? (
+                <DataRefreshControl
+                  progressViewOffset={headerHeight}
+                  refreshing={query.isRefetching && !query.isFetchingNextPage}
+                  onRefresh={() => void refresh()}
+                />
+              ) : undefined
             }
             ListEmptyComponent={
               query.isError && !query.data ? (

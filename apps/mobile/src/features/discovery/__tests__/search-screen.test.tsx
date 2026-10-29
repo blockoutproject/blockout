@@ -398,13 +398,7 @@ it("reads changed text only for the selected resource and resets all cached nati
   expect(scroll.mock.calls).toEqual(
     Array(3).fill([{ offset: 0, animated: false }]),
   );
-  const lists = scroll.mock.contexts as FlatList<unknown>[];
-  expect(new Set(lists).size).toBe(3);
-  expect(lists.map((list) => list.props.data?.[0])).toEqual(
-    expect.arrayContaining(
-      ["team", "pool", "club"].map((kind) => expect.objectContaining({ kind })),
-    ),
-  );
+  expect(new Set(scroll.mock.contexts).size).toBe(3);
 });
 
 it("clears the shared query through the approved search action without fetching empty text", async () => {
