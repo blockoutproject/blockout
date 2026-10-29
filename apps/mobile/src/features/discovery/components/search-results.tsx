@@ -1,5 +1,8 @@
 import { pageContentStyle } from "../../../shared/components/page";
-import { pagedListDefaults } from "../../../shared/components/paged-tabs";
+import {
+  pagedListDefaults,
+  PagedStateScrollView,
+} from "../../../shared/components/paged-tabs";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { BottomNavigationSpacer } from "../../../shared/components/bottom-navigation-inset";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -18,13 +21,15 @@ export interface SearchResultsProps {
   onEndReached?: () => void;
 }
 
-/** One mounted native list retains its scroll registration through blank, loading, error and populated states. */
+/** Usable rows keep the virtualized list; content-free feedback adds no artificial collapse range. */
 export function SearchResults({
   items,
   emptyComponent,
   continuation,
   onEndReached,
 }: SearchResultsProps) {
+  if (items.length === 0)
+    return <PagedStateScrollView>{emptyComponent}</PagedStateScrollView>;
   return (
     <TabLegendList
       {...pagedListDefaults}
@@ -41,15 +46,12 @@ export function SearchResults({
         </>
       }
       data={items}
-      ListEmptyComponent={emptyComponent}
       keyExtractor={(item) => item.identity.id.toLowerCase()}
       getItemType={(item) => item.kind}
       recycleItems
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
-      contentContainerStyle={
-        items.length ? [pageContentStyle, styles.cards] : styles.list
-      }
+      contentContainerStyle={[pageContentStyle, styles.cards]}
       ItemSeparatorComponent={ListSeparator}
       renderItem={({ item }) => <SearchResultCard {...item} />}
     />
@@ -100,7 +102,6 @@ export function SearchHeading({ count, onClear }: SearchHeadingProps) {
 }
 
 const styles = StyleSheet.create({
-  list: { flexGrow: 1 },
   cards: { paddingTop: 0 },
   continuation: { paddingTop: tokens.spacing.lg },
   toolbar: {

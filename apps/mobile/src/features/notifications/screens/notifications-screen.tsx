@@ -1,3 +1,4 @@
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import {
   useInfiniteQuery,
   useMutation,
@@ -93,6 +94,7 @@ function Inbox({
   const { colors } = useTheme();
   // Cached rows also pass the opening cutoff before the first render; the ordinary layout owns active/resume cleanup.
   const [openedAt] = useState(Date.now);
+  const [pulling, setPulling] = useState(false);
   const rows = [
     ...new Map(
       (query.data?.pages ?? [])
@@ -128,6 +130,15 @@ function Inbox({
     )
       feedback.error();
   }
+  /** Only an explicit native pull controls the spinner; focus reads never displace the list. */
+  async function pullToRefresh() {
+    setPulling(true);
+    try {
+      await refresh();
+    } finally {
+      setPulling(false);
+    }
+  }
   /** The focused current owner may retry the failed cursor explicitly; native edge events never replay it. */
   async function loadMore() {
     if (
@@ -138,7 +149,16 @@ function Inbox({
       (query.isError && !query.isFetchNextPageError)
     )
       return;
-    await query.fetchNextPage({ cancelRefetch: false });
+    feedback.clear();
+    const result = await query.fetchNextPage({ cancelRefetch: false });
+    if (
+      result.isFetchNextPageError &&
+      result.data &&
+      !isAccessDenied(result.error) &&
+      owner.isCurrent(owner.generation) &&
+      navigation.isFocused()
+    )
+      feedback.error();
   }
   return (
     <Page edges={["left", "right"]}>
@@ -156,10 +176,11 @@ function Inbox({
       >
         {({ onScroll, headerHeight }) => (
           <Animated.FlatList
+            {...hiddenScrollIndicators}
             onScroll={onScroll}
             scrollEventThrottle={16}
             scrollIndicatorInsets={{ top: headerHeight }}
-            alwaysBounceVertical
+            alwaysBounceVertical={!!query.data}
             data={rows}
             onEndReached={() => {
               if (!query.isError) void loadMore();
@@ -175,11 +196,13 @@ function Inbox({
               },
             ]}
             refreshControl={
-              <DataRefreshControl
-                progressViewOffset={headerHeight}
-                refreshing={query.isRefetching && !query.isFetchingNextPage}
-                onRefresh={() => void refresh()}
-              />
+              query.data ? (
+                <DataRefreshControl
+                  progressViewOffset={headerHeight}
+                  refreshing={pulling}
+                  onRefresh={() => void pullToRefresh()}
+                />
+              ) : undefined
             }
             ListEmptyComponent={
               query.isError && !query.data ? (

@@ -1,6 +1,6 @@
 import { useRouter, usePreventRemove } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Sheet } from "../../../shared/components/sheet";
+import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { AgeForm } from "../../advertising/forms/age-form";
 import { useAgeDeclaration } from "../../advertising/age-declaration-provider";
 import { useAccountSession } from "../../accounts/current-account";
@@ -60,14 +60,15 @@ export function AgeCorrectionSheet() {
         if (!age.pending) returnToPrivacy();
       }}
       closeDisabled={age.pending}
-      scrollable={false}
     >
-      <AgeForm
-        key={`${session.generation}:${session.accountId}`}
-        pending={age.pending || age.nativePrivacy.pending}
-        submitLabel="Enregistrer"
-        onSubmit={confirm}
-      />
+      <SheetContent>
+        <AgeForm
+          key={`${session.generation}:${session.accountId}`}
+          pending={age.pending || age.nativePrivacy.pending}
+          submitLabel="Enregistrer"
+          onSubmit={confirm}
+        />
+      </SheetContent>
     </Sheet>
   );
 }

@@ -1,12 +1,10 @@
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { useQuery } from "@tanstack/react-query";
 import { useSportingNavigation } from "../navigation";
 import { Columns3, List } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import {
-  TabScrollView,
-  useCollapsingTabsContext,
-} from "react-native-collapsible-tab";
+import { TabScrollView } from "react-native-collapsible-tab";
 import type {
   PoolSummaryResponse,
   StandingRowResponse,
@@ -16,6 +14,7 @@ import { DataRefreshControl } from "../../../shared/components/data-refresh-cont
 import { PageContent } from "../../../shared/components/page";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
+import { PagedStateScrollView } from "../../../shared/components/paged-tabs";
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
 import { resourceUnavailable } from "../model/consultation-availability";
 import { tokens } from "../../../shared/theme/tokens";
@@ -45,7 +44,6 @@ export function PoolStandings({
   const standings = useQuery(queries.standings(pool.pool.id));
   const feedback = useActionFeedback();
   const { colors } = useTheme();
-  const { containerHeight, paddingTop } = useCollapsingTabsContext();
   const [layout, setLayout] = useState<"list" | "cards">("list");
   const data = standings.data;
   const columns = data?.columns ?? [];
@@ -54,105 +52,108 @@ export function PoolStandings({
   async function refresh() {
     feedback.clear();
     const result = await standings.refetch({ cancelRefetch: false });
-    if (result.isError && result.data && !resourceUnavailable(result.error))
+    if (
+      result.isError &&
+      result.data &&
+      result.data.availability !== "unavailable" &&
+      !resourceUnavailable(result.error)
+    )
       feedback.error();
   }
 
   const hasRows = data?.availability === "available" && data.rows.length > 0;
 
+  const refreshControl =
+    data && data.availability !== "unavailable" ? (
+      <DataRefreshControl
+        refreshing={standings.isRefetching}
+        onRefresh={() => void refresh()}
+      />
+    ) : undefined;
+  if (!hasRows)
+    return (
+      <PagedStateScrollView refreshControl={refreshControl}>
+        {children && <PageContent>{children}</PageContent>}
+        <ScreenState>
+          {!data ? (
+            <ReadFeedback query={standings} />
+          ) : data.availability === "unavailable" ? (
+            <ErrorState
+              onRetry={() => void refresh()}
+              retrying={standings.isFetching}
+            />
+          ) : (
+            <EmptyState
+              title={
+                data.availability === "not-published"
+                  ? "Pas de classement pour cette phase"
+                  : "Aucune équipe dans ce classement"
+              }
+            />
+          )}
+        </ScreenState>
+      </PagedStateScrollView>
+    );
   return (
     <TabScrollView
+      {...hiddenScrollIndicators}
       alwaysBounceVertical
       contentContainerStyle={styles.scrollContent}
-      refreshControl={
-        <DataRefreshControl
-          refreshing={standings.isRefetching}
-          onRefresh={() => void refresh()}
-        />
-      }
+      refreshControl={refreshControl}
     >
-      {hasRows ? (
-        <PageContent>
-          {children}
-          <View>
-            <View
-              style={styles.toolbar}
-              accessibilityRole="radiogroup"
-              accessibilityLabel="Présentation du classement"
-            >
-              {(
-                [
-                  ["cards", "Afficher en cartes", Columns3],
-                  ["list", "Afficher en liste", List],
-                ] as const
-              ).map(([value, label, Icon]) => (
-                <Pressable
-                  key={value}
-                  accessibilityRole="radio"
-                  accessibilityLabel={label}
-                  accessibilityState={{ checked: layout === value }}
-                  onPress={() => setLayout(value)}
-                  style={[
-                    styles.layoutAction,
-                    {
-                      backgroundColor:
-                        layout === value ? colors.subtle : undefined,
-                    },
-                  ]}
-                >
-                  <Icon size={tokens.size.icon.md} color={colors.icon} />
-                </Pressable>
+      <PageContent>
+        {children}
+        <View>
+          <View
+            style={styles.toolbar}
+            accessibilityRole="radiogroup"
+            accessibilityLabel="Présentation du classement"
+          >
+            {(
+              [
+                ["cards", "Afficher en cartes", Columns3],
+                ["list", "Afficher en liste", List],
+              ] as const
+            ).map(([value, label, Icon]) => (
+              <Pressable
+                key={value}
+                accessibilityRole="radio"
+                accessibilityLabel={label}
+                accessibilityState={{ checked: layout === value }}
+                onPress={() => setLayout(value)}
+                style={[
+                  styles.layoutAction,
+                  {
+                    backgroundColor:
+                      layout === value ? colors.subtle : undefined,
+                  },
+                ]}
+              >
+                <Icon size={tokens.size.icon.md} color={colors.icon} />
+              </Pressable>
+            ))}
+          </View>
+          {layout === "cards" ? (
+            <StandingCards rows={data.rows} columns={columns} active={active} />
+          ) : (
+            <View>
+              {data.rows.map((row, index) => (
+                <StandingEntry
+                  key={`${index}:${row.team?.id ?? "unlinked"}`}
+                  row={row}
+                  active={active}
+                  columns={columns}
+                  highlighted={
+                    row.team !== undefined && row.team.id === highlightTeamId
+                  }
+                  color={pool.classification.division?.color}
+                  last={index === data.rows.length - 1}
+                />
               ))}
             </View>
-            {layout === "cards" ? (
-              <StandingCards
-                rows={data.rows}
-                columns={columns}
-                active={active}
-              />
-            ) : (
-              <View>
-                {data.rows.map((row, index) => (
-                  <StandingEntry
-                    key={`${index}:${row.team?.id ?? "unlinked"}`}
-                    row={row}
-                    active={active}
-                    columns={columns}
-                    highlighted={
-                      row.team !== undefined && row.team.id === highlightTeamId
-                    }
-                    color={pool.classification.division?.color}
-                    last={index === data.rows.length - 1}
-                  />
-                ))}
-              </View>
-            )}
-          </View>
-        </PageContent>
-      ) : (
-        // RNCT's extra collapse range is scroll space, outside the visible feedback area.
-        <View style={{ minHeight: Math.max(0, containerHeight - paddingTop) }}>
-          {children && <PageContent>{children}</PageContent>}
-          <ScreenState>
-            {!data ? (
-              <ReadFeedback query={standings} />
-            ) : data.availability === "unavailable" ? (
-              <ErrorState
-                onRetry={() => void refresh()}
-                retrying={standings.isFetching}
-              />
-            ) : (
-              <EmptyState
-                title={
-                  data.availability === "not-published"
-                    ? "Pas de classement pour cette phase"
-                    : "Aucune équipe dans ce classement"
-                }
-              />
-            )}
-          </ScreenState>
+          )}
         </View>
-      )}
+      </PageContent>
     </TabScrollView>
   );
 }

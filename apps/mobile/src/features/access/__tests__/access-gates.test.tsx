@@ -203,6 +203,7 @@ it.each(["/support", "/legal", "/sign-in", "/administration"])(
       }),
     ).toBeOnTheScreen();
     expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
     expect(screen.queryByText("Illustration à définir")).toBeNull();
     expect(
       screen.queryByText(/^(Support|Legal|Sign-in|Operational) route$/),

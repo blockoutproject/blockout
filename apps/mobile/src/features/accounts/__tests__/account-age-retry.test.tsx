@@ -6,17 +6,19 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   cleanup,
-  render,
   screen,
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Pressable, Text } from "react-native";
+import { Stack } from "expo-router";
+import { renderRouter } from "expo-router/testing-library";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import { ProfileScreen } from "../screens/profile-screen";
+import { ProfileEditScreen } from "../screens/profile-edit-screen";
 import {
   AccountSessionProvider,
   useAccountSession,
@@ -37,12 +39,6 @@ jest.mock("react-native-auth0", () => {
   return jest.requireActual("react-native-auth0");
 });
 
-// Navigation is an external boundary here; the discard guard has real-router coverage in its owning suite.
-jest.mock("expo-router", () => ({
-  ...jest.requireActual("expo-router"),
-  usePreventRemove: jest.fn(),
-  useRouter: () => ({ replace: jest.fn() }),
-}));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, request?: RequestInit) =>
     String(url).endsWith("/application-access")
@@ -133,25 +129,39 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Real profile/account owners and F12 admission; the unrelated F09 composition is explicitly omitted. */
+/** Real route history keeps an in-flight age retry alive while the separate editor owns its draft. */
 async function renderProfile(admitted = true) {
-  await render(
-    <QueryClientProvider client={client}>
-      <ThemeProvider>
-        <ApplicationAccessProvider>
-          <AccountSessionProvider>
-            <AccountFeedbackProvider>
-              <ProfileScreen
-                admitted={admitted}
-                proEntry={null}
-                privacyEntry={null}
-              />
-              <SessionActions />
-            </AccountFeedbackProvider>
-          </AccountSessionProvider>
-        </ApplicationAccessProvider>
-      </ThemeProvider>
-    </QueryClientProvider>,
+  await renderRouter(
+    {
+      _layout: () => (
+        <>
+          <Stack screenOptions={{ headerShown: false, animation: "none" }} />
+          <SessionActions />
+        </>
+      ),
+      profile: () => (
+        <ProfileScreen
+          admitted={admitted}
+          proEntry={null}
+          privacyEntry={null}
+        />
+      ),
+      "profile/edit": () => <ProfileEditScreen admitted={admitted} />,
+    },
+    {
+      initialUrl: "/profile",
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={client}>
+          <ThemeProvider>
+            <ApplicationAccessProvider>
+              <AccountSessionProvider>
+                <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+              </AccountSessionProvider>
+            </ApplicationAccessProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      ),
+    },
   );
 }
 
@@ -188,17 +198,17 @@ function json(value: unknown) {
 it("keeps profile editing and current administration access usable while age is unknown", async () => {
   // Given
   await renderProfile();
-  await screen.findByDisplayValue("Original");
+  await screen.findByText("Original");
 
   // When
   const retry = screen.getByRole("button", { name: retryLabel });
 
   // Then
   expect(retry).toBeEnabled();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
   expect(
-    screen.getByRole("link", { name: "Administration technique" }),
-  ).toBeOnTheScreen();
+    screen.getByRole("button", { name: "Modifier mon profil" }),
+  ).toBeEnabled();
+  expect(screen.getByRole("link", { name: "Maintenance" })).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.every(([, request]) => request?.method !== "POST"),
   ).toBe(true);
@@ -213,7 +223,7 @@ it("does not offer an age retry when reliable evidence is already available", as
 
   // When
   await renderProfile();
-  await screen.findByDisplayValue("Original");
+  await screen.findByText("Original");
 
   // Then
   expect(
@@ -225,17 +235,11 @@ it("does not offer an age retry when reliable evidence is already available", as
   ).toBe(true);
 });
 
-it("retries the existing POST with valid credentials while preserving the username and prepared photo draft", async () => {
+it("retries establishment with current credentials and refreshes provider evidence without replacing profile values", async () => {
   // Given
   const user = userEvent.setup();
   await renderProfile();
-  await screen.findByDisplayValue("Original");
-  await user.clear(screen.getByLabelText("Pseudo"));
-  await user.type(screen.getByLabelText("Pseudo"), "My_draft");
-  await user.press(
-    screen.getByRole("button", { name: "Choisir une photo de profil" }),
-  );
-  await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+  await screen.findByText("Original");
   mockFetch.mockImplementation(async () =>
     json({
       ...account,
@@ -249,46 +253,36 @@ it("retries the existing POST with valid credentials while preserving the userna
   await user.press(screen.getByRole("button", { name: retryLabel }));
 
   // Then
-  await screen.findByDisplayValue("updated@example.invalid");
+  expect(await screen.findByText("updated@example.invalid")).toBeOnTheScreen();
+  expect(screen.getByText("Original")).toBeOnTheScreen();
+  expect(screen.queryByText("Other_device")).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: retryLabel }),
   ).not.toBeOnTheScreen();
-  expect(screen.getByDisplayValue("My_draft")).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Aperçu : Photo de profil" }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.getByRole("link", { name: "Administration technique" }),
-  ).toBeOnTheScreen();
-  expect(
-    mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
-  ).toEqual([
+  expect(screen.getByRole("link", { name: "Maintenance" })).toBeOnTheScreen();
+  const writes = mockFetch.mock.calls.filter(
+    ([, request]) => request?.method === "POST",
+  );
+  expect(writes).toEqual([
     [
       "https://api.example.invalid/accounts",
-      expect.objectContaining({
-        method: "POST",
-      }),
+      expect.objectContaining({ method: "POST" }),
     ],
   ]);
-  const write = mockFetch.mock.calls.find(
-    ([, request]) => request?.method === "POST",
-  )?.[1];
-  expect(new Headers(write?.headers).get("Authorization")).toBe(
+  expect(new Headers(writes[0][1]?.headers).get("Authorization")).toBe(
     "Bearer test-access-token",
   );
-  expect(write?.body).toBeUndefined();
+  expect(writes[0][1]?.body).toBeUndefined();
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
 });
 
 it.each(["network", "missing", "invalid"])(
-  "keeps an explicit retry and editable draft after %s evidence",
+  "retains explicit recovery and independent profile actions after %s evidence",
   async (outcome) => {
     // Given
     const user = userEvent.setup();
     await renderProfile();
-    await screen.findByDisplayValue("Original");
-    await user.clear(screen.getByLabelText("Pseudo"));
-    await user.type(screen.getByLabelText("Pseudo"), "My_draft");
+    await screen.findByText("Original");
     mockFetch.mockImplementation(async () => {
       if (outcome === "network") throw new TypeError("Provider unavailable");
       return json({
@@ -304,17 +298,17 @@ it.each(["network", "missing", "invalid"])(
     await waitFor(() =>
       expect(screen.getByRole("button", { name: retryLabel })).toBeEnabled(),
     );
-    expect(screen.getByDisplayValue("My_draft")).toBeOnTheScreen();
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+    expect(screen.getByText("Original")).toBeOnTheScreen();
     expect(
-      screen.getByRole("link", { name: "Administration technique" }),
-    ).toBeOnTheScreen();
+      screen.getByRole("button", { name: "Modifier mon profil" }),
+    ).toBeEnabled();
+    expect(screen.getByRole("link", { name: "Maintenance" })).toBeOnTheScreen();
     expect(
       mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
     ).toHaveLength(1);
     expect(mockAuth0.webAuth).not.toHaveBeenCalled();
 
-    // When: another attempt requires a new user action.
+    // When: another attempt requires another user action.
     mockFetch.mockImplementation(async () =>
       json({ ...account, principalCreatedAt: "2020-01-02T03:04:05Z" }),
     );
@@ -338,7 +332,7 @@ it.each(["success", "failure"])(
     // Given
     const user = userEvent.setup();
     await renderProfile();
-    await screen.findByDisplayValue("Original");
+    await screen.findByText("Original");
     const response = Promise.withResolvers<Response>();
     mockFetch.mockImplementation(async (_url, request) =>
       request?.method === "POST" ? response.promise : json(account),
@@ -352,7 +346,7 @@ it.each(["success", "failure"])(
       await user.press(
         screen.getByRole("button", { name: "Revenir au compte" }),
       );
-      await screen.findByDisplayValue("Original");
+      await screen.findByText("Original");
 
       // When
       await act(async () => {
@@ -369,8 +363,8 @@ it.each(["success", "failure"])(
 
       // Then
       expect(screen.getByRole("button", { name: retryLabel })).toBeEnabled();
-      expect(screen.getByDisplayValue("Original")).toBeOnTheScreen();
-      expect(screen.queryByDisplayValue("Stale_name")).not.toBeOnTheScreen();
+      expect(screen.getByText("Original")).toBeOnTheScreen();
+      expect(screen.queryByText("Stale_name")).not.toBeOnTheScreen();
       expect(
         screen.queryByText("La lecture de l’ancienneté a échoué. Réessayez."),
       ).not.toBeOnTheScreen();
@@ -397,18 +391,18 @@ it("does not expose targeted retry through refused profile admission", async () 
 });
 
 it.each(["age", "profile"])(
-  "preserves confirmed photo and provider evidence when the %s response arrives last",
+  "preserves confirmed photo and provider evidence when the %s response arrives last across overview and editing",
   async (lateReply) => {
     // Given
     const previousReader = Object.getOwnPropertyDescriptor(
       globalThis,
       "FileReader",
     );
-    /** Native preview decoding is controlled; both account mutations and Query admissions remain real. */
+    /** Controls native preview conversion while real account mutation ordering and Query admission remain intact. */
     class PhotoReader {
       result = "data:image/png;base64,accepted";
       onload?: () => void;
-      /** Completes the accepted-photo preview using deterministic native I/O. */
+      /** Completes each accepted native image conversion without changing transport/cache behavior. */
       readAsDataURL() {
         this.onload?.();
       }
@@ -422,13 +416,7 @@ it.each(["age", "profile"])(
     try {
       const user = userEvent.setup();
       await renderProfile();
-      await screen.findByDisplayValue("Original");
-      await user.clear(screen.getByLabelText("Pseudo"));
-      await user.type(screen.getByLabelText("Pseudo"), "My_draft");
-      await user.press(
-        screen.getByRole("button", { name: "Choisir une photo de profil" }),
-      );
-      await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+      await screen.findByText("Original");
       mockFetch.mockImplementation(async (url, request) => {
         if (request?.method === "POST") return age.promise;
         if (request?.method === "PATCH") return profile.promise;
@@ -438,13 +426,19 @@ it.each(["age", "profile"])(
           });
         return json(account);
       });
-      if (lateReply === "age") {
-        await user.press(screen.getByRole("button", { name: retryLabel }));
-        await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-      } else {
-        await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-        await user.press(screen.getByRole("button", { name: retryLabel }));
-      }
+      // The age command starts on the overview and may settle after the user opens editing.
+      await user.press(screen.getByRole("button", { name: retryLabel }));
+      await user.press(
+        screen.getByRole("button", { name: "Modifier mon profil" }),
+      );
+      await screen.findByDisplayValue("Original");
+      await user.clear(screen.getByLabelText("Pseudo"));
+      await user.type(screen.getByLabelText("Pseudo"), "My_draft");
+      await user.press(
+        screen.getByRole("button", { name: "Choisir une photo de profil" }),
+      );
+      await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+      await user.press(screen.getByRole("button", { name: "Enregistrer" }));
       const ageResponse = {
         ...account,
         username: lateReply === "profile" ? "My_draft" : "Original",
@@ -459,39 +453,31 @@ it.each(["age", "profile"])(
         principalCreatedAt: lateReply === "age" ? "2020-01-02T03:04:05Z" : null,
       };
 
-      // When: the server's earlier snapshot is delivered after the later committed mutation.
+      // When: the earlier server snapshot arrives after the later committed mutation.
       if (lateReply === "age") {
         await act(async () => profile.resolve(json(profileResponse)));
-        await waitFor(() =>
-          expect(
-            screen.getByRole("button", { name: "Enregistrer", busy: false }),
-          ).toBeEnabled(),
-        );
+        await waitFor(() => expect(screen).toHavePathname("/profile"));
         await act(async () => age.resolve(json(ageResponse)));
       } else {
         await act(async () => age.resolve(json(ageResponse)));
-        await waitFor(() =>
-          expect(
-            screen.queryByRole("button", { name: retryLabel }),
-          ).not.toBeOnTheScreen(),
-        );
+        await screen.findByDisplayValue("updated@example.invalid");
         await act(async () => profile.resolve(json(profileResponse)));
       }
 
       // Then
-      await waitFor(() =>
-        expect(
-          screen.getByRole("button", { name: "Enregistrer", busy: false }),
-        ).toBeEnabled(),
-      );
-      await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+      await waitFor(() => expect(screen).toHavePathname("/profile"));
+      expect(await screen.findByText("My_draft")).toBeOnTheScreen();
+      expect(screen.getByText("updated@example.invalid")).toBeOnTheScreen();
       expect(
         screen.queryByRole("button", { name: retryLabel }),
       ).not.toBeOnTheScreen();
-      expect(screen.getByDisplayValue("My_draft")).toBeOnTheScreen();
+      await user.press(
+        screen.getByRole("button", { name: "Modifier mon profil" }),
+      );
       expect(
-        await screen.findByDisplayValue("updated@example.invalid"),
+        await screen.findByRole("button", { name: "Aperçu : Photo de profil" }),
       ).toBeOnTheScreen();
+      expect(screen.getByDisplayValue("My_draft")).toBeOnTheScreen();
       expect(
         mockFetch.mock.calls.filter(
           ([, request]) => request?.method === "POST",

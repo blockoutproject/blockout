@@ -120,3 +120,7 @@ The owner approved [prototype `a53ec86`](https://github.com/blockoutproject/prod
 Run the README documentation and contract checks on the final tree and verify local links and owner/consumer consistency. These checks establish no product runtime or native qualification; publication follows [repository delivery policy](../../AGENTS.md#git-delivery).
 
 Calendars follow [F13's application-wide infinite-list convention](../003-shared-quality/plan.md#repeated-interaction-conventions): native automatic continuation, pending footer loader and compact failed-page retry while retaining authorized days/cursor. Initial reads without data retain the shared error card; ordinary refresh remains native pull-to-refresh with existing failure feedback. Query and Router retain context, focus and authorization ownership; no custom pagination or progress-recovery engine is added.
+
+### Match compact navigation follow-up
+
+The 2026-10-29 owner clarification restores the accepted compact recap (Product Design `4393:34700`) missing from native Match. The shared fixed chrome may supply its existing native scroll value to its header; Match measures its actual team rows once per layout and owns the handoff. No scroll-memory controller or second match query is added. Missing scalar facts and unknown numeric scores use ASCII `-`; domain precision/status messages remain explicit. The requested information-row pool icon was withdrawn. Corresponding Figma/prototype copy is reconciled without implementing future business sections or treating fixtures as provider acceptance.

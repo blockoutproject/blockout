@@ -9,6 +9,7 @@ import { Page, PageContent } from "../../../shared/components/page";
 import { PagedTabs, PagerTabBar } from "../../../shared/components/paged-tabs";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { ListContinuation } from "../../../shared/components/list-continuation";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useRef, useState } from "react";
@@ -34,7 +35,10 @@ import {
 import { useDiscoveryQuery } from "../api/use-discovery-query";
 import { SearchHeading, SearchResults } from "../components/search-results";
 import { SearchLoading } from "../components/search-loading";
-import type { CollapsingTabsRef } from "react-native-collapsible-tab";
+import {
+  useCollapsingTabsContext,
+  type CollapsingTabsRef,
+} from "react-native-collapsible-tab";
 import { uniqueSearchResults, type SearchResult } from "../model/search-result";
 
 const searchTabs = [
@@ -47,7 +51,7 @@ const searchTabs = [
  * Public text-search entry with internal tabs and a single shared editable value. Empty-text
  * examples and sporting activation remain with their owning tasks. Filters retain one selection per sporting tab.
  * Native end events continue the selected focused context. Initial errors use the shared card;
- * failed continuation retains accepted pages and offers one compact retry at the list edge.
+ * failed continuation reports a toast, retains accepted pages and offers retry at the list edge.
  * Generated Unicode validation rejects over-limit text without truncating the user's draft.
  */
 export function SearchScreen() {
@@ -240,17 +244,15 @@ export function SearchScreen() {
                   </Pressable>
                 )}
               </View>
-            </View>
-            {searchable && (!sporting || filters) && (
-              <View style={styles.resultsHeading}>
+              {searchable && (!sporting || filters) && (
                 <SearchHeading
                   count={
                     queries[resource].data ? items[resource].length : undefined
                   }
                   onClear={() => clearCriteria(resource)}
                 />
-              </View>
-            )}
+              )}
+            </View>
           </>
         )}
       />
@@ -274,19 +276,30 @@ function SearchScene({
 }) {
   const visit = useSearchVisit();
   const navigation = useNavigation();
+  const feedback = useActionFeedback();
+  const { focusedTab } = useCollapsingTabsContext();
   const sporting = resource === "club" ? undefined : visit[resource];
   const filters = sporting?.filters;
   const resultsReady = searchable && (!sporting || !!filters);
   /** The visible valid context owns continuation; explicit retry may resume its failed cursor. */
-  function loadMore() {
+  async function loadMore() {
     if (
-      active &&
-      navigation.isFocused() &&
-      resultsReady &&
-      query.hasNextPage &&
-      !query.isFetching
+      !active ||
+      !navigation.isFocused() ||
+      !resultsReady ||
+      !query.hasNextPage ||
+      query.isFetching
     )
-      void query.fetchNextPage({ cancelRefetch: false });
+      return;
+    feedback.clear();
+    const result = await query.fetchNextPage({ cancelRefetch: false });
+    if (
+      result.isFetchNextPageError &&
+      result.data &&
+      navigation.isFocused() &&
+      focusedTab.value === resource
+    )
+      feedback.error();
   }
   const error =
     query.isError && !query.data ? (
@@ -344,10 +357,6 @@ function SearchScene({
 }
 
 const styles = StyleSheet.create({
-  // Figma 7130:19183: the centered row's native touch minimum owns its space below the input.
-  resultsHeading: {
-    paddingHorizontal: tokens.spacing.screen,
-  },
   toolbar: {
     flexDirection: "row",
     gap: tokens.spacing.sm,
@@ -373,7 +382,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // The fixed heading owns its own vertical space when a textual search is present.
+  // One search composition owns equal spacing from tabs to input and from input to its heading.
   controls: {
     paddingHorizontal: tokens.spacing.screen,
     paddingTop: tokens.spacing.sm,

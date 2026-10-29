@@ -69,3 +69,13 @@ The [accepted iOS live Dynamic Type limitation](../003-shared-quality/quickstart
 Record actual platform/build, tested scenario and outcome in the normal delivery evidence. Keep receipts, customer IDs and diagnostics private. Test Store, mocked callbacks or one successful purchase do not establish native lifecycle, complete continuity or store approval.
 
 Unavailable evidence remains a release qualification, not a passing test. Resolve a failed required native behavior before release; do not add a custom recovery system as an unreviewed workaround.
+
+## Account destination follow-up
+
+The [Phase 18 native evidence](../003-shared-quality/quickstart.md#complete-account-and-direct-operational-entries--phase-18) records the Android Pro destination on `6da44c1`, unchanged in final `1a5163d`: its own unavailable read/retry state and the blank contextual support form were opened, then left without sending. RevenueCat keys are deliberately absent from the fictional qualification runtime. This is an observed app-owned error/support boundary, not a Paywall/Customer Center, offering, purchase, restore, entitlement or provider-accessibility qualification; T026/T027/T042 retain their own prerequisites and limits.
+
+## Current native callbacks after route removal
+
+At source `25d9cbf0`, four controlled regressions reproduce a purchase started in the current account session, route removal while its outcome is uncertain, then a native purchased/cancelled/pending/failed callback. Each outcome reaches the real Pro owner once, without reopening navigation or publishing feedback from the retired route. Reopening shows the confirmed-payment/pending warning or the eligible paywall as appropriate. The tests failed before the correction and pass afterward; existing stale-session, UUID and duplicate-callback tests remain intact.
+
+These tests exercise real session/Query/Pro providers with SDK and navigation doubles; no store operation was performed. [F13's implementation-review qualification](../003-shared-quality/quickstart.md#native-implementation-review--kiss) owns the combined checks and native regression observations. T026/T027/T042 retain their independent provider/store/accessibility prerequisites.

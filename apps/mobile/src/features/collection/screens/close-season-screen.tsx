@@ -43,7 +43,7 @@ export function CloseSeasonScreen({ seasonId }: { seasonId: string }) {
             scrollIndicatorInsets={{ top: headerHeight }}
             contentContainerStyle={{ paddingTop: headerHeight }}
             refreshControl={
-              authority.sessionStatus === "authenticated" ? (
+              authority.sessionStatus === "authenticated" && !blockingState ? (
                 <DataRefreshControl
                   progressViewOffset={headerHeight}
                   refreshing={

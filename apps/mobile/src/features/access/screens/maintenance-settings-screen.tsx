@@ -88,7 +88,7 @@ export function MaintenanceSettingsScreen() {
             scrollIndicatorInsets={{ top: headerHeight }}
             contentContainerStyle={{ paddingTop: headerHeight }}
             refreshControl={
-              sessionStatus === "authenticated" ? (
+              settings && sessionStatus === "authenticated" ? (
                 <DataRefreshControl
                   progressViewOffset={headerHeight}
                   enabled={!editing.content.pending}
@@ -100,9 +100,9 @@ export function MaintenanceSettingsScreen() {
               ) : undefined
             }
           >
-            {loadingSettings ? (
+            {settings || loadingSettings ? (
               <PageContent>{settingsContent}</PageContent>
-            ) : !settings ? (
+            ) : (
               <ScreenState>
                 {sessionStatus === "restoring" ||
                 (sessionStatus === "authenticated" && account.isPending) ? (
@@ -111,8 +111,6 @@ export function MaintenanceSettingsScreen() {
                   (accessError ?? settingsContent)
                 )}
               </ScreenState>
-            ) : (
-              <PageContent>{settingsContent}</PageContent>
             )}
           </FormScrollView>
         )}

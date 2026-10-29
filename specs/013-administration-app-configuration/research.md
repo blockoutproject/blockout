@@ -81,3 +81,7 @@ The in-process current-maintenance read uses a short native `REQUIRES_NEW` read 
 TanStack supports passing an AbortSignal to fetch and cancelling queries; cancellation is not proof that a server mutation was cancelled. Reuse F05's session generation and explicit access revisions to reject stale results, without inventing a generic event-ordering engine. [Query cancellation](https://tanstack.com/query/latest/docs/framework/react/guides/query-cancellation).
 
 The [quickstart](quickstart.md) defines the future evidence required. Documentary feasibility does not waive generator, database, native or design gates; failed qualification must be resolved before the affected implementation is adopted.
+
+## Direct Profile operational destinations
+
+The existing Profile “Administration technique” link opened an index that repeated Divisions before Collections. Replacing that link with Collections alone would remove the only ordinary entry points to Maintenance and Minimum versions. The scoped correction therefore uses three direct rows under their existing separate grants and keeps the same operational routes and guards. Collections already lives at `/collection`; no `/administration/collection` alias is introduced. The maintenance gate still opens `/administration` for permitted operations and explicit personal bypass. This changes navigation composition only, without granting a sporting operator collection/configuration powers or changing maintenance admission.

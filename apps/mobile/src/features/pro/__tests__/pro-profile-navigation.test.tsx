@@ -20,6 +20,7 @@ import {
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
+import { ProPresentationScreen } from "../screens/pro-presentation-screen";
 import { ProProfileEntry } from "../components/pro-profile-entry";
 import { ProProvider } from "../pro-provider";
 import { prepareProNativeIO } from "../test-support/pro-harness";
@@ -40,6 +41,16 @@ jest.mock("react-native-purchases", () => ({
   __esModule: true,
   default: jest.requireActual("../test-support/native-purchases").mockPurchases,
 }));
+jest.mock("react-native-purchases-ui", () => {
+  const { Text } = jest.requireActual("react-native");
+  return {
+    __esModule: true,
+    default: {
+      Paywall: () => <Text>Native paywall double</Text>,
+      CustomerCenterView: () => <Text>Native management double</Text>,
+    },
+  };
+});
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
@@ -87,7 +98,7 @@ function JourneyLayout() {
   );
 }
 
-/** Gives the profile an ordinary navigation exit while its offering read is pending. */
+/** The profile entry navigates before any offering lookup. */
 function ProfileRoute() {
   return (
     <>
@@ -97,8 +108,8 @@ function ProfileRoute() {
   );
 }
 
-it("keeps navigation usable during offering lookup and abandons the opening when profile loses focus", async () => {
-  // Given
+it("opens Pro immediately and discards a late offer after the destination loses its owner", async () => {
+  // Given: real Router and providers; only SDK I/O and native provider UI are controlled.
   const user = userEvent.setup();
   const read = Promise.withResolvers<PurchasesOfferings>();
   mockPurchases.getOfferings.mockReturnValueOnce(read.promise);
@@ -108,7 +119,7 @@ it("keeps navigation usable during offering lookup and abandons the opening when
         _layout: JourneyLayout,
         profile: ProfileRoute,
         sporting: () => <Text>Sporting destination</Text>,
-        pro: () => <Text>Pro destination</Text>,
+        pro: () => <ProPresentationScreen admitted />,
       },
       {
         initialUrl: "/profile",
@@ -130,31 +141,26 @@ it("keeps navigation usable during offering lookup and abandons the opening when
         "00000000-0000-4000-8000-000000000251",
       ),
     );
-    await screen.findByRole("button", {
-      name: "Gérer ou restaurer mes achats",
-    });
+    expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
 
     // When
     await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
 
     // Then
+    expect(screen).toHavePathname("/pro");
+    expect(await screen.findByRole("progressbar")).toBeOnTheScreen();
     expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(1);
-    expect(screen).toHavePathname("/profile");
 
     // When
+    await user.press(screen.getByRole("button", { name: "Retour" }));
     await user.press(screen.getByRole("link", { name: "Quitter le profil" }));
-
-    // Then
-    expect(await screen.findByText("Sporting destination")).toBeOnTheScreen();
-    expect(screen).toHavePathname("/sporting");
-
-    // When
     await act(() => read.resolve({ current: null, all: { v2: v2Offering } }));
     await waitFor(() => expect(client.isFetching()).toBe(0));
 
     // Then
     expect(screen).toHavePathname("/sporting");
-    expect(screen.queryByText("Pro destination")).not.toBeOnTheScreen();
+    expect(screen.getByText("Sporting destination")).toBeOnTheScreen();
+    expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
   } finally {
     await act(() => read.resolve({ current: null, all: { v2: v2Offering } }));
   }

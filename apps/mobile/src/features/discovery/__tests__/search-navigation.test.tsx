@@ -248,8 +248,13 @@ it.each(["network", "schema", "http"])(
       else pending.resolve(Response.json({ status: 500 }, { status: 500 }));
     });
     const retry = await screen.findByRole("button", {
-      name: /Une erreur est survenue/,
+      name: "Réessayer",
     });
+    expect(
+      await screen.findByRole("alert", {
+        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      }),
+    ).toBeOnTheScreen();
     const attempts = mockFetch.mock.calls.length;
     await fireEvent(
       screen.getByLabelText("Résultats de recherche"),
@@ -318,6 +323,53 @@ it.each(["network", "schema", "http"])(
     expect(
       screen.queryByLabelText("Actualiser les données"),
     ).not.toBeOnTheScreen();
+  },
+);
+
+it.each(["criteria", "tab"])(
+  "does not announce an obsolete continuation after changing %s",
+  async (change) => {
+    // Given: HTTP is delayed while the real Query observer and native tab owner change scope.
+    const pending = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).searchParams.has("cursor")
+        ? pending.promise
+        : publicReads(url),
+    );
+    const user = userEvent.setup();
+    await renderSearch();
+    await user.press(screen.getByRole("tab", { name: "Clubs" }));
+    await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+    await screen.findByText("Niort");
+    await fireEvent(
+      screen.getByLabelText("Résultats de recherche"),
+      "endReached",
+    );
+    await screen.findByRole("progressbar", { name: "Chargement en cours" });
+
+    // When
+    if (change === "criteria") {
+      await user.clear(screen.getByLabelText("Rechercher"));
+      await user.paste(screen.getByLabelText("Rechercher"), "Eagles");
+      await screen.findByText("Niort");
+    } else {
+      await user.press(screen.getByRole("tab", { name: "Équipes" }));
+      await screen.findByLabelText(
+        "Volley, Club public, 2026/2027, 6 × 6, Féminin",
+      );
+    }
+    await act(async () =>
+      pending.resolve(Response.json({ status: 500 }, { status: 500 })),
+    );
+
+    // Then
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Réessayer" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.getByLabelText("Rechercher")).toHaveDisplayValue(
+      change === "criteria" ? "Eagles" : "Volley",
+    );
   },
 );
 

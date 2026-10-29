@@ -1,3 +1,4 @@
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { Page, pageContentStyle } from "../../../shared/components/page";
 import { PreparationLink } from "../components/preparation-link";
@@ -40,17 +41,15 @@ export function SourceChildrenScreen({
   const items = denied
     ? []
     : (query.data?.pages.flatMap((page) => page.items) ?? []);
-  /** Refreshes the catalog or grant; a failed technical reread retains authorized content and reports its outcome. */
+  /** Refreshes the admitted catalog; a failed technical reread retains authorized content and reports its outcome. */
   async function refresh() {
     if (query.isFetching) return;
-    const result = authority.enabled
-      ? await query.refetch({ cancelRefetch: false })
-      : await authority.account.refetch({ cancelRefetch: false });
+    const result = await query.refetch({ cancelRefetch: false });
     if (result.isError && result.data && !isAccessDenied(result.error))
       feedback.error();
   }
   /** Shared continuation command keeps traversal and scope; automatic edges separately exclude failed reads. */
-  function loadMore() {
+  async function loadMore() {
     if (
       !authority.enabled ||
       !authority.session.isCurrent(authority.session.generation) ||
@@ -61,20 +60,30 @@ export function SourceChildrenScreen({
       authority.account.isFetching
     )
       return;
-    void query.fetchNextPage({ cancelRefetch: false });
+    feedback.clear();
+    const result = await query.fetchNextPage({ cancelRefetch: false });
+    if (
+      result.isFetchNextPageError &&
+      result.data &&
+      !isAccessDenied(result.error) &&
+      authority.session.isCurrent(authority.session.generation) &&
+      navigation.isFocused()
+    )
+      feedback.error();
   }
   return (
     <Page edges={["left", "right", "bottom"]}>
       <ScrollChrome header={<PageHeader title="Groupes découverts" />}>
         {({ onScroll, headerHeight }) => (
           <Animated.FlatList
+            {...hiddenScrollIndicators}
             testID="collection-source-children-list"
             onScroll={onScroll}
             scrollEventThrottle={16}
             scrollIndicatorInsets={{ top: headerHeight }}
-            alwaysBounceVertical
+            alwaysBounceVertical={authority.enabled && !denied && !!query.data}
             refreshControl={
-              authority.sessionStatus === "authenticated" ? (
+              authority.enabled && !denied && query.data ? (
                 <DataRefreshControl
                   progressViewOffset={headerHeight}
                   enabled={!query.isFetchingNextPage}

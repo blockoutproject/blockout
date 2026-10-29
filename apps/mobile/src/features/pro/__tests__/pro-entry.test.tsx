@@ -1,4 +1,6 @@
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
 import {
@@ -26,11 +28,20 @@ import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import { mockPurchases } from "../test-support/native-purchases";
-import { ProEntry } from "../components/pro-entry";
+import { ProEntry, ProProfileBadge } from "../components/pro-entry";
+import * as proSessionModule from "../pro-session";
+import { customerInfo, entitlement } from "../test-support/customer-info";
+import { prepareProNativeIO } from "../test-support/pro-harness";
 import { ProProfileEntry } from "../components/pro-profile-entry";
-import { ProProvider } from "../pro-provider";
+import { ProProvider, usePro, type ProContext } from "../pro-provider";
 import { PrivacyEntry } from "../../privacy/components/privacy-sheet";
 
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: {
+    expoConfig: { extra: { revenueCat: { iosApiKey: "test_public" } } },
+  },
+}));
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
 );
@@ -61,6 +72,12 @@ jest.mock("expo-router", () => ({
   useRouter: () => mockRouter,
 }));
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+jest.mock("expo/fetch", () => ({
+  fetch: (url: RequestInfo | URL) =>
+    String(url).endsWith("/application-access")
+      ? Promise.resolve(Response.json(mockApplicationAccessResponse()))
+      : Promise.reject(new Error("Unexpected HTTP request")),
+}));
 
 // Navigation commands are controlled; the actual F05 session, invitation, F13 controls and profile render.
 const mockRouter = {
@@ -71,12 +88,14 @@ const mockRouter = {
 };
 const previousEnvironment = { ...process.env };
 let account: AccountSession;
+let pro: ProContext;
 let client = createQueryClient();
 const message = "Connectez-vous pour utiliser Blockout Pro";
 
 beforeEach(() => {
   client = createQueryClient();
   Object.assign(process.env, {
+    EXPO_PUBLIC_API_URL: "https://api.example.invalid",
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
     EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
   });
@@ -116,10 +135,12 @@ async function mount(content: React.ReactNode) {
         <QueryClientProvider client={client}>
           <ThemeProvider>
             <ActionFeedbackProvider scopeKey="test">
-              <AccountSessionProvider>
-                <SessionProbe />
-                {children}
-              </AccountSessionProvider>
+              <ApplicationAccessProvider>
+                <AccountSessionProvider>
+                  <SessionProbe />
+                  {children}
+                </AccountSessionProvider>
+              </ApplicationAccessProvider>
             </ActionFeedbackProvider>
           </ThemeProvider>
         </QueryClientProvider>
@@ -148,18 +169,21 @@ it("places a distinct Pro action before Privacy in the existing admitted profile
   // Then
   expect(mockRouter.push).toHaveBeenCalledWith("/sign-in-invitation");
   expect(screen.getByText("Blockout Pro")).toBeOnTheScreen();
-  expect(screen.getAllByRole("link", { name: "Confidentialité" })).toHaveLength(
-    2,
-  );
+  expect(
+    screen.getByRole("link", { name: "Confidentialité" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: "Politique de confidentialité" }),
+  ).toBeOnTheScreen();
   const actions = screen.getAllByRole(/button|link/);
   expect(
     actions.indexOf(screen.getByRole("button", { name: "Blockout Pro" })),
   ).toBeLessThan(
-    actions.indexOf(
-      screen.getAllByRole("link", { name: "Confidentialité" })[0],
-    ),
+    actions.indexOf(screen.getByRole("link", { name: "Confidentialité" })),
   );
-  expect(screen.getByText("Besoin d’aide ?")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Besoin d’aide ?" }),
+  ).toBeOnTheScreen();
   expect(mockPurchases.getCustomerInfo).not.toHaveBeenCalled();
   expect(Purchases.getOfferings).not.toHaveBeenCalled();
 });
@@ -277,4 +301,84 @@ it("requires a new explicit press after ordinary sign-in before requesting prese
 
   // Then
   expect(present.mock.calls).toEqual([[]]);
+});
+
+/** Observes the real Pro context beside the badge so explicit verification keeps its provider-owned lifecycle. */
+function MembershipProbe() {
+  const current = usePro();
+  useEffect(() => {
+    pro = current;
+  }, [current]);
+  return <ProProfileBadge />;
+}
+
+it("shows membership only from verified current-session rights and clears it when the generation changes", async () => {
+  // Given
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
+  const inactive = prepareProNativeIO();
+  const read =
+    Promise.withResolvers<
+      Awaited<ReturnType<typeof Purchases.getCustomerInfo>>
+    >();
+  mockPurchases.getCustomerInfo.mockReturnValue(read.promise);
+  try {
+    await mount(
+      <ProProvider>
+        <MembershipProbe />
+      </ProProvider>,
+    );
+    await screen.findByText("Session: authenticated");
+    await act(() =>
+      account.setAccount(
+        account.generation,
+        "00000000-0000-4000-8000-000000000246",
+      ),
+    );
+    await waitFor(() =>
+      expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(1),
+    );
+
+    // Then: pending or unavailable evidence must not be presented as free membership.
+    expect(screen.queryByText("Compte gratuit")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Compte Pro")).not.toBeOnTheScreen();
+
+    // When
+    await act(() => read.resolve(inactive));
+
+    // Then
+    expect(await screen.findByText("Compte gratuit")).toBeOnTheScreen();
+    expect(screen.queryByText("Compte Pro")).not.toBeOnTheScreen();
+
+    // Given
+    const right = entitlement();
+    mockPurchases.getCustomerInfo.mockResolvedValue(
+      customerInfo({
+        active: { "Blockout Pro": right },
+        all: { "Blockout Pro": right },
+        verification: right.verification,
+      }),
+    );
+
+    // When
+    await act(async () => {
+      await pro.refresh();
+    });
+
+    // Then
+    expect(await screen.findByText("Compte Pro")).toBeOnTheScreen();
+    expect(screen.queryByText("Compte gratuit")).not.toBeOnTheScreen();
+
+    // When
+    await act(() => account.invalidate());
+
+    // Then
+    expect(screen.queryByText("Compte Pro")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Compte gratuit")).not.toBeOnTheScreen();
+  } finally {
+    await act(() => read.resolve(inactive));
+  }
 });

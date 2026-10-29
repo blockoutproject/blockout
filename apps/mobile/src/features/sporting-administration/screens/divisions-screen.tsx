@@ -1,3 +1,4 @@
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { AccessFeedback } from "../../access/components/access-feedback";
 import { PageHeader } from "../../../shared/components/page-header";
@@ -77,35 +78,20 @@ export function DivisionsScreen() {
               scrollEventThrottle={16}
               scrollIndicatorInsets={{ top: headerHeight }}
               contentContainerStyle={{ paddingTop: headerHeight }}
-              refreshControl={
-                authority.sessionStatus === "authenticated" ? (
-                  <DataRefreshControl
-                    progressViewOffset={headerHeight}
-                    refreshing={authority.account.isRefetching}
-                    onRefresh={() =>
-                      void authority.account.refetch().then((result) => {
-                        if (
-                          result.isError &&
-                          result.data &&
-                          !isAccessDenied(result.error)
-                        )
-                          feedback.error();
-                      })
-                    }
-                  />
-                ) : undefined
-              }
             >
               <ScreenState>{blockingState}</ScreenState>
             </PageScrollView>
           ) : (
             <>
               <Animated.FlatList
+                {...hiddenScrollIndicators}
                 onScroll={onScroll}
                 scrollEventThrottle={16}
                 scrollIndicatorInsets={{ top: headerHeight }}
-                alwaysBounceVertical
+                alwaysBounceVertical={!!query.data && !denied}
                 refreshControl={
+                  query.data &&
+                  !denied &&
                   authority.sessionStatus === "authenticated" ? (
                     <DataRefreshControl
                       progressViewOffset={headerHeight}
@@ -113,24 +99,14 @@ export function DivisionsScreen() {
                         query.isRefetching || authority.account.isRefetching
                       }
                       onRefresh={() => {
-                        if (authority.enabled)
-                          void query.refetch().then((result) => {
-                            if (
-                              result.isError &&
-                              result.data &&
-                              !isAccessDenied(result.error)
-                            )
-                              feedback.error();
-                          });
-                        else
-                          void authority.account.refetch().then((result) => {
-                            if (
-                              result.isError &&
-                              result.data &&
-                              !isAccessDenied(result.error)
-                            )
-                              feedback.error();
-                          });
+                        void query.refetch().then((result) => {
+                          if (
+                            result.isError &&
+                            result.data &&
+                            !isAccessDenied(result.error)
+                          )
+                            feedback.error();
+                        });
                       }}
                     />
                   ) : undefined

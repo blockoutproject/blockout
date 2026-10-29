@@ -205,6 +205,18 @@ description: "Implementation tasks for F09 Pro entitlements and subscription con
 
 ---
 
+## Phase 10: Account composition follow-up
+
+**Scope**: The 2026-10-29 approved Account pass changes composition only (A02, A16–A17; FR-004, FR-017; SC-009). Native behavior precedes its Figma/prototype representations; provider/store qualification remains pending under the owning tasks above.
+
+- [x] T046 Make `apps/mobile/src/features/pro/components/pro-profile-entry.tsx` an immediate ordinary entry and move offering reads, whole-page loading/error/empty states and rights recovery into `apps/mobile/src/features/pro/screens/pro-presentation-screen.tsx`. Preserve native Paywall/Customer Center ownership, guest invitation, safe retry, session/callback guards, uncertain-payment verification and independent management/support. Extend `apps/mobile/src/features/pro/__tests__/pro-presentation.test.tsx` and `pro-profile-navigation.test.tsx` for delayed/failed/empty reads, inactive-route/account callbacks and unresolved operations; run the affected mobile checks and obtain the scoped native/representation evidence through [F05 qualification](../005-accounts-identity/quickstart.md). This completes no purchase, restoration, store or provider qualification by itself.
+
+---
+
+## Phase 11: Current native outcomes after route removal
+
+- [x] T047 Correct the existing provider host so a current-generation/current-UUID native purchase outcome completes the Pro operation once even after its route closes, while retired navigation, feedback and state updates remain suppressed. Reproduce purchased/cancelled/pending/failed late callbacks with the real Pro owner, preserve stale-session and duplicate guards, and verify reopening reflects the known outcome under A13–A15 and FR-006/FR-014/FR-015. Remove the unused origin `opening` option after immediate destination navigation. Record controlled-callback evidence and its separate native/store limits in `quickstart.md`; this does not complete T026/T027/T042.
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

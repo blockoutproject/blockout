@@ -1,21 +1,23 @@
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { SportingSupportAction } from "../components/sporting-actions";
 import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingCompactHeader } from "../components/sporting-compact-header";
 import { TabScrollView } from "react-native-collapsible-tab";
-import { PagedTabs } from "../../../shared/components/paged-tabs";
+import {
+  PagedTabs,
+  PagedStateScrollView,
+} from "../../../shared/components/paged-tabs";
 import { ResourceText } from "../components/resource-text";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
+import { ErrorState } from "../../../shared/components/state-card";
 import { PageHeader } from "../../../shared/components/page-header";
 import {
   Page,
   PageScrollView,
   PageContent,
 } from "../../../shared/components/page";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { hashKey, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import type {
@@ -59,13 +61,6 @@ function PoolPage({
   const pool = useQuery(queries.pool(poolId));
   const [tab, setTab] = useState("standings");
   const data = pool.data;
-  const feedback = useActionFeedback();
-  /** A failed explicit refresh keeps authorized content and reports only the attempted read. */
-  async function refresh() {
-    const result = await pool.refetch({ cancelRefetch: false });
-    if (result.isError && result.data && !isAccessDenied(result.error))
-      feedback.error();
-  }
   const identity = data ? (
     <SportingIdentity
       identity={data.pool.pool}
@@ -100,14 +95,7 @@ function PoolPage({
               <SportingSupportAction target={{ type: "pool", id: poolId }} />
             }
           />
-          <PageScrollView
-            refreshControl={
-              <DataRefreshControl
-                refreshing={pool.isRefetching}
-                onRefresh={() => void refresh()}
-              />
-            }
-          >
+          <PageScrollView>
             <ScreenState>{blockingState}</ScreenState>
           </PageScrollView>
         </>
@@ -142,8 +130,14 @@ function PoolPage({
                 />
               ) : value === "standings" && data && !renderStandings ? (
                 <PoolStandings pool={data.pool} active={tab === value} />
+              ) : value === "map" && !renderMap ? (
+                <PagedStateScrollView>
+                  <ScreenState>
+                    <ErrorState />
+                  </ScreenState>
+                </PagedStateScrollView>
               ) : (
-                <TabScrollView alwaysBounceVertical>
+                <TabScrollView {...hiddenScrollIndicators} alwaysBounceVertical>
                   <PageContent>
                     {data &&
                       (value === "standings"

@@ -30,7 +30,7 @@ export function ProviderSourcesScreen({
     authority.sessionStatus === "authenticated" ? season.data : undefined;
   const retained = Boolean(current && sources.data);
   const feedback = useActionFeedback();
-  const blockingState = !(current && sources.data) ? (
+  const blockingState = !retained ? (
     !authority.enabled ? (
       <AccessFeedback {...authority} />
     ) : season.isError || sources.isError ? (
@@ -57,7 +57,7 @@ export function ProviderSourcesScreen({
             scrollIndicatorInsets={{ top: headerHeight }}
             contentContainerStyle={{ paddingTop: headerHeight }}
             refreshControl={
-              authority.sessionStatus === "authenticated" ? (
+              authority.sessionStatus === "authenticated" && !blockingState ? (
                 <DataRefreshControl
                   progressViewOffset={headerHeight}
                   refreshing={

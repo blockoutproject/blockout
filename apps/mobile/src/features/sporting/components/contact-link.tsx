@@ -194,7 +194,7 @@ function ContactHandoff({
       {presentation === "information" ? (
         <InformationRow
           label={label}
-          value={value ?? "Non renseigné"}
+          value={value ?? "-"}
           icon={Icon}
           onPress={destination ? handoff.open : undefined}
           pending={handoff.pending}

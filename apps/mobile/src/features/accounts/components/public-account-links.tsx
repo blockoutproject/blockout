@@ -1,5 +1,5 @@
 import { Link } from "expo-router";
-import { ShieldCheck, type LucideIcon } from "lucide-react-native";
+import { FileText, ShieldCheck } from "lucide-react-native";
 import {
   Pressable,
   StyleSheet,
@@ -7,59 +7,94 @@ import {
   View,
   type PressableProps,
 } from "react-native";
+import { EntryRow } from "../../../shared/components/entry-row";
+import { EntryGroup } from "../../../shared/components/entry-group";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { supportHref, type SupportOrigin } from "../../support";
 
-const destinations = [
-  { href: "/legals/terms", label: "Conditions d’utilisation", icon: undefined },
-  { href: "/legals/privacy", label: "Confidentialité", icon: ShieldCheck },
-  { href: "/support", label: "Besoin d’aide ?", icon: undefined },
-] as const;
-
-/** The existing account consumer supplies only known navigation or safe failed-sign-in facts. */
+/** Existing account consumers supply only known navigation or safe failed-sign-in facts. */
 export interface PublicAccountLinksProps {
   supportOrigin?: SupportOrigin;
 }
 
-/** Public links share native targets and label alignment; F10/F11 retain destinations and F12 guards. */
+/** Footer navigation retains support; F11 owns future browser-backed legal documents, so no fictitious route is activated. */
 export function PublicAccountLinks({
   supportOrigin = { screen: "profile" },
 }: PublicAccountLinksProps = {}) {
   return (
     <View style={styles.links}>
-      {destinations.map(({ href, label, icon }) => (
-        <Link
-          key={href}
-          href={href === "/support" ? supportHref(supportOrigin) : href}
-          asChild
-        >
-          <PublicLinkAction label={label} icon={icon} />
-        </Link>
-      ))}
+      <PublicLinkAction label="Conditions d’utilisation" disabled />
+      <PublicLinkAction label="Politique de confidentialité" privacy disabled />
+      <Link href={supportHref(supportOrigin)} asChild>
+        <PublicLinkAction label="Besoin d’aide ?" />
+      </Link>
     </View>
   );
 }
 
-/** Preserves Link activation while keeping dynamic native styles outside Router's static Slot merge. */
+/** Approved overview grouping; document actions stay explicitly unavailable until F11 supplies verified documents and browser entry. */
+export function ProfileLegalLinks() {
+  const { colors } = useTheme();
+  return (
+    <View style={styles.legalGroup}>
+      <EntryGroup>
+        {[
+          "Mentions légales",
+          "Conditions d’utilisation",
+          "Politique de confidentialité",
+        ].map((label) => (
+          <EntryRow
+            key={label}
+            label={label}
+            accessibilityRole="link"
+            icon={
+              <FileText
+                accessible={false}
+                size={tokens.size.icon.md}
+                color={colors.icon}
+              />
+            }
+            disclosure
+            disabled
+          />
+        ))}
+      </EntryGroup>
+      <Text
+        style={[tokens.typography.metadata, { color: colors.secondaryText }]}
+      >
+        Documents indisponibles pour le moment.
+      </Text>
+    </View>
+  );
+}
+
+/** Preserves the native Link target while giving inactive legal entries their actual disabled semantics. */
 function PublicLinkAction({
   label,
-  icon: Icon,
+  privacy = false,
   ...props
-}: PressableProps & { label: string; icon?: LucideIcon }) {
+}: PressableProps & { label: string; privacy?: boolean }) {
   const { colors } = useTheme();
   return (
     <Pressable
       {...props}
       accessibilityRole="link"
       accessibilityLabel={label}
+      accessibilityState={{ disabled: props.disabled ?? false }}
       style={({ pressed }) => [
         styles.link,
-        { opacity: pressed ? tokens.opacity.pressed : 1 },
+        {
+          opacity: props.disabled
+            ? tokens.opacity.disabled
+            : pressed
+              ? tokens.opacity.pressed
+              : 1,
+        },
       ]}
     >
-      {Icon && (
-        <Icon
+      {privacy && (
+        <ShieldCheck
           accessible={false}
           size={tokens.size.icon.md}
           color={colors.icon}
@@ -95,4 +130,5 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     textAlign: "center",
   },
+  legalGroup: { gap: tokens.spacing.sm },
 });

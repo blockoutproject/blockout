@@ -18,8 +18,8 @@ import TabsLayout from "../../../app/(ordinary)/(tabs)/_layout";
 import NotificationsRoute from "../../../app/(ordinary)/(tabs)/notifications";
 import SearchLayout from "../../../app/(ordinary)/(tabs)/search/_layout";
 import SearchRoute from "../../../app/(ordinary)/(tabs)/search/index";
-import SearchFiltersRoute from "../../../app/(ordinary)/(tabs)/search/filters";
-import SearchChoiceRoute from "../../../app/(ordinary)/(tabs)/search/choice";
+import SearchFiltersRoute from "../../../app/(ordinary)/(tabs)/search/(sheets)/filters";
+import SearchChoiceRoute from "../../../app/(ordinary)/(tabs)/search/(sheets)/choice";
 import MatchRoute from "../../../app/(ordinary)/matches/[matchId]";
 import { NotificationState } from "../state/notification-state";
 import {
@@ -204,8 +204,8 @@ async function openInbox() {
       "(tabs)/index": () => <Text>Accueil</Text>,
       "(tabs)/search/_layout": SearchLayout,
       "(tabs)/search/index": SearchRoute,
-      "(tabs)/search/filters": SearchFiltersRoute,
-      "(tabs)/search/choice": SearchChoiceRoute,
+      "(tabs)/search/(sheets)/filters": SearchFiltersRoute,
+      "(tabs)/search/(sheets)/choice": SearchChoiceRoute,
       "(tabs)/profile": () => <Text>Profil</Text>,
       "(tabs)/notifications": NotificationsRoute,
       "matches/[matchId]": MatchRoute,

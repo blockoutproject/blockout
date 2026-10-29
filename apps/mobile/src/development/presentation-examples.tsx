@@ -3,7 +3,7 @@ import { StyleSheet, Switch, Text, View } from "react-native";
 import { Page, PageContent } from "../shared/components/page";
 import { FormScrollView } from "../shared/components/form-scroll-view";
 import { Button } from "../shared/components/button";
-import { Sheet } from "../shared/components/sheet";
+import { Sheet, SheetContent } from "../shared/components/sheet";
 import { TextField } from "../shared/components/text-field";
 import { useTheme } from "../shared/theme/theme-provider";
 import { tokens } from "../shared/theme/tokens";
@@ -63,17 +63,19 @@ export function ShortSheetExampleScreen({ onClose }: { onClose: () => void }) {
       message="Choisissez les rencontres à afficher."
       onClose={onClose}
     >
-      <View style={styles.choice}>
-        <Text style={[styles.choiceLabel, { color: colors.text }]}>
-          Inclure les rencontres terminées
-        </Text>
-        <Switch
-          accessibilityLabel="Inclure les rencontres terminées"
-          value={finished}
-          onValueChange={setFinished}
-        />
-      </View>
-      <Button label="Appliquer" fullWidth onPress={onClose} />
+      <SheetContent>
+        <View style={styles.choice}>
+          <Text style={[styles.choiceLabel, { color: colors.text }]}>
+            Inclure les rencontres terminées
+          </Text>
+          <Switch
+            accessibilityLabel="Inclure les rencontres terminées"
+            value={finished}
+            onValueChange={setFinished}
+          />
+        </View>
+        <Button label="Appliquer" fullWidth onPress={onClose} />
+      </SheetContent>
     </Sheet>
   );
 }

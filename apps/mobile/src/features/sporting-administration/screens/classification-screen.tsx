@@ -65,7 +65,7 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
             scrollIndicatorInsets={{ top: headerHeight }}
             contentContainerStyle={{ paddingTop: headerHeight }}
             refreshControl={
-              authority.sessionStatus === "authenticated" ? (
+              !blockingState && authority.sessionStatus === "authenticated" ? (
                 <DataRefreshControl
                   progressViewOffset={headerHeight}
                   enabled={!editing.save.pending}

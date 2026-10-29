@@ -74,6 +74,16 @@ Synthetic Compose checks also verify that a `2h` cadence supplied through `--env
 
 Search has no pull-to-refresh or refresh button. Verify that initial/new-read card retry still works, continuation remains available after pagination failure, and established exhaustion adds no “Fin des résultats” message. Controlled Query rereads verify same-context retention, cancellation and refusal boundaries without qualifying a user gesture or introducing background feedback. The [F13 T113 follow-up](../003-shared-quality/tasks.md) owns revised native/Figma/prototype evidence; earlier gesture captures do not qualify this updated behavior.
 
+For the current intrinsic sheets, check short and long option catalogues on each required native
+platform, in both themes and with enlarged system text. A short choice fits its content; overflow
+stops at native available height and scrolls to the final choice or both filter actions. The
+floating tab capsule must not cover a row or action. Open a choice from a dirty filter draft,
+select and return, then exercise close, OS back, reset and apply: the existing RHF draft, applied
+criteria and selected Search tab retain their established semantics. Reach the final rows and
+actions through native scrolling, including keyboard dismissal before opening filters. This
+qualifies actual reachability and shared row anatomy separately from JavaScript navigation tests;
+older fixed-detent captures below do not certify the changed presentation.
+
 Using the existing Jest/native scenarios, change text/tabs/filters rapidly and deliver old requests late. Preserve independent filters, retained examples and valid scroll context. Check that successive cursors populate one infinite-query entry through `pageParam`; controlled rereads use standard Query traversal and preserve the prior authorized list on ordinary failure. Fail initial/next-page reads, retry explicitly, exercise controlled reread races, reconnect and switch accounts. Expected: no mixed contexts, silent replay, private old-session data or false end; authorized previous content remains usable until successful replacement.
 
 Open/close F03 sheets and exercise the existing F11 counter: filtering, scrolling, refresh and return add no advertising trigger. Check both themes, VoiceOver/TalkBack, enlarged text, selection/focus, retry and absent-context cards. No character counter, new index-lag screen or native-interface mockup is introduced.
@@ -104,4 +114,6 @@ An externally opened existing F03 club UUID route verifies retained Search tab/t
 
 The evidence above qualifies T001–T007's foundation, T008–T011/T013–T018's named-search/projection backend boundaries and T039/T040's declared infrastructure/diagnostic construction. T022–T026 add current options and retained filter construction with the bounded evidence above. Empty-text examples, complete F12/native journeys and accessibility, actual hosted isolation/alerting and restoration retain their owning tasks. Local synthetic evidence establishes no provider or production approval.
 
-The Search gesture exception is implemented at `09bab11c` and qualified through the [F13 native follow-up](../003-shared-quality/quickstart.md#shared-composition-qualification). Its error-card retry and continuation retain native Query ownership. Figma/prototype reconciliation remains under [T113](../003-shared-quality/tasks.md); the prior Search pull scenes are superseded.
+The Search gesture exception is implemented at `09bab11c` and qualified through the [F13 native follow-up](../003-shared-quality/quickstart.md#shared-composition-qualification). Its error-card retry and continuation retain native Query ownership. [F13 representation qualification](../003-shared-quality/quickstart.md#account-readiness-basic-lists-and-contextual-sheets) records the later shared-list/sheet reconciliation; the prior Search pull scenes are superseded.
+
+The content-fitting follow-up at `1a5163d8` retains the existing filter owner and draft/Apply/Reset contract. Fresh Android sheets at ordinary and compact 175% text sizes exercised all four nested choices, complete final-action clearance, Apply dismissal and Reset to the proposed season. [F13 Phase 18](../003-shared-quality/quickstart.md#complete-account-and-direct-operational-entries--phase-18) owns the exact native captures and Android viewport-bound rationale; its separate design/browser section identifies current Figma instances and prototype `8a08c71e`. This shared presentation evidence does not complete the remaining F04 examples, real traversal/advertising, backend/provider or release qualifications.

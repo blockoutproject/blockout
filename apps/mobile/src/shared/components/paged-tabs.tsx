@@ -1,20 +1,34 @@
+import { hiddenScrollIndicators } from "../native/scroll-indicators";
 import { BlurTargetView } from "expo-blur";
 import {
+  cloneElement,
+  createContext,
   useCallback,
+  useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type ComponentRef,
+  type PropsWithChildren,
+  type ReactElement,
   type ReactNode,
   type RefObject,
 } from "react";
-import { StyleSheet, View, useWindowDimensions } from "react-native";
+import {
+  StyleSheet,
+  View,
+  useWindowDimensions,
+  type RefreshControlProps,
+} from "react-native";
 import {
   Tabs,
+  TabScrollView,
   DefaultTabBar,
   useActiveTabScrollY,
   useCollapsingTabsContext,
+  useCollapseProgress,
   useHeaderScrollY,
   type CollapsingTabsRef,
   type TabBarRenderProps,
@@ -29,11 +43,80 @@ import { useTheme } from "../theme/theme-provider";
 import { useReducedMotion } from "../theme/use-reduced-motion";
 import { tokens } from "../theme/tokens";
 import { ScrollBackdrop, type ScrollBlurTarget } from "./scroll-backdrop";
+import {
+  BottomNavigationSpacer,
+  useBottomNavigationInset,
+} from "./bottom-navigation-inset";
 
 /** RNCT owns offsets and measured header padding; native lists must not compensate that padding with a second scroll. */
 export const pagedListDefaults = {
+  ...hiddenScrollIndicators,
   maintainVisibleContentPosition: false,
 } as const;
+
+/** Scene-local presentation signal; RNCT remains the sole owner of scroll offsets. */
+const TabFeedbackContext = createContext<((feedback: boolean) => void) | null>(
+  null,
+);
+
+/**
+ * Feedback keeps native overflow and refresh while only reading RNCT's current chrome geometry.
+ * With no usable rows it neither registers a tab scroll handle nor drives header collapse.
+ * Its scene uses the opaque page canvas instead of blurring absent content beneath the shared header.
+ * Oversized chrome uses the stock adapter so its actual overflow can collapse; loaded lists stay unchanged.
+ */
+export function PagedStateScrollView({
+  children,
+  refreshControl,
+}: PropsWithChildren<{ refreshControl?: ReactElement<RefreshControlProps> }>) {
+  const reportFeedback = useContext(TabFeedbackContext);
+  useLayoutEffect(() => {
+    reportFeedback?.(true);
+    return () => reportFeedback?.(false);
+  }, [reportFeedback]);
+  const { containerHeight, paddingTop } = useCollapsingTabsContext();
+  const collapse = useHeaderScrollY();
+  const bottomNavigationInset = useBottomNavigationInset();
+  const visibleArea = useAnimatedStyle(() => ({
+    minHeight: containerHeight,
+    paddingTop: paddingTop - collapse.value,
+  }));
+  const refresh =
+    refreshControl &&
+    cloneElement(refreshControl, { progressViewOffset: paddingTop });
+  // Oversized chrome is real overflow: the stock adapter must let the user collapse it to reach feedback.
+  if (
+    containerHeight > 0 &&
+    paddingTop > containerHeight - bottomNavigationInset
+  )
+    return (
+      <TabScrollView
+        {...hiddenScrollIndicators}
+        contentContainerStyle={styles.stateContent}
+        alwaysBounceVertical={!!refreshControl}
+        refreshControl={refresh}
+      >
+        {children}
+        <BottomNavigationSpacer />
+      </TabScrollView>
+    );
+  return (
+    <Animated.ScrollView
+      {...hiddenScrollIndicators}
+      contentContainerStyle={styles.stateContent}
+      scrollIndicatorInsets={{ top: paddingTop }}
+      alwaysBounceVertical={!!refreshControl}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      refreshControl={refresh}
+    >
+      <Animated.View style={visibleArea}>
+        {children}
+        <BottomNavigationSpacer />
+      </Animated.View>
+    </Animated.ScrollView>
+  );
+}
 
 /** Stable feature identities and their explicitly composed content; data stays with each feature. */
 export interface PagedTab {
@@ -72,7 +155,9 @@ export function PagedTabs({
   const pager = nativePager ?? internalPager;
   const reducedMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
-  const [pinnedHeight, setPinnedHeight] = useState(insets.top);
+  const [pinnedHeight, setPinnedHeight] = useState(
+    Math.max(insets.top, tokens.spacing.sm),
+  );
   const [targets, setTargets] = useState<
     Record<string, ComponentRef<typeof View> | null>
   >({});
@@ -150,7 +235,7 @@ export function PagedTabs({
   );
 }
 
-/** A mounted scene publishes its own backdrop target; inactive content stays out of the accessibility tree. */
+/** Usable scenes publish a blur target; feedback keeps the page canvas and inactive content stays inaccessible. */
 function TabContent({
   id,
   active,
@@ -162,23 +247,27 @@ function TabContent({
   registerTarget: (id: string, node: ComponentRef<typeof View> | null) => void;
   children: ReactNode;
 }) {
+  const [feedback, setFeedback] = useState(false);
   const ref = useCallback(
-    (node: ComponentRef<typeof View> | null) => registerTarget(id, node),
-    [id, registerTarget],
+    (node: ComponentRef<typeof View> | null) =>
+      registerTarget(id, feedback ? null : node),
+    [feedback, id, registerTarget],
   );
   return (
-    <BlurTargetView
-      ref={ref}
-      style={styles.fill}
-      accessibilityElementsHidden={!active}
-      importantForAccessibility={active ? "auto" : "no-hide-descendants"}
-    >
-      {children}
-    </BlurTargetView>
+    <TabFeedbackContext value={setFeedback}>
+      <BlurTargetView
+        ref={ref}
+        style={styles.fill}
+        accessibilityElementsHidden={!active}
+        importantForAccessibility={active ? "auto" : "no-hide-descendants"}
+      >
+        {children}
+      </BlurTargetView>
+    </TabFeedbackContext>
   );
 }
 
-/** Native clipping preserves one natural header layout while RNCT alone owns its collapse and gestures. */
+/** Fixed navigation clips retracting content; a standalone Home brand fades through the transparent top area. */
 function PagedHeader({
   target,
   pinnedHeight,
@@ -195,12 +284,15 @@ function PagedHeader({
   const insets = useSafeAreaInsets();
   const { headerHeight, tabBarHeight } = useCollapsingTabsContext();
   const collapse = useHeaderScrollY();
+  const progress = useCollapseProgress();
   const scrollY = useActiveTabScrollY();
+  const hasPinnedHeader = !!header;
   const pinned = useAnimatedStyle(() => ({
     transform: [{ translateY: collapse.value }],
   }));
   const scrolling = useAnimatedStyle(() => ({
     transform: [{ translateY: -collapse.value }],
+    opacity: hasPinnedHeader ? 1 : 1 - progress.value,
   }));
   return (
     <View style={{ paddingTop: pinnedHeight }}>
@@ -209,12 +301,12 @@ function PagedHeader({
         height={headerHeight + tabBarHeight}
         scrollY={scrollY}
       />
-      <Animated.View style={[styles.clip, pinned]}>
+      <Animated.View style={[hasPinnedHeader && styles.clip, pinned]}>
         <Animated.View style={scrolling}>{collapsibleHeader}</Animated.View>
       </Animated.View>
       <Animated.View pointerEvents="box-none" style={[styles.pinned, pinned]}>
         <View
-          style={{ paddingTop: insets.top }}
+          style={{ paddingTop: Math.max(insets.top, tokens.spacing.sm) }}
           onLayout={({ nativeEvent }) =>
             onPinnedHeight(nativeEvent.layout.height)
           }
@@ -280,6 +372,7 @@ function PagerLabel({
 }
 
 const styles = StyleSheet.create({
+  stateContent: { flexGrow: 1 },
   fill: { flex: 1 },
   clip: { overflow: "hidden" },
   pinned: { position: "absolute", left: 0, right: 0, top: 0, zIndex: 1 },

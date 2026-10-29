@@ -1,3 +1,4 @@
+import { hiddenScrollIndicators } from "../native/scroll-indicators";
 import { Platform, StyleSheet, type ScrollViewProps } from "react-native";
 import Animated from "react-native-reanimated";
 import {
@@ -26,8 +27,9 @@ export function FormScrollView({
   return Platform.OS === "ios" ? (
     <Animated.ScrollView
       {...props}
+      {...hiddenScrollIndicators}
       contentContainerStyle={[styles.content, contentContainerStyle]}
-      alwaysBounceVertical
+      alwaysBounceVertical={!!props.refreshControl}
       automaticallyAdjustKeyboardInsets
       keyboardShouldPersistTaps="handled"
     >
@@ -38,8 +40,9 @@ export function FormScrollView({
     <KeyboardProvider>
       <KeyboardAwareScrollView
         {...props}
+        {...hiddenScrollIndicators}
         contentContainerStyle={[styles.content, contentContainerStyle]}
-        alwaysBounceVertical
+        alwaysBounceVertical={!!props.refreshControl}
         keyboardShouldPersistTaps="handled"
       >
         {children}

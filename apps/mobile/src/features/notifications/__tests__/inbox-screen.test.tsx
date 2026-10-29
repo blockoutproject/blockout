@@ -71,7 +71,9 @@ const mockPush = jest.fn();
 let mockFocused = true;
 const mockNavigation = {
   isFocused: () => mockFocused,
-  addListener: jest.fn(() => () => undefined),
+  addListener: jest.fn(
+    (_event: string, _listener: () => void) => () => undefined,
+  ),
 };
 const mockFetch = jest.fn();
 const env = { ...process.env };
@@ -273,6 +275,54 @@ it("keeps confirmed reading after navigation fails, including a discreet lost-re
   await waitFor(() => expect(setBadgeCountAsync).toHaveBeenLastCalledWith(6));
 });
 
+it("revalidates cached cards on focus without pulling, and shows progress only for a manual pull", async () => {
+  // Given: automatic focus and the native pull use the same real Query read owner.
+  await showInbox();
+  await screen.findByRole("link", { name: /non lue$/ });
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  let finishRead: (value: Response) => void = () => undefined;
+  const delayedRead = jest.fn(
+    () =>
+      new Promise<Response>((resolve) => {
+        finishRead = resolve;
+      }),
+  );
+  mockFetch.mockImplementation((url: string, init: RequestInit) =>
+    new URL(url).pathname.endsWith("/notifications")
+      ? delayedRead()
+      : response(url, init),
+  );
+  const focus = mockNavigation.addListener.mock.calls
+    .filter(([event]) => event === "focus")
+    .at(-1)?.[1];
+  expect(focus).toBeDefined();
+
+  // When
+  await act(async () => focus?.());
+  await waitFor(() => expect(delayedRead).toHaveBeenCalledTimes(1));
+  await act(async () => jest.advanceTimersByTimeAsync(1));
+
+  // Then: a background read must not ask iOS to reveal its refresh control.
+  expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+  expect(screen.getByRole("link", { name: /non lue$/ })).toBeOnTheScreen();
+  await act(async () => finishRead(Response.json({ notifications: rows })));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await waitFor(() => expect(delayedRead).toHaveBeenCalledTimes(2));
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByLabelText("Actualiser les données")).toBeBusy(),
+  );
+  await act(async () => finishRead(Response.json({ notifications: rows })));
+  await waitFor(() =>
+    expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
+  );
+  expect(screen.getByRole("link", { name: /non lue$/ })).toBeOnTheScreen();
+});
+
 it("uses the initial error card but retains authorized cards with a toast after failed pull-to-refresh", async () => {
   // Given
   mockFetch.mockImplementation((url: string, init: RequestInit) =>
@@ -419,7 +469,7 @@ it("clears the app badge on session invalidation and excludes guest private read
   ).toBe(false);
 });
 
-it("loads only the focused inbox and retains rows while its compact footer retries the same failed cursor", async () => {
+it("loads only the focused inbox and retains rows while its toast reports failure and the footer retries the same cursor", async () => {
   // Given
   const second = {
     ...row,
@@ -465,7 +515,7 @@ it("loads only the focused inbox and retains rows while its compact footer retri
   // Then
   expect(
     await screen.findByRole("button", {
-      name: /Une erreur est survenue.*Réessayer/,
+      name: "Réessayer",
     }),
   ).toBeOnTheScreen();
   await fireEvent(first, "endReached");
@@ -477,7 +527,11 @@ it("loads only the focused inbox and retains rows while its compact footer retri
   expect(
     screen.getByRole("link", { name: /^Le résultat.*non lue$/ }),
   ).toBeOnTheScreen();
-  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
 
   // When
   failNext = false;

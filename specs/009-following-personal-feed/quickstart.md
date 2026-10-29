@@ -108,14 +108,28 @@ transport with controlled HTTP. It covers shared selection, All seasons, reset, 
 successful disappearance, failed reconciliation, explicit retry and obsolete session/selection responses.
 `personal-screen.test.tsx` adds the actual F05/F12 providers, Home, follow action, club and search
 components; native identity/inset I/O and HTTP are controlled. Current private refusals remain
-blocking across a subsequent network failure until a successful read. The selector's native opening
-event owns refresh feedback inside its Modal surface; retained Query errors emit no toast by effect.
+blocking across a subsequent network failure until a successful read. The actual Home/season native routes share one generation-scoped owner. Opening the contextual
+route starts one explicit options reread; only that request may publish opening feedback, while
+retained Query error state alone emits none.
 These tests establish neither native networking nor provider qualification.
 
-The existing `apps/mobile/src/app/(ordinary)/(tabs)/index.tsx` retains its entry/age guards.
+The existing entry/age guards now live in `apps/mobile/src/app/(ordinary)/(tabs)/(home)/_layout.tsx`,
+with Home still at `/` and its contextual choice at `/season`. The latter is a `(sheets)` leaf of
+the same native stack, so the application-wide sheet convention owns presentation and tab clearance.
 F07 owns its ordinary tab placement; the personal context, controls and calendar remain with F06.
 US3 retains the follow-list composition. T021 supplies the bounded read boundary; T022/T029/T037
 retain qualification through all actual views and endpoints.
+
+On each required native platform, open the selector with a short season catalogue and verify that
+the sheet fits its content, exposes every radio row and leaves no fixed half-screen empty region.
+Repeat with a long catalogue and enlarged system text: the native sheet must stop at available
+height, scroll to All seasons and any reset action, and keep close/back usable without the floating
+tab capsule covering a row. Select a season, close without selection and reopen: Home remains the
+active tab, the same accepted selection survives, and opening performs only its explicit options
+reread. Repeat an ordinary failed reread, a current private refusal and a session change while the
+sheet is open; retained permitted data, protected withdrawal and obsolete completion isolation
+must follow the existing F05/F12 owners. React tests cannot establish these native height,
+scrolling, safe-area or accessibility outcomes.
 
 Compare the [Home controls](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5075-4799)
 with the UI Library's [compact tabs](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=841-983)
@@ -198,3 +212,11 @@ Using Jest Expo/React Native Testing Library and native device checks where appl
 - Verify guest invitation without automatic follow after sign-in, accessible busy/selected states without colour alone, and unchanged advertising triggers.
 
 Use the approved Home/Sport references linked from [the plan](plan.md). A mock test or visual match does not establish native networking, accessibility or integrated generation correctness.
+
+### Shared season and native Home presentation follow-ups
+
+At `1a5163d8`, Home's existing personal-season owner is shared only by its Home/season routes; the contextual sheet uses the shared basic radio rows and intrinsic presenter. [F13 Phase 18](../003-shared-quality/quickstart.md#complete-account-and-direct-operational-entries--phase-18) records short-content fitting, native selection/dismissal and Android compact/enlarged-text overflow. Its [representation evidence](../003-shared-quality/quickstart.md#account-readiness-basic-lists-and-contextual-sheets) identifies the current Figma season composition and prototype `8a08c71e`; Club's earlier selector remains unchanged.
+
+The separate [native-only Home brand follow-up](../003-shared-quality/quickstart.md#native-home-brand-retreat--a31) at `0f23092e` qualifies collapse-driven fading, transparent retreat, sticky controls and restoration on Android/Duo. Its matches fixture returned 404, so it establishes chrome over the existing Error state rather than a successful personal feed. Neither follow-up changes follow commands, Query/session ownership, scheduling or the outstanding integrated qualifications above.
+
+The later native-only [A32/A33](../003-shared-quality/quickstart.md#native-fitting-state-scrolling-and-home-pager--a32a33) and [A34](../003-shared-quality/quickstart.md#native-blocking-error-recovery--a34) qualify fitting feedback, Home's shared stock pager bar and Retry-only blocking errors on both clients. Error dragging causes no request; its Retry makes one calendar attempt plus the existing season-options revalidation after 404. Earlier A31 Error-scroll footage is historical and superseded for that gesture. These presentation corrections establish no successful feed or additional F06 business acceptance.

@@ -1,3 +1,4 @@
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { Page, PageScrollView } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { useRouter } from "expo-router";
@@ -124,7 +125,10 @@ function SignInJourney() {
 
   return (
     // The artwork is full bleed; the lower native inset boundary keeps account actions clear of system controls.
-    <ScrollView style={[styles.screen, { backgroundColor: colors.canvas }]}>
+    <ScrollView
+      {...hiddenScrollIndicators}
+      style={[styles.screen, { backgroundColor: colors.canvas }]}
+    >
       <SignInArtwork />
       <SafeAreaView edges={["bottom", "left", "right"]} style={styles.content}>
         <View style={styles.inset}>

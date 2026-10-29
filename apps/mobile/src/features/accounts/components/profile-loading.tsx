@@ -3,8 +3,8 @@ import { Skeleton } from "../../../shared/components/skeleton";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
-/** Product Design 5487:61148: pending identity only, without a name, protected action or fabricated profile. */
-export function ProfileLoading() {
+/** Whole initial Account body; no live identity, field or navigation action is exposed before readiness. */
+export function ProfileLoading({ editor = false }: { editor?: boolean }) {
   const { colors } = useTheme();
   return (
     <View
@@ -14,22 +14,43 @@ export function ProfileLoading() {
       accessibilityState={{ busy: true }}
       accessibilityLiveRegion="polite"
       pointerEvents="none"
-      style={[
-        styles.card,
-        { backgroundColor: colors.raised, borderColor: colors.border },
-      ]}
+      style={styles.body}
     >
-      <View style={[styles.artwork, { backgroundColor: colors.skeleton }]} />
-      <View style={styles.identity}>
-        <Skeleton width={72} height={10} />
-        <Skeleton width={144} />
-        <Skeleton height={12} />
+      {editor ? (
+        <Skeleton height={180} shape="rectangle" />
+      ) : (
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.raised, borderColor: colors.border },
+          ]}
+        >
+          <View
+            style={[styles.artwork, { backgroundColor: colors.skeleton }]}
+          />
+          <View style={styles.identity}>
+            <Skeleton width={72} height={10} />
+            <Skeleton width={144} />
+            <Skeleton height={12} />
+          </View>
+        </View>
+      )}
+      <View style={styles.group}>
+        <Skeleton width={120} />
+        <Skeleton height={editor ? 180 : 144} shape="rectangle" />
       </View>
+      <View style={styles.group}>
+        {!editor && <Skeleton width={96} />}
+        <Skeleton height={editor ? 48 : 96} shape="rectangle" />
+      </View>
+      <Skeleton height={48} shape="rectangle" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  body: { gap: tokens.spacing.lg },
+  group: { gap: tokens.spacing.md },
   card: {
     flexDirection: "row",
     alignItems: "center",

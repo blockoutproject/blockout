@@ -657,7 +657,7 @@ it("retains result rows and retries the failed page locally without replaying au
   mockIsFocused.mockReturnValue(true);
   await fireEvent(screen.getByTestId("collection-results-list"), "endReached");
   await screen.findByRole("button", {
-    name: "Une erreur est survenue. Réessayer.",
+    name: "Réessayer",
   });
   pageAvailable = true;
   await fireEvent(screen.getByTestId("collection-results-list"), "endReached");
@@ -667,18 +667,16 @@ it("retains result rows and retries the failed page locally without replaying au
     screen.getByText("Nationale 2 · Poule A · Calendrier"),
   ).toBeOnTheScreen();
   expect(
-    screen.queryByText(
-      "Une erreur est survenue. Veuillez réessayer plus tard.",
-    ),
-  ).not.toBeOnTheScreen();
+    screen.getByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("page=1")),
   ).toHaveLength(1);
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Une erreur est survenue. Réessayer." }),
-  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
   expect(

@@ -52,7 +52,7 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
             scrollIndicatorInsets={{ top: headerHeight }}
             contentContainerStyle={{ paddingTop: headerHeight }}
             refreshControl={
-              authenticated && editing.usable ? (
+              authenticated && editing.usable && current ? (
                 <DataRefreshControl
                   progressViewOffset={headerHeight}
                   enabled={!editing.submit.pending}

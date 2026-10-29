@@ -8,7 +8,7 @@ import { useState } from "react";
 import { Switch, Text } from "react-native";
 import { ThemeProvider } from "../../theme/theme-provider";
 import { Button } from "../button";
-import { Sheet } from "../sheet";
+import { Sheet, SheetContent } from "../sheet";
 
 /** Owns its contextual choice; native presentation and screen-reader focus need device evidence. */
 function ChoiceSheet({
@@ -25,12 +25,14 @@ function ChoiceSheet({
       title="Filtres"
       message="Choisissez les rencontres à afficher."
     >
-      <Switch
-        accessibilityLabel="Inclure les rencontres terminées"
-        value={selected}
-        onValueChange={setSelected}
-      />
-      <Button label="Appliquer" onPress={() => onConfirm(selected)} />
+      <SheetContent>
+        <Switch
+          accessibilityLabel="Inclure les rencontres terminées"
+          value={selected}
+          onValueChange={setSelected}
+        />
+        <Button label="Appliquer" onPress={() => onConfirm(selected)} />
+      </SheetContent>
     </Sheet>
   );
 }

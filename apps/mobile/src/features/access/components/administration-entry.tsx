@@ -1,95 +1,128 @@
 import { Link } from "expo-router";
-import { ChevronRight, Trophy } from "lucide-react-native";
 import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type PressableProps,
-} from "react-native";
+  Funnel,
+  Play,
+  Settings,
+  Smartphone,
+  Trophy,
+} from "lucide-react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { EntryGroup } from "../../../shared/components/entry-group";
+import { EntryRow } from "../../../shared/components/entry-row";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
+import { canReadDivisions } from "../division-catalog-access";
 
-/**
- * Profile entry for current technical commands only; visibility grants no route admission or bypass.
- * Sporting, moderation, Pro and legal powers retain their independent owners.
- */
+/** Profile links directly to each currently granted destination; planned rows remain disabled and never grant an operation. */
 export function AdministrationEntry() {
-  const { hasCommands } = useAdministrationCapabilities();
+  const { permissions, hasCommands } = useAdministrationCapabilities();
   const { colors } = useTheme();
-  if (!hasCommands) return null;
+  const canModerate = permissions?.moderateStreamLinks === true;
+  if (!hasCommands && !canModerate) return null;
 
   return (
     <View style={styles.group}>
-      <Text style={[tokens.typography.label, { color: colors.secondaryText }]}>
+      <Text
+        accessibilityRole="header"
+        style={[tokens.typography.label, { color: colors.secondaryText }]}
+      >
         Administration
       </Text>
-      <Link href="/administration" asChild>
-        <EntryCard />
-      </Link>
+      <EntryGroup>
+        {canReadDivisions(permissions) && (
+          <Link href="/administration/divisions" asChild>
+            <EntryRow
+              label="Divisions"
+              icon={
+                <Trophy
+                  accessible={false}
+                  size={tokens.size.icon.md}
+                  color={colors.icon}
+                />
+              }
+              disclosure
+            />
+          </Link>
+        )}
+        {permissions?.manageSportingClassification === true && (
+          <EntryRow
+            label="Mapping des poules"
+            accessibilityRole="link"
+            icon={
+              <Funnel
+                accessible={false}
+                size={tokens.size.icon.md}
+                color={colors.icon}
+              />
+            }
+            disclosure
+            disabled
+          />
+        )}
+        {canModerate && (
+          <EntryRow
+            label="Liens vidéo"
+            accessibilityRole="link"
+            icon={
+              <Play
+                accessible={false}
+                size={tokens.size.icon.md}
+                color={colors.icon}
+              />
+            }
+            disclosure
+            disabled
+          />
+        )}
+        {permissions?.manageCollection === true && (
+          <Link href="/collection" asChild>
+            <EntryRow
+              label="Collectes"
+              icon={
+                <Funnel
+                  accessible={false}
+                  size={tokens.size.icon.md}
+                  color={colors.icon}
+                />
+              }
+              disclosure
+            />
+          </Link>
+        )}
+        {permissions?.manageMaintenance === true && (
+          <Link href="/administration/maintenance" asChild>
+            <EntryRow
+              label="Maintenance"
+              icon={
+                <Settings
+                  accessible={false}
+                  size={tokens.size.icon.md}
+                  color={colors.icon}
+                />
+              }
+              disclosure
+            />
+          </Link>
+        )}
+        {permissions?.manageApplicationVersions === true && (
+          <Link href="/administration/application-versions" asChild>
+            <EntryRow
+              label="Versions minimales"
+              icon={
+                <Smartphone
+                  accessible={false}
+                  size={tokens.size.icon.md}
+                  color={colors.icon}
+                />
+              }
+              disclosure
+            />
+          </Link>
+        )}
+      </EntryGroup>
     </View>
   );
 }
 
-/** Approved Account 4868:5908 card; forwards Link's native activation and accessibility props. */
-function EntryCard(props: PressableProps) {
-  const { colors } = useTheme();
-  return (
-    <Pressable
-      {...props}
-      accessibilityRole="link"
-      accessibilityLabel="Administration technique"
-      style={({ pressed }) => [
-        styles.card,
-        {
-          backgroundColor: colors.raised,
-          borderColor: colors.border,
-          opacity: pressed ? tokens.opacity.pressed : 1,
-        },
-      ]}
-    >
-      <View style={styles.disclosure}>
-        <View style={[styles.tile, { backgroundColor: colors.subtle }]}>
-          <Trophy
-            accessible={false}
-            size={tokens.size.icon.md}
-            color={colors.icon}
-            nonScalingStroke
-          />
-        </View>
-        <ChevronRight accessible={false} size={18} color={colors.icon} />
-      </View>
-      <Text style={[tokens.typography.strong, { color: colors.text }]}>
-        Administration technique
-      </Text>
-      <Text
-        style={[tokens.typography.metadata, { color: colors.secondaryText }]}
-      >
-        Maintenance, mises à jour, collectes
-      </Text>
-    </Pressable>
-  );
-}
-
-const styles = StyleSheet.create({
-  group: { gap: tokens.spacing.md },
-  card: {
-    borderWidth: tokens.border.thin,
-    borderRadius: tokens.radius.panel,
-    padding: tokens.spacing.md,
-    gap: tokens.spacing.sm,
-  },
-  disclosure: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  tile: {
-    width: 36,
-    height: 36,
-    borderRadius: tokens.radius.control,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
+const styles = StyleSheet.create({ group: { gap: tokens.spacing.md } });

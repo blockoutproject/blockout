@@ -1,4 +1,3 @@
-import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
 import { accountResponse } from "../test-support/account-response";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
@@ -19,12 +18,12 @@ import { File } from "expo-file-system";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { Alert, Pressable, Text } from "react-native";
+import { Pressable, Text } from "react-native";
 import {
   AccountSessionProvider,
   useAccountSession,
 } from "../session/account-session-provider";
-import { ProfileScreen } from "../screens/profile-screen";
+import { ProfileEditScreen } from "../screens/profile-edit-screen";
 import { useCurrentAccount } from "../api/use-current-account";
 import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
 
@@ -46,7 +45,12 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   usePreventRemove: jest.fn(),
-  useRouter: () => ({ replace: jest.fn() }),
+  useNavigation: () => ({ goBack: mockNavigate }),
+  useRouter: () => ({
+    replace: jest.fn(),
+    back: mockNavigate,
+    canGoBack: () => true,
+  }),
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, request?: RequestInit) =>
@@ -85,6 +89,7 @@ const mockFile = Object.assign(new Blob([png], { type: "image/png" }), {
   exists: true,
   delete: jest.fn(),
 });
+const mockNavigate = jest.fn();
 const mockFetch = jest.fn<
   Promise<Response>,
   [RequestInfo | URL, RequestInit?]
@@ -111,6 +116,7 @@ beforeEach(() => {
           : mockFile) as unknown as File,
     );
   client = createQueryClient();
+  mockNavigate.mockReset();
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
@@ -141,7 +147,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Real account/form owners with controlled I/O; the unrelated F09 composition is explicitly omitted. */
+/** Real account/form owners with controlled I/O; navigation intent is observed without unmounting the editor. */
 async function mountProfile() {
   await render(
     <QueryClientProvider client={client}>
@@ -149,7 +155,7 @@ async function mountProfile() {
         <ApplicationAccessProvider>
           <AccountSessionProvider>
             <AccountFeedbackProvider>
-              <ProfileScreen admitted proEntry={null} privacyEntry={null} />
+              <ProfileEditScreen admitted />
               <SessionActions />
             </AccountFeedbackProvider>
           </AccountSessionProvider>
@@ -201,47 +207,41 @@ function json(value: unknown, status = 200) {
   });
 }
 
-it("keeps the profile draft and session until departure is explicitly confirmed", async () => {
+it("keeps saving disabled until the form carries an explicit profile change", async () => {
   // Given
-  jest.spyOn(Alert, "alert").mockImplementation(() => {});
   const user = userEvent.setup();
   await mountProfile();
   await screen.findByDisplayValue("Original");
+  const save = screen.getByRole("button", { name: "Enregistrer" });
+
+  // Then
+  expect(save).toBeDisabled();
+
+  // When
+  await user.press(save);
+
+  // Then
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PATCH"),
+  ).toHaveLength(0);
+
+  // When
   await user.clear(screen.getByLabelText("Pseudo"));
-  await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
-
-  // When
-  await user.press(
-    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-  );
+  await user.type(screen.getByLabelText("Pseudo"), "Changed");
 
   // Then
-  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
-  expect(screen.getByDisplayValue("Unsaved")).toBeOnTheScreen();
-  const choices = jest.mocked(Alert.alert).mock.lastCall?.[2];
-  expect(choices?.map(({ text }) => text)).toEqual([
-    "Continuer la saisie",
-    "Abandonner",
-  ]);
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
 
   // When
-  await act(() => nativeAlertAction("Continuer la saisie")());
+  await user.clear(screen.getByLabelText("Pseudo"));
+  await user.type(screen.getByLabelText("Pseudo"), "Original");
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
-  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
-  expect(screen.getByDisplayValue("Unsaved")).toBeOnTheScreen();
-
-  // When
-  await user.press(
-    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-  );
-  await act(() => nativeAlertAction("Abandonner")());
-
-  // Then
-  await waitFor(() =>
-    expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1),
-  );
-  expect(screen.queryByDisplayValue("Unsaved")).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PATCH"),
+  ).toHaveLength(0);
 });
 
 it("refreshes the profile without changing a dirty draft or replaying a save", async () => {
@@ -267,6 +267,7 @@ it("refreshes the profile without changing a dirty draft or replaying a save", a
     await screen.findByDisplayValue("updated@example.invalid"),
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Unsaved")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
   expect(mockFetch).toHaveBeenCalledTimes(1);
   expect(mockFetch.mock.calls[0][1]?.method).toBe("GET");
 });
@@ -360,6 +361,7 @@ it.each([401, 403])(
   "presents an initial account refusal %s with opaque copy and owner-controlled retry",
   async (status) => {
     // Given
+    const user = userEvent.setup();
     mockFetch.mockResolvedValue(json({ title: "Denied", status }, status));
 
     // When
@@ -370,10 +372,29 @@ it.each([401, 403])(
       await screen.findByRole("alert", { name: "Une erreur est survenue" }),
     ).toBeOnTheScreen();
     expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
     expect(screen.queryByLabelText("Pseudo")).toBeNull();
+    expect(screen.getByRole("button", { name: "Retour" })).toBeEnabled();
+
+    // When
+    const retry = Promise.withResolvers<Response>();
+    mockFetch.mockClear().mockReturnValue(retry.promise);
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(
-      screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-    ).toBeEnabled();
+      await screen.findByRole("progressbar", { name: "Chargement du profil" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+
+    // When
+    await act(() => retry.resolve(json(account)));
+
+    // Then
+    expect(await screen.findByDisplayValue("Original")).toBeOnTheScreen();
+    expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   },
 );
 
@@ -397,10 +418,9 @@ it("keeps a refused profile draft read-only through a failed recheck until a suc
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Unsaved")).toBeDisabled();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-  expect(
-    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-  ).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Annuler" })).toBeEnabled();
   expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
 
   // When
   mockFetch.mockResolvedValue(json({ title: "Unavailable", status: 503 }, 503));
@@ -475,6 +495,7 @@ it("announces the initial profile read without exposing profile commands", async
     await screen.findByRole("progressbar", { name: "Chargement du profil" }),
   ).toBeOnTheScreen();
   expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
   expect(
     screen.queryByRole("button", { name: "Enregistrer" }),
   ).not.toBeOnTheScreen();
@@ -490,8 +511,9 @@ it("announces the initial profile read without exposing profile commands", async
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 });
 
-it("keeps the first photo read separate from native refresh progress", async () => {
+it("withholds the whole editor until its initial existing photo is ready", async () => {
   // Given
+  const user = userEvent.setup();
   const photoRead = Promise.withResolvers<Response>();
   mockFetch.mockImplementation(async (url) =>
     String(url).endsWith("/photo")
@@ -501,83 +523,90 @@ it("keeps the first photo read separate from native refresh progress", async () 
 
   // When
   await mountProfile();
-  await screen.findByDisplayValue("Original");
+  await screen.findByRole("progressbar", { name: "Chargement du profil" });
 
   // Then
   expect(
-    screen.getByRole("progressbar", { name: "Chargement en cours" }),
+    screen.getByRole("progressbar", { name: "Chargement du profil" }),
   ).toBeOnTheScreen();
-  expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
 
   // When
   await act(() => photoRead.resolve(new Response(null, { status: 503 })));
 
   // Then
   expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Annuler" }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  const retry = Promise.withResolvers<Response>();
+  mockFetch.mockClear().mockReturnValue(retry.promise);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(String(mockFetch.mock.calls[0][0])).toMatch(/\/photo$/);
+  expect(
+    await screen.findByRole("progressbar", { name: "Chargement du profil" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+
+  // When
+  await act(() => retry.resolve(new Response(null, { status: 503 })));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer", busy: false }),
+  ).toBeEnabled();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
 });
 
-it("preserves the active save and suspends refresh and guest departure", async () => {
+it("preserves the active save and suspends refresh and cancellation", async () => {
   // Given
-  jest.spyOn(Alert, "alert").mockImplementation(() => {});
   const user = userEvent.setup();
   await mountProfile();
   await screen.findByDisplayValue("Original");
   await user.clear(screen.getByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "Chosen");
-  mockFetch.mockImplementation(async () =>
-    json({ ...account, email: "updated@example.invalid" }),
-  );
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  await screen.findByDisplayValue("updated@example.invalid");
-  await user.press(
-    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-  );
-  await act(() => nativeAlertAction("Continuer la saisie")());
   const save = Promise.withResolvers<Response>();
   mockFetch.mockClear().mockReturnValue(save.promise);
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Annuler" }));
 
   // Then
   expect(
     screen.getByRole("button", { name: "Enregistrer", busy: true }),
   ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Annuler" })).toBeDisabled();
   expect(screen.getByDisplayValue("Chosen")).toBeOnTheScreen();
-  expect(mockFetch).toHaveBeenCalledTimes(1);
-  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
   expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
+  expect(mockNavigate).not.toHaveBeenCalled();
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
 
   // When
   await act(() => save.resolve(json({ ...account, username: "Chosen" })));
 
   // Then
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
-  );
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1));
   expect(screen.getByDisplayValue("Chosen")).toBeOnTheScreen();
   expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
-
-  // When
-  await user.press(
-    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-  );
-
-  // Then: accepted values cleared the draft, so leaving does not ask to discard them.
-  await waitFor(() =>
-    expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1),
-  );
-  expect(Alert.alert).toHaveBeenCalledTimes(1);
 });
 
-it("uses the accepted profile result and clears the draft before guest departure", async () => {
+it("uses the accepted profile result before returning from the editor", async () => {
   // Given
-  jest.spyOn(Alert, "alert").mockImplementation(() => {});
   const user = userEvent.setup();
   await mountProfile();
   await screen.findByDisplayValue("Original");
@@ -591,17 +620,8 @@ it("uses the accepted profile result and clears the draft before guest departure
   // Then
   expect(await screen.findByDisplayValue("Accepted")).toBeOnTheScreen();
   expect(screen.queryByDisplayValue("Entered")).not.toBeOnTheScreen();
-
-  // When
-  await user.press(
-    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-  );
-
-  // Then: an accepted form is clean, so departure needs no discard confirmation.
-  await waitFor(() =>
-    expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1),
-  );
-  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(mockNavigate).toHaveBeenCalledTimes(1);
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
 });
 
 it.each(["keep", "replace"] as const)(
@@ -798,7 +818,7 @@ it("sends one atomic multipart save with JSON metadata and no omitted photo", as
   await waitFor(() =>
     expect(
       screen.getByRole("button", { name: "Enregistrer", busy: false }),
-    ).toBeEnabled(),
+    ).toBeDisabled(),
   );
   const writes = mockFetch.mock.calls.filter(
     ([, request]) => request?.method === "PATCH",
@@ -915,6 +935,7 @@ it("rereads only the original account after an uncertain save and requires expli
     mockFetch.mock.calls.filter(([, request]) => request?.method === "PATCH"),
   ).toHaveLength(1);
   expect(screen.queryByText("Profil enregistré.")).not.toBeOnTheScreen();
+  expect(mockNavigate).not.toHaveBeenCalled();
 });
 
 it("does not replay while the original account reread is unavailable", async () => {
@@ -922,6 +943,8 @@ it("does not replay while the original account reread is unavailable", async () 
   const user = userEvent.setup();
   await mountProfile();
   await screen.findByDisplayValue("Original");
+  await user.clear(screen.getByLabelText("Pseudo"));
+  await user.type(screen.getByLabelText("Pseudo"), "My_draft");
   mockFetch.mockRejectedValue(new TypeError("Offline"));
 
   // When
@@ -968,7 +991,7 @@ it("submits prepared replacement then explicit removal without a username edit",
   await waitFor(() =>
     expect(
       screen.getByRole("button", { name: "Enregistrer", busy: false }),
-    ).toBeEnabled(),
+    ).toBeDisabled(),
   );
   await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
   await user.press(
@@ -1032,7 +1055,7 @@ it.each([
     await waitFor(() =>
       expect(
         screen.getByRole("button", { name: "Enregistrer", busy: false }),
-      ).toBeEnabled(),
+      ).toBeDisabled(),
     );
     const writes = mockFetch.mock.calls.filter(
       ([, request]) => request?.method === "PATCH",
@@ -1106,6 +1129,8 @@ it.each(["preparation", "save"])(
         screen.getByRole("button", { name: "Choisir une photo de profil" }),
       );
     } else {
+      await user.clear(screen.getByLabelText("Pseudo"));
+      await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
       mockFetch.mockImplementation(async (_url, request) =>
         request?.method === "PATCH"
           ? new Promise((resolve) => {
@@ -1132,12 +1157,13 @@ it.each(["preparation", "save"])(
       screen.queryByRole("button", { name: "Aperçu : Photo de profil" }),
     ).not.toBeOnTheScreen();
     expect(screen.queryByText("Profil enregistré.")).not.toBeOnTheScreen();
+    expect(mockNavigate).not.toHaveBeenCalled();
     if (operation === "preparation")
       expect(mockFile.delete).toHaveBeenCalledTimes(1);
   },
 );
 
-it("cancels an initial photo read before refreshing the accepted replacement", async () => {
+it("cancels a background photo read before refreshing the accepted replacement", async () => {
   // Given
   const reads: {
     signal?: AbortSignal | null;
@@ -1174,8 +1200,15 @@ it("cancels an initial photo read before refreshing the accepted replacement", a
   try {
     const user = userEvent.setup();
     await mountProfile();
-    await screen.findByDisplayValue("Original");
     await waitFor(() => expect(reads).toHaveLength(1));
+    await act(() =>
+      reads[0].resolve(
+        new Response(png, { headers: { "Content-Type": "image/png" } }),
+      ),
+    );
+    await screen.findByDisplayValue("Original");
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await waitFor(() => expect(reads).toHaveLength(2));
     jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
       canceled: false,
       assets: [
@@ -1183,7 +1216,7 @@ it("cancels an initial photo read before refreshing the accepted replacement", a
       ],
     });
     await user.press(
-      screen.getByRole("button", { name: "Choisir une photo de profil" }),
+      screen.getByRole("button", { name: "Changer l’image : Photo de profil" }),
     );
     await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
 
@@ -1192,22 +1225,22 @@ it("cancels an initial photo read before refreshing the accepted replacement", a
     await waitFor(() =>
       expect(
         screen.getByRole("button", { name: "Enregistrer", busy: false }),
-      ).toBeEnabled(),
+      ).toBeDisabled(),
     );
 
     // Then
-    await waitFor(() => expect(reads).toHaveLength(2));
-    expect(reads[0].signal?.aborted).toBe(true);
+    await waitFor(() => expect(reads).toHaveLength(3));
+    expect(reads[1].signal?.aborted).toBe(true);
 
     // When
     await act(async () =>
-      reads[1].resolve(
+      reads[2].resolve(
         new Response(png, { headers: { "Content-Type": "image/png" } }),
       ),
     );
     await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
     await act(async () =>
-      reads[0].resolve(
+      reads[1].resolve(
         new Response(png, { headers: { "Content-Type": "image/png" } }),
       ),
     );
@@ -1216,7 +1249,7 @@ it("cancels an initial photo read before refreshing the accepted replacement", a
     expect(
       screen.getByRole("button", { name: "Aperçu : Photo de profil" }),
     ).toBeOnTheScreen();
-    expect(nativeRead).toHaveBeenCalledTimes(1);
+    expect(nativeRead).toHaveBeenCalledTimes(2);
   } finally {
     // Settle this test's controlled transport even if its regression assertion fails.
     await act(async () =>
@@ -1352,4 +1385,5 @@ it("keeps a sent profile file until its upload settles after sign-out", async ()
   // Then
   await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
   expect(screen.queryByText("Profil enregistré.")).not.toBeOnTheScreen();
+  expect(mockNavigate).not.toHaveBeenCalled();
 });

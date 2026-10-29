@@ -1,8 +1,9 @@
 import { StyleSheet, type LayoutRectangle } from "react-native";
 import Animated, {
   Easing,
-  LinearTransition,
   ReduceMotion,
+  useAnimatedStyle,
+  withTiming,
 } from "react-native-reanimated";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
@@ -14,34 +15,39 @@ export interface SelectionIndicatorProps {
   radius?: number;
 }
 
-const transition = LinearTransition.duration(tokens.motion.navigation.duration)
-  .easing(Easing.out(Easing.cubic))
-  .reduceMotion(ReduceMotion.System);
-
-/** Decorative selection follows native layout; reduced motion also cancels a transition already in progress. */
+/** Animates measured bounds directly on the UI thread on both platforms; reduced motion settles immediately. */
 export function SelectionIndicator({
   layout,
   reducedMotion,
   radius = tokens.radius.control,
 }: SelectionIndicatorProps) {
   const { membership } = useTheme();
+  const animated = useAnimatedStyle(() => {
+    if (!layout) return {};
+    const timing = {
+      duration: reducedMotion ? 0 : tokens.motion.navigation.duration,
+      easing: Easing.out(Easing.cubic),
+      reduceMotion: ReduceMotion.System,
+    };
+    return {
+      left: withTiming(layout.x, timing),
+      top: withTiming(layout.y, timing),
+      width: withTiming(layout.width, timing),
+      height: withTiming(layout.height, timing),
+    };
+  });
   if (!layout) return null;
   return (
     <Animated.View
-      key={reducedMotion ? "static" : "animated"}
       accessible={false}
       pointerEvents="none"
-      layout={reducedMotion ? undefined : transition}
       style={[
         styles.indicator,
         {
           backgroundColor: membership.fill,
           borderRadius: radius,
-          left: layout.x,
-          top: layout.y,
-          width: layout.width,
-          height: layout.height,
         },
+        animated,
       ]}
     />
   );

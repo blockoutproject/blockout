@@ -32,6 +32,7 @@ import { ApiError } from "../../../shared/api/api-fetch";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useAccountSession } from "../../accounts/current-account";
 import { useAdministrationCapabilities } from "../../access/api/use-administration-capabilities";
+import { canReadDivisions } from "../../access/division-catalog-access";
 import { useOperationalVersionAdmission } from "../../access/operational-version-admission";
 
 /** Original correction scope; neither presentation nor identity is writable here. */
@@ -52,11 +53,7 @@ function hasSportingPermission(
   if (action === "classification")
     return grants?.manageSportingClassification === true;
   if (action === "lifecycle") return grants?.manageDivisionLifecycle === true;
-  return (
-    grants?.manageSportingClassification === true ||
-    grants?.manageDivisionLifecycle === true ||
-    grants?.manageSportingPresentation === true
-  );
+  return canReadDivisions(grants);
 }
 /** Rechecks the current F05 account and action-specific F12 grant before and after credentials. */
 export function useSportingAuthority(action: SportingAction) {

@@ -9,12 +9,10 @@ import {
 } from "../../sporting/classification-presentation";
 import { useRouter } from "expo-router";
 import { useWatch } from "react-hook-form";
-import { Check } from "lucide-react-native";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Sheet } from "../../../shared/components/sheet";
+import { Sheet, SheetContent } from "../../../shared/components/sheet";
+import { EntryGroup } from "../../../shared/components/entry-group";
+import { SelectionRow } from "../../../shared/components/selection-row";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
 import { useAccountSession } from "../../accounts/current-account";
 import {
   useClassification,
@@ -38,7 +36,9 @@ export function ClassificationSelectionScreen({
     <Selection editor={editor} field={field} target={target} />
   ) : (
     <Sheet title="Classification" onClose={() => router.back()}>
-      <ErrorState />
+      <SheetContent>
+        <ErrorState />
+      </SheetContent>
     </Sheet>
   );
 }
@@ -52,7 +52,6 @@ function Selection({
   editor: NonNullable<ReturnType<typeof findClassificationEditor>>;
   field: "divisionId" | "gender" | "format";
 }) {
-  const { colors } = useTheme();
   const feedback = useActionFeedback();
   const router = useRouter();
   const divisions = useDivisions();
@@ -97,6 +96,8 @@ function Selection({
       onClose={() => router.back()}
       refreshControl={
         field === "divisionId" &&
+        catalog &&
+        (divisions.authority.enabled || choices.length > 0) &&
         divisions.authority.sessionStatus === "authenticated" ? (
           <DataRefreshControl
             refreshing={
@@ -119,66 +120,45 @@ function Selection({
     >
       {!divisions.authority.enabled &&
         field === "divisionId" &&
-        choices.length === 0 && <AccessFeedback {...divisions.authority} />}
+        choices.length === 0 && (
+          <SheetContent>
+            <AccessFeedback {...divisions.authority} />
+          </SheetContent>
+        )}
       {divisions.authority.enabled && field === "divisionId" && !catalog && (
-        <ReadFeedback query={divisions.query} />
+        <SheetContent>
+          <ReadFeedback query={divisions.query} />
+        </SheetContent>
       )}
       {divisions.authority.enabled &&
         field === "divisionId" &&
         catalog &&
-        choices.length === 0 && <EmptyState title="Aucune division active" />}
-      {choices.map((choice) => (
-        <Pressable
-          key={choice.value}
-          accessibilityRole="radio"
-          accessibilityLabel={choice.label}
-          accessibilityState={{ checked: choice.value === value, disabled }}
-          disabled={disabled}
-          onPress={() => {
-            editor.form.setValue(field, choice.value, {
-              shouldDirty: true,
-              shouldValidate: true,
-            });
-            router.back();
-          }}
-          style={({ pressed }) => [
-            styles.option,
-            {
-              borderColor: colors.border,
-              opacity: disabled
-                ? tokens.opacity.disabled
-                : pressed
-                  ? tokens.opacity.pressed
-                  : 1,
-            },
-          ]}
-        >
-          <Text style={[styles.label, { color: colors.text }]}>
-            {choice.label}
-          </Text>
-          {choice.value === value ? (
-            <Check
-              accessible={false}
-              size={tokens.size.icon.md}
-              color={colors.icon}
-            />
-          ) : (
-            <View style={styles.icon} />
-          )}
-        </Pressable>
-      ))}
+        choices.length === 0 && (
+          <SheetContent>
+            <EmptyState title="Aucune division active" />
+          </SheetContent>
+        )}
+      {choices.length > 0 && (
+        <SheetContent>
+          <EntryGroup>
+            {choices.map((choice) => (
+              <SelectionRow
+                key={choice.value}
+                label={choice.label}
+                selected={choice.value === value}
+                disabled={disabled}
+                onPress={() => {
+                  editor.form.setValue(field, choice.value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                  router.back();
+                }}
+              />
+            ))}
+          </EntryGroup>
+        </SheetContent>
+      )}
     </Sheet>
   );
 }
-const styles = StyleSheet.create({
-  option: {
-    minHeight: tokens.size.control.default,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-    paddingVertical: tokens.spacing.md,
-    borderBottomWidth: tokens.border.thin,
-  },
-  label: { ...tokens.typography.strong, flex: 1 },
-  icon: { width: tokens.size.icon.md },
-});

@@ -41,7 +41,7 @@ export function MatchInformation({
       </View>
       <InformationRow
         label="Division"
-        value={division?.name ?? "Non renseignée"}
+        value={division?.name ?? "-"}
         separated={false}
       />
       <InformationRow
@@ -50,11 +50,7 @@ export function MatchInformation({
       />
       <InformationRow
         label="Arbitres"
-        value={
-          detail.referees?.length
-            ? detail.referees.join("\n")
-            : "Non renseignés"
-        }
+        value={detail.referees?.length ? detail.referees.join("\n") : "-"}
       />
       <InformationRow
         label="Poule"

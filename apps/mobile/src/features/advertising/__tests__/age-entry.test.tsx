@@ -24,7 +24,9 @@ import { AccessibilityInfo, DeviceEventEmitter, Text } from "react-native";
 import { readAgeDeclaration, submitAgeDeclaration } from "../age-declaration";
 import RootLayout from "../../../app/_layout";
 import AgeRoute from "../../../app/age-declaration";
-import HomeRoute from "../../../app/(ordinary)/(tabs)/index";
+import HomeRoute from "../../../app/(ordinary)/(tabs)/(home)/index";
+import HomeLayout from "../../../app/(ordinary)/(tabs)/(home)/_layout";
+import SeasonRoute from "../../../app/(ordinary)/(tabs)/(home)/(sheets)/season";
 import OnboardingRoute from "../../../app/onboarding";
 import SignInRoute from "../../../app/(ordinary)/sign-in";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
@@ -152,7 +154,12 @@ async function openEntry(initialUrl = "/sign-in") {
       "(operations)/_layout": () => <Stack />,
       "(operations)/administration/index": () => <Text>Operations</Text>,
       "(ordinary)/_layout": () => <Stack />,
-      "(ordinary)/index": HomeRoute,
+      "(ordinary)/(home)/_layout": {
+        default: HomeLayout,
+        unstable_settings: { anchor: "index" },
+      },
+      "(ordinary)/(home)/index": HomeRoute,
+      "(ordinary)/(home)/(sheets)/season": SeasonRoute,
       "(ordinary)/search": () => <Text>Public search</Text>,
       "(ordinary)/sign-in": SignInRoute,
       "(ordinary)/session": SessionProbe,

@@ -1,5 +1,5 @@
 import { ErrorState } from "../../../shared/components/state-card";
-import { Sheet } from "../../../shared/components/sheet";
+import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { z } from "zod";
 
@@ -22,7 +22,9 @@ export default function ClassificationSelectionRoute() {
     />
   ) : (
     <Sheet title="Classification" onClose={() => router.back()}>
-      <ErrorState />
+      <SheetContent>
+        <ErrorState />
+      </SheetContent>
     </Sheet>
   );
 }

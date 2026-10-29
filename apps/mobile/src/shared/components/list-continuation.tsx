@@ -11,7 +11,7 @@ export interface ListContinuationProps {
   onRetry: () => void;
 }
 
-/** Keeps pending and failed continuation at the same list edge without replacing already loaded rows. */
+/** Keeps pending progress and explicit retry at the list edge; the read owner reports failure through its toast. */
 export function ListContinuation({
   loading,
   failed,
@@ -25,6 +25,7 @@ export function ListContinuation({
     <Pressable
       accessibilityRole="button"
       accessibilityLiveRegion="polite"
+      accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={onRetry}
       style={({ pressed }) => [
@@ -38,8 +39,14 @@ export function ListContinuation({
         },
       ]}
     >
-      <Text style={[tokens.typography.metadata, { color: colors.text }]}>
-        Une erreur est survenue. <Text style={styles.action}>Réessayer.</Text>
+      <Text
+        style={[
+          tokens.typography.metadata,
+          styles.action,
+          { color: colors.text },
+        ]}
+      >
+        Réessayer
       </Text>
     </Pressable>
   );

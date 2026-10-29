@@ -39,7 +39,10 @@ import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { resourceUnavailable } from "../model/consultation-availability";
 import { pageContentStyle } from "../../../shared/components/page";
-import { pagedListDefaults } from "../../../shared/components/paged-tabs";
+import {
+  pagedListDefaults,
+  PagedStateScrollView,
+} from "../../../shared/components/paged-tabs";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import {
@@ -139,7 +142,7 @@ export function SportingCalendarView({
   const columns = stacked
     ? 1
     : Math.max(2, Math.min(8, Math.floor(availableWidth / (40 * fontScale))));
-  const { headerHeight, collapseRange, tabBarHeight } =
+  const { headerHeight, collapseRange, tabBarHeight, focusedTab } =
     useCollapsingTabsContext();
   const days = useMemo(() => calendarDays(calendar.data), [calendar.data]);
   const rows = useMemo(() => calendarRows(days, stacked), [days, stacked]);
@@ -175,17 +178,54 @@ export function SportingCalendarView({
     }
   }
   /** The focused idle list may retry a failed cursor explicitly; its edge callback blocks automatic error replay. */
-  function loadMore() {
+  async function loadMore() {
     if (
-      active &&
-      navigation.isFocused() &&
-      calendar.hasNextPage &&
-      !refreshing &&
-      !calendar.isFetching &&
-      (!calendar.isError || calendar.isFetchNextPageError)
+      !active ||
+      !navigation.isFocused() ||
+      !calendar.hasNextPage ||
+      refreshing ||
+      calendar.isFetching ||
+      (calendar.isError && !calendar.isFetchNextPageError)
     )
-      void calendar.fetchNextPage({ cancelRefetch: false });
+      return;
+    feedback.clear();
+    const tab = focusedTab.value;
+    const result = await calendar.fetchNextPage({ cancelRefetch: false });
+    if (
+      result.isFetchNextPageError &&
+      result.data &&
+      !resourceUnavailable(result.error) &&
+      navigation.isFocused() &&
+      focusedTab.value === tab
+    )
+      feedback.error();
   }
+  const refreshControl = calendar.data ? (
+    <DataRefreshControl
+      refreshing={refreshing}
+      onRefresh={() => void refresh()}
+      enabled={active}
+    />
+  ) : undefined;
+  if (rows.length === 0)
+    return (
+      <PagedStateScrollView refreshControl={refreshControl}>
+        <ScreenState>
+          {calendar.isError && !calendar.data ? (
+            <ErrorState
+              onRetry={() => void refresh()}
+              retrying={calendar.isFetching}
+            />
+          ) : calendar.isPending ? (
+            <RequestLoading />
+          ) : (
+            (emptyState ?? (
+              <EmptyState title="Aucun match pour cette sélection" />
+            ))
+          )}
+        </ScreenState>
+      </PagedStateScrollView>
+    );
   return (
     <TabLegendList<CalendarRow>
       {...pagedListDefaults}
@@ -213,13 +253,7 @@ export function SportingCalendarView({
       stickyHeaderConfig={{
         offset: headerHeight - collapseRange + tabBarHeight,
       }}
-      refreshControl={
-        <DataRefreshControl
-          refreshing={refreshing}
-          onRefresh={() => void refresh()}
-          enabled={active}
-        />
-      }
+      refreshControl={refreshControl}
       renderItem={({ item }) =>
         item.kind === "space" ? null : item.kind === "date" ? (
           <CalendarDate
@@ -252,22 +286,6 @@ export function SportingCalendarView({
         if (calendar.hasNextPage && !calendar.isFetching && !calendar.isError)
           loadMore();
       }}
-      ListEmptyComponent={
-        <ScreenState>
-          {calendar.isError && !calendar.data ? (
-            <ErrorState
-              onRetry={() => void refresh()}
-              retrying={calendar.isFetching}
-            />
-          ) : calendar.isPending ? (
-            <RequestLoading />
-          ) : (
-            (emptyState ?? (
-              <EmptyState title="Aucun match pour cette sélection" />
-            ))
-          )}
-        </ScreenState>
-      }
       ListFooterComponent={
         <>
           <ListContinuation
