@@ -3,7 +3,10 @@ package com.blockout.collector.acquisition.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,6 +22,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
@@ -227,6 +231,120 @@ class DiscoverSeasonSourcesTest {
     verify(backend).observeSource(proposal.capture());
     assertThat(proposal.getValue().organizerReference()).isEqualTo("LIRA");
     assertThat(proposal.getValue().startYear()).isEqualTo(2026);
+  }
+
+  /**
+   * A failed supersession inspection must not discard independent source-entry opportunities. The
+   * generated HTTP boundary is replaced; the real lifecycle owns conflict inspection.
+   */
+  @Test
+  @DisplayName("A refused proposal with unavailable runtime leaves independent entries eligible")
+  void continuesAfterUnconfirmedRuntimeInspection() {
+    // Given
+    CollectionBackend backend = mock(CollectionBackend.class);
+    CollectorLifecycle lifecycle = new CollectorLifecycle(backend);
+    when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
+    when(backend.register(0, lifecycle.getIncarnationId()))
+        .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
+    lifecycle.start();
+    when(backend.current())
+        .thenThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.UNCONFIRMED, null));
+    ProviderPages http = mock(ProviderPages.class);
+    when(http.page(any()))
+        .thenReturn(CompletableFuture.failedFuture(new IOException("Unavailable fixture")));
+    URI firstEntry = URI.create("https://www.lnv.fr/competitions/saforelle-volstar");
+    URI nextEntry = URI.create("https://www.lnv.fr/competitions/alterna-volstar");
+    URI firstCandidate = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901");
+    URI nextCandidate = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=902");
+    when(http.page(firstEntry))
+        .thenReturn(response(firstEntry, "<iframe src='" + firstCandidate + "'></iframe>"));
+    when(http.page(nextEntry))
+        .thenReturn(response(nextEntry, "<iframe src='" + nextCandidate + "'></iframe>"));
+    when(http.page(firstCandidate))
+        .thenReturn(
+            response(
+                firstCandidate,
+                "<title>Alterna VOLSTAR 2026/2027</title><a href='CompetitionMatches.aspx?ID=901&PID=903'>Phase</a>"));
+    when(http.page(nextCandidate))
+        .thenReturn(
+            response(
+                nextCandidate,
+                "<title>Alterna VOLSTAR 2026/2027</title><a href='CompetitionMatches.aspx?ID=902&PID=904'>Phase</a>"));
+    doThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.CONFLICT, null))
+        .doNothing()
+        .when(backend)
+        .observeSource(any());
+    DiscoverSeasonSources service =
+        new DiscoverSeasonSources(
+            http,
+            http,
+            new FfvbDiscovery(),
+            new LnvDiscovery(),
+            backend,
+            lifecycle,
+            Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+
+    // When
+    service.currentEntries();
+
+    // Then
+    ArgumentCaptor<CollectionBackend.SourceProposal> proposals =
+        ArgumentCaptor.forClass(CollectionBackend.SourceProposal.class);
+    verify(backend, times(2)).observeSource(proposals.capture());
+    assertThat(proposals.getAllValues())
+        .extracting(CollectionBackend.SourceProposal::organizerReference)
+        .containsExactly("901", "902");
+    assertThat(lifecycle.isActive()).isTrue();
+    verify(backend, times(2)).current();
+  }
+
+  @Test
+  @DisplayName("A superseded discovery process stops before reading another official entry")
+  void stopsAfterConfirmedSupersession() {
+    // Given
+    CollectionBackend backend = mock(CollectionBackend.class);
+    CollectorLifecycle lifecycle = new CollectorLifecycle(backend);
+    when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
+    when(backend.register(0, lifecycle.getIncarnationId()))
+        .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
+    lifecycle.start();
+    when(backend.current())
+        .thenReturn(
+            new CollectionBackend.Runtime(
+                2, UUID.fromString("00000000-0000-4000-8000-000000000199")));
+    ProviderPages http = mock(ProviderPages.class);
+    when(http.page(any()))
+        .thenReturn(CompletableFuture.failedFuture(new IOException("Unavailable fixture")));
+    URI entry = URI.create("https://www.lnv.fr/competitions/saforelle-volstar");
+    URI nextEntry = URI.create("https://www.lnv.fr/competitions/alterna-volstar");
+    URI candidate = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901");
+    when(http.page(entry)).thenReturn(response(entry, "<iframe src='" + candidate + "'></iframe>"));
+    when(http.page(candidate))
+        .thenReturn(
+            response(
+                candidate,
+                "<title>Alterna VOLSTAR 2026/2027</title><a href='CompetitionMatches.aspx?ID=901&PID=903'>Phase</a>"));
+    doThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.CONFLICT, null))
+        .when(backend)
+        .observeSource(any());
+    DiscoverSeasonSources service =
+        new DiscoverSeasonSources(
+            http,
+            http,
+            new FfvbDiscovery(),
+            new LnvDiscovery(),
+            backend,
+            lifecycle,
+            Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+
+    // When
+    ThrowingCallable action = service::currentEntries;
+
+    // Then
+    assertThatThrownBy(action).isInstanceOf(IllegalStateException.class);
+    assertThat(lifecycle.isActive()).isFalse();
+    verify(http, never()).page(nextEntry);
+    verify(backend).observeSource(any());
   }
 
   /**

@@ -101,6 +101,8 @@ IGN Géoplateforme is the only municipal geocoder. Send F02's current municipali
 
 ## Admission, transactions and failure handling
 
+The collector keeps only acquisition inputs from each generated target. Effective classification and due-time evidence remain backend-owned selection rules; copying their unused fields into the collector adds no protection. The admitted cycle retains its immutable candidate snapshot directly, so qualification consumes the same confirmed capability without another candidate GET. `CollectorLifecycle` owns runtime-conflict inspection for work, discovery and passages: an unavailable inspection preserves the original refusal, while confirmed supersession stops further work. Neither outcome authorizes replay or releases unresolved scope ownership.
+
 Use the [current-state model](data-model.md) and F02's existing seven ingestion operations. Backend admission allocates `cycleOrder`, binds a cycle to the current collector incarnation and freezes its authorized acquisition scope. The collector assigns `readOrdinal` before each source read. The commit that marks RUNNING is the logical cycle start; a lost admission response requires reading that cycle before work, not creating another.
 
 Each cycle-related write checks the current collector incarnation under a shared runtime-row lock held in the same transaction as the write. Restart registration exclusively locks that row, waits for admitted transactions to finish, replaces the incarnation and makes old unfinished cycles obsolete. No mass update or distributed fencing service is needed. Repeating the current startup identifier is harmless; stale startup revisions are refused. A superseded process stops and does not automatically register again.

@@ -449,7 +449,7 @@ class CollectPassageTest {
                     1,
                     CollectionModeEnum.INITIAL_IMPORT,
                     CollectionCycleStateEnum.RUNNING,
-                    false,
+                    null,
                     null);
               });
       CollectorLifecycle.AdmittedCycle admitted =
@@ -1007,6 +1007,31 @@ class CollectPassageTest {
     }
 
     @Test
+    @DisplayName("A failed runtime inspection preserves the admitted passage refusal")
+    void preservesRefusalWhenRuntimeReadFails() {
+      // Given
+      when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
+      when(backend.register(0, lifecycle.getIncarnationId()))
+          .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
+      lifecycle.start();
+      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
+      when(backend.targets(admitted.getCycle().id(), 0))
+          .thenThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.CONFLICT, null));
+      when(backend.current()).thenThrow(uncertain());
+
+      // When
+      boolean completed = passage.execute(admitted);
+
+      // Then
+      assertThat(completed).isFalse();
+      assertThat(lifecycle.isActive()).isTrue();
+      verifyNoInteractions(sporting, ffvb, lnv, clubs, geocoder, discovery);
+      verify(backend, never()).complete(any(), any());
+      verify(backend, times(2)).current();
+    }
+
+    @Test
     @DisplayName("Retains only safe exception information when acquisition unexpectedly fails")
     void excludesUnsafeFailureMessage(CapturedOutput output) {
       // Given
@@ -1100,20 +1125,19 @@ class CollectPassageTest {
   /**
    * Returns the backend's running response correlated to the generated admission identity.
    *
-   * @param command explicit control or candidate request sent by the real lifecycle
+   * @param command explicit control request sent by the real lifecycle
    * @return runnable response with no side effects or installed stubs
    */
   private static CollectionBackend.Cycle runningCycle(CollectionBackend.StartCycle command) {
-    boolean candidate = command.sourceBindingId() != null;
     return new CollectionBackend.Cycle(
         command.cycleId(),
         command.incarnationId(),
         command.controlId(),
         command.sourceBindingId(),
         1,
-        candidate ? null : CollectionModeEnum.PERIODIC,
+        CollectionModeEnum.PERIODIC,
         CollectionCycleStateEnum.RUNNING,
-        candidate,
+        null,
         null);
   }
 
@@ -1135,7 +1159,7 @@ class CollectPassageTest {
         cycle.cycleOrder(),
         cycle.mode(),
         CollectionCycleStateEnum.COMPLETED,
-        cycle.hasCandidate(),
+        cycle.candidate(),
         completedAt);
   }
 

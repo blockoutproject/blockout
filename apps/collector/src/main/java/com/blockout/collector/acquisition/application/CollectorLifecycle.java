@@ -99,8 +99,8 @@ public class CollectorLifecycle {
         || !Objects.equals(cycle.controlId(), controlId)
         || !Objects.equals(cycle.sourceBindingId(), sourceBindingId)
         || cycle.state() != CollectionCycleStateEnum.RUNNING
-        || (controlId != null && (cycle.mode() == null || cycle.hasCandidate()))
-        || (sourceBindingId != null && (cycle.mode() != null || !cycle.hasCandidate()))) {
+        || (controlId != null && (cycle.mode() == null || cycle.candidate() != null))
+        || (sourceBindingId != null && (cycle.mode() != null || cycle.candidate() == null))) {
       unresolvedAdmission(command);
       throw new IllegalStateException("Backend did not confirm the requested runnable context");
     }

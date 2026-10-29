@@ -33,13 +33,6 @@ public class CollectionBackendClient implements CollectionBackend {
 
   /** {@inheritDoc} */
   @Override
-  public Candidate candidate(UUID cycleId) {
-    return BackendExchange.once(
-        () -> mapper.toCandidate(api.getCollectionCycle(cycleId).getCandidate()));
-  }
-
-  /** {@inheritDoc} */
-  @Override
   public Runtime current() {
     return BackendExchange.once(() -> mapper.toView(api.getCollectorRuntime()));
   }

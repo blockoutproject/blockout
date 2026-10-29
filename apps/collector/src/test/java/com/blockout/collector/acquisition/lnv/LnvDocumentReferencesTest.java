@@ -11,9 +11,13 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 import org.apache.hc.core5.http.NameValuePair;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.parser.Parser;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /** Synthetic published postback state exercises the provider-shape boundary without network I/O. */
@@ -152,13 +156,13 @@ class LnvDocumentReferencesTest {
   @DisplayName("Reads a document code from exact verified season and team associations")
   void qualifiesDocumentCode() {
     // Given
-    byte[] xml = documentIndex(1).getBytes(StandardCharsets.UTF_8);
+    Document index = Jsoup.parse(documentIndex(1), "", Parser.xmlParser());
 
     // When
     SportingObservation.InformationSheet sheet =
         new LnvDocumentReferences()
             .informationSheet(
-                xml, 2026, "901", "LAM", "001", "002", LocalDate.of(2026, 10, 17), ASSOCIATIONS);
+                index, 2026, "901", "LAM", "001", "002", LocalDate.of(2026, 10, 17), ASSOCIATIONS);
 
     // Then
     assertThat(sheet)
@@ -169,13 +173,13 @@ class LnvDocumentReferencesTest {
   @DisplayName("Refuses document associations belonging to another season")
   void rejectsForeignAssociationSeason() {
     // Given
-    byte[] xml = documentIndex(1).getBytes(StandardCharsets.UTF_8);
+    Document index = Jsoup.parse(documentIndex(1), "", Parser.xmlParser());
 
     // When
     SportingObservation.InformationSheet sheet =
         new LnvDocumentReferences()
             .informationSheet(
-                xml, 2025, "901", "LAM", "001", "002", LocalDate.of(2025, 10, 17), ASSOCIATIONS);
+                index, 2025, "901", "LAM", "001", "002", LocalDate.of(2025, 10, 17), ASSOCIATIONS);
 
     // Then
     assertThat(sheet).isNull();
@@ -185,13 +189,51 @@ class LnvDocumentReferencesTest {
   @DisplayName("Refuses an ambiguous repeated document match")
   void rejectsDuplicateDocumentMatch() {
     // Given
-    byte[] xml = documentIndex(2).getBytes(StandardCharsets.UTF_8);
+    Document index = Jsoup.parse(documentIndex(2), "", Parser.xmlParser());
 
     // When
     SportingObservation.InformationSheet sheet =
         new LnvDocumentReferences()
             .informationSheet(
-                xml, 2026, "901", "LAM", "001", "002", LocalDate.of(2026, 10, 17), ASSOCIATIONS);
+                index, 2026, "901", "LAM", "001", "002", LocalDate.of(2026, 10, 17), ASSOCIATIONS);
+
+    // Then
+    assertThat(sheet).isNull();
+  }
+
+  @Test
+  @DisplayName("An XML index cannot supply a document code for another championship")
+  void rejectsForeignIndexChampionship() {
+    // Given
+    Document index =
+        Jsoup.parse(
+            documentIndex(1).replace("CodeCompetition=\"LAM\"", "CodeCompetition=\"LAF\""),
+            "",
+            Parser.xmlParser());
+    LnvDocumentReferences references = new LnvDocumentReferences();
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
+        () ->
+            references.informationSheet(
+                index, 2026, "901", "LAM", "001", "002", LocalDate.of(2026, 10, 17), ASSOCIATIONS);
+
+    // Then
+    assertThatThrownBy(read).isInstanceOf(LnvAcquisitionException.class);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"true, unknown", "false, 002"})
+  @DisplayName("A match without an exact association does not qualify unrelated index content")
+  void omitsUnassociatedDocument(boolean dated, String away) {
+    // Given
+    Document index = Jsoup.parse("<Unexpected/>", "", Parser.xmlParser());
+    LocalDate date = dated ? LocalDate.of(2026, 10, 17) : null;
+
+    // When
+    SportingObservation.InformationSheet sheet =
+        new LnvDocumentReferences()
+            .informationSheet(index, 2026, "901", "LAM", "001", away, date, ASSOCIATIONS);
 
     // Then
     assertThat(sheet).isNull();

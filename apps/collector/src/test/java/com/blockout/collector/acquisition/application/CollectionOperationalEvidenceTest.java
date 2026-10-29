@@ -91,7 +91,7 @@ class CollectionOperationalEvidenceTest {
                 1,
                 CollectionModeEnum.PERIODIC,
                 CollectionCycleStateEnum.COMPLETED,
-                false,
+                null,
                 NOW));
     CollectionBackend.Target target =
         CollectionBackend.Target.builder()
@@ -146,7 +146,7 @@ class CollectionOperationalEvidenceTest {
                 1,
                 CollectionModeEnum.PERIODIC,
                 CollectionCycleStateEnum.COMPLETED,
-                false,
+                null,
                 NOW));
     CollectionBackend.Target target =
         CollectionBackend.Target.builder()
@@ -201,7 +201,7 @@ class CollectionOperationalEvidenceTest {
                 1,
                 CollectionModeEnum.PERIODIC,
                 CollectionCycleStateEnum.COMPLETED,
-                false,
+                null,
                 NOW));
     URI source =
         URI.create("https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?calend=COMPLET");
@@ -271,20 +271,19 @@ class CollectionOperationalEvidenceTest {
   /**
    * Returns the backend's running response correlated to the generated admission identity.
    *
-   * @param command explicit control or candidate request sent by the real lifecycle
+   * @param command explicit control request sent by the real lifecycle
    * @return runnable response with no side effects or installed stubs
    */
   private static CollectionBackend.Cycle runningCycle(CollectionBackend.StartCycle command) {
-    boolean candidate = command.sourceBindingId() != null;
     return new CollectionBackend.Cycle(
         command.cycleId(),
         command.incarnationId(),
         command.controlId(),
         command.sourceBindingId(),
         1,
-        candidate ? null : CollectionModeEnum.PERIODIC,
+        CollectionModeEnum.PERIODIC,
         CollectionCycleStateEnum.RUNNING,
-        candidate,
+        null,
         null);
   }
 }

@@ -14,7 +14,9 @@ import static org.mockito.Mockito.when;
 import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionSeasonStateEnum;
+import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -128,42 +130,6 @@ class AcquisitionSchedulerTest {
     verify(backend).register(0, lifecycle.getIncarnationId());
     verify(backend, never()).admit(any());
     verifyNoInteractions(passages, qualification, discovery);
-  }
-
-  @Test
-  @DisplayName("A candidate read refused after admission still stops a superseded process")
-  void stopsSupersededCandidateRead() {
-    // Given
-    when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
-    when(backend.register(0, lifecycle.getIncarnationId()))
-        .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
-    lifecycle.start();
-    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
-    AcquisitionScheduler scheduler =
-        new AcquisitionScheduler(
-            timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
-    scheduler.start();
-    org.mockito.ArgumentCaptor<Runnable> scheduled =
-        org.mockito.ArgumentCaptor.forClass(Runnable.class);
-    verify(timer, times(3)).schedule(scheduled.capture(), any(Trigger.class));
-    List<Runnable> tasks = scheduled.getAllValues();
-    when(backend.work(lifecycle.getIncarnationId()))
-        .thenReturn(
-            new CollectionBackend.Work(
-                List.of(), List.of(new CollectionBackend.ValidationWork(CONTROL, 0))));
-    when(qualification.execute(any()))
-        .thenThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.CONFLICT, null));
-    when(backend.current()).thenReturn(new CollectionBackend.Runtime(2, REQUEST));
-
-    // When
-    tasks.get(2).run();
-    tasks.get(2).run();
-
-    // Then
-    assertThat(lifecycle.isActive()).isFalse();
-    verify(backend).admit(any());
-    verify(qualification).execute(any());
-    verifyNoInteractions(passages, discovery);
   }
 
   @ParameterizedTest
@@ -565,7 +531,13 @@ class AcquisitionSchedulerTest {
         1,
         candidate ? null : CollectionModeEnum.PERIODIC,
         CollectionCycleStateEnum.RUNNING,
-        candidate,
+        candidate
+            ? new CollectionBackend.Candidate(
+                URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901"),
+                "2026/2027",
+                CollectionProviderEnum.LNV,
+                "901")
+            : null,
         null);
   }
 

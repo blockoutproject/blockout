@@ -3,7 +3,6 @@ package com.blockout.collector.acquisition.lnv;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.config.AcquisitionProperties.DocumentTeamAssociation;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -15,11 +14,9 @@ import java.util.regex.Pattern;
 import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.jsoup.Connection;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.FormElement;
-import org.jsoup.parser.Parser;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -130,7 +127,7 @@ public class LnvDocumentReferences {
   /**
    * Associates a document code only through verified scoped identities and unique exact evidence.
    *
-   * @param xml complete bounded document index, read once per eligible passage
+   * @param index native XML DOM parsed once from the complete bounded passage read, never mutated
    * @param year qualified sporting start year
    * @param championship native LNV championship
    * @param code designated XML championship label
@@ -139,9 +136,10 @@ public class LnvDocumentReferences {
    * @param date independently observed sporting date
    * @param associations explicitly verified configuration
    * @return qualified information sheet, or null without a safe association
+   * @throws LnvAcquisitionException when an associable match has no matching XML championship
    */
-  public SportingObservation.InformationSheet informationSheet(
-      byte[] xml,
+  SportingObservation.InformationSheet informationSheet(
+      Document index,
       long year,
       String championship,
       String code,
@@ -152,7 +150,6 @@ public class LnvDocumentReferences {
     String homeLabel = label(year, championship, home, associations);
     String awayLabel = label(year, championship, away, associations);
     if (date == null || homeLabel == null || awayLabel == null) return null;
-    Document index = Jsoup.parse(new String(xml, StandardCharsets.UTF_8), "", Parser.xmlParser());
     Element competition = index.selectFirst("Competition[CodeCompetition=" + code + "]");
     if (competition == null) throw LnvPage.invalid();
     List<Element> matches =

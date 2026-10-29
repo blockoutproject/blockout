@@ -16,6 +16,7 @@ import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +49,7 @@ class CollectorLifecycleIntegrationTest {
   private boolean loseRegistration;
   private boolean refuseAdmission;
   private boolean contradictoryPurpose;
+  private boolean omitCandidate;
   private boolean refuseCycleRead;
   private int unavailableCycleStatus = 503;
   private CollectorLifecycle lifecycle;
@@ -91,14 +93,33 @@ class CollectorLifecycleIntegrationTest {
           } else if (method.equals("POST")) {
             JsonNode command = json.readTree(exchange.getRequestBody());
             admitted = UUID.fromString(command.get("cycleId").asText());
+            String purpose;
+            if (command.get("sourceBindingId") != null) {
+              String source = command.get("sourceBindingId").asText();
+              purpose =
+                  "\"sourceBindingId\":\""
+                      + source
+                      + "\",\"candidate\":{"
+                      + "\"sourceBindingId\":\""
+                      + source
+                      + "\",\"revision\":7,"
+                      + "\"candidateUrl\":\"https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901\","
+                      + "\"seasonLabel\":\"2026/2027\",\"provider\":\"lnv\",\"organizerReference\":\"901\"}";
+              if (omitCandidate) purpose = "\"sourceBindingId\":\"" + source + "\"";
+            } else {
+              purpose =
+                  "\"controlId\":\""
+                      + command.get("controlId").asText()
+                      + "\",\"mode\":\"periodic\"";
+            }
             cycle =
                 "{\"id\":\""
                     + admitted
                     + "\",\"incarnationId\":\""
                     + registered
-                    + "\",\"controlId\":\""
-                    + command.get("controlId").asText()
-                    + "\",\"cycleOrder\":3,\"mode\":\"periodic\",\"state\":\"running\",\"startedAt\":\"2026-10-19T10:00:00Z\"}";
+                    + "\","
+                    + purpose
+                    + ",\"cycleOrder\":3,\"state\":\"running\",\"startedAt\":\"2026-10-19T10:00:00Z\"}";
             if (contradictoryPurpose)
               cycle =
                   cycle.replace(
@@ -227,6 +248,38 @@ class CollectorLifecycleIntegrationTest {
   }
 
   @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  @DisplayName(
+      "Confirmed admission retains the exact candidate from its original response or recovery read")
+  void retainsConfirmedCandidate(boolean responseLost) {
+    // Given
+    lifecycle.start();
+    loseAdmission = responseLost;
+    UUID source = UUID.fromString("00000000-0000-4000-8000-000000000151");
+
+    // When
+    CollectorLifecycle.AdmittedCycle context = lifecycle.admit(null, source, 7, null);
+
+    // Then
+    assertThat(context.getCycle().sourceBindingId()).isEqualTo(source);
+    assertThat(context.getCycle().mode()).isNull();
+    assertThat(context.getCycle().candidate())
+        .isEqualTo(
+            new CollectionBackend.Candidate(
+                URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901"),
+                "2026/2027",
+                com.blockout.collector.generated.ingestion.model.CollectionProviderEnum.LNV,
+                "901"));
+    List<String> expected =
+        responseLost
+            ? List.of(
+                "POST /ingestion/collection-cycles", "GET /ingestion/collection-cycles/" + admitted)
+            : List.of("POST /ingestion/collection-cycles");
+    assertThat(calls.subList(2, calls.size())).containsExactlyElementsOf(expected);
+    assertThat(context.nextReadOrdinal()).isEqualTo(1);
+  }
+
+  @ParameterizedTest
   @ValueSource(ints = {404, 503})
   @DisplayName(
       "An unresolved original admission remains uncertain and logs its original UUID for inspection")
@@ -316,6 +369,23 @@ class CollectorLifecycleIntegrationTest {
         .isInstanceOf(IllegalStateException.class);
     assertThat(calls).hasSize(observedCalls);
     assertThat(calls.stream().filter(call -> call.startsWith("PUT"))).hasSize(1);
+  }
+
+  @Test
+  @DisplayName("A validation cycle missing its candidate never becomes provider authorization")
+  void refusesMissingCandidate() {
+    // Given
+    lifecycle.start();
+    omitCandidate = true;
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
+        () ->
+            lifecycle.admit(null, UUID.fromString("00000000-0000-4000-8000-000000000151"), 7, null);
+
+    // Then
+    assertThatThrownBy(action).isInstanceOf(IllegalStateException.class);
+    assertThat(calls.subList(2, calls.size())).containsExactly("POST /ingestion/collection-cycles");
   }
 
   @Test

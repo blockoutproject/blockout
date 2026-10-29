@@ -10,8 +10,6 @@ import com.blockout.collector.generated.ingestion.model.CollectionSeasonStateEnu
 import com.blockout.collector.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
-import com.blockout.collector.generated.ingestion.model.SportFormatEnum;
-import com.blockout.collector.generated.ingestion.model.SportGenderEnum;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
@@ -46,7 +44,7 @@ public interface CollectionBackend {
       CollectionModeEnum requestedMode,
       UUID runningCycleId) {}
 
-  /** One current candidate awaiting admission; provider configuration is reread after admission. */
+  /** One current candidate awaiting admission; admission freezes its provider configuration. */
   record ValidationWork(UUID sourceBindingId, long revision) {}
 
   /**
@@ -73,7 +71,8 @@ public interface CollectionBackend {
       UUID requestId) {}
 
   /**
-   * Minimal admitted capability; provider-specific configuration is read through its cycle targets.
+   * Admitted capability retaining the frozen validation candidate; control targets are read by
+   * page.
    */
   record Cycle(
       UUID id,
@@ -83,10 +82,13 @@ public interface CollectionBackend {
       long cycleOrder,
       CollectionModeEnum mode,
       CollectionCycleStateEnum state,
-      boolean hasCandidate,
+      Candidate candidate,
       Instant completedAt) {}
 
-  /** Exact backend-selected context; absent provider fields are never guessed by the passage. */
+  /**
+   * Acquisition inputs from the backend-selected target. Classification and scheduling evidence
+   * stay with backend admission; absent provider fields are never guessed by the passage.
+   */
   @Builder(toBuilder = true)
   record Target(
       UUID scopeId,
@@ -95,7 +97,6 @@ public interface CollectionBackend {
       URI url,
       String seasonLabel,
       String competitionReference,
-      String packReference,
       String poolReference,
       String tourReference,
       String groupReference,
@@ -103,12 +104,6 @@ public interface CollectionBackend {
       UUID matchId,
       UUID clubId,
       String clubReference,
-      UUID divisionId,
-      SportFormatEnum format,
-      SportGenderEnum gender,
-      Instant lastAttemptAt,
-      Instant lastSuccessAt,
-      Instant fastWindowEndsAt,
       CollectionProviderEnum provider,
       String organizerReference,
       String nativeMatchReference,
@@ -161,20 +156,12 @@ public interface CollectionBackend {
    */
   void observeSource(SourceProposal proposal);
 
-  /** Exact admitted candidate context, independently reread without authorizing sporting writes. */
+  /** Exact candidate frozen at admission, without authorizing sporting writes. */
   record Candidate(
       URI candidateUrl,
       String seasonLabel,
       CollectionProviderEnum provider,
       String organizerReference) {}
-
-  /**
-   * Reads the original candidate from its admitted cycle.
-   *
-   * @param cycleId confirmed validation cycle
-   * @return exact frozen candidate, never a newly edited source
-   */
-  Candidate candidate(UUID cycleId);
 
   /**
    * Terminal candidate evidence; interpretation and backend application remain source-preparation

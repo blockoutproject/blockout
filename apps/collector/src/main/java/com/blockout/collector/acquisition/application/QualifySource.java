@@ -14,7 +14,6 @@ public class QualifySource {
   private final ProviderPages lnvHttp;
   private final DiscoverSeasonSources discovery;
   private final LnvDiscovery lnv;
-  private final CollectionBackend backend;
   private final CollectorLifecycle lifecycle;
   private final Clock clock;
 
@@ -28,7 +27,6 @@ public class QualifySource {
    * @param lnvHttp shared LNV budget
    * @param discovery published FFVB frame and selector traversal
    * @param lnv native LNV interpreter
-   * @param backend admitted candidate reader
    * @param lifecycle current incarnation and terminal-write policy
    * @param clock actual read completion time
    */
@@ -36,19 +34,17 @@ public class QualifySource {
       @Qualifier("lnvProviderClient") ProviderPages lnvHttp,
       LnvDiscovery lnv,
       DiscoverSeasonSources discovery,
-      CollectionBackend backend,
       CollectorLifecycle lifecycle,
       Clock clock) {
     this.lnvHttp = lnvHttp;
     this.discovery = discovery;
     this.lnv = lnv;
-    this.backend = backend;
     this.lifecycle = lifecycle;
     this.clock = clock;
   }
 
   /**
-   * Reads the frozen candidate and submits its terminal qualification exactly once.
+   * Qualifies the frozen candidate retained by admission and submits its terminal evidence once.
    *
    * @param context confirmed candidate capability
    * @return whether the original terminal operation was confirmed
@@ -56,9 +52,8 @@ public class QualifySource {
   public boolean execute(CollectorLifecycle.AdmittedCycle context) {
     if (context.getCycle().sourceBindingId() == null)
       throw new IllegalArgumentException("Candidate context required");
-    CollectionBackend.Candidate candidate = backend.candidate(context.getCycle().id());
     context.nextReadOrdinal();
-    Evidence evidence = qualify(candidate);
+    Evidence evidence = qualify(context.getCycle().candidate());
     return lifecycle.validate(
         context,
         new CollectionBackend.Validation(
