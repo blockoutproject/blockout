@@ -44,9 +44,9 @@ import { useReducedMotion } from "../theme/use-reduced-motion";
 import { tokens } from "../theme/tokens";
 import { ScrollBackdrop, type ScrollBlurTarget } from "./scroll-backdrop";
 import {
-  BottomNavigationSpacer,
-  useBottomNavigationInset,
-} from "./bottom-navigation-inset";
+  BottomContentSpacer,
+  useBottomContentInset,
+} from "./bottom-content-inset";
 
 /** RNCT owns offsets and measured header padding; native lists must not compensate that padding with a second scroll. */
 export const pagedListDefaults = {
@@ -76,7 +76,7 @@ export function PagedStateScrollView({
   }, [reportFeedback]);
   const { containerHeight, paddingTop } = useCollapsingTabsContext();
   const collapse = useHeaderScrollY();
-  const bottomNavigationInset = useBottomNavigationInset();
+  const bottomContentInset = useBottomContentInset();
   const visibleArea = useAnimatedStyle(() => ({
     minHeight: containerHeight,
     paddingTop: paddingTop - collapse.value,
@@ -85,10 +85,7 @@ export function PagedStateScrollView({
     refreshControl &&
     cloneElement(refreshControl, { progressViewOffset: paddingTop });
   // Oversized chrome is real overflow: the stock adapter must let the user collapse it to reach feedback.
-  if (
-    containerHeight > 0 &&
-    paddingTop > containerHeight - bottomNavigationInset
-  )
+  if (containerHeight > 0 && paddingTop > containerHeight - bottomContentInset)
     return (
       <TabScrollView
         {...hiddenScrollIndicators}
@@ -97,7 +94,7 @@ export function PagedStateScrollView({
         refreshControl={refresh}
       >
         {children}
-        <BottomNavigationSpacer />
+        <BottomContentSpacer />
       </TabScrollView>
     );
   return (
@@ -112,7 +109,7 @@ export function PagedStateScrollView({
     >
       <Animated.View style={visibleArea}>
         {children}
-        <BottomNavigationSpacer />
+        <BottomContentSpacer />
       </Animated.View>
     </Animated.ScrollView>
   );

@@ -33,7 +33,7 @@ import { DataRefreshControl } from "../../../shared/components/data-refresh-cont
 import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { BottomNavigationSpacer } from "../../../shared/components/bottom-navigation-inset";
+import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { ListContinuation } from "../../../shared/components/list-continuation";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { ApiError } from "../../../shared/api/api-fetch";
@@ -294,7 +294,7 @@ export function SportingCalendarView({
             disabled={calendar.isFetching || refreshing}
             onRetry={loadMore}
           />
-          <BottomNavigationSpacer />
+          <BottomContentSpacer />
         </>
       }
     />

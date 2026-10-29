@@ -9,6 +9,7 @@ import {
   PagedStateScrollView,
 } from "../../../shared/components/paged-tabs";
 import { ResourceText } from "../components/resource-text";
+import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { ErrorState } from "../../../shared/components/state-card";
@@ -152,6 +153,7 @@ function PoolPage({
                             </ResourceText>
                           )))}
                   </PageContent>
+                  <BottomContentSpacer />
                 </TabScrollView>
               ),
           }))}

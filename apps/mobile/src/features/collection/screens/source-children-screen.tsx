@@ -10,6 +10,7 @@ import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { PageHeader } from "../../../shared/components/page-header";
 import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { useNavigation, useRouter } from "expo-router";
 import { Layers } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
@@ -172,16 +173,21 @@ export function SourceChildrenScreen({
               </ScreenState>
             }
             ListFooterComponent={
-              authority.enabled && !denied && query.hasNextPage ? (
-                <View style={styles.footer}>
-                  <ListContinuation
-                    loading={query.isFetchingNextPage}
-                    failed={query.isFetchNextPageError}
-                    disabled={query.isFetching || authority.account.isFetching}
-                    onRetry={loadMore}
-                  />
-                </View>
-              ) : undefined
+              <>
+                {authority.enabled && !denied && query.hasNextPage ? (
+                  <View style={styles.footer}>
+                    <ListContinuation
+                      loading={query.isFetchingNextPage}
+                      failed={query.isFetchNextPageError}
+                      disabled={
+                        query.isFetching || authority.account.isFetching
+                      }
+                      onRetry={loadMore}
+                    />
+                  </View>
+                ) : undefined}
+                <BottomContentSpacer />
+              </>
             }
           />
         )}

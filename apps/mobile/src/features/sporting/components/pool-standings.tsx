@@ -12,6 +12,7 @@ import type {
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { PageContent } from "../../../shared/components/page";
+import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { PagedStateScrollView } from "../../../shared/components/paged-tabs";
@@ -154,6 +155,7 @@ export function PoolStandings({
           )}
         </View>
       </PageContent>
+      <BottomContentSpacer />
     </TabScrollView>
   );
 }

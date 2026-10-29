@@ -10,29 +10,30 @@ import {
 import Animated from "react-native-reanimated";
 import {
   SafeAreaView,
+  useSafeAreaInsets,
   type EdgeRecord,
   type SafeAreaViewProps,
 } from "react-native-safe-area-context";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
 import {
-  BottomNavigationInsetContext,
-  BottomNavigationSpacer,
-  useBottomNavigationInset,
-} from "./bottom-navigation-inset";
+  BottomContentInsetContext,
+  BottomContentSpacer,
+  useBottomContentInset,
+} from "./bottom-content-inset";
 
-/** The route composes its header and content; floating navigation owns the ordinary bottom inset. */
+/** The route composes its header and content; native bottom clearance belongs inside the scrolling content. */
 export interface PageProps extends PropsWithChildren {
   edges?: SafeAreaViewProps["edges"];
   /** A native modal covers the tab capsule and keeps its own complete safe-area reservation. */
   accessibilityViewIsModal?: boolean;
 }
 
-/** Applies one safe-area boundary with a minimum top clearance; modals clear the covered tab reservation. */
+/** Keeps scrolling viewports full height; pages publish bottom clearance, and modals replace the covered tab reservation. */
 export function Page({ children, edges, accessibilityViewIsModal }: PageProps) {
   const { colors } = useTheme();
-  const bottomNavigationInset = useBottomNavigationInset();
-  const inset = accessibilityViewIsModal ? 0 : bottomNavigationInset;
+  const bottomContentInset = useBottomContentInset();
+  const safeArea = useSafeAreaInsets();
   const activeEdges: EdgeRecord = Array.isArray(edges)
     ? Object.fromEntries(edges.map((edge) => [edge, "additive" as const]))
     : ((edges as EdgeRecord | undefined) ?? {
@@ -42,12 +43,18 @@ export function Page({ children, edges, accessibilityViewIsModal }: PageProps) {
         left: "additive",
       });
   const ownsTop = !!activeEdges.top && activeEdges.top !== "off";
+  const ownsBottom = !!activeEdges.bottom && activeEdges.bottom !== "off";
+  // The measured capsule already includes the system inset; reserve one clearance, never their sum.
+  const inset = Math.max(
+    accessibilityViewIsModal ? 0 : bottomContentInset,
+    ownsBottom ? safeArea.bottom : 0,
+  );
   return (
     <SafeAreaView
       edges={{
         ...activeEdges,
         top: ownsTop ? "maximum" : "off",
-        bottom: inset > 0 ? "off" : activeEdges.bottom,
+        bottom: "off",
       }}
       accessibilityViewIsModal={accessibilityViewIsModal}
       style={[
@@ -58,9 +65,9 @@ export function Page({ children, edges, accessibilityViewIsModal }: PageProps) {
         },
       ]}
     >
-      <BottomNavigationInsetContext value={inset}>
+      <BottomContentInsetContext value={inset}>
         {children}
-      </BottomNavigationInsetContext>
+      </BottomContentInsetContext>
     </SafeAreaView>
   );
 }
@@ -89,7 +96,7 @@ export interface PageScrollViewProps extends ScrollViewProps {
   ref?: Ref<ScrollViewInstance>;
 }
 
-/** Keeps native scroll APIs and refresh; trailing native content clears a measured floating tab bar. */
+/** Keeps native scroll APIs and refresh; trailing content clears the page’s native or floating-navigation inset. */
 export function PageScrollView({
   children,
   contentContainerStyle,
@@ -103,7 +110,7 @@ export function PageScrollView({
       contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
     >
       {children}
-      <BottomNavigationSpacer />
+      <BottomContentSpacer />
     </Animated.ScrollView>
   );
 }

@@ -9,6 +9,7 @@ import {
   pagedListDefaults,
 } from "../../../shared/components/paged-tabs";
 import { ListSeparator } from "../../../shared/components/list-separator";
+import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { ResourceText } from "../components/resource-text";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
@@ -238,6 +239,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
                   }
                   contentContainerStyle={pageContentStyle}
                   ItemSeparatorComponent={ListSeparator}
+                  ListFooterComponent={BottomContentSpacer}
                   data={
                     data && value === "teams" ? (teamData?.items ?? []) : []
                   }

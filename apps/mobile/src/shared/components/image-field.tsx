@@ -16,6 +16,7 @@ import { FieldMessage } from "./field-message";
 import { ScreenState } from "./screen-state";
 import { ErrorState } from "./state-card";
 import { Page, PageScrollView } from "./page";
+import { BottomContentSpacer } from "./bottom-content-inset";
 
 /** Stable caller identity and accessible description for an existing or prepared local preview. */
 export interface ImageFieldImage {
@@ -227,7 +228,7 @@ export function ImageField({
   );
 }
 
-/** A failed native decode gets an opaque read card; retry remounts only the image and never changes the draft. */
+/** Keeps the static image inside the native safe frame; failed decode retry remounts only the image and preserves the draft. */
 function ImagePreview({
   image,
   onClose,
@@ -249,16 +250,19 @@ function ImagePreview({
           </ScreenState>
         </PageScrollView>
       ) : (
-        <Image
-          onError={() => setFailed(true)}
-          source={{ uri: image.uri }}
-          accessibilityRole="image"
-          accessibilityLabel={image.label}
-          accessible
-          cachePolicy="none"
-          contentFit="contain"
-          style={styles.fullImage}
-        />
+        <>
+          <Image
+            onError={() => setFailed(true)}
+            source={{ uri: image.uri }}
+            accessibilityRole="image"
+            accessibilityLabel={image.label}
+            accessible
+            cachePolicy="none"
+            contentFit="contain"
+            style={styles.fullImage}
+          />
+          <BottomContentSpacer />
+        </>
       )}
     </Page>
   );

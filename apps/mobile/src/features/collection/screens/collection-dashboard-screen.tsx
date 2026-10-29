@@ -15,6 +15,7 @@ import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { PageHeader } from "../../../shared/components/page-header";
 import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { useNavigation, useRouter } from "expo-router";
 import { CalendarDays, MapPin, Users } from "lucide-react-native";
 import { useState } from "react";
@@ -545,21 +546,24 @@ function ControlDashboard({
                 </ScreenState>
               }
               ListFooterComponent={
-                !isAccessDenied(results.error) && results.hasNextPage ? (
-                  <View style={styles.footer}>
-                    <ListContinuation
-                      loading={results.isFetchingNextPage}
-                      failed={results.isFetchNextPageError}
-                      disabled={
-                        results.isFetching ||
-                        refreshing ||
-                        query.isFetching ||
-                        editing.activity.pending
-                      }
-                      onRetry={loadMore}
-                    />
-                  </View>
-                ) : undefined
+                <>
+                  {!isAccessDenied(results.error) && results.hasNextPage ? (
+                    <View style={styles.footer}>
+                      <ListContinuation
+                        loading={results.isFetchingNextPage}
+                        failed={results.isFetchNextPageError}
+                        disabled={
+                          results.isFetching ||
+                          refreshing ||
+                          query.isFetching ||
+                          editing.activity.pending
+                        }
+                        onRetry={loadMore}
+                      />
+                    </View>
+                  ) : undefined}
+                  <BottomContentSpacer />
+                </>
               }
             />
           )

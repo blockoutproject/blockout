@@ -16,7 +16,7 @@ import {
 } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
 import { ScrollChrome } from "../../../shared/components/scroll-chrome";
-import { BottomNavigationSpacer } from "../../../shared/components/bottom-navigation-inset";
+import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { ListContinuation } from "../../../shared/components/list-continuation";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
@@ -231,7 +231,7 @@ function Inbox({
                   disabled={query.isFetching}
                   onRetry={() => void loadMore()}
                 />
-                <BottomNavigationSpacer />
+                <BottomContentSpacer />
               </>
             }
             renderItem={({ item }) => (

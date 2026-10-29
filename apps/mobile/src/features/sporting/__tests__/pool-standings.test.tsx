@@ -499,6 +499,10 @@ it.each(["unavailable", "not-published"] as const)(
       rows: [],
     };
     await open(panel());
+    // Query can finish before React commits its notified read state; wait for the actual recovery control.
+    if (availability === "unavailable")
+      await screen.findByRole("button", { name: "Réessayer" });
+    else await screen.findByLabelText("Actualiser les données");
     failed = true;
     mockFetch.mockClear();
 

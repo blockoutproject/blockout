@@ -4,7 +4,7 @@ import {
   PagedStateScrollView,
 } from "../../../shared/components/paged-tabs";
 import { ListSeparator } from "../../../shared/components/list-separator";
-import { BottomNavigationSpacer } from "../../../shared/components/bottom-navigation-inset";
+import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ReactElement, ReactNode } from "react";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";
@@ -42,7 +42,7 @@ export function SearchResults({
           {continuation ? (
             <View style={styles.continuation}>{continuation}</View>
           ) : null}
-          <BottomNavigationSpacer />
+          <BottomContentSpacer />
         </>
       }
       data={items}

@@ -5,7 +5,7 @@ import {
   KeyboardAwareScrollView,
   KeyboardProvider,
 } from "react-native-keyboard-controller";
-import { BottomNavigationSpacer } from "./bottom-navigation-inset";
+import { BottomContentSpacer } from "./bottom-content-inset";
 
 /** Bounded form content; callers own the draft, page chrome and content spacing. */
 export type FormScrollViewProps = Pick<
@@ -18,7 +18,7 @@ export type FormScrollViewProps = Pick<
   | "scrollIndicatorInsets"
 >;
 
-/** Preserves each platform's native keyboard mechanism, handled taps and trailing floating-navigation clearance. */
+/** Preserves each platform's native keyboard mechanism, handled taps and trailing page-owned bottom clearance. */
 export function FormScrollView({
   children,
   contentContainerStyle,
@@ -34,7 +34,7 @@ export function FormScrollView({
       keyboardShouldPersistTaps="handled"
     >
       {children}
-      <BottomNavigationSpacer />
+      <BottomContentSpacer />
     </Animated.ScrollView>
   ) : (
     <KeyboardProvider>
@@ -46,7 +46,7 @@ export function FormScrollView({
         keyboardShouldPersistTaps="handled"
       >
         {children}
-        <BottomNavigationSpacer />
+        <BottomContentSpacer />
       </KeyboardAwareScrollView>
     </KeyboardProvider>
   );
