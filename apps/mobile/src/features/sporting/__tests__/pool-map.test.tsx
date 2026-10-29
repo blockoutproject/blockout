@@ -614,3 +614,47 @@ it("keeps municipal framing above a measured enlarged selection for one coincide
   ).toEqual({ latitude: 0, longitude: 0 });
   expect(screen.getByRole("radio", { name: "Marais" })).toBeOnTheScreen();
 });
+
+it("presents the published cumulative record without inventing recent match form", async () => {
+  // Given
+  participants.items = [
+    participant(sportingId, "Rives", {
+      latitude: 46.16,
+      longitude: -1.15,
+      label: "La Rochelle",
+    }),
+  ];
+  table = {
+    poolId: pool.pool.id,
+    availability: "available",
+    observedAt: "2026-10-20T12:00:00Z",
+    lastAttemptFailed: false,
+    columns: ["J", "G", "P", "Pts"],
+    rows: [
+      {
+        sourceName: "Rives",
+        team: { id: sportingId, name: "Rives" },
+        position: 2,
+        statistics: { J: "8", G: "6", P: "2", Pts: "18" },
+      },
+    ],
+  };
+  await open();
+
+  // When
+  await fireEvent(
+    await screen.findByRole("button", { name: "La Rochelle: Rives" }),
+    "press",
+    { stopPropagation: jest.fn() },
+  );
+
+  // Then
+  expect(await screen.findByText("Joués")).toBeOnTheScreen();
+  expect(screen.getByText("Gagnés")).toBeOnTheScreen();
+  expect(screen.getByText("Perdus")).toBeOnTheScreen();
+  expect(screen.getByText("8")).toBeOnTheScreen();
+  expect(screen.getByText("6")).toBeOnTheScreen();
+  expect(screen.getByText("18")).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: "Voir l’équipe" })).toBeOnTheScreen();
+  expect(screen.queryByText("5 derniers matchs")).toBeNull();
+});

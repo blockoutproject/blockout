@@ -49,8 +49,15 @@ import { consultationOpeningPolicy } from "../api/consultation-queries";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import { useSportingNavigation } from "../navigation";
 import { SportingLogo } from "./sporting-identity";
+import { StandingPerformanceBar } from "./standing-performance-bar";
 
 const mapControlTop = 78;
+/** Approved map labels for the same published G/P record understood by the standings cards. */
+const recordLabels: Readonly<Record<string, string>> = {
+  J: "Joués",
+  G: "Gagnés",
+  P: "Perdus",
+};
 
 /** One pool's participant map; active controls the existing accepted-opening boundary. */
 export interface PoolMapProps {
@@ -466,6 +473,7 @@ function ParticipantSummary({
       : undefined;
   const columns = row ? (standings.data?.columns ?? []) : [];
   const trailing = columns.at(-1);
+  const publishedRecord = columns.includes("G") && columns.includes("P");
   return (
     <>
       <View style={[styles.summaryIdentity, { borderColor: colors.border }]}>
@@ -505,24 +513,27 @@ function ParticipantSummary({
         )}
       </View>
       {row && columns.length > 1 && (
-        <View style={styles.statistics}>
-          {columns.slice(0, -1).map((column) => (
-            <View key={column} style={styles.statistic}>
-              <Text
-                style={[
-                  tokens.typography.metadata,
-                  { color: colors.secondaryText },
-                ]}
-              >
-                {column}
-              </Text>
-              <Text
-                style={[tokens.typography.headingSm, { color: colors.text }]}
-              >
-                {row.statistics[column] ?? "—"}
-              </Text>
-            </View>
-          ))}
+        <View style={[styles.record, { borderColor: colors.border }]}>
+          <View style={styles.statistics}>
+            {columns.slice(0, -1).map((column) => (
+              <View key={column} style={styles.statistic}>
+                <Text
+                  style={[
+                    tokens.typography.metadata,
+                    { color: colors.secondaryText },
+                  ]}
+                >
+                  {publishedRecord ? (recordLabels[column] ?? column) : column}
+                </Text>
+                <Text
+                  style={[tokens.typography.headingSm, { color: colors.text }]}
+                >
+                  {row.statistics[column] ?? "—"}
+                </Text>
+              </View>
+            ))}
+          </View>
+          <StandingPerformanceBar row={row} columns={columns} />
         </View>
       )}
       <Button
@@ -606,12 +617,17 @@ const styles = StyleSheet.create({
     textAlignVertical: "center",
     borderRadius: tokens.radius.sm,
   },
-  teamName: { ...tokens.typography.strong, flex: 1 },
+  teamName: { ...tokens.typography.label, flex: 1 },
   points: { alignItems: "flex-end" },
+  record: {
+    borderTopWidth: tokens.border.thin,
+    paddingTop: tokens.spacing.md,
+    gap: tokens.spacing.sm,
+  },
   statistics: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: tokens.spacing.md,
+    gap: tokens.spacing.xs,
   },
-  statistic: { alignItems: "center", flexGrow: 1 },
+  statistic: { alignItems: "center", flexGrow: 1, gap: tokens.spacing.xs },
 });
