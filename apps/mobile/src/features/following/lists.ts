@@ -1,4 +1,9 @@
-import type { InfiniteData, QueryClient } from "@tanstack/react-query";
+import {
+  hashKey,
+  type InfiniteData,
+  type QueryClient,
+  type QueryKey,
+} from "@tanstack/react-query";
 import {
   followListKey,
   type FollowingOwner,
@@ -43,7 +48,7 @@ export async function removeUnavailableFollowTarget(
 }
 
 /**
- * Applies the calendar's successful category-independent absence to overlapping retained lists.
+ * Applies established category-independent absence to overlapping retained lists.
  * A selected-season absence only removes that season from All seasons; an unrestricted absence
  * empties every selection. Native cancellation restores accepted state before applying this truth.
  */
@@ -52,6 +57,7 @@ export async function withdrawUnavailableFollowLists(
   owner: FollowingOwner,
   bypass: boolean,
   seasonId: string | undefined,
+  currentKey?: QueryKey,
 ) {
   for (const resource of ["team", "pool"] as const) {
     const queryKey = followListKey(owner, resource, {}, bypass).slice(0, -1);
@@ -60,10 +66,11 @@ export async function withdrawUnavailableFollowLists(
       (key.at(-1) as { seasonId?: string }).seasonId;
     const filters = {
       queryKey,
-      predicate: (query: { queryKey: readonly unknown[] }) =>
-        seasonId === undefined ||
-        selectedSeason(query.queryKey) === undefined ||
-        selectedSeason(query.queryKey) === seasonId,
+      predicate: (query: { queryKey: readonly unknown[]; queryHash: string }) =>
+        (currentKey === undefined || query.queryHash !== hashKey(currentKey)) &&
+        (seasonId === undefined ||
+          selectedSeason(query.queryKey) === undefined ||
+          selectedSeason(query.queryKey) === seasonId),
     };
     await client.cancelQueries(filters);
     for (const query of client.getQueryCache().findAll(filters)) {

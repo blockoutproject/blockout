@@ -164,8 +164,10 @@ retired account responses never become current results. Successful calendar abse
 overlapping lists without rereading them on return. Native cancellation restores accepted state
 before removing a refused identity, including an interrupted first-page refresh. A failed refresh
 with remaining pages exposes its own explicit retry at the list edge before automatic continuation
-resumes. Entity Card extraction retains the
-existing F04 presentation adapter and its consumer checks.
+resumes. Original-account refusals withdraw both lists and retained calendars within the same
+session/admission context. A seasonal NotFound followed by successful options omission removes
+that season from overlapping All-seasons data before selecting the fallback. Entity Card extraction
+retains the existing F04 presentation adapter and its consumer checks.
 
 ```sh
 ./mvnw -B -ntp -pl apps/backend verify -Dtest=ReadFollowListsTest,FollowListsWebMvcTest,FollowOptionsWebMvcTest,FollowStateWebMvcTest,PersonalCalendarWebMvcTest -Dit.test=FollowListsIntegrationTest,FollowOptionsIntegrationTest,PersonalCalendarIntegrationTest -DforkCount=1
