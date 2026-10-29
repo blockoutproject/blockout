@@ -177,6 +177,27 @@ sequences remain with T023 and their owning US5/US6 tasks; complete cross-story 
 qualification remains T049/T056. A controlled HTTP peer proves rendering, generated transport
 and interaction, not backend SQL policy, provider behavior or new design approval.
 
+Scoped personal-list observations on production source `eced0699` are recorded with attached
+[representative native captures](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6510562999).
+Existing iOS 27.0 and Android 17/API 37 development clients execute the production screens,
+generated transport and Query/session/admission owners against fictional credentials and HTTP.
+Both platforms show the compact rows, textual semantic badges, independent public controls,
+exact cancellation confirmation and an all-state total of 25. iOS also shows the true-empty zero.
+Light/dark and enlarged-text observations use iOS accessibility-medium and Android 124%;
+Android explicitly reopens the route after Activity recreation. Confirmed cancellation targets
+only the pending version and retains the active version, total and consumed usage. Android
+withdrawal separately targets only the active version and retains its pending replacement,
+total and consumed usage. The Android
+public match entry opens the personal route for an ordinary contributor. The public navigation
+fixture has an inert F11 context; no provider initialization or external handoff is qualified.
+Development tools remain visible, and an existing Android linking warning after recreation was
+dismissed before interaction. No screen-reader, minimum-OS/narrow-device matrix, provider or
+global native/design acceptance follows from these observations.
+
+T018–T022 construction is complete with the targeted PostgreSQL/HTTP proofs, generated-client
+mobile tests and scoped native observations above. T023, T049/T056 and US5/US6 retain the actual
+moderation/erasure journeys and complete cross-story qualification.
+
 Scoped iOS/Android observations at `e9a6ece6`, including builds and controlled fixtures, are recorded in the [native contribution evidence](https://github.com/blockoutproject/blockout/pull/557#issuecomment-6475614201). Available-entry/form composition, keyboard/back, retained drafts, real refusal/explicit retry, acknowledgement and exact active public projection were observed. That run also reported cropped labels after live Android text enlargement and development navigation warnings; its missing screen-reader and minimum-OS evidence remains explicitly unqualified.
 
 The [integrated native evidence](https://github.com/blockoutproject/blockout/pull/562#issuecomment-6479911193) exercises production source `84e723e7` on compatible iOS 27.1 and Android API 37 development clients. iOS keyboard dismissal and cancelling the native discard confirmation preserve the exact draft; the captured future-match form is ineligible for ordinary submission and supplies no new acknowledgement proof. Android font enlargement recreates the Activity without changing the process, returns to the home route and yields a readable empty form on explicit reopening. This establishes neither retained-context cropping nor draft persistence across recreation, and does not erase the earlier failed observation. The real Stream link panel is exercised on both platforms; native external handoff and return are observed on Android. The iOS handoff remains unqualified. The compact contribution summary remains informational and has no navigation dependency. Real TalkBack 17.0 speech captions verify the link field name/hint and the empty-value validation alert on this source; no POST is issued. These two cases do not qualify complete reader traversal or VoiceOver.
