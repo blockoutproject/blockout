@@ -7,12 +7,14 @@ import { ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
+import { isAccessDenied } from "../../../shared/api/access-denied";
+import { useProfilePhoto } from "../api/use-profile-editing";
 import { StyleSheet, Text, View } from "react-native";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
-import { RequestLoading } from "../../../shared/components/request-feedback";
 import { AdministrationEntry } from "../../access/entry";
 import {
   useCurrentAccount,
@@ -40,7 +42,7 @@ export interface ProfileScreenProps {
   membershipStatus?: ReactNode;
 }
 
-/** Shows accepted identity separately from editing, keeping independent navigation usable after a profile read failure. */
+/** Admits one complete account overview; initial failures and unusable sessions replace its entire body. */
 export function ProfileScreen({
   admitted,
   proEntry,
@@ -84,50 +86,56 @@ export function ProfileScreen({
               <ScreenState>
                 <ErrorState />
               </ScreenState>
-            ) : (
+            ) : session.status === "restoring" ||
+              session.status === "authenticating" ||
+              session.status === "signing-out" ||
+              (connected && account.isPending) ? (
               <PageContent>
-                {session.status === "restoring" ? (
-                  <RequestLoading />
-                ) : connected && account.isPending ? (
-                  <ProfileLoading />
-                ) : !connected ? (
-                  <ProfileSignIn onSignIn={() => router.push("/sign-in")} />
-                ) : (
-                  <>
-                    {account.isError && !account.data && (
-                      <View style={styles.feedback}>
-                        <ErrorState
-                          onRetry={() => void account.refetch()}
-                          retrying={account.isFetching}
-                        />
-                        {missing && (
-                          <Button
-                            label="Se connecter"
-                            fullWidth
-                            onPress={() => router.push("/sign-in")}
-                          />
-                        )}
-                      </View>
-                    )}
-                    {account.data && (
-                      <>
-                        <ProfileIdentity
-                          key={`${session.generation}:${account.data.accountId}`}
-                          account={account.data}
-                          disabled={!account.isSuccess}
-                          membershipStatus={membershipStatus}
-                          onEdit={() => router.push("/profile/edit")}
-                        />
-                        {account.isSuccess &&
-                          account.data.principalCreatedAt === null && (
-                            <AccountAgeRetry
-                              key={`age:${session.generation}:${account.data.accountId}`}
-                            />
-                          )}
-                      </>
-                    )}
-                  </>
-                )}
+                <ProfileLoading />
+              </PageContent>
+            ) : session.status === "initialization-error" ||
+              session.status === "authentication-error" ||
+              session.status === "reauthentication-required" ? (
+              <ScreenState>
+                <ErrorState
+                  onRetry={
+                    session.status === "initialization-error"
+                      ? session.retryInitialization
+                      : session.status === "authentication-error"
+                        ? session.retryAuthentication
+                        : () => router.push("/sign-in")
+                  }
+                />
+              </ScreenState>
+            ) : connected &&
+              account.isError &&
+              (!account.data || isAccessDenied(account.error)) ? (
+              <ScreenState>
+                <ErrorState
+                  onRetry={
+                    missing
+                      ? () => router.push("/sign-in")
+                      : () => void account.refetch()
+                  }
+                  retrying={account.isFetching}
+                />
+              </ScreenState>
+            ) : (
+              <ProfileContent
+                key={`${session.generation}:${account.data?.accountId ?? "guest"}`}
+                account={connected ? account.data : undefined}
+                disabled={!account.isSuccess}
+                membershipStatus={membershipStatus}
+                onRetryRead={() => void account.refetch()}
+                retryingRead={account.isFetching}
+                onEdit={() => router.push("/profile/edit")}
+                onSignIn={() => router.push("/sign-in")}
+              >
+                {connected &&
+                  account.isSuccess &&
+                  account.data.principalCreatedAt === null && (
+                    <AccountAgeRetry />
+                  )}
                 <AdministrationEntry />
                 <View style={styles.group}>
                   <Text
@@ -163,15 +171,82 @@ export function ProfileScreen({
                     loading={guest.pending}
                   />
                 )}
+                {connected && (
+                  <Button
+                    label="Supprimer mon compte"
+                    variant="secondary"
+                    fullWidth
+                    disabled
+                    onPress={undefined}
+                  />
+                )}
                 <Text style={[styles.version, { color: colors.secondaryText }]}>
                   Version {Constants.expoConfig?.version}
                 </Text>
-              </PageContent>
+              </ProfileContent>
             )}
           </PageScrollView>
         )}
       </ScrollChrome>
     </Page>
+  );
+}
+
+/** Waits for the first existing photo, then keeps accepted content through later media refresh failures. */
+function ProfileContent({
+  account,
+  disabled,
+  membershipStatus,
+  onEdit,
+  onSignIn,
+  onRetryRead,
+  retryingRead,
+  children,
+}: {
+  account?: AccountResponse;
+  disabled: boolean;
+  membershipStatus?: ReactNode;
+  onEdit: () => void;
+  onSignIn: () => void;
+  onRetryRead: () => void;
+  retryingRead: boolean;
+  children: ReactNode;
+}) {
+  const photo = useProfilePhoto(
+    account?.accountId ?? "",
+    !!account?.hasPhoto && !disabled,
+  );
+  const available = !account?.hasPhoto || !!photo.data;
+  const [admitted, setAdmitted] = useState(available);
+  if (!admitted && available) setAdmitted(true);
+  if (!admitted && !available)
+    return photo.isError || disabled ? (
+      <ScreenState>
+        <ErrorState
+          onRetry={disabled ? onRetryRead : () => void photo.refetch()}
+          retrying={retryingRead || photo.isFetching}
+        />
+      </ScreenState>
+    ) : (
+      <PageContent>
+        <ProfileLoading />
+      </PageContent>
+    );
+  return (
+    <PageContent>
+      {account ? (
+        <ProfileIdentity
+          account={account}
+          disabled={disabled}
+          photo={photo}
+          membershipStatus={membershipStatus}
+          onEdit={onEdit}
+        />
+      ) : (
+        <ProfileSignIn onSignIn={onSignIn} />
+      )}
+      {children}
+    </PageContent>
   );
 }
 
@@ -196,6 +271,5 @@ function AccountAgeRetry() {
 
 const styles = StyleSheet.create({
   group: { gap: tokens.spacing.md },
-  feedback: { gap: tokens.spacing.lg },
   version: { ...tokens.typography.metadata, textAlign: "center" },
 });

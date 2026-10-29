@@ -2,7 +2,7 @@ import { ErrorState } from "../../../shared/components/state-card";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { RequestLoading } from "../../../shared/components/request-feedback";
-import { Sheet } from "../../../shared/components/sheet";
+import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { SignInInvitation } from "../components/sign-in-invitation";
 import { useAccountSession } from "../session/account-session-provider";
 
@@ -39,14 +39,18 @@ export function SignInInvitationScreen({
 
   if (!admitted)
     return (
-      <Sheet title="Connexion" onClose={close} scrollable={false}>
-        <ErrorState />
+      <Sheet title="Connexion" onClose={close}>
+        <SheetContent>
+          <ErrorState />
+        </SheetContent>
       </Sheet>
     );
   if (account.status === "restoring")
     return (
-      <Sheet title="Connexion" onClose={close} scrollable={false}>
-        <RequestLoading />
+      <Sheet title="Connexion" onClose={close}>
+        <SheetContent>
+          <RequestLoading />
+        </SheetContent>
       </Sheet>
     );
   if (!currentGuest) return null;

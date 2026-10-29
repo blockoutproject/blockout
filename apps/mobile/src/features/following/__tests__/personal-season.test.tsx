@@ -18,6 +18,8 @@ import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { Button } from "../../../shared/components/button";
 import { Tabs } from "../../../shared/components/tabs";
 import { PersonalSeasonSelector } from "../components/personal-season-selector";
+import { PersonalSeasonChoices } from "../components/personal-season-choices";
+import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { usePersonalSeason } from "../hooks/use-personal-season";
 import {
   followListKey,
@@ -31,7 +33,7 @@ import {
 import { ApiError } from "../../../shared/api/api-fetch";
 import { useState } from "react";
 
-// The official native-inset double supplies the Modal window's measurement event in Jest.
+// Native safe-area measurement is controlled; these interactions do not qualify sheet geometry.
 jest.mock(
   "react-native-safe-area-context",
   () =>
@@ -70,6 +72,7 @@ async function request(signal?: AbortSignal) {
 function PersonalProbe({ enabled = true }: { enabled?: boolean }) {
   const season = usePersonalSeason(owner, request, enabled);
   const [tab, setTab] = useState("upcoming");
+  const [choicesOpen, setChoicesOpen] = useState(false);
   const list = useQuery({
     queryKey: [
       ...followListKey(
@@ -110,10 +113,27 @@ function PersonalProbe({ enabled = true }: { enabled?: boolean }) {
       <PersonalSeasonSelector
         options={season.options.data}
         seasonId={season.seasonId}
-        onSelect={season.selectSeason}
-        onReset={season.resetSeason}
+        onPress={() => setChoicesOpen(true)}
         disabled={!season.options.data}
       />
+      {choicesOpen && (
+        <Sheet title="Saison des suivis" onClose={() => setChoicesOpen(false)}>
+          <SheetContent>
+            <PersonalSeasonChoices
+              options={season.options.data!}
+              seasonId={season.seasonId}
+              onSelect={(id) => {
+                season.selectSeason(id);
+                setChoicesOpen(false);
+              }}
+              onReset={() => {
+                season.resetSeason();
+                setChoicesOpen(false);
+              }}
+            />
+          </SheetContent>
+        </Sheet>
+      )}
       <Text>
         {list.isSuccess ? "Loaded" : list.isError ? "Read failed" : "Loading"}
       </Text>

@@ -17,44 +17,33 @@ export const sheetScreenOptions = {
   presentation: "formSheet",
   headerShown: false,
   sheetGrabberVisible: true,
+  sheetAllowedDetents: "fitToContents",
 } as const;
 
-/** Short contextual content; scrollable routes compose SheetContent or ScreenState, while compact routes keep natural-height children. */
+/** Intrinsic contextual content; callers compose SheetContent and retain their own close, refresh and command state. */
 export interface SheetProps extends PropsWithChildren {
   onClose: () => void;
   /** Holds the native presenter while the owning confirmed action is in progress. */
   closeDisabled?: boolean;
   title: string;
   message?: string;
-  /** Disable for compact content in a native fitToContents route; its root keeps its natural height. */
-  scrollable?: boolean;
   /** Supply only when the scrollable sheet displays remote data; static choices have no refresh gesture. */
   refreshControl?: ScrollViewProps["refreshControl"];
 }
 
-/** Supplies system bottom spacing and a growing scroll area so caller-owned blocking states can center below the title. */
+/** The first scrolling descendant keeps natural content height; the native presenter owns its maximum and overflow. */
 export function Sheet({
   onClose,
   closeDisabled = false,
   title,
   message,
-  scrollable = true,
   refreshControl,
   children,
 }: SheetProps) {
   const { colors } = useTheme();
   const content = (
-    <SafeAreaView
-      edges={["bottom"]}
-      style={[
-        scrollable
-          ? styles.scrollContent
-          : [styles.content, styles.compactContent],
-      ]}
-    >
-      <View
-        style={[styles.introduction, scrollable && styles.scrollIntroduction]}
-      >
+    <SafeAreaView edges={["bottom"]}>
+      <View style={styles.introduction}>
         <View style={styles.titleRow}>
           <Text
             accessibilityRole="header"
@@ -83,48 +72,39 @@ export function Sheet({
     </SafeAreaView>
   );
 
-  if (!scrollable)
-    return <View style={{ backgroundColor: colors.surface }}>{content}</View>;
-
   return (
     <ScrollView
       style={[styles.screen, { backgroundColor: colors.surface }]}
-      contentContainerStyle={styles.scrollContent}
       alwaysBounceVertical
       refreshControl={refreshControl}
       nestedScrollEnabled
+      keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets
     >
       {content}
     </ScrollView>
   );
 }
 
-/** Insets ordinary scrollable-sheet content once; blocking ScreenState siblings own their useful-area padding instead. */
+/** Insets contextual content once; bounded lists group their rows inside this body without owning sheet geometry. */
 export function SheetContent({ children }: PropsWithChildren) {
   return <View style={styles.sheetContent}>{children}</View>;
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  scrollContent: { flexGrow: 1 },
-  content: { padding: tokens.spacing.lg, gap: tokens.layout.section.gap },
-  scrollIntroduction: {
-    paddingTop: tokens.spacing.lg,
-    paddingHorizontal: tokens.spacing.lg,
-  },
+  screen: { flexGrow: 0, flexShrink: 1 },
   sheetContent: {
     paddingTop: tokens.layout.section.gap,
     paddingHorizontal: tokens.spacing.lg,
     paddingBottom: tokens.spacing.lg,
     gap: tokens.layout.section.gap,
   },
-  // Product Design's 24-point handle area + 8-point header inset; the grabber is drawn by the native route.
-  compactContent: {
+  // The native grabber owns its own handle; the title keeps the approved 24+8-point content clearance.
+  introduction: {
     paddingTop: tokens.spacing["2xl"] + tokens.spacing.sm,
-    paddingBottom: tokens.spacing.xl,
-    gap: tokens.spacing.md,
+    paddingHorizontal: tokens.spacing.lg,
+    gap: tokens.spacing.xs,
   },
-  introduction: { gap: tokens.spacing.xs },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",

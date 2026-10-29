@@ -14,18 +14,16 @@ export default function SearchLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen
-          name="filters"
+          name="(sheets)/filters"
           options={{
             ...sheetScreenOptions,
-            sheetAllowedDetents: [0.75],
             contentStyle: { backgroundColor: colors.surface },
           }}
         />
         <Stack.Screen
-          name="choice"
+          name="(sheets)/choice"
           options={{
             ...sheetScreenOptions,
-            sheetAllowedDetents: [0.5],
             contentStyle: { backgroundColor: colors.surface },
           }}
         />

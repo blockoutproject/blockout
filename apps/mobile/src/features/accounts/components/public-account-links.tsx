@@ -8,7 +8,7 @@ import {
   type PressableProps,
 } from "react-native";
 import { EntryRow } from "../../../shared/components/entry-row";
-import { Surface } from "../../../shared/components/surface";
+import { EntryGroup } from "../../../shared/components/entry-group";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { supportHref, type SupportOrigin } from "../../support";
@@ -38,34 +38,28 @@ export function ProfileLegalLinks() {
   const { colors } = useTheme();
   return (
     <View style={styles.legalGroup}>
-      <Surface style={styles.rows}>
+      <EntryGroup>
         {[
           "Mentions légales",
           "Conditions d’utilisation",
           "Politique de confidentialité",
-        ].map((label, index) => (
-          <View
+        ].map((label) => (
+          <EntryRow
             key={label}
-            style={
-              index < 2 && [styles.divider, { borderColor: colors.border }]
+            label={label}
+            accessibilityRole="link"
+            icon={
+              <FileText
+                accessible={false}
+                size={tokens.size.icon.md}
+                color={colors.icon}
+              />
             }
-          >
-            <EntryRow
-              label={label}
-              accessibilityRole="link"
-              icon={
-                <FileText
-                  accessible={false}
-                  size={tokens.size.icon.md}
-                  color={colors.icon}
-                />
-              }
-              disclosure
-              disabled
-            />
-          </View>
+            disclosure
+            disabled
+          />
         ))}
-      </Surface>
+      </EntryGroup>
       <Text
         style={[tokens.typography.metadata, { color: colors.secondaryText }]}
       >
@@ -136,7 +130,5 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     textAlign: "center",
   },
-  rows: { padding: tokens.spacing.md, gap: 0 },
   legalGroup: { gap: tokens.spacing.sm },
-  divider: { borderBottomWidth: tokens.border.thin },
 });

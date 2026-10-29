@@ -11,10 +11,12 @@ import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
 import { LoadingIndicator } from "./loading-indicator";
 
-/** Compact native navigation row; the caller owns its destination, glyph and unavailable state. */
+/** Basic native list row; the caller owns navigation or selection semantics and unavailable state. */
 export interface EntryRowProps extends PressableProps {
   label: string;
-  icon: ReactNode;
+  icon?: ReactNode;
+  /** Decorative radio/check or other existing row status; never a separate nested action. */
+  trailing?: ReactNode;
   disclosure?: boolean;
   loading?: boolean;
 }
@@ -23,6 +25,7 @@ export interface EntryRowProps extends PressableProps {
 export function EntryRow({
   label,
   icon,
+  trailing,
   disclosure = false,
   loading = false,
   disabled,
@@ -53,14 +56,24 @@ export function EntryRow({
         typeof style === "function" ? style(state) : style,
       ]}
     >
-      <View
-        style={styles.icon}
-        accessible={false}
-        importantForAccessibility="no-hide-descendants"
-      >
-        {loading ? <LoadingIndicator color={colors.icon} /> : icon}
-      </View>
+      {(loading || icon) && (
+        <View
+          style={styles.icon}
+          accessible={false}
+          importantForAccessibility="no-hide-descendants"
+        >
+          {loading ? <LoadingIndicator color={colors.icon} /> : icon}
+        </View>
+      )}
       <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+      {trailing && (
+        <View
+          accessible={false}
+          importantForAccessibility="no-hide-descendants"
+        >
+          {trailing}
+        </View>
+      )}
       {disclosure && (
         <ChevronRight
           accessible={false}

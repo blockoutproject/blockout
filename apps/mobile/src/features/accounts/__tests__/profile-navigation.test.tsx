@@ -1,3 +1,4 @@
+import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { accountResponse } from "../test-support/account-response";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
@@ -175,6 +176,9 @@ it("opens the profile overview without mounting its editor", async () => {
   expect(
     screen.getByRole("button", { name: "Modifier mon profil" }),
   ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Supprimer mon compte" }),
+  ).toBeDisabled();
   expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Enregistrer" }),
@@ -392,7 +396,7 @@ it("retains the editor and dirty values across ordinary tab changes", async () =
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
 });
 
-it("recovers a failed identity read without hiding independent profile navigation or establishing an account", async () => {
+it("recovers a whole-page initial account failure without establishing an account", async () => {
   // Given
   mockFetch.mockRejectedValue(new TypeError("Network unavailable"));
   const user = userEvent.setup();
@@ -405,9 +409,11 @@ it("recovers a failed identity read without hiding independent profile navigatio
   // Then
   expect(screen.getByRole("button", { name: "Besoin d’aide ?" })).toBeEnabled();
   expect(
-    screen.getByRole("link", { name: "Politique de confidentialité" }),
-  ).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Se déconnecter" })).toBeEnabled();
+    screen.queryByRole("link", { name: "Politique de confidentialité" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Se déconnecter" }),
+  ).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Modifier mon profil" }),
   ).not.toBeOnTheScreen();
@@ -581,4 +587,226 @@ it("opens support from the editor with its safe profile origin and returns to th
   expect(
     mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
   ).toBe(true);
+});
+
+it("withholds all overview groups while the initial account is pending", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockReturnValue(response.promise);
+  await openProfile();
+
+  try {
+    // When
+    await screen.findByRole("progressbar", { name: "Chargement du profil" });
+
+    // Then
+    expect(
+      screen.queryByRole("header", { name: "Informations légales" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("header", { name: "Mon compte" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Se déconnecter" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Se connecter" }),
+    ).not.toBeOnTheScreen();
+
+    // When
+    await act(() => response.resolve(Response.json(account)));
+
+    // Then
+    expect(await screen.findByText(account.username)).toBeOnTheScreen();
+    expect(
+      screen.getByRole("header", { name: "Informations légales" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole("header", { name: "Mon compte" }),
+    ).toBeOnTheScreen();
+  } finally {
+    await act(() => response.resolve(Response.json(account)));
+  }
+});
+
+it("treats a failed authentication restoration as a whole-page recovery rather than a guest", async () => {
+  // Given
+  mockAuth0.getCredentials.mockRejectedValueOnce(
+    new Error("Native restoration unavailable"),
+  );
+  const user = userEvent.setup();
+  await openProfile();
+
+  // When
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+
+  // Then
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+  expect(
+    screen.queryByRole("button", { name: "Se connecter" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("header", { name: "Mon compte" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("header", { name: "Informations légales" }),
+  ).not.toBeOnTheScreen();
+  expect(mockFetch).not.toHaveBeenCalled();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText(account.username)).toBeOnTheScreen();
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+});
+
+it("waits for the initial existing photo before admitting the complete overview", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation(async (url) =>
+    String(url).endsWith("/photo")
+      ? response.promise
+      : Response.json({ ...account, hasPhoto: true }),
+  );
+  const user = userEvent.setup();
+  const previousReader = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "FileReader",
+  );
+  /** Only the native binary preview conversion is controlled; generated transport and Query remain real. */
+  class PhotoReader {
+    result = "data:image/png;base64,accepted";
+    onload?: () => void;
+    /** Publishes the decoded preview to its existing asynchronous owner. */
+    readAsDataURL() {
+      this.onload?.();
+    }
+  }
+  Object.defineProperty(globalThis, "FileReader", {
+    configurable: true,
+    value: PhotoReader,
+  });
+  await openProfile();
+
+  try {
+    // When
+    await waitFor(() =>
+      expect(
+        mockFetch.mock.calls.some(([url]) => String(url).endsWith("/photo")),
+      ).toBe(true),
+    );
+
+    // Then
+    expect(
+      screen.getByRole("progressbar", { name: "Chargement du profil" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText(account.username)).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("header", { name: "Mon compte" }),
+    ).not.toBeOnTheScreen();
+
+    // When
+    await act(() => response.resolve(new Response(null, { status: 503 })));
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Modifier mon profil" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("header", { name: "Informations légales" }),
+    ).not.toBeOnTheScreen();
+    // When
+    const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    mockFetch.mockImplementation(async (url) =>
+      String(url).endsWith("/photo")
+        ? new Response(png, { headers: { "Content-Type": "image/png" } })
+        : Response.json({ ...account, hasPhoto: true }),
+    );
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      await screen.findByRole("image", { name: "Photo de profil" }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText(account.username)).toBeOnTheScreen();
+    expect(
+      screen.getByRole("header", { name: "Mon compte" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("alert", { name: "Une erreur est survenue" }),
+    ).not.toBeOnTheScreen();
+  } finally {
+    await act(() => response.resolve(new Response(null, { status: 503 })));
+    await cleanup();
+    if (previousReader)
+      Object.defineProperty(globalThis, "FileReader", previousReader);
+    else Reflect.deleteProperty(globalThis, "FileReader");
+  }
+});
+
+it("removes the complete overview after a current account refusal and restores it only after successful retry", async () => {
+  // Given
+  const user = userEvent.setup();
+  await openProfile();
+  await screen.findByText(account.username);
+  mockFetch.mockResolvedValue(new Response(null, { status: 403 }));
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
+  expect(screen.queryByText(account.username)).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("header", { name: "Mon compte" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("header", { name: "Informations légales" }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  mockFetch.mockRejectedValue(new TypeError("Network unavailable"));
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await screen.findByRole("button", { name: "Réessayer", busy: false });
+  expect(screen.queryByText(account.username)).not.toBeOnTheScreen();
+
+  // When
+  mockFetch.mockResolvedValue(Response.json(account));
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText(account.username)).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Modifier mon profil" }),
+  ).toBeEnabled();
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+});
+
+it("retains the accepted overview after a technical refresh failure without an inline error card", async () => {
+  // Given
+  await openProfile();
+  await screen.findByText(account.username);
+  mockFetch.mockRejectedValue(new TypeError("Network unavailable"));
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await screen.findByText(TECHNICAL_ERROR);
+  expect(screen.getByText(account.username)).toBeOnTheScreen();
+  expect(screen.getByRole("header", { name: "Mon compte" })).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", { name: "Une erreur est survenue" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Modifier mon profil" }),
+  ).toBeDisabled();
 });

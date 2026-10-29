@@ -486,7 +486,7 @@ it("announces the initial profile read without exposing profile commands", async
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 });
 
-it("keeps the first photo read separate from native refresh progress", async () => {
+it("withholds the whole editor until its initial existing photo is ready", async () => {
   // Given
   const photoRead = Promise.withResolvers<Response>();
   mockFetch.mockImplementation(async (url) =>
@@ -497,13 +497,17 @@ it("keeps the first photo read separate from native refresh progress", async () 
 
   // When
   await mountProfile();
-  await screen.findByDisplayValue("Original");
+  await screen.findByRole("progressbar", { name: "Chargement du profil" });
 
   // Then
   expect(
-    screen.getByRole("progressbar", { name: "Chargement en cours" }),
+    screen.getByRole("progressbar", { name: "Chargement du profil" }),
   ).toBeOnTheScreen();
   expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+  expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
 
   // When
   await act(() => photoRead.resolve(new Response(null, { status: 503 })));
@@ -511,6 +515,10 @@ it("keeps the first photo read separate from native refresh progress", async () 
   // Then
   expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Annuler" }),
+  ).not.toBeOnTheScreen();
 });
 
 it("preserves the active save and suspends refresh and cancellation", async () => {
@@ -1105,7 +1113,7 @@ it.each(["preparation", "save"])(
   },
 );
 
-it("cancels an initial photo read before refreshing the accepted replacement", async () => {
+it("cancels a background photo read before refreshing the accepted replacement", async () => {
   // Given
   const reads: {
     signal?: AbortSignal | null;
@@ -1142,8 +1150,15 @@ it("cancels an initial photo read before refreshing the accepted replacement", a
   try {
     const user = userEvent.setup();
     await mountProfile();
-    await screen.findByDisplayValue("Original");
     await waitFor(() => expect(reads).toHaveLength(1));
+    await act(() =>
+      reads[0].resolve(
+        new Response(png, { headers: { "Content-Type": "image/png" } }),
+      ),
+    );
+    await screen.findByDisplayValue("Original");
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await waitFor(() => expect(reads).toHaveLength(2));
     jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
       canceled: false,
       assets: [
@@ -1151,7 +1166,7 @@ it("cancels an initial photo read before refreshing the accepted replacement", a
       ],
     });
     await user.press(
-      screen.getByRole("button", { name: "Choisir une photo de profil" }),
+      screen.getByRole("button", { name: "Changer l’image : Photo de profil" }),
     );
     await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
 
@@ -1164,18 +1179,18 @@ it("cancels an initial photo read before refreshing the accepted replacement", a
     );
 
     // Then
-    await waitFor(() => expect(reads).toHaveLength(2));
-    expect(reads[0].signal?.aborted).toBe(true);
+    await waitFor(() => expect(reads).toHaveLength(3));
+    expect(reads[1].signal?.aborted).toBe(true);
 
     // When
     await act(async () =>
-      reads[1].resolve(
+      reads[2].resolve(
         new Response(png, { headers: { "Content-Type": "image/png" } }),
       ),
     );
     await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
     await act(async () =>
-      reads[0].resolve(
+      reads[1].resolve(
         new Response(png, { headers: { "Content-Type": "image/png" } }),
       ),
     );
@@ -1184,7 +1199,7 @@ it("cancels an initial photo read before refreshing the accepted replacement", a
     expect(
       screen.getByRole("button", { name: "Aperçu : Photo de profil" }),
     ).toBeOnTheScreen();
-    expect(nativeRead).toHaveBeenCalledTimes(1);
+    expect(nativeRead).toHaveBeenCalledTimes(2);
   } finally {
     // Settle this test's controlled transport even if its regression assertion fails.
     await act(async () =>

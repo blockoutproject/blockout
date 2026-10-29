@@ -1,10 +1,12 @@
 import { Stack } from "expo-router";
 import { sheetScreenOptions } from "../../shared/components/sheet";
+import { useTheme } from "../../shared/theme/theme-provider";
 import { useAccessAdmission } from "../../features/access/queries/use-access-admission";
 
 /** Protects each implemented operational destination with its own current action grant. */
 export default function OperationsLayout() {
   const { permissions } = useAccessAdmission();
+  const { colors } = useTheme();
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="administration/index" />
@@ -23,7 +25,10 @@ export default function OperationsLayout() {
         <Stack.Screen name="administration/classification/[kind]/[id]" />
         <Stack.Screen
           name="administration/classification-selection"
-          options={{ ...sheetScreenOptions, sheetAllowedDetents: [0.5] }}
+          options={{
+            ...sheetScreenOptions,
+            contentStyle: { backgroundColor: colors.surface },
+          }}
         />
       </Stack.Protected>
       <Stack.Protected

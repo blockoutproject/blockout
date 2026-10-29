@@ -6,13 +6,28 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { usePro } from "../pro-provider";
+import type { ProState } from "../pro-state";
+
+/** Unsettled native operations require verification even when an independent entitlement is active. */
+export function hasUnsettledProOperation(state: ProState): boolean {
+  return (
+    state.status !== "guest" &&
+    [
+      "purchasing",
+      "pending",
+      "uncertain",
+      "already-owned",
+      "purchased",
+    ].includes(state.operation)
+  );
+}
 
 /** The destination owner supplies existing support navigation; no diagnostic payload is attached. */
 export interface ProVerificationProps {
   onSupport?: () => void;
 }
 
-/** Inline Pro-only verification/recovery; it never replaces independent rights or public navigation. */
+/** Pro-owned verification/recovery; it never changes independent rights or public navigation. */
 export function ProVerification({ onSupport }: ProVerificationProps) {
   const { state, refreshing, verificationFailed, retry } = usePro();
   const { colors } = useTheme();
@@ -26,20 +41,18 @@ export function ProVerification({ onSupport }: ProVerificationProps) {
     if ((await retry()) === false && known) feedback.error();
   }
   if (state.status === "guest") return null;
-  const uncertain =
-    ["purchasing", "pending", "uncertain", "already-owned"].includes(
-      state.operation,
-    ) ||
-    (state.operation === "purchased" && state.status !== "active");
+  const uncertain = hasUnsettledProOperation(state);
   if (state.status !== "unavailable" && !uncertain) return null;
   const waiting =
     state.status === "unavailable" &&
     (state.reason === "association-pending" ||
       (refreshing && !verificationFailed));
   let message = "";
-  if (state.operation === "purchased" && state.status !== "active")
+  if (state.operation === "purchased")
     message =
-      "Paiement confirmé. L’activation Pro reste à vérifier. Vérifiez vos droits sans acheter à nouveau.";
+      state.status === "active"
+        ? "Paiement confirmé. Les droits liés à cet achat restent à vérifier. Vérifiez vos droits sans acheter à nouveau."
+        : "Paiement confirmé. L’activation Pro reste à vérifier. Vérifiez vos droits sans acheter à nouveau.";
   else if (state.operation === "already-owned")
     message =
       "Cet achat est déjà détenu. Vérifiez vos droits ou retrouvez la restauration dans la gestion des achats.";
@@ -50,12 +63,6 @@ export function ProVerification({ onSupport }: ProVerificationProps) {
         : "Le résultat de l’achat est incertain. Vérifiez vos droits sans acheter à nouveau.";
   return (
     <View style={styles.feedback}>
-      <Text
-        accessibilityRole="header"
-        style={[tokens.typography.label, { color: colors.secondaryText }]}
-      >
-        Vérification de Blockout Pro
-      </Text>
       {waiting ? (
         <RequestLoading />
       ) : uncertain ? (
@@ -83,4 +90,6 @@ export function ProVerification({ onSupport }: ProVerificationProps) {
   );
 }
 
-const styles = StyleSheet.create({ feedback: { gap: tokens.spacing.md } });
+const styles = StyleSheet.create({
+  feedback: { width: "100%", gap: tokens.spacing.md },
+});

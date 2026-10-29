@@ -1,10 +1,9 @@
 import { Link, useRouter } from "expo-router";
 import { ShieldCheck, SquarePen } from "lucide-react-native";
 import { useEffect } from "react";
-import { StyleSheet } from "react-native";
-import { Sheet } from "../../../shared/components/sheet";
-import { Surface } from "../../../shared/components/surface";
+import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { EntryRow } from "../../../shared/components/entry-row";
+import { EntryGroup } from "../../../shared/components/entry-group";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { tokens } from "../../../shared/theme/tokens";
@@ -18,6 +17,7 @@ export function PrivacyEntry() {
     <Link href="/privacy" asChild>
       <EntryRow
         label="Confidentialité"
+        disclosure
         icon={
           <ShieldCheck
             accessible={false}
@@ -53,48 +53,40 @@ export function PrivacySheet() {
   }
 
   return (
-    <Sheet
-      title="Confidentialité"
-      onClose={() => router.back()}
-      scrollable={false}
-    >
-      <Surface>
-        {nativePrivacy.privacyOptionsRequired && (
+    <Sheet title="Confidentialité" onClose={() => router.back()}>
+      <SheetContent>
+        <EntryGroup>
+          {nativePrivacy.privacyOptionsRequired && (
+            <EntryRow
+              label="Choix publicitaires"
+              icon={
+                <ShieldCheck
+                  accessible={false}
+                  size={tokens.size.icon.md}
+                  color={colors.icon}
+                />
+              }
+              disclosure
+              disabled={nativePrivacy.pending || pending}
+              onPress={openOptions}
+            />
+          )}
           <EntryRow
-            label="Choix publicitaires"
+            label="Corriger mon âge"
             icon={
-              <ShieldCheck
+              <SquarePen
                 accessible={false}
-                size={tokens.size.icon.lg}
+                size={tokens.size.icon.md}
                 color={colors.icon}
               />
             }
             disclosure
-            style={styles.sheetAction}
             disabled={nativePrivacy.pending || pending}
-            onPress={openOptions}
+            onPress={() => router.replace("/privacy-age")}
           />
-        )}
-        <EntryRow
-          label="Corriger mon âge"
-          icon={
-            <SquarePen
-              accessible={false}
-              size={tokens.size.icon.lg}
-              color={colors.icon}
-            />
-          }
-          disclosure
-          style={styles.sheetAction}
-          disabled={nativePrivacy.pending || pending}
-          onPress={() => router.replace("/privacy-age")}
-        />
-      </Surface>
-      {nativePrivacy.pending && <RequestLoading />}
+        </EntryGroup>
+        {nativePrivacy.pending && <RequestLoading />}
+      </SheetContent>
     </Sheet>
   );
 }
-
-const styles = StyleSheet.create({
-  sheetAction: { paddingHorizontal: tokens.spacing.lg },
-});

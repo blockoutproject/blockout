@@ -5,13 +5,16 @@ import {
   act,
   cleanup,
   fireEvent,
-  render,
   screen,
   userEvent,
   waitFor,
   within,
 } from "@testing-library/react-native";
 import { View } from "react-native";
+import { renderRouter } from "expo-router/testing-library";
+import { PersonalSeasonProvider } from "../components/personal-season-provider";
+import { PersonalNavigation } from "../screens/personal-navigation";
+import { PersonalSeasonScreen } from "../screens/personal-season-screen";
 import {
   useEffect,
   useState,
@@ -78,7 +81,19 @@ jest.mock("react-native-auth0", () => {
 });
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
-  useRouter: () => ({ push: mockPush, back: mockBack, canGoBack: () => true }),
+  useRouter: () => ({
+    push: (href: unknown) => {
+      mockPush(href);
+      if (href === "/season")
+        jest.requireActual("expo-router").router.push(href);
+    },
+    back: () => {
+      mockBack();
+      const router = jest.requireActual("expo-router").router;
+      if (router.canGoBack()) router.back();
+    },
+    canGoBack: () => true,
+  }),
   useNavigation: () => ({ isFocused: () => mockFocus.focused }),
   useIsFocused: () => {
     const { useSyncExternalStore } =
@@ -157,27 +172,51 @@ function SessionBinding({ children }: PropsWithChildren) {
   return children;
 }
 
-/** Provides real session, admission, advertising, Query and presentation owners for Home and follow actions. */
+/** Keeps the single product season owner above both real native routes; other sporting navigation remains a command boundary. */
+function PersonalLayout() {
+  return (
+    <PersonalSeasonProvider>
+      <PersonalNavigation />
+    </PersonalSeasonProvider>
+  );
+}
+
+/** Provides real session, admission, advertising, Query and route owners for Home and its season surface. */
 async function mount(extra?: ReactNode) {
-  return render(
-    <GestureHandlerRootView>
-      <QueryClientProvider client={client}>
-        <ThemeProvider>
-          <ApplicationAccessProvider>
-            <AccountSessionProvider>
-              <AccountFeedbackProvider>
-                <AdvertisingProviders>
-                  <SessionBinding>
-                    <PersonalScreen />
-                    {extra}
-                  </SessionBinding>
-                </AdvertisingProviders>
-              </AccountFeedbackProvider>
-            </AccountSessionProvider>
-          </ApplicationAccessProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </GestureHandlerRootView>,
+  return renderRouter(
+    {
+      _layout: {
+        default: PersonalLayout,
+        unstable_settings: { anchor: "index" },
+      },
+      index: () => (
+        <>
+          <PersonalScreen />
+          {extra}
+        </>
+      ),
+      "(sheets)/season": PersonalSeasonScreen,
+    },
+    {
+      initialUrl: "/",
+      wrapper: ({ children }) => (
+        <GestureHandlerRootView>
+          <QueryClientProvider client={client}>
+            <ThemeProvider>
+              <ApplicationAccessProvider>
+                <AccountSessionProvider>
+                  <AccountFeedbackProvider>
+                    <AdvertisingProviders>
+                      <SessionBinding>{children}</SessionBinding>
+                    </AdvertisingProviders>
+                  </AccountFeedbackProvider>
+                </AccountSessionProvider>
+              </ApplicationAccessProvider>
+            </ThemeProvider>
+          </QueryClientProvider>
+        </GestureHandlerRootView>
+      ),
+    },
   );
 }
 
@@ -303,8 +342,6 @@ it("keeps current choices after a failed explicit refresh and offers the next op
 
   // When
   await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
-  // Native Modal.onShow is not dispatched by the JavaScript press event.
-  await fireEvent(screen.getByTestId("personal-season-modal"), "show");
 
   // Then
   await screen.findByRole("radio", { name: older.label, checked: true });
@@ -320,8 +357,6 @@ it("keeps current choices after a failed explicit refresh and offers the next op
   // When
   await user.press(screen.getByRole("button", { name: "Fermer" }));
   await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
-  // Native Modal.onShow is not dispatched by the JavaScript press event.
-  await fireEvent(screen.getByTestId("personal-season-modal"), "show");
 
   // Then
   await waitFor(() =>
@@ -493,8 +528,6 @@ it.each([403, 404])(
 
     // When
     await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
-    // Native Modal.onShow is not dispatched by the JavaScript press event.
-    await fireEvent(screen.getByTestId("personal-season-modal"), "show");
 
     // Then
     await screen.findByRole("button", { name: "Réessayer" });
@@ -538,6 +571,10 @@ it.each([403, 404])(
 it("opens each personal encounter through the existing sporting navigation after native paging", async () => {
   // Given
   await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
   await layoutNativeTabs();
   const match = await screen.findByRole("link", {
     name: /Ouvrir le match Home — Away/,
@@ -587,6 +624,10 @@ it.each([false, true])(
 
     // When
     await mount();
+    await screen.findByRole("button", {
+      name: "Saison des suivis",
+      disabled: false,
+    });
     await layoutNativeTabs();
 
     // Then
@@ -609,6 +650,10 @@ it.each([false, true])(
 it("keeps authorized encounters after an ordinary failed pull and removes them after a failed changed-follow reload", async () => {
   // Given
   await mount(<FollowButton target={team} season={older} />);
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
   await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   mockFetch.mockImplementation((url, request) =>
@@ -645,6 +690,10 @@ it("keeps authorized encounters after an ordinary failed pull and removes them a
 it("ignores an obsolete refresh after the shared season changes without reporting a new-context failure", async () => {
   // Given
   await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
   await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   const late = Promise.withResolvers<Response>();
@@ -674,6 +723,10 @@ it("ignores an obsolete refresh after the shared season changes without reportin
 it("defers a confirmed-change reload while Home is covered and fetches its first page on return", async () => {
   // Given: native focus is controlled; all private query and mutation owners stay real.
   await mount(<FollowButton target={team} season={older} />);
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
   await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   await act(async () => {
@@ -720,6 +773,10 @@ it("defers a confirmed-change reload while Home is covered and fetches its first
 it("withdraws a refused calendar after refresh and presents its card without a duplicate toast", async () => {
   // Given
   await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
   await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   mockFetch.mockImplementation((url, request) =>
@@ -756,6 +813,10 @@ it("withdraws obsolete personal rows when a successful continuation establishes 
     );
   });
   await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
   await layoutNativeTabs();
   const match = await screen.findByRole("link", {
     name: /Ouvrir le match Home — Away/,
@@ -798,6 +859,10 @@ it("returns from a refused actual match screen without exposing its retained per
       : transport(url, request),
   );
   await mount(<OpenedMatch />);
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
   await layoutNativeTabs();
   const match = await screen.findByRole("link", {
     name: /Ouvrir le match Home — Away/,
@@ -823,6 +888,10 @@ it("returns from a refused actual match screen without exposing its retained per
 it("keeps current absence across previously visited personal categories", async () => {
   // Given
   await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
   await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
@@ -857,6 +926,8 @@ it("keeps current absence across previously visited personal categories", async 
 it("captures the current loading zone when selecting a new personal season", async () => {
   // Given: native Intl owns the zone; retained same-season groups stay unchanged.
   let deviceZone = "Europe/Paris";
+  // Install the zone double on native Intl before Router creates its fake-clock formatter wrapper.
+  jest.useRealTimers();
   const resolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
   jest
     .spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions")
@@ -864,6 +935,10 @@ it("captures the current loading zone when selecting a new personal season", asy
       return { ...resolvedOptions.call(this), timeZone: deviceZone };
     });
   await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
   await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   deviceZone = "America/New_York";
@@ -893,6 +968,8 @@ it("captures the current loading zone when selecting a new personal season", asy
 it("captures the loading zone at first activation of an inactive new-season category", async () => {
   // Given
   let deviceZone = "Europe/Paris";
+  // Install the zone double on native Intl before Router creates its fake-clock formatter wrapper.
+  jest.useRealTimers();
   const resolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
   jest
     .spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions")
@@ -900,6 +977,10 @@ it("captures the loading zone at first activation of an inactive new-season cate
       return { ...resolvedOptions.call(this), timeZone: deviceZone };
     });
   await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
   await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
@@ -931,4 +1012,34 @@ it("captures the loading zone at first activation of an inactive new-season cate
       url.searchParams.get("timeZone"),
     ]),
   ).toEqual([[newer.id, "completed", "America/New_York"]]);
+});
+
+it("opens the native season route and returns to Home with the same owner's accepted choice", async () => {
+  // Given
+  const user = userEvent.setup();
+  await mount();
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Saison des suivis" }),
+    ).toHaveAccessibilityValue({ text: older.label }),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
+
+  // Then
+  expect(screen).toHavePathname("/season");
+  expect(
+    await screen.findByRole("radio", { name: older.label, checked: true }),
+  ).toBeOnTheScreen();
+
+  // When
+  await user.press(screen.getByRole("radio", { name: newer.label }));
+
+  // Then
+  expect(screen).toHavePathname("/");
+  expect(
+    screen.getByRole("button", { name: "Saison des suivis" }),
+  ).toHaveAccessibilityValue({ text: newer.label });
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
 });

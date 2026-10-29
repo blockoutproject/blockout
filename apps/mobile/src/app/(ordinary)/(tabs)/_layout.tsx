@@ -1,4 +1,5 @@
 import { useEffect, useState, type ComponentPropsWithRef } from "react";
+import { useSegments } from "expo-router";
 import {
   Pressable,
   StyleSheet,
@@ -45,6 +46,7 @@ import { BottomNavigationInsetContext } from "../../../shared/components/bottom-
 
 /** Expo owns focus/history; the measured floating capsule retains native two-row layout for enlarged text. */
 export default function TabsLayout() {
+  const sheetVisible = useSegments().includes("(sheets)");
   const { session, queries } = useInboxQueries();
   const summary = useQuery({
     ...(queries?.summary ??
@@ -82,9 +84,10 @@ export default function TabsLayout() {
         <TabSlot />
         <TabList asChild>
           <NavigationCapsule
-            onLayout={({ nativeEvent }) =>
-              setCapsuleHeight(nativeEvent.layout.height)
-            }
+            onLayout={({ nativeEvent }) => {
+              if (nativeEvent.layout.height > 0)
+                setCapsuleHeight(nativeEvent.layout.height);
+            }}
             layout={selectionLayout}
             reducedMotion={reducedMotion}
             style={{
@@ -93,6 +96,7 @@ export default function TabsLayout() {
                 fontScale >= 1.5 ? tokens.spacing.lg : tokens.spacing.sm,
               borderColor: membership.border,
               backgroundColor: colors.raised,
+              display: sheetVisible ? "none" : "flex",
             }}
           >
             <TabTrigger name="index" href="/" asChild>

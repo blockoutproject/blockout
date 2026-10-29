@@ -567,10 +567,14 @@ it.each([
     expect(
       await screen.findAllByRole("link", { name: "Divisions" }),
     ).toHaveLength(2);
-    expect(screen.getByText("Noms, logos et couleurs")).toBeOnTheScreen();
-    expect(
-      screen.queryByRole("link", { name: "Mapping des poules" }),
-    ).not.toBeOnTheScreen();
+    if (grant === "manageSportingClassification")
+      expect(
+        screen.getByRole("link", { name: "Mapping des poules" }),
+      ).toBeDisabled();
+    else
+      expect(
+        screen.queryByRole("link", { name: "Mapping des poules" }),
+      ).not.toBeOnTheScreen();
     expect(
       screen.queryByRole("link", { name: "Liens vidéo" }),
     ).not.toBeOnTheScreen();
@@ -585,3 +589,34 @@ it.each([
     ).not.toBeOnTheScreen();
   },
 );
+
+it("shows planned administration destinations as disabled rows only under their current grants", async () => {
+  // Given
+  mockFetch.mockImplementation(async () =>
+    json({
+      ...account,
+      permissions: {
+        manageSportingClassification: true,
+        moderateStreamLinks: true,
+      },
+    }),
+  );
+  const user = userEvent.setup();
+
+  // When
+  await renderAdministration(<AdministrationEntry />);
+  const mapping = await screen.findByRole("link", {
+    name: "Mapping des poules",
+  });
+  const video = screen.getByRole("link", { name: "Liens vidéo" });
+  await user.press(mapping);
+  await user.press(video);
+
+  // Then
+  expect(mapping).toBeDisabled();
+  expect(video).toBeDisabled();
+  expect(screen.getByRole("link", { name: "Divisions" })).toBeEnabled();
+  expect(
+    mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
+  ).toBe(true);
+});

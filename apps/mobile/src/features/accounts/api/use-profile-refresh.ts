@@ -7,14 +7,16 @@ import {
   getChangeAccountProfileMutationKey,
   getGetAccountPhotoQueryKey,
 } from "../../../../.generated/mobile";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useAccountSession } from "../session/account-session-provider";
 import type { useCurrentAccount } from "./use-current-account";
 
-/** Shares profile/photo refresh between overview and editor without interrupting an active save or replacing a draft. */
+/** Shares profile/photo refresh; retainedDraft keeps refusal feedback with the locked editor instead of a blocking overview card. */
 export function useProfileRefresh(
   account: ReturnType<typeof useCurrentAccount>,
+  retainedDraft = false,
 ) {
   const session = useAccountSession();
   const client = useQueryClient();
@@ -40,7 +42,8 @@ export function useProfileRefresh(
     const result = await account.refetch({ cancelRefetch: false });
     if (!session.isCurrent(session.generation)) return;
     if (result.isError) {
-      if (result.data) feedback.error();
+      if (result.data && (retainedDraft || !isAccessDenied(result.error)))
+        feedback.error();
       return;
     }
     if (client.isMutating({ mutationKey }) || !result.data?.hasPhoto) return;

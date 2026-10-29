@@ -6,7 +6,6 @@ import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { SelectField } from "../../../shared/components/select-field";
 import { Button } from "../../../shared/components/button";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
-import { ScreenState } from "../../../shared/components/screen-state";
 import { tokens } from "../../../shared/theme/tokens";
 import {
   formatLabel,
@@ -46,11 +45,11 @@ export function SearchFilters() {
       onClose={() => router.back()}
     >
       {!options || !filters ? (
-        <ScreenState>
+        <SheetContent>
           <ReadFeedback
             query={{ ...query, isPending: query.isPending || query.isFetching }}
           />
-        </ScreenState>
+        </SheetContent>
       ) : (
         <SheetContent>
           <View style={styles.form}>

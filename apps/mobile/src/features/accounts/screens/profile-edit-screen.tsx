@@ -6,7 +6,6 @@ import { FormScrollView } from "../../../shared/components/form-scroll-view";
 
 import { ApiError } from "../../../shared/api/api-fetch";
 import { Button } from "../../../shared/components/button";
-import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useCurrentAccount } from "../api/use-current-account";
 import { ProfileForm } from "../forms/profile-form";
 import { ProfileLoading } from "../components/profile-loading";
@@ -28,7 +27,7 @@ export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
   const account = useCurrentAccount();
   const router = useRouter();
   const navigation = useNavigation();
-  const { saving, refreshing, refresh } = useProfileRefresh(account);
+  const { saving, refreshing, refresh } = useProfileRefresh(account, true);
   const missing =
     account.error instanceof ApiError && account.error.status === 404;
 
@@ -70,14 +69,27 @@ export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
               </ScreenState>
             ) : (
               <>
-                {session.status === "restoring" ? (
-                  <ScreenState>
-                    <RequestLoading />
-                  </ScreenState>
-                ) : session.status === "authenticated" && account.isPending ? (
+                {session.status === "restoring" ||
+                session.status === "authenticating" ||
+                session.status === "signing-out" ||
+                (session.status === "authenticated" && account.isPending) ? (
                   <PageContent>
-                    <ProfileLoading />
+                    <ProfileLoading editor />
                   </PageContent>
+                ) : session.status === "initialization-error" ||
+                  session.status === "authentication-error" ||
+                  session.status === "reauthentication-required" ? (
+                  <ScreenState>
+                    <ErrorState
+                      onRetry={
+                        session.status === "initialization-error"
+                          ? session.retryInitialization
+                          : session.status === "authentication-error"
+                            ? session.retryAuthentication
+                            : () => router.replace("/sign-in")
+                      }
+                    />
+                  </ScreenState>
                 ) : session.status !== "authenticated" ? (
                   <ScreenState>
                     <Button
@@ -91,28 +103,25 @@ export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
                     {account.isError && !account.data && (
                       <ScreenState>
                         <ErrorState
-                          onRetry={() => void account.refetch()}
+                          onRetry={
+                            missing
+                              ? () => router.replace("/sign-in")
+                              : () => void account.refetch()
+                          }
                           retrying={account.isFetching}
                         />
-                        {missing && (
-                          <Button
-                            label="Se connecter"
-                            fullWidth
-                            onPress={() => router.replace("/sign-in")}
-                          />
-                        )}
                       </ScreenState>
                     )}
                     {account.data && (
-                      <PageContent>
-                        <ProfileForm
-                          key={`${session.generation}:${account.data.accountId}`}
-                          account={account.data}
-                          disabled={!account.isSuccess}
-                          onCancel={close}
-                          onSaved={close}
-                        />
-                      </PageContent>
+                      <ProfileForm
+                        key={`${session.generation}:${account.data.accountId}`}
+                        account={account.data}
+                        disabled={!account.isSuccess}
+                        onRetryRead={() => void account.refetch()}
+                        retryingRead={account.isFetching}
+                        onCancel={close}
+                        onSaved={close}
+                      />
                     )}
                   </>
                 )}

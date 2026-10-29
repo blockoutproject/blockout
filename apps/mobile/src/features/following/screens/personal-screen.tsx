@@ -1,14 +1,10 @@
 import { useState } from "react";
-import { useAuth0 } from "react-native-auth0";
 import { useRouter, useIsFocused } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import {
   useAccountSession,
   useCurrentAccount,
 } from "../../accounts/current-account";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { ApiError } from "../../../shared/api/api-fetch";
 import { Page, PageScrollView } from "../../../shared/components/page";
 import { BrandMark } from "../../../shared/components/brand-mark";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -21,10 +17,9 @@ import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { Button } from "../../../shared/components/button";
 import { tokens } from "../../../shared/theme/tokens";
 import {
-  captureFollowingOwner,
-  type FollowingOwner,
-} from "../api/following-keys";
-import { usePersonalSeason } from "../hooks/use-personal-season";
+  usePersonalSeasonScope,
+  type PersonalSeasonScope,
+} from "../components/personal-season-provider";
 import { PersonalSeasonSelector } from "../components/personal-season-selector";
 
 /**
@@ -34,9 +29,8 @@ import { PersonalSeasonSelector } from "../components/personal-season-selector";
 export function PersonalScreen() {
   const session = useAccountSession();
   const profile = useCurrentAccount();
-  const admission = useOrdinaryRequest();
   const router = useRouter();
-  const owner = captureFollowingOwner(session);
+  const scope = usePersonalSeasonScope();
   return session.status === "guest" ? (
     <Page>
       <PersonalHeader />
@@ -54,17 +48,8 @@ export function PersonalScreen() {
         </ScreenState>
       </PageScrollView>
     </Page>
-  ) : owner ? (
-    <PersonalSpace
-      key={owner.generation}
-      owner={owner}
-      usable={
-        admission.admitted &&
-        profile.isSuccess &&
-        profile.data.accountId === owner.accountId
-      }
-      profile={profile}
-    />
+  ) : scope ? (
+    <PersonalSpace key={scope.owner.generation} scope={scope} />
   ) : (
     <Page>
       <PersonalHeader />
@@ -96,46 +81,11 @@ function PersonalHeader() {
 }
 
 /** Keeps the choice and selected tab mounted while ordinary sporting routes cover Home. */
-function PersonalSpace({
-  owner,
-  usable,
-  profile,
-}: {
-  owner: FollowingOwner;
-  usable: boolean;
-  profile: ReturnType<typeof useCurrentAccount>;
-}) {
-  const { getCredentials } = useAuth0();
-  const admission = useOrdinaryRequest();
+function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
+  const { owner, profile, season, request, usable, blocked, bypass } = scope;
+  const router = useRouter();
   const [tab, setTab] = useState("upcoming");
   const focused = useIsFocused();
-
-  /** Prepares only a current original-owner request after native credentials and current F12 admission. */
-  async function request(signal?: AbortSignal) {
-    if (!owner.isCurrent(owner.generation)) throw new ApiError("cancelled");
-    const credentials = await getCredentials();
-    if (!credentials) throw new ApiError("http", 401);
-    return admission.request({
-      signal,
-      session: owner,
-      headers: { Authorization: `Bearer ${credentials.accessToken}` },
-    });
-  }
-  const season = usePersonalSeason(
-    owner,
-    request,
-    usable,
-    Boolean(admission.bypass),
-  );
-  const [optionsRefused, setOptionsRefused] = useState(false);
-  const refused =
-    isAccessDenied(season.options.error) ||
-    (season.options.error instanceof ApiError &&
-      season.options.error.status === 404);
-  // A transient retry failure cannot release a known restriction on retained private options.
-  if (refused && !optionsRefused) setOptionsRefused(true);
-  else if (optionsRefused && season.options.isSuccess) setOptionsRefused(false);
-  const blocked = isAccessDenied(profile.error) || refused || optionsRefused;
 
   const ready = usable && !!season.options.data && !blocked;
   /** The owning selector refreshes only its current options, including inside the native modal. */
@@ -153,15 +103,7 @@ function PersonalSpace({
         <PersonalSeasonSelector
           options={blocked ? undefined : season.options.data}
           seasonId={season.seasonId}
-          onSelect={season.selectSeason}
-          onReset={season.resetSeason}
-          scopeKey={owner.generation}
-          onOpen={async () => {
-            await season.options.refetch({
-              cancelRefetch: false,
-              throwOnError: true,
-            });
-          }}
+          onPress={() => router.push("/season")}
           disabled={!usable || blocked || !season.options.data}
         />
       </View>
@@ -188,7 +130,7 @@ function PersonalSpace({
                   seasonId={season.seasonId}
                   category={id}
                   active={focused && tab === id}
-                  bypass={Boolean(admission.bypass)}
+                  bypass={bypass}
                 />
               ) : (
                 <TabScrollView alwaysBounceVertical>

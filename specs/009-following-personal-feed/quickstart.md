@@ -108,14 +108,28 @@ transport with controlled HTTP. It covers shared selection, All seasons, reset, 
 successful disappearance, failed reconciliation, explicit retry and obsolete session/selection responses.
 `personal-screen.test.tsx` adds the actual F05/F12 providers, Home, follow action, club and search
 components; native identity/inset I/O and HTTP are controlled. Current private refusals remain
-blocking across a subsequent network failure until a successful read. The selector's native opening
-event owns refresh feedback inside its Modal surface; retained Query errors emit no toast by effect.
+blocking across a subsequent network failure until a successful read. The actual Home/season native routes share one generation-scoped owner. Opening the contextual
+route starts one explicit options reread; only that request may publish opening feedback, while
+retained Query error state alone emits none.
 These tests establish neither native networking nor provider qualification.
 
-The existing `apps/mobile/src/app/(ordinary)/(tabs)/index.tsx` retains its entry/age guards.
+The existing entry/age guards now live in `apps/mobile/src/app/(ordinary)/(tabs)/(home)/_layout.tsx`,
+with Home still at `/` and its contextual choice at `/season`. The latter is a `(sheets)` leaf of
+the same native stack, so the application-wide sheet convention owns presentation and tab clearance.
 F07 owns its ordinary tab placement; the personal context, controls and calendar remain with F06.
 US3 retains the follow-list composition. T021 supplies the bounded read boundary; T022/T029/T037
 retain qualification through all actual views and endpoints.
+
+On each required native platform, open the selector with a short season catalogue and verify that
+the sheet fits its content, exposes every radio row and leaves no fixed half-screen empty region.
+Repeat with a long catalogue and enlarged system text: the native sheet must stop at available
+height, scroll to All seasons and any reset action, and keep close/back usable without the floating
+tab capsule covering a row. Select a season, close without selection and reopen: Home remains the
+active tab, the same accepted selection survives, and opening performs only its explicit options
+reread. Repeat an ordinary failed reread, a current private refusal and a session change while the
+sheet is open; retained permitted data, protected withdrawal and obsolete completion isolation
+must follow the existing F05/F12 owners. React tests cannot establish these native height,
+scrolling, safe-area or accessibility outcomes.
 
 Compare the [Home controls](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5075-4799)
 with the UI Library's [compact tabs](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=841-983)

@@ -3,7 +3,7 @@ import { ChevronRight } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Button } from "../../../shared/components/button";
-import { Sheet } from "../../../shared/components/sheet";
+import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
@@ -27,15 +27,17 @@ export interface SignInInvitationProps extends Omit<
   onClose(): void;
 }
 
-/** Fits the compact guest invitation and its ordinary sign-in action in a native sheet without scrolling. */
+/** Gives the guest invitation natural native sheet height while retaining overflow scrolling for large text and compact windows. */
 export function SignInInvitation({
   message,
   onClose,
   onSignIn,
 }: SignInInvitationProps) {
   return (
-    <Sheet title="Connexion" onClose={onClose} scrollable={false}>
-      <SignInInvitationCard message={message} onSignIn={onSignIn} />
+    <Sheet title="Connexion" onClose={onClose}>
+      <SheetContent>
+        <SignInInvitationCard message={message} onSignIn={onSignIn} />
+      </SheetContent>
     </Sheet>
   );
 }

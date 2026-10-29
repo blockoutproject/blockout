@@ -24,7 +24,6 @@ export default function SupportLayout() {
           name="choice"
           options={{
             ...sheetScreenOptions,
-            sheetAllowedDetents: [0.5],
             contentStyle: { backgroundColor: colors.surface },
           }}
         />

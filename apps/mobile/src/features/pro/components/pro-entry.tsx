@@ -10,7 +10,7 @@ import { usePro } from "../pro-provider";
 /** Profile command supplied by the native host owner; guests always take the ordinary F05 invitation. */
 export interface ProEntryProps {
   onOpenPresentation: () => void;
-  /** Only this entry waits for the native offering; other profile navigation remains available. */
+  /** The caller may disable an in-flight navigation action; SDK reads belong to the destination. */
   opening?: boolean;
 }
 

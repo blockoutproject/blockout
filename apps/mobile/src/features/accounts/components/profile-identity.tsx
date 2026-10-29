@@ -7,12 +7,13 @@ import { IconButton } from "../../../shared/components/icon-button";
 import { LoadingIndicator } from "../../../shared/components/loading-indicator";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
-import { useProfilePhoto } from "../api/use-profile-editing";
+import type { useProfilePhoto } from "../api/use-profile-editing";
 
 /** Accepted current identity only; the route supplies membership presentation and the independent edit destination. */
 export interface ProfileIdentityProps {
   account: AccountResponse;
   disabled: boolean;
+  photo: ReturnType<typeof useProfilePhoto>;
   membershipStatus?: ReactNode;
   onEdit: () => void;
 }
@@ -22,13 +23,10 @@ export function ProfileIdentity({
   account,
   disabled,
   membershipStatus,
+  photo,
   onEdit,
 }: ProfileIdentityProps) {
   const { colors } = useTheme();
-  const photo = useProfilePhoto(
-    account.accountId,
-    !disabled && account.hasPhoto,
-  );
   return (
     <View
       style={[

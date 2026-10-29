@@ -1,4 +1,6 @@
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
 import {
@@ -70,6 +72,12 @@ jest.mock("expo-router", () => ({
   useRouter: () => mockRouter,
 }));
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+jest.mock("expo/fetch", () => ({
+  fetch: (url: RequestInfo | URL) =>
+    String(url).endsWith("/application-access")
+      ? Promise.resolve(Response.json(mockApplicationAccessResponse()))
+      : Promise.reject(new Error("Unexpected HTTP request")),
+}));
 
 // Navigation commands are controlled; the actual F05 session, invitation, F13 controls and profile render.
 const mockRouter = {
@@ -87,6 +95,7 @@ const message = "Connectez-vous pour utiliser Blockout Pro";
 beforeEach(() => {
   client = createQueryClient();
   Object.assign(process.env, {
+    EXPO_PUBLIC_API_URL: "https://api.example.invalid",
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
     EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
   });
@@ -126,10 +135,12 @@ async function mount(content: React.ReactNode) {
         <QueryClientProvider client={client}>
           <ThemeProvider>
             <ActionFeedbackProvider scopeKey="test">
-              <AccountSessionProvider>
-                <SessionProbe />
-                {children}
-              </AccountSessionProvider>
+              <ApplicationAccessProvider>
+                <AccountSessionProvider>
+                  <SessionProbe />
+                  {children}
+                </AccountSessionProvider>
+              </ApplicationAccessProvider>
             </ActionFeedbackProvider>
           </ThemeProvider>
         </QueryClientProvider>
