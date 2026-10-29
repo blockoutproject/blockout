@@ -1,13 +1,18 @@
 import { X } from "lucide-react-native";
 import type { PropsWithChildren } from "react";
 import {
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   View,
   type ScrollViewProps,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaFrame,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
 import { IconButton } from "./icon-button";
@@ -23,7 +28,7 @@ export const sheetScreenOptions = {
 /** Intrinsic contextual content; callers compose SheetContent and retain their own close, refresh and command state. */
 export interface SheetProps extends PropsWithChildren {
   onClose: () => void;
-  /** Holds the native presenter while the owning confirmed action is in progress. */
+  /** Disables the close action while the caller's confirmed command is in progress. */
   closeDisabled?: boolean;
   title: string;
   message?: string;
@@ -31,7 +36,7 @@ export interface SheetProps extends PropsWithChildren {
   refreshControl?: ScrollViewProps["refreshControl"];
 }
 
-/** The first scrolling descendant keeps natural content height; the native presenter owns its maximum and overflow. */
+/** Keeps intrinsic content inside one bounded native scroll view; the presenter owns detents and dismissal. */
 export function Sheet({
   onClose,
   closeDisabled = false,
@@ -41,6 +46,8 @@ export function Sheet({
   children,
 }: SheetProps) {
   const { colors } = useTheme();
+  const frame = useSafeAreaFrame();
+  const insets = useSafeAreaInsets();
   const content = (
     <SafeAreaView edges={["bottom"]}>
       <View style={styles.introduction}>
@@ -74,7 +81,14 @@ export function Sheet({
 
   return (
     <ScrollView
-      style={[styles.screen, { backgroundColor: colors.surface }]}
+      style={[
+        styles.screen,
+        { backgroundColor: colors.surface },
+        // Screens' Android presenter excludes the top system inset; bound the scroll viewport to the same space.
+        Platform.OS === "android" && {
+          maxHeight: frame.height - insets.top,
+        },
+      ]}
       alwaysBounceVertical
       refreshControl={refreshControl}
       nestedScrollEnabled
