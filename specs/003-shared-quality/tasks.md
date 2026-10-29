@@ -496,3 +496,7 @@ When parallel work is explicitly authorized, use the distinct-file batches above
 ## Phase 16: Convergence
 
 - [x] T158 Reuse the existing standings useful-viewport placement at the shared native paging owner in `apps/mobile/src/shared/components/paged-tabs.tsx` and migrate comparable Club/calendar/tab states. RNCT’s collapse reserve must not enlarge the area in which an Error/Empty card centers; preserve its scrolling min-height, existing header measurements, bottom-navigation clearance and enlarged-content overflow. Review and requalify actual iOS/Android states after the change, per FR-038 and `plan.md#shared-page-composition` (partial).
+
+## Phase 17: Native safe-area adaptation follow-up (US6)
+
+- [x] T159 [US6] Apply the approved minimum top clearance and external capsule safe spacing at the existing `apps/mobile/src/shared/components/{page,paged-tabs,scroll-chrome}.tsx` and `apps/mobile/src/app/(ordinary)/(tabs)/_layout.tsx` owners, per FR-034/FR-039 and [native safe-area research](research.md#native-safe-area-adaptation). Preserve explicit top/bottom ownership, native measurements and navigation/draft behavior. Independently review the changes and meaningful regressions, run affected mobile checks, and qualify zero/asymmetric-inset iPhone Duo and ordinary iOS/Android layouts before recording exact evidence in `quickstart.md`. Reconcile only demonstrated representation impacts; introduce no device detection, component, token, dependency or navigation migration.
