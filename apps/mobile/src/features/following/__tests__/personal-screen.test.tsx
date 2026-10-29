@@ -1334,3 +1334,52 @@ it("shares All seasons across both lists and offers Search only after successful
   ).toBe(true);
   expect(screen.queryByRole("button", { name: "Suivi" })).not.toBeOnTheScreen();
 });
+
+it("keeps an explicit read retry at the list edge after a failed first-page refresh", async () => {
+  // Given
+  let unavailable = false;
+  mockFetch.mockImplementation(async (url, request) => {
+    if (new URL(url).pathname !== `/accounts/${accountId}/team-follows`)
+      return transport(url, request);
+    if (unavailable) throw new TypeError("Synthetic refresh outage");
+    const response = await transport(url, request);
+    return Response.json({ ...(await response.json()), nextPage: 1 });
+  });
+  await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  await layoutNativeTabs();
+  await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
+  await layoutNativeTabs();
+  await screen.findByRole("link", { name: /Étoile/ });
+  unavailable = true;
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await screen.findByRole("button", { name: "Réessayer" });
+
+  // Then
+  expect(screen.getByRole("link", { name: /Étoile/ })).toBeOnTheScreen();
+
+  // When: retry belongs to the failed refresh; successful recovery reopens native continuation.
+  unavailable = false;
+  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("button", { name: "Réessayer" }),
+    ).not.toBeOnTheScreen(),
+  );
+  mockFetch.mockClear();
+  await fireEvent(screen.getByRole("link", { name: /Étoile/ }), "endReached");
+
+  // Then
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.some(
+        ([url]) => new URL(url).searchParams.get("page") === "1",
+      ),
+    ).toBe(true),
+  );
+});

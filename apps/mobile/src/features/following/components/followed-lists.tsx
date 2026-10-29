@@ -290,9 +290,13 @@ export function FollowedLists(props: FollowedListsProps) {
             ) : (
               <ListContinuation
                 loading={list.query.isFetchingNextPage}
-                failed={list.query.isFetchNextPageError}
+                failed={list.query.isError && !!list.query.hasNextPage}
                 disabled={!props.active || list.query.isFetching}
-                onRetry={() => void list.append(true)}
+                onRetry={() =>
+                  void (list.query.isRefetchError
+                    ? list.refresh()
+                    : list.append(true))
+                }
               />
             )}
           </View>

@@ -146,7 +146,7 @@ npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/follo
 
 `FollowListsIntegrationTest` exercises the production F06 reader, F02 current visibility and F03
 batch summaries on migrated PostgreSQL 18.6 with the restricted application role. Both lists
-traverse 21 entries using the installed deterministic `fr-x-icu` collation through Hibernate
+traverse more than twenty entries using the installed deterministic `fr-x-icu` collation through Hibernate
 `collate`, with accented names, UUID ties, current name corrections, closed seasons and retained
 hidden/reappearing relations. The maximum supported offset executes against PostgreSQL; the
 unrepresentable continuation is exercised with a controlled full-page application port instead of
@@ -160,7 +160,11 @@ They cover separate current sections, exact UUID opening through F03/F11, contin
 homonyms and UUID deduplication, shared All seasons, successful empty/Search versus failure,
 populated return without rereading, confirmed-mutation reset while hidden and first-page loading
 on display. Current F03 refusals cancel older continuations and withdraw only the refused identity;
-retired account responses never become current results. Entity Card extraction retains the
+retired account responses never become current results. Successful calendar absence also withdraws
+overlapping lists without rereading them on return. Native cancellation restores accepted state
+before removing a refused identity, including an interrupted first-page refresh. A failed refresh
+with remaining pages exposes its own explicit retry at the list edge before automatic continuation
+resumes. Entity Card extraction retains the
 existing F04 presentation adapter and its consumer checks.
 
 ```sh

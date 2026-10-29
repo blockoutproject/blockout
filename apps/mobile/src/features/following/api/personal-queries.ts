@@ -5,6 +5,7 @@ import type {
   ListPoolFollows200,
 } from "../../../../.generated/schemas/index.zod";
 import { filterCalendarMatches } from "../../sporting/calendar-data";
+import { withdrawUnavailableFollowLists } from "../lists";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import {
   hashKey,
@@ -298,6 +299,7 @@ async function withdrawUnavailableFollows(
   seasonId: string | undefined,
   currentKey: QueryKey,
 ) {
+  await withdrawUnavailableFollowLists(client, owner, bypass, seasonId);
   const queryKey = personalCalendarCollectionKey(owner, bypass);
   /** Uses the canonical generated trailing selection to identify overlapping seasonal views. */
   function selectedSeason(key: QueryKey) {
