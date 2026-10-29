@@ -18,6 +18,8 @@ Completed creation returns 201 and a resource Location; existing current repetit
 
 F13 owns [dialect, generators and validation](../../003-shared-quality/contracts/README.md). Keep Java server interfaces/DTOs and Orval types/query functions/Zod schemas generated from the same root. Added response fields are compatible with tolerant readers; new operations are additive. Finite enums are named components and new values require deliberate compatibility review. No generated output, runtime, external provider API, generic bulk operation or hypermedia framework is introduced by this dossier.
 
-The delivered submission/member-read operations use the `StreamSubmission` generation tag,
-separating their executable Java interface from later lifecycle/moderation operations. Routes,
-operation IDs, request/response schemas and mobile consumer names remain unchanged.
+The delivered submission/member-read operations and own-version PATCH use the `StreamSubmission`
+generation tag, separating their executable Java interface from future reporting/moderation
+operations. Routes, operation IDs, request/response schemas and mobile consumer names remain
+unchanged. The PATCH retains its exact target and required viewed revision; cancellation and
+withdrawal return the current private member with `Accept-Patch: application/json` and `no-store`.

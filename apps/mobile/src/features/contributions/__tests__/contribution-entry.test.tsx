@@ -266,3 +266,47 @@ it.each([
   expect(screen.queryByText(reason)).not.toBeOnTheScreen();
   expect(mockPush).not.toHaveBeenCalled();
 });
+
+it("keeps personal history reachable when new submissions are unavailable", async () => {
+  // Given
+  context = ownContributions({
+    eligibility: { canSubmit: false, requiresApproval: false },
+    items: [
+      {
+        id: "00000000-0000-4000-8000-000000000003",
+        url: "https://youtu.be/history",
+        platform: "youtube",
+        state: "pending",
+        submittedAt: "2026-10-28T10:00:00Z",
+        canCancel: true,
+        canWithdraw: false,
+      },
+    ],
+  });
+  const user = userEvent.setup();
+  await render(
+    <QueryClientProvider client={client}>
+      <ThemeProvider>
+        <ApplicationAccessProvider>
+          <AccountSessionProvider>
+            <Entry />
+          </AccountSessionProvider>
+        </ApplicationAccessProvider>
+      </ThemeProvider>
+    </QueryClientProvider>,
+  );
+
+  // When
+  await user.press(
+    await screen.findByRole("button", { name: "Mes contributions" }),
+  );
+
+  // Then
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/matches/[matchId]/contributions",
+    params: { matchId: "00000000-0000-4000-8000-000000000002" },
+  });
+  expect(
+    screen.queryByRole("button", { name: "Stream link" }),
+  ).not.toBeOnTheScreen();
+});

@@ -135,6 +135,16 @@ public class JpaContributionStore implements ContributionStore {
     return mapper.toDomain(created);
   }
 
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public ContributionVersion decide(
+      UUID versionId, State state, ContributionVersion.Decision decision) {
+    ContributionVersionEntity version = versions.findById(versionId).orElseThrow();
+    decide(version, state, decision.kind(), decision.actorId(), decision.at());
+    return mapper.toDomain(version);
+  }
+
   /**
    * Applies one useful lifecycle decision without changing immutable creation or quota facts.
    *

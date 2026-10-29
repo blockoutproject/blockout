@@ -3,7 +3,7 @@ import { Plus } from "lucide-react-native";
 import { Button } from "../../../shared/components/button";
 import { useOwnContributionsRead } from "../api/own-contributions";
 
-/** Public match entry offered to guests or currently eligible accounts, independently of Pro. */
+/** Public match entry offers personal history independently of eligibility for a new submission. */
 export interface ContributionEntryProps {
   entry: ReturnType<typeof useContributionEntry>;
   contextColor?: string;
@@ -16,13 +16,16 @@ export function useContributionEntry(matchId: string, available = true) {
     matchId,
     available,
   );
+  const hasHistory = usable && !!query.data?.pages[0]?.items.length;
   return {
+    hasHistory,
     visible:
       available &&
       (session.status === "guest" ||
         (usable &&
           !query.isError &&
-          query.data?.pages[0]?.eligibility.canSubmit === true)),
+          (hasHistory ||
+            query.data?.pages[0]?.eligibility.canSubmit === true))),
     refreshing: query.isRefetching || profile.isRefetching,
     /** Reobserves the existing owner on match refresh; a recovered profile enables its dependent query. */
     refresh() {
@@ -41,14 +44,16 @@ export function useContributionEntry(matchId: string, available = true) {
         });
       else
         router.push({
-          pathname: "/matches/[matchId]/contribution",
+          pathname: hasHistory
+            ? "/matches/[matchId]/contributions"
+            : "/matches/[matchId]/contribution",
           params: { matchId },
         });
     },
   };
 }
 
-/** Presents only an available action using the shared sporting button. */
+/** Presents available history or submission using the shared sporting button. */
 export function ContributionEntry({
   entry,
   contextColor,
@@ -56,8 +61,12 @@ export function ContributionEntry({
   if (!entry.visible) return null;
   return (
     <Button
-      label="Stream link"
-      accessibilityHint="Proposer une adresse de diffusion pour ce match"
+      label={entry.hasHistory ? "Mes contributions" : "Stream link"}
+      accessibilityHint={
+        entry.hasHistory
+          ? "Consulter vos versions et leurs actions pour ce match"
+          : "Proposer une adresse de diffusion pour ce match"
+      }
       leadingIcon={Plus}
       variant="inverse"
       size="compact"

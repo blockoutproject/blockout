@@ -21,6 +21,7 @@ import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
+import com.blockout.backend.contributions.application.ChangeOwnContribution;
 import com.blockout.backend.contributions.application.ContributionRejectedException;
 import com.blockout.backend.contributions.application.ReadOwnContributions;
 import com.blockout.backend.contributions.application.SubmitContribution;
@@ -79,6 +80,7 @@ class ContributionSubmissionWebMvcTest {
       "/accounts/" + OWNER + "/matches/" + MATCH + "/stream-contributions";
   @Autowired private MockMvc mvc;
   @MockitoBean private SubmitContribution submissions;
+  @MockitoBean private ChangeOwnContribution changes;
   @MockitoBean private ReadOwnContributions reads;
   @MockitoBean private AccountAccess accounts;
   @MockitoBean private AccessSettingsStore settings;

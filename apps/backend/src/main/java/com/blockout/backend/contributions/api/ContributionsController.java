@@ -1,5 +1,6 @@
 package com.blockout.backend.contributions.api;
 
+import com.blockout.backend.contributions.application.ChangeOwnContribution;
 import com.blockout.backend.contributions.application.ContributionContext;
 import com.blockout.backend.contributions.application.ReadOwnContributions;
 import com.blockout.backend.contributions.application.SubmitContribution;
@@ -11,6 +12,7 @@ import com.blockout.backend.generated.mobile.model.CreateStreamContributionReque
 import com.blockout.backend.generated.mobile.model.ModeratedStreamContributionDetailResponse;
 import com.blockout.backend.generated.mobile.model.OwnStreamContributionDetailResponse;
 import com.blockout.backend.generated.mobile.model.OwnStreamContributionsResponse;
+import com.blockout.backend.generated.mobile.model.UpdateOwnStreamContributionRequest;
 import java.net.URI;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +20,10 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Generated submission/read boundary; shared security and admission remain with F05/F12. */
+/**
+ * Generated personal contribution and direct-publication boundary; shared security and admission
+ * remain with F05/F12.
+ */
 @RestController
 @RequiredArgsConstructor
 public class ContributionsController implements StreamSubmissionApi {
@@ -27,6 +32,7 @@ public class ContributionsController implements StreamSubmissionApi {
   private final ReadOwnContributions reads;
   private final ContributionApiMapper mapper;
   private final SubmitModeratedContribution moderated;
+  private final ChangeOwnContribution changes;
 
   /** {@inheritDoc} */
   @Override
@@ -61,7 +67,27 @@ public class ContributionsController implements StreamSubmissionApi {
       UUID accountId, UUID matchId, UUID contributionId, Boolean bypass) {
     request.current().requireOriginalAccount(accountId);
     ReadOwnContributions.Detail detail = reads.member(accountId, matchId, contributionId);
-    return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(mapper.toDto(detail));
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .header("Accept-Patch", "application/json")
+        .body(mapper.toDto(detail));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public ResponseEntity<OwnStreamContributionDetailResponse> updateOwnStreamContribution(
+      UUID accountId,
+      UUID matchId,
+      UUID contributionId,
+      UpdateOwnStreamContributionRequest body,
+      Boolean bypass) {
+    request.current().requireOriginalAccount(accountId);
+    ReadOwnContributions.Detail detail =
+        changes.change(accountId, matchId, contributionId, body.getRevision(), body.getAction());
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .header("Accept-Patch", "application/json")
+        .body(mapper.toDto(detail));
   }
 
   /** {@inheritDoc} */

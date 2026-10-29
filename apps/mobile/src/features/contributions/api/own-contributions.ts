@@ -6,6 +6,7 @@ import {
 import { useAuth0 } from "react-native-auth0";
 import {
   createStreamContribution,
+  updateOwnStreamContribution,
   listOwnStreamContributions,
   getGetMyAccountQueryKey,
 } from "../../../../.generated/mobile";
@@ -14,6 +15,7 @@ import type {
   AccountResponse,
   CreateStreamContributionRequest,
   OwnStreamContributionsResponse,
+  UpdateOwnStreamContributionRequest,
 } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
@@ -94,19 +96,45 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
   return { query, queryKey, actor, request, session, profile, usable };
 }
 
-/** Current original-account reads and one submission; Query owns all request and recovery state. */
+/** Selected member and viewed revision remain together through native confirmation and dispatch. */
+export interface OwnContributionChange {
+  versionId: string;
+  body: UpdateOwnStreamContributionRequest;
+}
+
+/** Current original-account reads and guarded commands; Query owns all request and recovery state. */
 export function useOwnContributions(matchId: string) {
   const { query, queryKey, actor, request, session, profile, usable } =
     useOwnContributionsRead(matchId);
   const client = useQueryClient();
   const matchKey = useConsultationQueries().match(matchId).queryKey;
-  /** Accepts only the validated member acknowledgement; aggregate freshness never fabricates eligibility or reverses success. */
-  async function accept(accepted: OwnStreamContributionDetailResponse) {
+  /** Retains the exact acknowledgement and optionally updates its existing row; only a full read advances context revision or eligibility. */
+  async function accept(
+    accepted: OwnStreamContributionDetailResponse,
+    updateMember = false,
+  ) {
     await client.cancelQueries({ queryKey, exact: true });
     if (!session.isCurrent(session.generation)) return;
     client.setQueryData(
       contributionKeys.ownVersion(actor, matchId, accepted.contribution.id),
       accepted,
+    );
+    client.setQueryData<InfiniteData<OwnStreamContributionsResponse>>(
+      queryKey,
+      (data) =>
+        data
+          ? {
+              pages: data.pages.slice(0, 1).map((page) => ({
+                ...page,
+                items: page.items.map((item) =>
+                  updateMember && item.id === accepted.contribution.id
+                    ? accepted.contribution
+                    : item,
+                ),
+              })),
+              pageParams: data.pageParams.slice(0, 1),
+            }
+          : data,
     );
     void client.invalidateQueries({ queryKey, exact: true });
     void client.invalidateQueries({ queryKey: matchKey, exact: true });
@@ -119,10 +147,26 @@ export function useOwnContributions(matchId: string) {
           ...(await request(undefined, true)),
           schema: OwnStreamContributionDetailResponse,
         }),
-      onSuccess: accept,
+      onSuccess: (accepted) => accept(accepted),
     },
     {
-      groupKey: contributionKeys.submit(actor, matchId),
+      groupKey: contributionKeys.ownCommands(actor, matchId),
+      requiresRead: requiresRevisionRead,
+    },
+  );
+
+  const change = useCommand(
+    {
+      mutationKey: contributionKeys.updateOwn(actor, matchId),
+      mutationFn: async ({ versionId, body }: OwnContributionChange) =>
+        updateOwnStreamContribution(actor.accountId, matchId, versionId, body, {
+          ...(await request(undefined, true)),
+          schema: OwnStreamContributionDetailResponse,
+        }),
+      onSuccess: (accepted) => accept(accepted, true),
+    },
+    {
+      groupKey: contributionKeys.ownCommands(actor, matchId),
       requiresRead: requiresRevisionRead,
     },
   );
@@ -144,6 +188,16 @@ export function useOwnContributions(matchId: string) {
   }
   /** Observes the current original collection once; never resends the user's address. */
   function reread() {
+    client.setQueryData<InfiniteData<OwnStreamContributionsResponse>>(
+      queryKey,
+      (data) =>
+        data
+          ? {
+              pages: data.pages.slice(0, 1),
+              pageParams: data.pageParams.slice(0, 1),
+            }
+          : data,
+    );
     return submit.reconcile(
       [queryKey],
       () => query.refetch(),
@@ -153,5 +207,5 @@ export function useOwnContributions(matchId: string) {
         !!result.data,
     );
   }
-  return { query, submit, session, profile, usable, refresh, reread };
+  return { query, submit, change, session, profile, usable, refresh, reread };
 }

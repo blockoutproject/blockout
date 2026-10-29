@@ -25,6 +25,7 @@ import {
   mockAuth0,
 } from "../../accounts/test-support/native-auth0";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+import { OwnContributionsScreen } from "../screens/own-contributions-screen";
 import { ContributionScreen } from "../screens/contribution-screen";
 import { matchDetail } from "../../sporting/test-support/consultation-data";
 import { ownContributions } from "../test-support/contribution-data";
@@ -376,4 +377,69 @@ it("keeps a reopened draft retained when the original detached submission acknow
   expect(
     await screen.findByDisplayValue("https://youtu.be/new-draft"),
   ).toBeOnTheScreen();
+});
+
+it("keeps a confirmed new version distinct from the last known history after its refresh fails", async () => {
+  // Given
+  const boundary = mockFetch.getMockImplementation();
+  if (!boundary) throw new Error("Missing test HTTP boundary");
+  let acknowledged = false;
+  let submissions = 0;
+  mockFetch.mockImplementation(async (url, init) => {
+    if (String(url).includes("/stream-contributions")) {
+      if (init?.method === "POST") {
+        submissions++;
+        acknowledged = true;
+        return boundary(url, init);
+      }
+      if (acknowledged) throw new TypeError("Controlled history read failure");
+      return Response.json(
+        ownContributions({
+          items: [
+            {
+              id: "00000000-0000-4000-8000-000000000004",
+              url: "https://youtu.be/previous",
+              platform: "youtube",
+              state: "active",
+              submittedAt: "2026-10-28T09:00:00Z",
+              canCancel: false,
+              canWithdraw: true,
+            },
+          ],
+        }),
+      );
+    }
+    return boundary(url, init);
+  });
+  const user = userEvent.setup();
+  await renderRouter(
+    {
+      _layout: Layout,
+      index: () => <OwnContributionsScreen matchId={match.match.id} />,
+      "matches/[matchId]/contribution": () => (
+        <ContributionScreen matchId={match.match.id} />
+      ),
+    },
+    { initialUrl: "/" },
+  );
+  await user.press(await screen.findByRole("button", { name: "Remplacer" }));
+  await user.type(
+    await screen.findByLabelText("Adresse du lien"),
+    "https://youtu.be/example",
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+
+  // Then
+  expect(
+    await screen.findByText("Dernier lien public connu"),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Votre lien public")).not.toBeOnTheScreen();
+  expect(
+    screen.getByText(/Les modifications déjà confirmées restent enregistrées/),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Retirer" })).toBeDisabled();
+  expect(submissions).toBe(1);
+  expect(Alert.alert).not.toHaveBeenCalled();
 });

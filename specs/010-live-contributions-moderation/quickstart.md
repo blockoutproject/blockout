@@ -106,6 +106,60 @@ evidence must identify the executed revision, platform and exact
 alone does not qualify native networking, provider behavior or screen-reader announcements.
 Full moderation/lifecycle and extended uncertain-response recovery retain their owning tasks.
 
+### Personal contribution lifecycle — T018–T022
+
+`OwnContributionLifecycleWebMvcTest` exercises the generated PATCH binding, strict commands,
+original-account scope, ordinary admission, conflicts and private response headers.
+`OwnContributionLifecycleIntegrationTest` executes the production command through HTTP with
+the migrated PostgreSQL mappings and actual F02/F05 owners. It covers active/pending coexistence,
+current-condition replacements after correction, refusals preserving both versions, exact-target
+terminal repetition, stale revisions before no-op, immutable address/quota participation and
+independent proposals/holds. A PostgreSQL-observed account-lock race verifies that withdrawal
+cannot rewrite a publication actor erased while the command waits. Existing private-read tests
+also traverse more than twenty moderator-created versions without consuming ordinary quota.
+Historical decision and account-removal fixtures establish these boundaries only; they do not
+qualify actual US5 commands or F05's complete erasure orchestration.
+
+`own-contribution-lifecycle.test.tsx` mounts the production screen and generated HTTP/Query
+boundary with controlled native credentials and responses. It covers French state explanations,
+exact confirmations, session departure, command exclusion, retained acknowledgements, current
+access refusal and native continuation beyond twenty historical moderator-created versions.
+The shared F13 continuation stops after error or outside active focus and exposes an explicit
+read retry. `contribution-navigation.test.tsx` also exercises the actual form-to-history routes:
+an acknowledged submission followed by a failed read keeps its success and labels retained
+public information as last known, without claiming a new aggregate revision or inferring another
+version's decision. These tests do not execute native networking or assistive technologies.
+
+Prepare the following scoped native scenarios on compatible iOS/Android development clients,
+using the production personal screen, generated client and Query owner. Supply more than twenty
+personal versions with historical moderator-created versions whose quota participation is false;
+keep ordinary active/pending submissions counted. Do not raise or bypass ordinary quotas to
+construct the history. Use fictional addresses and match/account identities.
+
+- Open personal history from the match with a retained active link and pending replacement.
+  Distinguish public-link withdrawal from proposal cancellation and replacement. Show French
+  explanations for rejected, cancelled, superseded, withdrawn and replaced history without
+  exposing another author's proposals or moderation details.
+- Dismiss each native confirmation and verify no command. Confirm cancellation of the pending
+  version, then withdrawal of the active version, checking the exact version and viewed revision
+  in each request. Confirmed changes leave consumed quota unchanged and do not promote a
+  proposal or remove an independent report hold.
+- Traverse beyond twenty versions, then refresh from page zero. Retain authorized content on
+  ordinary read failure, display the failed read separately, and preserve an acknowledged action
+  when its follow-up read fails. Observe a revision conflict and require a current read before a
+  further explicit command; do not replay the rejected write.
+- Open the existing replacement form, preserve its draft on refusal and cancel/back, and check
+  that the server's current eligibility determines the new version. An ownerless active version
+  grants no replacement or withdrawal ownership to the current account.
+- Inspect light/dark appearance, enlarged text, reachable final actions, native back/confirmation
+  behavior and accessible French labels/reasons. Record actual screen-reader observations
+  separately from semantics exposed in the native accessibility tree.
+
+These scenarios cover personal construction only. Actual moderation decisions and F05 erasure
+sequences remain with T023 and their owning US5/US6 tasks; complete cross-story native
+qualification remains T049/T056. A controlled HTTP peer proves rendering, generated transport
+and interaction, not backend SQL policy, provider behavior or new design approval.
+
 Scoped iOS/Android observations at `e9a6ece6`, including builds and controlled fixtures, are recorded in the [native contribution evidence](https://github.com/blockoutproject/blockout/pull/557#issuecomment-6475614201). Available-entry/form composition, keyboard/back, retained drafts, real refusal/explicit retry, acknowledgement and exact active public projection were observed. That run also reported cropped labels after live Android text enlargement and development navigation warnings; its missing screen-reader and minimum-OS evidence remains explicitly unqualified.
 
 The [integrated native evidence](https://github.com/blockoutproject/blockout/pull/562#issuecomment-6479911193) exercises production source `84e723e7` on compatible iOS 27.1 and Android API 37 development clients. iOS keyboard dismissal and cancelling the native discard confirmation preserve the exact draft; the captured future-match form is ineligible for ordinary submission and supplies no new acknowledgement proof. Android font enlargement recreates the Activity without changing the process, returns to the home route and yields a readable empty form on explicit reopening. This establishes neither retained-context cropping nor draft persistence across recreation, and does not erase the earlier failed observation. The real Stream link panel is exercised on both platforms; native external handoff and return are observed on Android. The iOS handoff remains unqualified. The compact contribution summary remains informational and has no navigation dependency. Real TalkBack 17.0 speech captions verify the link field name/hint and the empty-value validation alert on this source; no POST is issued. These two cases do not qualify complete reader traversal or VoiceOver.

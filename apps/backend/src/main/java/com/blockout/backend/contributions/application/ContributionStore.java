@@ -105,6 +105,18 @@ public interface ContributionStore {
       java.time.Instant now);
 
   /**
+   * Applies one accepted exact-version lifecycle decision without changing immutable version facts.
+   * The caller has checked ownership, state and revision under sporting/account locks.
+   *
+   * @param versionId exact existing target version
+   * @param state accepted terminal state
+   * @param decision useful action, instant and original actor attribution
+   * @return updated detached version; other versions and hold remain unchanged
+   */
+  ContributionVersion decide(
+      UUID versionId, ContributionVersion.State state, ContributionVersion.Decision decision);
+
+  /**
    * Advances the match revision exactly once; moderator selection also resolves the hold.
    *
    * @param matchId match already locked by the caller
