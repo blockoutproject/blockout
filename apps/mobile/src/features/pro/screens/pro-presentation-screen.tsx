@@ -27,7 +27,10 @@ export interface ProPresentationScreenProps {
   onSupport?: () => void;
 }
 
-/** Owns Pro admission/recovery; admitted provider content remains unwrapped and session-scoped. */
+/**
+ * Owns Pro admission/recovery with unwrapped, session-scoped provider content.
+ * Current native outcomes outlive route removal; its feedback and navigation do not.
+ */
 export function ProPresentationScreen({
   admitted,
   management = false,
@@ -157,14 +160,10 @@ export function ProPresentationScreen({
           )
         }
         onPurchaseCompleted={({ customerInfo }) => {
-          if (!isCurrentPresentation()) return;
-          if (closed.current) {
-            void refresh();
-            return;
-          }
-          if (paywallFinished.current) return;
+          if (paywallFinished.current || !isCurrentPresentation()) return;
           paywallFinished.current = true;
           void completeOperation("purchased", customerInfo);
+          if (closed.current) return;
           const completed = getState();
           if (
             completed.status === "active" &&
@@ -174,27 +173,18 @@ export function ProPresentationScreen({
           else setView("outcome");
         }}
         onPurchaseCancelled={() => {
-          if (
-            closed.current ||
-            paywallFinished.current ||
-            !isCurrentPresentation()
-          )
-            return;
+          if (paywallFinished.current || !isCurrentPresentation()) return;
           paywallFinished.current = true;
           void completeOperation("cancelled");
-          close();
+          if (!closed.current) close();
         }}
         onPurchaseError={({ error }) => {
-          if (
-            closed.current ||
-            paywallFinished.current ||
-            !isCurrentPresentation()
-          )
-            return;
+          if (paywallFinished.current || !isCurrentPresentation()) return;
           paywallFinished.current = true;
           const outcome = purchaseErrorOutcome(error.code);
-          if (outcome === "failed") feedback.error();
+          if (!closed.current && outcome === "failed") feedback.error();
           void completeOperation(outcome);
+          if (closed.current) return;
           if (outcome === "failed" || outcome === "cancelled") close();
           else setView("outcome");
         }}

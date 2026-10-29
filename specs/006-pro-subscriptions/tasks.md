@@ -213,6 +213,10 @@ description: "Implementation tasks for F09 Pro entitlements and subscription con
 
 ---
 
+## Phase 11: Current native outcomes after route removal
+
+- [ ] T047 Correct the existing provider host so a current-generation/current-UUID native purchase outcome completes the Pro operation once even after its route closes, while retired navigation, feedback and state updates remain suppressed. Reproduce purchased/cancelled/pending/failed late callbacks with the real Pro owner, preserve stale-session and duplicate guards, and verify reopening reflects the known outcome under A13–A15 and FR-006/FR-014/FR-015. Remove the unused origin `opening` option after immediate destination navigation. Record controlled-callback evidence and its separate native/store limits in `quickstart.md`; this does not complete T026/T027/T042.
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

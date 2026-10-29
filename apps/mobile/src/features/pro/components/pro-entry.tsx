@@ -10,29 +10,21 @@ import { usePro } from "../pro-provider";
 /** Profile command supplied by the native host owner; guests always take the ordinary F05 invitation. */
 export interface ProEntryProps {
   onOpenPresentation: () => void;
-  /** The caller may disable an in-flight navigation action; SDK reads belong to the destination. */
-  opening?: boolean;
 }
 
 /** Profile action only; native offering selection, entitlement presentation and operations remain T025-owned. */
-export function ProEntry({
-  onOpenPresentation,
-  opening = false,
-}: ProEntryProps) {
+export function ProEntry({ onOpenPresentation }: ProEntryProps) {
   const account = useAccountSession();
   const router = useRouter();
   const session = account.getSnapshot();
   const guest = account.status === "guest";
   const available =
-    !opening &&
-    (guest ||
-      (account.status === "authenticated" && session.accountId !== null));
+    guest || (account.status === "authenticated" && session.accountId !== null);
 
   return (
     <EntryRow
       label="Blockout Pro"
-      loading={opening}
-      disabled={!available && !opening}
+      disabled={!available}
       icon={
         <Image
           accessible={false}
