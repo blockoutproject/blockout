@@ -1199,6 +1199,74 @@ it.each([
   },
 );
 
+it.each([200, 403, 503])(
+  "removes refresh from an accepted empty division selector after account response %s blocks its authority",
+  async (accountStatus) => {
+    // Given
+    stored.setting = classification;
+    mockFetch.mockImplementation((url, options) =>
+      String(url).includes("/divisions?")
+        ? Promise.resolve(json({ items: [] }))
+        : respond(url, options),
+    );
+    const user = userEvent.setup();
+    await renderEditor();
+    await user.press(await screen.findByRole("button", { name: "Format" }));
+    await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+    await screen.findByRole("button", { name: "Format" });
+    await user.press(screen.getByRole("button", { name: "Division" }));
+    await screen.findByRole("header", { name: "Aucune division active" });
+    expect(screen.getByLabelText("Actualiser les données")).toBeOnTheScreen();
+
+    // When
+    permissions = {};
+    mockFetch.mockImplementation((url, options) =>
+      String(url).endsWith("/accounts/me") && accountStatus !== 200
+        ? Promise.resolve(
+            json(
+              { title: "Unavailable", status: accountStatus },
+              accountStatus,
+            ),
+          )
+        : String(url).includes("/divisions?")
+          ? Promise.resolve(json({ items: [] }))
+          : respond(url, options),
+    );
+    await act(async () =>
+      client.refetchQueries({
+        predicate: ({ queryKey }) => queryKey.includes("/accounts/me"),
+      }),
+    );
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+    expect(
+      screen.queryByRole("header", { name: "Aucune division active" }),
+    ).toBeNull();
+    expect(screen.queryAllByRole("button", { name: "Réessayer" })).toHaveLength(
+      accountStatus === 200 ? 0 : 1,
+    );
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Format" }),
+    ).toHaveAccessibilityValue({ text: "4 × 4" });
+    expect(screen.getByRole("button", { name: "Format" })).toBeDisabled();
+    expect(
+      screen.getByText("Modifications non enregistrées"),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.every(([, options]) => options?.method === "GET"),
+    ).toBe(true);
+  },
+);
+
 it("retains an empty division selector and reports an ordinary refresh failure through a toast", async () => {
   // Given
   stored.setting = classification;

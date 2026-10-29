@@ -97,6 +97,7 @@ function Selection({
       refreshControl={
         field === "divisionId" &&
         catalog &&
+        (divisions.authority.enabled || choices.length > 0) &&
         divisions.authority.sessionStatus === "authenticated" ? (
           <DataRefreshControl
             refreshing={

@@ -1473,6 +1473,7 @@ it("preserves an edited source URL when pull-to-refresh reads a newer source rev
 
 it("hides retained source groups when the current catalog read is refused", async () => {
   // Given
+  const user = userEvent.setup();
   mockFetch.mockImplementation((url) =>
     String(url).includes("/children")
       ? Promise.resolve(
@@ -1508,17 +1509,36 @@ it("hides retained source groups when the current catalog read is refused", asyn
   expect(screen.queryByText("Groupe retenu")).not.toBeOnTheScreen();
   expect(screen.queryByText("Aucun groupe découvert")).not.toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
-  mockFetch.mockImplementation((url) =>
-    String(url).includes("/children")
-      ? Promise.resolve(refused(503))
-      : reads(url),
-  );
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+
   // When
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  mockFetch
+    .mockClear()
+    .mockImplementation((url) =>
+      String(url).includes("/children")
+        ? Promise.resolve(refused(503))
+        : reads(url),
+    );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
   // Then
+  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+  expect(
+    await screen.findByRole("button", { name: "Réessayer", busy: false }),
+  ).toBeEnabled();
   expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
   expect(screen.queryByText("Groupe retenu")).not.toBeOnTheScreen();
   expect(screen.queryByText("Aucun groupe découvert")).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+
+  // When
+  mockFetch.mockClear().mockImplementation(reads);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText("Aucun groupe découvert")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
 });
 
 it("explains missing collection permission without leaving a disabled catalog in loading", async () => {
