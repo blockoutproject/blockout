@@ -271,6 +271,8 @@ The subsequent 2026-10-29 Account clarification supplies A29/A30 and FR-040. It 
 | protection and restoration                                                   | FR-022–FR-028                                | A14–A18          | E01, E04, E06                                                                   |
 | Shared quality: native design, appearance, accessibility and degraded states | FR-008, FR-016, FR-029–FR-031, FR-033–FR-035 | A19–A21, A23–A24 | E05; mobile foundation; [native UI plan](plan.md#native-ui-and-approved-design) |
 | Repeated interactions, native refresh and screen states                      | FR-036–FR-039                                | A25–A28          | [shared conventions](plan.md#repeated-interaction-conventions)                  |
+| Complete Account states, basic lists and contextual sheets                   | FR-038, FR-040                               | A29–A30          | [Account composition](plan.md#account-state-and-basic-list-reconciliation)      |
+| Native Home retreat, fitting feedback, pager and blocking retry              | FR-030, FR-036, FR-038–FR-039                | A31–A34          | [native paging composition](plan.md#native-paging-and-scroll-composition)       |
 | Club-logo continuity: commitment handed to F14                               | FR-024, FR-032                               | A22              | E01, E06; F02 FR-002, FR-043, FR-046                                            |
 
 ## Cross-feature dependencies

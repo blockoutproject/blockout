@@ -212,3 +212,11 @@ Using Jest Expo/React Native Testing Library and native device checks where appl
 - Verify guest invitation without automatic follow after sign-in, accessible busy/selected states without colour alone, and unchanged advertising triggers.
 
 Use the approved Home/Sport references linked from [the plan](plan.md). A mock test or visual match does not establish native networking, accessibility or integrated generation correctness.
+
+### Shared season and native Home presentation follow-ups
+
+At `1a5163d8`, Home's existing personal-season owner is shared only by its Home/season routes; the contextual sheet uses the shared basic radio rows and intrinsic presenter. [F13 Phase 18](../003-shared-quality/quickstart.md#complete-account-and-direct-operational-entries--phase-18) records short-content fitting, native selection/dismissal and Android compact/enlarged-text overflow. Its [representation evidence](../003-shared-quality/quickstart.md#account-readiness-basic-lists-and-contextual-sheets) identifies the current Figma season composition and prototype `8a08c71e`; Club's earlier selector remains unchanged.
+
+The separate [native-only Home brand follow-up](../003-shared-quality/quickstart.md#native-home-brand-retreat--a31) at `0f23092e` qualifies collapse-driven fading, transparent retreat, sticky controls and restoration on Android/Duo. Its matches fixture returned 404, so it establishes chrome over the existing Error state rather than a successful personal feed. Neither follow-up changes follow commands, Query/session ownership, scheduling or the outstanding integrated qualifications above.
+
+The later native-only [A32/A33](../003-shared-quality/quickstart.md#native-fitting-state-scrolling-and-home-pager--a32a33) and [A34](../003-shared-quality/quickstart.md#native-blocking-error-recovery--a34) qualify fitting feedback, Home's shared stock pager bar and Retry-only blocking errors on both clients. Error dragging causes no request; its Retry makes one calendar attempt plus the existing season-options revalidation after 404. Earlier A31 Error-scroll footage is historical and superseded for that gesture. These presentation corrections establish no successful feed or additional F06 business acceptance.

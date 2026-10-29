@@ -69,3 +69,7 @@ The [accepted iOS live Dynamic Type limitation](../003-shared-quality/quickstart
 Record actual platform/build, tested scenario and outcome in the normal delivery evidence. Keep receipts, customer IDs and diagnostics private. Test Store, mocked callbacks or one successful purchase do not establish native lifecycle, complete continuity or store approval.
 
 Unavailable evidence remains a release qualification, not a passing test. Resolve a failed required native behavior before release; do not add a custom recovery system as an unreviewed workaround.
+
+## Account destination follow-up
+
+The [Phase 18 native evidence](../003-shared-quality/quickstart.md#complete-account-and-direct-operational-entries--phase-18) records the Android Pro destination on `6da44c1`, unchanged in final `1a5163d`: its own unavailable read/retry state and the blank contextual support form were opened, then left without sending. RevenueCat keys are deliberately absent from the fictional qualification runtime. This is an observed app-owned error/support boundary, not a Paywall/Customer Center, offering, purchase, restore, entitlement or provider-accessibility qualification; T026/T027/T042 retain their own prerequisites and limits.
