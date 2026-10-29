@@ -255,7 +255,7 @@ it("offers no fictional stream opening when the current match has no link", asyn
   // Then: the distinct contribution action does not become a fictional viewing destination.
   expect(screen.queryByRole("link", { name: "Ouvrir le lien" })).toBeNull();
   expect(
-    await screen.findByRole("button", { name: "Stream link" }),
+    await screen.findByRole("button", { name: "Gérer mes propositions" }),
   ).toBeOnTheScreen();
   expect(open).not.toHaveBeenCalled();
 });

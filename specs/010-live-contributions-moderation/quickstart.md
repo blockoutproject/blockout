@@ -145,6 +145,12 @@ an acknowledged submission followed by a failed read keeps its success and label
 public information as last known, without claiming a new aggregate revision or inferring another
 version's decision. These tests do not execute native networking or assistive technologies.
 
+The current match entry uses a rightmost ellipsis in the Stream link card header. Check the
+authorized card with a public URL, pending-only versions and an eligible empty collection;
+the latter two retain the concise absent-link text. Authenticated entry opens personal
+management, including zero, while guests retain the F05 invitation and no deferred command.
+No standalone personal-management button is present.
+
 Prepare the following scoped native scenarios on compatible iOS/Android development clients,
 using the production personal screen, generated client and Query owner. Supply more than twenty
 personal versions with historical moderator-created versions whose quota participation is false;
@@ -188,11 +194,22 @@ Android explicitly reopens the route after Activity recreation. Confirmed cancel
 only the pending version and retains the active version, total and consumed usage. Android
 withdrawal separately targets only the active version and retains its pending replacement,
 total and consumed usage. The Android
-public match entry opens the personal route for an ordinary contributor. The public navigation
+public match entry opens the personal route for an ordinary contributor. That captured entry
+placement predates the header-ellipsis direction in the [current plan](plan.md#design-reconciliation-and-evidence)
+and does not qualify its revised placement. The public navigation
 fixture has an inert F11 context; no provider initialization or external handoff is qualified.
 Development tools remain visible, and an existing Android linking warning after recreation was
 dismissed before interaction. No screen-reader, minimum-OS/narrow-device matrix, provider or
 global native/design acceptance follows from these observations.
+
+The subsequent header-entry observations in the [current PR evidence](https://github.com/blockoutproject/blockout/pull/575)
+qualify the revised placement on both existing clients. The Stream link card has a rightmost
+three-dot action and no standalone personal-management button. Android opens the personal
+collection from a published link and from a pending-only collection with no public URL and
+new submission refused. iOS opens the published collection and reaches “Mes propositions (0)”
+through the same header entry with an eligible empty collection. These navigations produce no
+POST/PATCH. The earlier rows/themes/text-size proofs remain version-scoped; these normal-text
+entry observations add no screen-reader or expanded runtime-matrix qualification.
 
 T018–T022 construction is complete with the targeted PostgreSQL/HTTP proofs, generated-client
 mobile tests and scoped native observations above. T023, T049/T056 and US5/US6 retain the actual

@@ -34,6 +34,9 @@ import { MatchScreen } from "../../sporting/screens/match-screen";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import * as proSessionModule from "../../pro/pro-session";
 import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
+import SignInInvitationRoute from "../../../app/(ordinary)/sign-in-invitation";
+import { AccountAdmissionProvider } from "../../accounts/components/account-admission";
+import { useOrdinaryRequest } from "../../access/ordinary-request";
 
 jest.mock("@sentry/react-native", () => ({
   init: jest.fn(),
@@ -138,6 +141,182 @@ function Layout() {
   );
 }
 
+/** Supplies the real F12 ordinary admission to the production F05 route, as the application root does. */
+function InvitationRoute() {
+  const admission = useOrdinaryRequest();
+  return (
+    <AccountAdmissionProvider admitted={admission.admitted}>
+      <SignInInvitationRoute />
+    </AccountAdmissionProvider>
+  );
+}
+
+it.each([
+  { name: "first submission", state: undefined, canSubmit: true },
+  { name: "pending proposal", state: "pending", canSubmit: false },
+  { name: "terminal proposal", state: "rejected", canSubmit: false },
+  { name: "published proposal", state: "active", canSubmit: false },
+] as const)(
+  "opens personal proposals directly from the Stream link header for $name",
+  async ({ state, canSubmit }) => {
+    // Given
+    jest.replaceProperty(
+      proSessionModule,
+      "proSession",
+      proSessionModule.createProSession(),
+    );
+    prepareProNativeIO();
+    const boundary = mockFetch.getMockImplementation();
+    if (!boundary) throw new Error("Missing test HTTP boundary");
+    const versionId = "00000000-0000-4000-8000-000000000004";
+    mockFetch.mockImplementation((url, init) => {
+      const path = new URL(String(url)).pathname;
+      if (path === `/matches/${match.match.id}`)
+        return Promise.resolve(
+          Response.json({
+            ...match,
+            ...(state === "active"
+              ? {
+                  streamUrl: "https://youtu.be/personal",
+                  streamContributionId: versionId,
+                }
+              : {}),
+          }),
+        );
+      if (path.includes("/stream-contributions"))
+        return Promise.resolve(
+          Response.json(
+            ownContributions({
+              proposalCount: state ? 1 : 0,
+              eligibility: { canSubmit, requiresApproval: false },
+              items: state
+                ? [
+                    {
+                      id: versionId,
+                      url: "https://youtu.be/personal",
+                      platform: "youtube",
+                      state,
+                      submittedAt: "2026-10-28T09:00:00Z",
+                      canCancel: state === "pending",
+                      canWithdraw: state === "active",
+                    },
+                  ]
+                : [],
+            }),
+          ),
+        );
+      return boundary(url, init);
+    });
+    const user = userEvent.setup();
+    await renderRouter(
+      {
+        _layout: Layout,
+        index: () => (
+          <AdvertisingProviders>
+            <MatchScreen matchId={match.match.id} />
+          </AdvertisingProviders>
+        ),
+        "matches/[matchId]/contributions": () => (
+          <OwnContributionsScreen matchId={match.match.id} />
+        ),
+        "matches/[matchId]/contribution": () => (
+          <ContributionScreen matchId={match.match.id} />
+        ),
+      },
+      { initialUrl: "/" },
+    );
+    const manage = await screen.findByRole("button", {
+      name: "Gérer mes propositions",
+    });
+    expect(
+      screen.getByRole("header", { name: "Stream link" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText("Mes contributions")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Gérer mes propositions")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Stream link" }),
+    ).not.toBeOnTheScreen();
+    if (state !== "active")
+      expect(
+        screen.getByText("Aucun lien disponible pour ce match."),
+      ).toBeOnTheScreen();
+
+    // When
+    await user.press(manage);
+
+    // Then
+    expect(
+      await screen.findByRole("header", {
+        name: `Mes propositions (${state ? 1 : 0})`,
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByLabelText("Adresse du lien")).not.toBeOnTheScreen();
+    expect(Alert.alert).not.toHaveBeenCalled();
+
+    if (!state) {
+      // When: adding the first version remains an explicit action from the personal screen.
+      await user.press(
+        screen.getByRole("button", { name: "Proposer un nouveau lien" }),
+      );
+
+      // Then
+      expect(await screen.findByLabelText("Adresse du lien")).toBeOnTheScreen();
+    }
+    expect(
+      mockFetch.mock.calls.some(
+        ([, init]) => init?.method === "POST" || init?.method === "PATCH",
+      ),
+    ).toBe(false);
+  },
+);
+
+it("opens the existing guest invitation from an empty Stream link card without retaining a command", async () => {
+  // Given
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
+  prepareProNativeIO();
+  mockAuth0.hasValidCredentials.mockResolvedValue(false);
+  const user = userEvent.setup();
+  await renderRouter(
+    {
+      _layout: Layout,
+      index: () => (
+        <AdvertisingProviders>
+          <MatchScreen matchId={match.match.id} />
+        </AdvertisingProviders>
+      ),
+      "sign-in-invitation": InvitationRoute,
+    },
+    { initialUrl: "/" },
+  );
+  const manage = await screen.findByRole("button", {
+    name: "Gérer mes propositions",
+  });
+  expect(
+    screen.getByText("Aucun lien disponible pour ce match."),
+  ).toBeOnTheScreen();
+
+  // When
+  await user.press(manage);
+
+  // Then
+  expect(
+    await screen.findByText("Connectez-vous pour proposer un Stream link"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Se connecter" }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([url]) =>
+      String(url).includes("/stream-contributions"),
+    ),
+  ).toBe(false);
+  expect(Alert.alert).not.toHaveBeenCalled();
+});
+
 it("keeps history revoked when a refused match opens it before technical mount reads fail", async () => {
   // Given: the real match screen keeps its F08 observer mounted after public data is refused.
   jest.replaceProperty(
@@ -194,7 +373,7 @@ it("keeps history revoked when a refused match opens it before technical mount r
     },
     { initialUrl: "/" },
   );
-  await screen.findByRole("button", { name: "Mes contributions" });
+  await screen.findByRole("button", { name: "Gérer mes propositions" });
 
   // When: a foreground public read refuses the match before the history route is opened.
   phase = "refused";

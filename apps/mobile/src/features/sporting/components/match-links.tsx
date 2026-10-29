@@ -1,4 +1,5 @@
 import { Globe, Play } from "lucide-react-native";
+import type { ReactNode } from "react";
 import { useNavigation } from "expo-router";
 import { Linking, StyleSheet, Text, View } from "react-native";
 import type { MatchDetailResponse } from "../../../../.generated/schemas/index.zod";
@@ -11,26 +12,48 @@ import { safeWebsite } from "./contact-link";
 import { MatchSurface } from "./match-surface";
 import { divisionTextColor } from "../presentation";
 
-/** Current public match projection; a contributed address retains its exact published version. */
+/** Current public match projection and optional owner-supplied header action; published addresses retain their exact version. */
 export interface MatchLinksProps {
   detail: MatchDetailResponse;
+  /** Supply only an available action; it keeps the empty Stream link card reachable without inventing a destination. */
+  action?: ReactNode;
 }
 
-/** Offers only an available HTTP(S) destination, without inferring live status or a replay. */
-export function MatchLinks({ detail }: MatchLinksProps) {
+/** Offers an available HTTP(S) destination or an explicit empty card with the supplied action, without inferring live status or replay. */
+export function MatchLinks({ detail, action }: MatchLinksProps) {
+  const { colors } = useTheme();
   const url = safeWebsite(detail.streamUrl);
-  if (!url) return null;
+  if (!url && !action) return null;
   const target = `${detail.match.id}:${detail.streamContributionId ?? "professional"}:${url}`;
   return (
     <MatchSurface division={detail.match.pool.classification.division}>
-      <StreamLink key={target} url={url} target={target} detail={detail} />
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Text
+            accessibilityRole="header"
+            style={[styles.title, { color: colors.text }]}
+          >
+            Stream link
+          </Text>
+          {action}
+        </View>
+        {url ? (
+          <StreamLink key={target} url={url} target={target} detail={detail} />
+        ) : (
+          <Text
+            style={[tokens.typography.body, { color: colors.secondaryText }]}
+          >
+            Aucun lien disponible pour ce match.
+          </Text>
+        )}
+      </View>
     </MatchSurface>
   );
 }
 
 /**
  * Projects Media Access 576:8861 with the shared primary action and F03's neutral Stream link name.
- * Changing URL/version retires the previous native handoff and its feedback; F08 owns reporting.
+ * Changing URL/version retires the previous native handoff and its feedback; header actions keep their own feature ownership.
  */
 function StreamLink({
   url,
@@ -60,13 +83,7 @@ function StreamLink({
   }
 
   return (
-    <View style={styles.content}>
-      <Text
-        accessibilityRole="header"
-        style={[tokens.typography.heading, { color: colors.text }]}
-      >
-        Stream link
-      </Text>
+    <View style={styles.destination}>
       <View style={styles.source}>
         <Globe
           accessible={false}
@@ -100,6 +117,13 @@ const styles = StyleSheet.create({
     padding: tokens.spacing.lg,
     gap: tokens.spacing.md,
   },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.md,
+  },
+  title: { ...tokens.typography.heading, flex: 1, minWidth: 0 },
+  destination: { gap: tokens.spacing.md },
   source: {
     flexDirection: "row",
     alignItems: "center",

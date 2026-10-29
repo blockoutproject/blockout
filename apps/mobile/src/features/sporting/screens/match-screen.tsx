@@ -126,14 +126,15 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
                       }
                       displayTimeZone={presentation.timeZone}
                     />
-                    <MatchContributionAction
-                      entry={contribution}
-                      contextColor={
-                        data.match.pool.classification.division?.color
+                    <MatchSetScores match={data.match} sets={data.sets} />
+                    <MatchLinks
+                      detail={data}
+                      action={
+                        contribution.visible ? (
+                          <MatchContributionAction entry={contribution} />
+                        ) : undefined
                       }
                     />
-                    <MatchSetScores match={data.match} sets={data.sets} />
-                    <MatchLinks detail={data} />
                     <MatchInformation
                       detail={data}
                       displayTimeZone={presentation.timeZone}

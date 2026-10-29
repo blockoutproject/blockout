@@ -1,12 +1,13 @@
 import { useRouter } from "expo-router";
-import { Plus } from "lucide-react-native";
-import { Button } from "../../../shared/components/button";
+import { Ellipsis } from "lucide-react-native";
+import { IconButton } from "../../../shared/components/icon-button";
+import { useTheme } from "../../../shared/theme/theme-provider";
+import { tokens } from "../../../shared/theme/tokens";
 import { useOwnContributionsRead } from "../api/own-contributions";
 
-/** Public match entry offers personal history independently of eligibility for a new submission. */
+/** Stream card header entry opens personal proposals independently of eligibility for a new submission. */
 export interface ContributionEntryProps {
   entry: ReturnType<typeof useContributionEntry>;
-  contextColor?: string;
 }
 
 /** Supplies the entry and its current read to the match's existing refresh composition. */
@@ -16,15 +17,14 @@ export function useContributionEntry(matchId: string, available = true) {
     matchId,
     available,
   );
-  const hasHistory = usable && !!query.data?.pages[0]?.items.length;
+  const hasProposals = usable && (query.data?.pages[0]?.proposalCount ?? 0) > 0;
   return {
-    hasHistory,
     visible:
       available &&
       (session.status === "guest" ||
         (usable &&
           !query.isError &&
-          (hasHistory ||
+          (hasProposals ||
             query.data?.pages[0]?.eligibility.canSubmit === true))),
     refreshing: query.isRefetching || profile.isRefetching,
     /** Reobserves the existing owner on match refresh; a recovered profile enables its dependent query. */
@@ -44,34 +44,24 @@ export function useContributionEntry(matchId: string, available = true) {
         });
       else
         router.push({
-          pathname: hasHistory
-            ? "/matches/[matchId]/contributions"
-            : "/matches/[matchId]/contribution",
+          pathname: "/matches/[matchId]/contributions",
           params: { matchId },
         });
     },
   };
 }
 
-/** Presents available history or submission using the shared sporting button. */
-export function ContributionEntry({
-  entry,
-  contextColor,
-}: ContributionEntryProps) {
+/** The named native icon opens one owner screen directly, including its empty state; it starts no deferred command. */
+export function ContributionEntry({ entry }: ContributionEntryProps) {
+  const { colors } = useTheme();
   if (!entry.visible) return null;
   return (
-    <Button
-      label={entry.hasHistory ? "Mes contributions" : "Stream link"}
-      accessibilityHint={
-        entry.hasHistory
-          ? "Consulter vos versions et leurs actions pour ce match"
-          : "Proposer une adresse de diffusion pour ce match"
-      }
-      leadingIcon={Plus}
-      variant="inverse"
-      size="compact"
-      contextColor={contextColor}
-      onPress={entry.open}
-    />
+    <IconButton label="Gérer mes propositions" onPress={entry.open}>
+      <Ellipsis
+        accessible={false}
+        size={tokens.size.icon.lg}
+        color={colors.icon}
+      />
+    </IconButton>
   );
 }

@@ -160,7 +160,7 @@ it.each(["refused", "owner outage", "profile outage"])(
     );
     await waitFor(() => expect(client.isFetching()).toBe(0));
     expect(
-      screen.queryByRole("button", { name: "Stream link" }),
+      screen.queryByRole("button", { name: "Gérer mes propositions" }),
     ).not.toBeOnTheScreen();
     // When: time-dependent eligibility changes and the user refreshes the match itself.
     recovering = true;
@@ -168,7 +168,7 @@ it.each(["refused", "owner outage", "profile outage"])(
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
     // Then: the same entry becomes usable without remount, polling or a separate permission flow.
     expect(
-      await screen.findByRole("button", { name: "Stream link" }),
+      await screen.findByRole("button", { name: "Gérer mes propositions" }),
     ).toBeOnTheScreen();
   },
 );
@@ -182,6 +182,64 @@ afterEach(async () => {
   process.env = { ...previous };
   jest.restoreAllMocks();
 });
+
+it.each([false, true])(
+  "keeps only an available public Stream link card when personal access is unavailable and URL=%s",
+  async (published) => {
+    // Given
+    context = ownContributions({
+      eligibility: { canSubmit: false, requiresApproval: false },
+    });
+    const boundary = mockFetch.getMockImplementation();
+    if (!boundary) throw new Error("Missing test HTTP boundary");
+    const detail = matchDetail();
+    mockFetch.mockImplementation((url, init) => {
+      if (new URL(String(url)).pathname === `/matches/${detail.match.id}`)
+        return Promise.resolve(
+          Response.json({
+            ...detail,
+            ...(published
+              ? { streamUrl: "https://video.example.invalid/live" }
+              : {}),
+          }),
+        );
+      return boundary(url, init);
+    });
+
+    // When
+    await render(
+      <QueryClientProvider client={client}>
+        <ThemeProvider>
+          <ApplicationAccessProvider>
+            <AccountSessionProvider>
+              <AccountFeedbackProvider>
+                <AdvertisingProviders>
+                  <MatchScreen matchId={detail.match.id} />
+                </AdvertisingProviders>
+              </AccountFeedbackProvider>
+            </AccountSessionProvider>
+          </ApplicationAccessProvider>
+        </ThemeProvider>
+      </QueryClientProvider>,
+    );
+    await screen.findByText("Home");
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+
+    // Then
+    expect(!!screen.queryByRole("header", { name: "Stream link" })).toBe(
+      published,
+    );
+    expect(!!screen.queryByRole("link", { name: "Ouvrir le lien" })).toBe(
+      published,
+    );
+    expect(
+      screen.queryByRole("button", { name: "Gérer mes propositions" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByText("Aucun lien disponible pour ce match."),
+    ).not.toBeOnTheScreen();
+  },
+);
 
 it.each([true, false])(
   "opens only a neutral native entry for authenticated=%s",
@@ -202,13 +260,13 @@ it.each([true, false])(
     );
     // When
     await user.press(
-      await screen.findByRole("button", { name: "Stream link" }),
+      await screen.findByRole("button", { name: "Gérer mes propositions" }),
     );
     // Then
     expect(mockPush).toHaveBeenCalledWith(
       authenticated
         ? {
-            pathname: "/matches/[matchId]/contribution",
+            pathname: "/matches/[matchId]/contributions",
             params: { matchId: "00000000-0000-4000-8000-000000000002" },
           }
         : {
@@ -261,7 +319,7 @@ it.each([
   await waitFor(() => expect(client.isFetching()).toBe(0));
   // Then: there is no disabled action, refusal copy, or navigation to an unusable form.
   expect(
-    screen.queryByRole("button", { name: "Stream link" }),
+    screen.queryByRole("button", { name: "Gérer mes propositions" }),
   ).not.toBeOnTheScreen();
   expect(screen.queryByText(reason)).not.toBeOnTheScreen();
   expect(mockPush).not.toHaveBeenCalled();
@@ -299,7 +357,7 @@ it("keeps personal history reachable when new submissions are unavailable", asyn
 
   // When
   await user.press(
-    await screen.findByRole("button", { name: "Mes contributions" }),
+    await screen.findByRole("button", { name: "Gérer mes propositions" }),
   );
 
   // Then
