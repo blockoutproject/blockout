@@ -207,25 +207,30 @@ function ParticipantMap({
   /** Uses supported native framing; a lone municipality never starts at building-level zoom. */
   const fit = useCallback(() => {
     if (!cameraAvailable || !map.current || !points.length) return;
-    if (points.length === 1) {
-      map.current.animateToRegion(
-        { ...points[0].coordinate, latitudeDelta: 0.15, longitudeDelta: 0.15 },
-        0,
-      );
-    } else {
-      map.current.fitToCoordinates(
-        points.map((group) => group.coordinate),
-        {
-          edgePadding: {
-            top: 100,
-            right: 64,
-            bottom: selectionVisible ? selectionHeight + 48 : 64,
-            left: 40,
-          },
-          animated: false,
-        },
-      );
-    }
+    const coordinate = points[0].coordinate;
+    // A lone marker keeps a municipal viewport envelope; these camera bounds create no markers.
+    const viewport =
+      points.length === 1
+        ? [
+            {
+              latitude: Math.min(90, coordinate.latitude + 0.075),
+              longitude: Math.min(180, coordinate.longitude + 0.075),
+            },
+            {
+              latitude: Math.max(-90, coordinate.latitude - 0.075),
+              longitude: Math.max(-180, coordinate.longitude - 0.075),
+            },
+          ]
+        : points.map((group) => group.coordinate);
+    map.current.fitToCoordinates(viewport, {
+      edgePadding: {
+        top: 100,
+        right: 64,
+        bottom: selectionVisible ? selectionHeight + 48 : 64,
+        left: 40,
+      },
+      animated: false,
+    });
   }, [cameraAvailable, points, selectionHeight, selectionVisible]);
   // Readiness and layout may arrive in either order; neither is proof of loaded tiles.
   useEffect(() => {
@@ -379,6 +384,7 @@ function ParticipantMap({
       {selected && point && (
         <View
           style={[styles.selection, { backgroundColor: colors.surface }]}
+          testID="pool-map-selection"
           onLayout={({ nativeEvent }) =>
             setSelectionHeight(nativeEvent.layout.height)
           }

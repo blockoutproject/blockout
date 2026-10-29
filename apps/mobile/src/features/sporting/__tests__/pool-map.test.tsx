@@ -541,10 +541,7 @@ it.each([
     await open();
     // The controlled native boundary has no semantic action for its lifecycle callbacks.
     const nativeMap = await screen.findByTestId("native-map-boundary");
-    const frame =
-      count === 1
-        ? nativeMapCommands.animateToRegion
-        : nativeMapCommands.fitToCoordinates;
+    const frame = nativeMapCommands.fitToCoordinates;
     await fireEvent(nativeMap, "layout", {
       nativeEvent: { layout: { x: 0, y: 0, width: 0, height: 0 } },
     });
@@ -576,3 +573,44 @@ it.each([
     ).toBeEnabled();
   },
 );
+
+it("keeps municipal framing above a measured enlarged selection for one coincident point", async () => {
+  // Given
+  const location = { latitude: 0, longitude: 0, label: "Test city" };
+  participants.items = [
+    participant(sportingId, "Rives", location),
+    participant(secondTeamId, "Marais", location),
+  ];
+  await open();
+  const nativeMap = await screen.findByTestId("native-map-boundary");
+  await fireEvent(nativeMap, "layout", {
+    nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 583 } },
+  });
+  await fireEvent(nativeMap, "mapReady");
+  await fireEvent(
+    screen.getByRole("button", { name: "Test city: Rives, Marais" }),
+    "press",
+    { stopPropagation: jest.fn() },
+  );
+  nativeMapCommands.fitToCoordinates.mockClear();
+
+  // When
+  await fireEvent(screen.getByTestId("pool-map-selection"), "layout", {
+    nativeEvent: { layout: { x: 0, y: 0, width: 346, height: 350 } },
+  });
+
+  // Then
+  expect(nativeMapCommands.fitToCoordinates).toHaveBeenCalled();
+  const [viewport, options] =
+    nativeMapCommands.fitToCoordinates.mock.calls.at(-1)!;
+  expect(viewport).toEqual([
+    { latitude: 0.075, longitude: 0.075 },
+    { latitude: -0.075, longitude: -0.075 },
+  ]);
+  expect(options.edgePadding.bottom).toBeGreaterThan(350);
+  expect(
+    screen.getByRole("button", { name: "Test city: Rives, Marais" }).props
+      .coordinate,
+  ).toEqual({ latitude: 0, longitude: 0 });
+  expect(screen.getByRole("radio", { name: "Marais" })).toBeOnTheScreen();
+});

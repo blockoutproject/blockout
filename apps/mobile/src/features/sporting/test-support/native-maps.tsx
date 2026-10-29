@@ -5,7 +5,6 @@ import type { MapViewProps, MapMarkerProps } from "react-native-maps";
 /** Controlled native commands; fixture suites do not reproduce camera geometry or provider tile rendering. */
 export const nativeMapCommands = {
   fitToCoordinates: jest.fn(),
-  animateToRegion: jest.fn(),
   animateCamera: jest.fn(),
   setCamera: jest.fn(),
   getCamera: jest.fn().mockResolvedValue({ altitude: 10000, zoom: 8 }),
