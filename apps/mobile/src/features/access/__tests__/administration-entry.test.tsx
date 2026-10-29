@@ -193,6 +193,9 @@ it.each([
     expect(
       screen.queryByRole("link", { name: "Collectes" }),
     ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Divisions" }),
+    ).not.toBeOnTheScreen();
   },
 );
 
@@ -219,6 +222,9 @@ it.each([
       await screen.findByRole("link", { name: "Administration technique" }),
     ).toBeOnTheScreen();
     expect(await screen.findByRole("link", { name: label })).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Divisions" }),
+    ).not.toBeOnTheScreen();
     for (const other of [
       "Maintenance",
       "Versions minimales",
@@ -307,7 +313,13 @@ it("removes a revoked command independently while retaining another current gran
 it("hides retained capabilities after a refused account refresh behind an opaque read card", async () => {
   // Given
   mockFetch.mockImplementation(async () =>
-    json({ ...account, permissions: { manageMaintenance: true } }),
+    json({
+      ...account,
+      permissions: {
+        manageMaintenance: true,
+        manageSportingClassification: true,
+      },
+    }),
   );
   const user = userEvent.setup();
   await renderAdministration(
@@ -336,6 +348,7 @@ it("hides retained capabilities after a refused account refresh behind an opaque
   expect(
     screen.queryByRole("link", { name: "Administration technique" }),
   ).not.toBeOnTheScreen();
+  expect(screen.queryAllByRole("link", { name: "Divisions" })).toHaveLength(0);
 });
 
 it("discards an account response completed after the F05 generation ends", async () => {
@@ -411,7 +424,13 @@ it("does not restore an old grant after returning to the same account in a new F
   await screen.findByRole("link", { name: "Versions minimales" });
   await act(async () =>
     oldResponse.resolve(
-      json({ ...account, permissions: { manageMaintenance: true } }),
+      json({
+        ...account,
+        permissions: {
+          manageMaintenance: true,
+          manageSportingClassification: true,
+        },
+      }),
     ),
   );
 
@@ -422,6 +441,7 @@ it("does not restore an old grant after returning to the same account in a new F
   expect(
     screen.getByRole("link", { name: "Versions minimales" }),
   ).toBeOnTheScreen();
+  expect(screen.queryAllByRole("link", { name: "Divisions" })).toHaveLength(0);
 });
 
 it("recovers current command presentation only after an explicit successful retry", async () => {
@@ -528,29 +548,40 @@ it.each([
   "manageSportingClassification",
   "manageDivisionLifecycle",
   "manageSportingPresentation",
-])("offers only the delivered division destination for %s", async (grant) => {
-  // Given
-  mockFetch.mockImplementation(async () =>
-    json({ ...account, permissions: { [grant]: true } }),
-  );
+])(
+  "offers both existing administration and direct profile divisions under the dedicated %s grant",
+  async (grant) => {
+    // Given
+    mockFetch.mockImplementation(async () =>
+      json({ ...account, permissions: { [grant]: true } }),
+    );
 
-  // When
-  await renderAdministration();
+    // When
+    await renderAdministration();
 
-  // Then
-  expect(
-    await screen.findByRole("link", { name: "Administration technique" }),
-  ).toBeOnTheScreen();
-  expect(
-    await screen.findByRole("link", { name: "Divisions" }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("link", { name: "Collectes" }),
-  ).not.toBeOnTheScreen();
-  expect(
-    screen.queryByRole("link", { name: "Maintenance" }),
-  ).not.toBeOnTheScreen();
-  expect(
-    screen.queryByRole("link", { name: "Versions minimales" }),
-  ).not.toBeOnTheScreen();
-});
+    // Then
+    expect(
+      await screen.findByRole("link", { name: "Administration technique" }),
+    ).toBeOnTheScreen();
+    // Both real consumers retain their destination: the profile shortcut and technical administration.
+    expect(
+      await screen.findAllByRole("link", { name: "Divisions" }),
+    ).toHaveLength(2);
+    expect(screen.getByText("Noms, logos et couleurs")).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Mapping des poules" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Liens vidéo" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Collectes" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Maintenance" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Versions minimales" }),
+    ).not.toBeOnTheScreen();
+  },
+);
