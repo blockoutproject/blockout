@@ -50,6 +50,8 @@ import { useConsultationQueries } from "../api/use-consultation-queries";
 import { useSportingNavigation } from "../navigation";
 import { SportingLogo } from "./sporting-identity";
 
+const mapControlTop = 78;
+
 /** One pool's participant map; active controls the existing accepted-opening boundary. */
 export interface PoolMapProps {
   pool: PoolSummaryResponse;
@@ -124,11 +126,6 @@ export function PoolMap({ pool, active = true }: PoolMapProps) {
               : `${count}, dont ${located} localisée${located === 1 ? "" : "s"}`
           }
         />
-        <Text
-          style={[tokens.typography.metadata, { color: colors.secondaryText }]}
-        >
-          Localisation à la commune, pas au gymnase.
-        </Text>
       </PageContent>
       <BottomContentSpacer />
     </TabScrollView>
@@ -183,6 +180,7 @@ function ParticipantMap({
   const [laidOut, setLaidOut] = useState(false);
   const cameraAvailable = ready && laidOut;
   const [selectedId, setSelectedId] = useState<string>();
+  const [selectionHeight, setSelectionHeight] = useState(0);
   const points = useMemo(() => participantPoints(items), [items]);
   const point = points.find((group) =>
     group.items.some((item) => item.team.team.id === selectedId),
@@ -190,14 +188,19 @@ function ParticipantMap({
   const selected = point?.items.find(
     (item) => item.team.team.id === selectedId,
   );
-  // RNCT owns chrome measurements; keep the map and selected action in the available initial viewport.
-  const mapHeight = Math.min(
+  // Keep the approved complete card; RNCT owns vertical scrolling of the whole page.
+  const controlsHeight =
+    3 * (tokens.touch.minimum + 2 * tokens.border.thin) + 3 * tokens.spacing.xs;
+  const mapHeight = Math.max(
     583,
-    Math.max(360, containerHeight - paddingTop - 64),
-  );
-  const selectionHeight = Math.max(
-    120,
-    mapHeight - 78 - 3 * tokens.touch.minimum - 4 * tokens.spacing.md,
+    containerHeight - paddingTop - 64,
+    selected
+      ? mapControlTop +
+          controlsHeight +
+          tokens.spacing.md +
+          selectionHeight +
+          tokens.spacing["2xl"]
+      : 0,
   );
   const selectionVisible = !!selected;
 
@@ -375,10 +378,10 @@ function ParticipantMap({
       </View>
       {selected && point && (
         <View
-          style={[
-            styles.selection,
-            { maxHeight: selectionHeight, backgroundColor: colors.surface },
-          ]}
+          style={[styles.selection, { backgroundColor: colors.surface }]}
+          onLayout={({ nativeEvent }) =>
+            setSelectionHeight(nativeEvent.layout.height)
+          }
         >
           <View style={styles.selectionToolbar}>
             <ScrollView
@@ -419,18 +422,14 @@ function ParticipantMap({
               <X color={colors.icon} size={tokens.size.icon.lg} />
             </IconButton>
           </View>
-          <ScrollView
-            {...hiddenScrollIndicators}
-            contentContainerStyle={styles.summary}
-            nestedScrollEnabled
-          >
+          <View style={styles.summary}>
             <ParticipantSummary
               key={selected.team.team.id}
               participant={selected}
               poolId={pool.pool.id}
               active={active ?? true}
             />
-          </ScrollView>
+          </View>
         </View>
       )}
     </View>
@@ -499,11 +498,6 @@ function ParticipantSummary({
           </View>
         )}
       </View>
-      <Text
-        style={[tokens.typography.metadata, { color: colors.secondaryText }]}
-      >
-        {participant.location?.label}
-      </Text>
       {row && columns.length > 1 && (
         <View style={styles.statistics}>
           {columns.slice(0, -1).map((column) => (
@@ -558,7 +552,7 @@ const styles = StyleSheet.create({
   },
   controls: {
     position: "absolute",
-    top: 78,
+    top: mapControlTop,
     right: tokens.spacing.md,
     gap: tokens.spacing.xs,
   },

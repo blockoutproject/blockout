@@ -234,8 +234,8 @@ it("opens independent participants lazily when the pool standings are unavailabl
     }),
   ).toBeNull();
   expect(
-    screen.getByText("Localisation à la commune, pas au gymnase."),
-  ).toBeOnTheScreen();
+    screen.queryByText("Localisation à la commune, pas au gymnase."),
+  ).toBeNull();
 });
 
 it("keeps each exact coincident team selectable without merging a nearby point or requiring a logo", async () => {
@@ -362,6 +362,8 @@ it("does not create markers from unmatched standings and preserves exact selecte
   expect(await screen.findByText("∞")).toBeOnTheScreen();
   expect(screen.getByText("0")).toBeOnTheScreen();
   expect(screen.getByText("7")).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: "Voir l’équipe" })).toBeOnTheScreen();
+  expect(screen.queryByText("Commune publiée")).toBeNull();
   expect(screen.queryByText("Unmatched")).toBeNull();
   expect(screen.queryByText("999")).toBeNull();
   expect(
@@ -538,7 +540,7 @@ it.each([
     const user = userEvent.setup();
     await open();
     // The controlled native boundary has no semantic action for its lifecycle callbacks.
-    const nativeMap = screen.getByTestId("native-map-boundary");
+    const nativeMap = await screen.findByTestId("native-map-boundary");
     const frame =
       count === 1
         ? nativeMapCommands.animateToRegion

@@ -44,6 +44,8 @@ The native standings panel uses the existing generated Query options, one QueryC
 
 **Decision**: Use `react-native-maps` 1.27.2 with Apple Maps on iOS and Google Maps on Android. Keep the approved Blockout markers, location selection and participant summaries. Use only accepted municipality coordinates, group coincident points without displacement, and request no device location. Native basemap behavior replaces the former requirement to detect every tile failure; zero and partial location coverage remain explicit.
 
+The selected-team card retains its complete identity, associated statistics and team action together, without an inner vertical viewport. RNCT owns page scrolling. The map retains the approved minimum canvas height and uses the card's native measured height for camera padding and control clearance when text grows. Municipality precision remains a data/framing rule; the pool UI adds neither a municipality line inside the selection nor an explanatory municipality/gymnasium caption.
+
 **Rationale**: The [Expo map-view integration](https://docs.expo.dev/versions/latest/sdk/map-view/) supports this ordinary platform split within the accepted Expo 58 baseline. Google key restrictions and build configuration are future implementation work, not provider changes in this task.
 
 **Alternatives**: `expo-maps` was still alpha in the examined documentation, with relevant Apple marker interactions requiring a newer iOS minimum. A timer or tile-error detector cannot reliably establish basemap failure. Google-only maps on both platforms adds an iOS integration the accepted experience does not need.
