@@ -59,9 +59,7 @@ export function CollectionDashboardScreen() {
   const denied = isAccessDenied(query.error);
   /** Native refresh retains authorized data after a technical failure; an initial read still owns its error card. */
   async function refresh() {
-    const result = authority.enabled
-      ? await query.refetch({ cancelRefetch: false })
-      : await authority.account.refetch({ cancelRefetch: false });
+    const result = await query.refetch({ cancelRefetch: false });
     if (result.isError && result.data && !isAccessDenied(result.error))
       feedback.error();
   }
@@ -368,10 +366,6 @@ function ControlDashboard({
       seasonFetching
     )
       return;
-    if (!authority.enabled) {
-      await authority.account.refetch({ cancelRefetch: false });
-      return;
-    }
     const [controlRead, resultRead] = await Promise.all([
       query.refetch({ cancelRefetch: false }),
       results.refetch({ cancelRefetch: false }),
@@ -417,75 +411,51 @@ function ControlDashboard({
   }
   const header = (
     <View style={[!rows.length && pageContentStyle, styles.section]}>
-      {authority.enabled && (
-        <>
-          {season && <SeasonIdentity season={season} />}
-          {season?.state === "closed" && (
-            <Text style={[tokens.typography.strong, { color: colors.text }]}>
-              Saison clôturée · historique conservé
-            </Text>
-          )}
-          {matches && current ? (
-            <CollectionControl
-              control={current}
-              editing={editing}
-              season={season}
-              rereadSeason={rereadSeason}
-              seasonFetching={seasonFetching}
-              stateUnavailable={seasonUnavailable}
-            />
-          ) : query.isError ? (
-            <ErrorState
-              onRetry={() =>
-                void query.refetch({ cancelRefetch: false }).then((result) => {
-                  if (
-                    result.isError &&
-                    result.data &&
-                    !isAccessDenied(result.error)
-                  )
-                    feedback.error();
-                })
-              }
-              retrying={query.isFetching}
-            />
-          ) : current ? (
-            <ErrorState />
-          ) : (
-            <RequestLoading />
-          )}
-          {season && (family === "ffvb" || family === "lnv") && (
-            <Button
-              label={
-                season.state === "closed"
-                  ? "Consulter les sources"
-                  : "Préparer les sources"
-              }
-              variant="secondary"
-              onPress={() =>
-                router.push({
-                  pathname: "/collection/[seasonId]/[provider]",
-                  params: { seasonId: season.id, provider: family },
-                })
-              }
-            />
-          )}
-          <Text
-            accessibilityRole="header"
-            style={[tokens.typography.heading, { color: colors.text }]}
-          >
-            Derniers résultats observés
-          </Text>
-          <Button
-            label={
-              diagnostics
-                ? "Masquer les diagnostics"
-                : "Afficher les diagnostics"
-            }
-            variant="secondary"
-            onPress={() => setDiagnostics(!diagnostics)}
-          />
-        </>
+      {season && <SeasonIdentity season={season} />}
+      {season?.state === "closed" && (
+        <Text style={[tokens.typography.strong, { color: colors.text }]}>
+          Saison clôturée · historique conservé
+        </Text>
       )}
+      {current && (
+        <CollectionControl
+          control={current}
+          editing={editing}
+          season={season}
+          rereadSeason={rereadSeason}
+          seasonFetching={seasonFetching}
+          stateUnavailable={seasonUnavailable}
+        />
+      )}
+      {season && (family === "ffvb" || family === "lnv") && (
+        <Button
+          label={
+            season.state === "closed"
+              ? "Consulter les sources"
+              : "Préparer les sources"
+          }
+          variant="secondary"
+          onPress={() =>
+            router.push({
+              pathname: "/collection/[seasonId]/[provider]",
+              params: { seasonId: season.id, provider: family },
+            })
+          }
+        />
+      )}
+      <Text
+        accessibilityRole="header"
+        style={[tokens.typography.heading, { color: colors.text }]}
+      >
+        Derniers résultats observés
+      </Text>
+      <Button
+        label={
+          diagnostics ? "Masquer les diagnostics" : "Afficher les diagnostics"
+        }
+        variant="secondary"
+        onPress={() => setDiagnostics(!diagnostics)}
+      />
     </View>
   );
   return (
@@ -533,7 +503,7 @@ function ControlDashboard({
                   />
                 ) : undefined
               }
-              data={authority.enabled && matches ? rows : []}
+              data={rows}
               keyExtractor={(row) => `${row.scopeId}/${row.stage}/${row.phase}`}
               contentContainerStyle={[
                 rows.length ? pageContentStyle : styles.emptyList,

@@ -79,9 +79,9 @@ function Selection({
             { value: "mixed", label: sportingGenderLabels.mixed },
           ]
         : [
-            { value: "6x6", label: formatLabel("6x6")! },
-            { value: "4x4", label: formatLabel("4x4")! },
-            { value: "2x2", label: formatLabel("2x2")! },
+            { value: "6x6", label: formatLabel("6x6") },
+            { value: "4x4", label: formatLabel("4x4") },
+            { value: "2x2", label: formatLabel("2x2") },
           ];
   const denied =
     (field === "divisionId" && isAccessDenied(divisions.query.error)) ||

@@ -12,6 +12,7 @@ import { EntryRow } from "../../../shared/components/entry-row";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
+import { canReadDivisions } from "../division-catalog-access";
 
 /** Profile links directly to each currently granted destination; planned rows remain disabled and never grant an operation. */
 export function AdministrationEntry() {
@@ -19,10 +20,6 @@ export function AdministrationEntry() {
   const { colors } = useTheme();
   const canModerate = permissions?.moderateStreamLinks === true;
   if (!hasCommands && !canModerate) return null;
-  const canReadDivisions =
-    permissions?.manageSportingClassification === true ||
-    permissions?.manageDivisionLifecycle === true ||
-    permissions?.manageSportingPresentation === true;
 
   return (
     <View style={styles.group}>
@@ -33,7 +30,7 @@ export function AdministrationEntry() {
         Administration
       </Text>
       <EntryGroup>
-        {canReadDivisions && (
+        {canReadDivisions(permissions) && (
           <Link href="/administration/divisions" asChild>
             <EntryRow
               label="Divisions"

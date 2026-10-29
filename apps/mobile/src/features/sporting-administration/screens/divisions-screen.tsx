@@ -97,24 +97,14 @@ export function DivisionsScreen() {
                         query.isRefetching || authority.account.isRefetching
                       }
                       onRefresh={() => {
-                        if (authority.enabled)
-                          void query.refetch().then((result) => {
-                            if (
-                              result.isError &&
-                              result.data &&
-                              !isAccessDenied(result.error)
-                            )
-                              feedback.error();
-                          });
-                        else
-                          void authority.account.refetch().then((result) => {
-                            if (
-                              result.isError &&
-                              result.data &&
-                              !isAccessDenied(result.error)
-                            )
-                              feedback.error();
-                          });
+                        void query.refetch().then((result) => {
+                          if (
+                            result.isError &&
+                            result.data &&
+                            !isAccessDenied(result.error)
+                          )
+                            feedback.error();
+                        });
                       }}
                     />
                   ) : undefined

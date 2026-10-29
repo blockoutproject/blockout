@@ -40,12 +40,10 @@ export function SourceChildrenScreen({
   const items = denied
     ? []
     : (query.data?.pages.flatMap((page) => page.items) ?? []);
-  /** Refreshes the catalog or grant; a failed technical reread retains authorized content and reports its outcome. */
+  /** Refreshes the admitted catalog; a failed technical reread retains authorized content and reports its outcome. */
   async function refresh() {
     if (query.isFetching) return;
-    const result = authority.enabled
-      ? await query.refetch({ cancelRefetch: false })
-      : await authority.account.refetch({ cancelRefetch: false });
+    const result = await query.refetch({ cancelRefetch: false });
     if (result.isError && result.data && !isAccessDenied(result.error))
       feedback.error();
   }

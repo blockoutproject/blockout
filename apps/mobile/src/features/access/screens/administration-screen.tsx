@@ -14,6 +14,7 @@ import { PageHeader } from "../../../shared/components/page-header";
 import { NavigationLink } from "../../../shared/components/navigation-link";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
+import { canReadDivisions } from "../division-catalog-access";
 
 /** Admission is supplied by the route owner, independently of command visibility. */
 export interface AdministrationScreenProps {
@@ -71,9 +72,7 @@ export function AdministrationScreen({
             label="Versions minimales"
           />
         )}
-        {(permissions?.manageSportingClassification === true ||
-          permissions?.manageDivisionLifecycle === true ||
-          permissions?.manageSportingPresentation === true) && (
+        {canReadDivisions(permissions) && (
           <NavigationLink href="/administration/divisions" label="Divisions" />
         )}
         {permissions?.manageCollection === true && (

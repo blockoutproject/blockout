@@ -72,6 +72,8 @@ F08 adds the global `stream-links.moderate` grant and `moderateStreamLinks` proj
 
 Grant projections control presentation only. The three F12 capabilities are separate; domain grants remain global per action while resource ownership and domain invariants still apply. Account erasure removes grants, and recreation never restores them. No business permission follows from a generic administrator identity or Pro entitlement.
 
+The mobile's pure access-owned `canReadDivisions` predicate defines the catalogue's three alternative grants once for entry, route, capabilities and request admission. It uses strict generated boolean values; callers retain their current-account, session and version guards, and write operations retain their narrower action grants. No generic permission registry or second authority is introduced.
+
 ## Configuration and server admission
 
 Persist maintenance and versions as two versioned aggregates. Validate complete resulting state before an atomic write. Content edits preserve activation; activation PUT sets a desired boolean, never toggles blindly. JPA optimistic checks reject racing commits even after the explicit submitted-revision comparison. No-effect updates preserve revision. Failed/uncertain saves preserve the draft; reread before explicit resubmission, with no automatic merge or replay.

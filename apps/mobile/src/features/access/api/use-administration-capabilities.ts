@@ -2,6 +2,7 @@ import {
   useAccountSession,
   useCurrentAccount,
 } from "../../accounts/current-account";
+import { canReadDivisions } from "../division-catalog-access";
 
 /**
  * Derives presentation from F05's current generated account, never from credentials or a second cache.
@@ -21,8 +22,6 @@ export function useAdministrationCapabilities() {
     permissions?.manageMaintenance === true ||
     permissions?.manageApplicationVersions === true ||
     permissions?.manageCollection === true ||
-    permissions?.manageSportingClassification === true ||
-    permissions?.manageSportingPresentation === true ||
-    permissions?.manageDivisionLifecycle === true;
+    canReadDivisions(permissions);
   return { permissions, hasCommands, account, sessionStatus: session.status };
 }

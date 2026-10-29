@@ -28,11 +28,9 @@ export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
   const router = useRouter();
   const { colors } = useTheme();
   const feedback = useActionFeedback();
-  /** Refreshes only this season or its grant, retaining authorized content after a technical failure. */
+  /** Refreshes this admitted season, retaining authorized content after a technical failure. */
   async function refresh() {
-    const result = authority.enabled
-      ? await season.refetch({ cancelRefetch: false })
-      : await authority.account.refetch({ cancelRefetch: false });
+    const result = await season.refetch({ cancelRefetch: false });
     if (result.isError && result.data && !isAccessDenied(result.error))
       feedback.error();
   }

@@ -31,11 +31,7 @@ export function SourcePreparationScreen({
     current && season.data && current.seasonId === seasonId,
   );
   const feedback = useActionFeedback();
-  const blockingState = !(
-    current &&
-    season.data &&
-    current.seasonId === seasonId
-  ) ? (
+  const blockingState = !retained ? (
     !authority.enabled ? (
       <AccessFeedback {...authority} />
     ) : source.isError ||

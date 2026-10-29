@@ -18,6 +18,10 @@ export function genderLabel(
 }
 
 /** Renders the contract-owned format as a multiplication label; absent context remains absent. */
+export function formatLabel(format: SportFormatEnum): string;
+export function formatLabel(
+  format: SportFormatEnum | undefined,
+): string | undefined;
 export function formatLabel(
   format: SportFormatEnum | undefined,
 ): string | undefined {
