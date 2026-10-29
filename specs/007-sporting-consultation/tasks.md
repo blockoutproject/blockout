@@ -258,3 +258,7 @@ Serialize edits to shared controllers/projections/read adapters, mobile screens/
 2. Add US2 time presentation and US3 one complete calendar query/retained refresh; demonstrate their combined date/time and PostgreSQL cases before broadening consumers.
 3. Add US4 native maps/official standings and US6 honest recovery, then US5 qualified stream/PDF delivery. Reuse shared owners and the native mechanisms selected by the plan.
 4. Execute real generated-consumer, database, iOS/Android, source and embedded-owner qualifications incrementally, reusing identical evidence. Keep unexecuted prerequisites visible and reopen only demonstrated compatibility/decision failures; no implicit upgrade, fork or recovery system substitutes for an accepted requirement.
+
+## Phase 10: Match presentation follow-up
+
+- [x] T062 Restore the approved scrolling match recap in native fixed navigation using actual summary geometry and UI-thread progress, matching Product Design `4393:34700` and the designated prototype's handoff. Keep navigation/actions, actual identities, result precision, schedule semantics and accessible context. Display ASCII `-` for absent match information and unknown numeric scores; retain meaningful provisional/unconfirmed/time-accuracy statuses. Reconcile only the corresponding Figma/prototype missing-information examples, without adding a pool icon to the information row. Run affected behavioral tests and complete mobile checks, qualify native collapsed/expanded match rendering on Android/Duo, review KISS and record exact evidence/limits.
