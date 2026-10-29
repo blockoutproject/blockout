@@ -41,7 +41,7 @@ import { resourceUnavailable } from "../model/consultation-availability";
 import { pageContentStyle } from "../../../shared/components/page";
 import {
   pagedListDefaults,
-  PagedStateArea,
+  PagedStateScrollView,
 } from "../../../shared/components/paged-tabs";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -200,6 +200,32 @@ export function SportingCalendarView({
     )
       feedback.error();
   }
+  const refreshControl = (
+    <DataRefreshControl
+      refreshing={refreshing}
+      onRefresh={() => void refresh()}
+      enabled={active}
+    />
+  );
+  if (rows.length === 0)
+    return (
+      <PagedStateScrollView refreshControl={refreshControl}>
+        <ScreenState>
+          {calendar.isError && !calendar.data ? (
+            <ErrorState
+              onRetry={() => void refresh()}
+              retrying={calendar.isFetching}
+            />
+          ) : calendar.isPending ? (
+            <RequestLoading />
+          ) : (
+            (emptyState ?? (
+              <EmptyState title="Aucun match pour cette sélection" />
+            ))
+          )}
+        </ScreenState>
+      </PagedStateScrollView>
+    );
   return (
     <TabLegendList<CalendarRow>
       {...pagedListDefaults}
@@ -207,7 +233,7 @@ export function SportingCalendarView({
       key={columns}
       ref={list}
       alwaysBounceVertical
-      contentContainerStyle={rows.length ? pageContentStyle : styles.emptyList}
+      contentContainerStyle={pageContentStyle}
       data={rows}
       numColumns={columns}
       onLayout={({ nativeEvent }) => setListWidth(nativeEvent.layout.width)}
@@ -227,13 +253,7 @@ export function SportingCalendarView({
       stickyHeaderConfig={{
         offset: headerHeight - collapseRange + tabBarHeight,
       }}
-      refreshControl={
-        <DataRefreshControl
-          refreshing={refreshing}
-          onRefresh={() => void refresh()}
-          enabled={active}
-        />
-      }
+      refreshControl={refreshControl}
       renderItem={({ item }) =>
         item.kind === "space" ? null : item.kind === "date" ? (
           <CalendarDate
@@ -266,24 +286,6 @@ export function SportingCalendarView({
         if (calendar.hasNextPage && !calendar.isFetching && !calendar.isError)
           loadMore();
       }}
-      ListEmptyComponent={
-        <PagedStateArea>
-          <ScreenState>
-            {calendar.isError && !calendar.data ? (
-              <ErrorState
-                onRetry={() => void refresh()}
-                retrying={calendar.isFetching}
-              />
-            ) : calendar.isPending ? (
-              <RequestLoading />
-            ) : (
-              (emptyState ?? (
-                <EmptyState title="Aucun match pour cette sélection" />
-              ))
-            )}
-          </ScreenState>
-        </PagedStateArea>
-      }
       ListFooterComponent={
         <>
           <ListContinuation
@@ -418,7 +420,6 @@ const monthFormat = new Intl.DateTimeFormat("fr-FR", {
 });
 
 const styles = StyleSheet.create({
-  emptyList: { flexGrow: 1 },
   dateHeading: { gap: tokens.spacing.xs, paddingRight: tokens.spacing.xs },
   stackedDate: {
     flexDirection: "row",

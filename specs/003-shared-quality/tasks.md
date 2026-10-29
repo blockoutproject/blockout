@@ -518,3 +518,11 @@ When parallel work is explicitly authorized, use the distinct-file batches above
 ## Phase 19: Native Home header retreat (US6)
 
 - [ ] T167 [US6] Apply A31 at `apps/mobile/src/shared/components/paged-tabs.tsx`: preserve clipping under fixed navigation, but let Home’s sole collapsible brand fade through the transparent top area using RNCT collapse progress on the UI thread. Preserve sticky controls, safe-area geometry, scrolling and current navigation; add no device rule, state mirror, dependency or height engine. Independently review the bounded source change, run affected mobile checks and observe partial/full collapse plus restoration on the compatible Android and Duo clients before recording exact evidence. This owner-requested follow-up is native-only; do not reopen Figma or prototype.
+
+## Phase 20: Native fitting-state scroll follow-up (US6)
+
+- [ ] T168 [US6] Apply A32 at `apps/mobile/src/shared/components/paged-tabs.tsx` and the existing calendar, Club teams, Search and standings consumers. Use RNCT's public composition to omit only the artificial collapse reserve when no usable rows remain, preserve intrinsic overflow and native refresh outside Search, and keep loaded/retained lists unchanged. Independently review the bounded projection and affected tests; qualify fitting Error/Empty, enlarged text and retry, entry after a loaded collapsed tab, populated scrolling and refresh on compatible iOS/Android clients. Record exact scope and limits in `quickstart.md`; this follow-up is native-only.
+
+## Phase 21: Native Home pager tab consistency (US6)
+
+- [ ] T169 [US6] Apply A33 at `apps/mobile/src/features/following/screens/personal-screen.tsx`: compose the existing RNCT-backed `PagerTabBar` beside the season selector when Home's pager is mounted, preserving selection identities, Query/session/season ownership and the non-paged admission presentation. Independently review the bounded change and affected user-interaction tests; qualify tap/swipe behavior on compatible Android and Duo clients, including enlarged labels and reduced motion where available. Record exact evidence and limits in `quickstart.md`. Add no custom indicator synchronization; this follow-up is native-only and does not reopen Figma/prototype.

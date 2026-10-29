@@ -1,5 +1,6 @@
 import { BlurTargetView } from "expo-blur";
 import {
+  cloneElement,
   useCallback,
   useEffect,
   useMemo,
@@ -7,12 +8,19 @@ import {
   useState,
   type ComponentRef,
   type PropsWithChildren,
+  type ReactElement,
   type ReactNode,
   type RefObject,
 } from "react";
-import { StyleSheet, View, useWindowDimensions } from "react-native";
+import {
+  StyleSheet,
+  View,
+  useWindowDimensions,
+  type RefreshControlProps,
+} from "react-native";
 import {
   Tabs,
+  TabScrollView,
   DefaultTabBar,
   useActiveTabScrollY,
   useCollapsingTabsContext,
@@ -31,7 +39,10 @@ import { useTheme } from "../theme/theme-provider";
 import { useReducedMotion } from "../theme/use-reduced-motion";
 import { tokens } from "../theme/tokens";
 import { ScrollBackdrop, type ScrollBlurTarget } from "./scroll-backdrop";
-import { useBottomNavigationInset } from "./bottom-navigation-inset";
+import {
+  BottomNavigationSpacer,
+  useBottomNavigationInset,
+} from "./bottom-navigation-inset";
 
 /** RNCT owns offsets and measured header padding; native lists must not compensate that padding with a second scroll. */
 export const pagedListDefaults = {
@@ -39,21 +50,54 @@ export const pagedListDefaults = {
 } as const;
 
 /**
- * Keeps feedback within the visible tab area while RNCT retains its separate collapse scroll range.
- * The native header position expands that area during collapse; intrinsic content may grow and scroll.
- * Callers keep ScreenState's insets and their ordinary trailing navigation spacer.
+ * Feedback keeps native overflow and refresh while only reading RNCT's current chrome geometry.
+ * With no usable rows it neither registers a tab scroll handle nor drives header collapse.
+ * Oversized chrome uses the stock adapter so its actual overflow can collapse; loaded lists stay unchanged.
  */
-export function PagedStateArea({ children }: PropsWithChildren) {
+export function PagedStateScrollView({
+  children,
+  refreshControl,
+}: PropsWithChildren<{ refreshControl?: ReactElement<RefreshControlProps> }>) {
   const { containerHeight, paddingTop } = useCollapsingTabsContext();
   const collapse = useHeaderScrollY();
   const bottomNavigationInset = useBottomNavigationInset();
-  const area = useAnimatedStyle(() => ({
-    minHeight: Math.max(
-      0,
-      containerHeight - paddingTop + collapse.value - bottomNavigationInset,
-    ),
+  const visibleArea = useAnimatedStyle(() => ({
+    minHeight: containerHeight,
+    paddingTop: paddingTop - collapse.value,
   }));
-  return <Animated.View style={area}>{children}</Animated.View>;
+  const refresh =
+    refreshControl &&
+    cloneElement(refreshControl, { progressViewOffset: paddingTop });
+  // Oversized chrome is real overflow: the stock adapter must let the user collapse it to reach feedback.
+  if (
+    containerHeight > 0 &&
+    paddingTop > containerHeight - bottomNavigationInset
+  )
+    return (
+      <TabScrollView
+        contentContainerStyle={styles.stateContent}
+        alwaysBounceVertical={!!refreshControl}
+        refreshControl={refresh}
+      >
+        {children}
+        <BottomNavigationSpacer />
+      </TabScrollView>
+    );
+  return (
+    <Animated.ScrollView
+      contentContainerStyle={styles.stateContent}
+      scrollIndicatorInsets={{ top: paddingTop }}
+      alwaysBounceVertical={!!refreshControl}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      refreshControl={refresh}
+    >
+      <Animated.View style={visibleArea}>
+        {children}
+        <BottomNavigationSpacer />
+      </Animated.View>
+    </Animated.ScrollView>
+  );
 }
 
 /** Stable feature identities and their explicitly composed content; data stays with each feature. */
@@ -306,6 +350,7 @@ function PagerLabel({
 }
 
 const styles = StyleSheet.create({
+  stateContent: { flexGrow: 1 },
   fill: { flex: 1 },
   clip: { overflow: "hidden" },
   pinned: { position: "absolute", left: 0, right: 0, top: 0, zIndex: 1 },

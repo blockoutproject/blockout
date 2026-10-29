@@ -289,7 +289,7 @@ it("keeps acquisition diagnostics out of the usable table presentation", async (
   await open(panel());
 
   // Then
-  expect(screen.getByText("Official Z")).toBeOnTheScreen();
+  expect(await screen.findByText("Official Z")).toBeOnTheScreen();
   expect(
     screen.queryByText(/Observé le|Dernière acquisition|conservées/),
   ).toBeNull();

@@ -5,7 +5,7 @@ import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 import {
   PagedTabs,
   PagerTabBar,
-  PagedStateArea,
+  PagedStateScrollView,
   pagedListDefaults,
 } from "../../../shared/components/paged-tabs";
 import { ListSeparator } from "../../../shared/components/list-separator";
@@ -197,6 +197,24 @@ function ClubPage({ clubId }: ClubScreenProps) {
                   selection={{ clubId, seasonId: season.id, category: value }}
                   active={tab === value}
                 />
+              ) : value === "teams" && season && !teamData?.items.length ? (
+                <PagedStateScrollView
+                  refreshControl={
+                    <DataRefreshControl
+                      refreshing={teams.isRefetching}
+                      onRefresh={() => void refresh()}
+                      enabled={tab === value}
+                    />
+                  }
+                >
+                  <ScreenState>
+                    {!teamData ? (
+                      <ReadFeedback query={teams} />
+                    ) : (
+                      <EmptyState title="Aucune équipe pour cette saison" />
+                    )}
+                  </ScreenState>
+                </PagedStateScrollView>
               ) : (
                 <TabLegendList
                   {...pagedListDefaults}
@@ -217,11 +235,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
                       />
                     ) : undefined
                   }
-                  contentContainerStyle={
-                    value === "teams" && !teamData?.items.length
-                      ? styles.emptyList
-                      : pageContentStyle
-                  }
+                  contentContainerStyle={pageContentStyle}
                   ItemSeparatorComponent={ListSeparator}
                   data={
                     data && value === "teams" ? (teamData?.items ?? []) : []
@@ -300,19 +314,6 @@ function ClubPage({ clubId }: ClubScreenProps) {
                       </View>
                     ) : undefined
                   }
-                  ListEmptyComponent={
-                    season && value === "teams" ? (
-                      <PagedStateArea>
-                        <ScreenState>
-                          {!teamData ? (
-                            <ReadFeedback query={teams} />
-                          ) : (
-                            <EmptyState title="Aucune équipe pour cette saison" />
-                          )}
-                        </ScreenState>
-                      </PagedStateArea>
-                    ) : undefined
-                  }
                 />
               ),
           }))}
@@ -323,7 +324,6 @@ function ClubPage({ clubId }: ClubScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  emptyList: { flexGrow: 1 },
   header: { gap: tokens.spacing.lg, marginBottom: tokens.layout.list.gap },
   season: {
     gap: tokens.spacing.sm,

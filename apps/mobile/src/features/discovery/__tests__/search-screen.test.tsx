@@ -353,7 +353,7 @@ it("selects the search resource through native page settlement and retains its s
   expect(mockFetch).not.toHaveBeenCalled();
 });
 
-it("reads changed text only for the selected resource after all three scenes have been visited", async () => {
+it("reads changed text only for the selected resource and resets all cached native lists", async () => {
   // Given: all three scene contexts exist, with their accepted result pages.
   const user = userEvent.setup();
   await renderSearch();
@@ -365,15 +365,11 @@ it("reads changed text only for the selected resource after all three scenes hav
   await screen.findByText("Championnat public · Phase finale");
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
   await screen.findByText("Volley professionnel");
-  // Spy only on the viewport's native command; Search, PagedTabs and RNCT remain real.
-  const scroll = jest.spyOn(FlatList.prototype, "scrollToOffset");
-  await user.press(screen.getByRole("tab", { name: "Clubs" }));
-  await user.press(screen.getByRole("tab", { name: "Équipes" }));
-  expect(scroll).not.toHaveBeenCalled();
-  // A native value replacement with the same normalized criteria preserves the saved positions.
-  await fireEvent.changeText(screen.getByLabelText("Rechercher"), "VOLLEY");
-  expect(scroll).not.toHaveBeenCalled();
   mockFetch.mockClear();
+  // Equivalent normalized criteria retain the accepted scenes without another read.
+  await fireEvent.changeText(screen.getByLabelText("Rechercher"), "VOLLEY");
+  expect(mockFetch).not.toHaveBeenCalled();
+  expect(screen.getByText("Volley professionnel")).toBeOnTheScreen();
 
   // When: the common RHF text changes while Teams is selected.
   await fireEvent.changeText(screen.getByLabelText("Rechercher"), "Nouveau");
@@ -389,12 +385,26 @@ it("reads changed text only for the selected resource after all three scenes hav
   expect(
     screen.getByRole("header", { name: "1 résultat chargé" }),
   ).toBeOnTheScreen();
-  // The same mounted list owners receive the reset even while the new contexts have no accepted rows.
-  expect(scroll.mock.calls).toEqual([
-    [{ offset: 0, animated: false }],
-    [{ offset: 0, animated: false }],
-    [{ offset: 0, animated: false }],
-  ]);
+
+  // When: returning to accepted criteria remounts three real loaded list owners.
+  mockFetch.mockClear();
+  const scroll = jest.spyOn(FlatList.prototype, "scrollToOffset");
+  await fireEvent.changeText(screen.getByLabelText("Rechercher"), "Volley");
+  await screen.findByText("Volley professionnel");
+
+  // Then: all loaded contexts reset while only the selected resource rereads its changed criteria.
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(new URL(String(mockFetch.mock.calls[0][0])).pathname).toBe("/teams");
+  expect(scroll.mock.calls).toEqual(
+    Array(3).fill([{ offset: 0, animated: false }]),
+  );
+  const lists = scroll.mock.contexts as FlatList<unknown>[];
+  expect(new Set(lists).size).toBe(3);
+  expect(lists.map((list) => list.props.data?.[0])).toEqual(
+    expect.arrayContaining(
+      ["team", "pool", "club"].map((kind) => expect.objectContaining({ kind })),
+    ),
+  );
 });
 
 it("clears the shared query through the approved search action without fetching empty text", async () => {

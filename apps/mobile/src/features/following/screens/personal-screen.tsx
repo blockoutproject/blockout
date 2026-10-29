@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter, useIsFocused } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import {
@@ -8,7 +8,7 @@ import {
 import { Page, PageScrollView } from "../../../shared/components/page";
 import { BrandMark } from "../../../shared/components/brand-mark";
 import { useTheme } from "../../../shared/theme/theme-provider";
-import { PagedTabs } from "../../../shared/components/paged-tabs";
+import { PagedTabs, PagerTabBar } from "../../../shared/components/paged-tabs";
 import { TabScrollView } from "react-native-collapsible-tab";
 import { PersonalCalendar } from "../components/personal-calendar";
 import { Tabs } from "../../../shared/components/tabs";
@@ -88,18 +88,11 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
   const focused = useIsFocused();
 
   const ready = usable && !!season.options.data && !blocked;
-  /** The owning selector refreshes only its current options, including inside the native modal. */
-  function controls(onSelect: (id: string) => void) {
+  /** Composes the native pager bar or non-paged admission choices beside the same season owner. */
+  function controls(tabBar: ReactNode) {
     return (
-      <View style={styles.controls}>
-        <View style={styles.tabs}>
-          <Tabs
-            size="compact"
-            items={tabs}
-            selected={tab}
-            onSelect={onSelect}
-          />
-        </View>
+      <View style={[styles.controls, !ready && styles.admissionControls]}>
+        <View style={styles.tabs}>{tabBar}</View>
         <PersonalSeasonSelector
           options={blocked ? undefined : season.options.data}
           seasonId={season.seasonId}
@@ -116,7 +109,7 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
           selected={tab}
           onSelect={setTab}
           collapsibleHeader={<PersonalHeader />}
-          renderTabBar={({ onTabPress }) => controls(onTabPress)}
+          renderTabBar={(props) => controls(<PagerTabBar {...props} />)}
           tabs={tabs.map(({ id, label }) => ({
             id,
             label,
@@ -142,7 +135,14 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
       ) : (
         <>
           <PersonalHeader />
-          {controls(setTab)}
+          {controls(
+            <Tabs
+              size="compact"
+              items={tabs}
+              selected={tab}
+              onSelect={setTab}
+            />,
+          )}
           <PageScrollView>
             <ScreenState>
               <ReadFeedback query={!usable ? profile : season.options} />
@@ -171,7 +171,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
-    paddingHorizontal: tokens.spacing.lg,
+    paddingRight: tokens.spacing.lg,
   },
+  admissionControls: { paddingLeft: tokens.spacing.lg },
   tabs: { flex: 1, minWidth: 0 },
 });
