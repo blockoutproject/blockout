@@ -204,7 +204,7 @@ async function mount() {
     </QueryClientProvider>,
   );
 }
-/** Uses the real original-session invalidation while an OS confirmation remains open. */
+/** Uses real session and profile commands for current-owner lifecycle scenarios. */
 function SessionExit() {
   const session = useAccountSession();
   const profile = useCurrentAccount();
@@ -832,6 +832,175 @@ it("keeps original-owner history read-only through a technical profile refresh f
   // Then
   expect(screen.getByText("Votre lien public")).toBeOnTheScreen();
   expect(screen.getByText("En attente de validation")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Retirer" })).toBeDisabled();
+});
+
+it.each([401, 403, 404])(
+  "revokes private history after match GET %i and does not restore it on technical retry failure",
+  async (status) => {
+    // Given
+    const boundary = mockFetch.getMockImplementation();
+    if (!boundary) throw new Error("Missing test HTTP boundary");
+    let failure: "none" | "denied" | "technical" = "none";
+    mockFetch.mockImplementation((url, init) => {
+      if (String(url).endsWith(`/matches/${match.match.id}`)) {
+        if (failure === "denied")
+          return Promise.resolve(Response.json({ status }, { status }));
+        if (failure === "technical")
+          throw new TypeError("Controlled match retry failure");
+      }
+      return boundary(url, init);
+    });
+    const user = userEvent.setup();
+    await mount();
+    await screen.findByText("Votre lien public");
+
+    // When
+    failure = "denied";
+    failRead = true;
+    await user.pullToRefresh(
+      screen.getByLabelText("Historique de mes contributions"),
+    );
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+
+    // Then
+    expect(
+      screen.queryByText("https://youtu.be/history-2"),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Retirer" }),
+    ).not.toBeOnTheScreen();
+
+    // When: a later technical failure cannot undo the sporting refusal.
+    failure = "technical";
+    await user.press(await screen.findByRole("button", { name: "Réessayer" }));
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+
+    // Then
+    expect(
+      screen.queryByText("https://youtu.be/history-1"),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByText("https://youtu.be/history-2"),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Retirer" }),
+    ).not.toBeOnTheScreen();
+  },
+);
+
+it.each([
+  {
+    condition: "failed native restoration",
+    failure: new Error("Synthetic native restoration failure"),
+  },
+  {
+    condition: "expired credentials",
+    failure: {
+      code: "invalid_grant",
+      message: "Synthetic expired credentials",
+    },
+  },
+])("delegates $condition to sign-in", async ({ failure }) => {
+  // Given
+  mockAuth0.getCredentials.mockRejectedValue(failure);
+  const user = userEvent.setup();
+  await mount();
+
+  // When
+  await user.press(await screen.findByRole("button", { name: "Se connecter" }));
+
+  // Then
+  expect(mockPush).toHaveBeenCalledWith("/sign-in");
+  expect(
+    screen.queryByRole("progressbar", { name: "Chargement en cours" }),
+  ).not.toBeOnTheScreen();
+  expect(pages).toEqual([]);
+  expect(patches).toEqual([]);
+});
+
+it("recovers a refused match when its successful retry settles after the personal read", async () => {
+  // Given
+  const boundary = mockFetch.getMockImplementation();
+  if (!boundary) throw new Error("Missing test HTTP boundary");
+  let denied = false;
+  let pendingMatch: Promise<void> | undefined;
+  mockFetch.mockImplementation(async (url, init) => {
+    if (String(url).endsWith(`/matches/${match.match.id}`)) {
+      if (denied) return Response.json({ status: 404 }, { status: 404 });
+      await pendingMatch;
+    }
+    return boundary(url, init);
+  });
+  const user = userEvent.setup();
+  await mount();
+  await screen.findByText("Votre lien public");
+  denied = true;
+  failRead = true;
+  await user.pullToRefresh(
+    screen.getByLabelText("Historique de mes contributions"),
+  );
+  const retry = await screen.findByRole("button", { name: "Réessayer" });
+
+  // When
+  denied = false;
+  failRead = false;
+  let finishMatch: (() => void) | undefined;
+  pendingMatch = new Promise<void>((resolve) => {
+    finishMatch = resolve;
+  });
+  await user.press(retry);
+  await waitFor(() => expect(pages).toEqual([0, 0]));
+  await act(async () => {
+    finishMatch?.();
+  });
+
+  // Then
+  expect(await screen.findByText("Votre lien public")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled();
+});
+
+it("retains every authorized page when match and history refresh both fail technically", async () => {
+  // Given
+  rows = Array.from({ length: 21 }, (_, index) =>
+    version(index + 1, index === 0 ? "active" : "replaced"),
+  );
+  const boundary = mockFetch.getMockImplementation();
+  if (!boundary) throw new Error("Missing test HTTP boundary");
+  mockFetch.mockImplementation((url, init) => {
+    if (failRead && String(url).endsWith(`/matches/${match.match.id}`))
+      throw new TypeError("Controlled match refresh failure");
+    return boundary(url, init);
+  });
+  const user = userEvent.setup();
+  await mount();
+  await screen.findByText("Votre lien public");
+  await fireEvent(
+    screen.getByLabelText("Historique de mes contributions"),
+    "endReached",
+  );
+  await waitFor(() => expect(pages).toEqual([0, 1]));
+
+  // When
+  failRead = true;
+  await user.pullToRefresh(
+    screen.getByLabelText("Historique de mes contributions"),
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await user.scrollTo(
+    screen.getByLabelText("Historique de mes contributions"),
+    {
+      y: 9000,
+      contentSize: { width: 400, height: 10000 },
+      layoutMeasurement: { width: 400, height: 800 },
+    },
+  );
+
+  // Then
+  expect(screen.getByText("Dernier lien public connu")).toBeOnTheScreen();
+  expect(
+    await screen.findByText("https://youtu.be/history-21"),
+  ).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Retirer" })).toBeDisabled();
 });
 

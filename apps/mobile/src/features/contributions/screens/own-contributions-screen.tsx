@@ -8,9 +8,7 @@ import type {
   StreamContributionStateEnum,
   StreamOwnerActionEnum,
 } from "../../../../.generated/schemas/index.zod";
-import { ApiError } from "../../../shared/api/api-fetch";
 import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
-import { isAccessDenied } from "../../../shared/api/access-denied";
 import { Page, pageContentStyle } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
 import { ScrollChrome } from "../../../shared/components/scroll-chrome";
@@ -18,6 +16,7 @@ import { BottomContentSpacer } from "../../../shared/components/bottom-content-i
 import { Button } from "../../../shared/components/button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { RequestLoading } from "../../../shared/components/request-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
 import { Surface } from "../../../shared/components/surface";
@@ -37,7 +36,7 @@ import {
   useOwnContributions,
 } from "../api/own-contributions";
 
-/** One match's private history; the original-account read supplies every action permission. */
+/** One match's private history; the original-account read supplies permissions and sporting refusal revokes retained details. */
 export interface OwnContributionsScreenProps {
   matchId: string;
 }
@@ -106,11 +105,18 @@ export function OwnContributionsScreen({
       mounted.current = false;
     };
   }, []);
-  const { query, change, session } = editing;
+  const { query, change, session, refuseAccess } = editing;
+  useEffect(() => {
+    // F03 may share its request with another observer; propagate an observed refusal to the private cache.
+    if (query.data && isOwnContributionAccessDenied(match.error))
+      void refuseAccess(match.error);
+  }, [match.error, query.data, refuseAccess]);
   const current = query.data?.pages[0];
   const stale = query.isError && !query.isFetchNextPageError;
   const authorized =
-    editing.canRetain && !isOwnContributionAccessDenied(query.error);
+    editing.canRetain &&
+    !isOwnContributionAccessDenied(query.error) &&
+    !isOwnContributionAccessDenied(match.error);
   const rows = authorized
     ? [
         ...new Map(
@@ -246,6 +252,7 @@ export function OwnContributionsScreen({
           <Animated.FlatList
             {...hiddenScrollIndicators}
             accessibilityLabel="Historique de mes contributions"
+            alwaysBounceVertical={authorized && !!current}
             onScroll={onScroll}
             scrollEventThrottle={16}
             scrollIndicatorInsets={{ top: headerHeight }}
@@ -271,19 +278,12 @@ export function OwnContributionsScreen({
             }
             ListHeaderComponent={
               <View style={styles.header}>
-                {authorized &&
-                  current &&
-                  match.data &&
-                  !isAccessDenied(match.error) &&
-                  !(
-                    match.error instanceof ApiError &&
-                    match.error.status === 404
-                  ) && (
-                    <MatchSummary
-                      match={match.data.match}
-                      presentation="context"
-                    />
-                  )}
+                {authorized && current && match.data && (
+                  <MatchSummary
+                    match={match.data.match}
+                    presentation="context"
+                  />
+                )}
                 {session.status === "guest" ? (
                   <ScreenState>
                     <Button
@@ -295,6 +295,17 @@ export function OwnContributionsScreen({
                         })
                       }
                     />
+                  </ScreenState>
+                ) : session.status !== "authenticated" ? (
+                  <ScreenState>
+                    {session.status === "restoring" || session.operation ? (
+                      <RequestLoading />
+                    ) : (
+                      <Button
+                        label="Se connecter"
+                        onPress={() => router.push("/sign-in")}
+                      />
+                    )}
                   </ScreenState>
                 ) : !editing.profile.data ? (
                   <ScreenState>
@@ -309,7 +320,15 @@ export function OwnContributionsScreen({
                   </ScreenState>
                 ) : !current || !authorized ? (
                   <ScreenState>
-                    <ReadFeedback query={query} />
+                    {query.isError ||
+                    isOwnContributionAccessDenied(match.error) ? (
+                      <ErrorState
+                        onRetry={() => void refresh()}
+                        retrying={query.isFetching || match.isFetching}
+                      />
+                    ) : (
+                      <ReadFeedback query={query} />
+                    )}
                   </ScreenState>
                 ) : (
                   <>

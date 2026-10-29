@@ -278,5 +278,6 @@ export function useOwnContributions(matchId: string) {
     canRetain,
     refresh,
     reread,
+    refuseAccess,
   };
 }
