@@ -621,8 +621,8 @@ it("keeps match identities and independent missing sections without a zero score
   });
   expect(screen.getByText("Heure à définir")).toBeOnTheScreen();
   expect(screen.getByText("À venir")).toBeOnTheScreen();
-  expect(screen.getByLabelText("Lieu : Non renseigné")).toBeOnTheScreen();
-  expect(screen.getByLabelText("Arbitres : Non renseignés")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Lieu : -")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Arbitres : -")).toBeOnTheScreen();
   expect(screen.queryByText("0")).not.toBeOnTheScreen();
 });
 
@@ -682,7 +682,7 @@ it.each(["provisional", "unconfirmed", "final"] as const)(
     expect(score).toHaveTextContent("0");
     expect(
       screen.getByLabelText("Score extérieur : indisponible"),
-    ).toHaveTextContent("—");
+    ).toHaveTextContent("-");
     expect(screen.getByText("Forfait extérieur")).toBeOnTheScreen();
     expect(
       screen.getByText(

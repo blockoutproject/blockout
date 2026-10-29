@@ -1,3 +1,4 @@
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { SportingSupportAction } from "../components/sporting-actions";
 import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
@@ -136,7 +137,7 @@ function PoolPage({
                   </ScreenState>
                 </PagedStateScrollView>
               ) : (
-                <TabScrollView alwaysBounceVertical>
+                <TabScrollView {...hiddenScrollIndicators} alwaysBounceVertical>
                   <PageContent>
                     {data &&
                       (value === "standings"

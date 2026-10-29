@@ -1,3 +1,4 @@
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { AccessFeedback } from "../../access/components/access-feedback";
 import { PageHeader } from "../../../shared/components/page-header";
@@ -83,6 +84,7 @@ export function DivisionsScreen() {
           ) : (
             <>
               <Animated.FlatList
+                {...hiddenScrollIndicators}
                 onScroll={onScroll}
                 scrollEventThrottle={16}
                 scrollIndicatorInsets={{ top: headerHeight }}

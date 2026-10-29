@@ -1,3 +1,4 @@
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { useQuery } from "@tanstack/react-query";
 import { useSportingNavigation } from "../navigation";
 import { Columns3, List } from "lucide-react-native";
@@ -95,6 +96,7 @@ export function PoolStandings({
     );
   return (
     <TabScrollView
+      {...hiddenScrollIndicators}
       alwaysBounceVertical
       contentContainerStyle={styles.scrollContent}
       refreshControl={refreshControl}

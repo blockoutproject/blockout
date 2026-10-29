@@ -1,3 +1,4 @@
+import { hiddenScrollIndicators } from "../native/scroll-indicators";
 import { X } from "lucide-react-native";
 import type { PropsWithChildren } from "react";
 import {
@@ -81,6 +82,7 @@ export function Sheet({
 
   return (
     <ScrollView
+      {...hiddenScrollIndicators}
       style={[
         styles.screen,
         { backgroundColor: colors.surface },

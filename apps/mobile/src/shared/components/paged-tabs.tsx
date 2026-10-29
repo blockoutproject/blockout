@@ -1,3 +1,4 @@
+import { hiddenScrollIndicators } from "../native/scroll-indicators";
 import { BlurTargetView } from "expo-blur";
 import {
   cloneElement,
@@ -49,6 +50,7 @@ import {
 
 /** RNCT owns offsets and measured header padding; native lists must not compensate that padding with a second scroll. */
 export const pagedListDefaults = {
+  ...hiddenScrollIndicators,
   maintainVisibleContentPosition: false,
 } as const;
 
@@ -89,6 +91,7 @@ export function PagedStateScrollView({
   )
     return (
       <TabScrollView
+        {...hiddenScrollIndicators}
         contentContainerStyle={styles.stateContent}
         alwaysBounceVertical={!!refreshControl}
         refreshControl={refresh}
@@ -99,6 +102,7 @@ export function PagedStateScrollView({
     );
   return (
     <Animated.ScrollView
+      {...hiddenScrollIndicators}
       contentContainerStyle={styles.stateContent}
       scrollIndicatorInsets={{ top: paddingTop }}
       alwaysBounceVertical={!!refreshControl}

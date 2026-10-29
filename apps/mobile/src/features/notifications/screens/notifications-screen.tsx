@@ -1,3 +1,4 @@
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import {
   useInfiniteQuery,
   useMutation,
@@ -93,6 +94,7 @@ function Inbox({
   const { colors } = useTheme();
   // Cached rows also pass the opening cutoff before the first render; the ordinary layout owns active/resume cleanup.
   const [openedAt] = useState(Date.now);
+  const [pulling, setPulling] = useState(false);
   const rows = [
     ...new Map(
       (query.data?.pages ?? [])
@@ -127,6 +129,15 @@ function Inbox({
       )
     )
       feedback.error();
+  }
+  /** Only an explicit native pull controls the spinner; focus reads never displace the list. */
+  async function pullToRefresh() {
+    setPulling(true);
+    try {
+      await refresh();
+    } finally {
+      setPulling(false);
+    }
   }
   /** The focused current owner may retry the failed cursor explicitly; native edge events never replay it. */
   async function loadMore() {
@@ -165,6 +176,7 @@ function Inbox({
       >
         {({ onScroll, headerHeight }) => (
           <Animated.FlatList
+            {...hiddenScrollIndicators}
             onScroll={onScroll}
             scrollEventThrottle={16}
             scrollIndicatorInsets={{ top: headerHeight }}
@@ -187,8 +199,8 @@ function Inbox({
               query.data ? (
                 <DataRefreshControl
                   progressViewOffset={headerHeight}
-                  refreshing={query.isRefetching && !query.isFetchingNextPage}
-                  onRefresh={() => void refresh()}
+                  refreshing={pulling}
+                  onRefresh={() => void pullToRefresh()}
                 />
               ) : undefined
             }

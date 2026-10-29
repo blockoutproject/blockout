@@ -1,3 +1,4 @@
+import { hiddenScrollIndicators } from "../native/scroll-indicators";
 import type { PropsWithChildren, Ref } from "react";
 import {
   StyleSheet,
@@ -98,6 +99,7 @@ export function PageScrollView({
     <Animated.ScrollView
       alwaysBounceVertical={!!props.refreshControl}
       {...props}
+      {...hiddenScrollIndicators}
       contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
     >
       {children}

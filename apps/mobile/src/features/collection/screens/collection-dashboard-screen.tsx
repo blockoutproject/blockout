@@ -1,3 +1,4 @@
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { SeasonIdentity, seasonStatus } from "../components/source-summary";
 import { PreparationLink } from "../components/preparation-link";
@@ -486,6 +487,7 @@ function ControlDashboard({
             </PageScrollView>
           ) : (
             <Animated.FlatList
+              {...hiddenScrollIndicators}
               testID="collection-results-list"
               onScroll={onScroll}
               scrollEventThrottle={16}

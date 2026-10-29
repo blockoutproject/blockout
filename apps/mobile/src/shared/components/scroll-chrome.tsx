@@ -5,6 +5,7 @@ import {
   useAnimatedScrollHandler,
   useSharedValue,
   type ScrollHandlerProcessed,
+  type SharedValue,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { tokens } from "../theme/tokens";
@@ -18,7 +19,7 @@ export interface ScrollChromeContentProps {
 
 /** Fixed chrome owns its top inset and minimum clearance; callers retain scrolling, data, keyboard and refresh. */
 export interface ScrollChromeProps {
-  header: ReactNode;
+  header: ReactNode | ((scrollY: SharedValue<number>) => ReactNode);
   children: (props: ScrollChromeContentProps) => ReactNode;
 }
 
@@ -59,7 +60,7 @@ export function ScrollChrome({ header, children }: ScrollChromeProps) {
           scrollY={scrollY}
           height={headerHeight}
         />
-        {header}
+        {typeof header === "function" ? header(scrollY) : header}
       </View>
     </View>
   );

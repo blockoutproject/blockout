@@ -20,6 +20,8 @@ import {
   SportingSupportAction,
   useMatchContributionAction,
 } from "../components/sporting-actions";
+import { tokens } from "../../../shared/theme/tokens";
+import { MatchCompactHeader } from "../components/match-compact-header";
 import { MatchSummary } from "../components/match-summary";
 import { MatchSetScores } from "../components/match-set-scores";
 import { MatchInformation } from "../components/match-information";
@@ -33,6 +35,7 @@ export interface MatchScreenProps {
 
 /** Presents independent accepted match facts; a missing secondary section never replaces another. */
 export function MatchScreen({ matchId }: MatchScreenProps) {
+  const [teamsTop, setTeamsTop] = useState<number>();
   const [presentation, setPresentation] = useState(() => ({
     timeZone: currentSportingTimeZone(),
   }));
@@ -68,12 +71,28 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
   return (
     <Page edges={["left", "right", "bottom"]}>
       <ScrollChrome
-        header={
-          <PageHeader
-            action={
-              <SportingSupportAction target={{ type: "match", id: matchId }} />
-            }
-          />
+        header={(scrollY) =>
+          data ? (
+            <MatchCompactHeader
+              match={data.match}
+              scrollY={scrollY}
+              teamsTop={teamsTop}
+              displayTimeZone={presentation.timeZone}
+              action={
+                <SportingSupportAction
+                  target={{ type: "match", id: matchId }}
+                />
+              }
+            />
+          ) : (
+            <PageHeader
+              action={
+                <SportingSupportAction
+                  target={{ type: "match", id: matchId }}
+                />
+              }
+            />
+          )
         }
       >
         {({ onScroll, headerHeight }) => (
@@ -100,6 +119,11 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
                   <>
                     <MatchSummary
                       match={data.match}
+                      onTeamsLayout={({ nativeEvent }) =>
+                        setTeamsTop(
+                          tokens.layout.content.start + nativeEvent.layout.y,
+                        )
+                      }
                       displayTimeZone={presentation.timeZone}
                     />
                     <MatchContributionAction

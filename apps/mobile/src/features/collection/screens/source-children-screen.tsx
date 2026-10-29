@@ -1,3 +1,4 @@
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { Page, pageContentStyle } from "../../../shared/components/page";
 import { PreparationLink } from "../components/preparation-link";
@@ -75,6 +76,7 @@ export function SourceChildrenScreen({
       <ScrollChrome header={<PageHeader title="Groupes découverts" />}>
         {({ onScroll, headerHeight }) => (
           <Animated.FlatList
+            {...hiddenScrollIndicators}
             testID="collection-source-children-list"
             onScroll={onScroll}
             scrollEventThrottle={16}
