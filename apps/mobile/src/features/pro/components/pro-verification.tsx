@@ -50,6 +50,12 @@ export function ProVerification({ onSupport }: ProVerificationProps) {
         : "Le résultat de l’achat est incertain. Vérifiez vos droits sans acheter à nouveau.";
   return (
     <View style={styles.feedback}>
+      <Text
+        accessibilityRole="header"
+        style={[tokens.typography.label, { color: colors.secondaryText }]}
+      >
+        Vérification de Blockout Pro
+      </Text>
       {waiting ? (
         <RequestLoading />
       ) : uncertain ? (

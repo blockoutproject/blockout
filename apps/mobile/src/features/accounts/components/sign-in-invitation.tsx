@@ -1,5 +1,6 @@
 import { Image } from "expo-image";
 import { ChevronRight } from "lucide-react-native";
+import type { ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Button } from "../../../shared/components/button";
 import { Sheet } from "../../../shared/components/sheet";
@@ -11,11 +12,19 @@ const heroHeight = 184;
 const letteringAspectRatio = 343 / 176.42;
 const gradient = `<svg xmlns="http://www.w3.org/2000/svg" width="343" height="210.373" viewBox="0 0 343 210.373"><defs><linearGradient id="g" x1="27.5944" y1="0" x2="173.459" y2="283.426" gradientUnits="userSpaceOnUse"><stop stop-color="#404040"/><stop offset=".7" stop-color="#171717"/><stop offset="1" stop-color="#737373"/></linearGradient></defs><rect width="343" height="210.373" fill="url(#g)"/></svg>`;
 
-/** Contextual invitation only; callers close it or navigate to ordinary F05 sign-in without replaying an action. */
-export interface SignInInvitationProps {
+/** Shared invitation artwork and action; optional content adds benefits between the message and sign-in. */
+export interface SignInInvitationCardProps {
   message: string;
-  onClose(): void;
   onSignIn(): void;
+  children?: ReactNode;
+}
+
+/** Contextual sheet only; callers dismiss or navigate to F05 sign-in without replaying an action. */
+export interface SignInInvitationProps extends Omit<
+  SignInInvitationCardProps,
+  "children"
+> {
+  onClose(): void;
 }
 
 /** Fits the compact guest invitation and its ordinary sign-in action in a native sheet without scrolling. */
@@ -24,58 +33,70 @@ export function SignInInvitation({
   onClose,
   onSignIn,
 }: SignInInvitationProps) {
-  const { colors } = useTheme();
   return (
     <Sheet title="Connexion" onClose={onClose} scrollable={false}>
+      <SignInInvitationCard message={message} onSignIn={onSignIn} />
+    </Sheet>
+  );
+}
+
+/** Renders the approved guest card without imposing a modal, navigation or session owner. */
+export function SignInInvitationCard({
+  message,
+  onSignIn,
+  children,
+}: SignInInvitationCardProps) {
+  const { colors } = useTheme();
+  return (
+    <View
+      style={[
+        styles.card,
+        { borderColor: colors.border, backgroundColor: colors.raised },
+      ]}
+    >
       <View
-        style={[
-          styles.card,
-          { borderColor: colors.border, backgroundColor: colors.raised },
-        ]}
+        accessible={false}
+        importantForAccessibility="no-hide-descendants"
+        style={styles.hero}
       >
-        <View
-          accessible={false}
-          importantForAccessibility="no-hide-descendants"
-          style={styles.hero}
-        >
-          <Image
-            source={{ uri: `data:image/svg+xml;base64,${btoa(gradient)}` }}
-            style={StyleSheet.absoluteFill}
-            contentFit="fill"
-          />
-          <View style={styles.illustration}>
-            <View style={styles.scene}>
-              <Image
-                source={require("../../../../assets/accounts/invitation-block.svg")}
-                style={styles.block}
-                contentFit="contain"
-              />
-              <Image
-                source={require("../../../../assets/accounts/invitation-out.svg")}
-                style={styles.out}
-                contentFit="contain"
-              />
-              <Image
-                source={require("../../../../assets/accounts/athlete.png")}
-                style={styles.athlete}
-                contentFit="cover"
-              />
-            </View>
+        <Image
+          source={{ uri: `data:image/svg+xml;base64,${btoa(gradient)}` }}
+          style={StyleSheet.absoluteFill}
+          contentFit="fill"
+        />
+        <View style={styles.illustration}>
+          <View style={styles.scene}>
+            <Image
+              source={require("../../../../assets/accounts/invitation-block.svg")}
+              style={styles.block}
+              contentFit="contain"
+            />
+            <Image
+              source={require("../../../../assets/accounts/invitation-out.svg")}
+              style={styles.out}
+              contentFit="contain"
+            />
+            <Image
+              source={require("../../../../assets/accounts/athlete.png")}
+              style={styles.athlete}
+              contentFit="cover"
+            />
           </View>
         </View>
-        <View style={styles.content}>
-          <Text style={[tokens.typography.strong, { color: colors.text }]}>
-            {message}
-          </Text>
-          <Button
-            label="Se connecter"
-            fullWidth
-            trailingIcon={ChevronRight}
-            onPress={onSignIn}
-          />
-        </View>
       </View>
-    </Sheet>
+      <View style={styles.content}>
+        <Text style={[tokens.typography.strong, { color: colors.text }]}>
+          {message}
+        </Text>
+        {children}
+        <Button
+          label="Se connecter"
+          fullWidth
+          trailingIcon={ChevronRight}
+          onPress={onSignIn}
+        />
+      </View>
+    </View>
   );
 }
 

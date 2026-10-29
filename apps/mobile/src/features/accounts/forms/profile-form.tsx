@@ -34,17 +34,18 @@ export interface ProfileFormProps {
   account: AccountResponse;
   /** Keeps the local draft visible while the current account read cannot authorize personal edits. */
   disabled: boolean;
-  /** The screen keeps this operation alive while session removal disposes the private form. */
-  onContinueAsGuest: () => Promise<void>;
-  leaving: boolean;
+  /** Ordinary route departure; the shared dirty-form guard owns cancellation confirmation. */
+  onCancel: () => void;
+  /** Called only after a current acknowledged save resets the draft. */
+  onSaved: () => void;
 }
 
 /** Keeps drafts through refetch/refusal and requires original-target reconciliation before an explicit uncertain retry. */
 export function ProfileForm({
   account,
   disabled,
-  onContinueAsGuest,
-  leaving,
+  onCancel,
+  onSaved,
 }: ProfileFormProps) {
   const session = useAccountSession();
   const feedback = useActionFeedback();
@@ -90,7 +91,7 @@ export function ProfileForm({
       },
     });
   const { isDirty, dirtyFields } = useFormState({ control });
-  const confirmDiscard = useDiscardChanges(isDirty, () => {
+  useDiscardChanges(isDirty, () => {
     const photo = getValues("photo");
     reset(profileValues(account), {
       keepDirtyValues: false,
@@ -176,12 +177,14 @@ export function ProfileForm({
     uploading.current = file;
     try {
       const accepted = await attempt;
-      if (active.current && session.isCurrent(session.generation))
+      if (active.current && session.isCurrent(session.generation)) {
         reset(profileValues(accepted), {
           keepDirtyValues: false,
           keepDirty: false,
           keepErrors: false,
         });
+        onSaved();
+      }
     } catch (error) {
       if (!active.current || !session.isCurrent(session.generation)) return;
       if (
@@ -215,7 +218,10 @@ export function ProfileForm({
   return (
     <View style={styles.form}>
       <Surface>
-        <View style={styles.form}>
+        <View style={styles.photo}>
+          <Text style={[tokens.typography.title, { color: colors.text }]}>
+            Photo de profil
+          </Text>
           {draft.action === "keep" && account.hasPhoto && photo.isLoading && (
             <RequestLoading />
           )}
@@ -233,7 +239,6 @@ export function ProfileForm({
             name="photo"
             render={({ fieldState }) => (
               <ImageField
-                label="Photo de profil"
                 images={images}
                 selection={selection}
                 placeholderIcon={UserRound}
@@ -302,28 +307,22 @@ export function ProfileForm({
       )}
       <Button
         label="Enregistrer"
+        fullWidth
         onPress={() => void handleSubmit(submit)()}
         disabled={disabled || busy || needsRead}
         loading={save.executing}
       />
       <Button
-        label="Continuer en tant qu’invité"
+        label="Annuler"
         variant="secondary"
+        fullWidth
         disabled={busy}
-        loading={leaving}
-        onPress={async () => {
-          if (
-            !(await confirmDiscard()) ||
-            !active.current ||
-            !session.isCurrent(session.generation)
-          )
-            return;
-          await onContinueAsGuest();
-        }}
+        onPress={onCancel}
       />
     </View>
   );
 }
 const styles = StyleSheet.create({
   form: { gap: tokens.layout.form.gap },
+  photo: { gap: tokens.spacing.md },
 });

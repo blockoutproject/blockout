@@ -1,4 +1,3 @@
-import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
 import { accountResponse } from "../test-support/account-response";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
@@ -19,12 +18,12 @@ import { File } from "expo-file-system";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { Alert, Pressable, Text } from "react-native";
+import { Pressable, Text } from "react-native";
 import {
   AccountSessionProvider,
   useAccountSession,
 } from "../session/account-session-provider";
-import { ProfileScreen } from "../screens/profile-screen";
+import { ProfileEditScreen } from "../screens/profile-edit-screen";
 import { useCurrentAccount } from "../api/use-current-account";
 import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
 
@@ -46,7 +45,12 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   usePreventRemove: jest.fn(),
-  useRouter: () => ({ replace: jest.fn() }),
+  useNavigation: () => ({ goBack: mockNavigate }),
+  useRouter: () => ({
+    replace: jest.fn(),
+    back: mockNavigate,
+    canGoBack: () => true,
+  }),
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, request?: RequestInit) =>
@@ -85,6 +89,7 @@ const mockFile = Object.assign(new Blob([png], { type: "image/png" }), {
   exists: true,
   delete: jest.fn(),
 });
+const mockNavigate = jest.fn();
 const mockFetch = jest.fn<
   Promise<Response>,
   [RequestInfo | URL, RequestInit?]
@@ -111,6 +116,7 @@ beforeEach(() => {
           : mockFile) as unknown as File,
     );
   client = createQueryClient();
+  mockNavigate.mockReset();
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
@@ -141,7 +147,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Real account/form owners with controlled I/O; the unrelated F09 composition is explicitly omitted. */
+/** Real account/form owners with controlled I/O; navigation intent is observed without unmounting the editor. */
 async function mountProfile() {
   await render(
     <QueryClientProvider client={client}>
@@ -149,7 +155,7 @@ async function mountProfile() {
         <ApplicationAccessProvider>
           <AccountSessionProvider>
             <AccountFeedbackProvider>
-              <ProfileScreen admitted proEntry={null} privacyEntry={null} />
+              <ProfileEditScreen admitted />
               <SessionActions />
             </AccountFeedbackProvider>
           </AccountSessionProvider>
@@ -200,49 +206,6 @@ function json(value: unknown, status = 200) {
     },
   });
 }
-
-it("keeps the profile draft and session until departure is explicitly confirmed", async () => {
-  // Given
-  jest.spyOn(Alert, "alert").mockImplementation(() => {});
-  const user = userEvent.setup();
-  await mountProfile();
-  await screen.findByDisplayValue("Original");
-  await user.clear(screen.getByLabelText("Pseudo"));
-  await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
-
-  // When
-  await user.press(
-    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-  );
-
-  // Then
-  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
-  expect(screen.getByDisplayValue("Unsaved")).toBeOnTheScreen();
-  const choices = jest.mocked(Alert.alert).mock.lastCall?.[2];
-  expect(choices?.map(({ text }) => text)).toEqual([
-    "Continuer la saisie",
-    "Abandonner",
-  ]);
-
-  // When
-  await act(() => nativeAlertAction("Continuer la saisie")());
-
-  // Then
-  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
-  expect(screen.getByDisplayValue("Unsaved")).toBeOnTheScreen();
-
-  // When
-  await user.press(
-    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-  );
-  await act(() => nativeAlertAction("Abandonner")());
-
-  // Then
-  await waitFor(() =>
-    expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1),
-  );
-  expect(screen.queryByDisplayValue("Unsaved")).not.toBeOnTheScreen();
-});
 
 it("refreshes the profile without changing a dirty draft or replaying a save", async () => {
   // Given
@@ -371,9 +334,7 @@ it.each([401, 403])(
     ).toBeOnTheScreen();
     expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
     expect(screen.queryByLabelText("Pseudo")).toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Retour" })).toBeEnabled();
   },
 );
 
@@ -397,9 +358,7 @@ it("keeps a refused profile draft read-only through a failed recheck until a suc
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Unsaved")).toBeDisabled();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-  expect(
-    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-  ).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Annuler" })).toBeEnabled();
   expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
 
   // When
@@ -517,67 +476,42 @@ it("keeps the first photo read separate from native refresh progress", async () 
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 });
 
-it("preserves the active save and suspends refresh and guest departure", async () => {
+it("preserves the active save and suspends refresh and cancellation", async () => {
   // Given
-  jest.spyOn(Alert, "alert").mockImplementation(() => {});
   const user = userEvent.setup();
   await mountProfile();
   await screen.findByDisplayValue("Original");
   await user.clear(screen.getByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "Chosen");
-  mockFetch.mockImplementation(async () =>
-    json({ ...account, email: "updated@example.invalid" }),
-  );
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  await screen.findByDisplayValue("updated@example.invalid");
-  await user.press(
-    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-  );
-  await act(() => nativeAlertAction("Continuer la saisie")());
   const save = Promise.withResolvers<Response>();
   mockFetch.mockClear().mockReturnValue(save.promise);
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Annuler" }));
 
   // Then
   expect(
     screen.getByRole("button", { name: "Enregistrer", busy: true }),
   ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Annuler" })).toBeDisabled();
   expect(screen.getByDisplayValue("Chosen")).toBeOnTheScreen();
-  expect(mockFetch).toHaveBeenCalledTimes(1);
-  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
   expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
+  expect(mockNavigate).not.toHaveBeenCalled();
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
 
   // When
   await act(() => save.resolve(json({ ...account, username: "Chosen" })));
 
   // Then
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
-  );
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1));
   expect(screen.getByDisplayValue("Chosen")).toBeOnTheScreen();
   expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
-
-  // When
-  await user.press(
-    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-  );
-
-  // Then: accepted values cleared the draft, so leaving does not ask to discard them.
-  await waitFor(() =>
-    expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1),
-  );
-  expect(Alert.alert).toHaveBeenCalledTimes(1);
 });
 
-it("uses the accepted profile result and clears the draft before guest departure", async () => {
+it("uses the accepted profile result before returning from the editor", async () => {
   // Given
-  jest.spyOn(Alert, "alert").mockImplementation(() => {});
   const user = userEvent.setup();
   await mountProfile();
   await screen.findByDisplayValue("Original");
@@ -591,17 +525,8 @@ it("uses the accepted profile result and clears the draft before guest departure
   // Then
   expect(await screen.findByDisplayValue("Accepted")).toBeOnTheScreen();
   expect(screen.queryByDisplayValue("Entered")).not.toBeOnTheScreen();
-
-  // When
-  await user.press(
-    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-  );
-
-  // Then: an accepted form is clean, so departure needs no discard confirmation.
-  await waitFor(() =>
-    expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1),
-  );
-  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(mockNavigate).toHaveBeenCalledTimes(1);
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
 });
 
 it.each(["keep", "replace"] as const)(
@@ -915,6 +840,7 @@ it("rereads only the original account after an uncertain save and requires expli
     mockFetch.mock.calls.filter(([, request]) => request?.method === "PATCH"),
   ).toHaveLength(1);
   expect(screen.queryByText("Profil enregistré.")).not.toBeOnTheScreen();
+  expect(mockNavigate).not.toHaveBeenCalled();
 });
 
 it("does not replay while the original account reread is unavailable", async () => {
@@ -1132,6 +1058,7 @@ it.each(["preparation", "save"])(
       screen.queryByRole("button", { name: "Aperçu : Photo de profil" }),
     ).not.toBeOnTheScreen();
     expect(screen.queryByText("Profil enregistré.")).not.toBeOnTheScreen();
+    expect(mockNavigate).not.toHaveBeenCalled();
     if (operation === "preparation")
       expect(mockFile.delete).toHaveBeenCalledTimes(1);
   },
@@ -1352,4 +1279,5 @@ it("keeps a sent profile file until its upload settles after sign-out", async ()
   // Then
   await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
   expect(screen.queryByText("Profil enregistré.")).not.toBeOnTheScreen();
+  expect(mockNavigate).not.toHaveBeenCalled();
 });

@@ -1,8 +1,9 @@
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useRef } from "react";
-import { Text } from "react-native";
+import { useCallback, useRef, type ReactNode } from "react";
+import { StyleSheet, Text } from "react-native";
 import { Button } from "../../../shared/components/button";
+import { Surface } from "../../../shared/components/surface";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -14,8 +15,13 @@ import { useProOffering } from "../api/use-pro-offering";
 import { ProEntry } from "./pro-entry";
 import { ProVerification } from "./pro-verification";
 
-/** Profile entry and app-owned operation feedback; all purchase/management content stays native. */
-export function ProProfileEntry() {
+/** Independent account entries follow Pro inside the shared surface, outside Pro's recovery admission. */
+export interface ProProfileEntryProps {
+  children?: ReactNode;
+}
+
+/** Groups profile entries before Pro-only operation feedback; purchase/management content stays native. */
+export function ProProfileEntry({ children }: ProProfileEntryProps = {}) {
   const router = useRouter();
   const account = useAccountSession();
   const { state } = usePro();
@@ -79,10 +85,13 @@ export function ProProfileEntry() {
 
   return (
     <>
-      <ProEntry
-        opening={offering.isFetching}
-        onOpenPresentation={() => void open()}
-      />
+      <Surface style={styles.entries}>
+        <ProEntry
+          opening={offering.isFetching}
+          onOpenPresentation={() => void open()}
+        />
+        {children}
+      </Surface>
       {connected && (
         <>
           <ProVerification />
@@ -137,3 +146,7 @@ export function ProProfileEntry() {
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  entries: { padding: tokens.spacing.md, gap: 0 },
+});

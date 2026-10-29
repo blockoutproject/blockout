@@ -346,7 +346,7 @@ it("never bootstraps an absent account during restoration or a profile read retr
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
 });
 
-it("renders the local editable profile after ordinary restoration", async () => {
+it("renders the local profile overview after ordinary restoration", async () => {
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   mockFetch.mockImplementation(async () => json(account));
@@ -357,11 +357,12 @@ it("renders the local editable profile after ordinary restoration", async () => 
   );
 
   // Then
-  expect(await screen.findByDisplayValue("Player_169")).toBeOnTheScreen();
-  expect(screen.getByDisplayValue("shared@example.invalid")).toBeOnTheScreen();
+  expect(await screen.findByText("Player_169")).toBeOnTheScreen();
+  expect(screen.getByText("shared@example.invalid")).toBeOnTheScreen();
   expect(
-    screen.getByRole("button", { name: "Choisir une photo de profil" }),
+    screen.getByRole("button", { name: "Modifier mon profil" }),
   ).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
   ).toBe(true);
@@ -387,11 +388,16 @@ it.each(["sign-in", "profile"])(
     expect(
       await screen.findByText(`Current account: ${account.accountId}`),
     ).toBeOnTheScreen();
-    if (entry === "profile") await screen.findByDisplayValue(account.username);
+    if (entry === "profile") await screen.findByText(account.username);
 
     // When
     await user.press(
-      screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
+      screen.getByRole("button", {
+        name:
+          entry === "profile"
+            ? "Se déconnecter"
+            : "Continuer en tant qu’invité",
+      }),
     );
 
     // Then
@@ -434,11 +440,16 @@ it.each(["sign-in", "profile"])(
     expect(
       await screen.findByText(`Current account: ${account.accountId}`),
     ).toBeOnTheScreen();
-    if (entry === "profile") await screen.findByDisplayValue(account.username);
+    if (entry === "profile") await screen.findByText(account.username);
 
     // When
     await user.press(
-      screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
+      screen.getByRole("button", {
+        name:
+          entry === "profile"
+            ? "Se déconnecter"
+            : "Continuer en tant qu’invité",
+      }),
     );
 
     // Then
@@ -470,7 +481,10 @@ it.each(["sign-in", "profile"])(
     );
     await user.press(
       await screen.findByRole("button", {
-        name: "Continuer en tant qu’invité",
+        name:
+          entry === "profile"
+            ? "Se déconnecter"
+            : "Continuer en tant qu’invité",
       }),
     );
 

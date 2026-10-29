@@ -506,13 +506,13 @@ it("inserts the administration entry without replacing the current profile or it
   expect(
     await screen.findByRole("link", { name: "Administration technique" }),
   ).toBeOnTheScreen();
-  expect(screen.getByDisplayValue(account.username)).toBeOnTheScreen();
-  expect(screen.getByDisplayValue(account.email)).toBeOnTheScreen();
+  expect(screen.getByText(account.username)).toBeOnTheScreen();
+  expect(screen.getByText(account.email)).toBeOnTheScreen();
   expect(
-    screen.getByRole("link", { name: "Confidentialité" }),
+    screen.getByRole("link", { name: "Politique de confidentialité" }),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
+    screen.getByRole("button", { name: "Se déconnecter" }),
   ).toBeOnTheScreen();
 });
 
