@@ -66,13 +66,17 @@ export async function withdrawUnavailableFollowLists(
       (key.at(-1) as { seasonId?: string }).seasonId;
     const filters = {
       queryKey,
-      predicate: (query: { queryKey: readonly unknown[]; queryHash: string }) =>
-        (currentKey === undefined || query.queryHash !== hashKey(currentKey)) &&
-        (seasonId === undefined ||
-          selectedSeason(query.queryKey) === undefined ||
-          selectedSeason(query.queryKey) === seasonId),
+      predicate: (query: { queryKey: readonly unknown[] }) =>
+        seasonId === undefined ||
+        selectedSeason(query.queryKey) === undefined ||
+        selectedSeason(query.queryKey) === seasonId,
     };
-    await client.cancelQueries(filters);
+    await client.cancelQueries({
+      ...filters,
+      predicate: (query) =>
+        filters.predicate(query) &&
+        (currentKey === undefined || query.queryHash !== hashKey(currentKey)),
+    });
     for (const query of client.getQueryCache().findAll(filters)) {
       const data = client.getQueryData<InfiniteData<FollowListPage>>(
         query.queryKey,

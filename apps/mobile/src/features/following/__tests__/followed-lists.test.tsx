@@ -508,6 +508,14 @@ it("withdraws a confirmed missing season from retained All-seasons lists before 
   // Then
   expect(selectSeason).toHaveBeenCalledWith(undefined);
   expect(itemsAtFallback).toEqual([[historicalTeam], [historicalPool]]);
+  expect(client.getQueryData(selected.queryKey)?.pages[0].items).toEqual([]);
+  const reopened = new InfiniteQueryObserver(client, {
+    ...selected,
+    enabled: (query) => query.state.status !== "error",
+  });
+  const close = reopened.subscribe(() => {});
+  expect(reopened.getCurrentResult().data?.pages[0].items).toEqual([]);
+  close();
   expect(client.getQueryData(allTeams.queryKey)?.pages[0]).toEqual({
     items: [historicalTeam],
     nextPage: 1,
@@ -525,6 +533,48 @@ it("withdraws a confirmed missing season from retained All-seasons lists before 
     historicalPool,
   ]);
   expect(mockFetch).toHaveBeenCalledTimes(2);
+});
+
+it("withdraws the source calendar when a seasonal NotFound establishes disappearance", async () => {
+  // Given
+  const calendar = createPersonalCalendarOptions(
+    owner,
+    request,
+    { seasonId: season.id, category: "upcoming", timeZone: "Europe/Paris" },
+    read,
+  );
+  const match = matchDetail().match;
+  mockFetch.mockResolvedValueOnce(
+    Response.json({
+      hasAvailableFollows: true,
+      calendar: {
+        category: "upcoming",
+        timeZone: "Europe/Paris",
+        evaluatedAt: "2026-10-29T12:00:00Z",
+        days: [
+          {
+            date: "2026-10-30",
+            pools: [{ poolId: match.pool.pool.id, matches: [match] }],
+          },
+        ],
+      },
+    }),
+  );
+  await client.infiniteQuery(calendar);
+  mockFetch
+    .mockResolvedValueOnce(new Response(null, { status: 404 }))
+    .mockResolvedValueOnce(Response.json({ seasons: [] }));
+
+  // When
+  await expect(
+    client.infiniteQuery({ ...calendar, staleTime: 0, pages: 1 }),
+  ).rejects.toBeDefined();
+
+  // Then
+  expect(selectSeason).toHaveBeenCalledWith(undefined);
+  expect(
+    client.getQueryData(calendar.queryKey)?.pages[0].calendar.days,
+  ).toEqual([]);
 });
 
 it("rejects a late response from a retired account generation", async () => {

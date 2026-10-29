@@ -332,15 +332,19 @@ async function withdrawUnavailableFollows(
   function selectedSeason(key: QueryKey) {
     return (key.at(-1) as Omit<ListPersonalMatchesParams, "nextDay">).seasonId;
   }
-  const filters: QueryFilters = {
+  const filters = {
     queryKey,
     predicate: (query) =>
-      (currentKey === undefined || query.queryHash !== hashKey(currentKey)) &&
-      (seasonId === undefined ||
-        selectedSeason(query.queryKey) === undefined ||
-        selectedSeason(query.queryKey) === seasonId),
-  };
-  await client.cancelQueries(filters);
+      seasonId === undefined ||
+      selectedSeason(query.queryKey) === undefined ||
+      selectedSeason(query.queryKey) === seasonId,
+  } satisfies QueryFilters;
+  await client.cancelQueries({
+    ...filters,
+    predicate: (query) =>
+      filters.predicate(query) &&
+      (currentKey === undefined || query.queryHash !== hashKey(currentKey)),
+  });
   for (const query of client.getQueryCache().findAll(filters)) {
     const data = client.getQueryData<
       InfiniteData<PersonalMatchCalendarResponse>
