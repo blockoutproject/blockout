@@ -125,7 +125,12 @@ boundary with controlled native credentials and responses. It covers French stat
 exact confirmations, session departure, command exclusion, retained acknowledgements, current
 access refusal and native continuation beyond twenty historical moderator-created versions.
 The shared F13 continuation stops after error or outside active focus and exposes an explicit
-read retry. `contribution-navigation.test.tsx` also exercises the actual form-to-history routes:
+read retry. Native confirmations use the common single-dialog, single-settlement owner. A
+first-page refresh or reconciliation replaces the traversal only after success; failure retains
+all authorized pages. Refresh also rereads the displayed match context. Technical profile
+failure preserves the same account's history with commands unavailable; a current GET/PATCH
+401/403/404 removes refused data, including if the next read fails technically.
+`contribution-navigation.test.tsx` also exercises the actual form-to-history routes:
 an acknowledged submission followed by a failed read keeps its success and labels retained
 public information as last known, without claiming a new aggregate revision or inferring another
 version's decision. These tests do not execute native networking or assistive technologies.

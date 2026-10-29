@@ -28,6 +28,7 @@ import {
   useAccountSession,
 } from "../../accounts/session/account-session-provider";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
+import { useCurrentAccount } from "../../accounts/current-account";
 import { accountResponse } from "../../accounts/test-support/account-response";
 import {
   credentialsFor,
@@ -206,14 +207,24 @@ async function mount() {
 /** Uses the real original-session invalidation while an OS confirmation remains open. */
 function SessionExit() {
   const session = useAccountSession();
+  const profile = useCurrentAccount();
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Quitter la session"
-      onPress={() => void session.clearCredentials()}
-    >
-      <Text>Quitter</Text>
-    </Pressable>
+    <>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Actualiser le profil"
+        onPress={() => void profile.refetch()}
+      >
+        <Text>Profil</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Quitter la session"
+        onPress={() => void session.clearCredentials()}
+      >
+        <Text>Quitter</Text>
+      </Pressable>
+    </>
   );
 }
 it("explains active and pending coexistence and confirms exact cancellation with its quota consequence", async () => {
@@ -238,6 +249,7 @@ it("explains active and pending coexistence and confirms exact cancellation with
     "Annuler cette proposition ?",
     expect.stringContaining("aucun quota"),
     expect.any(Array),
+    expect.any(Object),
   );
   expect(await screen.findByText("Proposition annulée")).toBeOnTheScreen();
   expect(screen.getByText("Votre lien public")).toBeOnTheScreen();
@@ -666,5 +678,247 @@ it.each(["unfocused", "background"])(
 
     // Then
     expect(pages).toEqual([0]);
+  },
+);
+
+it("refreshes recovered match context together with the private history", async () => {
+  // Given
+  const boundary = mockFetch.getMockImplementation();
+  if (!boundary) throw new Error("Missing test HTTP boundary");
+  let unavailable = true;
+  mockFetch.mockImplementation((url, init) => {
+    if (String(url).endsWith(`/matches/${match.match.id}`) && unavailable)
+      throw new TypeError("Controlled match read failure");
+    return boundary(url, init);
+  });
+  const user = userEvent.setup();
+  await mount();
+  await screen.findByText("Votre lien public");
+  expect(screen.queryByText("Home")).not.toBeOnTheScreen();
+
+  // When
+  unavailable = false;
+  await user.pullToRefresh(
+    screen.getByLabelText("Historique de mes contributions"),
+  );
+
+  // Then
+  expect(await screen.findByText("Home")).toBeOnTheScreen();
+});
+
+it("opens only one native confirmation and settles its saved callback once", async () => {
+  // Given
+  const user = userEvent.setup();
+  await mount();
+
+  // When
+  await user.press(
+    await screen.findByRole("button", { name: "Annuler la proposition" }),
+  );
+  await user.press(screen.getByRole("button", { name: "Retirer" }));
+
+  // Then
+  expect(alert).toHaveBeenCalledTimes(1);
+
+  // When: the same native callback arrives again after its command completed.
+  const accept = alert.mock.calls[0]?.[2]?.find(
+    (button: { style?: string }) => button.style === "destructive",
+  )?.onPress;
+  await act(async () => {
+    accept?.();
+  });
+  await screen.findByText("Proposition annulée");
+  await act(async () => {
+    accept?.();
+  });
+
+  // Then
+  expect(patches).toHaveLength(1);
+  expect(screen.getByText("Votre lien public")).toBeOnTheScreen();
+});
+
+it.each(["refresh", "reconcile", "acknowledgement"])(
+  "retains all authorized history pages when %s cannot read the first page",
+  async (operation) => {
+    // Given: extra historical versions were moderator-created and ordinary usage stays unchanged.
+    rows = Array.from({ length: 21 }, (_, index) =>
+      version(index + 1, index === 0 ? "pending" : "replaced"),
+    );
+    const boundary = mockFetch.getMockImplementation();
+    if (!boundary) throw new Error("Missing test HTTP boundary");
+    mockFetch.mockImplementation(async (url, init) => {
+      if (init?.method === "PATCH" && operation === "reconcile")
+        return Response.json({ status: 409 }, { status: 409 });
+      return boundary(url, init);
+    });
+    const user = userEvent.setup();
+    await mount();
+    await screen.findByText("https://youtu.be/history-1");
+    await fireEvent(
+      screen.getByLabelText("Historique de mes contributions"),
+      "endReached",
+    );
+    await waitFor(() => expect(pages).toEqual([0, 1]));
+    failRead = true;
+
+    // When
+    if (operation === "refresh")
+      await user.pullToRefresh(
+        screen.getByLabelText("Historique de mes contributions"),
+      );
+    else {
+      await user.press(
+        screen.getByRole("button", { name: "Annuler la proposition" }),
+      );
+      await act(async () => {
+        alert.mock.calls
+          .at(-1)?.[2]
+          ?.find((button: { style?: string }) => button.style === "destructive")
+          ?.onPress?.();
+      });
+    }
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    await user.scrollTo(
+      screen.getByLabelText("Historique de mes contributions"),
+      {
+        y: 9000,
+        contentSize: { width: 400, height: 10000 },
+        layoutMeasurement: { width: 400, height: 800 },
+      },
+    );
+
+    // Then
+    expect(
+      await screen.findByText("https://youtu.be/history-21"),
+    ).toBeOnTheScreen();
+
+    // When: a later authorized read replaces traversal only after success.
+    failRead = false;
+    await user.pullToRefresh(
+      screen.getByLabelText("Historique de mes contributions"),
+    );
+
+    // Then
+    await waitFor(() =>
+      expect(
+        screen.queryByText("https://youtu.be/history-21"),
+      ).not.toBeOnTheScreen(),
+    );
+    expect(pages).toEqual([0, 1, 0]);
+  },
+);
+
+it("keeps original-owner history read-only through a technical profile refresh failure", async () => {
+  // Given
+  const boundary = mockFetch.getMockImplementation();
+  if (!boundary) throw new Error("Missing test HTTP boundary");
+  let unavailable = false;
+  mockFetch.mockImplementation((url, init) => {
+    if (String(url).endsWith("/me") && unavailable)
+      throw new TypeError("Controlled profile read failure");
+    return boundary(url, init);
+  });
+  const user = userEvent.setup();
+  await mount();
+  await screen.findByText("Votre lien public");
+
+  // When
+  unavailable = true;
+  await user.press(
+    screen.getByRole("button", { name: "Actualiser le profil" }),
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // Then
+  expect(screen.getByText("Votre lien public")).toBeOnTheScreen();
+  expect(screen.getByText("En attente de validation")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Retirer" })).toBeDisabled();
+});
+
+it.each([401, 403, 404])(
+  "does not reexpose history after GET %i followed by a technical retry failure",
+  async (status) => {
+    // Given
+    const boundary = mockFetch.getMockImplementation();
+    if (!boundary) throw new Error("Missing test HTTP boundary");
+    let failure: "none" | "denied" | "technical" = "none";
+    mockFetch.mockImplementation((url, init) => {
+      if (String(url).includes("/stream-contributions")) {
+        if (failure === "denied")
+          return Promise.resolve(Response.json({ status }, { status }));
+        if (failure === "technical")
+          throw new TypeError("Controlled retry failure");
+      }
+      return boundary(url, init);
+    });
+    const user = userEvent.setup();
+    await mount();
+    await screen.findByText("Votre lien public");
+
+    // When
+    failure = "denied";
+    await user.pullToRefresh(
+      screen.getByLabelText("Historique de mes contributions"),
+    );
+    const retry = await screen.findByRole("button", { name: "Réessayer" });
+    failure = "technical";
+    await user.press(retry);
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+
+    // Then
+    expect(
+      screen.queryByText("https://youtu.be/history-2"),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Retirer" }),
+    ).not.toBeOnTheScreen();
+  },
+);
+
+it.each([401, 403, 404])(
+  "revokes current history after PATCH %i even when its bounded current read fails",
+  async (status) => {
+    // Given
+    const boundary = mockFetch.getMockImplementation();
+    if (!boundary) throw new Error("Missing test HTTP boundary");
+    let refused = false;
+    let attempts = 0;
+    let observations = 0;
+    mockFetch.mockImplementation((url, init) => {
+      if (String(url).includes("/stream-contributions")) {
+        if (init?.method === "PATCH") {
+          attempts++;
+          refused = true;
+          return Promise.resolve(Response.json({ status }, { status }));
+        }
+        if (refused) {
+          observations++;
+          throw new TypeError("Controlled current read failure");
+        }
+      }
+      return boundary(url, init);
+    });
+    const user = userEvent.setup();
+    await mount();
+    await user.press(await screen.findByRole("button", { name: "Retirer" }));
+
+    // When
+    await act(async () => {
+      alert.mock.calls
+        .at(-1)?.[2]
+        ?.find((button: { style?: string }) => button.style === "destructive")
+        ?.onPress?.();
+    });
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+
+    // Then
+    expect(
+      screen.queryByText("https://youtu.be/history-2"),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Retirer" }),
+    ).not.toBeOnTheScreen();
+    expect(attempts).toBe(1);
+    expect(observations).toBe(1);
   },
 );

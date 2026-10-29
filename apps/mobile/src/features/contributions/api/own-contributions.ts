@@ -1,7 +1,10 @@
 import {
+  infiniteQueryOptions,
   useInfiniteQuery,
   useQueryClient,
   type InfiniteData,
+  type QueryClient,
+  type QueryKey,
 } from "@tanstack/react-query";
 import { useAuth0 } from "react-native-auth0";
 import {
@@ -18,16 +21,56 @@ import type {
   UpdateOwnStreamContributionRequest,
 } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { useCommand } from "../../../shared/query/use-command";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import {
   useAccountSession,
   useCurrentAccount,
+  type AccountSession,
 } from "../../accounts/current-account";
 import { useOrdinaryRequest } from "../../access/ordinary-request";
 import { useConsultationQueries } from "../../sporting/match-consultation";
 import { contributionKeys } from "./contribution-keys";
+
+/** A current owner refusal or unavailable match revokes the personal resource, unlike a technical outage. */
+export function isOwnContributionAccessDenied(
+  error: unknown,
+): error is ApiError {
+  return (
+    isAccessDenied(error) ||
+    (error instanceof ApiError && error.kind === "http" && error.status === 404)
+  );
+}
+
+/**
+ * Applies a current resource refusal to native Query state; later technical failures cannot recover
+ * revoked private data. A failing reader finishes its own transition and must not cancel itself.
+ */
+async function refuseOwnAccess(
+  client: QueryClient,
+  session: AccountSession,
+  queryKey: QueryKey,
+  error: unknown,
+  reading = false,
+) {
+  if (
+    !session.isCurrent(session.generation) ||
+    !isOwnContributionAccessDenied(error)
+  )
+    return;
+  if (!reading) await client.cancelQueries({ queryKey, exact: true });
+  if (!session.isCurrent(session.generation)) return;
+  client.getQueryCache().find({ queryKey, exact: true })?.setState({
+    data: undefined,
+    dataUpdatedAt: 0,
+    error,
+    errorUpdatedAt: Date.now(),
+    status: "error",
+    fetchStatus: "idle",
+  });
+}
 
 /** Shares the authoritative original-account eligibility read between the match entry and its form. */
 export function useOwnContributionsRead(matchId: string, enabled = true) {
@@ -45,11 +88,12 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
     session.generation,
     getGetMyAccountQueryKey(),
   );
-  const usable =
+  const canRetain =
     admission.admitted &&
     session.status === "authenticated" &&
-    profile.isSuccess &&
-    profile.data.accountId === actor.accountId;
+    profile.data?.accountId === actor.accountId &&
+    !isOwnContributionAccessDenied(profile.error);
+  const usable = canRetain && profile.isSuccess;
 
   /** Rechecks the real profile cache before and after credential retrieval; enabled alone grants no authority. */
   function assertCurrent(command = false) {
@@ -57,13 +101,14 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
     const current = client.getQueryState<AccountResponse>(currentKey);
     if (
       !admission.admitted ||
-      current?.status !== "success" ||
-      current.data?.accountId !== actor.accountId ||
+      current?.data?.accountId !== actor.accountId ||
       !actor.accountId
     )
       throw new ApiError("http", 403);
+    if (current.status !== "success")
+      throw current.error ?? new ApiError("cancelled");
     if (command && client.getQueryState(queryKey)?.status !== "success")
-      throw new ApiError("http", 403);
+      throw new ApiError("cancelled");
   }
   /** Applies the captured F12 intent only after fresh native credentials and original-owner checks. */
   async function request(signal?: AbortSignal, command = false) {
@@ -77,23 +122,48 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
       headers: { Authorization: `Bearer ${credentials.accessToken}` },
     });
   }
-  const query = useInfiniteQuery({
+  const options = infiniteQueryOptions({
     queryKey,
-    enabled: usable && enabled,
     gcTime: 0,
-    refetchOnMount: "always",
+    refetchOnMount: "always" as const,
     refetchOnReconnect: false,
     initialPageParam: 0,
-    queryFn: async ({ signal, pageParam }) =>
-      listOwnStreamContributions(
-        actor.accountId,
-        matchId,
-        { page: pageParam },
-        await request(signal),
-      ),
+    queryFn: async ({ signal, pageParam }) => {
+      try {
+        return await listOwnStreamContributions(
+          actor.accountId,
+          matchId,
+          { page: pageParam },
+          await request(signal),
+        );
+      } catch (error) {
+        if (!signal.aborted)
+          await refuseOwnAccess(client, session, queryKey, error, true);
+        throw error;
+      }
+    },
     getNextPageParam: (page) => page.nextPage,
   });
-  return { query, queryKey, actor, request, session, profile, usable };
+  const query = useInfiniteQuery({ ...options, enabled: usable && enabled });
+
+  /** Native Query replaces the traversal only after a successful first-page read, retaining all authorized pages on failure. */
+  async function readFirstPage() {
+    await client.cancelQueries({ queryKey, exact: true });
+    return client.fetchInfiniteQuery({ ...options, staleTime: 0, pages: 1 });
+  }
+  return {
+    query,
+    queryKey,
+    actor,
+    request,
+    session,
+    profile,
+    usable,
+    canRetain,
+    readFirstPage,
+    refuseAccess: (error: unknown) =>
+      refuseOwnAccess(client, session, queryKey, error),
+  };
 }
 
 /** Selected member and viewed revision remain together through native confirmation and dispatch. */
@@ -104,8 +174,18 @@ export interface OwnContributionChange {
 
 /** Current original-account reads and guarded commands; Query owns all request and recovery state. */
 export function useOwnContributions(matchId: string) {
-  const { query, queryKey, actor, request, session, profile, usable } =
-    useOwnContributionsRead(matchId);
+  const {
+    query,
+    queryKey,
+    actor,
+    request,
+    session,
+    profile,
+    usable,
+    canRetain,
+    readFirstPage,
+    refuseAccess,
+  } = useOwnContributionsRead(matchId);
   const client = useQueryClient();
   const matchKey = useConsultationQueries().match(matchId).queryKey;
   /** Retains the exact acknowledgement and optionally updates its existing row; only a full read advances context revision or eligibility. */
@@ -124,7 +204,7 @@ export function useOwnContributions(matchId: string) {
       (data) =>
         data
           ? {
-              pages: data.pages.slice(0, 1).map((page) => ({
+              pages: data.pages.map((page) => ({
                 ...page,
                 items: page.items.map((item) =>
                   updateMember && item.id === accepted.contribution.id
@@ -132,11 +212,16 @@ export function useOwnContributions(matchId: string) {
                     : item,
                 ),
               })),
-              pageParams: data.pageParams.slice(0, 1),
+              pageParams: data.pageParams,
             }
           : data,
     );
-    void client.invalidateQueries({ queryKey, exact: true });
+    void client.invalidateQueries({
+      queryKey,
+      exact: true,
+      refetchType: "none",
+    });
+    void readFirstPage().catch(() => undefined);
     void client.invalidateQueries({ queryKey: matchKey, exact: true });
   }
   const submit = useCommand(
@@ -164,6 +249,7 @@ export function useOwnContributions(matchId: string) {
           schema: OwnStreamContributionDetailResponse,
         }),
       onSuccess: (accepted) => accept(accepted, true),
+      onError: (error) => refuseAccess(error),
     },
     {
       groupKey: contributionKeys.ownCommands(actor, matchId),
@@ -171,41 +257,26 @@ export function useOwnContributions(matchId: string) {
     },
   );
 
-  /** Refreshes only page zero; a failed refresh preserves the draft and does not release unresolved commands. */
+  /** Refreshes only page zero after success; failure preserves every still-authorized page and command recovery. */
   function refresh() {
     if (submit.isPending()) return Promise.resolve(undefined);
-    client.setQueryData<InfiniteData<OwnStreamContributionsResponse>>(
-      queryKey,
-      (data) =>
-        data
-          ? {
-              pages: data.pages.slice(0, 1),
-              pageParams: data.pageParams.slice(0, 1),
-            }
-          : data,
-    );
-    return query.refetch({ cancelRefetch: false });
+    return readFirstPage();
   }
-  /** Observes the current original collection once; never resends the user's address. */
+  /** Observes the current original collection once; never resends an address or drops authorized pages on failure. */
   function reread() {
-    client.setQueryData<InfiniteData<OwnStreamContributionsResponse>>(
-      queryKey,
-      (data) =>
-        data
-          ? {
-              pages: data.pages.slice(0, 1),
-              pageParams: data.pageParams.slice(0, 1),
-            }
-          : data,
-    );
-    return submit.reconcile(
-      [queryKey],
-      () => query.refetch(),
-      (result) =>
-        session.isCurrent(session.generation) &&
-        !result.isError &&
-        !!result.data,
+    return submit.reconcile([queryKey], readFirstPage, () =>
+      session.isCurrent(session.generation),
     );
   }
-  return { query, submit, change, session, profile, usable, refresh, reread };
+  return {
+    query,
+    submit,
+    change,
+    session,
+    profile,
+    usable,
+    canRetain,
+    refresh,
+    reread,
+  };
 }

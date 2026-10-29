@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
-import { Alert, AppState, StyleSheet, Text, View } from "react-native";
+import { AppState, StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 import type {
   OwnStreamContributionResponse,
@@ -31,7 +31,11 @@ import {
   MatchSummary,
   useConsultationQueries,
 } from "../../sporting/match-consultation";
-import { useOwnContributions } from "../api/own-contributions";
+import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
+import {
+  isOwnContributionAccessDenied,
+  useOwnContributions,
+} from "../api/own-contributions";
 
 /** One match's private history; the original-account read supplies every action permission. */
 export interface OwnContributionsScreenProps {
@@ -93,6 +97,7 @@ export function OwnContributionsScreen({
   const router = useRouter();
   const navigation = useNavigation();
   const feedback = useActionFeedback();
+  const confirmAction = useActionConfirmation();
   const { colors } = useTheme();
   const mounted = useRef(true);
   useEffect(() => {
@@ -105,9 +110,7 @@ export function OwnContributionsScreen({
   const current = query.data?.pages[0];
   const stale = query.isError && !query.isFetchNextPageError;
   const authorized =
-    editing.usable &&
-    !isAccessDenied(query.error) &&
-    !(query.error instanceof ApiError && query.error.status === 404);
+    editing.canRetain && !isOwnContributionAccessDenied(query.error);
   const rows = authorized
     ? [
         ...new Map(
@@ -121,6 +124,7 @@ export function OwnContributionsScreen({
   const history = rows.filter((item) => item.state !== "active");
   const disabled =
     !authorized ||
+    !editing.usable ||
     query.isError ||
     query.isFetching ||
     change.pending ||
@@ -134,27 +138,35 @@ export function OwnContributionsScreen({
       params: { matchId },
     });
   }
-  /** An explicit refresh discards continuation pages and preserves confirmed mutation acknowledgements. */
+  /** Rereads displayed context and personal history together; an ordinary failure preserves their authorized data. */
   async function refresh() {
     if (change.isPending()) return;
     feedback.clear();
-    const result = await editing.refresh();
+    const results = await Promise.allSettled([
+      editing.refresh(),
+      match.refetch({ throwOnError: true }),
+    ]);
     if (
       mounted.current &&
       session.isCurrent(session.generation) &&
-      result?.isError
+      results.some((result) => result.status === "rejected")
     )
       feedback.error();
   }
-  /** Observes current context once after uncertainty or conflict; no command is replayed. */
+  /** Observes current context once after uncertainty, conflict or refusal; no command is replayed. */
   async function reread() {
-    const result = await editing.reread();
-    if (
-      mounted.current &&
-      session.isCurrent(session.generation) &&
-      !result.reconciled
-    )
-      feedback.error();
+    try {
+      const { reconciled } = await editing.reread();
+      if (
+        mounted.current &&
+        session.isCurrent(session.generation) &&
+        !reconciled
+      )
+        feedback.error();
+    } catch {
+      if (mounted.current && session.isCurrent(session.generation))
+        feedback.error();
+    }
   }
   /** Executes the exact captured target and revision after native confirmation, with no age or quota gate. */
   async function changeVersion(
@@ -170,15 +182,16 @@ export function OwnContributionsScreen({
       await attempt;
     } catch (error) {
       if (!mounted.current || !session.isCurrent(session.generation)) return;
-      if (requiresRevisionRead(error)) await reread();
+      if (requiresRevisionRead(error) || isOwnContributionAccessDenied(error))
+        await reread();
       else
         feedback.error(
           "La modification est indisponible. Relisez votre contribution avant de réessayer.",
         );
     }
   }
-  /** Captures the viewed version rather than resolving an active or pending version again at confirmation time. */
-  function confirm(
+  /** Awaits one native decision for the viewed version, then rechecks the original session before dispatch. */
+  async function confirm(
     item: OwnStreamContributionResponse,
     action: StreamOwnerActionEnum,
   ) {
@@ -189,19 +202,18 @@ export function OwnContributionsScreen({
     )
       return;
     const revision = current.revision;
-    Alert.alert(
-      action === "cancel" ? "Annuler cette proposition ?" : "Retirer ce lien ?",
-      `${item.url}\n\n${action === "cancel" ? "L’annulation ne retire aucun lien actif." : "Seule cette version est retirée. Votre proposition éventuelle reste en attente."} Cette action ne restitue aucun quota consommé.`,
-      [
-        { text: "Conserver", style: "cancel" },
-        {
-          text:
-            action === "cancel" ? "Annuler la proposition" : "Retirer le lien",
-          style: "destructive",
-          onPress: () => void changeVersion(item.id, revision, action),
-        },
-      ],
-    );
+    const accepted = await confirmAction({
+      title:
+        action === "cancel"
+          ? "Annuler cette proposition ?"
+          : "Retirer ce lien ?",
+      message: `${item.url}\n\n${action === "cancel" ? "L’annulation ne retire aucun lien actif." : "Seule cette version est retirée. Votre proposition éventuelle reste en attente."} Cette action ne restitue aucun quota consommé.`,
+      cancelLabel: "Conserver",
+      confirmLabel:
+        action === "cancel" ? "Annuler la proposition" : "Retirer le lien",
+      destructive: true,
+    });
+    if (accepted) await changeVersion(item.id, revision, action);
   }
   /** Continues the same native page traversal; failed continuations wait for the explicit footer retry. */
   async function loadMore() {
@@ -252,7 +264,7 @@ export function OwnContributionsScreen({
                 <DataRefreshControl
                   progressViewOffset={headerHeight}
                   enabled={!change.pending}
-                  refreshing={query.isRefetching}
+                  refreshing={query.isRefetching || match.isRefetching}
                   onRefresh={() => void refresh()}
                 />
               ) : undefined
@@ -288,7 +300,7 @@ export function OwnContributionsScreen({
                   <ScreenState>
                     <ReadFeedback query={editing.profile} />
                   </ScreenState>
-                ) : !editing.usable ? (
+                ) : !editing.canRetain ? (
                   <ScreenState>
                     <ErrorState
                       onRetry={() => void editing.profile.refetch()}
@@ -301,12 +313,19 @@ export function OwnContributionsScreen({
                   </ScreenState>
                 ) : (
                   <>
+                    {editing.profile.isError && (
+                      <Button
+                        label="Réessayer le profil"
+                        loading={editing.profile.isFetching}
+                        onPress={() => void editing.profile.refetch()}
+                      />
+                    )}
                     {active && (
                       <ContributionVersion
                         item={active}
                         stale={stale}
                         disabled={disabled}
-                        onChange={confirm}
+                        onChange={(item, action) => void confirm(item, action)}
                         onReplace={
                           current.eligibility.canSubmit ? propose : undefined
                         }
@@ -416,7 +435,7 @@ export function OwnContributionsScreen({
               <ContributionVersion
                 item={item}
                 disabled={disabled}
-                onChange={confirm}
+                onChange={(item, action) => void confirm(item, action)}
               />
             )}
             ListFooterComponent={

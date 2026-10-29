@@ -35,10 +35,13 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
   async function refresh() {
     if (editing.submit.isPending()) return;
     feedback.clear();
-    const results = await Promise.all([editing.refresh(), match.refetch()]);
+    const results = await Promise.allSettled([
+      editing.refresh(),
+      match.refetch({ throwOnError: true }),
+    ]);
     if (
       editing.session.isCurrent(editing.session.generation) &&
-      results.some((result) => result?.isError && result.data)
+      results.some((result) => result.status === "rejected")
     )
       feedback.error();
   }

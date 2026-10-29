@@ -60,16 +60,31 @@ export function ContributionForm({
   const disabled =
     !editing.usable || query.isError || !current.eligibility.canSubmit;
 
+  /** Rereads the original collection while preserving the draft and reporting failures only to its mounted owner. */
+  async function refresh() {
+    feedback.clear();
+    try {
+      await editing.refresh();
+    } catch {
+      if (mounted.current && session.isCurrent(session.generation))
+        feedback.error();
+    }
+  }
   /** Reads current state after a conflict/uncertain response without interpreting it as historical acknowledgement. */
   async function reread() {
     feedback.clear();
-    const { result, reconciled } = await editing.reread();
-    if (
-      mounted.current &&
-      session.isCurrent(session.generation) &&
-      (result.isError || !reconciled)
-    )
-      feedback.error();
+    try {
+      const { reconciled } = await editing.reread();
+      if (
+        mounted.current &&
+        session.isCurrent(session.generation) &&
+        !reconciled
+      )
+        feedback.error();
+    } catch {
+      if (mounted.current && session.isCurrent(session.generation))
+        feedback.error();
+    }
   }
   /** Sends the validated literal once; failures preserve the draft and acknowledged writes alone clear dirty state. */
   async function send(values: ContributionValues) {
@@ -101,13 +116,7 @@ export function ContributionForm({
         setError("url", {
           message: "Le lien a été refusé. Votre saisie est conservée.",
         });
-        const result = await editing.refresh();
-        if (
-          mounted.current &&
-          session.isCurrent(session.generation) &&
-          result?.isError
-        )
-          feedback.error();
+        await refresh();
       } else if (requiresRevisionRead(error)) await reread();
       else
         feedback.error(
@@ -154,16 +163,7 @@ export function ContributionForm({
           <Button
             label="Réessayer la lecture"
             loading={query.isFetching}
-            onPress={async () => {
-              feedback.clear();
-              const result = await editing.refresh();
-              if (
-                mounted.current &&
-                session.isCurrent(session.generation) &&
-                result?.isError
-              )
-                feedback.error();
-            }}
+            onPress={() => void refresh()}
           />
         )}
         {submit.needsRead && (
