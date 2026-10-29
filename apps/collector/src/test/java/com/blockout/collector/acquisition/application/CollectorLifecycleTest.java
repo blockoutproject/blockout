@@ -10,8 +10,10 @@ import static org.mockito.Mockito.when;
 
 import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
 import java.io.IOException;
+import java.net.URI;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -143,7 +145,13 @@ class CollectorLifecycleTest {
         1,
         candidate ? null : CollectionModeEnum.PERIODIC,
         CollectionCycleStateEnum.RUNNING,
-        candidate,
+        candidate
+            ? new CollectionBackend.Candidate(
+                URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901"),
+                "2026/2027",
+                CollectionProviderEnum.LNV,
+                "901")
+            : null,
         null);
   }
 
@@ -165,7 +173,7 @@ class CollectorLifecycleTest {
         cycle.cycleOrder(),
         cycle.mode(),
         CollectionCycleStateEnum.COMPLETED,
-        cycle.hasCandidate(),
+        cycle.candidate(),
         completedAt);
   }
 

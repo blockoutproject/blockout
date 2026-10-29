@@ -403,10 +403,7 @@ public class DiscoverSeasonSources {
    * @param failure failed read or proposal
    */
   private void discoveryFailure(RuntimeException failure) {
-    if (failure instanceof CollectionBackendFailure refused
-        && refused.getKind() == CollectionBackendFailure.Kind.CONFLICT) {
-      if (!lifecycle.getIncarnationId().equals(backend.current().incarnationId())) lifecycle.stop();
-    }
+    if (failure instanceof CollectionBackendFailure refused) lifecycle.inspectConflict(refused);
     lifecycle.requireActive();
   }
 

@@ -124,16 +124,11 @@ public class AcquisitionScheduler {
       if (failure.getKind() != CollectionBackendFailure.Kind.UNCONFIRMED) heldScopes.remove(scope);
       throw failure;
     }
-    try {
-      boolean confirmed =
-          scope.sourceBindingId() == null
-              ? passages.execute(context)
-              : qualification.execute(context);
-      if (confirmed) heldScopes.remove(scope);
-    } catch (CollectionBackendFailure failure) {
-      lifecycle.inspectConflict(failure);
-      throw failure;
-    }
+    boolean confirmed =
+        scope.sourceBindingId() == null
+            ? passages.execute(context)
+            : qualification.execute(context);
+    if (confirmed) heldScopes.remove(scope);
   }
 
   /**

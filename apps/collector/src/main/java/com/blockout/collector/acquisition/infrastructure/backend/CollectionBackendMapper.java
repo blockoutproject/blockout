@@ -93,9 +93,8 @@ public interface CollectionBackendMapper {
    * Projects the admitted capability and its conditional purpose.
    *
    * @param source decoded backend context
-   * @return minimal capability, retaining conditional-purpose information
+   * @return capability retaining the frozen candidate for validation, absent for control passages
    */
-  @Mapping(target = "hasCandidate", expression = "java(source.getCandidate() != null)")
   CollectionBackend.Cycle toView(CollectionCycleInternalResponse source);
 
   /**

@@ -76,7 +76,7 @@ class LoggingIntegrationTest {
                   1,
                   CollectionModeEnum.PERIODIC,
                   CollectionCycleStateEnum.RUNNING,
-                  false,
+                  null,
                   null);
             });
     lifecycle.start();

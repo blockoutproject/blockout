@@ -7,13 +7,17 @@ import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.config.AcquisitionProperties;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.LongSupplier;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.parser.Parser;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -25,7 +29,6 @@ public class LnvObservationReader implements LnvAcquisition {
   private final LnvCalendarParser calendars;
   private final LnvStandingsParser standings;
   private final LnvDetailParser details;
-  private final LnvTeamImages images;
   private final LnvDocumentReferences documents;
   private final AcquisitionProperties properties;
   private final Clock clock;
@@ -37,7 +40,6 @@ public class LnvObservationReader implements LnvAcquisition {
    * @param calendars grouped calendars
    * @param standings official tables
    * @param details match details
-   * @param images native image caching
    * @param documents published document forms and references
    * @param properties explicitly verified document-label associations
    * @param clock source completion times
@@ -47,7 +49,6 @@ public class LnvObservationReader implements LnvAcquisition {
       LnvCalendarParser calendars,
       LnvStandingsParser standings,
       LnvDetailParser details,
-      LnvTeamImages images,
       LnvDocumentReferences documents,
       AcquisitionProperties properties,
       Clock clock) {
@@ -55,7 +56,6 @@ public class LnvObservationReader implements LnvAcquisition {
     this.calendars = calendars;
     this.standings = standings;
     this.details = details;
-    this.images = images;
     this.documents = documents;
     this.properties = properties;
     this.clock = clock;
@@ -142,7 +142,7 @@ public class LnvObservationReader implements LnvAcquisition {
   /** {@inheritDoc} */
   @Override
   public DocumentIndexes documentIndexes(LongSupplier nextOrdinal) {
-    Map<String, Optional<Index>> indexes = new LinkedHashMap<>();
+    Map<String, CompletableFuture<Index>> indexes = new LinkedHashMap<>();
     return (target, calendar) -> {
       String code = calendar.documentCompetition();
       if (code == null) return null;
@@ -154,22 +154,29 @@ public class LnvObservationReader implements LnvAcquisition {
                       && item.championshipReference().equals(target.competitionReference())))
         return null;
       if (!indexes.containsKey(code)) {
-        // Cache failure too: one unavailable index is not retried per match or pool in this
-        // passage.
-        indexes.put(code, Optional.empty());
-        long ordinal = nextOrdinal.getAsLong();
-        ProviderResponse xml =
-            http.page(URI.create("https://www.lnv.fr/xml/calendrier-" + code + ".xml")).join();
-        indexes.put(code, Optional.of(new Index(xml.body(), clock.instant(), ordinal)));
+        // Store a completed result, including its original failure, without scheduling another
+        // task or retrying an unavailable index for another pool in this passage.
+        try {
+          long ordinal = nextOrdinal.getAsLong();
+          ProviderResponse xml =
+              http.page(URI.create("https://www.lnv.fr/xml/calendrier-" + code + ".xml")).join();
+          Instant observedAt = clock.instant();
+          Document document =
+              Jsoup.parse(new String(xml.body(), StandardCharsets.UTF_8), "", Parser.xmlParser());
+          indexes.put(
+              code, CompletableFuture.completedFuture(new Index(document, observedAt, ordinal)));
+        } catch (RuntimeException failure) {
+          indexes.put(code, CompletableFuture.failedFuture(failure));
+        }
       }
-      Index index = indexes.get(code).orElseThrow(LnvPage::invalid);
+      Index index = indexes.get(code).join();
       Map<String, SportingObservation.InformationSheet> sheets = new LinkedHashMap<>();
       for (SportingObservation.Match match : calendar.observation().matches()) {
         LocalDate date =
             match.facts().localDate() == null ? null : match.facts().localDate().orElse(null);
         SportingObservation.InformationSheet sheet =
             documents.informationSheet(
-                index.bytes(),
+                index.document(),
                 year,
                 target.competitionReference(),
                 code,
@@ -184,9 +191,10 @@ public class LnvObservationReader implements LnvAcquisition {
   }
 
   /**
-   * Bounded auxiliary bytes and their actual observation token, retained only during the passage.
+   * Native auxiliary DOM and its actual observation token, read without mutation during one
+   * sequential passage. The bounded source bytes are discarded after this single parse.
    */
-  private record Index(byte[] bytes, Instant observedAt, long readOrdinal) {}
+  private record Index(Document document, Instant observedAt, long readOrdinal) {}
 
   /**
    * Rejects positive contradictory seasonal evidence even without a simultaneous discovery target.
@@ -216,9 +224,15 @@ public class LnvObservationReader implements LnvAcquisition {
       throw LnvPage.invalid();
   }
 
-  /** {@inheritDoc} */
+  /**
+   * {@inheritDoc}
+   *
+   * <p>The shared native cache retains image freshness. Only a new supplier body receives an
+   * observation time; cache reuse cannot advance collection evidence.
+   */
   @Override
   public Read<byte[]> image(URI uri) {
-    return images.read(uri);
+    ProviderResponse response = http.image(uri).join();
+    return response.supplierRead() ? new Read<>(response.body(), clock.instant()) : null;
   }
 }

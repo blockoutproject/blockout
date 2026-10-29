@@ -200,9 +200,9 @@ class LnvObservationsTest {
         """;
 
     // When
-    SportingObservation.Facts facts =
+    LnvDetailParser.Read read =
         new LnvDetailParser()
-            .parse(
+            .inspect(
                 bytes(html),
                 URI.create(
                     "https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901&CID=903&PID=902"),
@@ -210,6 +210,8 @@ class LnvObservationsTest {
                 "901");
 
     // Then
+    assertThat(read.complete()).isTrue();
+    SportingObservation.Facts facts = read.facts();
     assertThat(facts.localDate().get()).isEqualTo(LocalDate.of(2026, 10, 18));
     assertThat(facts.localTime().get()).isEqualTo("01:30");
     assertThat(facts.timeZone()).isEqualTo("Europe/Paris");
@@ -229,15 +231,17 @@ class LnvObservationsTest {
             + "<span id=Content_Main_LBL_WonSetHome>3</span><span id=Content_Main_LBL_WonSetGuest>2</span>";
 
     // When
-    SportingObservation.Facts facts =
+    LnvDetailParser.Read read =
         new LnvDetailParser()
-            .parse(
+            .inspect(
                 bytes(html),
                 URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901"),
                 "990",
                 "901");
 
     // Then
+    assertThat(read.complete()).isTrue();
+    SportingObservation.Facts facts = read.facts();
     assertThat(facts.result()).isNotNull();
     assertThat(facts.result().get().homeSets()).isEqualTo(3);
     assertThat(facts.result().get().awaySets()).isEqualTo(2);
@@ -252,15 +256,17 @@ class LnvObservationsTest {
             + "<span id=Content_Main_LBL_WonSetHome>3</span><span id=Content_Main_LBL_WonSetGuest>1</span>";
 
     // When
-    SportingObservation.Facts facts =
+    LnvDetailParser.Read read =
         new LnvDetailParser()
-            .parse(
+            .inspect(
                 bytes(html),
                 URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901"),
                 "990",
                 "901");
 
     // Then
+    assertThat(read.complete()).isFalse();
+    SportingObservation.Facts facts = read.facts();
     assertThat(facts.localDate()).isNull();
     assertThat(facts.localTime()).isNull();
     assertThat(facts.result().get().homeSets()).isEqualTo(3);
@@ -329,9 +335,9 @@ class LnvObservationsTest {
     byte[] html = bytes("<span id=Content_Main_LB_DateTime>samedi 17 octobre 2026</span>");
 
     // When
-    SportingObservation.Facts facts =
+    LnvDetailParser.Read read =
         new LnvDetailParser()
-            .parse(
+            .inspect(
                 html,
                 URI.create(
                     "https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901&CID=903&PID=902"),
@@ -339,6 +345,8 @@ class LnvObservationsTest {
                 "901");
 
     // Then
+    assertThat(read.complete()).isTrue();
+    SportingObservation.Facts facts = read.facts();
     assertThat(facts.localDate().get()).isEqualTo(LocalDate.of(2026, 10, 17));
     assertThat(facts.localTime().get()).isNull();
     assertThat(facts.timeZone()).isNull();
@@ -377,7 +385,7 @@ class LnvObservationsTest {
 
     // When
     org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> parser.parse(html, detail, "990", "901");
+        () -> parser.inspect(html, detail, "990", "901");
 
     // Then
     assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
@@ -393,7 +401,7 @@ class LnvObservationsTest {
 
     // When
     org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> parser.parse(html, detail, "990", "901");
+        () -> parser.inspect(html, detail, "990", "901");
 
     // Then
     assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);

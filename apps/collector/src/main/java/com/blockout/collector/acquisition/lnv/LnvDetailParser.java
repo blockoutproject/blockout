@@ -17,31 +17,17 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class LnvDetailParser {
-  /**
-   * Extracts only reread detail facts, leaving absent unrelated fields untouched.
-   *
-   * @param bytes complete page acquired with timezoneoffset=0
-   * @param url published match URL
-   * @param match expected native match reference
-   * @param competition expected championship reference
-   * @return detail proposals with exact unknown versus omitted semantics
-   * @throws LnvAcquisitionException for unsupported structure or conflicting match context
-   */
-  public SportingObservation.Facts parse(byte[] bytes, URI url, String match, String competition) {
-    return inspect(bytes, url, match, competition).facts();
-  }
-
   /** Valid independent facts and whether every published field was usable. */
   public record Read(SportingObservation.Facts facts, boolean complete) {}
 
   /**
    * Isolates invalid secondary fields while refusing an unrecognized global detail page.
    *
-   * @param bytes bounded native detail HTML
+   * @param bytes bounded native detail HTML acquired with timezoneoffset=0
    * @param url actual response context
    * @param match expected match identity
    * @param competition expected championship identity
-   * @return usable facts plus partial-acquisition evidence
+   * @return usable facts with unknown/omitted distinctions and partial-acquisition evidence
    * @throws LnvAcquisitionException when the response cannot establish the admitted match context
    */
   public Read inspect(byte[] bytes, URI url, String match, String competition) {

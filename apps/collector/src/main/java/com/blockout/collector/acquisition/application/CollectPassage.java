@@ -158,8 +158,7 @@ public class CollectPassage {
       return lifecycle.complete(context, clock.instant());
     } catch (CollectionBackendFailure failure) {
       if (failure.getKind() != CollectionBackendFailure.Kind.CONFLICT) throw failure;
-      if (!context.getCycle().incarnationId().equals(backend.current().incarnationId()))
-        lifecycle.stop();
+      lifecycle.inspectConflict(failure);
       log.atWarn()
           .addKeyValue("operation", "collection_passage")
           .addKeyValue("cycleId", context.getCycle().id())

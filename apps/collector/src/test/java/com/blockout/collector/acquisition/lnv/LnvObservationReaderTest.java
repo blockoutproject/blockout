@@ -2,8 +2,10 @@ package com.blockout.collector.acquisition.lnv;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -15,6 +17,7 @@ import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.config.AcquisitionProperties;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -25,18 +28,65 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openapitools.jackson.nullable.JsonNullable;
+import org.springframework.core.NestedExceptionUtils;
+import org.springframework.core.task.TaskRejectedException;
 
 /**
- * Exercises the real document-index adapter with a controlled transport and verified associations.
+ * Exercises real LNV observation and document-index adaptation with controlled transport and
+ * verified associations.
  */
-@DisplayName("Passage-local LNV auxiliary index reads")
+@DisplayName("LNV source observations and passage-local auxiliary indexes")
 class LnvObservationReaderTest {
+  @Test
+  @DisplayName("A new supplier image body retains its actual observation time")
+  void observesSupplierImage() {
+    // Given
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    URI image = URI.create("https://images.dataproject.com/lnv/TeamLogo/team.png");
+    when(http.image(image))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                new ProviderResponse(new byte[] {1, 2, 3}, image, true)));
+    LnvObservationReader reader = documentReader(http);
+
+    // When
+    LnvAcquisition.Read<byte[]> read = reader.image(image);
+
+    // Then
+    assertThat(read.observation()).containsExactly(1, 2, 3);
+    assertThat(read.observedAt()).isEqualTo(Instant.EPOCH);
+    verify(http).image(image);
+    verifyNoMoreInteractions(http);
+  }
+
+  @Test
+  @DisplayName("A reused image body does not create a supplier observation")
+  void omitsCachedImageObservation() {
+    // Given
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    URI image = URI.create("https://images.dataproject.com/lnv/TeamLogo/team.png");
+    when(http.image(image))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                new ProviderResponse(new byte[] {1, 2, 3}, image, false)));
+    LnvObservationReader reader = documentReader(http);
+
+    // When
+    LnvAcquisition.Read<byte[]> read = reader.image(image);
+
+    // Then
+    assertThat(read).isNull();
+    verify(http).image(image);
+    verifyNoMoreInteractions(http);
+  }
+
   @Test
   @DisplayName("Calendar document qualification uses the admitted group's published title")
   void usesQualifiedCalendarTitle() {
@@ -258,7 +308,7 @@ class LnvObservationReaderTest {
   }
 
   @Test
-  @DisplayName("Two admitted pools share one XML read and its original completion time")
+  @DisplayName("Admitted matches and pools share one XML read with its original observation token")
   void sharesIndexAcrossPools() {
     // Given
     URI indexUrl = URI.create("https://www.lnv.fr/xml/calendrier-LAM.xml");
@@ -267,6 +317,9 @@ class LnvObservationReaderTest {
         <Calendrier><Competition CodeCompetition="LAM"><Journee><Match>
         <CodeMatch>00AA</CodeMatch><EquipeDomicile>HOME XML</EquipeDomicile>
         <EquipeExterieur>AWAY XML</EquipeExterieur><Date>17-10-2026</Date>
+        </Match><Match>
+        <CodeMatch>00AB</CodeMatch><EquipeDomicile>AWAY XML</EquipeDomicile>
+        <EquipeExterieur>HOME XML</EquipeExterieur><Date>24-10-2026</Date>
         </Match></Journee></Competition></Calendrier>
         """;
     ProviderHttpClient http = mock(ProviderHttpClient.class);
@@ -299,7 +352,6 @@ class LnvObservationReaderTest {
             new LnvCalendarParser(),
             new LnvStandingsParser(),
             new LnvDetailParser(),
-            new LnvTeamImages(http, clock),
             new LnvDocumentReferences(),
             properties,
             clock);
@@ -321,6 +373,14 @@ class LnvObservationReaderTest {
                     SportingObservation.Facts.builder()
                         .localDate(JsonNullable.of(LocalDate.of(2026, 10, 17)))
                         .build(),
+                    null),
+                new SportingObservation.Match(
+                    "991",
+                    new SportingObservation.Team("Away", "002", null, null),
+                    new SportingObservation.Team("Home", "001", null, null),
+                    SportingObservation.Facts.builder()
+                        .localDate(JsonNullable.of(LocalDate.of(2026, 10, 24)))
+                        .build(),
                     null)),
             List.of(),
             List.of());
@@ -334,10 +394,111 @@ class LnvObservationReaderTest {
 
     // Then
     verify(http).page(indexUrl);
-    assertThat(firstRead.observation().get("990").matchCode()).isEqualTo("00AA");
+    assertThat(firstRead.observation())
+        .containsOnly(
+            Map.entry(
+                "990", new SportingObservation.InformationSheet("2026/2027", "AALNV", "00AA")),
+            Map.entry(
+                "991", new SportingObservation.InformationSheet("2026/2027", "AALNV", "00AB")));
     assertThat(secondRead.observation()).isEqualTo(firstRead.observation());
     assertThat(secondRead.observedAt()).isEqualTo(firstTime);
     assertThat(secondRead.readOrdinal()).isEqualTo(7);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  @DisplayName("Every pool retains the original XML acquisition failure without another request")
+  void retainsFailedIndexForPassage(boolean saturated) {
+    // Given
+    URI indexUrl = URI.create("https://www.lnv.fr/xml/calendrier-LAM.xml");
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    Exception transportFailure;
+    if (saturated) {
+      TaskRejectedException rejection = new TaskRejectedException("Synthetic provider saturation");
+      transportFailure = rejection;
+      when(http.page(indexUrl)).thenThrow(rejection);
+    } else {
+      transportFailure = new IOException("Synthetic transport failure");
+      when(http.page(indexUrl)).thenReturn(CompletableFuture.failedFuture(transportFailure));
+    }
+    LnvObservationReader reader =
+        documentReader(
+            http,
+            List.of(
+                new AcquisitionProperties.DocumentTeamAssociation(2026, "901", "001", "HOME XML")));
+    CollectionBackend.Target first =
+        CollectionBackend.Target.builder()
+            .seasonLabel("2026/2027")
+            .competitionReference("901")
+            .poolReference("902")
+            .build();
+    CollectionBackend.Target second = first.toBuilder().poolReference("904").build();
+    LnvAcquisition.Calendar calendar =
+        new LnvAcquisition.Calendar(
+            new SportingObservation.Calendar(true, List.of(), List.of(), List.of()),
+            Map.of(),
+            Instant.EPOCH,
+            "LAM");
+    AtomicInteger ordinals = new AtomicInteger();
+    LnvAcquisition.DocumentIndexes indexes = reader.documentIndexes(ordinals::incrementAndGet);
+
+    // When
+    Throwable firstFailure = catchThrowable(() -> indexes.informationSheets(first, calendar));
+    Throwable secondFailure = catchThrowable(() -> indexes.informationSheets(second, calendar));
+
+    // Then
+    assertThat(firstFailure).isNotNull();
+    assertThat(secondFailure).isNotNull();
+    assertThat(NestedExceptionUtils.getMostSpecificCause(firstFailure)).isSameAs(transportFailure);
+    assertThat(NestedExceptionUtils.getMostSpecificCause(secondFailure)).isSameAs(transportFailure);
+    assertThat(ordinals).hasValue(1);
+    verify(http).page(indexUrl);
+    verifyNoMoreInteractions(http);
+  }
+
+  @Test
+  @DisplayName("A later passage can read an index whose previous acquisition failed")
+  void readsFailedIndexInNewPassage() {
+    // Given
+    URI indexUrl = URI.create("https://www.lnv.fr/xml/calendrier-LAM.xml");
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    when(http.page(indexUrl))
+        .thenReturn(
+            CompletableFuture.failedFuture(new IOException("Synthetic transport failure")),
+            CompletableFuture.completedFuture(
+                new ProviderResponse(
+                    "<Calendrier/>".getBytes(StandardCharsets.UTF_8), indexUrl, true)));
+    LnvObservationReader reader =
+        documentReader(
+            http,
+            List.of(
+                new AcquisitionProperties.DocumentTeamAssociation(2026, "901", "001", "HOME XML")));
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .seasonLabel("2026/2027")
+            .competitionReference("901")
+            .poolReference("902")
+            .build();
+    LnvAcquisition.Calendar calendar =
+        new LnvAcquisition.Calendar(
+            new SportingObservation.Calendar(true, List.of(), List.of(), List.of()),
+            Map.of(),
+            Instant.EPOCH,
+            "LAM");
+    LnvAcquisition.DocumentIndexes firstPassage = reader.documentIndexes(() -> 1);
+
+    // When
+    Throwable firstFailure = catchThrowable(() -> firstPassage.informationSheets(target, calendar));
+    LnvAcquisition.DocumentRead laterRead =
+        reader.documentIndexes(() -> 2).informationSheets(target, calendar);
+
+    // Then
+    assertThat(firstFailure).hasRootCauseInstanceOf(IOException.class);
+    assertThat(laterRead.observation()).isEmpty();
+    assertThat(laterRead.observedAt()).isEqualTo(Instant.EPOCH);
+    assertThat(laterRead.readOrdinal()).isEqualTo(2);
+    verify(http, times(2)).page(indexUrl);
+    verifyNoMoreInteractions(http);
   }
 
   /**
@@ -347,6 +508,18 @@ class LnvObservationReaderTest {
    * @return reader with a deterministic source completion clock
    */
   private LnvObservationReader documentReader(ProviderHttpClient http) {
+    return documentReader(http, List.of());
+  }
+
+  /**
+   * Composes real parsers with the scenario's verified document associations and fixed read clock.
+   *
+   * @param http controlled provider boundary
+   * @param associations exact season/championship/team associations allowed by the scenario
+   * @return reader with no provider I/O during construction
+   */
+  private LnvObservationReader documentReader(
+      ProviderHttpClient http, List<AcquisitionProperties.DocumentTeamAssociation> associations) {
     Clock clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC);
     AcquisitionProperties properties =
         new AcquisitionProperties(
@@ -361,13 +534,12 @@ class LnvObservationReaderTest {
             10,
             Duration.ofSeconds(1),
             Duration.ZERO,
-            List.of());
+            associations);
     return new LnvObservationReader(
         http,
         new LnvCalendarParser(),
         new LnvStandingsParser(),
         new LnvDetailParser(),
-        new LnvTeamImages(http, clock),
         new LnvDocumentReferences(),
         properties,
         clock);

@@ -14,7 +14,11 @@ import com.blockout.collector.acquisition.infrastructure.backend.CollectionBacke
 import com.blockout.collector.acquisition.infrastructure.backend.SportingObservationClient;
 import com.blockout.collector.acquisition.infrastructure.backend.SportingObservationMapperImpl;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
-import com.blockout.collector.acquisition.lnv.LnvTeamImages;
+import com.blockout.collector.acquisition.lnv.LnvCalendarParser;
+import com.blockout.collector.acquisition.lnv.LnvDetailParser;
+import com.blockout.collector.acquisition.lnv.LnvDocumentReferences;
+import com.blockout.collector.acquisition.lnv.LnvObservationReader;
+import com.blockout.collector.acquisition.lnv.LnvStandingsParser;
 import com.blockout.collector.config.AcquisitionConfiguration;
 import com.blockout.collector.config.AcquisitionProperties;
 import com.blockout.collector.generated.ingestion.api.CollectionApi;
@@ -97,7 +101,7 @@ class CollectorPresentationBoundaryIntegrationTest {
   private RestClient mobile;
   private HttpServer imagePeer;
   private ProviderHttpClient imageHttp;
-  private LnvTeamImages images;
+  private LnvAcquisition images;
   private URI imageUrl;
   private final AtomicInteger imageReads = new AtomicInteger();
   private byte[] imageBody;
@@ -203,7 +207,15 @@ class CollectorPresentationBoundaryIntegrationTest {
             Duration.ZERO,
             List.of());
     imageHttp = new AcquisitionConfiguration().lnvProviderClient(properties);
-    images = new LnvTeamImages(imageHttp, clock);
+    images =
+        new LnvObservationReader(
+            imageHttp,
+            new LnvCalendarParser(),
+            new LnvStandingsParser(),
+            new LnvDetailParser(),
+            new LnvDocumentReferences(),
+            properties,
+            clock);
   }
 
   /**
@@ -784,7 +796,7 @@ class CollectorPresentationBoundaryIntegrationTest {
             call ->
                 new LnvAcquisition.Calendar(
                     calendar(), Map.of("HOME", imageUrl, "AWAY", imageUrl), clock.instant(), null));
-    when(lnv.image(any())).thenAnswer(call -> images.read(call.getArgument(0)));
+    when(lnv.image(any())).thenAnswer(call -> images.image(call.getArgument(0)));
     return lnv;
   }
 
