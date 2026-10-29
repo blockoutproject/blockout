@@ -16,6 +16,7 @@ import {
   DefaultTabBar,
   useActiveTabScrollY,
   useCollapsingTabsContext,
+  useCollapseProgress,
   useHeaderScrollY,
   type CollapsingTabsRef,
   type TabBarRenderProps,
@@ -200,7 +201,7 @@ function TabContent({
   );
 }
 
-/** Native clipping keeps one header with minimum top clearance; RNCT owns collapse and gestures. */
+/** Fixed navigation clips retracting content; a standalone Home brand fades through the transparent top area. */
 function PagedHeader({
   target,
   pinnedHeight,
@@ -217,12 +218,15 @@ function PagedHeader({
   const insets = useSafeAreaInsets();
   const { headerHeight, tabBarHeight } = useCollapsingTabsContext();
   const collapse = useHeaderScrollY();
+  const progress = useCollapseProgress();
   const scrollY = useActiveTabScrollY();
+  const hasPinnedHeader = !!header;
   const pinned = useAnimatedStyle(() => ({
     transform: [{ translateY: collapse.value }],
   }));
   const scrolling = useAnimatedStyle(() => ({
     transform: [{ translateY: -collapse.value }],
+    opacity: hasPinnedHeader ? 1 : 1 - progress.value,
   }));
   return (
     <View style={{ paddingTop: pinnedHeight }}>
@@ -231,7 +235,7 @@ function PagedHeader({
         height={headerHeight + tabBarHeight}
         scrollY={scrollY}
       />
-      <Animated.View style={[styles.clip, pinned]}>
+      <Animated.View style={[hasPinnedHeader && styles.clip, pinned]}>
         <Animated.View style={scrolling}>{collapsibleHeader}</Animated.View>
       </Animated.View>
       <Animated.View pointerEvents="box-none" style={[styles.pinned, pinned]}>

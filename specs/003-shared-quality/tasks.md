@@ -514,3 +514,7 @@ When parallel work is explicitly authorized, use the distinct-file batches above
 - [ ] T166 [US6] Run scoped convergence, complete uncovered work and deliver the linked existing draft PRs with final checks, representative attachments and unchanged branch protections. No merge, provider activation, legal publication, account erasure or unbuilt domain acceptance.
 
 **Order**: T160 precedes behavior changes. T161–T163 use disjoint owners and regression cases before their respective changes. T164 stabilizes native behavior before T165 representation writes. T166 follows integrated review and verification.
+
+## Phase 19: Native Home header retreat (US6)
+
+- [ ] T167 [US6] Apply A31 at `apps/mobile/src/shared/components/paged-tabs.tsx`: preserve clipping under fixed navigation, but let Home’s sole collapsible brand fade through the transparent top area using RNCT collapse progress on the UI thread. Preserve sticky controls, safe-area geometry, scrolling and current navigation; add no device rule, state mirror, dependency or height engine. Independently review the bounded source change, run affected mobile checks and observe partial/full collapse plus restoration on the compatible Android and Duo clients before recording exact evidence. This owner-requested follow-up is native-only; do not reopen Figma or prototype.
