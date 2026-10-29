@@ -92,7 +92,9 @@ export function PagedTabs({
   const pager = nativePager ?? internalPager;
   const reducedMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
-  const [pinnedHeight, setPinnedHeight] = useState(insets.top);
+  const [pinnedHeight, setPinnedHeight] = useState(
+    Math.max(insets.top, tokens.spacing.sm),
+  );
   const [targets, setTargets] = useState<
     Record<string, ComponentRef<typeof View> | null>
   >({});
@@ -198,7 +200,7 @@ function TabContent({
   );
 }
 
-/** Native clipping preserves one natural header layout while RNCT alone owns its collapse and gestures. */
+/** Native clipping keeps one header with minimum top clearance; RNCT owns collapse and gestures. */
 function PagedHeader({
   target,
   pinnedHeight,
@@ -234,7 +236,7 @@ function PagedHeader({
       </Animated.View>
       <Animated.View pointerEvents="box-none" style={[styles.pinned, pinned]}>
         <View
-          style={{ paddingTop: insets.top }}
+          style={{ paddingTop: Math.max(insets.top, tokens.spacing.sm) }}
           onLayout={({ nativeEvent }) =>
             onPinnedHeight(nativeEvent.layout.height)
           }

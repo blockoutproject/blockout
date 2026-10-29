@@ -147,7 +147,7 @@ interface NavigationCapsuleProps extends ComponentPropsWithRef<typeof View> {
   reducedMotion: boolean;
 }
 
-/** Retains TabList's horizontal safe areas and forwards its native props around the decorative selected well. */
+/** Insets the capsule through native margins, keeping its decoration inside the horizontal safe area. */
 function NavigationCapsule({
   children,
   layout,
@@ -158,6 +158,7 @@ function NavigationCapsule({
   return (
     <SafeAreaView
       {...props}
+      mode="margin"
       edges={{ left: "additive", right: "additive" }}
       style={[style, styles.capsule]}
     >

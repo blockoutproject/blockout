@@ -16,7 +16,7 @@ export interface ScrollChromeContentProps {
   headerHeight: number;
 }
 
-/** Fixed page chrome owns its top inset; callers retain their native scroller, data, keyboard and refresh lifecycle. */
+/** Fixed chrome owns its top inset and minimum clearance; callers retain scrolling, data, keyboard and refresh. */
 export interface ScrollChromeProps {
   header: ReactNode;
   children: (props: ScrollChromeContentProps) => ReactNode;
@@ -26,7 +26,7 @@ export interface ScrollChromeProps {
 export function ScrollChrome({ header, children }: ScrollChromeProps) {
   const insets = useSafeAreaInsets();
   const [headerHeight, setHeaderHeight] = useState(
-    insets.top + tokens.layout.header,
+    Math.max(insets.top, tokens.spacing.sm) + tokens.layout.header,
   );
   const [mountedTarget, setMountedTarget] = useState<ComponentRef<
     typeof View
@@ -46,7 +46,10 @@ export function ScrollChrome({ header, children }: ScrollChromeProps) {
       </BlurTargetView>
       <View
         pointerEvents="box-none"
-        style={[styles.header, { paddingTop: insets.top }]}
+        style={[
+          styles.header,
+          { paddingTop: Math.max(insets.top, tokens.spacing.sm) },
+        ]}
         onLayout={({ nativeEvent }) =>
           setHeaderHeight(nativeEvent.layout.height)
         }

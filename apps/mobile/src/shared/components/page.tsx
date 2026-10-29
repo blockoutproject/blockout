@@ -9,6 +9,7 @@ import {
 import Animated from "react-native-reanimated";
 import {
   SafeAreaView,
+  type EdgeRecord,
   type SafeAreaViewProps,
 } from "react-native-safe-area-context";
 import { useTheme } from "../theme/theme-provider";
@@ -26,24 +27,35 @@ export interface PageProps extends PropsWithChildren {
   accessibilityViewIsModal?: boolean;
 }
 
-/** Applies one safe-area boundary; modal pages clear the covered tab bar's trailing reservation. */
+/** Applies one safe-area boundary with a minimum top clearance; modals clear the covered tab reservation. */
 export function Page({ children, edges, accessibilityViewIsModal }: PageProps) {
   const { colors } = useTheme();
   const bottomNavigationInset = useBottomNavigationInset();
   const inset = accessibilityViewIsModal ? 0 : bottomNavigationInset;
-  const safeEdges =
-    inset > 0
-      ? Array.isArray(edges)
-        ? edges.filter((edge) => edge !== "bottom")
-        : edges
-          ? { ...edges, bottom: "off" as const }
-          : (["top", "left", "right"] as const)
-      : edges;
+  const activeEdges: EdgeRecord = Array.isArray(edges)
+    ? Object.fromEntries(edges.map((edge) => [edge, "additive" as const]))
+    : ((edges as EdgeRecord | undefined) ?? {
+        top: "additive",
+        right: "additive",
+        bottom: "additive",
+        left: "additive",
+      });
+  const ownsTop = !!activeEdges.top && activeEdges.top !== "off";
   return (
     <SafeAreaView
-      edges={safeEdges}
+      edges={{
+        ...activeEdges,
+        top: ownsTop ? "maximum" : "off",
+        bottom: inset > 0 ? "off" : activeEdges.bottom,
+      }}
       accessibilityViewIsModal={accessibilityViewIsModal}
-      style={[styles.page, { backgroundColor: colors.canvas }]}
+      style={[
+        styles.page,
+        {
+          backgroundColor: colors.canvas,
+          paddingTop: ownsTop ? tokens.spacing.sm : 0,
+        },
+      ]}
     >
       <BottomNavigationInsetContext value={inset}>
         {children}
