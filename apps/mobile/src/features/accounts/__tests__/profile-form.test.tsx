@@ -207,6 +207,43 @@ function json(value: unknown, status = 200) {
   });
 }
 
+it("keeps saving disabled until the form carries an explicit profile change", async () => {
+  // Given
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
+  const save = screen.getByRole("button", { name: "Enregistrer" });
+
+  // Then
+  expect(save).toBeDisabled();
+
+  // When
+  await user.press(save);
+
+  // Then
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PATCH"),
+  ).toHaveLength(0);
+
+  // When
+  await user.clear(screen.getByLabelText("Pseudo"));
+  await user.type(screen.getByLabelText("Pseudo"), "Changed");
+
+  // Then
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+
+  // When
+  await user.clear(screen.getByLabelText("Pseudo"));
+  await user.type(screen.getByLabelText("Pseudo"), "Original");
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PATCH"),
+  ).toHaveLength(0);
+});
+
 it("refreshes the profile without changing a dirty draft or replaying a save", async () => {
   // Given
   const user = userEvent.setup();
@@ -723,7 +760,7 @@ it("sends one atomic multipart save with JSON metadata and no omitted photo", as
   await waitFor(() =>
     expect(
       screen.getByRole("button", { name: "Enregistrer", busy: false }),
-    ).toBeEnabled(),
+    ).toBeDisabled(),
   );
   const writes = mockFetch.mock.calls.filter(
     ([, request]) => request?.method === "PATCH",
@@ -848,6 +885,8 @@ it("does not replay while the original account reread is unavailable", async () 
   const user = userEvent.setup();
   await mountProfile();
   await screen.findByDisplayValue("Original");
+  await user.clear(screen.getByLabelText("Pseudo"));
+  await user.type(screen.getByLabelText("Pseudo"), "My_draft");
   mockFetch.mockRejectedValue(new TypeError("Offline"));
 
   // When
@@ -894,7 +933,7 @@ it("submits prepared replacement then explicit removal without a username edit",
   await waitFor(() =>
     expect(
       screen.getByRole("button", { name: "Enregistrer", busy: false }),
-    ).toBeEnabled(),
+    ).toBeDisabled(),
   );
   await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
   await user.press(
@@ -958,7 +997,7 @@ it.each([
     await waitFor(() =>
       expect(
         screen.getByRole("button", { name: "Enregistrer", busy: false }),
-      ).toBeEnabled(),
+      ).toBeDisabled(),
     );
     const writes = mockFetch.mock.calls.filter(
       ([, request]) => request?.method === "PATCH",
@@ -1032,6 +1071,8 @@ it.each(["preparation", "save"])(
         screen.getByRole("button", { name: "Choisir une photo de profil" }),
       );
     } else {
+      await user.clear(screen.getByLabelText("Pseudo"));
+      await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
       mockFetch.mockImplementation(async (_url, request) =>
         request?.method === "PATCH"
           ? new Promise((resolve) => {
@@ -1119,7 +1160,7 @@ it("cancels an initial photo read before refreshing the accepted replacement", a
     await waitFor(() =>
       expect(
         screen.getByRole("button", { name: "Enregistrer", busy: false }),
-      ).toBeEnabled(),
+      ).toBeDisabled(),
     );
 
     // Then

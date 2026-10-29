@@ -309,7 +309,7 @@ export function ProfileForm({
         label="Enregistrer"
         fullWidth
         onPress={() => void handleSubmit(submit)()}
-        disabled={disabled || busy || needsRead}
+        disabled={!isDirty || disabled || busy || needsRead}
         loading={save.executing}
       />
       <Button
