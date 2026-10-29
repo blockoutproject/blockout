@@ -52,6 +52,8 @@ const searchTabs = [
  * examples and sporting activation remain with their owning tasks. Filters retain one selection per sporting tab.
  * Native end events continue the selected focused context. Initial errors use the shared card;
  * failed continuation reports a toast, retains accepted pages and offers retry at the list edge.
+ * Owner-authorized reread failures retain usable rows with explicit retry; an old empty response
+ * cannot establish current absence. There is no refresh gesture or automatic replay.
  * Generated Unicode validation rejects over-limit text without truncating the user's draft.
  */
 export function SearchScreen() {
@@ -260,7 +262,7 @@ export function SearchScreen() {
   );
 }
 
-/** One native list retains accepted cards while a failed continuation recovers at its own footer. */
+/** Retains accepted cards and retries the failed Query operation without introducing another read owner. */
 function SearchScene({
   resource,
   active,
@@ -302,7 +304,7 @@ function SearchScene({
       feedback.error();
   }
   const error =
-    query.isError && !query.data ? (
+    query.isError && items.length === 0 ? (
       <ErrorState
         onRetry={() => void query.refetch()}
         retrying={query.isFetching}
@@ -343,12 +345,14 @@ function SearchScene({
       continuation={
         resultsReady &&
         query.data &&
-        (query.isFetchingNextPage || query.isFetchNextPageError) ? (
+        (query.isFetchingNextPage || query.isError) ? (
           <ListContinuation
-            loading={query.isFetchingNextPage}
-            failed={query.isFetchNextPageError}
+            loading={query.isFetching}
+            failed={query.isError}
             disabled={!active || query.isFetching}
-            onRetry={loadMore}
+            onRetry={
+              query.isFetchNextPageError ? loadMore : () => void query.refetch()
+            }
           />
         ) : undefined
       }
