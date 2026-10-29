@@ -11,9 +11,9 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { Alert, Text } from "react-native";
+import { Alert, Pressable, Text } from "react-native";
 import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
-import { Stack } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Tabs, TabList, TabSlot, TabTrigger } from "expo-router/ui";
 import ProfileLayout, {
   unstable_settings as profileStackSettings,
@@ -107,6 +107,25 @@ function ProfileTabs() {
   );
 }
 
+/** F10 navigation probe observes the actual safe origin and pops its route without owning profile state. */
+function SupportProbe() {
+  const params = useLocalSearchParams<{ originScreen?: string }>();
+  const router = useRouter();
+  return (
+    <>
+      <Text>Assistance ouverte</Text>
+      <Text>{`Origine : ${params.originScreen}`}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Fermer l’assistance"
+        onPress={() => router.back()}
+      >
+        <Text>Fermer l’assistance</Text>
+      </Pressable>
+    </>
+  );
+}
+
 /** Uses real Router history and shared providers, with unrelated Pro/privacy destinations omitted. */
 async function openProfile(initialUrl = "/profile") {
   await renderRouter(
@@ -125,6 +144,7 @@ async function openProfile(initialUrl = "/profile") {
       "(tabs)/profile/edit": () => <ProfileEditScreen admitted />,
       "(tabs)/search": () => <Text>Recherche ouverte</Text>,
       "sign-in": () => <Text>Connexion ouverte</Text>,
+      support: SupportProbe,
     },
     {
       initialUrl,
@@ -527,4 +547,38 @@ it("returns a directly opened editor to its anchored profile overview", async ()
   expect(await screen.findByText(account.username)).toBeOnTheScreen();
   expect(screen.getByRole("header", { name: "Mon profil" })).toBeOnTheScreen();
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+});
+
+it("opens support from the editor with its safe profile origin and returns to the unchanged draft", async () => {
+  // Given
+  jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  const user = userEvent.setup();
+  await openProfile();
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier mon profil" }),
+  );
+  await screen.findByDisplayValue(account.username);
+  await user.clear(screen.getByLabelText("Pseudo"));
+  await user.type(screen.getByLabelText("Pseudo"), "Help_draft");
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Besoin d’aide ?" }));
+
+  // Then
+  expect(await screen.findByText("Assistance ouverte")).toBeOnTheScreen();
+  expect(screen).toHavePathname("/support");
+  expect(screen.getByText("Origine : profile")).toBeOnTheScreen();
+  expect(Alert.alert).not.toHaveBeenCalled();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer l’assistance" }));
+
+  // Then
+  expect(screen).toHavePathname("/profile/edit");
+  expect(await screen.findByDisplayValue("Help_draft")).toBeOnTheScreen();
+  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+  expect(
+    mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
+  ).toBe(true);
 });

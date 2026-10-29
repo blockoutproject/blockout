@@ -8,12 +8,10 @@ import { ScreenState } from "../../../shared/components/screen-state";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
 import type { ReactNode } from "react";
-import { Flag } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
-import { IconButton } from "../../../shared/components/icon-button";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { AdministrationEntry } from "../../access/entry";
 import {
@@ -25,12 +23,12 @@ import { ProfileLegalLinks } from "../components/public-account-links";
 import { ProfileLoading } from "../components/profile-loading";
 import { ProfileIdentity } from "../components/profile-identity";
 import { ProfileSignIn } from "../components/profile-sign-in";
+import { ProfileSupportAction } from "../components/profile-support-action";
 import { useAccountSession } from "../session/account-session-provider";
 import { useGuestNavigation } from "../hooks/use-guest-navigation";
 import { PageHeader } from "../../../shared/components/page-header";
 import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { supportHref } from "../../support";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
@@ -62,21 +60,7 @@ export function ProfileScreen({
     <Page edges={["left", "right", "bottom"]}>
       <ScrollChrome
         header={
-          <PageHeader
-            title="Mon profil"
-            action={
-              <IconButton
-                label="Besoin d’aide ?"
-                onPress={() => router.push(supportHref({ screen: "profile" }))}
-              >
-                <Flag
-                  accessible={false}
-                  size={tokens.size.icon.lg}
-                  color={colors.icon}
-                />
-              </IconButton>
-            }
-          />
+          <PageHeader title="Mon profil" action={<ProfileSupportAction />} />
         }
       >
         {({ onScroll, headerHeight }) => (

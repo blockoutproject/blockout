@@ -15,6 +15,7 @@ import { PageHeader } from "../../../shared/components/page-header";
 import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { useProfileRefresh } from "../api/use-profile-refresh";
+import { ProfileSupportAction } from "../components/profile-support-action";
 
 /** Ordinary admission gates editing independently from identity-only account reads. */
 export interface ProfileEditScreenProps {
@@ -38,7 +39,14 @@ export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
 
   return (
     <Page edges={["left", "right", "bottom"]}>
-      <ScrollChrome header={<PageHeader title="Modifier mon profil" />}>
+      <ScrollChrome
+        header={
+          <PageHeader
+            title="Modifier mon profil"
+            action={<ProfileSupportAction />}
+          />
+        }
+      >
         {({ onScroll, headerHeight }) => (
           <FormScrollView
             onScroll={onScroll}
