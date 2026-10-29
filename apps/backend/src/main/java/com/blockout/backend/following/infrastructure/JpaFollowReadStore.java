@@ -1,8 +1,12 @@
 package com.blockout.backend.following.infrastructure;
 
+import com.blockout.backend.following.application.FollowContext.TargetType;
 import com.blockout.backend.following.application.FollowReadStore;
+import com.blockout.backend.following.application.ReadFollowLists;
 import com.blockout.backend.sporting.application.ConsultationMatchSelection;
 import com.blockout.backend.sporting.application.SportingSeasonSelection;
+import com.blockout.backend.sporting.application.SportingTargetSelection;
+import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -12,14 +16,60 @@ import jakarta.persistence.criteria.Subquery;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.SessionFactory;
+import org.hibernate.query.criteria.HibernateCriteriaBuilder;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
+import org.springframework.data.jpa.support.PageableUtils;
 import org.springframework.stereotype.Repository;
 
-/** Composes scalar season/follow projections in JPA without hydrating another owner's entities. */
+/** Composes personal selections in JPA without hydrating another owner's entities. */
 @Repository
 @RequiredArgsConstructor
 public class JpaFollowReadStore implements FollowReadStore {
   private final EntityManager entities;
   private final SportingSeasonSelection sporting;
+  private final SportingTargetSelection targets;
+
+  /** {@inheritDoc} */
+  @Override
+  public TargetPage targets(UUID accountId, TargetType type, UUID seasonId, long page) {
+    HibernateCriteriaBuilder builder =
+        entities.getEntityManagerFactory().unwrap(SessionFactory.class).getCriteriaBuilder();
+    CriteriaQuery<UUID> query = builder.createQuery(UUID.class);
+    SportingTargetSelection.Target target =
+        targets.select(type == TargetType.TEAM ? Kind.TEAM : Kind.POOL, query, builder);
+    Root<?> follow =
+        type == TargetType.TEAM
+            ? query.from(TeamFollowEntity.class)
+            : query.from(PoolFollowEntity.class);
+    Predicate selected =
+        builder.and(
+            target.visible(),
+            builder.equal(follow.get("accountId"), accountId),
+            builder.equal(follow.get(type == TargetType.TEAM ? "teamId" : "poolId"), target.id()));
+    if (seasonId != null)
+      selected = builder.and(selected, builder.equal(target.seasonId(), seasonId));
+    query
+        .select(target.id())
+        .where(selected)
+        .orderBy(
+            builder.asc(builder.collate(target.name(), "\"fr-x-icu\"")), builder.asc(target.id()));
+    PageRequest request = PageRequest.of(Math.toIntExact(page), ReadFollowLists.PAGE_SIZE);
+    List<UUID> rows =
+        entities
+            .createQuery(query)
+            .setFirstResult(PageableUtils.getOffsetAsInteger(request))
+            .setMaxResults(request.getPageSize() + 1)
+            .getResultList();
+    Slice<UUID> slice =
+        new SliceImpl<>(
+            rows.subList(0, Math.min(rows.size(), request.getPageSize())),
+            request,
+            rows.size() > request.getPageSize());
+    return new TargetPage(slice.getContent(), slice.hasNext());
+  }
 
   /** {@inheritDoc} */
   @Override

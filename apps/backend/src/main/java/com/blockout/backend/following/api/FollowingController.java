@@ -3,6 +3,7 @@ package com.blockout.backend.following.api;
 import com.blockout.backend.following.api.FollowingRequest.QueryShape;
 import com.blockout.backend.following.application.FollowContext.TargetType;
 import com.blockout.backend.following.application.FollowState;
+import com.blockout.backend.following.application.ReadFollowLists;
 import com.blockout.backend.following.application.ReadFollowOptions;
 import com.blockout.backend.following.application.ReadPersonalCalendar;
 import com.blockout.backend.generated.mobile.api.FollowingApi;
@@ -26,13 +27,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-/** Canonical following routes; later stories own collections and counts. */
+/** Canonical following routes; public counts retain their later story owner. */
 @RestController
 @RequiredArgsConstructor
 public class FollowingController implements FollowingApi {
   private final FollowState state;
   private final ReadFollowOptions options;
   private final ReadPersonalCalendar calendars;
+  private final ReadFollowLists lists;
   private final FollowingApiMapper mapper;
   private final FollowingRequest requests;
   private final HttpServletRequest request;
@@ -99,14 +101,20 @@ public class FollowingController implements FollowingApi {
   @Override
   public ResponseEntity<TeamFollowsResponse> listTeamFollows(
       UUID accountId, Boolean bypass, UUID seasonId, Long page) {
-    throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED);
+    requests.validateQuery(request, QueryShape.LIST);
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(mapper.toDto(lists.teams(requests.requireOwner(accountId), seasonId, page)));
   }
 
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<PoolFollowsResponse> listPoolFollows(
       UUID accountId, Boolean bypass, UUID seasonId, Long page) {
-    throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED);
+    requests.validateQuery(request, QueryShape.LIST);
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(mapper.toDto(lists.pools(requests.requireOwner(accountId), seasonId, page)));
   }
 
   /** {@inheritDoc} */

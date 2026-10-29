@@ -230,6 +230,27 @@ async function transport(url: string, request?: RequestInit) {
       seasons: [newer, older],
       defaultSeasonId: proposed.id,
     });
+  if (new URL(url).pathname === `/accounts/${accountId}/team-follows`)
+    return Response.json({
+      items: [
+        {
+          team: { id: team.id, name: "Étoile" },
+          professional: false,
+          season: older,
+          classification: {},
+        },
+      ],
+    });
+  if (new URL(url).pathname === `/accounts/${accountId}/pool-follows`)
+    return Response.json({
+      items: [
+        {
+          pool: { id: newer.id, name: "Poule A" },
+          season: older,
+          classification: {},
+        },
+      ],
+    });
   if (new URL(url).pathname === `/accounts/${accountId}/matches`)
     return Response.json({
       hasAvailableFollows: true,
@@ -282,6 +303,48 @@ beforeEach(() => {
   proposed = older;
   mockFocus.focused = true;
 });
+
+it("shows separate current teams and pools in Following and opens their exact sporting destinations", async () => {
+  // Given
+  await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  await layoutNativeTabs();
+  expect(
+    mockFetch.mock.calls.some(([url]) => /\/(team|pool)-follows\?/.test(url)),
+  ).toBe(false);
+
+  // When
+  await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
+  await layoutNativeTabs();
+  const teamLink = await screen.findByRole("link", { name: /Étoile/ });
+  const poolLink = await screen.findByRole("link", { name: /Poule A/ });
+  await userEvent.press(teamLink);
+  await userEvent.press(poolLink);
+
+  // Then
+  expect(
+    screen.getByRole("button", { name: "Équipes suivies", expanded: true }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Poules suivies", expanded: true }),
+  ).toBeOnTheScreen();
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/teams/[teamId]",
+    params: { teamId: team.id },
+  });
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/pools/[poolId]",
+    params: { poolId: newer.id },
+  });
+  expect(
+    mockFetch.mock.calls
+      .filter(([url]) => /\/(team|pool)-follows\?/.test(url))
+      .map(([url]) => new URL(url).searchParams.get("seasonId")),
+  ).toEqual([older.id, older.id]);
+});
 afterEach(async () => {
   await cleanup();
   client.clear();
@@ -325,8 +388,8 @@ it("keeps the selected season after an actual other-season follow invalidates cu
   ).toBeOnTheScreen();
 });
 
-it("shows unavailable follows without inventing a read and retains the accepted personal calendar", async () => {
-  // Given: Home has an accepted calendar and season, while follow lists remain undelivered.
+it("keeps list failures distinct from emptiness and retains the accepted personal calendar", async () => {
+  // Given: list transport fails independently of the retained calendar and season.
   const user = userEvent.setup();
   await mount();
   await screen.findByRole("button", {
@@ -336,16 +399,20 @@ it("shows unavailable follows without inventing a read and retains the accepted 
   await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   mockFetch.mockClear();
+  mockFetch.mockImplementation((url, request) =>
+    /\/(team|pool)-follows\?/.test(url)
+      ? Promise.reject(new TypeError("Synthetic list outage"))
+      : transport(url, request),
+  );
 
   // When
   await user.press(screen.getByRole("tab", { name: "Suivis" }));
   await layoutNativeTabs();
 
-  // Then: unavailable content neither claims successful emptiness nor offers an invented recovery.
+  // Then: each failed collection keeps its own explicit retry, with no false empty state.
   expect(
-    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
-  ).toBeOnTheScreen();
-  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+    await screen.findAllByRole("button", { name: "Réessayer" }),
+  ).toHaveLength(2);
   expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
   expect(screen.queryByText("Aucun suivi à afficher")).not.toBeOnTheScreen();
   expect(
@@ -354,7 +421,8 @@ it("shows unavailable follows without inventing a read and retains the accepted 
   expect(
     screen.getByRole("button", { name: "Saison des suivis", disabled: false }),
   ).toHaveAccessibilityValue({ text: older.label });
-  expect(mockFetch).not.toHaveBeenCalled();
+  expect(mockFetch).toHaveBeenCalledTimes(2);
+  mockFetch.mockClear();
 
   // When
   await user.press(screen.getByRole("tab", { name: "À venir" }));
@@ -1087,4 +1155,182 @@ it("opens the native season route and returns to Home with the same owner's acce
     screen.getByRole("button", { name: "Saison des suivis" }),
   ).toHaveAccessibilityValue({ text: newer.label });
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+});
+
+it("retains pages on append failure, deduplicates UUIDs and keeps homonyms distinguishable", async () => {
+  // Given
+  let failAppend = true;
+  const otherId = "00000000-0000-4000-8000-000000000005";
+  const first = {
+    team: { id: team.id, name: "Étoile" },
+    season: older,
+    classification: { format: "6x6" },
+    professional: false,
+  };
+  const second = {
+    ...first,
+    team: { id: otherId, name: "Étoile" },
+    season: newer,
+    classification: { format: "4x4" },
+  };
+  mockFetch.mockImplementation((url, request) => {
+    if (new URL(url).pathname !== `/accounts/${accountId}/team-follows`)
+      return transport(url, request);
+    const next = new URL(url).searchParams.get("page") === "1";
+    if (next && failAppend)
+      return Promise.reject(new TypeError("Synthetic append failure"));
+    return Promise.resolve(
+      Response.json(
+        next ? { items: [first, second] } : { items: [first], nextPage: 1 },
+      ),
+    );
+  });
+  await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  await layoutNativeTabs();
+  await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
+  await layoutNativeTabs();
+  const firstLink = await screen.findByRole("link", {
+    name: /Étoile.*2025\/2026.*6 × 6/,
+  });
+
+  // When: the native list edge requests the next server page.
+  await fireEvent(firstLink, "endReached");
+  await screen.findByRole("button", { name: "Réessayer" });
+
+  // Then
+  expect(screen.getAllByRole("link", { name: /Étoile/ })).toHaveLength(1);
+  expect(screen.queryByText("Aucun suivi à afficher")).not.toBeOnTheScreen();
+
+  // When
+  failAppend = false;
+  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+  const secondLink = await screen.findByRole("link", {
+    name: /Étoile.*2026\/2027.*4 × 4/,
+  });
+  await userEvent.press(secondLink);
+
+  // Then
+  expect(screen.getAllByRole("link", { name: /Étoile/ })).toHaveLength(2);
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/teams/[teamId]",
+    params: { teamId: otherId },
+  });
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls
+      .filter(
+        ([url]) =>
+          new URL(url).pathname === `/accounts/${accountId}/team-follows`,
+      )
+      .map(([url]) => new URL(url).searchParams.get("page")),
+  ).toEqual(["0", "1", "1"]);
+});
+
+it("retains populated Following on return and defers mutation resets while Home is covered", async () => {
+  // Given
+  await mount(<FollowButton target={team} season={older} />);
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  await layoutNativeTabs();
+  await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
+  await layoutNativeTabs();
+  await screen.findByRole("link", { name: /Étoile/ });
+  await act(async () => {
+    mockFocus.focused = false;
+    mockFocus.listeners.forEach((listener) => listener());
+  });
+  mockFetch.mockClear();
+
+  // When: an ordinary detail return leaves both collections populated.
+  await act(async () => {
+    mockFocus.focused = true;
+    mockFocus.listeners.forEach((listener) => listener());
+  });
+
+  // Then
+  expect(screen.getByRole("link", { name: /Étoile/ })).toBeOnTheScreen();
+  expect(mockFetch).not.toHaveBeenCalled();
+
+  // When: the existing follow mutation owner resets the covered collections.
+  await act(async () => {
+    mockFocus.focused = false;
+    mockFocus.listeners.forEach((listener) => listener());
+  });
+  await userEvent.press(
+    screen.getByRole("button", { name: "Suivre", disabled: false }),
+  );
+  await screen.findByRole("button", { name: "Suivi", busy: false });
+
+  // Then
+  expect(
+    mockFetch.mock.calls.filter(([url]) => /\/(team|pool)-follows\?/.test(url)),
+  ).toHaveLength(0);
+
+  // When
+  await act(async () => {
+    mockFocus.focused = true;
+    mockFocus.listeners.forEach((listener) => listener());
+  });
+  await screen.findByRole("link", { name: /Étoile/ });
+  await screen.findByRole("link", { name: /Poule A/ });
+
+  // Then
+  expect(
+    mockFetch.mock.calls
+      .filter(([url]) => /\/(team|pool)-follows\?/.test(url))
+      .map(([url]) => new URL(url).searchParams.get("page")),
+  ).toEqual(["0", "0"]);
+  expect(
+    screen.getByRole("button", { name: "Saison des suivis" }),
+  ).toHaveAccessibilityValue({ text: older.label });
+});
+
+it("shares All seasons across both lists and offers Search only after successful empty reads", async () => {
+  // Given
+  mockFetch.mockImplementation((url, request) =>
+    /\/(team|pool)-follows\?/.test(url)
+      ? Promise.resolve(Response.json({ items: [] }))
+      : transport(url, request),
+  );
+  await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  await layoutNativeTabs();
+  await userEvent.press(
+    screen.getByRole("button", { name: "Saison des suivis" }),
+  );
+  await userEvent.press(
+    screen.getByRole("radio", { name: "Toutes les saisons" }),
+  );
+  mockFetch.mockClear();
+
+  // When
+  await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
+  await layoutNativeTabs();
+  await userEvent.press(
+    await screen.findByRole("button", {
+      name: "Rechercher une équipe ou une poule",
+    }),
+  );
+
+  // Then
+  expect(mockPush).toHaveBeenCalledWith("/search");
+  const reads = mockFetch.mock.calls.filter(([url]) =>
+    /\/(team|pool)-follows\?/.test(url),
+  );
+  expect(reads).toHaveLength(2);
+  expect(
+    reads.every(([url]) => !new URL(url).searchParams.has("seasonId")),
+  ).toBe(true);
+  expect(screen.queryByRole("button", { name: "Suivi" })).not.toBeOnTheScreen();
 });

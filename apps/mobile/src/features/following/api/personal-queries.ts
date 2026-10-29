@@ -1,6 +1,8 @@
 import type {
   ListPersonalMatchesParams,
   PersonalMatchCalendarResponse,
+  ListTeamFollows200,
+  ListPoolFollows200,
 } from "../../../../.generated/schemas/index.zod";
 import { filterCalendarMatches } from "../../sporting/calendar-data";
 import { isAccessDenied } from "../../../shared/api/access-denied";
@@ -16,14 +18,98 @@ import {
 import {
   getFollowOptions,
   listPersonalMatches,
+  listTeamFollows,
+  listPoolFollows,
 } from "../../../../.generated/mobile";
 import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
 import {
   personalCalendarKey,
   personalCalendarCollectionKey,
   followOptionsKey,
+  followListKey,
+  type FollowingTarget,
   type FollowingOwner,
 } from "./following-keys";
+
+/** Canonical F03 summaries remain inside their generated F06 collection envelopes. */
+export type FollowListPage = ListTeamFollows200 | ListPoolFollows200;
+
+/** Retains each private type/season traversal, with pageParam owning its bounded continuation. */
+export function createFollowListOptions(
+  owner: FollowingOwner,
+  request: (signal?: AbortSignal) => Promise<ApiFetchOptions>,
+  type: FollowingTarget["type"],
+  seasonId: string | undefined,
+  read: PersonalCalendarRead,
+  bypass = false,
+) {
+  const selection = seasonId ? { seasonId } : {};
+  const queryKey = followListKey(owner, type, selection, bypass);
+  return infiniteQueryOptions({
+    queryKey,
+    initialPageParam: 0,
+    queryFn: async ({ signal, pageParam, client }): Promise<FollowListPage> => {
+      try {
+        return await read(seasonId, signal, async () => {
+          const options = await request(signal);
+          const result = await (
+            type === "team" ? listTeamFollows : listPoolFollows
+          )(owner.accountId, { ...selection, page: pageParam }, options);
+          if (
+            signal.aborted ||
+            options.signal?.aborted ||
+            !owner.isCurrent(owner.generation)
+          )
+            throw new ApiError("cancelled");
+          return result;
+        });
+      } catch (error) {
+        if (
+          !signal.aborted &&
+          owner.isCurrent(owner.generation) &&
+          error instanceof Error &&
+          (isAccessDenied(error) ||
+            (error instanceof ApiError && error.status === 404))
+        ) {
+          // Account refusal covers both collections; a selected-season NotFound stays seasonal.
+          for (const resource of ["team", "pool"] as const) {
+            const scope = [
+              ...followListKey(owner, resource, {}, bypass).slice(0, -1),
+              ...(isAccessDenied(error) || seasonId === undefined
+                ? []
+                : [{ seasonId }]),
+            ];
+            await client.cancelQueries(
+              {
+                queryKey: scope,
+                predicate: (query) => query.queryHash !== hashKey(queryKey),
+              },
+              { revert: false },
+            );
+            for (const query of client
+              .getQueryCache()
+              .findAll({ queryKey: scope }))
+              query.setState({
+                data: undefined,
+                dataUpdatedAt: 0,
+                error,
+                status: "error",
+              });
+          }
+        }
+        throw error;
+      }
+    },
+    getNextPageParam: (last) => last.nextPage,
+    staleTime: Infinity,
+    refetchOnMount: false,
+    retryOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false,
+    networkMode: "always",
+  });
+}
 
 /** One validated options cache for the original session; failure never means no seasons. */
 export function createFollowOptionsQueryOptions(
