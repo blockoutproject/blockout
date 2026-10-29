@@ -238,3 +238,7 @@ Serialize edits to `access.xml` (T007/T015), the F05 response mapper and shared 
 ## Phase 9: Retired representation maintenance
 
 - [x] T046 [US3] Remove the two unpublished, uninstanced private gate-help sources from the designated Product Design System page under FR-013. Check incoming prototype references and current gate screens, preserve ordinary outside-gate access and the authorized administrator text action, independently review the decision, and record exact node IDs and evidence limits in `quickstart.md#retired-gate-help-authoring-sources`.
+
+## Direct Profile operational navigation
+
+- [x] T047 [US1] Replace the Profile technical-index shortcut in `apps/mobile/src/features/access/components/administration-entry.tsx` with direct “Collectes”, “Maintenance” and “Versions minimales” rows under their literal current grants, using the existing `/collection`, `/administration/maintenance` and `/administration/application-versions` routes. Preserve sporting-only visibility, stale/refused/session guards, and the `/administration` gate/bypass destination. First reproduce exact Router destinations in `apps/mobile/src/features/access/__tests__/administration-entry.test.tsx`; preserve independent destination/grant coverage, run affected mobile checks and qualify the ordinary native entry without claiming new domain or gate behavior. [F05](../005-accounts-identity/tasks.md#phase-10-complete-account-readiness-and-consistent-entries-us2) owns the integrated Account representation.

@@ -208,9 +208,7 @@ it("keeps profile editing and current administration access usable while age is 
   expect(
     screen.getByRole("button", { name: "Modifier mon profil" }),
   ).toBeEnabled();
-  expect(
-    screen.getByRole("link", { name: "Administration technique" }),
-  ).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: "Maintenance" })).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.every(([, request]) => request?.method !== "POST"),
   ).toBe(true);
@@ -261,9 +259,7 @@ it("retries establishment with current credentials and refreshes provider eviden
   expect(
     screen.queryByRole("button", { name: retryLabel }),
   ).not.toBeOnTheScreen();
-  expect(
-    screen.getByRole("link", { name: "Administration technique" }),
-  ).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: "Maintenance" })).toBeOnTheScreen();
   const writes = mockFetch.mock.calls.filter(
     ([, request]) => request?.method === "POST",
   );
@@ -306,9 +302,7 @@ it.each(["network", "missing", "invalid"])(
     expect(
       screen.getByRole("button", { name: "Modifier mon profil" }),
     ).toBeEnabled();
-    expect(
-      screen.getByRole("link", { name: "Administration technique" }),
-    ).toBeOnTheScreen();
+    expect(screen.getByRole("link", { name: "Maintenance" })).toBeOnTheScreen();
     expect(
       mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
     ).toHaveLength(1);

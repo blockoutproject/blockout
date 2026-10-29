@@ -1,5 +1,11 @@
 import { Link } from "expo-router";
-import { Funnel, Play, Trophy } from "lucide-react-native";
+import {
+  Funnel,
+  Play,
+  Settings,
+  Smartphone,
+  Trophy,
+} from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import { EntryGroup } from "../../../shared/components/entry-group";
 import { EntryRow } from "../../../shared/components/entry-row";
@@ -7,7 +13,7 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
 
-/** Current grants govern visibility; planned destinations remain disabled and authorize no domain operation. */
+/** Profile links directly to each currently granted destination; planned rows remain disabled and never grant an operation. */
 export function AdministrationEntry() {
   const { permissions, hasCommands } = useAdministrationCapabilities();
   const { colors } = useTheme();
@@ -72,12 +78,42 @@ export function AdministrationEntry() {
             disabled
           />
         )}
-        {hasCommands && (
-          <Link href="/administration" asChild>
+        {permissions?.manageCollection === true && (
+          <Link href="/collection" asChild>
             <EntryRow
-              label="Administration technique"
+              label="Collectes"
               icon={
                 <Funnel
+                  accessible={false}
+                  size={tokens.size.icon.md}
+                  color={colors.icon}
+                />
+              }
+              disclosure
+            />
+          </Link>
+        )}
+        {permissions?.manageMaintenance === true && (
+          <Link href="/administration/maintenance" asChild>
+            <EntryRow
+              label="Maintenance"
+              icon={
+                <Settings
+                  accessible={false}
+                  size={tokens.size.icon.md}
+                  color={colors.icon}
+                />
+              }
+              disclosure
+            />
+          </Link>
+        )}
+        {permissions?.manageApplicationVersions === true && (
+          <Link href="/administration/application-versions" asChild>
+            <EntryRow
+              label="Versions minimales"
+              icon={
+                <Smartphone
                   accessible={false}
                   size={tokens.size.icon.md}
                   color={colors.icon}
