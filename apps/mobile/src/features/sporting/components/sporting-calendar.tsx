@@ -39,7 +39,10 @@ import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { resourceUnavailable } from "../model/consultation-availability";
 import { pageContentStyle } from "../../../shared/components/page";
-import { pagedListDefaults } from "../../../shared/components/paged-tabs";
+import {
+  pagedListDefaults,
+  PagedStateArea,
+} from "../../../shared/components/paged-tabs";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import {
@@ -264,20 +267,22 @@ export function SportingCalendarView({
           loadMore();
       }}
       ListEmptyComponent={
-        <ScreenState>
-          {calendar.isError && !calendar.data ? (
-            <ErrorState
-              onRetry={() => void refresh()}
-              retrying={calendar.isFetching}
-            />
-          ) : calendar.isPending ? (
-            <RequestLoading />
-          ) : (
-            (emptyState ?? (
-              <EmptyState title="Aucun match pour cette sélection" />
-            ))
-          )}
-        </ScreenState>
+        <PagedStateArea>
+          <ScreenState>
+            {calendar.isError && !calendar.data ? (
+              <ErrorState
+                onRetry={() => void refresh()}
+                retrying={calendar.isFetching}
+              />
+            ) : calendar.isPending ? (
+              <RequestLoading />
+            ) : (
+              (emptyState ?? (
+                <EmptyState title="Aucun match pour cette sélection" />
+              ))
+            )}
+          </ScreenState>
+        </PagedStateArea>
       }
       ListFooterComponent={
         <>

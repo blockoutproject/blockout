@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type ComponentRef,
+  type PropsWithChildren,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -29,11 +30,30 @@ import { useTheme } from "../theme/theme-provider";
 import { useReducedMotion } from "../theme/use-reduced-motion";
 import { tokens } from "../theme/tokens";
 import { ScrollBackdrop, type ScrollBlurTarget } from "./scroll-backdrop";
+import { useBottomNavigationInset } from "./bottom-navigation-inset";
 
 /** RNCT owns offsets and measured header padding; native lists must not compensate that padding with a second scroll. */
 export const pagedListDefaults = {
   maintainVisibleContentPosition: false,
 } as const;
+
+/**
+ * Keeps feedback within the visible tab area while RNCT retains its separate collapse scroll range.
+ * The native header position expands that area during collapse; intrinsic content may grow and scroll.
+ * Callers keep ScreenState's insets and their ordinary trailing navigation spacer.
+ */
+export function PagedStateArea({ children }: PropsWithChildren) {
+  const { containerHeight, paddingTop } = useCollapsingTabsContext();
+  const collapse = useHeaderScrollY();
+  const bottomNavigationInset = useBottomNavigationInset();
+  const area = useAnimatedStyle(() => ({
+    minHeight: Math.max(
+      0,
+      containerHeight - paddingTop + collapse.value - bottomNavigationInset,
+    ),
+  }));
+  return <Animated.View style={area}>{children}</Animated.View>;
+}
 
 /** Stable feature identities and their explicitly composed content; data stays with each feature. */
 export interface PagedTab {

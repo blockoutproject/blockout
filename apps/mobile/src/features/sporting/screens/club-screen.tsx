@@ -5,6 +5,7 @@ import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 import {
   PagedTabs,
   PagerTabBar,
+  PagedStateArea,
   pagedListDefaults,
 } from "../../../shared/components/paged-tabs";
 import { ListSeparator } from "../../../shared/components/list-separator";
@@ -301,13 +302,15 @@ function ClubPage({ clubId }: ClubScreenProps) {
                   }
                   ListEmptyComponent={
                     season && value === "teams" ? (
-                      <ScreenState>
-                        {!teamData ? (
-                          <ReadFeedback query={teams} />
-                        ) : (
-                          <EmptyState title="Aucune équipe pour cette saison" />
-                        )}
-                      </ScreenState>
+                      <PagedStateArea>
+                        <ScreenState>
+                          {!teamData ? (
+                            <ReadFeedback query={teams} />
+                          ) : (
+                            <EmptyState title="Aucune équipe pour cette saison" />
+                          )}
+                        </ScreenState>
+                      </PagedStateArea>
                     ) : undefined
                   }
                 />

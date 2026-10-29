@@ -3,10 +3,7 @@ import { useSportingNavigation } from "../navigation";
 import { Columns3, List } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import {
-  TabScrollView,
-  useCollapsingTabsContext,
-} from "react-native-collapsible-tab";
+import { TabScrollView } from "react-native-collapsible-tab";
 import type {
   PoolSummaryResponse,
   StandingRowResponse,
@@ -16,6 +13,7 @@ import { DataRefreshControl } from "../../../shared/components/data-refresh-cont
 import { PageContent } from "../../../shared/components/page";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
+import { PagedStateArea } from "../../../shared/components/paged-tabs";
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
 import { resourceUnavailable } from "../model/consultation-availability";
 import { tokens } from "../../../shared/theme/tokens";
@@ -45,7 +43,6 @@ export function PoolStandings({
   const standings = useQuery(queries.standings(pool.pool.id));
   const feedback = useActionFeedback();
   const { colors } = useTheme();
-  const { containerHeight, paddingTop } = useCollapsingTabsContext();
   const [layout, setLayout] = useState<"list" | "cards">("list");
   const data = standings.data;
   const columns = data?.columns ?? [];
@@ -130,8 +127,7 @@ export function PoolStandings({
           </View>
         </PageContent>
       ) : (
-        // RNCT's extra collapse range is scroll space, outside the visible feedback area.
-        <View style={{ minHeight: Math.max(0, containerHeight - paddingTop) }}>
+        <PagedStateArea>
           {children && <PageContent>{children}</PageContent>}
           <ScreenState>
             {!data ? (
@@ -151,7 +147,7 @@ export function PoolStandings({
               />
             )}
           </ScreenState>
-        </View>
+        </PagedStateArea>
       )}
     </TabScrollView>
   );

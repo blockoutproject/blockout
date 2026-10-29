@@ -1,5 +1,8 @@
 import { pageContentStyle } from "../../../shared/components/page";
-import { pagedListDefaults } from "../../../shared/components/paged-tabs";
+import {
+  pagedListDefaults,
+  PagedStateArea,
+} from "../../../shared/components/paged-tabs";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { BottomNavigationSpacer } from "../../../shared/components/bottom-navigation-inset";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -41,7 +44,13 @@ export function SearchResults({
         </>
       }
       data={items}
-      ListEmptyComponent={emptyComponent}
+      ListEmptyComponent={
+        emptyComponent ? (
+          <PagedStateArea>{emptyComponent}</PagedStateArea>
+        ) : (
+          emptyComponent
+        )
+      }
       keyExtractor={(item) => item.identity.id.toLowerCase()}
       getItemType={(item) => item.kind}
       recycleItems

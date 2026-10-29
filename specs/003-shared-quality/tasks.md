@@ -492,3 +492,7 @@ When parallel work is explicitly authorized, use the distinct-file batches above
 ## Phase 15: Convergence
 
 - [ ] T157 Align the existing React Native patch in `apps/mobile/package.json` and `package-lock.json` with the installed Expo SDK recommendation, using the standard Expo installation workflow; preserve all unrelated versions and check exclusions. Rebuild both ignored native clients and rerun mobile verification before T154 native evidence, per the plan's supported platform baseline and README verification (partial).
+
+## Phase 16: Convergence
+
+- [ ] T158 Reuse the existing standings useful-viewport placement at the shared native paging owner in `apps/mobile/src/shared/components/paged-tabs.tsx` and migrate comparable Club/calendar/tab states. RNCT’s collapse reserve must not enlarge the area in which an Error/Empty card centers; preserve its scrolling min-height, existing header measurements, bottom-navigation clearance and enlarged-content overflow. Review and requalify actual iOS/Android states after the change, per FR-038 and `plan.md#shared-page-composition` (partial).
