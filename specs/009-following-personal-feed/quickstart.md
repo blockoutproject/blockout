@@ -172,10 +172,22 @@ retains the existing F04 presentation adapter and its consumer checks.
 ```sh
 ./mvnw -B -ntp -pl apps/backend verify -Dtest=ReadFollowListsTest,FollowListsWebMvcTest,FollowOptionsWebMvcTest,FollowStateWebMvcTest,PersonalCalendarWebMvcTest -Dit.test=FollowListsIntegrationTest,FollowOptionsIntegrationTest,PersonalCalendarIntegrationTest -DforkCount=1
 npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/following/__tests__/followed-lists.test.tsx src/features/following/__tests__/personal-screen.test.tsx
+NX_DAEMON=false NX_ISOLATE_PLUGINS=false npx nx run-many -t verify -p backend mobile --parallel=1 --output-style=static
 ```
 
-These construction checks do not complete T029 or T022/T037's cross-view qualification, live
-authentication, native accessibility, advertising serving or account-erasure orchestration.
+Complete affected verification covers backend unit/MVC and PostgreSQL integration suites, mobile
+lint/typecheck/Jest, both platform JavaScript exports and Expo Doctor.
+
+Native construction observations use the compatible Expo development clients on iPhone 18 Pro /
+iOS 27.0 and Pixel 9 Android emulator, with fictional HTTP and native Auth0 RPC only. The actual
+generated consumers, session/admission/Query owners, native pager and LegendList remain real.
+Observed cases include homonymous teams, independent section collapse, light/dark cards, native
+season selection, exact team detail opening and the existing follow control, empty-season Search,
+iOS retained page failure followed by same-page retry beyond twenty pools, and Android initial
+failure/retry versus successful empty. iOS accessibility-tree extraction was unavailable; coordinate
+interactions establish no screen-reader qualification. These observations do not complete T029 or
+T022/T037's cross-view qualification, live authentication/backend/provider paths, full native
+accessibility or enlarged-text coverage, advertising serving or account-erasure orchestration.
 
 ### Personal complete-day calendar (T030–T035, T036 construction)
 
