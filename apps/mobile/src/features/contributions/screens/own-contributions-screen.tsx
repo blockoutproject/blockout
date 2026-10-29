@@ -532,13 +532,16 @@ function ContributionVersion({
         )}
         <View style={styles.actions}>
           {onReplace && (
-            <Button
-              label="Remplacer"
-              accessibilityHint="Créer une nouvelle version sans modifier l’adresse enregistrée"
-              variant="secondary"
-              disabled={disabled}
-              onPress={onReplace}
-            />
+            <View style={styles.activeAction}>
+              <Button
+                label="Remplacer"
+                fullWidth
+                accessibilityHint="Créer une nouvelle version sans modifier l’adresse enregistrée"
+                variant="secondary"
+                disabled={disabled}
+                onPress={onReplace}
+              />
+            </View>
           )}
           {item.canCancel && (
             <Button
@@ -550,13 +553,16 @@ function ContributionVersion({
             />
           )}
           {item.canWithdraw && (
-            <Button
-              label="Retirer"
-              accessibilityHint="Retirer uniquement votre lien actif après confirmation"
-              variant="secondary"
-              disabled={disabled}
-              onPress={() => onChange(item, "withdraw")}
-            />
+            <View style={styles.activeAction}>
+              <Button
+                label="Retirer"
+                fullWidth
+                accessibilityHint="Retirer uniquement votre lien actif après confirmation"
+                variant="secondary"
+                disabled={disabled}
+                onPress={() => onChange(item, "withdraw")}
+              />
+            </View>
           )}
         </View>
       </View>
@@ -570,4 +576,5 @@ const styles = StyleSheet.create({
   },
   version: { gap: tokens.spacing.md },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },
+  activeAction: { flex: 1 },
 });
