@@ -1,8 +1,11 @@
 import { BlurTargetView } from "expo-blur";
 import {
   cloneElement,
+  createContext,
   useCallback,
+  useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -49,15 +52,26 @@ export const pagedListDefaults = {
   maintainVisibleContentPosition: false,
 } as const;
 
+/** Scene-local presentation signal; RNCT remains the sole owner of scroll offsets. */
+const TabFeedbackContext = createContext<((feedback: boolean) => void) | null>(
+  null,
+);
+
 /**
  * Feedback keeps native overflow and refresh while only reading RNCT's current chrome geometry.
  * With no usable rows it neither registers a tab scroll handle nor drives header collapse.
+ * Its scene uses the opaque page canvas instead of blurring absent content beneath the shared header.
  * Oversized chrome uses the stock adapter so its actual overflow can collapse; loaded lists stay unchanged.
  */
 export function PagedStateScrollView({
   children,
   refreshControl,
 }: PropsWithChildren<{ refreshControl?: ReactElement<RefreshControlProps> }>) {
+  const reportFeedback = useContext(TabFeedbackContext);
+  useLayoutEffect(() => {
+    reportFeedback?.(true);
+    return () => reportFeedback?.(false);
+  }, [reportFeedback]);
   const { containerHeight, paddingTop } = useCollapsingTabsContext();
   const collapse = useHeaderScrollY();
   const bottomNavigationInset = useBottomNavigationInset();
@@ -217,7 +231,7 @@ export function PagedTabs({
   );
 }
 
-/** A mounted scene publishes its own backdrop target; inactive content stays out of the accessibility tree. */
+/** Usable scenes publish a blur target; feedback keeps the page canvas and inactive content stays inaccessible. */
 function TabContent({
   id,
   active,
@@ -229,19 +243,23 @@ function TabContent({
   registerTarget: (id: string, node: ComponentRef<typeof View> | null) => void;
   children: ReactNode;
 }) {
+  const [feedback, setFeedback] = useState(false);
   const ref = useCallback(
-    (node: ComponentRef<typeof View> | null) => registerTarget(id, node),
-    [id, registerTarget],
+    (node: ComponentRef<typeof View> | null) =>
+      registerTarget(id, feedback ? null : node),
+    [feedback, id, registerTarget],
   );
   return (
-    <BlurTargetView
-      ref={ref}
-      style={styles.fill}
-      accessibilityElementsHidden={!active}
-      importantForAccessibility={active ? "auto" : "no-hide-descendants"}
-    >
-      {children}
-    </BlurTargetView>
+    <TabFeedbackContext value={setFeedback}>
+      <BlurTargetView
+        ref={ref}
+        style={styles.fill}
+        accessibilityElementsHidden={!active}
+        importantForAccessibility={active ? "auto" : "no-hide-descendants"}
+      >
+        {children}
+      </BlurTargetView>
+    </TabFeedbackContext>
   );
 }
 

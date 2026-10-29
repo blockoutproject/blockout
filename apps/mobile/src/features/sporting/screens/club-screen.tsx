@@ -111,35 +111,27 @@ function ClubPage({ clubId }: ClubScreenProps) {
     { id: "upcoming", label: "À venir" },
     { id: "completed", label: "Terminés" },
   ] as const;
-  const seasonControls = (
+  const seasonControls = season ? (
     <View style={styles.season}>
-      {tab !== "info" && (
-        <>
-          {season ? (
-            <Button
-              variant="secondary"
-              label={`Saison ${season.label}`}
-              onPress={() => setChoosingSeason(!choosingSeason)}
-            />
-          ) : (
-            <ResourceText>Aucune saison disponible</ResourceText>
-          )}
-          {choosingSeason &&
-            seasons.map((item) => (
-              <Button
-                key={item.id}
-                variant="secondary"
-                label={item.label}
-                onPress={() => {
-                  setSelectedSeason(item.id);
-                  setChoosingSeason(false);
-                }}
-              />
-            ))}
-        </>
-      )}
+      <Button
+        variant="secondary"
+        label={`Saison ${season.label}`}
+        onPress={() => setChoosingSeason(!choosingSeason)}
+      />
+      {choosingSeason &&
+        seasons.map((item) => (
+          <Button
+            key={item.id}
+            variant="secondary"
+            label={item.label}
+            onPress={() => {
+              setSelectedSeason(item.id);
+              setChoosingSeason(false);
+            }}
+          />
+        ))}
     </View>
-  );
+  ) : undefined;
   const blockingState = !data ? <ReadFeedback query={club} /> : undefined;
   return (
     <Page edges={blockingState ? undefined : ["left", "right", "bottom"]}>
@@ -185,7 +177,21 @@ function ClubPage({ clubId }: ClubScreenProps) {
             id: value,
             label,
             content:
-              (value === "upcoming" || value === "completed") && season ? (
+              value !== "info" && !season ? (
+                <PagedStateScrollView
+                  refreshControl={
+                    <DataRefreshControl
+                      refreshing={club.isRefetching}
+                      onRefresh={() => void refresh()}
+                      enabled={tab === value}
+                    />
+                  }
+                >
+                  <ScreenState>
+                    <EmptyState title="Aucune saison disponible" />
+                  </ScreenState>
+                </PagedStateScrollView>
+              ) : (value === "upcoming" || value === "completed") && season ? (
                 <SportingCalendar
                   selection={{ clubId, seasonId: season.id, category: value }}
                   active={tab === value}

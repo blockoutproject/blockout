@@ -501,7 +501,75 @@ it("keeps the pool season and phase independent of later standings and map conte
   expect(screen.getByText("Qualification")).toBeOnTheScreen();
   expect(screen.getByText(season.label)).toBeOnTheScreen();
   expect(screen.getByText(`Map ${sportingId}`)).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 });
+
+it("shows the undelivered pool map as unavailable without inventing a read or recovery", async () => {
+  // Given: pool metadata and the independently loaded standings have settled.
+  const user = userEvent.setup();
+  await renderPage(<PoolScreen poolId={sportingId} />);
+  mockFetch.mockClear();
+
+  // When
+  await user.press(screen.getByRole("tab", { name: "Carte" }));
+  await layoutNativeTabs();
+
+  // Then: the map has no read owner yet and therefore offers no fabricated recovery.
+  expect(
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(mockFetch).not.toHaveBeenCalled();
+});
+
+it.each(["Équipes", "À venir", "Terminés"])(
+  "shows one accepted no-season state in Club %s and refreshes only its club metadata",
+  async (label) => {
+    // Given: the accepted club has no available season; its Info content remains usable.
+    club = { ...club, seasons: [] };
+    const user = userEvent.setup();
+    await renderPage(<ClubScreen clubId={sportingId} />);
+    await screen.findByText("Coordonnées");
+    mockFetch.mockClear();
+
+    // When
+    await user.press(screen.getByRole("tab", { name: label }));
+    await layoutNativeTabs();
+
+    // Then: one successful empty state replaces an unavailable seasonal collection.
+    expect(
+      await screen.findByRole("header", { name: "Aucune saison disponible" }),
+    ).toBeOnTheScreen();
+    expect(screen.getAllByText("Aucune saison disponible")).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    // When: the accepted empty club is explicitly refreshed.
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then: no Teams or calendar request can be made without a season.
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+    expect(new URL(String(mockFetch.mock.calls[0][0])).pathname).toBe(
+      `/clubs/${sportingId}`,
+    );
+    await waitFor(() =>
+      expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
+    );
+    expect(screen.getByText("Aucune saison disponible")).toBeOnTheScreen();
+
+    // When
+    await user.press(screen.getByRole("tab", { name: "Infos" }));
+
+    // Then
+    expect(await screen.findByText("Coordonnées")).toBeOnTheScreen();
+    expect(screen.getByText("Commune du club")).toBeOnTheScreen();
+    expect(
+      screen.queryByText("Aucune saison disponible"),
+    ).not.toBeOnTheScreen();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  },
+);
 
 it.each([404, 503])(
   "presents unavailable and failed initial reads with opaque copy (%s)",

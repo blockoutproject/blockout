@@ -8,11 +8,15 @@ import {
 import { Page, PageScrollView } from "../../../shared/components/page";
 import { BrandMark } from "../../../shared/components/brand-mark";
 import { useTheme } from "../../../shared/theme/theme-provider";
-import { PagedTabs, PagerTabBar } from "../../../shared/components/paged-tabs";
-import { TabScrollView } from "react-native-collapsible-tab";
+import {
+  PagedTabs,
+  PagerTabBar,
+  PagedStateScrollView,
+} from "../../../shared/components/paged-tabs";
 import { PersonalCalendar } from "../components/personal-calendar";
 import { Tabs } from "../../../shared/components/tabs";
 import { ScreenState } from "../../../shared/components/screen-state";
+import { ErrorState } from "../../../shared/components/state-card";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { Button } from "../../../shared/components/button";
 import { tokens } from "../../../shared/theme/tokens";
@@ -24,7 +28,7 @@ import { PersonalSeasonSelector } from "../components/personal-season-selector";
 
 /**
  * Composes account-owned personal calendars with the shared season and native F03 presentation.
- * F05/F12 retain profile and admission ownership; follow lists keep their independent scope.
+ * F05/F12 retain profile and admission ownership; undelivered follow lists show unavailable feedback without a read.
  */
 export function PersonalScreen() {
   const session = useAccountSession();
@@ -126,9 +130,11 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
                   bypass={bypass}
                 />
               ) : (
-                <TabScrollView alwaysBounceVertical>
-                  <View />
-                </TabScrollView>
+                <PagedStateScrollView>
+                  <ScreenState>
+                    <ErrorState />
+                  </ScreenState>
+                </PagedStateScrollView>
               ),
           }))}
         />

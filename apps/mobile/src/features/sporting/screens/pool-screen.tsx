@@ -3,10 +3,14 @@ import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingCompactHeader } from "../components/sporting-compact-header";
 import { TabScrollView } from "react-native-collapsible-tab";
-import { PagedTabs } from "../../../shared/components/paged-tabs";
+import {
+  PagedTabs,
+  PagedStateScrollView,
+} from "../../../shared/components/paged-tabs";
 import { ResourceText } from "../components/resource-text";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
+import { ErrorState } from "../../../shared/components/state-card";
 import { PageHeader } from "../../../shared/components/page-header";
 import {
   Page,
@@ -125,6 +129,12 @@ function PoolPage({
                 />
               ) : value === "standings" && data && !renderStandings ? (
                 <PoolStandings pool={data.pool} active={tab === value} />
+              ) : value === "map" && !renderMap ? (
+                <PagedStateScrollView>
+                  <ScreenState>
+                    <ErrorState />
+                  </ScreenState>
+                </PagedStateScrollView>
               ) : (
                 <TabScrollView alwaysBounceVertical>
                   <PageContent>

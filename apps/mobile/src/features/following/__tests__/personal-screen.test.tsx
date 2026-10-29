@@ -325,6 +325,51 @@ it("keeps the selected season after an actual other-season follow invalidates cu
   ).toBeOnTheScreen();
 });
 
+it("shows unavailable follows without inventing a read and retains the accepted personal calendar", async () => {
+  // Given: Home has an accepted calendar and season, while follow lists remain undelivered.
+  const user = userEvent.setup();
+  await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  await layoutNativeTabs();
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  mockFetch.mockClear();
+
+  // When
+  await user.press(screen.getByRole("tab", { name: "Suivis" }));
+  await layoutNativeTabs();
+
+  // Then: unavailable content neither claims successful emptiness nor offers an invented recovery.
+  expect(
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.queryByText("Aucun suivi à afficher")).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("tab", { name: "Suivis", selected: true }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Saison des suivis", disabled: false }),
+  ).toHaveAccessibilityValue({ text: older.label });
+  expect(mockFetch).not.toHaveBeenCalled();
+
+  // When
+  await user.press(screen.getByRole("tab", { name: "À venir" }));
+
+  // Then: returning to the accepted context replays no calendar or list request.
+  expect(
+    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Saison des suivis" }),
+  ).toHaveAccessibilityValue({ text: older.label });
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(mockFetch).not.toHaveBeenCalled();
+});
+
 it("keeps current choices after a failed explicit refresh and offers the next opening as retry", async () => {
   // Given
   const user = userEvent.setup();
