@@ -42,7 +42,7 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useReducedMotion } from "../../../shared/theme/use-reduced-motion";
 import { SelectionIndicator } from "../../../shared/components/selection-indicator";
-import { BottomNavigationInsetContext } from "../../../shared/components/bottom-navigation-inset";
+import { BottomContentInsetContext } from "../../../shared/components/bottom-content-inset";
 
 /** Expo owns focus/history; the measured floating capsule retains native two-row layout for enlarged text. */
 export default function TabsLayout() {
@@ -70,7 +70,7 @@ export default function TabsLayout() {
   const columns =
     fontScale >= 1.5 && !guest ? styles.twoColumns : styles.oneRow;
   return (
-    <BottomNavigationInsetContext
+    <BottomContentInsetContext
       value={
         capsuleHeight > 0
           ? capsuleHeight + insets.bottom + tokens.spacing.sm
@@ -141,7 +141,7 @@ export default function TabsLayout() {
           </NavigationCapsule>
         </TabList>
       </Tabs>
-    </BottomNavigationInsetContext>
+    </BottomContentInsetContext>
   );
 }
 

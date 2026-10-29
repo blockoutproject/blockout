@@ -3,6 +3,7 @@ import { ListSeparator } from "../../../shared/components/list-separator";
 import { AccessFeedback } from "../../access/components/access-feedback";
 import { PageHeader } from "../../../shared/components/page-header";
 import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import {
   Page,
   PageScrollView,
@@ -124,6 +125,7 @@ export function DivisionsScreen() {
                   },
                 ]}
                 ItemSeparatorComponent={ListSeparator}
+                ListFooterComponent={BottomContentSpacer}
                 ListHeaderComponent={
                   <View
                     style={[!items.length && pageContentStyle, styles.controls]}

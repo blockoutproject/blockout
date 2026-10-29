@@ -5,6 +5,7 @@ import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingCompactHeader } from "../components/sporting-compact-header";
 import { TabScrollView } from "react-native-collapsible-tab";
 import { PagedTabs } from "../../../shared/components/paged-tabs";
+import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { ResourceText } from "../components/resource-text";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
@@ -181,6 +182,7 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
                       </>
                     )}
                   </PageContent>
+                  <BottomContentSpacer />
                 </TabScrollView>
               ),
             };
