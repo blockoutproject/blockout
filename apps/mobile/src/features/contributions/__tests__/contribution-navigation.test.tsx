@@ -9,6 +9,7 @@ import { renderRouter } from "expo-router/testing-library";
 import { Stack, router } from "expo-router";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Alert, Button, Text } from "react-native";
+import type { ComponentType } from "react";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { createQueryClient } from "../../../shared/query/query-client";
 import {
@@ -29,7 +30,26 @@ import { OwnContributionsScreen } from "../screens/own-contributions-screen";
 import { ContributionScreen } from "../screens/contribution-screen";
 import { matchDetail } from "../../sporting/test-support/consultation-data";
 import { ownContributions } from "../test-support/contribution-data";
+import { MatchScreen } from "../../sporting/screens/match-screen";
+import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
+import * as proSessionModule from "../../pro/pro-session";
+import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
 
+jest.mock("@sentry/react-native", () => ({
+  init: jest.fn(),
+  captureException: jest.fn(),
+  wrap: (component: ComponentType) => component,
+}));
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("../../pro/test-support/native-purchases")
+    .mockPurchases,
+}));
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
 );
@@ -101,7 +121,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Keeps the actual router, discard guard, form, Query and session; native credentials, alerts and HTTP alone are controlled. */
+/** Keeps the actual router, discard guard, form, Query and session; native I/O, alerts and HTTP alone are controlled. */
 function Layout() {
   return (
     <QueryClientProvider client={client}>
@@ -117,6 +137,120 @@ function Layout() {
     </QueryClientProvider>
   );
 }
+
+it("keeps history revoked when a refused match opens it before technical mount reads fail", async () => {
+  // Given: the real match screen keeps its F08 observer mounted after public data is refused.
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
+  prepareProNativeIO();
+  const boundary = mockFetch.getMockImplementation();
+  if (!boundary) throw new Error("Missing test HTTP boundary");
+  let phase: "authorized" | "refused" | "unavailable" = "authorized";
+  let ownReads = 0;
+  mockFetch.mockImplementation(async (url, init) => {
+    const path = new URL(String(url)).pathname;
+    if (path === `/matches/${match.match.id}` && phase !== "authorized") {
+      const status = phase === "refused" ? 404 : 500;
+      return Response.json({ status }, { status });
+    }
+    if (path.includes("/stream-contributions")) {
+      ownReads++;
+      if (phase === "unavailable")
+        return Response.json({ status: 500 }, { status: 500 });
+      return Response.json(
+        ownContributions({
+          items: [
+            {
+              id: "00000000-0000-4000-8000-000000000004",
+              url: "https://youtu.be/private-history",
+              platform: "youtube",
+              state: "active",
+              submittedAt: "2026-10-28T09:00:00Z",
+              canCancel: false,
+              canWithdraw: true,
+            },
+          ],
+        }),
+      );
+    }
+    return boundary(url, init);
+  });
+  const user = userEvent.setup();
+  await renderRouter(
+    {
+      _layout: Layout,
+      index: () => (
+        <AdvertisingProviders>
+          <MatchScreen matchId={match.match.id} />
+        </AdvertisingProviders>
+      ),
+      "matches/[matchId]/contributions": () => (
+        <OwnContributionsScreen matchId={match.match.id} />
+      ),
+    },
+    { initialUrl: "/" },
+  );
+  await screen.findByRole("button", { name: "Mes contributions" });
+
+  // When: a foreground public read refuses the match before the history route is opened.
+  phase = "refused";
+  await act(async () => {
+    await client.refetchQueries({
+      predicate: (query) =>
+        query.queryKey.includes(`/matches/${match.match.id}`),
+    });
+  });
+  await screen.findByRole("button", { name: "Réessayer" });
+  phase = "unavailable";
+  await act(() =>
+    router.push({
+      pathname: "/matches/[matchId]/contributions",
+      params: { matchId: match.match.id },
+    }),
+  );
+  await screen.findByText("Lien de diffusion");
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // Then: technical mount failures cannot restore details revoked by the previous observer.
+  expect(
+    screen.queryByText("https://youtu.be/private-history"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Retirer" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+
+  // When: the public refusal can cancel a mount read; an explicit retry now reaches both failing endpoints.
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled(),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await waitFor(() => expect(ownReads).toBeGreaterThan(1));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // Then
+  expect(
+    screen.queryByText("https://youtu.be/private-history"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Retirer" }),
+  ).not.toBeOnTheScreen();
+
+  // When: current successful reads authorize the match and its personal history again.
+  phase = "authorized";
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByText("https://youtu.be/private-history"),
+  ).toBeOnTheScreen();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled(),
+  );
+});
 
 it("leaves an acknowledged clean form without asking to discard the saved address", async () => {
   // Given

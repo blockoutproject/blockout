@@ -105,12 +105,7 @@ export function OwnContributionsScreen({
       mounted.current = false;
     };
   }, []);
-  const { query, change, session, refuseAccess } = editing;
-  useEffect(() => {
-    // F03 may share its request with another observer; propagate an observed refusal to the private cache.
-    if (query.data && isOwnContributionAccessDenied(match.error))
-      void refuseAccess(match.error);
-  }, [match.error, query.data, refuseAccess]);
+  const { query, change, session } = editing;
   const current = query.data?.pages[0];
   const stale = query.isError && !query.isFetchNextPageError;
   const authorized =

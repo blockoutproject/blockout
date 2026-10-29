@@ -130,8 +130,11 @@ first-page refresh or reconciliation replaces the traversal only after success; 
 all authorized pages. Refresh also rereads the displayed match context. Technical profile
 failure preserves the same account's history with commands unavailable; a current GET/PATCH
 401/403/404 removes refused data, including if the next read fails technically.
-An observed F03 match refusal also revokes the private history; retry observes both owners,
-including delayed match recovery. A session requiring reauthentication offers the existing
+The existing F08 read observer propagates an observed F03 match refusal before navigation or
+disabled-read remounting can erase that observation. The actual match-to-history route test
+keeps private pages revoked through later technical failures, then restores them only after
+successful authorized reads. Retry observes both owners, including delayed match recovery.
+A session requiring reauthentication offers the existing
 sign-in path rather than waiting on its disabled profile query. The native list enables forced
 vertical bounce only when authorized content has been accepted.
 `contribution-navigation.test.tsx` also exercises the actual form-to-history routes:

@@ -1,4 +1,5 @@
 import {
+  hashKey,
   infiniteQueryOptions,
   useInfiniteQuery,
   useQueryClient,
@@ -6,6 +7,7 @@ import {
   type QueryClient,
   type QueryKey,
 } from "@tanstack/react-query";
+import { useLayoutEffect } from "react";
 import { useAuth0 } from "react-native-auth0";
 import {
   createStreamContribution,
@@ -72,7 +74,7 @@ async function refuseOwnAccess(
   });
 }
 
-/** Shares the authoritative original-account eligibility read between the match entry and its form. */
+/** Shares original-account reads and revokes private data on public-match refusal, including while the entry is disabled. */
 export function useOwnContributionsRead(matchId: string, enabled = true) {
   const session = useAccountSession();
   const profile = useCurrentAccount();
@@ -84,6 +86,31 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
     ...contributionKeys.own(actor, matchId),
     admission.bypass?.intentId ?? "ordinary",
   ];
+  const ownHash = hashKey(queryKey);
+  const matchHash = hashKey(useConsultationQueries().match(matchId).queryKey);
+  useLayoutEffect(() => {
+    const cache = client.getQueryCache();
+    /** Revokes this original owner's cache before a later public mount can replace the refusal with loading. */
+    function refuseMatch(error: unknown) {
+      const personal = cache.get(ownHash);
+      if (
+        personal &&
+        (personal.state.data !== undefined ||
+          personal.state.fetchStatus === "fetching")
+      )
+        void refuseOwnAccess(client, session, personal.queryKey, error);
+    }
+    const unsubscribe = cache.subscribe((event) => {
+      if (
+        event.type === "updated" &&
+        event.action.type === "error" &&
+        event.query.queryHash === matchHash
+      )
+        refuseMatch(event.query.state.error);
+    });
+    refuseMatch(cache.get(matchHash)?.state.error);
+    return unsubscribe;
+  }, [client, session, ownHash, matchHash]);
   const currentKey = getSessionQueryKey(
     session.generation,
     getGetMyAccountQueryKey(),
@@ -278,6 +305,5 @@ export function useOwnContributions(matchId: string) {
     canRetain,
     refresh,
     reread,
-    refuseAccess,
   };
 }
