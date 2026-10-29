@@ -425,6 +425,7 @@ function ParticipantMap({
             nestedScrollEnabled
           >
             <ParticipantSummary
+              key={selected.team.team.id}
               participant={selected}
               poolId={pool.pool.id}
               active={active ?? true}
