@@ -45,6 +45,13 @@ const config: ExpoConfig = {
   plugins: [
     ["expo-router", { sitemap: false }],
     "expo-image",
+    [
+      "react-native-maps",
+      {
+        // Apple Maps remains native on iOS; only Android receives a restricted build-time key.
+        androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY,
+      },
+    ],
     "expo-status-bar",
     "expo-web-browser",
     ["react-native-auth0", { domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN }],

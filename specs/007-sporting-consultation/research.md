@@ -50,6 +50,8 @@ The native standings panel uses the existing generated Query options, one QueryC
 
 **Evidence limits**: `onMapLoaded` is Google-specific; readiness is not proof that all tiles loaded. The [Google callback documentation](https://developers.google.com/android/reference/com/google/android/gms/maps/GoogleMap.OnMapLoadedCallback) also distinguishes loading and interruption. The web prototype's Leaflet/OpenStreetMap background illustrates interactions only. Native marker rendering, touch handling, accessibility and physical-device behavior remain unqualified.
 
+The construction keeps the explicitly approved 1.27.2 pin. Expo 58.0.21's dependency recommendation is 1.29.11; its initial Doctor check reported that difference. The documented [`expo.install.exclude`](https://docs.expo.dev/versions/latest/config/package-json/#install-exclude) lists only `react-native-maps`, preventing recommendation-driven replacement of this selected version. iOS Apple and Android debug compilation establish build compatibility at the locked RN 0.88.1 revision; this exception does not establish physical/provider compatibility, which remains T040. An actual incompatibility still reopens the map boundary rather than authorizing an upgrade.
+
 ## Match documents and source authority
 
 **Decision**: Keep three separate documents: information sheet for any viewable match with a qualified reference; official scoresheet after a definitive result; and professional statistics PDF under the same result condition. F02 treats a published official result as definitive unless contrary evidence exists. No additional confirmation, homologation wait or player-statistics extraction is added.
