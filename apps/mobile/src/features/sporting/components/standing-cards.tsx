@@ -119,15 +119,24 @@ function StandingCard({
           </View>
         )}
         <View style={podium ? styles.podiumIdentity : styles.rowIdentity}>
-          <Text
+          <View
             style={[
               styles.rank,
               podium ? styles.podiumRank : styles.rowRank,
-              { backgroundColor: rank.fill, color: rank.content },
+              { backgroundColor: rank.fill },
             ]}
           >
-            {row.position ?? "—"}
-          </Text>
+            <Text
+              style={[
+                podium
+                  ? tokens.typography.headingLg
+                  : tokens.typography.headingSm,
+                { color: rank.content },
+              ]}
+            >
+              {row.position ?? "—"}
+            </Text>
+          </View>
           {logo}
           {!podium && (
             <Text
@@ -326,18 +335,16 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   rank: {
-    textAlign: "center",
-    textAlignVertical: "center",
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: tokens.radius.sm,
     overflow: "hidden",
   },
   podiumRank: {
-    ...tokens.typography.headingLg,
     minWidth: tokens.sporting.standingsCard.podiumRankWidth,
     minHeight: tokens.sporting.standingsCard.podiumRankHeight,
   },
   rowRank: {
-    ...tokens.typography.headingSm,
     minWidth: tokens.sporting.standingsRankWidth,
     minHeight: tokens.sporting.standingsRankHeight,
   },

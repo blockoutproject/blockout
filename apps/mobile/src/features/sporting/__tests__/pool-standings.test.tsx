@@ -262,13 +262,16 @@ it("retains source metadata silently after a failed explicit refresh", async () 
   failed = true;
 
   // When
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await fireEvent(
+    await screen.findByLabelText("Actualiser les données"),
+    "refresh",
+  );
   await waitFor(() => expect(client.isFetching()).toBe(0));
 
   // Then
   expect(screen.getByText("Official Z")).toBeOnTheScreen();
   expect(
-    screen.getByRole("alert", { name: TECHNICAL_ERROR }),
+    await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
   ).toBeOnTheScreen();
   expect(
     screen.queryByText(
@@ -334,7 +337,7 @@ it("keeps a pool calendar usable while standings fail", async () => {
   await open(<PoolScreen poolId={pool.pool.id} />);
 
   // When
-  await user.press(screen.getByRole("tab", { name: "À venir" }));
+  await user.press(await screen.findByRole("tab", { name: "À venir" }));
   await layoutNativeTabs();
 
   // Then
@@ -395,7 +398,9 @@ it("projects only official podium ranks as 2–1–3 and preserves the remaining
   await open(panel());
 
   // When
-  await user.press(screen.getByRole("radio", { name: "Afficher en cartes" }));
+  await user.press(
+    await screen.findByRole("radio", { name: "Afficher en cartes" }),
+  );
 
   // Then
   expect(
@@ -426,7 +431,9 @@ it("keeps ambiguous podium ranks in source order without inventing a place", asy
   await open(panel());
 
   // When
-  await user.press(screen.getByRole("radio", { name: "Afficher en cartes" }));
+  await user.press(
+    await screen.findByRole("radio", { name: "Afficher en cartes" }),
+  );
 
   // Then
   expect(
@@ -480,7 +487,7 @@ it("does not claim retained table information after a first failed acquisition",
 
   // Then
   expect(
-    screen.getByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
+    await screen.findByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
   ).toBeOnTheScreen();
   expect(
     screen.queryByText(/Dernière acquisition|conservées restent affichées/),

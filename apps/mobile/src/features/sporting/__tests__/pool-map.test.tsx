@@ -291,6 +291,7 @@ it("keeps each exact coincident team selectable without merging a nearby point o
   expect(
     screen.getAllByRole("image", { name: "Logo absent : Marais" }).length,
   ).toBeGreaterThan(0);
+  expect(screen.queryByText("Marais")).toBeNull();
   expect(mockPush).toHaveBeenNthCalledWith(1, {
     pathname: "/teams/[teamId]",
     params: { teamId: secondTeamId },
@@ -391,6 +392,9 @@ it("closes the selected summary without changing participants or needing a tile-
   );
   await screen.findByRole("link", { name: "Voir l’équipe" });
   await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(
+    screen.getByRole("radio", { name: "Rives", checked: true }),
+  ).toBeOnTheScreen();
   const reads = mockFetch.mock.calls.length;
 
   // When
@@ -402,6 +406,44 @@ it("closes the selected summary without changing participants or needing a tile-
     screen.getByRole("button", { name: "La Rochelle: Rives" }),
   ).toBeOnTheScreen();
   expect(mockFetch).toHaveBeenCalledTimes(reads);
+});
+
+it("keeps local selection changes from retrying failed optional standings", async () => {
+  // Given
+  const location = { latitude: 46.16, longitude: -1.15, label: "La Rochelle" };
+  participants.items = [
+    participant(sportingId, "Rives", location),
+    participant(secondTeamId, "Marais", location),
+  ];
+  standingsFailure = true;
+  const user = userEvent.setup();
+  await open();
+  await fireEvent(
+    await screen.findByRole("button", { name: "La Rochelle: Rives, Marais" }),
+    "press",
+    { stopPropagation: jest.fn() },
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).pathname.endsWith("/standings"),
+    ),
+  ).toHaveLength(1);
+  mockFetch.mockClear();
+
+  // When
+  await user.press(screen.getByRole("radio", { name: "Marais" }));
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+  await fireEvent(
+    screen.getByRole("button", { name: "La Rochelle: Rives, Marais" }),
+    "press",
+    { stopPropagation: jest.fn() },
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // Then
+  expect(mockFetch).not.toHaveBeenCalled();
+  expect(screen.getByRole("link", { name: "Voir l’équipe" })).toBeOnTheScreen();
 });
 
 it("drops a selected invalidated locality after refreshing only participants", async () => {
@@ -587,6 +629,9 @@ it("keeps municipal framing above a measured enlarged selection for one coincide
     nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 583 } },
   });
   await fireEvent(nativeMap, "mapReady");
+  await fireEvent(screen.getByTestId("pool-map-identity"), "layout", {
+    nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 140 } },
+  });
   await fireEvent(
     screen.getByRole("button", { name: "Test city: Rives, Marais" }),
     "press",
@@ -608,6 +653,7 @@ it("keeps municipal framing above a measured enlarged selection for one coincide
     { latitude: -0.075, longitude: -0.075 },
   ]);
   expect(options.edgePadding.bottom).toBeGreaterThan(350);
+  expect(options.edgePadding.top).toBeGreaterThan(140);
   expect(
     screen.getByRole("button", { name: "Test city: Rives, Marais" }).props
       .coordinate,

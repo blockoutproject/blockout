@@ -32,7 +32,10 @@ import type {
   PoolSummaryResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
+import {
+  BottomContentSpacer,
+  useBottomContentInset,
+} from "../../../shared/components/bottom-content-inset";
 import { Button } from "../../../shared/components/button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { IconButton } from "../../../shared/components/icon-button";
@@ -51,7 +54,6 @@ import { useSportingNavigation } from "../navigation";
 import { SportingLogo } from "./sporting-identity";
 import { StandingPerformanceBar } from "./standing-performance-bar";
 
-const mapControlTop = 78;
 /** Approved map labels for the same published G/P record understood by the standings cards. */
 const recordLabels: Readonly<Record<string, string>> = {
   J: "Joués",
@@ -174,11 +176,13 @@ function ParticipantMap({
   active,
   coverage,
 }: PoolMapProps & {
+  active: boolean;
   items: PoolParticipantResponse[];
   coverage: string;
 }) {
   const { colors, scheme } = useTheme();
   const { containerHeight, paddingTop } = useCollapsingTabsContext();
+  const bottomContentInset = useBottomContentInset();
   const gradientId = useId();
   const reducedMotion = useReducedMotion();
   const feedback = useActionFeedback();
@@ -188,6 +192,7 @@ function ParticipantMap({
   const cameraAvailable = ready && laidOut;
   const [selectedId, setSelectedId] = useState<string>();
   const [selectionHeight, setSelectionHeight] = useState(0);
+  const [identityHeight, setIdentityHeight] = useState(0);
   const points = useMemo(() => participantPoints(items), [items]);
   const point = points.find((group) =>
     group.items.some((item) => item.team.team.id === selectedId),
@@ -195,19 +200,14 @@ function ParticipantMap({
   const selected = point?.items.find(
     (item) => item.team.team.id === selectedId,
   );
-  // Keep the approved complete card; RNCT owns vertical scrolling of the whole page.
-  const controlsHeight =
-    3 * (tokens.touch.minimum + 2 * tokens.border.thin) + 3 * tokens.spacing.xs;
-  const mapHeight = Math.max(
-    583,
-    containerHeight - paddingTop - 64,
-    selected
-      ? mapControlTop +
-          controlsHeight +
-          tokens.spacing.md +
-          selectionHeight +
-          tokens.spacing["2xl"]
-      : 0,
+  // Native flow grows for wrapping identity/selection; RNCT owns the whole page's scrolling.
+  const minimumHeight = Math.max(
+    tokens.sporting.mapMinHeight,
+    containerHeight -
+      paddingTop -
+      bottomContentInset -
+      tokens.layout.content.start -
+      tokens.layout.content.end,
   );
   const selectionVisible = !!selected;
 
@@ -231,14 +231,20 @@ function ParticipantMap({
         : points.map((group) => group.coordinate);
     map.current.fitToCoordinates(viewport, {
       edgePadding: {
-        top: 100,
+        top: identityHeight + tokens.spacing["2xl"],
         right: 64,
         bottom: selectionVisible ? selectionHeight + 48 : 64,
         left: 40,
       },
       animated: false,
     });
-  }, [cameraAvailable, points, selectionHeight, selectionVisible]);
+  }, [
+    cameraAvailable,
+    identityHeight,
+    points,
+    selectionHeight,
+    selectionVisible,
+  ]);
   // Readiness and layout may arrive in either order; neither is proof of loaded tiles.
   useEffect(() => {
     fit();
@@ -265,7 +271,10 @@ function ParticipantMap({
 
   return (
     <View
-      style={[styles.map, { height: mapHeight, borderColor: colors.border }]}
+      style={[
+        styles.map,
+        { minHeight: minimumHeight, borderColor: colors.border },
+      ]}
     >
       <MapView
         ref={map}
@@ -317,75 +326,87 @@ function ParticipantMap({
           );
         })}
       </MapView>
-      <View pointerEvents="none" style={styles.identity}>
-        <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
-          <Defs>
-            <LinearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={colors.surface} />
-              <Stop offset="1" stopColor={colors.surface} stopOpacity={0} />
-            </LinearGradient>
-          </Defs>
-          <Rect width="100%" height="100%" fill={`url(#${gradientId})`} />
-        </Svg>
-        <Text style={[tokens.typography.headingSm, { color: colors.text }]}>
-          {pool.pool.name}
-        </Text>
-        <Text
-          style={[tokens.typography.metadata, { color: colors.secondaryText }]}
-        >
-          {coverage}
-        </Text>
-      </View>
-      <View style={styles.controls}>
+      <View pointerEvents="box-none">
         <View
-          style={[
-            styles.surfaceControl,
-            styles.fitControl,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
+          pointerEvents="none"
+          style={styles.identity}
+          testID="pool-map-identity"
+          onLayout={({ nativeEvent }) =>
+            setIdentityHeight(nativeEvent.layout.height)
+          }
         >
-          <IconButton
-            label="Afficher toutes les équipes"
-            disabled={!cameraAvailable}
-            onPress={() => {
-              setSelectedId(undefined);
-              fit();
-            }}
+          <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
+            <Defs>
+              <LinearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={colors.surface} />
+                <Stop offset="1" stopColor={colors.surface} stopOpacity={0} />
+              </LinearGradient>
+            </Defs>
+            <Rect width="100%" height="100%" fill={`url(#${gradientId})`} />
+          </Svg>
+          <Text style={[tokens.typography.headingSm, { color: colors.text }]}>
+            {pool.pool.name}
+          </Text>
+          <Text
+            style={[
+              tokens.typography.metadata,
+              { color: colors.secondaryText },
+            ]}
           >
-            <Image
-              source={require("../../../../assets/sporting/map-fit.svg")}
-              tintColor={colors.icon}
-              style={styles.glyph}
-            />
-          </IconButton>
+            {coverage}
+          </Text>
         </View>
-        <View
-          style={[
-            styles.surfaceControl,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
-        >
-          <IconButton
-            label="Zoomer"
-            disabled={!cameraAvailable}
-            onPress={() => void zoom(1)}
+        <View style={styles.controls}>
+          <View
+            style={[
+              styles.surfaceControl,
+              styles.fitControl,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
           >
-            <Plus color={colors.icon} size={tokens.size.icon.lg} />
-          </IconButton>
-        </View>
-        <View
-          style={[
-            styles.surfaceControl,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
-        >
-          <IconButton
-            label="Dézoomer"
-            disabled={!cameraAvailable}
-            onPress={() => void zoom(-1)}
+            <IconButton
+              label="Afficher toutes les équipes"
+              disabled={!cameraAvailable}
+              onPress={() => {
+                setSelectedId(undefined);
+                fit();
+              }}
+            >
+              <Image
+                source={require("../../../../assets/sporting/map-fit.svg")}
+                tintColor={colors.icon}
+                style={styles.glyph}
+              />
+            </IconButton>
+          </View>
+          <View
+            style={[
+              styles.surfaceControl,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
           >
-            <Minus color={colors.icon} size={tokens.size.icon.lg} />
-          </IconButton>
+            <IconButton
+              label="Zoomer"
+              disabled={!cameraAvailable}
+              onPress={() => void zoom(1)}
+            >
+              <Plus color={colors.icon} size={tokens.size.icon.lg} />
+            </IconButton>
+          </View>
+          <View
+            style={[
+              styles.surfaceControl,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <IconButton
+              label="Dézoomer"
+              disabled={!cameraAvailable}
+              onPress={() => void zoom(-1)}
+            >
+              <Minus color={colors.icon} size={tokens.size.icon.lg} />
+            </IconButton>
+          </View>
         </View>
       </View>
       {selected && point && (
@@ -400,6 +421,7 @@ function ParticipantMap({
             <ScrollView
               horizontal
               {...hiddenScrollIndicators}
+              style={styles.optionList}
               contentContainerStyle={styles.options}
               accessibilityRole="radiogroup"
               accessibilityLabel="Équipes à cette commune"
@@ -440,7 +462,7 @@ function ParticipantMap({
               key={selected.team.team.id}
               participant={selected}
               poolId={pool.pool.id}
-              active={active ?? true}
+              active={active}
             />
           </View>
         </View>
@@ -463,6 +485,7 @@ function ParticipantSummary({
   const standings = useQuery({
     ...queries.standings(poolId),
     refetchOnMount: false,
+    retryOnMount: false,
   });
   const { colors } = useTheme();
   const sporting = useSportingNavigation(active);
@@ -478,15 +501,14 @@ function ParticipantSummary({
     <>
       <View style={[styles.summaryIdentity, { borderColor: colors.border }]}>
         {row?.position !== undefined && (
-          <Text
-            accessibilityLabel={`Rang ${row.position}`}
-            style={[
-              styles.rank,
-              { color: colors.text, backgroundColor: colors.rank.neutral },
-            ]}
-          >
-            {row.position}
-          </Text>
+          <View style={[styles.rank, { backgroundColor: colors.rank.neutral }]}>
+            <Text
+              accessibilityLabel={`Rang ${row.position}`}
+              style={[tokens.typography.headingSm, { color: colors.text }]}
+            >
+              {row.position}
+            </Text>
+          </View>
         )}
         <SportingLogo
           identity={identity}
@@ -552,12 +574,9 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.panel,
     borderWidth: tokens.border.thin,
     overflow: "hidden",
+    justifyContent: "space-between",
   },
   identity: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
     padding: tokens.spacing.lg,
     gap: tokens.spacing.xs,
   },
@@ -568,9 +587,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   controls: {
-    position: "absolute",
-    top: mapControlTop,
-    right: tokens.spacing.md,
+    alignSelf: "flex-end",
+    marginTop: tokens.spacing.xs,
+    marginRight: tokens.spacing.md,
     gap: tokens.spacing.xs,
   },
   surfaceControl: {
@@ -580,10 +599,9 @@ const styles = StyleSheet.create({
   fitControl: { marginBottom: tokens.spacing.xs },
   glyph: { width: tokens.size.icon.lg, height: tokens.size.icon.lg },
   selection: {
-    position: "absolute",
-    left: tokens.spacing.md,
-    right: tokens.spacing.md,
-    bottom: tokens.spacing["2xl"],
+    marginTop: tokens.spacing.md,
+    marginHorizontal: tokens.spacing.md,
+    marginBottom: tokens.spacing["2xl"],
     borderRadius: tokens.radius.lg,
     padding: tokens.spacing.md,
     gap: tokens.spacing.md,
@@ -593,10 +611,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: tokens.spacing.sm,
   },
+  optionList: { flex: 1, minWidth: 0 },
   options: { gap: tokens.spacing.sm },
   option: {
     width: tokens.touch.minimum,
-    height: tokens.touch.minimum,
+    minHeight: tokens.touch.minimum,
     borderRadius: tokens.radius.control,
     alignItems: "center",
     justifyContent: "center",
@@ -610,11 +629,11 @@ const styles = StyleSheet.create({
     paddingTop: tokens.spacing.md,
   },
   rank: {
-    ...tokens.typography.headingSm,
     minWidth: tokens.sporting.standingsRankWidth,
     minHeight: tokens.sporting.standingsRankHeight,
-    textAlign: "center",
-    textAlignVertical: "center",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: tokens.spacing.xs,
     borderRadius: tokens.radius.sm,
   },
   teamName: { ...tokens.typography.label, flex: 1 },
