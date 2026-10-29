@@ -94,17 +94,16 @@ interface MatchRepository extends JpaRepository<MatchEntity, UUID> {
   Optional<MatchVisibilityRow> findVisibility(UUID id);
 
   /**
-   * Hydrates a bounded admitted selection with the to-one presentation graph.
+   * Hydrates admitted match facts with their pool season and classification. Participant identities
+   * remain lazy references; public names and artwork presence use the scalar presentation reads.
    *
-   * @param ids match identities selected before pagination
+   * @param ids already selected match identities
    * @return managed matches without multiplying roots through collection fetches
    */
   @Query(
       """
       SELECT m FROM MatchEntity m
       JOIN FETCH m.pool p JOIN FETCH p.season JOIN FETCH p.division
-      JOIN FETCH m.homeTeam h JOIN FETCH h.season JOIN FETCH h.division LEFT JOIN FETCH h.club
-      JOIN FETCH m.awayTeam a JOIN FETCH a.season JOIN FETCH a.division LEFT JOIN FETCH a.club
       WHERE m.id IN :ids
       """)
   List<MatchEntity> findPresentationByIdIn(Set<UUID> ids);

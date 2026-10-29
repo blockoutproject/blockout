@@ -18,6 +18,7 @@ import com.blockout.backend.sporting.application.service.ReadSportingAcquisition
 import java.net.URI;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -45,9 +46,9 @@ public class RecordCollectionResults {
   @Transactional
   public CollectionState.Cycle record(UUID cycleId, RecordCollectionResult command) {
     CollectionState.Cycle cycle = cycleAccess.lockControlPassage(cycleId);
-    if (cycle.state() != CollectionCycleStateEnum.RUNNING
-        || !contains(cycleId, command.scopeId(), command.stage()))
+    if (cycle.state() != CollectionCycleStateEnum.RUNNING)
       throw CollectionConflictException.invalidContext();
+    Target target = requireTarget(cycleId, command.scopeId(), command.stage());
     store.lockControl(cycle.controlId());
     CollectionResult previous =
         store
@@ -86,7 +87,7 @@ public class RecordCollectionResults {
             command.reason(),
             command.obtainedCount(),
             command.rejectedCount()));
-    if (cycle.mode() == CollectionModeEnum.INITIAL_IMPORT) recordInitial(cycle, command);
+    if (cycle.mode() == CollectionModeEnum.INITIAL_IMPORT) recordInitial(cycle, target, command);
     if (command.outcome() != CollectionOutcomeEnum.SUCCESS
         || (previous != null && previous.firstFailureAt() != null))
       events.publishEvent(
@@ -124,41 +125,15 @@ public class RecordCollectionResults {
   }
 
   /**
-   * Retains initial evidence independently of ordinary operational freshness. Additional detail and
-   * logo work uses an exact admitted target or resolves its source through F02 and an admitted
-   * calendar, never caller-supplied roots.
+   * Retains initial evidence independently of ordinary operational freshness, using the same
+   * admitted target that authorized this result rather than resolving its source a second time.
    *
    * @param cycle already authorized initial passage under its transaction fence
+   * @param target exact admitted role or owning calendar resolved before the result write
    * @param command attributable observed result
    */
-  private void recordInitial(CollectionState.Cycle cycle, RecordCollectionResult command) {
-    Target target;
-    if (command.stage() == CollectionStageEnum.LOGO) {
-      target =
-          store
-              .target(cycle.id(), command.scopeId(), CollectionTargetKindEnum.LOGO)
-              .orElseGet(
-                  () ->
-                      acquisitionReads.teamPools(command.scopeId()).stream()
-                          .map(
-                              pool ->
-                                  store.target(cycle.id(), pool, CollectionTargetKindEnum.CALENDAR))
-                          .flatMap(java.util.Optional::stream)
-                          .findFirst()
-                          .orElseThrow(CollectionConflictException::invalidContext));
-    } else {
-      target =
-          store
-              .target(cycle.id(), command.scopeId(), stages.toTargetKind(command.stage()))
-              .orElseGet(
-                  () ->
-                      acquisitionReads
-                          .matchPoolId(command.scopeId())
-                          .flatMap(
-                              pool ->
-                                  store.target(cycle.id(), pool, CollectionTargetKindEnum.CALENDAR))
-                          .orElseThrow(CollectionConflictException::invalidContext));
-    }
+  private void recordInitial(
+      CollectionState.Cycle cycle, Target target, RecordCollectionResult command) {
     for (CollectionPhaseEnum phase : CollectionPhaseEnum.values()) {
       InitialCoverage previous =
           store
@@ -203,25 +178,36 @@ public class RecordCollectionResults {
   }
 
   /**
-   * Resolves child identities through their sporting owner, never by accepting a caller's parent.
+   * Resolves the admitted role once for authorization and initial attribution. Child identities
+   * come from their sporting owner, never from a caller's parent. Logo membership uses one bounded
+   * query over retained pools instead of one query per membership.
    *
    * @param cycleId current snapshot
    * @param scopeId stable source or sporting identity
    * @param stage exact acquisition role
-   * @return whether the role is directly admitted or resolves through an admitted calendar
+   * @return direct admitted role or its admitted calendar, retaining the original source binding
+   * @throws CollectionConflictException when the requested role has no admitted scope
    */
-  private boolean contains(UUID cycleId, UUID scopeId, CollectionStageEnum stage) {
-    if (stage == CollectionStageEnum.LOGO) {
-      return store.containsTarget(cycleId, scopeId, CollectionTargetKindEnum.LOGO)
-          || store.containsAnyTarget(
-              cycleId, acquisitionReads.teamPools(scopeId), CollectionTargetKindEnum.CALENDAR);
-    }
-    if (store.containsTarget(cycleId, scopeId, stages.toTargetKind(stage))) return true;
-    return stage == CollectionStageEnum.DETAILS
-        && acquisitionReads
-            .matchPoolId(scopeId)
-            .map(pool -> store.containsTarget(cycleId, pool, CollectionTargetKindEnum.CALENDAR))
-            .orElse(false);
+  private Target requireTarget(UUID cycleId, UUID scopeId, CollectionStageEnum stage) {
+    return store
+        .target(cycleId, scopeId, stages.toTargetKind(stage))
+        .or(
+            () ->
+                switch (stage) {
+                  case LOGO ->
+                      store.firstTarget(
+                          cycleId,
+                          acquisitionReads.teamPools(scopeId),
+                          CollectionTargetKindEnum.CALENDAR);
+                  case DETAILS ->
+                      acquisitionReads
+                          .matchPoolId(scopeId)
+                          .flatMap(
+                              pool ->
+                                  store.target(cycleId, pool, CollectionTargetKindEnum.CALENDAR));
+                  default -> Optional.empty();
+                })
+        .orElseThrow(CollectionConflictException::invalidContext);
   }
 
   /**

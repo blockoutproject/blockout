@@ -8,9 +8,11 @@ import static org.mockito.Mockito.when;
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionState;
+import com.blockout.backend.collection.application.model.InitialCoverage;
 import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
+import com.blockout.backend.collection.application.service.CollectionCycleAccess;
 import com.blockout.backend.collection.application.service.ReadCollectionWork;
 import com.blockout.backend.collection.application.service.RecordCollectionResults;
 import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
@@ -31,7 +33,9 @@ import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import jakarta.persistence.EntityManagerFactory;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.hibernate.SessionFactory;
@@ -65,6 +69,7 @@ class CollectionResultIntegrationTest {
   @Autowired private RegisterCollectorRuntime runtimes;
   @Autowired private ReadCollectionWork collectionWork;
   @Autowired private AdmitCollectionCycle cycles;
+  @Autowired private CollectionCycleAccess cycleAccess;
 
   @Autowired private RecordCollectionResults results;
   @Autowired private CollectionStore store;
@@ -629,6 +634,36 @@ class CollectionResultIntegrationTest {
         "INSERT INTO collection_target(cycle_id,scope_id,kind) VALUES (?,?,'CALENDAR')",
         cycle.id(),
         retainedPool);
+    List<UUID> memberships =
+        new ArrayList<>(
+            sql.queryForList(
+                "SELECT pool_id FROM sporting_participation WHERE team_id = ? AND pool_id <> ? ORDER BY pool_id",
+                UUID.class,
+                first.homeTeamId(),
+                retainedPool));
+    memberships.add(retainedPool);
+    statistics.setStatisticsEnabled(true);
+    try {
+      // Given the admitted pool after unrelated memberships
+      TransactionTemplate transaction = new TransactionTemplate(transactions);
+      long before = statistics.getPrepareStatementCount();
+      transaction.execute(
+          state ->
+              cycleAccess.requireTeamLogo(cycle.id(), first.homeTeamId(), List.of(retainedPool)));
+      long singlePoolReads = statistics.getPrepareStatementCount() - before;
+      before = statistics.getPrepareStatementCount();
+
+      // When
+      CollectionState.Target target =
+          transaction.execute(
+              state -> cycleAccess.requireTeamLogo(cycle.id(), first.homeTeamId(), memberships));
+
+      // Then
+      assertThat(statistics.getPrepareStatementCount() - before).isEqualTo(singlePoolReads);
+      assertThat(target.scopeId()).isEqualTo(retainedPool);
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
     results.record(cycle.id(), logo);
     assertThat(
             store.result(
@@ -637,6 +672,137 @@ class CollectionResultIntegrationTest {
                 CollectionStageEnum.LOGO,
                 CollectionPhaseEnum.ACQUISITION))
         .isPresent();
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = CollectionStageEnum.class,
+      names = {"DETAILS", "LOGO"})
+  @DisplayName("Attributes initial child evidence to the admitted calendar source")
+  void attributesInitialChildEvidence(CollectionStageEnum stage) {
+    // Given
+    MatchView admitted = match("initial-child-" + stage);
+    UUID source =
+        stage == CollectionStageEnum.DETAILS
+            ? UUID.fromString("00000000-0000-4000-8000-000000000951")
+            : UUID.fromString("00000000-0000-4000-8000-000000000952");
+    UUID scope = stage == CollectionStageEnum.DETAILS ? admitted.id() : admitted.homeTeamId();
+    sql.update(
+        "INSERT INTO collection_source_binding(id,season_id,provider,organizer_reference,validation_state,locked,launched) VALUES (?,?,'FFVB',?,'QUALIFIED',TRUE,FALSE)",
+        source,
+        seasons.getOrCreate(2026).id(),
+        "INITIAL-CHILD-" + stage);
+    sql.update("UPDATE collection_cycle SET mode = 'INITIAL_IMPORT' WHERE id = ?", cycle.id());
+    sql.update(
+        "INSERT INTO collection_target(cycle_id,scope_id,kind,source_binding_id) VALUES (?,?,'CALENDAR',?)",
+        cycle.id(),
+        admitted.poolId(),
+        source);
+    RecordCollectionResult evidence =
+        new RecordCollectionResult(
+            scope,
+            stage,
+            CollectionPhaseEnum.ACQUISITION,
+            1,
+            OBSERVED,
+            CollectionOutcomeEnum.SUCCESS,
+            null,
+            null,
+            1L,
+            0L);
+
+    // When
+    results.record(cycle.id(), evidence);
+
+    // Then
+    InitialCoverage recorded =
+        store.initialCoverage(source, scope, stage, CollectionPhaseEnum.ACQUISITION).orElseThrow();
+    assertThat(recorded.sourceBindingId()).isEqualTo(source);
+    assertThat(recorded.scopeId()).isEqualTo(scope);
+    assertThat(recorded.status()).isEqualTo(InitialCoverage.Status.OBTAINED);
+    assertThat(recorded.obtainedCount()).isEqualTo(1L);
+    assertThat(store.initialCoverage(source, scope, stage, CollectionPhaseEnum.INTEGRATION))
+        .get()
+        .extracting(InitialCoverage::status)
+        .isEqualTo(InitialCoverage.Status.REQUESTED);
+    assertThat(store.result(CONTROL, scope, stage, CollectionPhaseEnum.ACQUISITION)).isPresent();
+  }
+
+  @Test
+  @DisplayName("Retains one LNV source when a logo belongs to several admitted calendars")
+  void attributesSharedProfessionalLogo() {
+    // Given
+    UUID source = UUID.fromString("00000000-0000-4000-8000-000000000953");
+    UUID division = UUID.fromString("00000000-0000-4000-8000-000000000953");
+    UUID season = seasons.getOrCreate(2026).id();
+    sql.update(
+        "INSERT INTO sporting_division(id,name,active,color) VALUES (?, 'Initial LNV',TRUE,'#112233')",
+        division);
+    sql.update(
+        "INSERT INTO collection_source_binding(id,season_id,provider,organizer_reference,validation_state,locked,launched) VALUES (?,?,'LNV','INITIAL-LNV','QUALIFIED',TRUE,FALSE)",
+        source,
+        season);
+    List<MatchView> matches = new ArrayList<>();
+    for (int phase = 0; phase < 2; phase++) {
+      UUID pool =
+          identities
+              .createPool(
+                  new PoolKey(
+                      CollectionProviderEnum.LNV,
+                      season,
+                      "INITIAL-LNV",
+                      "INITIAL-LNV",
+                      null,
+                      null,
+                      "phase-" + phase),
+                  "Phase " + phase,
+                  "Phase " + phase,
+                  new SportingClassification(division, SportFormatEnum._6X6, SportGenderEnum.MALE))
+              .id();
+      matches.add(
+          identities.identifyMatch(
+              pool,
+              "M1",
+              new TeamCandidate("HOME", "LNV Home", null, null),
+              new TeamCandidate("AWAY", "LNV Away", null, null)));
+    }
+    assertThat(matches.getFirst().homeTeamId()).isEqualTo(matches.getLast().homeTeamId());
+    for (MatchView match : matches.reversed()) {
+      sql.update(
+          "INSERT INTO collection_target(cycle_id,scope_id,kind,source_binding_id) VALUES (?,?,'CALENDAR',?)",
+          cycle.id(),
+          match.poolId(),
+          source);
+    }
+    sql.update("UPDATE collection_cycle SET mode = 'INITIAL_IMPORT' WHERE id = ?", cycle.id());
+    UUID team = matches.getFirst().homeTeamId();
+    RecordCollectionResult logo =
+        new RecordCollectionResult(
+            team,
+            CollectionStageEnum.LOGO,
+            CollectionPhaseEnum.ACQUISITION,
+            1,
+            OBSERVED,
+            CollectionOutcomeEnum.SUCCESS,
+            null,
+            null,
+            1L,
+            0L);
+
+    // When
+    results.record(cycle.id(), logo);
+
+    // Then
+    assertThat(
+            store.initialCoverage(
+                source, team, CollectionStageEnum.LOGO, CollectionPhaseEnum.ACQUISITION))
+        .get()
+        .satisfies(
+            recorded -> {
+              assertThat(recorded.sourceBindingId()).isEqualTo(source);
+              assertThat(recorded.scopeId()).isEqualTo(team);
+              assertThat(recorded.status()).isEqualTo(InitialCoverage.Status.OBTAINED);
+            });
   }
 
   /**

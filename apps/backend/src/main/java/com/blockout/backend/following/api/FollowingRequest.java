@@ -8,7 +8,6 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -24,16 +23,14 @@ public class FollowingRequest {
    *
    * @param original account UUID from the generated path binding
    * @return that same UUID after the current F05 mapping matches
-   * @throws ResponseStatusException with safe 404 for an absent/different account ; storage outages
+   * @throws ResponseStatusException with safe 404 for an absent/different account; storage outages
    *     retain their shared HTTP owner
    */
   public UUID requireOwner(UUID original) {
-    try {
-      if (!original.equals(current.id())) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-      return original;
-    } catch (AccessDeniedException absent) {
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-    }
+    return current
+        .findId()
+        .filter(original::equals)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
   }
 
   /**

@@ -57,12 +57,15 @@ public class ReadMatchCalendar {
     Instant now = clock.instant();
     List<LocalDate> selected = store.calendarDays(request, selection, now);
     List<LocalDate> days = selected.subList(0, Math.min(7, selected.size()));
+    List<CalendarEntry> entries = store.calendarMatches(request, selection, days, now);
+    Map<UUID, ConsultationViews.MatchSummary> summaries =
+        resources.composeMatchSummaries(entries.stream().map(CalendarEntry::match).toList(), now);
     Map<LocalDate, Map<UUID, List<ConsultationViews.MatchSummary>>> grouped = new LinkedHashMap<>();
-    for (CalendarEntry entry : store.calendarMatches(request, selection, days, now)) {
+    for (CalendarEntry entry : entries) {
       grouped
           .computeIfAbsent(entry.day(), ignored -> new LinkedHashMap<>())
-          .computeIfAbsent(entry.match().poolId(), ignored -> new ArrayList<>())
-          .add(resources.matchSummary(entry.match(), now));
+          .computeIfAbsent(entry.match().pool().id(), ignored -> new ArrayList<>())
+          .add(summaries.get(entry.match().id()));
     }
     List<ConsultationViews.Day> result =
         grouped.entrySet().stream()

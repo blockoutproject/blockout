@@ -112,7 +112,9 @@ public interface ConsultationStore {
   Map<UUID, SeasonView> seasons(Set<UUID> ids);
 
   /**
-   * Loads the to-one graph of already admitted dated matches in one bounded query.
+   * Loads already admitted dated match facts with their current pool presentation and
+   * season/classification context. Participant names and artwork presence are composed separately
+   * through the sporting presentation port.
    *
    * @param ids current match identities selected under the caller's consistent read transaction
    * @return detached sporting inputs; this operation does not authorize the selection
@@ -123,7 +125,7 @@ public interface ConsultationStore {
    * Accepted owner values needed to compose one public match without exposing persistence objects.
    *
    * @param id original match identity
-   * @param poolId retained contextual pool
+   * @param pool current retained pool identity and names from its required context
    * @param homeTeamId original home participant
    * @param awayTeamId original away participant
    * @param season canonical pool season
@@ -135,7 +137,7 @@ public interface ConsultationStore {
    */
   record MatchInput(
       UUID id,
-      UUID poolId,
+      SportingPresentation.View pool,
       UUID homeTeamId,
       UUID awayTeamId,
       SeasonView season,

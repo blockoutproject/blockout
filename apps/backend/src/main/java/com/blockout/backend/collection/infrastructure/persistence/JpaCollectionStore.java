@@ -145,16 +145,13 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
-  public boolean containsTarget(UUID cycleId, UUID scopeId, CollectionTargetKindEnum kind) {
-    return targets.existsByCycleIdAndScopeIdAndKind(cycleId, scopeId, kind);
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public boolean containsAnyTarget(
+  public Optional<CollectionState.Target> firstTarget(
       UUID cycleId, List<UUID> scopeIds, CollectionTargetKindEnum kind) {
-    return !scopeIds.isEmpty()
-        && targets.existsByCycleIdAndScopeIdInAndKind(cycleId, scopeIds, kind);
+    return scopeIds.isEmpty()
+        ? Optional.empty()
+        : targets
+            .findFirstByCycleIdAndScopeIdInAndKindOrderByScopeIdAsc(cycleId, scopeIds, kind)
+            .map(mapper::toView);
   }
 
   /** {@inheritDoc} */

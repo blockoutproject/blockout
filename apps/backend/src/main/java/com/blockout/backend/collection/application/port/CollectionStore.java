@@ -363,24 +363,14 @@ public interface CollectionStore {
   CollectionState.SnapshotPage targets(UUID cycleId, int page, int size);
 
   /**
-   * Checks the exact admitted acquisition role.
-   *
-   * @param cycleId current context
-   * @param scopeId stable identity
-   * @param kind required frozen role
-   * @return whether the role belongs to the admitted snapshot
-   */
-  boolean containsTarget(UUID cycleId, UUID scopeId, CollectionTargetKindEnum kind);
-
-  /**
-   * Checks whether any retained parent belongs to the exact admitted acquisition role.
+   * Resolves one retained parent with the required acquisition role in a bounded query.
    *
    * @param cycleId current context
    * @param scopeIds candidate parent identities; may be empty
    * @param kind required frozen role
-   * @return whether at least one parent has the required role in this snapshot
+   * @return first admitted target in scope UUID order, or empty when no candidate is admitted
    */
-  boolean containsAnyTarget(UUID cycleId, List<UUID> scopeIds, CollectionTargetKindEnum kind);
+  Optional<Target> firstTarget(UUID cycleId, List<UUID> scopeIds, CollectionTargetKindEnum kind);
 
   /**
    * Serializes result writes with completion after runtime and season fencing.

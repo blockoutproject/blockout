@@ -64,7 +64,8 @@ class RecordCollectionResultsTest {
   void reportsFirstCompetitionFailure() {
     // Given
     when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(2));
-    when(store.containsTarget(CYCLE, SCOPE, CollectionTargetKindEnum.CALENDAR)).thenReturn(true);
+    when(store.target(CYCLE, SCOPE, CollectionTargetKindEnum.CALENDAR))
+        .thenReturn(Optional.of(target(CollectionTargetKindEnum.CALENDAR)));
     RecordCollectionResult failure =
         evidence(
             CollectionStageEnum.CALENDAR,
@@ -94,8 +95,8 @@ class RecordCollectionResultsTest {
   void retainsFirstFailureAcrossCycles(CollectionStageEnum stage) {
     // Given
     when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(3));
-    when(store.containsTarget(CYCLE, SCOPE, CollectionTargetKindEnum.fromValue(stage.getValue())))
-        .thenReturn(true);
+    CollectionTargetKindEnum kind = CollectionTargetKindEnum.fromValue(stage.getValue());
+    when(store.target(CYCLE, SCOPE, kind)).thenReturn(Optional.of(target(kind)));
     when(store.result(CONTROL, SCOPE, stage, CollectionPhaseEnum.ACQUISITION))
         .thenReturn(Optional.of(previous(stage, CollectionPhaseEnum.ACQUISITION, 2, 90)));
     RecordCollectionResult next =
@@ -124,7 +125,8 @@ class RecordCollectionResultsTest {
   void ignoresStaleEvidence(long cycleOrder, long ordinal) {
     // Given
     when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(cycleOrder));
-    when(store.containsTarget(CYCLE, SCOPE, CollectionTargetKindEnum.CALENDAR)).thenReturn(true);
+    when(store.target(CYCLE, SCOPE, CollectionTargetKindEnum.CALENDAR))
+        .thenReturn(Optional.of(target(CollectionTargetKindEnum.CALENDAR)));
     when(store.result(
             CONTROL, SCOPE, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.ACQUISITION))
         .thenReturn(
@@ -152,7 +154,8 @@ class RecordCollectionResultsTest {
   void recoversExactPhase(CollectionPhaseEnum phase) {
     // Given
     when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(3));
-    when(store.containsTarget(CYCLE, SCOPE, CollectionTargetKindEnum.GEOCODING)).thenReturn(true);
+    when(store.target(CYCLE, SCOPE, CollectionTargetKindEnum.GEOCODING))
+        .thenReturn(Optional.of(target(CollectionTargetKindEnum.GEOCODING)));
     when(store.result(CONTROL, SCOPE, CollectionStageEnum.GEOCODING, phase))
         .thenReturn(Optional.of(previous(CollectionStageEnum.GEOCODING, phase, 2, 5)));
     RecordCollectionResult empty =
@@ -205,7 +208,8 @@ class RecordCollectionResultsTest {
   void reportsAcceptedCatalog(CollectionOutcomeEnum outcome) {
     // Given
     when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(2));
-    when(store.containsTarget(CYCLE, SCOPE, CollectionTargetKindEnum.DISCOVERY)).thenReturn(true);
+    when(store.target(CYCLE, SCOPE, CollectionTargetKindEnum.DISCOVERY))
+        .thenReturn(Optional.of(target(CollectionTargetKindEnum.DISCOVERY)));
     RecordCollectionResult command =
         evidence(CollectionStageEnum.DISCOVERY, CollectionPhaseEnum.INTEGRATION, 1, FIRST, outcome);
 
@@ -225,7 +229,8 @@ class RecordCollectionResultsTest {
   void ignoresRejectedCatalog(CollectionOutcomeEnum outcome) {
     // Given
     when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(2));
-    when(store.containsTarget(CYCLE, SCOPE, CollectionTargetKindEnum.DISCOVERY)).thenReturn(true);
+    when(store.target(CYCLE, SCOPE, CollectionTargetKindEnum.DISCOVERY))
+        .thenReturn(Optional.of(target(CollectionTargetKindEnum.DISCOVERY)));
     RecordCollectionResult command =
         evidence(CollectionStageEnum.DISCOVERY, CollectionPhaseEnum.INTEGRATION, 1, FIRST, outcome);
 
@@ -235,6 +240,16 @@ class RecordCollectionResultsTest {
     // Then
     verify(events, never())
         .publishEvent(any(CollectionOperationalDiagnostics.CatalogObserved.class));
+  }
+
+  /**
+   * Supplies the exact admitted role without unrelated acquisition configuration.
+   *
+   * @param kind role selected by the scenario
+   * @return immutable authorization target for the selected scope
+   */
+  private CollectionState.Target target(CollectionTargetKindEnum kind) {
+    return CollectionState.Target.builder().scopeId(SCOPE).kind(kind).build();
   }
 
   /**
