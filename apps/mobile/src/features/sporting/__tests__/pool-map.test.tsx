@@ -29,6 +29,7 @@ import { applicationAccessResponse } from "../../../shared/api/test-support/appl
 import { matchDetail, sportingId } from "../test-support/consultation-data";
 import { PoolScreen } from "../screens/pool-screen";
 import { PoolMap } from "../components/pool-map";
+import { nativeMapCommands } from "../test-support/native-maps";
 import {
   TECHNICAL_ERROR,
   TECHNICAL_ERROR_TITLE,
@@ -83,6 +84,7 @@ beforeEach(() => {
   jest.mocked(initializeV2Installation).mockResolvedValue(undefined);
   mockAuth0.hasValidCredentials.mockResolvedValue(false);
   mockPush.mockReset();
+  for (const command of Object.values(nativeMapCommands)) command.mockClear();
   participantsFailure = false;
   standingsFailure = false;
   participants = { poolId: pool.pool.id, items: [] };
@@ -507,3 +509,68 @@ it("retries an initial participant failure without announcing empty geography", 
     `/pools/${pool.pool.id}/participants`,
   ]);
 });
+
+it.each([
+  ["ready-first", 1],
+  ["layout-first", 1],
+  ["ready-first", 2],
+  ["layout-first", 2],
+] as const)(
+  "waits for both native readiness and nonzero layout (%s, %i points)",
+  async (order, count) => {
+    // Given
+    participants.items = [
+      participant(sportingId, "Rives", {
+        latitude: 46.16,
+        longitude: -1.15,
+        label: "La Rochelle",
+      }),
+      ...(count === 2
+        ? [
+            participant(secondTeamId, "Marais", {
+              latitude: 46.32,
+              longitude: -0.46,
+              label: "Niort",
+            }),
+          ]
+        : []),
+    ];
+    const user = userEvent.setup();
+    await open();
+    // The controlled native boundary has no semantic action for its lifecycle callbacks.
+    const nativeMap = screen.getByTestId("native-map-boundary");
+    const frame =
+      count === 1
+        ? nativeMapCommands.animateToRegion
+        : nativeMapCommands.fitToCoordinates;
+    await fireEvent(nativeMap, "layout", {
+      nativeEvent: { layout: { x: 0, y: 0, width: 0, height: 0 } },
+    });
+    await user.press(
+      screen.getByRole("button", { name: "Afficher toutes les équipes" }),
+    );
+    expect(frame).not.toHaveBeenCalled();
+    if (order === "ready-first") await fireEvent(nativeMap, "mapReady");
+    else
+      await fireEvent(nativeMap, "layout", {
+        nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 422 } },
+      });
+    await user.press(
+      screen.getByRole("button", { name: "Afficher toutes les équipes" }),
+    );
+    expect(frame).not.toHaveBeenCalled();
+
+    // When
+    if (order === "ready-first")
+      await fireEvent(nativeMap, "layout", {
+        nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 422 } },
+      });
+    else await fireEvent(nativeMap, "mapReady");
+
+    // Then
+    expect(frame).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole("button", { name: "Afficher toutes les équipes" }),
+    ).toBeEnabled();
+  },
+);

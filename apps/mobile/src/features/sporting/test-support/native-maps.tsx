@@ -17,7 +17,9 @@ function NativeMap({
   ...props
 }: MapViewProps & { ref?: Ref<typeof nativeMapCommands> }) {
   useImperativeHandle(ref, () => nativeMapCommands);
-  return <View {...props} />;
+  return (
+    <View onLayout={() => undefined} {...props} testID="native-map-boundary" />
+  );
 }
 
 /** Exposes the native marker event and exact coordinate unchanged; actual hit testing remains native evidence. */

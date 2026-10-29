@@ -180,6 +180,8 @@ function ParticipantMap({
   const feedback = useActionFeedback();
   const map = useRef<MapView>(null);
   const [ready, setReady] = useState(false);
+  const [laidOut, setLaidOut] = useState(false);
+  const cameraAvailable = ready && laidOut;
   const [selectedId, setSelectedId] = useState<string>();
   const points = useMemo(() => participantPoints(items), [items]);
   const point = points.find((group) =>
@@ -201,7 +203,7 @@ function ParticipantMap({
 
   /** Uses supported native framing; a lone municipality never starts at building-level zoom. */
   const fit = useCallback(() => {
-    if (!map.current || !points.length) return;
+    if (!cameraAvailable || !map.current || !points.length) return;
     if (points.length === 1) {
       map.current.animateToRegion(
         { ...points[0].coordinate, latitudeDelta: 0.15, longitudeDelta: 0.15 },
@@ -221,11 +223,11 @@ function ParticipantMap({
         },
       );
     }
-  }, [points, selectionHeight, selectionVisible]);
-  // Readiness only permits camera commands; it makes no claim about loaded tiles.
+  }, [cameraAvailable, points, selectionHeight, selectionVisible]);
+  // Readiness and layout may arrive in either order; neither is proof of loaded tiles.
   useEffect(() => {
-    if (ready) fit();
-  }, [fit, ready]);
+    fit();
+  }, [fit]);
 
   /** Lets the native camera own position and scale; no region mirror or tile-state detector is stored. */
   async function zoom(direction: 1 | -1) {
@@ -263,6 +265,10 @@ function ParticipantMap({
         rotateEnabled={false}
         pitchEnabled={false}
         onMapReady={() => setReady(true)}
+        onLayout={({ nativeEvent }) => {
+          const { width, height } = nativeEvent.layout;
+          setLaidOut(width > 0 && height > 0);
+        }}
         onPress={() => setSelectedId(undefined)}
       >
         {points.map((group) => {
@@ -325,6 +331,7 @@ function ParticipantMap({
         >
           <IconButton
             label="Afficher toutes les équipes"
+            disabled={!cameraAvailable}
             onPress={() => {
               setSelectedId(undefined);
               fit();
@@ -343,7 +350,11 @@ function ParticipantMap({
             { backgroundColor: colors.surface, borderColor: colors.border },
           ]}
         >
-          <IconButton label="Zoomer" onPress={() => void zoom(1)}>
+          <IconButton
+            label="Zoomer"
+            disabled={!cameraAvailable}
+            onPress={() => void zoom(1)}
+          >
             <Plus color={colors.icon} size={tokens.size.icon.lg} />
           </IconButton>
         </View>
@@ -353,7 +364,11 @@ function ParticipantMap({
             { backgroundColor: colors.surface, borderColor: colors.border },
           ]}
         >
-          <IconButton label="Dézoomer" onPress={() => void zoom(-1)}>
+          <IconButton
+            label="Dézoomer"
+            disabled={!cameraAvailable}
+            onPress={() => void zoom(-1)}
+          >
             <Minus color={colors.icon} size={tokens.size.icon.lg} />
           </IconButton>
         </View>
