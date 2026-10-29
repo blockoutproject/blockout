@@ -86,6 +86,12 @@ public class JpaContributionStore implements ContributionStore {
 
   /** {@inheritDoc} */
   @Override
+  public long ownProposalCount(UUID matchId, UUID ownerId) {
+    return versions.countByMatchIdAndOwnerId(matchId, ownerId);
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public VersionPage own(UUID matchId, UUID ownerId, int page) {
     Slice<ContributionVersionEntity> found =
         versions.findByMatchIdAndOwnerIdOrderByCreatedAtDescIdAsc(

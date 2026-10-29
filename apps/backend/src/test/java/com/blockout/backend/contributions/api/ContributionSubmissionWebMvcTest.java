@@ -273,6 +273,7 @@ class ContributionSubmissionWebMvcTest {
             null,
             new com.blockout.backend.contributions.domain.ContributionQuota.Usage(1, 1, true),
             Instant.parse("2026-10-24T22:00:00Z"),
+            1,
             new com.blockout.backend.contributions.application.ContributionStore.VersionPage(
                 List.of(version()), false),
             0);
@@ -287,6 +288,7 @@ class ContributionSubmissionWebMvcTest {
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.eligibility.requiresApproval").value(true))
         .andExpect(jsonPath("$.quota.versionsUsed").value(1))
+        .andExpect(jsonPath("$.proposalCount").value(1))
         .andExpect(jsonPath("$.items[0].url").value("https://youtube.com/synthetic"))
         .andExpect(jsonPath("$.nextPage").doesNotExist());
   }

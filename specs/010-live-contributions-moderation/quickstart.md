@@ -115,13 +115,16 @@ the migrated PostgreSQL mappings and actual F02/F05 owners. It covers active/pen
 current-condition replacements after correction, refusals preserving both versions, exact-target
 terminal repetition, stale revisions before no-op, immutable address/quota participation and
 independent proposals/holds. A PostgreSQL-observed account-lock race verifies that withdrawal
-cannot rewrite a publication actor erased while the command waits. Existing private-read tests
-also traverse more than twenty moderator-created versions without consuming ordinary quota.
+cannot rewrite a publication actor erased while the command waits. Private-read tests
+also traverse more than twenty moderator-created versions without consuming ordinary quota,
+and verify the exact all-state `proposalCount`, true-empty zero, active-only one and isolation
+from other owners/matches. Contract validation rejects a missing, negative or unsafe total.
 Historical decision and account-removal fixtures establish these boundaries only; they do not
 qualify actual US5 commands or F05's complete erasure orchestration.
 
 `own-contribution-lifecycle.test.tsx` mounts the production screen and generated HTTP/Query
-boundary with controlled native credentials and responses. It covers French state explanations,
+boundary with controlled native credentials and responses. It covers the always-visible “Mes propositions (number)” total, including zero and totals beyond
+the loaded page, all-state textual badges, compact exact-target cancellation and French accessible state explanations,
 exact confirmations, session departure, command exclusion, retained acknowledgements, current
 access refusal and native continuation beyond twenty historical moderator-created versions.
 The shared F13 continuation stops after error or outside active focus and exposes an explicit
@@ -148,9 +151,11 @@ personal versions with historical moderator-created versions whose quota partici
 keep ordinary active/pending submissions counted. Do not raise or bypass ordinary quotas to
 construct the history. Use fictional addresses and match/account identities.
 
-- Open personal history from the match with a retained active link and pending replacement.
-  Distinguish public-link withdrawal from proposal cancellation and replacement. Show French
-  explanations for rejected, cancelled, superseded, withdrawn and replaced history without
+- Open personal proposals from the match with a retained active link and pending replacement.
+  Verify the total includes every state, remains visible at zero and is independent of pagination.
+  Review compact badge/link rows, thin separators and the small transparent red trash icon
+  centered at the right of an authorized pending row. Distinguish public-link withdrawal from
+  proposal cancellation and replacement. Keep French state explanations accessible without
   exposing another author's proposals or moderation details.
 - Dismiss each native confirmation and verify no command. Confirm cancellation of the pending
   version, then withdrawal of the active version, checking the exact version and viewed revision

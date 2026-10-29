@@ -169,6 +169,7 @@ beforeEach(() => {
       pages.push(page);
       return Response.json({
         ...context,
+        proposalCount: rows.length,
         items: rows.slice(page * 20, (page + 1) * 20),
         ...(rows.length > (page + 1) * 20 ? { nextPage: page + 1 } : {}),
       });
@@ -227,6 +228,115 @@ function SessionExit() {
     </>
   );
 }
+
+it("presents a named status and address with an accessible icon cancellation and no permanent explanation", async () => {
+  // Given
+  const user = userEvent.setup();
+
+  // When
+  await mount();
+  await screen.findByRole("header", { name: "Mes propositions (2)" });
+
+  // Then
+  expect(screen.getByText("En attente de validation")).toBeOnTheScreen();
+  expect(screen.getByText("https://youtu.be/history-1")).toBeOnTheScreen();
+  expect(
+    screen.getByHintText(/Cette proposition attend une décision/),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByText(/Cette proposition attend une décision/),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByText("Annuler la proposition")).not.toBeOnTheScreen();
+  expect(screen.queryByText(/28\/10\/2026/)).not.toBeOnTheScreen();
+  expect(screen.queryByText(/historique/i)).not.toBeOnTheScreen();
+  expect(screen.getByText("Votre lien public")).toBeOnTheScreen();
+  expect(screen.getByText("Publié")).toBeOnTheScreen();
+  expect(screen.getAllByText("https://youtu.be/history-2")).toHaveLength(2);
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Annuler la proposition" }),
+  );
+  await act(async () => {
+    alert.mock.calls
+      .at(-1)?.[2]
+      ?.find((button: { style?: string }) => button.style === "destructive")
+      ?.onPress?.();
+  });
+
+  // Then
+  expect(await screen.findByText("Proposition annulée")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "Mes propositions (2)" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Annuler la proposition" }),
+  ).not.toBeOnTheScreen();
+  expect(patches).toEqual([
+    {
+      id: version(1, "pending").id,
+      body: { action: "cancel", revision: "initial" },
+    },
+  ]);
+});
+
+it.each([false, true])(
+  "shows the exact proposal count with only an active public link=%s",
+  async (hasActive) => {
+    // Given
+    rows = hasActive ? [version(2, "active")] : [];
+
+    // When
+    await mount();
+    await screen.findByRole("header", {
+      name: `Mes propositions (${hasActive ? 1 : 0})`,
+    });
+
+    // Then
+    expect(
+      screen.queryByRole("button", { name: "Annuler la proposition" }),
+    ).not.toBeOnTheScreen();
+    expect(!!screen.queryByText("Votre lien public")).toBe(hasActive);
+    expect(!!screen.queryByText("Publié")).toBe(hasActive);
+  },
+);
+
+it("keeps the proposals heading without inventing zero during initial loading or failure", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  const boundary = mockFetch.getMockImplementation();
+  if (!boundary) throw new Error("Missing test HTTP boundary");
+  mockFetch.mockImplementation((url, init) =>
+    String(url).includes("/stream-contributions")
+      ? response.promise
+      : boundary(url, init),
+  );
+
+  // When
+  await mount();
+  await screen.findByRole("progressbar", { name: "Chargement en cours" });
+
+  // Then
+  expect(
+    screen.getByRole("header", { name: "Mes propositions" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Mes propositions (0)")).not.toBeOnTheScreen();
+
+  // When
+  await act(async () =>
+    response.resolve(Response.json({ status: 500 }, { status: 500 })),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "Mes propositions" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Mes propositions (0)")).not.toBeOnTheScreen();
+});
+
 it("explains active and pending coexistence and confirms exact cancellation with its quota consequence", async () => {
   // Given
   const user = userEvent.setup();
@@ -308,36 +418,46 @@ it("keeps terminal French explanations private and traverses more than twenty mo
   rows[0] = version(1, "rejected");
   rows[1] = version(2, "cancelled");
   rows[2] = version(3, "superseded");
+  rows[3] = version(4, "withdrawn");
+  rows[4] = version(5, "pending");
+  rows[5] = version(6, "active");
   rows[20] = version(21, "hidden");
   const user = userEvent.setup();
   await mount();
 
   // When
   await screen.findByText("https://youtu.be/history-1");
+  expect(
+    screen.getByRole("header", { name: "Mes propositions (21)" }),
+  ).toBeOnTheScreen();
   await fireEvent(
-    screen.getByLabelText("Historique de mes contributions"),
+    screen.getByLabelText("Liste de mes propositions"),
     "endReached",
   );
 
   await waitFor(() => expect(pages).toEqual([0, 1]));
-  await user.scrollTo(
-    screen.getByLabelText("Historique de mes contributions"),
-    {
-      y: 9000,
-      contentSize: { width: 400, height: 10000 },
-      layoutMeasurement: { width: 400, height: 800 },
-    },
-  );
+  await user.scrollTo(screen.getByLabelText("Liste de mes propositions"), {
+    y: 9000,
+    contentSize: { width: 400, height: 10000 },
+    layoutMeasurement: { width: 400, height: 800 },
+  });
   // Then
   expect(screen.getByText("Proposition refusée")).toBeOnTheScreen();
   expect(screen.getByText("Proposition annulée")).toBeOnTheScreen();
   expect(screen.getByText("Proposition remplacée")).toBeOnTheScreen();
+  expect(screen.getByText("Lien retiré")).toBeOnTheScreen();
+  expect(screen.getByText("En attente de validation")).toBeOnTheScreen();
+  expect(screen.getByText("Publié")).toBeOnTheScreen();
+  expect(screen.getAllByText("Ancien lien remplacé").length).toBeGreaterThan(0);
   expect(
-    screen.getByText(
+    screen.getByHintText(
       /Une autre proposition a été retenue ou une nouvelle version a été soumise/,
     ),
   ).toBeOnTheScreen();
   expect(await screen.findByText("Lien masqué")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "Mes propositions (21)" }),
+  ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.some(([url]) => String(url).includes("/moderation")),
   ).toBe(false);
@@ -352,15 +472,13 @@ it("restarts the history at page zero on explicit refresh", async () => {
   await mount();
   await screen.findByText("https://youtu.be/history-1");
   await fireEvent(
-    screen.getByLabelText("Historique de mes contributions"),
+    screen.getByLabelText("Liste de mes propositions"),
     "endReached",
   );
   await waitFor(() => expect(pages).toEqual([0, 1]));
 
   // When
-  await user.pullToRefresh(
-    screen.getByLabelText("Historique de mes contributions"),
-  );
+  await user.pullToRefresh(screen.getByLabelText("Liste de mes propositions"));
 
   // Then
   await waitFor(() => expect(pages).toEqual([0, 1, 0]));
@@ -380,7 +498,7 @@ it("does not acquire an ownerless public contribution or offer actions for an em
   await mount();
 
   // When
-  await screen.findByText("Aucune contribution personnelle");
+  await screen.findByRole("header", { name: "Mes propositions (0)" });
 
   // Then
   expect(
@@ -603,9 +721,7 @@ it("removes private versions after a current read refuses access", async () => {
 
   // When
   denied = true;
-  await user.pullToRefresh(
-    screen.getByLabelText("Historique de mes contributions"),
-  );
+  await user.pullToRefresh(screen.getByLabelText("Liste de mes propositions"));
 
   // Then
   await waitFor(() =>
@@ -636,12 +752,12 @@ it("retains history after a failed continuation and retries that page only on th
 
   // When: native list-edge events cannot retry a failed page.
   await fireEvent(
-    screen.getByLabelText("Historique de mes contributions"),
+    screen.getByLabelText("Liste de mes propositions"),
     "endReached",
   );
   await screen.findByRole("button", { name: "Réessayer" });
   await fireEvent(
-    screen.getByLabelText("Historique de mes contributions"),
+    screen.getByLabelText("Liste de mes propositions"),
     "endReached",
   );
 
@@ -672,7 +788,7 @@ it.each(["unfocused", "background"])(
 
     // When
     await fireEvent(
-      screen.getByLabelText("Historique de mes contributions"),
+      screen.getByLabelText("Liste de mes propositions"),
       "endReached",
     );
 
@@ -698,9 +814,7 @@ it("refreshes recovered match context together with the private history", async 
 
   // When
   unavailable = false;
-  await user.pullToRefresh(
-    screen.getByLabelText("Historique de mes contributions"),
-  );
+  await user.pullToRefresh(screen.getByLabelText("Liste de mes propositions"));
 
   // Then
   expect(await screen.findByText("Home")).toBeOnTheScreen();
@@ -755,7 +869,7 @@ it.each(["refresh", "reconcile", "acknowledgement"])(
     await mount();
     await screen.findByText("https://youtu.be/history-1");
     await fireEvent(
-      screen.getByLabelText("Historique de mes contributions"),
+      screen.getByLabelText("Liste de mes propositions"),
       "endReached",
     );
     await waitFor(() => expect(pages).toEqual([0, 1]));
@@ -764,7 +878,7 @@ it.each(["refresh", "reconcile", "acknowledgement"])(
     // When
     if (operation === "refresh")
       await user.pullToRefresh(
-        screen.getByLabelText("Historique de mes contributions"),
+        screen.getByLabelText("Liste de mes propositions"),
       );
     else {
       await user.press(
@@ -778,14 +892,11 @@ it.each(["refresh", "reconcile", "acknowledgement"])(
       });
     }
     await waitFor(() => expect(client.isFetching()).toBe(0));
-    await user.scrollTo(
-      screen.getByLabelText("Historique de mes contributions"),
-      {
-        y: 9000,
-        contentSize: { width: 400, height: 10000 },
-        layoutMeasurement: { width: 400, height: 800 },
-      },
-    );
+    await user.scrollTo(screen.getByLabelText("Liste de mes propositions"), {
+      y: 9000,
+      contentSize: { width: 400, height: 10000 },
+      layoutMeasurement: { width: 400, height: 800 },
+    });
 
     // Then
     expect(
@@ -795,7 +906,7 @@ it.each(["refresh", "reconcile", "acknowledgement"])(
     // When: a later authorized read replaces traversal only after success.
     failRead = false;
     await user.pullToRefresh(
-      screen.getByLabelText("Historique de mes contributions"),
+      screen.getByLabelText("Liste de mes propositions"),
     );
 
     // Then
@@ -859,7 +970,7 @@ it.each([401, 403, 404])(
     failure = "denied";
     failRead = true;
     await user.pullToRefresh(
-      screen.getByLabelText("Historique de mes contributions"),
+      screen.getByLabelText("Liste de mes propositions"),
     );
     await waitFor(() => expect(client.isFetching()).toBe(0));
 
@@ -937,9 +1048,7 @@ it("recovers a refused match when its successful retry settles after the persona
   await screen.findByText("Votre lien public");
   denied = true;
   failRead = true;
-  await user.pullToRefresh(
-    screen.getByLabelText("Historique de mes contributions"),
-  );
+  await user.pullToRefresh(screen.getByLabelText("Liste de mes propositions"));
   const retry = await screen.findByRole("button", { name: "Réessayer" });
 
   // When
@@ -976,25 +1085,20 @@ it("retains every authorized page when match and history refresh both fail techn
   await mount();
   await screen.findByText("Votre lien public");
   await fireEvent(
-    screen.getByLabelText("Historique de mes contributions"),
+    screen.getByLabelText("Liste de mes propositions"),
     "endReached",
   );
   await waitFor(() => expect(pages).toEqual([0, 1]));
 
   // When
   failRead = true;
-  await user.pullToRefresh(
-    screen.getByLabelText("Historique de mes contributions"),
-  );
+  await user.pullToRefresh(screen.getByLabelText("Liste de mes propositions"));
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  await user.scrollTo(
-    screen.getByLabelText("Historique de mes contributions"),
-    {
-      y: 9000,
-      contentSize: { width: 400, height: 10000 },
-      layoutMeasurement: { width: 400, height: 800 },
-    },
-  );
+  await user.scrollTo(screen.getByLabelText("Liste de mes propositions"), {
+    y: 9000,
+    contentSize: { width: 400, height: 10000 },
+    layoutMeasurement: { width: 400, height: 800 },
+  });
 
   // Then
   expect(screen.getByText("Dernier lien public connu")).toBeOnTheScreen();
@@ -1027,7 +1131,7 @@ it.each([401, 403, 404])(
     // When
     failure = "denied";
     await user.pullToRefresh(
-      screen.getByLabelText("Historique de mes contributions"),
+      screen.getByLabelText("Liste de mes propositions"),
     );
     const retry = await screen.findByRole("button", { name: "Réessayer" });
     failure = "technical";

@@ -9,6 +9,7 @@ import com.blockout.backend.generated.mobile.model.MatchDetailResponse;
 import com.blockout.backend.generated.mobile.model.MatchResultResponse;
 import com.blockout.backend.generated.mobile.model.MatchScheduleResponse;
 import com.blockout.backend.generated.mobile.model.ModeratedStreamContributionsResponse;
+import com.blockout.backend.generated.mobile.model.OwnStreamContributionsResponse;
 import com.blockout.backend.generated.mobile.model.ResultStateEnum;
 import com.blockout.backend.generated.mobile.model.StreamContributionStateEnum;
 import com.blockout.backend.generated.mobile.model.StreamDecisionEnum;
@@ -67,6 +68,12 @@ class ContributionContractJsonTest {
        "canPublish":false,"items":[%2$s],"future":true}
       """
           .formatted(ID, VERSION);
+  private static final String OWN_COLLECTION =
+      """
+      {"revision":"current","eligibility":{"canSubmit":true,"requiresApproval":false},
+       "quota":{"versionsUsed":0,"dailyMatchesUsed":0,"matchCountedToday":false,
+       "dayEndsAt":"2026-10-24T22:00:00Z"},"items":[]%s}
+      """;
   @Autowired private JsonMapper mapper;
   @Autowired private Validator validator;
 
@@ -206,6 +213,70 @@ class ContributionContractJsonTest {
     // Given
     StreamModerationCountsResponse response =
         new StreamModerationCountsResponse(0, count, 0, count, count);
+
+    // When
+    boolean valid = validator.validate(response).isEmpty();
+
+    // Then
+    assertThat(valid).isFalse();
+  }
+
+  @ParameterizedTest
+  @ValueSource(longs = {-1, 9007199254740992L})
+  @DisplayName("Rejects proposal counts outside the shared safe integer range")
+  void rejectsUnsafeProposalCount(long count) {
+    // Given
+    OwnStreamContributionsResponse response =
+        mapper.readValue(
+            OWN_COLLECTION.formatted(",\"proposalCount\":" + count),
+            OwnStreamContributionsResponse.class);
+
+    // When
+    boolean valid = validator.validate(response).isEmpty();
+
+    // Then
+    assertThat(valid).isFalse();
+  }
+
+  @ParameterizedTest
+  @ValueSource(longs = {0, 9007199254740991L})
+  @DisplayName("Preserves exact safe proposal count boundaries independently of an empty page")
+  void preservesSafeProposalCount(long count) {
+    // Given
+    OwnStreamContributionsResponse response =
+        mapper.readValue(
+            OWN_COLLECTION.formatted(",\"proposalCount\":" + count),
+            OwnStreamContributionsResponse.class);
+
+    // When
+    JsonNode json = mapper.readTree(mapper.writeValueAsString(response));
+
+    // Then
+    assertThat(validator.validate(response)).isEmpty();
+    assertThat(json.path("proposalCount").asLong()).isEqualTo(count);
+  }
+
+  @Test
+  @DisplayName("Rejects an absent proposal count through required generated constructor binding")
+  void rejectsAbsentProposalCount() {
+    // Given
+    String body = OWN_COLLECTION.formatted("");
+
+    // When
+    ThrowingCallable decode = () -> mapper.readValue(body, OwnStreamContributionsResponse.class);
+
+    // Then
+    assertThatThrownBy(decode).isInstanceOf(JacksonException.class);
+  }
+
+  @Test
+  @DisplayName("Requires a nonnull proposal count even when the collection is empty")
+  void rejectsNullProposalCount() {
+    // Given
+    OwnStreamContributionsResponse response =
+        mapper.readValue(
+            OWN_COLLECTION.formatted(",\"proposalCount\":null"),
+            OwnStreamContributionsResponse.class);
 
     // When
     boolean valid = validator.validate(response).isEmpty();

@@ -162,6 +162,7 @@ it("keeps history revoked when a refused match opens it before technical mount r
         return Response.json({ status: 500 }, { status: 500 });
       return Response.json(
         ownContributions({
+          proposalCount: 1,
           items: [
             {
               id: "00000000-0000-4000-8000-000000000004",
@@ -245,8 +246,8 @@ it("keeps history revoked when a refused match opens it before technical mount r
 
   // Then
   expect(
-    await screen.findByText("https://youtu.be/private-history"),
-  ).toBeOnTheScreen();
+    await screen.findAllByText("https://youtu.be/private-history"),
+  ).toHaveLength(2);
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled(),
   );
@@ -529,6 +530,7 @@ it("keeps a confirmed new version distinct from the last known history after its
       if (acknowledged) throw new TypeError("Controlled history read failure");
       return Response.json(
         ownContributions({
+          proposalCount: 1,
           items: [
             {
               id: "00000000-0000-4000-8000-000000000004",

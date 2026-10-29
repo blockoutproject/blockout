@@ -116,7 +116,8 @@ public interface ContributionApiMapper {
   StreamPlatformEnum platform(StreamAddress.Platform platform);
 
   /**
-   * Composes current private eligibility, ordinary usage and the bounded version page.
+   * Composes current private eligibility, ordinary usage, exact proposal count and the bounded
+   * version page.
    *
    * @param page one coherent authorized application snapshot
    * @return private context with optional next page and known eligibility deadline
@@ -139,6 +140,7 @@ public interface ContributionApiMapper {
             page.revision(),
             eligibility,
             quota,
+            page.proposalCount(),
             page.versions().items().stream().map(this::toDto).toList());
     if (page.versions().hasNext()) response.nextPage(page.page() + 1);
     return response;

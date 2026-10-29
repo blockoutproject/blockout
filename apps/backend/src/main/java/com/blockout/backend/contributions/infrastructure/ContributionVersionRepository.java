@@ -88,6 +88,15 @@ interface ContributionVersionRepository extends JpaRepository<ContributionVersio
   List<ContributionVersionEntity> findByMatchIdAndStateIn(UUID matchId, Collection<State> states);
 
   /**
+   * Counts every matching owner's version without a lifecycle, page or quota filter.
+   *
+   * @param matchId current encounter
+   * @param ownerId original owner whose retained versions may be exposed
+   * @return exact matching count from the caller's current database snapshot
+   */
+  long countByMatchIdAndOwnerId(UUID matchId, UUID ownerId);
+
+  /**
    * Reads a native Slice without a count query or cross-page snapshot promise.
    *
    * @param matchId current encounter

@@ -75,6 +75,17 @@ public interface ContributionStore {
   Optional<ContributionVersion> version(UUID id);
 
   /**
+   * Counts all caller-owned versions independently of lifecycle, pagination and quota
+   * participation. The caller includes this aggregate in the same read snapshot as the personal
+   * page.
+   *
+   * @param matchId current match
+   * @param ownerId original account
+   * @return exact count of this owner's versions, including the current active version
+   */
+  long ownProposalCount(UUID matchId, UUID ownerId);
+
+  /**
    * Reads twenty caller-owned versions in creation descending/UUID ascending order.
    *
    * @param matchId current match

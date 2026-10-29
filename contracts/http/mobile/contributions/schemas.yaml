@@ -320,6 +320,12 @@ OwnStreamContributionsResponse:
       $ref: "#/StreamSubmissionEligibilityResponse"
     quota:
       $ref: "#/StreamQuotaResponse"
+    proposalCount:
+      type: integer
+      description: Total caller-owned versions for this match across every state, including active and moderator-created versions; independent of pagination and quota usage.
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
     items:
       type: array
       description: Owned versions by creation instant descending, then UUID ascending.
@@ -338,6 +344,7 @@ OwnStreamContributionsResponse:
     - revision
     - eligibility
     - quota
+    - proposalCount
     - items
 StreamDecisionResponse:
   title: StreamDecisionResponse

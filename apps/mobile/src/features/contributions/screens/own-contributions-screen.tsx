@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
+import { Trash2 } from "lucide-react-native";
 import { useEffect, useRef } from "react";
 import { AppState, StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
@@ -14,14 +15,15 @@ import { PageHeader } from "../../../shared/components/page-header";
 import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { Button } from "../../../shared/components/button";
+import { IconButton } from "../../../shared/components/icon-button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { EmptyState, ErrorState } from "../../../shared/components/state-card";
+import { ErrorState } from "../../../shared/components/state-card";
 import { Surface } from "../../../shared/components/surface";
 import { ListContinuation } from "../../../shared/components/list-continuation";
-import { ListSeparator } from "../../../shared/components/list-separator";
+import { EntryGroupSeparator } from "../../../shared/components/entry-group";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -36,7 +38,7 @@ import {
   useOwnContributions,
 } from "../api/own-contributions";
 
-/** One match's private history; the original-account read supplies permissions and sporting refusal revokes retained details. */
+/** One match's personal proposals; the original-account read supplies permissions and sporting refusal revokes retained details. */
 export interface OwnContributionsScreenProps {
   matchId: string;
 }
@@ -47,7 +49,7 @@ const states: Record<
   { title: string; explanation: string }
 > = {
   active: {
-    title: "Lien actif",
+    title: "Publié",
     explanation:
       "Ce lien reste disponible tant que les conditions du match le permettent.",
   },
@@ -87,7 +89,7 @@ const states: Record<
   },
 };
 
-/** Native history and exact-version confirmations share the existing Query command family and submission form. */
+/** Native proposals and exact-version confirmations share the existing Query command family and submission form. */
 export function OwnContributionsScreen({
   matchId,
 }: OwnContributionsScreenProps) {
@@ -122,7 +124,6 @@ export function OwnContributionsScreen({
       ]
     : [];
   const active = rows.find((item) => item.state === "active");
-  const history = rows.filter((item) => item.state !== "active");
   const disabled =
     !authorized ||
     !editing.usable ||
@@ -246,7 +247,7 @@ export function OwnContributionsScreen({
         {({ onScroll, headerHeight }) => (
           <Animated.FlatList
             {...hiddenScrollIndicators}
-            accessibilityLabel="Historique de mes contributions"
+            accessibilityLabel="Liste de mes propositions"
             alwaysBounceVertical={authorized && !!current}
             onScroll={onScroll}
             scrollEventThrottle={16}
@@ -255,12 +256,12 @@ export function OwnContributionsScreen({
               pageContentStyle,
               { paddingTop: headerHeight + tokens.layout.content.start },
             ]}
-            data={history}
+            data={rows}
             keyExtractor={(item) => item.id}
             onEndReached={() => {
               if (!query.isError) void loadMore();
             }}
-            ItemSeparatorComponent={ListSeparator}
+            ItemSeparatorComponent={EntryGroupSeparator}
             refreshControl={
               authorized && current ? (
                 <DataRefreshControl
@@ -335,11 +336,11 @@ export function OwnContributionsScreen({
                       />
                     )}
                     {active && (
-                      <ContributionVersion
+                      <PublicContribution
                         item={active}
                         stale={stale}
                         disabled={disabled}
-                        onChange={(item, action) => void confirm(item, action)}
+                        onWithdraw={() => void confirm(active, "withdraw")}
                         onReplace={
                           current.eligibility.canSubmit ? propose : undefined
                         }
@@ -426,30 +427,23 @@ export function OwnContributionsScreen({
                         </Text>
                       )
                     )}
-                    <Text
-                      accessibilityRole="header"
-                      style={[
-                        tokens.typography.heading,
-                        { color: colors.text },
-                      ]}
-                    >
-                      Mes propositions et mon historique
-                    </Text>
-                    {!rows.length && (
-                      <EmptyState
-                        title="Aucune contribution personnelle"
-                        description="Seules les versions qui vous appartiennent apparaissent ici."
-                      />
-                    )}
                   </>
                 )}
+                <Text
+                  accessibilityRole="header"
+                  style={[tokens.typography.heading, { color: colors.text }]}
+                >
+                  {authorized && current
+                    ? `Mes propositions (${current.proposalCount})`
+                    : "Mes propositions"}
+                </Text>
               </View>
             }
             renderItem={({ item }) => (
-              <ContributionVersion
+              <ProposalRow
                 item={item}
                 disabled={disabled}
-                onChange={(item, action) => void confirm(item, action)}
+                onCancel={() => void confirm(item, "cancel")}
               />
             )}
             ListFooterComponent={
@@ -472,28 +466,24 @@ export function OwnContributionsScreen({
   );
 }
 
-/** One immutable personal version, with only the two owner actions explicitly allowed by the current server view. */
-interface ContributionVersionProps {
+/** The active public version keeps replacement and withdrawal separate from the proposal list. */
+interface PublicContributionProps {
   item: OwnStreamContributionResponse;
   disabled: boolean;
-  onChange(
-    item: OwnStreamContributionResponse,
-    action: StreamOwnerActionEnum,
-  ): void;
+  onWithdraw(): void;
   onReplace?: () => void;
   /** An unavailable context refresh cannot present the old public version as the confirmed current one. */
   stale?: boolean;
 }
-/** Uses text, semantic headings and native buttons so state and consequences never depend only on color. */
-function ContributionVersion({
+/** Preserves the public-link surface and balanced actions, with honest wording when its current read failed. */
+function PublicContribution({
   item,
   disabled,
-  onChange,
+  onWithdraw,
   onReplace,
   stale = false,
-}: ContributionVersionProps) {
+}: PublicContributionProps) {
   const { colors } = useTheme();
-  const state = states[item.state];
   return (
     <Surface>
       <View style={styles.version}>
@@ -501,11 +491,7 @@ function ContributionVersion({
           accessibilityRole="header"
           style={[tokens.typography.title, { color: colors.text }]}
         >
-          {item.state === "active"
-            ? stale
-              ? "Dernier lien public connu"
-              : "Votre lien public"
-            : state.title}
+          {stale ? "Dernier lien public connu" : "Votre lien public"}
         </Text>
         <Text
           selectable
@@ -513,23 +499,6 @@ function ContributionVersion({
         >
           {item.url}
         </Text>
-        {item.state !== "active" && (
-          <>
-            <Text
-              style={[
-                tokens.typography.metadata,
-                { color: colors.secondaryText },
-              ]}
-            >
-              {new Date(item.submittedAt).toLocaleString("fr-FR")}
-            </Text>
-            <Text
-              style={[tokens.typography.body, { color: colors.secondaryText }]}
-            >
-              {state.explanation}
-            </Text>
-          </>
-        )}
         <View style={styles.actions}>
           {onReplace && (
             <View style={styles.activeAction}>
@@ -543,15 +512,6 @@ function ContributionVersion({
               />
             </View>
           )}
-          {item.canCancel && (
-            <Button
-              label="Annuler la proposition"
-              accessibilityHint="Une confirmation précise les conséquences pour cette version"
-              variant="secondary"
-              disabled={disabled}
-              onPress={() => onChange(item, "cancel")}
-            />
-          )}
           {item.canWithdraw && (
             <View style={styles.activeAction}>
               <Button
@@ -560,13 +520,76 @@ function ContributionVersion({
                 accessibilityHint="Retirer uniquement votre lien actif après confirmation"
                 variant="secondary"
                 disabled={disabled}
-                onPress={() => onChange(item, "withdraw")}
+                onPress={onWithdraw}
               />
             </View>
           )}
         </View>
       </View>
     </Surface>
+  );
+}
+
+/** One immutable proposal, including the published version; only current canCancel permits the independent icon action. */
+interface ProposalRowProps {
+  item: OwnStreamContributionResponse;
+  disabled: boolean;
+  onCancel(): void;
+}
+
+/** Follows the basic-list row anatomy while keeping the explanatory status and cancellation independently accessible. */
+function ProposalRow({ item, disabled, onCancel }: ProposalRowProps) {
+  const { colors } = useTheme();
+  const state = states[item.state];
+  const backgroundColor =
+    item.state === "active"
+      ? colors.successSubtle
+      : item.state === "pending"
+        ? colors.warning
+        : item.state === "rejected" || item.state === "hidden"
+          ? colors.errorSubtle
+          : colors.subtle;
+  const color =
+    item.state === "active"
+      ? colors.onSuccessSubtle
+      : item.state === "pending"
+        ? colors.onWarning
+        : item.state === "rejected" || item.state === "hidden"
+          ? colors.error
+          : colors.secondaryText;
+  return (
+    <View style={styles.proposal}>
+      <View style={styles.proposalContent}>
+        <Text
+          accessibilityHint={state.explanation}
+          style={[
+            styles.badge,
+            { color, backgroundColor },
+            item.state === "active" && {
+              borderWidth: tokens.border.thin,
+              borderColor: colors.onSuccessSubtle,
+            },
+          ]}
+        >
+          {state.title}
+        </Text>
+        <Text
+          selectable
+          style={[tokens.typography.body, { color: colors.text }]}
+        >
+          {item.url}
+        </Text>
+      </View>
+      {item.canCancel && (
+        <IconButton
+          label="Annuler la proposition"
+          disabled={disabled}
+          onPress={onCancel}
+        >
+          <Trash2 color={colors.error} size={tokens.size.icon.md} />
+        </IconButton>
+      )}
+    </View>
   );
 }
 const styles = StyleSheet.create({
@@ -577,4 +600,21 @@ const styles = StyleSheet.create({
   version: { gap: tokens.spacing.md },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },
   activeAction: { flex: 1 },
+  proposal: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: tokens.size.control.default,
+    paddingHorizontal: tokens.spacing.sm,
+    paddingVertical: tokens.spacing.md,
+    gap: tokens.spacing.md,
+  },
+  proposalContent: { flex: 1, minWidth: 0, gap: tokens.spacing.tight },
+  badge: {
+    ...tokens.typography.metadata,
+    alignSelf: "flex-start",
+    minHeight: tokens.size.icon.lg,
+    paddingHorizontal: tokens.spacing.sm,
+    paddingVertical: tokens.spacing.xs,
+    borderRadius: tokens.radius.control,
+  },
 });

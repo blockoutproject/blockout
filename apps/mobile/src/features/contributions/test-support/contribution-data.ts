@@ -6,6 +6,7 @@ export function ownContributions(
 ): OwnStreamContributionsResponse {
   return {
     revision: "initial",
+    proposalCount: 0,
     eligibility: { canSubmit: true, requiresApproval: false },
     quota: {
       versionsUsed: 0,
