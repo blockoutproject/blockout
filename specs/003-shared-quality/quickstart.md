@@ -8,6 +8,14 @@ The initial executable workspace and its Maven/npm/Nx commands are documented in
 
 Use the selected dependency versions, isolated test data and the required test environments/devices. Record resolved versions, image digests, build IDs and actual results in the relevant test or delivery tools. [Research](research.md) identifies documented capabilities and remaining qualification limits; the owning [F05](../005-accounts-identity/spec.md) and [F12](../013-administration-app-configuration/spec.md) specifications reference the approved experience.
 
+## Native ownership simplification — 2026-10-30
+
+The current [state/read/mutation decisions](plan.md#frontend-state-ownership-patterns) replace client epochs, command reconciliation, retained editor registries and monotone access observations with native SDK identity, a subject-owned private Query cache, ordinary Query recovery/invalidation and route-local RHF revisions. The [identity qualification](../005-accounts-identity/quickstart.md#authentication-and-isolation) retains provider limits; dated results below describe their named revisions and do not certify the replacement.
+
+Current boundary checks include actual generated consumers, disposable PostgreSQL/OpenSearch, a two-origin Auth0 token-redirect peer and a real-SDK delayed-principal regression. The collector's [immutable-JAR cross-process qualification](../001-source-acquisition/quickstart.md#collector-partial-success-and-absence-t032) and the settings' controlled Spring/form boundary retain their owning setup and data limits. Jest fixtures use the supported mutation GC setting for test-process exit rather than a custom mutation-disposal tracker; production cache policy is unchanged. Exact final commands and results belong to delivery evidence.
+
+An existing Pixel 9 development client with a task-owned localhost HTTP peer exercised guest startup, successful Search Empty, guest Profile and opening/closing the Pro sign-in invitation. This is bounded native navigation evidence. The iOS client remained covered by an inherited native test-consent dialog; the attempt was closed without interaction and is not passing evidence. No new visual, real Auth0/store/advertising/push, physical-device or retained-data qualification is established.
+
 ## Contract boundary
 
 With the canonical roots and selected generator configuration present, lint and bundle each root using Redocly; generate backend interfaces/DTOs, collector RestClient and mobile Query/Zod output at the same revision. CI runs the owning Maven compile/tests and mobile typecheck/Jest targets from a clean checkout.

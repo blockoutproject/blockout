@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAuth0 } from "react-native-auth0";
 import { ApiError } from "../../../shared/api/api-fetch";
 import {
   useAccountSession,
@@ -18,7 +17,7 @@ export function useFollowStateQuery(target: FollowingTarget) {
   const session = useAccountSession();
   const profile = useCurrentAccount();
   const admission = useOrdinaryRequest();
-  const { getCredentials } = useAuth0();
+  const { getCredentials } = session;
   const owner = captureFollowingOwner(session);
   const usable =
     admission.admitted &&
@@ -26,20 +25,16 @@ export function useFollowStateQuery(target: FollowingTarget) {
     profile.isSuccess &&
     profile.data.accountId === owner?.accountId;
   const bypass = Boolean(admission.bypass);
-
   /** Prepares each captured-owner request after native credentials so F12 rechecks current intent. */
   async function request(signal?: AbortSignal) {
-    if (!owner || !owner.isCurrent(owner.generation))
-      throw new ApiError("cancelled");
+    if (!owner) throw new ApiError("cancelled");
     const credentials = await getCredentials();
     if (!credentials) throw new ApiError("http", 401);
     return admission.request({
-      session: owner,
       signal,
       headers: { Authorization: `Bearer ${credentials.accessToken}` },
     });
   }
-
   const options = createFollowStateQueryOptions(target, owner, request);
   const query = useQuery({
     ...options,

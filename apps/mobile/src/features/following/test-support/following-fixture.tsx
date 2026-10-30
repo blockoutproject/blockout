@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode, type ReactElement } from "react";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { render } from "@testing-library/react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { createQueryClient } from "../../../shared/query/query-client";
@@ -17,7 +17,9 @@ import { AccountFeedbackProvider } from "../../accounts/test-support/account-fee
 
 /** Shared provider fixture for count/recovery tests; scenarios retain ownership of all HTTP and native doubles. */
 export function followingFixture() {
-  const client = createQueryClient();
+  const publicClient = createQueryClient();
+  let client = publicClient;
+  const clients = new Set([publicClient]);
   client.setDefaultOptions({
     queries: { ...client.getDefaultOptions().queries, gcTime: Infinity },
     mutations: { ...client.getDefaultOptions().mutations, gcTime: Infinity },
@@ -28,14 +30,28 @@ export function followingFixture() {
   function Probe({ children }: { children: ReactNode }) {
     const current = useAccountSession();
     const access = useApplicationAccess();
+    const privateClient = useQueryClient();
+    privateClient.setDefaultOptions({
+      queries: { retry: false },
+      mutations: { networkMode: "always", retry: false, gcTime: Infinity },
+    });
     useEffect(() => {
+      clients.add(privateClient);
+      client = privateClient;
       session = current;
       admission = access;
-    }, [current, access]);
+    }, [current, access, privateClient]);
     return children;
   }
   return {
-    client,
+    /** Clears every observed private cache and the public cache after React cleanup. */
+    dispose() {
+      for (const cache of clients) cache.clear();
+      clients.clear();
+    },
+    get client() {
+      return client;
+    },
     get session() {
       return session;
     },
@@ -47,7 +63,7 @@ export function followingFixture() {
       return render(children, {
         wrapper: ({ children }) => (
           <GestureHandlerRootView>
-            <QueryClientProvider client={client}>
+            <QueryClientProvider client={publicClient}>
               <ThemeProvider>
                 <ApplicationAccessProvider>
                   <AccountSessionProvider>

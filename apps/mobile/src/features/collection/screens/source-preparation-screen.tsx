@@ -1,15 +1,14 @@
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
-import { AccessFeedback } from "../../access/components/access-feedback";
-import { ScreenState } from "../../../shared/components/screen-state";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
-import { PageHeader } from "../../../shared/components/page-header";
 import { Page, PageContent } from "../../../shared/components/page";
-import { ErrorState } from "../../../shared/components/state-card";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { PageHeader } from "../../../shared/components/page-header";
 import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ScreenState } from "../../../shared/components/screen-state";
+import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+import { ErrorState } from "../../../shared/components/state-card";
+import { AccessFeedback } from "../../access/components/access-feedback";
 import { useSourcePreparation } from "../api/use-source-preparation";
-
 import { SourceCandidateForm } from "../forms/source-candidate-form";
 
 /** Original source route inputs; its retained form owns draft-discard confirmation. */
@@ -17,7 +16,6 @@ export interface SourcePreparationScreenProps {
   seasonId: string;
   sourceId: string;
 }
-
 /** Retains a source draft read-only on grant/read failure; identity changes discard the obsolete editor. */
 export function SourcePreparationScreen({
   seasonId,
@@ -66,9 +64,9 @@ export function SourcePreparationScreen({
                     season.isRefetching ||
                     authority.account.isRefetching
                   }
-                  enabled={!editing.candidate.pending}
+                  enabled={!editing.candidate.isPending}
                   onRefresh={() => {
-                    if (editing.candidate.isPending()) return;
+                    if (editing.candidate.isPending) return;
                     if (!authority.enabled)
                       void authority.account
                         .refetch({ cancelRefetch: false })
@@ -98,7 +96,7 @@ export function SourcePreparationScreen({
               <PageContent>
                 {current && season.data && current.seasonId === seasonId && (
                   <SourceCandidateForm
-                    key={`${authority.session.generation}:${sourceId}`}
+                    key={`${authority.session.subject}:${sourceId}`}
                     source={current}
                     season={season.data}
                     editing={editing}

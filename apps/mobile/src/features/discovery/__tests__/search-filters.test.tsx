@@ -1,3 +1,9 @@
+import {
+  useLayoutEffect,
+  useState as useQueryFixtureState,
+  type PropsWithChildren as QueryFixtureProps,
+} from "react";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -57,7 +63,8 @@ const division = {
 let seasons = [season, oldSeason];
 let divisions = [division];
 let choicesFail = false;
-let client = createQueryClient();
+let client: QueryClient;
+let publicClient = createQueryClient();
 
 /** Controls HTTP only; generation, response validation, Query, session and admission stay real. */
 function publicReads(url: string): Promise<Response> {
@@ -115,8 +122,22 @@ function publicReads(url: string): Promise<Response> {
   throw new Error(`Unexpected controlled request ${path}`);
 }
 
+/** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
+function PrivateQueries({ children }: QueryFixtureProps) {
+  const current = useQueryClient();
+  // Configure this fresh real client before descendant public observers start their first request.
+  useQueryFixtureState(() => {
+    current.setQueryDefaults([], { retry: false });
+    return true;
+  });
+  useLayoutEffect(() => {
+    client = current;
+  }, [current]);
+  return children;
+}
+
 beforeEach(() => {
-  client = createQueryClient();
+  publicClient = createQueryClient();
   seasons = [season, oldSeason];
   divisions = [division];
   choicesFail = false;
@@ -130,7 +151,8 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await cleanup();
-  client.clear();
+  client?.clear();
+  publicClient.clear();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
@@ -158,13 +180,15 @@ async function renderSearch() {
               insets: { top: 0, right: 0, bottom: 0, left: 0 },
             }}
           >
-            <QueryClientProvider client={client}>
+            <QueryClientProvider client={publicClient}>
               <ThemeProvider>
                 <ApplicationAccessProvider>
                   <AccountSessionProvider>
-                    <AccountFeedbackProvider>
-                      {children}
-                    </AccountFeedbackProvider>
+                    <PrivateQueries>
+                      <AccountFeedbackProvider>
+                        {children}
+                      </AccountFeedbackProvider>
+                    </PrivateQueries>
                   </AccountSessionProvider>
                 </ApplicationAccessProvider>
               </ThemeProvider>
@@ -354,7 +378,7 @@ it("reconciles unavailable choices after success while failed catalogue reads pr
         .getAll()
         .some(
           (query) =>
-            query.queryKey[0] === "discovery-options" &&
+            query.queryKey[0] === "/sporting-search-options" &&
             query.state.status === "error",
         ),
     ).toBe(true),
@@ -481,7 +505,7 @@ it("preserves dirty draft values through a successful background options read", 
 
   // When
   await act(async () => {
-    await client.refetchQueries({ queryKey: ["discovery-options"] });
+    await client.refetchQueries({ queryKey: ["/sporting-search-options"] });
   });
 
   // Then
@@ -635,7 +659,7 @@ it("reconciles disappeared draft choices on successful reload without erasing ot
 
   // When
   await act(async () =>
-    client.refetchQueries({ queryKey: ["discovery-options"] }),
+    client.refetchQueries({ queryKey: ["/sporting-search-options"] }),
   );
 
   // Then

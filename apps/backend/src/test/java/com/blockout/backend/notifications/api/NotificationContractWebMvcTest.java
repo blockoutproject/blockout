@@ -23,7 +23,6 @@ import com.blockout.backend.generated.mobile.model.NotificationsResponse;
 import com.blockout.backend.generated.mobile.model.PushSubscriptionResponse;
 import com.blockout.backend.generated.mobile.model.ReplacePushSubscriptionRequest;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
-import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -165,10 +164,9 @@ class NotificationContractWebMvcTest {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {"?cursor=", "?cursor=one&cursor=two", "?opened=true", "?accountId=foreign"})
-  @DisplayName("Rejects undeclared or repeated collection parameters")
-  void rejectsQueries(String query) throws Exception {
+  @ValueSource(strings = {"?opened=true", "?accountId=foreign"})
+  @DisplayName("Ignores undeclared query parameters through ordinary MVC binding")
+  void ignoresUndeclaredQueries(String query) throws Exception {
     // Given
     MockHttpServletRequestBuilder request = get(ROOT + "/notifications" + query);
 
@@ -176,7 +174,7 @@ class NotificationContractWebMvcTest {
     ResultActions response = mvc.perform(request);
 
     // Then
-    response.andExpect(status().isBadRequest());
+    response.andExpect(status().isOk());
   }
 
   @ParameterizedTest
@@ -185,8 +183,8 @@ class NotificationContractWebMvcTest {
         "/notification-summary?cursor=opaque",
         "/notifications/00000000-0000-4000-8000-000000000237?future=true"
       })
-  @DisplayName("Only the collection accepts a cursor query parameter")
-  void rejectsMemberQueries(String path) throws Exception {
+  @DisplayName("Ignores undeclared member query parameters")
+  void ignoresMemberQueries(String path) throws Exception {
     // Given
     MockHttpServletRequestBuilder request = get(ROOT + path);
 
@@ -194,7 +192,7 @@ class NotificationContractWebMvcTest {
     ResultActions response = mvc.perform(request);
 
     // Then
-    response.andExpect(status().isBadRequest());
+    response.andExpect(status().isOk());
   }
 
   @Test
@@ -250,24 +248,20 @@ class NotificationContractWebMvcTest {
   @RestController
   static class Adapter implements NotificationsApi, PushSubscriptionsApi {
     private final NotificationRequest requests;
-    private final HttpServletRequest request;
 
     /**
-     * Uses native servlet request and the F07 binding checks.
+     * Uses the F07 semantic binding checks.
      *
      * @param requests handwritten checks beyond generated binding
-     * @param request native request retaining raw query multiplicity
      */
-    Adapter(NotificationRequest requests, HttpServletRequest request) {
+    Adapter(NotificationRequest requests) {
       this.requests = requests;
-      this.request = request;
     }
 
     /** {@inheritDoc} */
     @Override
     public ResponseEntity<NotificationsResponse> listNotifications(
         UUID accountId, String cursor, Boolean bypass) {
-      requests.validateQuery(request, true);
       return ResponseEntity.ok()
           .header("Cache-Control", "no-store")
           .body(
@@ -279,7 +273,6 @@ class NotificationContractWebMvcTest {
     @Override
     public ResponseEntity<NotificationResponse> getNotification(
         UUID accountId, UUID notificationId, Boolean bypass) {
-      requests.validateQuery(request, false);
       return ResponseEntity.ok(entry(NotificationFamilyEnum.RESULT));
     }
 
@@ -287,7 +280,6 @@ class NotificationContractWebMvcTest {
     @Override
     public ResponseEntity<NotificationSummaryResponse> getNotificationSummary(
         UUID accountId, Boolean bypass) {
-      requests.validateQuery(request, false);
       return ResponseEntity.ok(
           new NotificationSummaryResponse(4294967296L)
               .nextExpiryAt(OffsetDateTime.parse("2026-11-22T01:02:03.123456Z")));
@@ -297,7 +289,6 @@ class NotificationContractWebMvcTest {
     @Override
     public ResponseEntity<NotificationResponse> markNotificationRead(
         UUID accountId, UUID notificationId, MarkNotificationReadRequest body, Boolean bypass) {
-      requests.validateQuery(request, false);
       requests.requireRead(body);
       return ResponseEntity.ok(entry(NotificationFamilyEnum.RESULT).read(true));
     }
@@ -306,7 +297,6 @@ class NotificationContractWebMvcTest {
     @Override
     public ResponseEntity<PushSubscriptionResponse> replacePushSubscription(
         UUID accountId, UUID subscriptionId, ReplacePushSubscriptionRequest body, Boolean bypass) {
-      requests.validateQuery(request, false);
       return ResponseEntity.created(
               java.net.URI.create(ROOT + "/push-subscriptions/" + subscriptionId))
           .body(new PushSubscriptionResponse(subscriptionId, body.getInstallationId()));
@@ -316,7 +306,6 @@ class NotificationContractWebMvcTest {
     @Override
     public ResponseEntity<Void> deletePushSubscription(
         UUID accountId, UUID subscriptionId, Boolean bypass) {
-      requests.validateQuery(request, false);
       return ResponseEntity.noContent().build();
     }
   }

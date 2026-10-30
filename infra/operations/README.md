@@ -335,7 +335,7 @@ curl --fail-with-body --silent --show-error \
   "${BACKEND_URL}/administration/source-bindings/${SOURCE_BINDING_ID}"
 ```
 
-The first two reads require the collector's current ingestion audience/client and `sporting:ingest` scope. The last two require a usable current operator account with `collection.manage`; they remain individually authorized under maintenance and confer no minimum-mobile-version bypass. Use private shell handling without tracing; keep output private. Read failure is unresolved evidence, never permission to replay a mutation. For a lost admission response inspect the **original** cycle UUID from the collector’s `collection_admission` diagnostic, not a newly allocated cycle. If the original-cycle read failed, even with 404, that control or candidate remains locally inhibited until inspection and explicit restart; the next work poll cannot release it. For a lost sporting response preserve accepted independent facts; do not resend the write. For terminal response loss, a matching completed cycle confirms acceptance. If completion/validation acceptance still cannot be confirmed, the affected operation remains blocked even while the collector is alive. For admitted control passages and candidate validation the process keeps that scope inhibited even if a later operator read finds the backend COMPLETED: its original acknowledgement was unconfirmed, and a new automatic admission must not discard that inspectable cycle. After inspection, use the explicit collector restart below to clear this local inhibition; pause/resume or another manual request does not clear it. Other scopes remain eligible.
+The first two reads require the collector's current ingestion audience/client and `sporting:ingest` scope. The last two require a usable current operator account with `collection.manage`; they remain individually authorized under maintenance and confer no minimum-mobile-version bypass. Use private shell handling without tracing; keep output private. Read failure is unresolved evidence, never permission to replay a sporting mutation. The collector sends startup, admission and terminal operations once without confirmation GETs or process-local acknowledgement ownership. Inspect current runtime/work and control/candidate state: if admission did not commit, later ordinary polling may attempt fresh admission; if admission committed but its response was lost, no provider read starts and backend RUNNING excludes new work until explicit restart. A committed terminal write may permit later collection despite response loss. If terminal submission did not commit, RUNNING remains blocked and needs inspection/restart. Preserve accepted independent sporting facts and do not resend their writes. Pause/resume creates no automatic repair or catch-up.
 
 Inspect the current deployment in its verified Dokploy Raw Compose application directory. Use the exact project for the affected environment and the existing files; the following preproduction commands are valid only in that application's directory:
 
@@ -399,7 +399,7 @@ by this configuration.
 
 The [official Expo send/receipt API](https://docs.expo.dev/push-notifications/sending-notifications/)
 was checked on 2026-10-30: 100 messages/request in one project, 600 messages/second/project,
-4 KiB payloads and 1,000 IDs/receipt request. The Expo-listed Java SDK uses the existing 3-second connect and
+4 KiB payloads and 1,000 IDs/receipt request. Payload-size admission belongs to Expo; the sender no longer serializes each message a second time to pre-certify its byte size. The Expo-listed Java SDK uses the existing 3-second connect and
 5-second read bounds, with redirects and native Apache automatic retries disabled. Neither the SDK nor the underlying transport resends a request. Only safe sporting title/body and
 `ownerAccountId`/`notificationId`/`matchId` routing data accompany the destination. No badge, old
 video URL, profile, live-specific TTL, image extension, interactive action or background sync is
@@ -413,6 +413,8 @@ overload or maintenance skip produces no resend, replay or catch-up. `DeviceNotR
 only the matching private row identity/revision/address, so a late receipt cannot remove a newer
 registration. A last current-maintenance check prevents each new handoff including operators;
 changes after that check cannot atomically stop or recall an external message.
+
+An empty or non-JSON HTTP refusal, including 401/403, can remain UNKNOWN under the native Java SDK rather than triggering a dedicated HTTP-configuration alert. Native ticket/receipt `InvalidCredentials` still produces the existing configuration alert. Never parse private SDK exception text to recover a status.
 
 Keep `logging.level.com.niamedtech.expo.exposerversdk=OFF`: the upstream SDK has a raw response-body DEBUG log, which must not expose private provider evidence. Do not enable that logger; do not parse/log SDK exception messages.
 

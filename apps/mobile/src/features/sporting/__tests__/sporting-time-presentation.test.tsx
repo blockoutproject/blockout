@@ -1,6 +1,12 @@
+import {
+  useLayoutEffect,
+  useState as useQueryFixtureState,
+  type PropsWithChildren as QueryFixtureProps,
+  PropsWithChildren,
+} from "react";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
-import type { PropsWithChildren } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   cleanup,
@@ -53,10 +59,25 @@ const mockFetch = jest.fn();
 const environment = { ...process.env };
 const NativeDateTimeFormat = Intl.DateTimeFormat;
 let deviceZone: string;
-let client = createQueryClient();
+let client: QueryClient;
+let publicClient = createQueryClient();
+
+/** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
+function PrivateQueries({ children }: QueryFixtureProps) {
+  const current = useQueryClient();
+  // Configure this fresh real client before descendant public observers start their first request.
+  useQueryFixtureState(() => {
+    current.setQueryDefaults([], { retry: false });
+    return true;
+  });
+  useLayoutEffect(() => {
+    client = current;
+  }, [current]);
+  return children;
+}
 
 beforeEach(() => {
-  client = createQueryClient();
+  publicClient = createQueryClient();
   deviceZone = "Europe/Paris";
   jest.useFakeTimers();
   jest.setSystemTime(new Date("2026-09-10T12:00:00Z"));
@@ -77,7 +98,8 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await cleanup();
-  client.clear();
+  client?.clear();
+  publicClient.clear();
   jest.restoreAllMocks();
   jest.useRealTimers();
   process.env = { ...environment };
@@ -86,12 +108,14 @@ afterEach(async () => {
 /** Real feature providers; HTTP, native identity and the device's default zone are controlled. */
 function Providers({ children }: PropsWithChildren) {
   return (
-    <QueryClientProvider client={client}>
+    <QueryClientProvider client={publicClient}>
       <ThemeProvider>
         <ActionFeedbackProvider scopeKey="test">
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              <AdvertisingProviders>{children}</AdvertisingProviders>
+              <PrivateQueries>
+                <AdvertisingProviders>{children}</AdvertisingProviders>
+              </PrivateQueries>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ActionFeedbackProvider>

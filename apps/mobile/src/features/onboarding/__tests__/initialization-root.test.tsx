@@ -1,3 +1,5 @@
+import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { fetch } from "expo/fetch";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   act,
@@ -17,6 +19,7 @@ import {
   mockAuth0,
 } from "../../accounts/test-support/native-auth0";
 
+jest.mock("expo/fetch", () => ({ fetch: jest.fn() }));
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
   default: jest.requireActual("../../pro/test-support/native-purchases")
@@ -48,11 +51,21 @@ jest.mock("react-native-auth0", () => {
 
 const marker = "blockout:v2-initialized";
 const originalConfiguration = {
+  EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
   EXPO_PUBLIC_AUTH0_DOMAIN: process.env.EXPO_PUBLIC_AUTH0_DOMAIN,
   EXPO_PUBLIC_AUTH0_CLIENT_ID: process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID,
 };
 
 beforeEach(async () => {
+  process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
+  jest
+    .mocked(fetch)
+    .mockImplementation(
+      async () =>
+        Response.json(applicationAccessResponse()) as Awaited<
+          ReturnType<typeof fetch>
+        >,
+    );
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
   await AsyncStorage.clear();
@@ -126,7 +139,7 @@ it.each(["native clearing", "marker persistence"] as const)(
     await act(async () => completion.resolve());
 
     // Then
-    expect(screen.getByText("Public content")).toBeOnTheScreen();
+    expect(await screen.findByText("Public content")).toBeOnTheScreen();
     expect(screen.getByText("Authentication: guest")).toBeOnTheScreen();
     expect(mockAuth0.hasValidCredentials).toHaveBeenCalledTimes(1);
     expect(await AsyncStorage.getItem(marker)).toBe("true");
@@ -157,7 +170,7 @@ it.each(["native clearing", "marker persistence"] as const)(
     }
     const user = userEvent.setup();
     await render(<RootLayout />);
-    expect(screen.getByText("Public content")).toBeOnTheScreen();
+    expect(await screen.findByText("Public content")).toBeOnTheScreen();
     expect(
       screen.getByText("Authentication: initialization-error"),
     ).toBeOnTheScreen();
@@ -183,7 +196,7 @@ it("restores the ordinary SDK identity on subsequent launches without clearing i
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   mockAuth0.getCredentials.mockResolvedValue(credentialsFor("auth0|current"));
   const root = await render(<RootLayout />);
-  expect(screen.getByText("Identity: auth0|current")).toBeOnTheScreen();
+  expect(await screen.findByText("Identity: auth0|current")).toBeOnTheScreen();
 
   // When
   await root.unmount();
@@ -191,7 +204,7 @@ it("restores the ordinary SDK identity on subsequent launches without clearing i
 
   // Then
   expect(screen.getByText("Authentication: authenticated")).toBeOnTheScreen();
-  expect(screen.getByText("Identity: auth0|current")).toBeOnTheScreen();
+  expect(await screen.findByText("Identity: auth0|current")).toBeOnTheScreen();
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
   expect(await AsyncStorage.getItem(marker)).toBe("true");
 });

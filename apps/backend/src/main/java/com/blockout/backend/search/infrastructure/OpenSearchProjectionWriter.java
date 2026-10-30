@@ -28,7 +28,6 @@ import org.opensearch.client.opensearch._types.Refresh;
 import org.opensearch.client.opensearch._types.mapping.TypeMapping;
 import org.opensearch.client.opensearch.core.BulkRequest;
 import org.opensearch.client.opensearch.core.BulkResponse;
-import org.opensearch.client.opensearch.core.bulk.OperationType;
 import org.opensearch.client.opensearch.indices.GetAliasResponse;
 import org.opensearch.client.opensearch.indices.IndexSettings;
 import org.opensearch.client.opensearch.indices.RefreshResponse;
@@ -111,27 +110,18 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
   }
 
   /**
-   * Checks every native item and response cardinality, including deletes of already absent IDs.
+   * Uses the native aggregate failure flag and safe item counts for a failed batch.
    *
    * @param request one bounded native write request
    */
   private void bulk(BulkRequest request) {
     try {
       BulkResponse response = client.bulk(request);
-      int succeeded =
-          (int)
-              response.items().stream()
-                  .filter(
-                      item ->
-                          item.error() == null
-                              && (item.status() < 300
-                                  || (item.status() == 404
-                                      && item.operationType() == OperationType.Delete)))
-                  .count();
-      if (response.errors()
-          || response.items().size() != request.operations().size()
-          || succeeded != request.operations().size())
+      if (response.errors()) {
+        int succeeded =
+            (int) response.items().stream().filter(item -> item.error() == null).count();
         throw new SearchProjectionBulkException(request.operations().size(), succeeded);
+      }
     } catch (IOException failure) {
       throw new SearchUnavailableException(failure);
     }
@@ -155,36 +145,11 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
                     remove -> remove.index(indexes.prefix() + "-*").alias(alias).mustExist(false)));
         request.actions(action -> action.add(add -> add.index(target.getValue()).alias(alias)));
       }
-      try {
-        if (client.indices().updateAliases(request.build()).acknowledged()) return;
-      } catch (IOException | RuntimeException uncertain) {
-        if (published(generation, aliases())) return;
-        throw new SearchUnavailableException(uncertain);
-      }
-      if (!published(generation, aliases())) throw new SearchUnavailableException();
+      if (!client.indices().updateAliases(request.build()).acknowledged())
+        throw new SearchUnavailableException();
     } catch (IOException failure) {
       throw new SearchUnavailableException(failure);
     }
-  }
-
-  /**
-   * Verifies the complete current three-alias outcome after an uncertain native acknowledgement.
-   *
-   * @param generation candidate targets
-   * @param current freshly read native metadata
-   * @return whether each alias resolves exclusively to its candidate
-   */
-  private boolean published(Map<Kind, String> generation, GetAliasResponse current) {
-    return generation.entrySet().stream()
-        .allMatch(
-            target ->
-                current.result().entrySet().stream()
-                    .filter(
-                        entry ->
-                            entry.getValue().aliases().containsKey(indexes.alias(target.getKey())))
-                    .map(Map.Entry::getKey)
-                    .toList()
-                    .equals(List.of(target.getValue())));
   }
 
   /**

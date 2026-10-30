@@ -19,10 +19,7 @@ export function PersonalSeasonScreen() {
     void current.season.options
       .refetch({ cancelRefetch: false, throwOnError: true })
       .catch((error: unknown) => {
-        if (
-          current.owner.isCurrent(current.owner.generation) &&
-          !(error instanceof ApiError && error.kind === "cancelled")
-        )
+        if (!(error instanceof ApiError && error.kind === "cancelled"))
           feedback.error();
       });
     // This route's mount is the opening event. Query/feedback rerenders must not start another read.

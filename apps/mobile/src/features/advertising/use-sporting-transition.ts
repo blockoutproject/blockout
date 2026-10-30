@@ -54,12 +54,11 @@ export function useSportingTransition() {
         active.current.target === action.target
         ? active.current.result
         : Promise.resolve({ status: "busy" });
-    const original = account.getSnapshot();
+    const original = account;
     const isCurrent = () =>
       mounted.current &&
       currentAdmission.current &&
-      account.isCurrent(original.generation) &&
-      account.getSnapshot().accountId === original.accountId &&
+      account.accountId === original.accountId &&
       (action.isCurrent?.() ?? true);
     if (!isCurrent()) return Promise.resolve({ status: "abandoned" });
     setPending(true);

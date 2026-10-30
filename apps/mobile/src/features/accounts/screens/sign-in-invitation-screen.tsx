@@ -1,6 +1,6 @@
 import { ErrorState } from "../../../shared/components/state-card";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { SignInInvitation } from "../components/sign-in-invitation";
@@ -19,9 +19,7 @@ export function SignInInvitationScreen({
 }: SignInInvitationScreenProps) {
   const account = useAccountSession();
   const router = useRouter();
-  const [openedFor] = useState(account.getSnapshot);
-  const currentGuest =
-    account.status === "guest" && account.isCurrent(openedFor.generation);
+  const currentGuest = account.status === "guest";
 
   /** Native back preserves the origin; a direct link without history safely returns home. */
   function close() {
@@ -59,7 +57,7 @@ export function SignInInvitationScreen({
       message={message}
       onClose={close}
       onSignIn={() => {
-        if (account.isCurrent(openedFor.generation)) router.replace("/sign-in");
+        if (currentGuest) router.replace("/sign-in");
       }}
     />
   );

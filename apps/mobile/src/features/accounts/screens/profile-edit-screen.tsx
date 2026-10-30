@@ -49,7 +49,7 @@ export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
         {({ onScroll, headerHeight }) =>
           admitted && session.status === "authenticated" && account.data ? (
             <ProfileForm
-              key={`${session.generation}:${account.data.accountId}`}
+              key={`${session.subject}:${account.data.accountId}`}
               scroll={{ onScroll, headerHeight }}
               refreshControl={
                 <DataRefreshControl

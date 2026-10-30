@@ -14,7 +14,7 @@ Prepare synthetic principals for shared email, existing linked identities, missi
 
 ### Profile editing construction
 
-The profile MVC, ImageIO and PostgreSQL suites exercise the generated multipart/binary boundary, whole-save refusals, original-row locking, competing usernames, omitted fields, replacement/removal and deletion races. Image preparation finishes before the SQL transaction; bounded accepted multipart parts and ImageIO streams remain in memory. The mobile form/preparation suites retain real RHF/Zod, Query, session generation and generated transport, with controlled native/network I/O. They cover preserved drafts, explicit photo intent, original-target rereads after uncertain responses and delayed work across A → guest → A. Run them through the normal README verification commands. These construction checks do not qualify actual native crop, provider login, F12 admission or the physical-device cases in T049.
+The profile MVC, ImageIO and PostgreSQL suites exercise the generated multipart/binary boundary, whole-save refusals, original-row locking, competing usernames, omitted fields, replacement/removal and deletion races. Image preparation finishes before the SQL transaction; bounded accepted multipart parts and ImageIO streams remain in memory. The mobile form/preparation suites retain real RHF/Zod, Query, native identity lifetime and generated transport, with controlled native/network I/O. They cover preserved drafts, explicit photo intent, original-target rereads after uncertain responses and different-principal private cache separation and original-target dispatch. Run them through the normal README verification commands. These construction checks do not qualify actual native crop, provider login, F12 admission or the physical-device cases in T049.
 
 ## Authentication and isolation
 
@@ -28,28 +28,28 @@ Run the normal workspace verification, including `AccountAccessWebMvcTest`, `Aut
 
 `EstablishAccountAgeTest` exercises explicit establishment with controlled provider/store outcomes: known evidence survives an outage or missing provider date, absent age stays null, explicit recovery fills it, and a new business lifecycle uses the surviving or recreated principal's date, including linked-identity evidence. Existing Auth0 HTTP and PostgreSQL establishment suites retain the real decoding, out-of-transaction lookup and original-UUID race checks. The immutable account snapshot and existing `principalCreatedAt` response retain F05 evidence for F08; threshold and moderation policy remain F08-owned.
 
-Mobile `account-age-retry.test.tsx` exercises the overview and separate editor with real Router, session, Query, generated transport and form owners. A user-triggered bodyless POST reuses valid credentials, preserves username/photo drafts and current administration access, and rejects malformed evidence and old-generation results. Delayed POST/PATCH responses in both orders preserve confirmed photos and provider evidence through field-owned cache updates. Null evidence retains explicit retry without blocking profile editing. Run these suites through the normal README verification commands. Controlled cleanup fixtures establish neither real provider deletion/recreation nor F08/F14 integration; T023 remains pending.
+Mobile `account-age-retry.test.tsx` exercises the overview and separate editor with real Router, session, Query, generated transport and form owners. A user-triggered bodyless POST reuses valid credentials and rejects malformed evidence. Explicit sign-in dispatch survives the subject-keyed UI remount and opens Profile on command completion; a lost acknowledgement can resolve through its current read, while an absent profile offers the existing explicit return to sign-in for establishment retry. Server-confirmed completion invalidates ordinary reads; a different principal owns a fresh private client instead of accepting the old client's callbacks. Null evidence retains explicit retry without blocking profile editing. Run these suites through the normal README verification commands. Controlled cleanup fixtures establish neither real provider deletion/recreation nor F08/F14 integration; T023 remains pending.
 
 ### Push and entitlement session consumers
 
 The root supplies F07's exact-association removal to the existing F05 session owner. A departure
-captures that resource synchronously, invalidates private generations immediately, waits at most
-three seconds for F07's single removal attempt, then performs native credential clearing. Network,
-badge or browser failure supplies no retry credential or queue. `ProProvider` remains the sole
-RevenueCat owner and receives invalidation without waiting for push cleanup.
+captures that resource synchronously and waits at most three seconds for F07's single removal
+attempt before native logout/clearing. Browser logout failure remains authenticated; explicit local
+clearing remains available. Network or badge failure supplies no retry credential or queue. `ProProvider` remains the sole
+RevenueCat owner and receives the current authentication/account state without waiting for push cleanup. Global native owners outlive the private QueryClient replacement.
 
 The [session-consumer cases](../../apps/mobile/src/features/accounts/__tests__/session-consumers.test.tsx)
 cover removal ordering/failure and a delayed actual RevenueCat consumer through sign-out. The
 [F07 construction](../011-notifications-delivery/quickstart.md#push-association-and-session-construction)
 owns generated DELETE, token acquisition, badge and old-push cases; existing profile/preparation
-and private-query cases retain their old-generation coverage. These controlled SDK/network boundaries
+and private-query cases exercise actual principal/cache separation and the original-principal dispatch boundary. These controlled SDK/network boundaries
 do not qualify physical credential storage, provider delivery or the following T020/device scenarios.
 
 ### Provider and device qualification
 
-1. **Sign in on physical iOS/Android:** production Google/Apple and dedicated preproduction email/password signup. Exercise callback, cancellation, outage, explicit restoration retry, renewal and failed browser logout. **Expected:** configured environment/client/audience restrictions apply, and local logout clears credentials/private state despite browser failure, using the native SDK lifecycle. Business-generation tests do not certify native storage or SDK-internal ordering. This does not claim global provider logout.
+1. **Sign in on physical iOS/Android:** production Google/Apple and dedicated preproduction email/password signup. Exercise callback, cancellation, outage, explicit restoration retry, renewal and failed browser logout. **Expected:** configured environment/client/audience restrictions apply. Successful SDK logout and explicit local clearing enter guest mode; cancelled/failed browser logout remains authenticated and retryable. Controlled lifetime tests do not certify native storage or SDK-internal ordering. This does not claim global provider logout.
 2. **Read and establish accounts:** ordinary GET, first establishment without usable email, explicit login with provider failure, missing-age retry, linked methods and same-email distinct principals. **Expected:** GET neither creates nor contacts Auth0; missing first email blocks creation; known email/age survive failure; only age-dependent actions wait for unknown age.
-3. **Switch A → B and A → guest → A** while queries, photo preparation and entitlement callbacks are delayed. **Expected:** no prior-session result or unaccepted action enters the new session. Different-owner, visitor, expired/wrong-client/environment and collector credentials cannot perform owner operations.
+3. **Switch A → B** while queries, photo preparation and entitlement callbacks are delayed. **Expected:** A's private data/forms/cache callbacks cannot populate B's fresh lifetime, and credential handoff rejects a mismatched subject. Exercise A → guest → A as ordinary same-account freshness, without a custom generation guarantee. Different-owner, visitor, expired/wrong-client/environment and collector credentials cannot perform owner operations.
 4. **Fail push disassociation on logout, then reassociate B.** **Expected:** local logout succeeds without durable retry; delayed A removal cannot remove B. Any still-delivered A system push cannot expose A's private inbox under guest/B.
 
 ## Native photo and shared control

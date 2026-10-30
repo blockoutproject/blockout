@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Controller, useForm, useFormState } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
 import { z } from "zod";
@@ -12,23 +12,22 @@ import type {
 import { ApiError } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
+import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { Page, PageContent } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
-import { FormScrollView } from "../../../shared/components/form-scroll-view";
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
+import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import { Surface } from "../../../shared/components/surface";
 import { TextField } from "../../../shared/components/text-field";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
-import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
+import { tokens } from "../../../shared/theme/tokens";
 import {
   MatchSummary,
   useConsultationQueries,
 } from "../../sporting/match-consultation";
 import { useContributionReport } from "../api/contribution-reports";
-import { reportEditor } from "../forms/report-editor";
 
 /** Captured F03 identity; every explicit attempt keeps this exact version. */
 export interface ReportContributionScreenProps {
@@ -40,7 +39,6 @@ export interface ReportContributionScreenProps {
 const reasonSchema = z.object({
   reason: z.string().trim().min(1, "Indiquez le motif du signalement."),
 });
-
 /** Ordinary native report route; F05 invitation carries no continuation and F10 support stays separate. */
 export function ReportContributionScreen({
   matchId,
@@ -90,7 +88,7 @@ export function ReportContributionScreen({
                   />
                 )}
                 <ReportForm
-                  key={`${reporting.session.generation}:${contributionId}`}
+                  key={`${reporting.session.subject}:${contributionId}`}
                   matchId={matchId}
                   contributionId={contributionId}
                   contributionUrl={contributionUrl}
@@ -105,7 +103,6 @@ export function ReportContributionScreen({
     </Page>
   );
 }
-
 /** Native form on approved report node 5534:59410; its retained reason always belongs to the viewed version. */
 function ReportForm({
   matchId,
@@ -120,25 +117,22 @@ function ReportForm({
   const { colors } = useTheme();
   const router = useRouter();
   const feedback = useActionFeedback();
-  const { session, command, query } = reporting;
-  const [editor] = useState(() => reportEditor(session, contributionId));
+  const { command, query } = reporting;
   const mounted = useRef(true);
   const { control, handleSubmit, reset, setError } =
     useForm<CreateStreamReportRequest>({
       resolver: zodResolver(reasonSchema),
-      formControl: editor.form.formControl,
+      defaultValues: { reason: "" },
     });
   const { isDirty } = useFormState({ control });
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
-      if (!editor.form.getFieldState("reason").isDirty) editor.release();
     };
-  }, [editor]);
+  }, []);
   useDiscardChanges(isDirty, () => {
     reset({ reason: "" });
-    editor.release();
   });
   const targetUrl =
     contributionUrl ??
@@ -146,26 +140,21 @@ function ReportForm({
       ? match.data.streamUrl
       : undefined);
   const reported = query.data?.reported === true;
-  const busy = command.pending;
-
+  const busy = command.isPending;
   /** Explicit cancellation abandons this draft and returns without invoking a write. */
   function cancel() {
     reset({ reason: "" });
-    editor.release();
     router.dismissTo({ pathname: "/matches/[matchId]", params: { matchId } });
   }
   /** Sends one validated private reason, preserving refusals and ignoring obsolete session/route callbacks. */
   async function send(body: CreateStreamReportRequest) {
     if (!reporting.usable || query.isError || busy || reported) return;
-    const attempt = command.start(body);
-    if (!attempt) return;
+    const attempt = command.mutateAsync(body);
     try {
       await attempt;
-      if (!session.isCurrent(session.generation)) return;
       reset({ reason: "" });
-      if (mounted.current) editor.release();
     } catch (error) {
-      if (!mounted.current || !session.isCurrent(session.generation)) return;
+      if (!mounted.current) return;
       if (error instanceof ApiError && error.status === 422)
         setError("reason", {
           message: "Le signalement a été refusé. Votre saisie est conservée.",
@@ -214,7 +203,7 @@ function ReportForm({
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
-                editable={!command.pending}
+                editable={!command.isPending}
                 error={fieldState.error?.message}
               />
             )}
@@ -222,7 +211,7 @@ function ReportForm({
           <Button
             label="Envoyer le signalement"
             fullWidth
-            loading={command.executing}
+            loading={command.isPending}
             disabled={!reporting.usable || query.isError || busy}
             onPress={() => void handleSubmit(send)()}
           />
@@ -230,7 +219,7 @@ function ReportForm({
             label="Annuler"
             variant="secondary"
             fullWidth
-            disabled={command.pending}
+            disabled={command.isPending}
             onPress={cancel}
           />
         </View>

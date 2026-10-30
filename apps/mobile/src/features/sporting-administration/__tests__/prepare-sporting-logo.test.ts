@@ -45,11 +45,10 @@ const asset = {
   height: 2048,
   mimeType: "image/jpeg",
 };
-const session = { generation: "original", isCurrent: jest.fn(() => true) };
 
 beforeEach(() => {
   jest.clearAllMocks();
-  session.isCurrent.mockReturnValue(true);
+  output.size = 12_273_912;
   original.copy.mockReset();
   jest
     .mocked(File)
@@ -71,8 +70,11 @@ beforeEach(() => {
 });
 
 it("copies an admissible JPEG without encoding or taking ownership of the borrowed picker input", async () => {
-  // Given / When
-  const prepared = await prepareSportingLogo(asset, session);
+  // Given
+  const source = { ...asset };
+
+  // When
+  const prepared = await prepareSportingLogo(source);
 
   // Then
   expect(prepared).toBe(copy);
@@ -86,12 +88,15 @@ it("copies an admissible JPEG without encoding or taking ownership of the borrow
 });
 
 it("deletes an invalid encoded output and releases native handles", async () => {
-  // Given / When
-  await expect(
-    prepareSportingLogo({ ...asset, width: 4096, height: 4096 }, session),
-  ).rejects.toThrow("upload limit");
+  // Given
+  const source = { ...asset, width: 4096, height: 4096 };
+
+  // When
+  const preparation = prepareSportingLogo(source);
 
   // Then
+  await expect(preparation).rejects.toThrow("upload limit");
+
   expect(output.delete).toHaveBeenCalledTimes(1);
   expect(image.release).toHaveBeenCalledTimes(1);
   expect(context.release).toHaveBeenCalledTimes(1);
@@ -104,25 +109,31 @@ it("deletes a partially copied destination when native copying fails", async () 
     throw new Error("Copy failed");
   });
 
-  // When / Then
-  await expect(prepareSportingLogo(asset, session)).rejects.toThrow(
-    "Copy failed",
-  );
+  // When
+  const preparation = prepareSportingLogo(asset);
+
+  // Then
+  await expect(preparation).rejects.toThrow("Copy failed");
   expect(copy.delete).toHaveBeenCalledTimes(1);
   expect(original.delete).not.toHaveBeenCalled();
 });
 
-it("deletes encoded output completed after its session became obsolete", async () => {
+it("returns admissible resized output and releases native handles without deleting the owned file", async () => {
   // Given
-  image.saveAsync.mockImplementation(async () => {
-    session.isCurrent.mockReturnValue(false);
-    return { uri: output.uri };
+  output.size = 4_000_000;
+
+  // When
+  const prepared = await prepareSportingLogo({
+    ...asset,
+    width: 4096,
+    height: 4096,
   });
 
-  // When / Then
-  await expect(
-    prepareSportingLogo({ ...asset, width: 4096, height: 4096 }, session),
-  ).rejects.toMatchObject({ kind: "cancelled" });
-  expect(output.delete).toHaveBeenCalledTimes(1);
+  // Then
+  expect(prepared).toBe(output);
+  expect(context.resize).toHaveBeenCalledWith({ width: 2048 });
+  expect(image.release).toHaveBeenCalledTimes(1);
+  expect(context.release).toHaveBeenCalledTimes(1);
+  expect(output.delete).not.toHaveBeenCalled();
   expect(original.delete).not.toHaveBeenCalled();
 });

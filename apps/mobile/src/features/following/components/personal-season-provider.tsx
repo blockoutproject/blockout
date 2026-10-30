@@ -4,7 +4,6 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
-import { useAuth0 } from "react-native-auth0";
 import {
   useAccountSession,
   useCurrentAccount,
@@ -18,7 +17,7 @@ import {
 } from "../api/following-keys";
 import { usePersonalSeason } from "../hooks/use-personal-season";
 
-/** One existing season owner shared by Home and its contextual route, scoped to the current account generation. */
+/** One existing season owner shared by Home and its contextual route, scoped to the native principal. */
 export interface PersonalSeasonScope {
   owner: FollowingOwner;
   profile: ReturnType<typeof useCurrentAccount>;
@@ -28,28 +27,24 @@ export interface PersonalSeasonScope {
   blocked: boolean;
   bypass: boolean;
 }
-
 const PersonalSeasonContext = createContext<PersonalSeasonScope | null>(null);
-
 /** Lifts the existing in-memory choice only to Home's layout; neither another cache nor a route-parameter callback is created. */
 export function PersonalSeasonProvider({ children }: PropsWithChildren) {
   const session = useAccountSession();
   const profile = useCurrentAccount();
   const owner = captureFollowingOwner(session);
   return owner ? (
-    <SeasonScope key={owner.generation} owner={owner} profile={profile}>
+    <SeasonScope key={owner.subject} owner={owner} profile={profile}>
       {children}
     </SeasonScope>
   ) : (
     <PersonalSeasonContext value={null}>{children}</PersonalSeasonContext>
   );
 }
-
 /** Reads the current shared scope; absent identity supplies no private choice or former account data. */
 export function usePersonalSeasonScope() {
   return useContext(PersonalSeasonContext);
 }
-
 /** Keeps native credentials, current admission and retained-refusal rules around the unchanged season hook. */
 function SeasonScope({
   owner,
@@ -59,22 +54,19 @@ function SeasonScope({
   owner: FollowingOwner;
   profile: ReturnType<typeof useCurrentAccount>;
 }>) {
-  const { getCredentials } = useAuth0();
+  const { getCredentials } = useAccountSession();
   const admission = useOrdinaryRequest();
   const usable =
     admission.admitted &&
     profile.isSuccess &&
     profile.data.accountId === owner.accountId;
   const bypass = Boolean(admission.bypass);
-
   /** Prepares only a current original-owner request after native credentials and current F12 admission. */
   async function request(signal?: AbortSignal) {
-    if (!owner.isCurrent(owner.generation)) throw new ApiError("cancelled");
     const credentials = await getCredentials();
     if (!credentials) throw new ApiError("http", 401);
     return admission.request({
       signal,
-      session: owner,
       headers: { Authorization: `Bearer ${credentials.accessToken}` },
     });
   }

@@ -53,6 +53,8 @@ class Auth0ConfigurationIntegrationTest {
   private String resourceAuthorization;
   private boolean refuseToken;
   private String delayedPath;
+  private String tokenRedirect;
+  private int redirectStatus;
 
   /**
    * Starts a suite-owned ephemeral loopback listener; no existing application service is used.
@@ -75,6 +77,12 @@ class Auth0ConfigurationIntegrationTest {
           } else {
             reads.incrementAndGet();
             resourceAuthorization = exchange.getRequestHeaders().getFirst("Authorization");
+          }
+          if (token && tokenRedirect != null) {
+            exchange.getResponseHeaders().set("Location", tokenRedirect);
+            exchange.sendResponseHeaders(redirectStatus, -1);
+            exchange.close();
+            return;
           }
           if (path.equals(delayedPath)) {
             try {
@@ -185,6 +193,42 @@ class Auth0ConfigurationIntegrationTest {
         .isInstanceOf(AccountUnavailableException.class)
         .hasMessageNotContaining("private provider diagnostics");
     assertThat(reads.get()).isZero();
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {307, 308})
+  @DisplayName("Does not forward token credentials to a redirected origin")
+  void refusesTokenRedirect(int status) throws Exception {
+    // Given
+    AtomicInteger forwarded = new AtomicInteger();
+    HttpServer destination = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+    destination.setExecutor(workers);
+    destination.createContext(
+        "/",
+        exchange -> {
+          forwarded.incrementAndGet();
+          exchange.getRequestBody().readAllBytes();
+          exchange.sendResponseHeaders(403, -1);
+          exchange.close();
+        });
+    destination.start();
+    try {
+      tokenRedirect = "http://127.0.0.1:" + destination.getAddress().getPort() + "/token";
+      redirectStatus = status;
+      PrincipalReader reader = reader();
+
+      // When
+      org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
+          () -> reader.read(origin + "/", "auth0|one");
+
+      // Then
+      assertThatThrownBy(read).isInstanceOf(AccountUnavailableException.class);
+      assertThat(forwarded.get()).isZero();
+      assertThat(tokens.get()).isEqualTo(1);
+      assertThat(reads.get()).isZero();
+    } finally {
+      destination.stop(0);
+    }
   }
 
   /**

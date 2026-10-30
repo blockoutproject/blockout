@@ -2,6 +2,7 @@ import Purchases, {
   type CustomerInfo,
   type PurchasesEntitlementInfo,
 } from "react-native-purchases";
+
 const { VERIFICATION_RESULT } = Purchases;
 
 /** Synthetic SDK data only; no native purchase, cache or identity behavior is simulated. */

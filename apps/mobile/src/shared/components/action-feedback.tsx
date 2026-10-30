@@ -148,7 +148,7 @@ export function useActionFeedback({ retainOnUnmount = false } = {}) {
   return {
     /**
      * Replaces feedback for a live event. A session-changing continuation may supply its new scope
-     * only after checking that generation is still current; ordinary commands use the captured scope.
+     * within the owning mounted account lifetime; ordinary commands use the captured scope.
      */
     error(message = TECHNICAL_ERROR, nextScope?: string) {
       if (mounted.current) context.error(owner.current, message, nextScope);

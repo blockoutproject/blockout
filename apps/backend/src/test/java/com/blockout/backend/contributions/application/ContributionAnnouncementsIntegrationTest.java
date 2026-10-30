@@ -30,11 +30,15 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -832,7 +836,8 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
      *
      * @param ready actual committed notification allocations
      */
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Order(Ordered.HIGHEST_PRECEDENCE)
     void ready(AfterCommitAnnouncements.Ready ready) {
       handoffs.add(AfterCommitAnnouncements.Ready.class);
       TransactionTemplate independent = new TransactionTemplate(transactions);

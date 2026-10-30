@@ -11,13 +11,11 @@ import jakarta.validation.Validator;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import okhttp3.OkHttpClient;
-import org.apache.hc.client5.http.config.ConnectionConfig;
-import org.apache.hc.client5.http.config.RequestConfig;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
-import org.apache.hc.core5.util.Timeout;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
+import org.springframework.boot.http.client.HttpClientSettings;
+import org.springframework.boot.http.client.HttpRedirects;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -40,33 +38,19 @@ public class Auth0Configuration {
   private OkHttpClient managementHttp;
 
   /**
-   * Bounds resource/token requests and disables redirects/retries; Spring closes the owned pool.
+   * Uses Boot native timeout and redirect settings; Spring closes the owned request factory.
    *
    * @param properties feature-owned deadlines
-   * @return native request factory with independent acquisition, connect and response bounds
+   * @return native request factory with configured connect/read timeouts and no redirect or retry
    */
   @Bean(destroyMethod = "destroy")
   HttpComponentsClientHttpRequestFactory auth0Requests(Auth0Properties properties) {
-    Timeout connect = Timeout.ofMilliseconds(properties.connectTimeout().toMillis());
-    Timeout read = Timeout.ofMilliseconds(properties.readTimeout().toMillis());
-    return new HttpComponentsClientHttpRequestFactory(
-        HttpClients.custom()
-            .disableAutomaticRetries()
-            .disableRedirectHandling()
-            .setConnectionManager(
-                PoolingHttpClientConnectionManagerBuilder.create()
-                    .setDefaultConnectionConfig(
-                        ConnectionConfig.custom()
-                            .setConnectTimeout(connect)
-                            .setSocketTimeout(read)
-                            .build())
-                    .build())
-            .setDefaultRequestConfig(
-                RequestConfig.custom()
-                    .setConnectionRequestTimeout(read)
-                    .setResponseTimeout(read)
-                    .build())
-            .build());
+    return ClientHttpRequestFactoryBuilder.httpComponents()
+        .withHttpClientCustomizer(builder -> builder.disableAutomaticRetries())
+        .build(
+            HttpClientSettings.defaults()
+                .withTimeouts(properties.connectTimeout(), properties.readTimeout())
+                .withRedirects(HttpRedirects.DONT_FOLLOW));
   }
 
   /**

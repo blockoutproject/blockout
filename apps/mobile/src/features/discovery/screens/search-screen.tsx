@@ -364,7 +364,7 @@ function SearchScene({
     )
       feedback.error();
   }
-  // Refusals can empty an unfinished textual traversal; only an explicit continuation may resume it.
+  // An unfinished empty traversal retains its existing explicit continuation action.
   const continueEmpty =
     !examples &&
     items.length === 0 &&

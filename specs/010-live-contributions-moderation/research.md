@@ -20,7 +20,7 @@
 
 ## Current-state reads and HTTP resources
 
-**Decision:** Keep the existing mobile OpenAPI root, page-based twenty-item lists and shared Problem Details. Version-change commands carry the viewed contribution revision; administrative commands also carry the original actor account UUID. Reports retain their canonical reason-only input and exact version resource. A stale revision returns 409 before duplicate/no-op evaluation. A lost version-change response permits one bounded current-state read and a later explicit action, never an automatic write retry or exact historical receipt. The owner’s 2026-10-30 direction keeps reporting simpler: an ordinary error retains the reason, and a later explicit retry stays on the exact version. The report’s account/version uniqueness and unchanged-duplicate response preserve the first reason and effects without a dedicated recovery state or after-error read.
+**Decision:** Keep the existing mobile OpenAPI root, page-based twenty-item lists and shared Problem Details. Version-change commands carry the viewed contribution revision; administrative commands also carry the original actor account UUID. Reports retain their canonical reason-only input and exact version resource. A stale revision returns 409 before duplicate/no-op evaluation. A lost version-change response uses ordinary failure feedback and query invalidation; a later explicit action carries the original target and revision. There is no dedicated confirmation read or failed-command ledger, automatic write retry or exact historical receipt. The owner’s 2026-10-30 direction keeps reporting simpler: an ordinary error retains the reason, and a later explicit retry stays on the exact version. The report’s account/version uniqueness and unchanged-duplicate response preserve the first reason and effects without a dedicated recovery state or after-error read.
 
 **Rationale:** The existing [contract conventions](../003-shared-quality/contracts/README.md), [HTTP semantics](https://www.rfc-editor.org/rfc/rfc9110.html) and [PATCH semantics](https://www.rfc-editor.org/rfc/rfc5789.html) fit completed synchronous operations. Body revisions follow already approved business-conflict semantics; no HTTP conditional header is introduced. Known current state is useful even when a delayed request can still finish afterward.
 
@@ -44,11 +44,4 @@ Documentation establishes native capabilities, not their integrated execution. G
 
 ## Contribution draft lifetime under admission gates
 
-F12 ordinary dependency refusals can remove the ordinary native stack, including its form.
-A route-local `useForm` therefore loses a dirty address during a failed submission observation.
-Retain the actual RHF control under the original account/session and match, following the
-existing settings/classification editors; release it on clean departure, explicit abandonment,
-departure after acknowledgement or session invalidation. A detached acknowledged write resets the retained control but leaves its registration available to an already reopened form. Commands and validated responses remain in
-Query. This preserves the existing F12 gates without a copied draft store, persistence, replay
-or a change to access policy. A real protected-router regression covers the 503 detour and
-explicit reopening with the same draft and unresolved-command guard.
+Use route-local RHF fields and a coherent original revision, following the shared [form conventions](../003-shared-quality/plan.md#frontend-form-conventions). Dirty input survives ordinary refetch and errors while that route is mounted. A protected-route removal discards the draft; reopening uses current server data. This consciously replaces detached RHF registries and mutation acknowledgement recovery. Native Query mutations retain ordinary pending/error outcomes and invalidate affected views at settlement. Server revisions, original-target ownership and deduplication preserve domain effects independently of client acknowledgement. Native/provider evidence remains scoped to the owning [qualification](quickstart.md); JavaScript lifecycle tests do not establish native execution.

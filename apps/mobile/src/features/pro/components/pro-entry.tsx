@@ -6,21 +6,18 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { EntryRow } from "../../../shared/components/entry-row";
 import { usePro } from "../pro-provider";
-
 /** Profile command supplied by the native host owner; guests always take the ordinary F05 invitation. */
 export interface ProEntryProps {
   onOpenPresentation: () => void;
 }
-
 /** Profile action only; native offering selection, entitlement presentation and operations remain T025-owned. */
 export function ProEntry({ onOpenPresentation }: ProEntryProps) {
   const account = useAccountSession();
   const router = useRouter();
-  const session = account.getSnapshot();
+  const session = account;
   const guest = account.status === "guest";
   const available =
     guest || (account.status === "authenticated" && session.accountId !== null);
-
   return (
     <EntryRow
       label="Blockout Pro"
@@ -34,14 +31,12 @@ export function ProEntry({ onOpenPresentation }: ProEntryProps) {
         />
       }
       onPress={() => {
-        if (!account.isCurrent(session.generation)) return;
         if (guest) router.push("/sign-in-invitation");
         else onOpenPresentation();
       }}
     />
   );
 }
-
 /** Shows only current SDK-established membership; unknown rights never imply a free account. */
 export function ProProfileBadge() {
   const { state } = usePro();
@@ -69,7 +64,6 @@ export function ProProfileBadge() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   icon: {
     width: tokens.size.icon.md,

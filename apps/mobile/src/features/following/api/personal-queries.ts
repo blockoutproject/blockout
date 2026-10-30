@@ -34,7 +34,6 @@ import {
 
 /** Canonical F03 summaries remain inside their generated F06 collection envelopes. */
 export type FollowListPage = ListTeamFollows200 | ListPoolFollows200;
-
 /** Retains each private type/season traversal, with pageParam owning its bounded continuation. */
 export function createFollowListOptions(
   owner: FollowingOwner,
@@ -59,11 +58,7 @@ export function createFollowListOptions(
             const result = await (
               type === "team" ? listTeamFollows : listPoolFollows
             )(owner.accountId, { ...selection, page: pageParam }, options);
-            if (
-              signal.aborted ||
-              options.signal?.aborted ||
-              !owner.isCurrent(owner.generation)
-            )
+            if (signal.aborted || options.signal?.aborted)
               throw new ApiError("cancelled");
             return result;
           },
@@ -72,7 +67,6 @@ export function createFollowListOptions(
       } catch (error) {
         if (
           !signal.aborted &&
-          owner.isCurrent(owner.generation) &&
           error instanceof Error &&
           (isAccessDenied(error) ||
             (error instanceof ApiError && error.status === 404))
@@ -99,7 +93,6 @@ export function createFollowListOptions(
     networkMode: "always",
   });
 }
-
 /** One validated options cache for the original session; failure never means no seasons. */
 export function createFollowOptionsQueryOptions(
   owner: FollowingOwner,
@@ -113,17 +106,12 @@ export function createFollowOptionsQueryOptions(
     queryFn: async ({ signal }) => {
       const options = await request(signal);
       const result = await getFollowOptions(owner.accountId, options);
-      if (
-        signal.aborted ||
-        options.signal?.aborted ||
-        !owner.isCurrent(owner.generation)
-      )
+      if (signal.aborted || options.signal?.aborted)
         throw new ApiError("cancelled");
       return result;
     },
   });
 }
-
 /** Captured selection boundary reconciles established seasonal absence without adding retries. */
 export interface PersonalSelectionRead {
   client: QueryClient;
@@ -133,10 +121,8 @@ export interface PersonalSelectionRead {
   currentKey?: QueryKey;
   bypass?: boolean;
   options: ReturnType<typeof createFollowOptionsQueryOptions>;
-  isCurrent: () => boolean;
   selectSeason: (seasonId: string | undefined) => void;
 }
-
 /**
  * Reads once, then on seasonal NotFound rereads options once through bounded transport.
  * Successful omission withdraws that season from retained views before selecting the ordinary default.
@@ -149,12 +135,7 @@ export async function readPersonalSelection<T>(
 ): Promise<T> {
   /** Rejects obsolete work before a request and after each asynchronous boundary. */
   function assertCurrent() {
-    if (
-      context.signal.aborted ||
-      !context.owner.isCurrent(context.owner.generation) ||
-      !context.isCurrent()
-    )
-      throw new ApiError("cancelled");
+    if (context.signal.aborted) throw new ApiError("cancelled");
   }
   assertCurrent();
   try {
@@ -196,7 +177,6 @@ export async function readPersonalSelection<T>(
     throw error;
   }
 }
-
 /**
  * Retains validated personal envelopes in the root Query cache. A continuation is an exclusive
  * sporting day; visible observers alone load reset queries, without replaying failed reads.
@@ -227,11 +207,7 @@ export function createPersonalCalendarOptions(
               },
               options,
             );
-            if (
-              signal.aborted ||
-              options.signal?.aborted ||
-              !owner.isCurrent(owner.generation)
-            )
+            if (signal.aborted || options.signal?.aborted)
               throw new ApiError("cancelled");
             return result;
           },
@@ -251,7 +227,6 @@ export function createPersonalCalendarOptions(
         if (
           error instanceof Error &&
           !signal.aborted &&
-          owner.isCurrent(owner.generation) &&
           (isAccessDenied(error) ||
             (error instanceof ApiError && error.status === 404))
         ) {
@@ -278,7 +253,6 @@ export function createPersonalCalendarOptions(
     networkMode: "always",
   });
 }
-
 /** Withdraws refused personal data across both lists and calendars in the same admission context. */
 async function withdrawRefusedPersonalCollections(
   client: QueryClient,
@@ -289,11 +263,14 @@ async function withdrawRefusedPersonalCollections(
   error: Error,
 ) {
   for (const collection of [
-    followListKey(owner, "team", {}, bypass).slice(0, -1),
-    followListKey(owner, "pool", {}, bypass).slice(0, -1),
+    followListKey(owner, "team", {}, bypass),
+    followListKey(owner, "pool", {}, bypass),
     personalCalendarCollectionKey(owner, bypass),
   ]) {
-    const queryKey = [...collection, ...(seasonId ? [{ seasonId }] : [])];
+    const queryKey = [
+      collection[0],
+      { ...(collection[1] as object), ...(seasonId ? { seasonId } : {}) },
+    ];
     await client.cancelQueries({
       queryKey,
       predicate: (query) => query.queryHash !== hashKey(currentKey),
@@ -307,7 +284,6 @@ async function withdrawRefusedPersonalCollections(
       });
   }
 }
-
 /**
  * Applies successful category-independent absence to overlapping retained selections. A seasonal
  * absence removes only that season from All seasons; an All-seasons absence withdraws every
@@ -376,7 +352,6 @@ async function withdrawUnavailableFollows(
     });
   }
 }
-
 /** The shared personal-season owner bounds NotFound reconciliation for the captured selection. */
 export type PersonalCalendarRead = <T>(
   seasonId: string | undefined,

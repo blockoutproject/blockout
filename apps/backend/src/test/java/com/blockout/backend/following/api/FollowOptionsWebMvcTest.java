@@ -126,19 +126,19 @@ class FollowOptionsWebMvcTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"seasonId=00000000-0000-4000-8000-000000000001", "q=team", "page=0"})
-  @DisplayName("Rejects filters that do not belong to options")
-  void rejectsQuery(String query) throws Exception {
+  @DisplayName("Ignores undeclared options query fields")
+  void ignoresQuery(String query) throws Exception {
     // Given
+    when(accounts.currentId("https://identity.example.invalid/", "subject"))
+        .thenReturn(Optional.of(ACCOUNT));
+    when(options.read(ACCOUNT)).thenReturn(new Options(List.of(), null));
     MockHttpServletRequestBuilder request = get(path() + "?" + query).with(mobile());
 
     // When
     ResultActions response = mvc.perform(request);
 
     // Then
-    response
-        .andExpect(status().isBadRequest())
-        .andExpect(header().string("Cache-Control", "no-store"));
-    verifyNoInteractions(options);
+    response.andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"));
   }
 
   @Test

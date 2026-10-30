@@ -14,6 +14,7 @@ import com.blockout.backend.notifications.application.PushProvider.Status;
 import com.blockout.backend.notifications.application.PushSubscriptionStore.Target;
 import com.blockout.backend.notifications.domain.NotificationMessage;
 import com.niamedtech.expo.exposerversdk.ExpoPushNotificationClient;
+import com.niamedtech.expo.exposerversdk.exception.ErrorResponseException;
 import com.niamedtech.expo.exposerversdk.request.PushNotification;
 import com.niamedtech.expo.exposerversdk.response.ReceiptResponse.Receipt;
 import com.niamedtech.expo.exposerversdk.response.TicketResponse.Ticket;
@@ -22,7 +23,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.apache.hc.client5.http.HttpResponseException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
@@ -77,25 +77,15 @@ class ExpoPushClientTest {
   }
 
   @Test
-  @DisplayName("Refuses provider limits before invoking the SDK")
-  void refusesOversizedWork() {
+  @DisplayName("Refuses batch limits before invoking the SDK")
+  void refusesOversizedBatch() {
     // Given
-    Message oversized =
-        new Message(
-            message.target(),
-            message.ownerAccountId(),
-            message.notificationId(),
-            message.matchId(),
-            new NotificationMessage("Sport", "é".repeat(4096)));
-
     // When
     org.assertj.core.api.ThrowableAssert.ThrowingCallable tooManyMessages =
         () -> client.send(Collections.nCopies(101, message));
 
     // Then
     assertThatThrownBy(tooManyMessages).isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> client.send(List.of(oversized)))
-        .isInstanceOf(IllegalArgumentException.class);
     assertThatThrownBy(() -> client.receipts(Collections.nCopies(1001, "ticket")))
         .isInstanceOf(IllegalArgumentException.class);
     verifyNoInteractions(sdk);
@@ -122,11 +112,12 @@ class ExpoPushClientTest {
   }
 
   @Test
-  @DisplayName("Keeps typed HTTP refusal distinct from uncertainty without retrying the SDK")
+  @DisplayName("Maps the SDK parsed refusal without another SDK attempt")
   void refusesHttpError() throws Exception {
     // Given
     when(sdk.sendPushNotifications(any()))
-        .thenThrow(new HttpResponseException(429, "controlled refusal"));
+        .thenThrow(
+            new IOException(new ErrorResponseException(429, "controlled refusal", List.of())));
 
     // When
     Outcome outcome = client.send(List.of(message)).getFirst();

@@ -252,54 +252,42 @@ it("saves the shared form and returns to privacy with only category/date retaine
   });
 });
 
-it.each(["close", "system back"])(
-  "keeps correction visible on %s until native consent preparation settles after the acknowledged save",
-  async (dismissal) => {
-    // Given
-    await openPrivacy();
-    const user = userEvent.setup();
-    await user.press(screen.getByRole("button", { name: "Corriger mon âge" }));
-    await user.press(
-      await screen.findByRole("button", { name: "Augmenter l’âge" }),
-    );
-    const consent = Promise.withResolvers<AdsConsentInfo>();
-    jest.mocked(AdsConsent.gatherConsent).mockReturnValueOnce(consent.promise);
-
-    // When
-    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-
-    // Then: the native presenter stays on the correction sheet until its operation completes.
-    await waitFor(async () =>
-      expect(await readAgeDeclaration()).toEqual({
-        category: "under16",
-        declaredAt: expect.any(String),
-      }),
-    );
-    expect(
-      screen.getByRole("header", { name: "Corriger mon âge" }),
-    ).toBeOnTheScreen();
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Fermer" })).toBeDisabled();
-    if (dismissal === "close")
-      await user.press(screen.getByRole("button", { name: "Fermer" }));
-    else await act(() => router.back());
-    expect(
-      screen.queryByRole("header", { name: "Confidentialité" }),
-    ).toBeNull();
-    await act(() =>
-      consent.resolve({
-        status: AdsConsentStatus.NOT_REQUIRED,
-        canRequestAds: true,
-        isConsentFormAvailable: false,
-        privacyOptionsRequirementStatus:
-          AdsConsentPrivacyOptionsRequirementStatus.NOT_REQUIRED,
-      }),
-    );
-    expect(
-      await screen.findByRole("header", { name: "Confidentialité" }),
-    ).toBeOnTheScreen();
-  },
-);
+it("returns to privacy after persisted age correction while native consent remains pending", async () => {
+  // Given
+  await openPrivacy();
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("button", { name: "Corriger mon âge" }));
+  await user.press(
+    await screen.findByRole("button", { name: "Augmenter l’âge" }),
+  );
+  const consent = Promise.withResolvers<AdsConsentInfo>();
+  jest.mocked(AdsConsent.gatherConsent).mockReturnValueOnce(consent.promise);
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  // Then
+  await screen.findByRole("header", { name: "Confidentialité" });
+  expect(await readAgeDeclaration()).toEqual({
+    category: "under16",
+    declaredAt: expect.any(String),
+  });
+  expect(
+    screen.queryByRole("header", { name: "Corriger mon âge" }),
+  ).not.toBeOnTheScreen();
+  // When
+  await act(() =>
+    consent.resolve({
+      status: AdsConsentStatus.NOT_REQUIRED,
+      canRequestAds: true,
+      isConsentFormAvailable: false,
+      privacyOptionsRequirementStatus:
+        AdsConsentPrivacyOptionsRequirementStatus.NOT_REQUIRED,
+    }),
+  );
+  // Then
+  expect(
+    screen.getByRole("header", { name: "Confidentialité" }),
+  ).toBeOnTheScreen();
+});
 
 it("reconfigures a confirmed same-category correction and preserves it when native gathering fails", async () => {
   // Given: the previous adult declaration remains the installation owner until confirmation.
@@ -331,10 +319,8 @@ it("reconfigures a confirmed same-category correction and preserves it when nati
     declaredAt: expect.any(String),
   });
   expect(
-    await screen.findByRole("alert", {
-      name: "Impossible de mettre à jour vos choix publicitaires. Réessayez.",
-    }),
-  ).toBeOnTheScreen();
+    await screen.findByRole("button", { name: "Corriger mon âge" }),
+  ).toBeEnabled();
   expect(screen.queryByText("Une erreur est survenue")).toBeNull();
   expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
   expect(screen.queryByText("private SDK failure")).toBeNull();

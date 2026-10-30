@@ -1,5 +1,4 @@
 import { createSearchOptionsQueryOptions } from "../api/discovery-queries";
-import { createSessionGeneration } from "../../accounts/session/session-generation";
 import { createQueryClient } from "../../../shared/query/query-client";
 import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
 
@@ -26,11 +25,8 @@ afterEach(() => {
 
 it("reads independent public team/pool options without consulting credentials", async () => {
   // Given
-  const generation = createSessionGeneration();
-  const session = {
-    ...generation.getSnapshot(),
-    isCurrent: generation.isCurrent,
-  };
+  const generation = { subject: null, accountId: null };
+  const session = generation;
   const client = createQueryClient();
   const credentials = jest.fn();
   const admission = {
@@ -83,11 +79,11 @@ it.each([
   "rejects invalid options before successful cache admission: %j",
   async (body) => {
     // Given
-    const generation = createSessionGeneration();
+    const generation = { subject: null, accountId: null };
     const client = createQueryClient();
     const options = createSearchOptionsQueryOptions(
       "team",
-      { ...generation.getSnapshot(), isCurrent: generation.isCurrent },
+      generation,
       { bypass: undefined, request: (value) => value },
       jest.fn(),
     );
@@ -105,48 +101,12 @@ it.each([
   },
 );
 
-it("rejects a late public options response after its captured session changes", async () => {
-  // Given
-  const generation = createSessionGeneration();
-  const client = createQueryClient();
-  const started = Promise.withResolvers<void>();
-  const response = Promise.withResolvers<Response>();
-  const options = createSearchOptionsQueryOptions(
-    "team",
-    { ...generation.getSnapshot(), isCurrent: generation.isCurrent },
-    { bypass: undefined, request: (value) => value },
-    jest.fn(),
-  );
-  mockFetch.mockImplementation(() => {
-    started.resolve();
-    return response.promise;
-  });
-  const result = client.query(options);
-  const rejected = result.catch((error: unknown) => error);
-  await started.promise;
-  try {
-    // When
-    generation.invalidate();
-    response.resolve(Response.json(catalogue));
-
-    // Then
-    expect(await rejected).toMatchObject({ kind: "cancelled" });
-    expect(client.getQueryData(options.queryKey)).toBeUndefined();
-  } finally {
-    client.clear();
-  }
-});
-
 it.each([401, 403, 503])(
   "preserves explicit options bypass refusal %i without a public fallback",
   async (status) => {
     // Given: current grant admission is controlled; generated HTTP and captured session are real.
-    const generation = createSessionGeneration();
-    const snapshot = {
-      ...generation.getSnapshot(),
-      isCurrent: generation.isCurrent,
-    };
-    const controller = new AbortController();
+    const generation = { subject: null, accountId: null };
+    const snapshot = generation;
     const client = createQueryClient();
     const options = createSearchOptionsQueryOptions(
       "team",
@@ -155,8 +115,6 @@ it.each([401, 403, 503])(
         bypass: {
           ...snapshot,
           accountId: "00000000-0000-4000-8000-000000000001",
-          intentId: "explicit-options-intent",
-          signal: controller.signal,
         },
         request: (value) => ({
           ...value,

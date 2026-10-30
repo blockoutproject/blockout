@@ -31,6 +31,6 @@ Keep schedule, result, sets and document freshness independent when only some gr
 
 ## Client state and files
 
-TanStack Query holds authorized response data in memory. Query context includes resource, selected season/category, grouping zone and applicable account/bypass context. Retained calendar groups are not reclassified by elapsed time, detail reads or time-zone changes. Explicit successful refresh replaces the active calendar with its first page; failure preserves usable rows. Cancel prior pagination and discard obsolete responses when replacing context.
+TanStack Query owns generated resource/season/category/zone keys in the current native principal's private client. Ordinary infinite invalidation may reread every retained page; a changed loading zone selects a normal loading/error state. Preserve server complete-day cursors and render identity deduplication. A refused resource purges its own sensitive data, while benign neighbouring projections refresh independently. Public logos use credential-free native Image URIs with no caching; explicit bypass retains generated authenticated transport.
 
 A PDF download uses the common cancellable transport and a temporary Expo cache file. The native renderer receives only the local URI. Remove files when reading closes or fails; remove leftovers on the next cold start. This is a bounded file lifecycle, not an offline document collection. Known access restrictions cancel inappropriate work and prevent delivery; no provider content or personal diagnostic is retained in logs.

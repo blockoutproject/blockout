@@ -1,3 +1,4 @@
+import { accountResponse } from "../../accounts/test-support/account-response";
 import {
   render,
   screen,
@@ -74,9 +75,11 @@ beforeEach(() => {
   mockFetch.mockReset().mockImplementation((url) => {
     if (String(url).endsWith("/application-access"))
       return Promise.resolve(Response.json(mockApplicationAccessResponse()));
-    throw new Error(
-      "Support preparation must not look up private data or send a ticket",
-    );
+    if (String(url).endsWith("/accounts/me"))
+      return Promise.resolve(
+        Response.json(accountResponse({ email: "sdk@example.invalid" })),
+      );
+    throw new Error("Support preparation must not send a ticket");
   });
 });
 afterEach(async () => {
@@ -85,7 +88,7 @@ afterEach(async () => {
   process.env = { ...environment };
 });
 
-/** Exercises the actual F05 invalidation operation, not an emulated form generation. */
+/** Exercises actual local native departure; the identity-keyed React lifetime disposes private form input. */
 function SessionAction() {
   const session = useAccountSession();
   return (
@@ -93,10 +96,10 @@ function SessionAction() {
       <Text>{session.status}</Text>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Changer de génération"
-        onPress={() => session.invalidate()}
+        accessibilityLabel="Continuer en invité"
+        onPress={() => void session.clearCredentials()}
       >
-        <Text>Changer de génération</Text>
+        <Text>Continuer en invité</Text>
       </Pressable>
     </>
   );
@@ -166,13 +169,15 @@ it("uses an editable SDK contact after failed establishment without acquiring mo
   );
   expect(mockAuth0.getCredentials).toHaveBeenCalledTimes(calls);
   expect(
-    mockFetch.mock.calls.every(([url]) =>
-      String(url).endsWith("/application-access"),
+    mockFetch.mock.calls.every(
+      ([url]) =>
+        String(url).endsWith("/application-access") ||
+        String(url).endsWith("/accounts/me"),
     ),
   ).toBe(true);
 });
 
-it("discards private input when the real F05 generation is invalidated", async () => {
+it("discards private input when the native identity enters guest mode", async () => {
   // Given
   await mountSupport();
   const user = userEvent.setup();
@@ -185,9 +190,7 @@ it("discards private input when the real F05 generation is invalidated", async (
   );
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Changer de génération" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Continuer en invité" }));
 
   // Then
   await waitFor(() =>
@@ -205,29 +208,15 @@ it("does not mount the private form outside ordinary admission", async () => {
   expect(screen.queryByLabelText("Titre")).toBeNull();
 });
 
-it.each(["authentication", "account-establishment"] as const)(
+it.each(["authentication"] as const)(
   "retains the actual %s failure through the existing sign-in support entry",
   async (stage) => {
     // Given: real SDK/F05/Router/form owners, with failures only at native authentication or HTTP.
     mockAuth0.hasValidCredentials.mockResolvedValue(false);
     process.env.EXPO_PUBLIC_AUTH0_AUDIENCE = "support-test";
-    if (stage === "authentication")
-      mockAuth0.webAuth.mockRejectedValue(
-        new Error("Synthetic provider failure"),
-      );
-    else {
-      mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|support239"));
-      mockFetch.mockImplementation((url) =>
-        String(url).endsWith("/application-access")
-          ? Promise.resolve(Response.json(mockApplicationAccessResponse()))
-          : Promise.resolve(
-              Response.json(
-                { type: "urn:blockout:problem:unavailable", status: 503 },
-                { status: 503 },
-              ),
-            ),
-      );
-    }
+    mockAuth0.webAuth.mockRejectedValue(
+      new Error("Synthetic provider failure"),
+    );
     const submit = jest.fn().mockRejectedValue(new Error("Unavailable"));
     await renderRouter(
       {

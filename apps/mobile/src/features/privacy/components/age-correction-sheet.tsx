@@ -5,7 +5,6 @@ import { AgeForm } from "../../advertising/forms/age-form";
 import { useAgeDeclaration } from "../../advertising/age-declaration-provider";
 import { useAccountSession } from "../../accounts/current-account";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
-
 /** Replaces the privacy menu with the same neutral form; dismissal never changes the declaration. */
 export function AgeCorrectionSheet() {
   const router = useRouter();
@@ -20,7 +19,6 @@ export function AgeCorrectionSheet() {
       active.current = false;
     };
   }, []);
-
   /** Native swipe/back returns to privacy after removal, without revealing an older stacked sheet. */
   const disablePrevention = usePreventRemove(!leaving, ({ data, repeat }) => {
     if (data.action.type === "GO_BACK" || data.action.type === "POP") {
@@ -30,15 +28,9 @@ export function AgeCorrectionSheet() {
       repeat();
     }
   });
-
   /** Explicit close and successful save share the same caller, with captured F05 attribution. */
   function returnToPrivacy(privacyReady = true) {
-    if (
-      !active.current ||
-      !session.isCurrent(session.generation) ||
-      session.getSnapshot().accountId !== session.accountId
-    )
-      return;
+    if (!active.current || session.accountId !== session.accountId) return;
     if (!privacyReady && age.privacy.getSnapshot().failure)
       feedback.error(
         "Impossible de mettre à jour vos choix publicitaires. Réessayez.",
@@ -47,7 +39,6 @@ export function AgeCorrectionSheet() {
     disablePrevention();
     router.replace("/privacy");
   }
-
   /** Persistence remains installation-owned; obsolete forms cannot navigate after an acknowledged write. */
   function confirm(value: number) {
     const attempt = age.confirm(value);
@@ -63,7 +54,7 @@ export function AgeCorrectionSheet() {
     >
       <SheetContent>
         <AgeForm
-          key={`${session.generation}:${session.accountId}`}
+          key={`${session.subject}:${session.accountId}`}
           pending={age.pending || age.nativePrivacy.pending}
           submitLabel="Enregistrer"
           onSubmit={confirm}

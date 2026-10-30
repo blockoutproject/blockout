@@ -1,19 +1,18 @@
+import { ApiError } from "../../../shared/api/api-fetch";
 import {
   ActionFeedbackProvider,
   useActionFeedback,
 } from "../../../shared/components/action-feedback";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
-import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { applicationVersionsValues } from "./application-versions-values";
 import { toApplicationVersionsRequest } from "../api/application-versions-request";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { applicationVersionsEditor } from "./application-versions-editor";
+import { useApplicationVersionsDraft } from "./use-application-versions-draft";
 import { applicationUpdateMessage } from "../application-update-message";
 import { ChevronDown, ChevronRight, Check } from "lucide-react-native";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
+import { useEffect, useRef, useState } from "react";
+import { Controller, useFormState, useWatch } from "react-hook-form";
 import {
   Modal,
   Platform,
@@ -44,7 +43,6 @@ export interface ApplicationVersionsFormProps {
   editing: ReturnType<typeof useApplicationVersionsSettings>;
   disabled?: boolean;
 }
-
 /** Publishes atomic dirty-field changes without changing maintenance or replaying uncertain writes. */
 export function ApplicationVersionsForm({
   settings,
@@ -58,21 +56,17 @@ export function ApplicationVersionsForm({
   const { fontScale } = useWindowDimensions();
   const largeText = fontScale > 1;
   const mounted = useRef(false);
-  const [editor] = useState(() => applicationVersionsEditor(session, settings));
-  const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
+  const editor = useApplicationVersionsDraft(settings);
+  const state = editor.state;
   const { baseline } = state;
-  const feedback = editing.content.needsRead
-    ? "Le résultat doit être vérifié. Relisez les réglages avant une nouvelle soumission."
-    : Math.max(settings.revision, editing.observedRevision) > baseline.revision
+  const feedback =
+    Math.max(settings.revision, 0) > baseline.revision
       ? "Les réglages ont changé. Relisez-les avant une nouvelle soumission."
       : state.feedback;
   const [expanded, setExpanded] = useState({ ios: false, android: false });
   const [preview, setPreview] = useState(false);
   const [acknowledged, setAcknowledged] = useState<string>();
-  const { control, handleSubmit, reset } = useForm<ApplicationVersionsValues>({
-    formControl: editor.form.formControl,
-    resolver: zodResolver(applicationVersionsSchema),
-  });
+  const { control, handleSubmit, reset } = editor.form;
   const { isDirty, dirtyFields } = useFormState({
     control,
   });
@@ -98,69 +92,49 @@ export function ApplicationVersionsForm({
   const raised = raisesMinimum(current, baseline);
   const storeChoice = JSON.stringify([current.ios, current.android]);
   const checked = acknowledged === storeChoice;
-  const busy = disabled || editing.content.pending || editing.query.isFetching;
-  const rereadRequired =
-    editing.content.needsRead ||
-    Math.max(settings.revision, editing.observedRevision) > baseline.revision;
-
+  const busy =
+    disabled || editing.content.isPending || editing.query.isFetching;
+  const rereadRequired = Math.max(settings.revision, 0) > baseline.revision;
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
     };
   }, []);
-
   /** Maps only dirty fields, with null removals, into the generated atomic PATCH. */
   async function submit(draft: ApplicationVersionsValues) {
-    if (
-      !session.isCurrent(session.generation) ||
-      busy ||
-      rereadRequired ||
-      (raised && !checked)
-    )
-      return;
+    if (busy || rereadRequired || (raised && !checked)) return;
     if (
       !(await confirmAction({
         title: "Appliquer les modifications ?",
         message: "Les réglages de maintenance restent inchangés.",
         confirmLabel: "Appliquer",
-      })) ||
-      !session.isCurrent(session.generation)
+      }))
     )
       return;
     actionFeedback.clear();
     try {
-      const command = editing.content.start(
+      const command = editing.content.mutateAsync(
         toApplicationVersionsRequest(baseline.revision, draft, dirtyFields),
       );
-      if (!command) return;
       const accepted = await command;
-      if (!session.isCurrent(session.generation)) return;
       editor.update({
         baseline: accepted,
       });
       reset(applicationVersionsValues(accepted));
       if (mounted.current) setAcknowledged(undefined);
     } catch (error) {
-      if (!session.isCurrent(session.generation)) return;
-      if (!requiresRevisionRead(error)) actionFeedback.error();
+      if (!(error instanceof ApiError && error.status === 409))
+        actionFeedback.error();
     }
   }
   /** Reads the actual outcome and keeps dirty fields, without submitting or merging conflicting input. */
   async function reread() {
     actionFeedback.clear();
-    const { result, reconciled } = await editing.content.reconcile(
-      [editing.queryKey],
-      () => editing.query.refetch(),
-      (result) =>
-        !result.isError &&
-        !!result.data &&
-        result.data.revision >= baseline.revision,
-    );
+    const result = await (() => editing.query.refetch())();
     // Query may restore its old success when route removal cancels this read.
-    if (!mounted.current || !session.isCurrent(session.generation)) return;
+    if (!mounted.current) return;
     if (
-      !reconciled ||
       !result.data ||
       result.isError ||
       result.data.revision < baseline.revision
@@ -374,7 +348,7 @@ export function ApplicationVersionsForm({
                 disabled={
                   busy || rereadRequired || !isDirty || (raised && !checked)
                 }
-                loading={editing.content.executing}
+                loading={editing.content.isPending}
                 onPress={() =>
                   void handleSubmit(submit, (errors) =>
                     setExpanded({
@@ -413,7 +387,7 @@ export function ApplicationVersionsForm({
           {/* Native modal surfaces own their overlay; iOS retains children through dismissal, so closing resets callbacks immediately. */}
           <ActionFeedbackProvider
             key={preview ? "open" : "closed"}
-            scopeKey={session.generation}
+            scopeKey={session.subject ?? "guest"}
           >
             <ApplicationVersionsPreview
               message={current.message.trim() || null}

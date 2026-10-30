@@ -1,5 +1,10 @@
-import { QueryClientProvider } from "@tanstack/react-query";
-import type { ComponentType } from "react";
+import {
+  useLayoutEffect,
+  useState,
+  type PropsWithChildren,
+  ComponentType,
+} from "react";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -79,6 +84,7 @@ function Entry({ header = false }: { header?: boolean }) {
   return <MatchContributionAction entry={entry} header={header} />;
 }
 let client = createQueryClient();
+let privateClient: ReturnType<typeof createQueryClient>;
 let context = ownContributions();
 beforeEach(() => {
   jest.replaceProperty(
@@ -140,11 +146,13 @@ it.each(["refused", "owner outage", "profile outage"])(
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              <AccountFeedbackProvider>
-                <AdvertisingProviders>
-                  <MatchScreen matchId={matchDetail().match.id} />
-                </AdvertisingProviders>
-              </AccountFeedbackProvider>
+              <PrivateQueries>
+                <AccountFeedbackProvider>
+                  <AdvertisingProviders>
+                    <MatchScreen matchId={matchDetail().match.id} />
+                  </AdvertisingProviders>
+                </AccountFeedbackProvider>
+              </PrivateQueries>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
@@ -158,7 +166,7 @@ it.each(["refused", "owner outage", "profile outage"])(
         expect.anything(),
       ),
     );
-    await waitFor(() => expect(client.isFetching()).toBe(0));
+    await waitFor(() => expect(privateClient.isFetching()).toBe(0));
     expect(
       screen.queryByRole("button", { name: "Proposer un lien" }),
     ).not.toBeOnTheScreen();
@@ -175,12 +183,13 @@ it.each(["refused", "owner outage", "profile outage"])(
   },
 );
 afterEach(async () => {
-  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
   await act(async () => {
-    await client.cancelQueries();
+    await privateClient.cancelQueries();
   });
   await cleanup();
   client.clear();
+  privateClient?.clear();
   process.env = { ...previous };
   jest.restoreAllMocks();
 });
@@ -214,18 +223,20 @@ it.each([false, true])(
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              <AccountFeedbackProvider>
-                <AdvertisingProviders>
-                  <MatchScreen matchId={detail.match.id} />
-                </AdvertisingProviders>
-              </AccountFeedbackProvider>
+              <PrivateQueries>
+                <AccountFeedbackProvider>
+                  <AdvertisingProviders>
+                    <MatchScreen matchId={detail.match.id} />
+                  </AdvertisingProviders>
+                </AccountFeedbackProvider>
+              </PrivateQueries>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
       </QueryClientProvider>,
     );
     await screen.findByText("Home");
-    await waitFor(() => expect(client.isFetching()).toBe(0));
+    await waitFor(() => expect(privateClient.isFetching()).toBe(0));
 
     // Then
     expect(!!screen.queryByRole("header", { name: "Stream link" })).toBe(
@@ -252,11 +263,13 @@ it.each([true, false])(
     await render(
       <QueryClientProvider client={client}>
         <ThemeProvider>
-          <AccountSessionProvider>
-            <ApplicationAccessProvider>
-              <Entry />
-            </ApplicationAccessProvider>
-          </AccountSessionProvider>
+          <ApplicationAccessProvider>
+            <AccountSessionProvider>
+              <PrivateQueries>
+                <Entry />
+              </PrivateQueries>
+            </AccountSessionProvider>
+          </ApplicationAccessProvider>
         </ThemeProvider>
       </QueryClientProvider>,
     );
@@ -302,11 +315,13 @@ it.each([
   await render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
-        <AccountSessionProvider>
-          <ApplicationAccessProvider>
-            <Entry />
-          </ApplicationAccessProvider>
-        </AccountSessionProvider>
+        <ApplicationAccessProvider>
+          <AccountSessionProvider>
+            <PrivateQueries>
+              <Entry />
+            </PrivateQueries>
+          </AccountSessionProvider>
+        </ApplicationAccessProvider>
       </ThemeProvider>
     </QueryClientProvider>,
   );
@@ -321,7 +336,7 @@ it.each([
   await act(async () => {
     response.resolve(Response.json(context));
   });
-  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
 
   // Then: there is no disabled action, refusal copy, or navigation to an unusable form.
   expect(
@@ -354,7 +369,9 @@ it("keeps personal proposals reachable when new submissions are unavailable", as
       <ThemeProvider>
         <ApplicationAccessProvider>
           <AccountSessionProvider>
-            <Entry header />
+            <PrivateQueries>
+              <Entry header />
+            </PrivateQueries>
           </AccountSessionProvider>
         </ApplicationAccessProvider>
       </ThemeProvider>
@@ -430,18 +447,20 @@ it.each(["exact owner", "different owner", "missing projection"] as const)(
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              <AccountFeedbackProvider>
-                <AdvertisingProviders>
-                  <MatchScreen matchId={detail.match.id} />
-                </AdvertisingProviders>
-              </AccountFeedbackProvider>
+              <PrivateQueries>
+                <AccountFeedbackProvider>
+                  <AdvertisingProviders>
+                    <MatchScreen matchId={detail.match.id} />
+                  </AdvertisingProviders>
+                </AccountFeedbackProvider>
+              </PrivateQueries>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
       </QueryClientProvider>,
     );
     await screen.findByText("Home");
-    await waitFor(() => expect(client.isFetching()).toBe(0));
+    await waitFor(() => expect(privateClient.isFetching()).toBe(0));
 
     const entry = await screen.findByRole("button", {
       name:
@@ -524,11 +543,13 @@ it.each(["own", "other", "failure"] as const)(
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              <AccountFeedbackProvider>
-                <AdvertisingProviders>
-                  <MatchScreen matchId={detail.match.id} />
-                </AdvertisingProviders>
-              </AccountFeedbackProvider>
+              <PrivateQueries>
+                <AccountFeedbackProvider>
+                  <AdvertisingProviders>
+                    <MatchScreen matchId={detail.match.id} />
+                  </AdvertisingProviders>
+                </AccountFeedbackProvider>
+              </PrivateQueries>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
@@ -622,11 +643,13 @@ it.each(["guest", "professional"] as const)(
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              <AccountFeedbackProvider>
-                <AdvertisingProviders>
-                  <MatchScreen matchId={detail.match.id} />
-                </AdvertisingProviders>
-              </AccountFeedbackProvider>
+              <PrivateQueries>
+                <AccountFeedbackProvider>
+                  <AdvertisingProviders>
+                    <MatchScreen matchId={detail.match.id} />
+                  </AdvertisingProviders>
+                </AccountFeedbackProvider>
+              </PrivateQueries>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
@@ -691,11 +714,13 @@ it.each([
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              <AccountFeedbackProvider>
-                <AdvertisingProviders>
-                  <MatchScreen matchId={detail.match.id} />
-                </AdvertisingProviders>
-              </AccountFeedbackProvider>
+              <PrivateQueries>
+                <AccountFeedbackProvider>
+                  <AdvertisingProviders>
+                    <MatchScreen matchId={detail.match.id} />
+                  </AdvertisingProviders>
+                </AccountFeedbackProvider>
+              </PrivateQueries>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
@@ -744,11 +769,13 @@ it("routes the viewed contributed version to reporting independently of support"
       <ThemeProvider>
         <ApplicationAccessProvider>
           <AccountSessionProvider>
-            <AccountFeedbackProvider>
-              <AdvertisingProviders>
-                <MatchScreen matchId={detail.match.id} />
-              </AdvertisingProviders>
-            </AccountFeedbackProvider>
+            <PrivateQueries>
+              <AccountFeedbackProvider>
+                <AdvertisingProviders>
+                  <MatchScreen matchId={detail.match.id} />
+                </AdvertisingProviders>
+              </AccountFeedbackProvider>
+            </PrivateQueries>
           </AccountSessionProvider>
         </ApplicationAccessProvider>
       </ThemeProvider>
@@ -770,3 +797,13 @@ it("routes the viewed contributed version to reporting independently of support"
     },
   });
 });
+
+/** Uses the real private cache, with one-shot failures instead of retry backoff in journey fixtures. */
+function PrivateQueries({ children }: PropsWithChildren) {
+  const cache = useQueryClient();
+  useState(() => cache.setDefaultOptions({ queries: { retry: false } }));
+  useLayoutEffect(() => {
+    privateClient = cache;
+  }, [cache]);
+  return children;
+}

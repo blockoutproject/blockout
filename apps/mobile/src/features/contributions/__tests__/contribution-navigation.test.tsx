@@ -1,4 +1,10 @@
 import {
+  useLayoutEffect,
+  useState,
+  type PropsWithChildren,
+  ComponentType,
+} from "react";
+import {
   act,
   cleanup,
   screen,
@@ -7,15 +13,11 @@ import {
 } from "@testing-library/react-native";
 import { renderRouter } from "expo-router/testing-library";
 import { Stack, router } from "expo-router";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Alert, Button, Text } from "react-native";
-import type { ComponentType } from "react";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { Alert, Text } from "react-native";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { createQueryClient } from "../../../shared/query/query-client";
-import {
-  AccessAdmissionProvider,
-  useAccessAdmission,
-} from "../../access/queries/use-access-admission";
+
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
@@ -75,6 +77,7 @@ const mockFetch = jest.fn<
 const match = matchDetail();
 const previous = { ...process.env };
 let client = createQueryClient();
+let privateClient: ReturnType<typeof createQueryClient>;
 beforeEach(() => {
   client = createQueryClient();
   Object.assign(process.env, {
@@ -116,10 +119,11 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await act(async () => {
-    await client.cancelQueries();
+    await privateClient.cancelQueries();
   });
   await cleanup();
   client.clear();
+  privateClient?.clear();
   process.env = { ...previous };
   jest.restoreAllMocks();
 });
@@ -131,9 +135,11 @@ function Layout() {
       <ThemeProvider>
         <ApplicationAccessProvider>
           <AccountSessionProvider>
-            <AccountFeedbackProvider>
-              <Stack />
-            </AccountFeedbackProvider>
+            <PrivateQueries>
+              <AccountFeedbackProvider>
+                <Stack />
+              </AccountFeedbackProvider>
+            </PrivateQueries>
           </AccountSessionProvider>
         </ApplicationAccessProvider>
       </ThemeProvider>
@@ -396,7 +402,7 @@ it("keeps history revoked when a refused match opens it before technical mount r
   // When: a foreground public read refuses the match before the history route is opened.
   phase = "refused";
   await act(async () => {
-    await client.refetchQueries({
+    await privateClient.refetchQueries({
       predicate: (query) =>
         query.queryKey.includes(`/matches/${match.match.id}`),
     });
@@ -410,7 +416,7 @@ it("keeps history revoked when a refused match opens it before technical mount r
     }),
   );
   await screen.findByText("Lien de diffusion");
-  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
 
   // Then: technical mount failures cannot restore details revoked by the previous observer.
   expect(
@@ -419,7 +425,9 @@ it("keeps history revoked when a refused match opens it before technical mount r
   expect(
     screen.queryByRole("button", { name: "Retirer" }),
   ).not.toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
 
   // When: the public refusal can cancel a mount read; an explicit retry now reaches both failing endpoints.
   await waitFor(() =>
@@ -427,7 +435,7 @@ it("keeps history revoked when a refused match opens it before technical mount r
   );
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
   await waitFor(() => expect(ownReads).toBeGreaterThan(1));
-  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
 
   // Then
   expect(
@@ -498,72 +506,11 @@ it("leaves an acknowledged clean form without asking to discard the saved addres
   );
 });
 
-/** Applies the production F12 guard, so a business dependency failure removes ordinary route owners. */
-function ProtectedNavigation() {
-  const access = useAccessAdmission();
-  return (
-    <Stack>
-      <Stack.Protected guard={!access.ordinary}>
-        <Stack.Screen name="access" />
-      </Stack.Protected>
-      <Stack.Protected guard={access.ordinary}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="matches/[matchId]/contribution" />
-      </Stack.Protected>
-    </Stack>
-  );
-}
-/** Uses the same actual providers as Layout, adding F12 admission and protected native routes. */
-function ProtectedLayout() {
-  return (
-    <QueryClientProvider client={client}>
-      <ThemeProvider>
-        <ApplicationAccessProvider>
-          <AccountSessionProvider>
-            <AccountFeedbackProvider>
-              <AccessAdmissionProvider>
-                <ProtectedNavigation />
-              </AccessAdmissionProvider>
-            </AccountFeedbackProvider>
-          </AccountSessionProvider>
-        </ApplicationAccessProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
-  );
-}
-/** The gate retries only the real public check and existing-account read. */
-function AccessRetry() {
-  const access = useAccessAdmission();
-  return <Button title="Vérifier accès" onPress={() => access.retry()} />;
-}
-
-it("retains the original draft and unresolved command across F12 protected-route removal", async () => {
+it("discards an unsent contribution draft when its route is removed", async () => {
   // Given
-  const reads = mockFetch.getMockImplementation();
-  let failRead = false;
-  mockFetch.mockImplementation(async (url, init) => {
-    if (String(url).includes("/stream-contributions")) {
-      if (init?.method === "POST") {
-        failRead = true;
-        throw new TypeError("Response lost");
-      }
-      if (failRead)
-        return Response.json(
-          {
-            type: "urn:blockout:problem:unavailable",
-            title: "Unavailable",
-            status: 503,
-          },
-          { status: 503 },
-        );
-    }
-    if (!reads) throw new Error("Missing test HTTP boundary");
-    return reads(url, init);
-  });
   await renderRouter(
     {
-      _layout: ProtectedLayout,
-      access: AccessRetry,
+      _layout: Layout,
       index: () => <Text>Match origin</Text>,
       "matches/[matchId]/contribution": () => (
         <ContributionScreen matchId={match.match.id} />
@@ -571,31 +518,24 @@ it("retains the original draft and unresolved command across F12 protected-route
     },
     { initialUrl: "/" },
   );
-  await screen.findByText("Match origin");
+  const user = userEvent.setup();
   await act(() =>
     router.push({
       pathname: "/matches/[matchId]/contribution",
       params: { matchId: match.match.id },
     }),
   );
-  const user = userEvent.setup();
   await user.type(
     await screen.findByLabelText("Adresse du lien"),
-    "https://youtu.be/example",
+    "https://youtu.be/unsent",
   );
-
   // When
-  await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === "Soumettre le lien")
-      ?.onPress?.(),
-  );
-  await screen.findByRole("button", { name: "Vérifier accès" });
-  failRead = false;
-  await user.press(screen.getByRole("button", { name: "Vérifier accès" }));
+  await act(() => router.replace("/"));
+  const discard = jest
+    .mocked(Alert.alert)
+    .mock.calls.at(-1)?.[2]
+    ?.find((button) => button.style === "destructive");
+  if (discard) await act(async () => discard.onPress?.());
   await screen.findByText("Match origin");
   await act(() =>
     router.push({
@@ -603,44 +543,27 @@ it("retains the original draft and unresolved command across F12 protected-route
       params: { matchId: match.match.id },
     }),
   );
-
   // Then
+  expect(await screen.findByLabelText("Adresse du lien")).toHaveDisplayValue(
+    "",
+  );
   expect(
-    await screen.findByDisplayValue("https://youtu.be/example"),
-  ).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Vérifier la contribution" }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Soumettre le lien" }),
-  ).toBeDisabled();
+    mockFetch.mock.calls.filter(([, init]) => init?.method === "POST"),
+  ).toHaveLength(0);
 });
 
-it("keeps a reopened draft retained when the original detached submission acknowledges later", async () => {
+it("keeps a new visit's draft when an older detached submission completes", async () => {
   // Given
-  const acknowledged = Promise.withResolvers<Response>();
-  const reads = mockFetch.getMockImplementation();
-  let refuseMatch = false;
-  mockFetch.mockImplementation(async (url, init) => {
-    const path = new URL(String(url)).pathname;
-    if (path.includes("/stream-contributions") && init?.method === "POST")
-      return acknowledged.promise;
-    if (path === `/matches/${match.match.id}` && refuseMatch)
-      return Response.json(
-        {
-          type: "urn:blockout:problem:unavailable",
-          title: "Unavailable",
-          status: 503,
-        },
-        { status: 503 },
-      );
-    if (!reads) throw new Error("Missing test HTTP boundary");
-    return reads(url, init);
-  });
+  const user = userEvent.setup();
+  const response = Promise.withResolvers<Response>();
+  const peer = mockFetch.getMockImplementation();
+  if (!peer) throw new Error("Synthetic HTTP is required");
+  mockFetch.mockImplementation((url, init) =>
+    init?.method === "POST" ? response.promise : peer(url, init),
+  );
   await renderRouter(
     {
-      _layout: ProtectedLayout,
-      access: AccessRetry,
+      _layout: Layout,
       index: () => <Text>Match origin</Text>,
       "matches/[matchId]/contribution": () => (
         <ContributionScreen matchId={match.match.id} />
@@ -648,17 +571,15 @@ it("keeps a reopened draft retained when the original detached submission acknow
     },
     { initialUrl: "/" },
   );
-  await screen.findByText("Match origin");
   await act(() =>
     router.push({
       pathname: "/matches/[matchId]/contribution",
       params: { matchId: match.match.id },
     }),
   );
-  const user = userEvent.setup();
   await user.type(
     await screen.findByLabelText("Adresse du lien"),
-    "https://youtu.be/example",
+    "https://youtu.be/original",
   );
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
   await act(async () =>
@@ -668,18 +589,13 @@ it("keeps a reopened draft retained when the original detached submission acknow
       ?.find((button) => button.text === "Soumettre le lien")
       ?.onPress?.(),
   );
-
-  // When: a separate current match read closes admission during the pending command.
-  refuseMatch = true;
-  await act(async () => {
-    await client.refetchQueries({
-      predicate: (query) =>
-        query.queryKey.includes(`/matches/${match.match.id}`),
-    });
-  });
-  await screen.findByRole("button", { name: "Vérifier accès" });
-  refuseMatch = false;
-  await user.press(screen.getByRole("button", { name: "Vérifier accès" }));
+  // When
+  await act(() => router.replace("/"));
+  const discard = jest
+    .mocked(Alert.alert)
+    .mock.calls.at(-1)?.[2]
+    ?.find((button) => button.style === "destructive");
+  if (discard) await act(async () => discard.onPress?.());
   await screen.findByText("Match origin");
   await act(() =>
     router.push({
@@ -687,15 +603,25 @@ it("keeps a reopened draft retained when the original detached submission acknow
       params: { matchId: match.match.id },
     }),
   );
-  await screen.findByDisplayValue("https://youtu.be/example");
+  await screen.findByLabelText("Adresse du lien");
+  await waitFor(() =>
+    expect(screen.getByLabelText("Adresse du lien")).toBeEnabled(),
+  );
+  await user.type(
+    screen.getByLabelText("Adresse du lien"),
+    "https://youtu.be/new-draft",
+  );
+  expect(
+    screen.getByDisplayValue("https://youtu.be/new-draft"),
+  ).toBeOnTheScreen();
   await act(async () =>
-    acknowledged.resolve(
+    response.resolve(
       Response.json(
         {
           revision: "next",
           contribution: {
             id: "00000000-0000-4000-8000-000000000003",
-            url: "https://youtu.be/example",
+            url: "https://youtu.be/original",
             platform: "youtube",
             state: "active",
             submittedAt: "2026-10-28T10:00:00Z",
@@ -707,40 +633,13 @@ it("keeps a reopened draft retained when the original detached submission acknow
       ),
     ),
   );
-  await waitFor(() =>
-    expect(
-      screen.getByRole("button", { name: "Soumettre le lien" }),
-    ).toBeEnabled(),
-  );
-  await user.clear(screen.getByLabelText("Adresse du lien"));
-  await user.type(
-    screen.getByLabelText("Adresse du lien"),
-    "https://youtu.be/new-draft",
-  );
-
-  // When: the reopened form crosses a second independent admission detour.
-  refuseMatch = true;
-  await act(async () => {
-    await client.refetchQueries({
-      predicate: (query) =>
-        query.queryKey.includes(`/matches/${match.match.id}`),
-    });
-  });
-  await screen.findByRole("button", { name: "Vérifier accès" });
-  refuseMatch = false;
-  await user.press(screen.getByRole("button", { name: "Vérifier accès" }));
-  await screen.findByText("Match origin");
-  await act(() =>
-    router.push({
-      pathname: "/matches/[matchId]/contribution",
-      params: { matchId: match.match.id },
-    }),
-  );
-
   // Then
   expect(
-    await screen.findByDisplayValue("https://youtu.be/new-draft"),
+    screen.getByDisplayValue("https://youtu.be/new-draft"),
   ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, init]) => init?.method === "POST"),
+  ).toHaveLength(1);
 });
 
 it("keeps a confirmed replacement distinct from retained proposals after returning to the match", async () => {
@@ -949,3 +848,13 @@ it("returns from the owned editor to the exact match after withdrawing its activ
     mockFetch.mock.calls.filter(([, init]) => init?.method === "PATCH"),
   ).toHaveLength(1);
 });
+
+/** Uses the real private cache, with one-shot failures instead of retry backoff in journey fixtures. */
+function PrivateQueries({ children }: PropsWithChildren) {
+  const cache = useQueryClient();
+  useState(() => cache.setDefaultOptions({ queries: { retry: false } }));
+  useLayoutEffect(() => {
+    privateClient = cache;
+  }, [cache]);
+  return children;
+}

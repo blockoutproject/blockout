@@ -9,7 +9,7 @@ import {
 } from "@testing-library/react-native";
 import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
-import { Alert, Text } from "react-native";
+import { Alert, Text, Pressable } from "react-native";
 import type { ComponentType } from "react";
 import { AccessGateScreen } from "../screens/access-gate-screen";
 import NotFoundRoute from "../../../app/+not-found";
@@ -24,6 +24,7 @@ import {
   credentialsFor,
   mockAuth0,
 } from "../../accounts/test-support/native-auth0";
+import { useCurrentAccount } from "../../accounts/current-account";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 
 // Native manifest projection of the documented expo-router plugin option in app.config.ts.
@@ -113,7 +114,12 @@ async function openRoute(path: string) {
       _layout: () => <RootLayout />,
       onboarding: OnboardingRoute,
       "(ordinary)/_layout": () => <Stack />,
-      "(operations)/_layout": OperationsLayout,
+      "(operations)/_layout": () => (
+        <>
+          <OperationsLayout />
+          <PermissionRefresh />
+        </>
+      ),
       access: AccessGateScreen,
       "+not-found": NotFoundRoute,
       "(ordinary)/index": () => <Text>Ordinary home</Text>,
@@ -128,6 +134,20 @@ async function openRoute(path: string) {
       ),
     },
     { initialUrl: path },
+  );
+}
+
+/** Allows a current account read while the real protected editor is mounted. */
+function PermissionRefresh() {
+  const account = useCurrentAccount();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Relire les permissions"
+      onPress={() => void account.refetch()}
+    >
+      <Text>Relire les permissions</Text>
+    </Pressable>
   );
 }
 
@@ -285,18 +305,13 @@ it("preserves a dirty draft when departure is cancelled, and leaves only after e
   );
 });
 
-it("retains the draft through protected-route removal and ignores an obsolete discard confirmation", async () => {
+it("drops a protected-route draft and ignores its obsolete discard confirmation", async () => {
   // Given
-  const serve = accessResponses({ manageApplicationVersions: true });
+  const permissions = { manageApplicationVersions: true };
+  const serve = accessResponses(permissions);
   mockFetch.mockImplementation(serve);
   await openRoute("/access");
-  await screen.findByRole("link", { name: "Accès administrateur" });
   const user = userEvent.setup();
-  const pending = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation((url) =>
-    String(url).endsWith("/accounts/me") ? pending.promise : serve(url),
-  );
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await user.press(
     await screen.findByRole("link", { name: "Accès administrateur" }),
   );
@@ -311,28 +326,12 @@ it("retains the draft through protected-route removal and ignores an obsolete di
   const discard = nativeAlertAction("Abandonner");
 
   // When
-  await act(async () =>
-    pending.resolve(
-      Response.json(
-        {
-          type: "urn:blockout:problem:unavailable",
-          title: "Unavailable",
-          status: 503,
-        },
-        {
-          status: 503,
-          headers: { "Content-Type": "application/problem+json" },
-        },
-      ),
-    ),
+  permissions.manageApplicationVersions = false;
+  await user.press(
+    screen.getByRole("button", { name: "Relire les permissions" }),
   );
-
-  // Then
   await screen.findByRole("header", { name: "Blockout est en maintenance" });
-  expect(screen.queryByLabelText("Message commun")).not.toBeOnTheScreen();
-
-  // When
-  mockFetch.mockImplementation(serve);
+  permissions.manageApplicationVersions = true;
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await user.press(
     await screen.findByRole("link", { name: "Accès administrateur" }),
@@ -344,33 +343,24 @@ it("retains the draft through protected-route removal and ignores an obsolete di
   await act(async () => discard());
 
   // Then
-  expect(await screen.findByLabelText("Message commun")).toHaveDisplayValue(
-    "Mon brouillon",
-  );
-  expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
-  expect(mockFetch.mock.calls.some(([, o]) => o?.method === "PATCH")).toBe(
-    false,
-  );
+  expect(screen.getByLabelText("Message commun")).toHaveDisplayValue("");
+  expect(
+    screen.queryByText("Modifications non enregistrées"),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+  ).toBe(false);
 });
-
-it("keeps a resumed draft locked until its earlier pending save settles", async () => {
+it("keeps a fresh protected-route draft usable when an abandoned save fails later", async () => {
   // Given
-  const serve = accessResponses({ manageApplicationVersions: true });
-  mockFetch.mockImplementation(serve);
-  await openRoute("/access");
-  await screen.findByRole("link", { name: "Accès administrateur" });
-  const user = userEvent.setup();
-  const permissions = Promise.withResolvers<Response>();
+  const permissions = { manageApplicationVersions: true };
+  const serve = accessResponses(permissions);
   const save = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url, options) =>
-    options?.method === "PATCH"
-      ? save.promise
-      : String(url).endsWith("/accounts/me")
-        ? permissions.promise
-        : serve(url),
+    options?.method === "PATCH" ? save.promise : serve(url),
   );
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await openRoute("/access");
+  const user = userEvent.setup();
   await user.press(
     await screen.findByRole("link", { name: "Accès administrateur" }),
   );
@@ -383,31 +373,15 @@ it("keeps a resumed draft locked until its earlier pending save settles", async 
   );
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await act(async () => nativeAlertAction("Appliquer")());
-  await screen.findByRole("button", {
-    name: "Enregistrer",
-    busy: true,
-  });
+  await screen.findByRole("button", { name: "Enregistrer", busy: true });
 
   // When
-  await act(async () =>
-    permissions.resolve(
-      Response.json(
-        {
-          type: "urn:blockout:problem:unavailable",
-          title: "Unavailable",
-          status: 503,
-        },
-        {
-          status: 503,
-          headers: { "Content-Type": "application/problem+json" },
-        },
-      ),
-    ),
+  permissions.manageApplicationVersions = false;
+  await user.press(
+    screen.getByRole("button", { name: "Relire les permissions" }),
   );
   await screen.findByRole("header", { name: "Blockout est en maintenance" });
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "PATCH" ? save.promise : serve(url),
-  );
+  permissions.manageApplicationVersions = true;
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await user.press(
     await screen.findByRole("link", { name: "Accès administrateur" }),
@@ -415,50 +389,31 @@ it("keeps a resumed draft locked until its earlier pending save settles", async 
   await user.press(
     await screen.findByRole("link", { name: "Versions minimales" }),
   );
-
-  try {
-    // Then
-    const message = await screen.findByLabelText("Message commun");
-    expect(message).toHaveDisplayValue("First draft");
-    expect(message).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-    expect(
-      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
-    ).toHaveLength(1);
-  } finally {
-    // When
-    await act(async () =>
-      save.resolve(
-        Response.json({
-          ...applicationAccessResponse().versions,
-          revision: 4,
-          message: "First draft",
-        }),
-      ),
-    );
-  }
+  const message = await screen.findByLabelText("Message commun");
+  expect(message).toHaveDisplayValue("");
+  await user.type(message, "Fresh draft");
+  await act(async () => save.reject(new TypeError("Lost response")));
 
   // Then
-  await waitFor(() =>
-    expect(
-      screen.queryByText("Modifications non enregistrées"),
-    ).not.toBeOnTheScreen(),
+  expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
+    "Fresh draft",
   );
-  expect(screen.getByLabelText("Message commun")).toBeEnabled();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+  );
+  expect(
+    screen.queryByRole("button", { name: "Relire les réglages" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
 });
-
 it("invalidates a native confirmation when its protected route is removed", async () => {
   // Given
-  const serve = accessResponses({ manageApplicationVersions: true });
-  mockFetch.mockImplementation(serve);
+  const permissions = { manageApplicationVersions: true };
+  mockFetch.mockImplementation(accessResponses(permissions));
   await openRoute("/access");
-  await screen.findByRole("link", { name: "Accès administrateur" });
   const user = userEvent.setup();
-  const permissions = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation((url) =>
-    String(url).endsWith("/accounts/me") ? permissions.promise : serve(url),
-  );
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await user.press(
     await screen.findByRole("link", { name: "Accès administrateur" }),
   );
@@ -473,20 +428,9 @@ it("invalidates a native confirmation when its protected route is removed", asyn
   const confirm = nativeAlertAction("Appliquer");
 
   // When
-  await act(async () =>
-    permissions.resolve(
-      Response.json(
-        {
-          type: "urn:blockout:problem:unavailable",
-          title: "Unavailable",
-          status: 503,
-        },
-        {
-          status: 503,
-          headers: { "Content-Type": "application/problem+json" },
-        },
-      ),
-    ),
+  permissions.manageApplicationVersions = false;
+  await user.press(
+    screen.getByRole("button", { name: "Relire les permissions" }),
   );
   await screen.findByRole("header", { name: "Blockout est en maintenance" });
   await act(async () => confirm());
@@ -495,90 +439,4 @@ it("invalidates a native confirmation when its protected route is removed", asyn
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
   ).toBe(false);
-});
-
-it("keeps explicit reread required when route removal cancels a recovery read", async () => {
-  // Given
-  const serve = accessResponses({ manageApplicationVersions: true });
-  mockFetch.mockImplementation(serve);
-  await openRoute("/access");
-  await screen.findByRole("link", { name: "Accès administrateur" });
-  const user = userEvent.setup();
-  const permissions = Promise.withResolvers<Response>();
-  const reread = Promise.withResolvers<Response>();
-  let holdRead = false;
-  let readSignal: AbortSignal | null | undefined;
-  mockFetch.mockImplementation((url, options) => {
-    if (options?.method === "PATCH")
-      return Promise.reject(new TypeError("Lost save response"));
-    if (String(url).endsWith("/accounts/me")) return permissions.promise;
-    if (
-      String(url).endsWith("/administration/application-versions") &&
-      holdRead
-    ) {
-      readSignal = options?.signal;
-      return reread.promise;
-    }
-    return serve(url);
-  });
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  await user.press(
-    await screen.findByRole("link", { name: "Accès administrateur" }),
-  );
-  await user.press(
-    await screen.findByRole("link", { name: "Versions minimales" }),
-  );
-  await user.type(
-    await screen.findByLabelText("Message commun"),
-    "Retained uncertain draft",
-  );
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Appliquer")());
-  await screen.findByRole("button", { name: "Relire les réglages" });
-  holdRead = true;
-  await user.press(screen.getByRole("button", { name: "Relire les réglages" }));
-
-  try {
-    // When
-    await act(async () =>
-      permissions.resolve(
-        Response.json(
-          {
-            type: "urn:blockout:problem:unavailable",
-            title: "Unavailable",
-            status: 503,
-          },
-          {
-            status: 503,
-            headers: { "Content-Type": "application/problem+json" },
-          },
-        ),
-      ),
-    );
-    await screen.findByRole("header", { name: "Blockout est en maintenance" });
-    expect(readSignal?.aborted).toBe(true);
-    mockFetch.mockImplementation(serve);
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-    await user.press(
-      await screen.findByRole("link", { name: "Accès administrateur" }),
-    );
-    await user.press(
-      await screen.findByRole("link", { name: "Versions minimales" }),
-    );
-
-    // Then
-    await screen.findByRole("button", { name: "Relire les réglages" });
-    expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
-      "Retained uncertain draft",
-    );
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-    expect(
-      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
-    ).toHaveLength(1);
-  } finally {
-    // Cleanup: release the cancelled transport without publishing obsolete data.
-    await act(async () =>
-      reread.resolve(Response.json(applicationAccessResponse().versions)),
-    );
-  }
 });

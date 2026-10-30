@@ -1,35 +1,31 @@
-import { Surface } from "../../../shared/components/surface";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
-import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
-import { formatCollectionTimestamp } from "../model/collection-time";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type {
   CollectionControlResponse,
   CollectionSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
+import { Surface } from "../../../shared/components/surface";
+import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import type { useCollectionControl } from "../api/use-collection-controls";
+import { formatCollectionTimestamp } from "../model/collection-time";
 
-/** A selected control retains its own command boundary; season rereads are required only for competition controls. */
+/** A selected control displays its native mutation state and the applicable season facts. */
 export interface CollectionControlProps {
   control: CollectionControlResponse;
   editing: ReturnType<typeof useCollectionControl>;
   season?: CollectionSeasonResponse;
-  rereadSeason?: () => Promise<boolean>;
   seasonFetching?: boolean;
   stateUnavailable?: boolean;
 }
-
-/** Separates desired activity, confirmed execution and observations; uncertain commands require an explicit read. */
+/** Presents desired activity, execution observations and ordinary mutation feedback. */
 export function CollectionControl({
   control,
   editing,
   season,
-  rereadSeason,
   seasonFetching = false,
   stateUnavailable = false,
 }: CollectionControlProps) {
@@ -37,18 +33,14 @@ export function CollectionControl({
   const actionFeedback = useActionFeedback();
   const confirmAction = useActionConfirmation();
   const { authority } = editing;
-  const { session } = authority;
-  const [notice, setNotice] = useState<string>();
-  const needsRead = editing.activity.needsRead;
-  const feedback =
-    notice ??
-    (needsRead
-      ? "Le résultat doit être vérifié avant une nouvelle action."
-      : undefined);
   const mounted = useRef(false);
   const reading = editing.query.isFetching || seasonFetching;
   const closed = season?.state === "closed";
-  const busy = !authority.enabled || editing.activity.pending || reading;
+  const busy =
+    !authority.enabled ||
+    editing.activity.isPending ||
+    editing.request.isPending ||
+    reading;
   const running = control.cycle?.state === "running";
   useEffect(() => {
     mounted.current = true;
@@ -56,50 +48,34 @@ export function CollectionControl({
       mounted.current = false;
     };
   }, []);
-
-  /** Sends the exact confirmed revision once; even route removal preserves reconciliation until its outcome is known. */
+  /** Sends the confirmed desired state and revision; native mutation callbacks own invalidation. */
   async function send(command: "activity" | "request") {
     if (
       !mounted.current ||
       busy ||
       closed ||
-      editing.activity.needsRead ||
       stateUnavailable ||
       editing.query.isError ||
-      !session.isCurrent(session.generation) ||
       (command === "request" && !control.enabled)
     )
       return;
-    setNotice(undefined);
     try {
       const attempt =
         command === "activity"
-          ? editing.activity.start({
+          ? editing.activity.mutateAsync({
               revision: control.revision,
               enabled: !control.enabled,
             })
-          : editing.request.start({ revision: control.revision });
-      if (!attempt) return;
+          : editing.request.mutateAsync({ revision: control.revision });
       actionFeedback.clear();
       await attempt;
-    } catch (error) {
-      if (!session.isCurrent(session.generation)) return;
-      if (requiresRevisionRead(error))
-        setNotice("Le résultat doit être vérifié avant une nouvelle action.");
-      else actionFeedback.error();
+    } catch {
+      actionFeedback.error();
     }
   }
-
-  /** Native confirmations describe pause/drain or normal eligibility; acceptance still rechecks current F05/F12 authority. */
+  /** Native confirmation belongs to the mounted control; the backend rechecks current permission and revision. */
   async function confirm(command: "activity" | "request") {
-    if (
-      busy ||
-      closed ||
-      needsRead ||
-      stateUnavailable ||
-      editing.query.isError
-    )
-      return;
+    if (busy || closed || stateUnavailable || editing.query.isError) return;
     const label =
       command === "request"
         ? "Relancer"
@@ -122,29 +98,6 @@ export function CollectionControl({
       return;
     await send(command);
   }
-
-  /** Only an explicit successful control/season read releases uncertainty; cache refresh alone never does. */
-  async function reread() {
-    if (busy) return;
-    const {
-      result: [current, seasonRead],
-      reconciled,
-    } = await editing.activity.reconcile(
-      editing.seasonKey
-        ? [editing.queryKey, editing.seasonKey]
-        : [editing.queryKey],
-      () => Promise.all([editing.query.refetch(), rereadSeason?.() ?? true]),
-      ([current, seasonRead]) =>
-        !current.isError && !!current.data && seasonRead,
-    );
-    if (!mounted.current || !session.isCurrent(session.generation)) return;
-    if (!reconciled || current.isError || !current.data || !seasonRead) {
-      actionFeedback.error();
-      return;
-    }
-    setNotice("État relu. Vérifiez le périmètre avant une nouvelle action.");
-  }
-
   return (
     <Surface>
       <View style={styles.heading}>
@@ -180,10 +133,8 @@ export function CollectionControl({
               fullWidth
               variant="secondary"
               label={control.enabled ? "Mettre en pause" : "Reprendre"}
-              disabled={
-                busy || needsRead || stateUnavailable || editing.query.isError
-              }
-              loading={editing.activity.executing}
+              disabled={busy || stateUnavailable || editing.query.isError}
+              loading={editing.activity.isPending}
               onPress={() => confirm("activity")}
             />
           </View>
@@ -199,14 +150,13 @@ export function CollectionControl({
               }
               disabled={
                 busy ||
-                needsRead ||
                 stateUnavailable ||
                 editing.query.isError ||
                 !control.enabled ||
                 !!control.pendingRequestId ||
                 running
               }
-              loading={editing.request.executing}
+              loading={editing.request.isPending}
               onPress={() => confirm("request")}
             />
           </View>
@@ -251,24 +201,6 @@ export function CollectionControl({
           ? formatCollectionTimestamp(control.lastSuccessAt)
           : "aucun"}
       </Text>
-      {feedback && (
-        <Text
-          accessibilityRole="alert"
-          accessibilityLiveRegion="polite"
-          style={[tokens.typography.body, { color: colors.text }]}
-        >
-          {feedback}
-        </Text>
-      )}
-      {needsRead && (
-        <Button
-          label="Relire l’état"
-          variant="secondary"
-          disabled={busy}
-          loading={reading}
-          onPress={() => void reread()}
-        />
-      )}
     </Surface>
   );
 }

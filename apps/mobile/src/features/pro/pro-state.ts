@@ -3,7 +3,6 @@ import type {
   PurchasesEntitlementInfo,
 } from "react-native-purchases";
 import type { AccountSession, SessionSnapshot } from "../accounts";
-
 /** Transient operation presentation, independent of SDK entitlement and never persisted. */
 export type ProOperation =
   | "idle"
@@ -15,7 +14,6 @@ export type ProOperation =
   | "purchased"
   | "already-owned"
   | "completed";
-
 /**
  * Evidence captured for one F05 session by the native association/read owner.
  * A failed read with no usable SDK state supplies null, never an empty CustomerInfo.
@@ -27,14 +25,15 @@ export interface ProSessionState {
   readonly customerInfo: CustomerInfo | null;
   readonly operation: ProOperation;
 }
-
 /**
  * Current-account presentation only. Active/inactive come exclusively from the SDK;
  * unavailable suppresses ads and purchase encouragement, while guests follow F11 rules.
  * Pending/uncertain operations require verification, even when SDK rights are inactive.
  */
 export type ProState =
-  | { status: "guest" }
+  | {
+      status: "guest";
+    }
   | {
       status: "unavailable";
       reason:
@@ -49,27 +48,28 @@ export type ProState =
       entitlement: PurchasesEntitlementInfo;
       operation: ProOperation;
     }
-  | { status: "inactive"; operation: ProOperation };
-
+  | {
+      status: "inactive";
+      operation: ProOperation;
+    };
 /**
  * Reads current F05 evidence without storing rights or calculating expiry.
- * Uses the live snapshot so synchronous logout invalidation takes effect before React rerenders.
+ * Uses the current React principal and business account; SDK identity sequencing remains independent.
  * The lifecycle owner must still discard obsolete completions before storing native evidence;
  * this projection cannot order native identity calls or attribute untagged SDK listener payloads.
  */
 export function getProState(
-  account: Pick<AccountSession, "status" | "getSnapshot">,
+  account: Pick<AccountSession, "status" | "subject" | "accountId">,
   native: ProSessionState | null,
 ): ProState {
   if (account.status === "guest") return { status: "guest" };
-
-  const current = account.getSnapshot();
+  const current = account;
   if (account.status !== "authenticated" || !current.accountId) {
     return { status: "unavailable", reason: "account", operation: "idle" };
   }
   if (
     !native ||
-    native.session.generation !== current.generation ||
+    native.session.subject !== current.subject ||
     native.session.accountId !== current.accountId
   ) {
     return {
@@ -88,7 +88,6 @@ export function getProState(
       operation: "idle",
     };
   }
-
   const { customerInfo, operation } = native;
   if (!customerInfo) {
     return { status: "unavailable", reason: "customer-info", operation };

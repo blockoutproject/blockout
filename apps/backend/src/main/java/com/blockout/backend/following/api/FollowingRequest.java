@@ -2,9 +2,7 @@ package com.blockout.backend.following.api;
 
 import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.following.application.FollowContext;
-import jakarta.servlet.http.HttpServletRequest;
 import java.time.ZoneId;
-import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -46,50 +44,19 @@ public class FollowingRequest {
   }
 
   /**
-   * Rejects undeclared/repeated scalars and wire values that native MVC would coerce to absence.
-   * Generated Bean Validation owns the individual page bounds, enum and body constraints.
+   * Keeps calendar grouping limited to an actual IANA zone; ordinary MVC owns wire conversion.
    *
-   * @param request native request retaining repeated query parameters
-   * @param shape the operation's declared following query shape
-   * @throws ResponseStatusException with safe 400 for malformed or undeclared input
+   * @param value requested calendar grouping zone
+   * @return the selected IANA zone
+   * @throws ResponseStatusException when the name is not an available IANA zone
    */
-  public void validateQuery(HttpServletRequest request, QueryShape shape) {
-    Set<String> allowed =
-        switch (shape) {
-          case MEMBER -> Set.of();
-          case LIST -> Set.of("seasonId", "page");
-          case CALENDAR -> Set.of("seasonId", "category", "timeZone", "nextDay");
-        };
-    for (String name : request.getParameterMap().keySet()) {
-      if (!allowed.contains(name)
-          || request.getParameterValues(name).length != 1
-          || request.getParameter(name).isBlank()) throw invalid();
-    }
-    String page = request.getParameter("page");
-    // Spring's numeric converter accepts hex and removes internal whitespace; the wire uses
-    // decimal.
-    if (page != null && !page.matches("[0-9]+")) throw invalid();
-    String season = request.getParameter("seasonId");
-    try {
-      if (season != null && !UUID.fromString(season).toString().equalsIgnoreCase(season))
-        throw invalid();
-      if (shape == QueryShape.CALENDAR
-          && !ZoneId.getAvailableZoneIds().contains(request.getParameter("timeZone")))
-        throw invalid();
-    } catch (IllegalArgumentException invalid) {
-      throw invalid();
-    }
+  public ZoneId calendarZone(String value) {
+    if (!ZoneId.getAvailableZoneIds().contains(value)) throw invalid();
+    return ZoneId.of(value);
   }
 
   /** Creates an opaque canonical validation refusal without retaining rejected query data. */
   private static ResponseStatusException invalid() {
     return new ResponseStatusException(HttpStatus.BAD_REQUEST);
-  }
-
-  /** The three existing query shapes; options and public counts share the empty member shape. */
-  public enum QueryShape {
-    MEMBER,
-    LIST,
-    CALENDAR
   }
 }

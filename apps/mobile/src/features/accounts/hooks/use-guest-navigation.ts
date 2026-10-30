@@ -5,7 +5,7 @@ import { useAccountSession } from "../session/account-session-provider";
 
 /**
  * Owns explicit guest navigation for account screens; Auth0 owns credential clearing and its pending status.
- * A completion may navigate or publish failure only in its original mounted generation.
+ * Successful explicit departure returns home; mounted presentation owns safe failure feedback.
  */
 export function useGuestNavigation() {
   const session = useAccountSession();
@@ -19,18 +19,16 @@ export function useGuestNavigation() {
     };
   }, []);
 
-  /** Invalidates private work before local cleanup, preserving explicit retry after a current failure. */
+  /** Uses native local clearing; a failed action remains visible and retryable. */
   async function continueAsGuest() {
-    if (session.getSnapshot().operation === "signing-out") return;
+    if (session.operation === "signing-out") return;
     feedback.clear();
     const clearing = session.clearCredentials();
-    const generation = session.getSnapshot().generation;
     try {
       await clearing;
-      if (mounted.current && session.isCurrent(generation)) router.replace("/");
+      router.replace("/");
     } catch {
-      if (mounted.current && session.isCurrent(generation))
-        feedback.error(undefined, generation);
+      if (mounted.current) feedback.error();
     }
   }
 

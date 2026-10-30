@@ -182,15 +182,8 @@ class NotificationsWebMvcTest {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "?cursor=bad",
-        "?cursor=",
-        "?cursor=one&cursor=two",
-        "?opened=true",
-        "?total=true"
-      })
-  @DisplayName("Rejects malformed collection/query intent before database selection")
+  @ValueSource(strings = {"?cursor=bad", "?cursor=", "?cursor=one&cursor=two"})
+  @DisplayName("Rejects malformed cursors before database selection")
   void rejectsCursor(String query) throws Exception {
     // Given
     when(account.id()).thenReturn(ACCOUNT);

@@ -22,7 +22,7 @@ The common text fields feed native whole-word and prefix aggregates with `copy_t
 
 City is indexed only in its effective permitted form. On reads, the indexed value must still equal the current authorized value, including absence; otherwise omit the candidate until automatic reindexing catches up. Names retain their separate approved source/alias semantics. Public cards are hydrated from current F02/F03 views, including current logos, not serialized from engine documents.
 
-Three stable aliases identify the current club/team/pool generations. New generations are temporary until every bulk item succeeds, refresh completes and the atomic alias replacement succeeds. This is index lifecycle, not another relational status table. Previous inactive/failed generations are eligible for scoped cleanup; active or uncertain references are not.
+Three stable aliases identify the current club/team/pool generations. New generations are temporary until the native aggregate bulk outcome succeeds, refresh completes and the atomic alias replacement succeeds. This is index lifecycle, not another relational status table. Previous inactive/failed generations are eligible for scoped cleanup; active or uncertain references are not.
 
 ## In-process projection requests
 
@@ -33,9 +33,9 @@ Useful operational values are last rebuild outcome/success time and bounded scop
 ## Read and mobile values
 
 - **Search context**: Resource type, normalized text, optional sporting filters and applicable access/session context. Empty text selects examples; nonempty text selects exhaustive textual traversal.
-- **Continuation**: Native score/UUID sort values plus context binding, opaque to the mobile. No server snapshot, expiry job or retained result set. Invalid structure/context is a bad request; a changed index is ordinarily traversed live until refresh.
+- **Continuation**: Native score/UUID sort values only, opaque to the mobile. No server snapshot, expiry job, duplicated query context or retained result set. Invalid structure is a bad request; reusing the cursor with different criteria can skip entries and grants no access. A changed index is ordinarily traversed live until refresh.
 - **Examples**: At most five resource UUIDs in selected order, retained in the visit for each applicable tab/filter context. Reread removes no-longer-eligible identities without replacement; a changed filter selects again.
-- **Search page**: Up to twenty current resource summaries and an optional next cursor; no total. Query also retains local request-dispatch time for comparison with the existing F03 refusal timestamp; it is not a wire field or a restriction registry. Failure does not erase previous authorized pages or establish exhaustion. Current refusals prune identities without replacing them.
+- **Search page**: Up to twenty currently hydrated summaries and an optional continuation; no total. Query owns the validated envelope without dispatch timestamps or F03 detail-refusal comparisons. Failures retain benign cached cards with honest retry state; current server reads supply authoritative replacement.
 - **Options**: Current viewable seasons for the requested team/pool type and active divisions, plus the existing format/gender values. Successful empty and failed retrieval are different states.
 
 All visit values live in ordinary mobile navigation/component state or TanStack Query according to their role. There is no persisted search history, private profile enrichment or duplicate backend catalogue.

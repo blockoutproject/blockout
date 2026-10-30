@@ -1,8 +1,6 @@
-import { createConsultationQueries } from "../../sporting/api/consultation-queries";
 import { InfiniteQueryObserver } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react-native";
 import { createQueryClient } from "../../../shared/query/query-client";
-import { createSessionGeneration } from "../../accounts/session/session-generation";
 import { matchDetail } from "../../sporting/test-support/consultation-data";
 import {
   createFollowListOptions,
@@ -25,13 +23,12 @@ const season = {
   startYear: 2026,
 };
 let client = createQueryClient();
-let session = createSessionGeneration();
 let owner: FollowingOwner;
 const selectSeason = jest.fn();
 
 /** Controlled I/O preparation preserves actual generated transport and session validation. */
 async function request(signal?: AbortSignal) {
-  return { signal, session: owner };
+  return { signal };
 }
 /** Exercises the same bounded season reconciliation used by the personal space. */
 const read: PersonalCalendarRead = (seasonId, signal, operation, currentKey) =>
@@ -43,7 +40,6 @@ const read: PersonalCalendarRead = (seasonId, signal, operation, currentKey) =>
       signal,
       options: createFollowOptionsQueryOptions(owner, request),
       currentKey,
-      isCurrent: () => true,
       selectSeason,
     },
     operation,
@@ -64,11 +60,9 @@ function team(id: number, name = `Équipe ${id}`) {
 
 beforeEach(() => {
   client = createQueryClient();
-  session = createSessionGeneration();
   owner = {
     accountId,
-    generation: session.getSnapshot().generation,
-    isCurrent: session.isCurrent,
+    subject: "auth0|original",
   };
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   mockFetch.mockReset();
@@ -260,56 +254,6 @@ it("withdraws refused retained private lists without turning refusal into empty 
   expect(client.getQueryData(options.queryKey)).toBeUndefined();
   expect(client.getQueryState(options.queryKey)?.status).toBe("error");
 });
-
-it.each(["append", "refresh"] as const)(
-  "applies current F03 refusal to the exact retained identity while cancelling an older %s",
-  async (operation) => {
-    // Given
-    session.setAccount(owner.generation, accountId);
-    const queries = createConsultationQueries(
-      { ...session.getSnapshot(), isCurrent: session.isCurrent },
-      { request: (options) => options },
-      jest.fn(),
-    );
-    const options = createFollowListOptions(
-      owner,
-      request,
-      "team",
-      season.id,
-      read,
-    );
-    const first = { items: [team(1), team(2)], nextPage: 1 };
-    mockFetch.mockImplementation(async () => Response.json(first));
-    const observer = new InfiniteQueryObserver(client, options);
-    const close = observer.subscribe(() => {});
-    await waitFor(() =>
-      expect(observer.getCurrentResult().isSuccess).toBe(true),
-    );
-    const late = Promise.withResolvers<Response>();
-    mockFetch.mockReturnValueOnce(late.promise);
-    const pending =
-      operation === "append" ? observer.fetchNextPage() : observer.refetch();
-    await waitFor(() =>
-      expect(observer.getCurrentResult().isFetching).toBe(true),
-    );
-    mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
-
-    // When
-    await expect(
-      client.query(queries.team(team(1).team.id)),
-    ).rejects.toMatchObject({ status: 404 });
-    late.resolve(Response.json({ items: [team(1), team(3)] }));
-    await pending;
-
-    // Then
-    expect(observer.getCurrentResult().data?.pages).toEqual([
-      { items: [team(2)], nextPage: 1 },
-    ]);
-    expect(observer.getCurrentResult().status).toBe("success");
-    expect(observer.getCurrentResult().hasNextPage).toBe(true);
-    close();
-  },
-);
 
 it.each([
   ["list", 404],
@@ -577,29 +521,6 @@ it("withdraws the source calendar when a seasonal NotFound establishes disappear
   ).toEqual([]);
 });
 
-it("rejects a late response from a retired account generation", async () => {
-  // Given
-  const late = Promise.withResolvers<Response>();
-  mockFetch.mockReturnValue(late.promise);
-  const options = createFollowListOptions(
-    owner,
-    request,
-    "team",
-    season.id,
-    read,
-  );
-  const pending = client.infiniteQuery(options);
-  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
-
-  // When
-  session.invalidate();
-  late.resolve(Response.json({ items: [team(1)] }));
-
-  // Then
-  await expect(pending).rejects.toMatchObject({ kind: "cancelled" });
-  expect(client.getQueryData(options.queryKey)).toBeUndefined();
-});
-
 it.each([undefined, season.id])(
   "withdraws retained list applicability after a successful calendar absence for %s",
   async (absentSeason) => {
@@ -789,48 +710,4 @@ it("keeps initial list reads retryable when a late hidden calendar establishes a
   closeCalendar();
   closeTeams();
   closePools();
-});
-
-it("keeps an initial follow list retryable after a current team-detail refusal", async () => {
-  // Given: the first list read is still pending when its current team becomes unavailable.
-  session.setAccount(owner.generation, accountId);
-  const queries = createConsultationQueries(
-    { ...session.getSnapshot(), isCurrent: session.isCurrent },
-    { request: (options) => options },
-    jest.fn(),
-  );
-  const late = Promise.withResolvers<Response>();
-  mockFetch.mockReturnValueOnce(late.promise);
-  const observer = new InfiniteQueryObserver(
-    client,
-    createFollowListOptions(owner, request, "team", season.id, read),
-  );
-  const close = observer.subscribe(() => {});
-  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
-  mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
-
-  // When
-  await expect(
-    client.query(queries.team(team(1).team.id)),
-  ).rejects.toMatchObject({
-    status: 404,
-  });
-
-  // Then: there is no accepted page to revert to, so the read must expose retry.
-  expect(observer.getCurrentResult().status).toBe("error");
-  expect(observer.getCurrentResult().fetchStatus).toBe("idle");
-  expect(observer.getCurrentResult().data).toBeUndefined();
-  expect(mockFetch).toHaveBeenCalledTimes(2);
-
-  // When
-  late.resolve(Response.json({ items: [team(1)] }));
-  mockFetch.mockResolvedValueOnce(Response.json({ items: [team(2)] }));
-  await observer.refetch();
-
-  // Then: explicit retry cannot resurrect the refused identity from the cancelled response.
-  expect(observer.getCurrentResult().data?.pages).toEqual([
-    { items: [team(2)] },
-  ]);
-  expect(mockFetch).toHaveBeenCalledTimes(3);
-  close();
 });

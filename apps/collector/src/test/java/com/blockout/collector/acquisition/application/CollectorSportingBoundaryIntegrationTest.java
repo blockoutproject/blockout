@@ -70,7 +70,6 @@ class CollectorSportingBoundaryIntegrationTest {
   private static CollectorSportingRuntime runtime;
   private final List<Request> requests = new CopyOnWriteArrayList<>();
   private final AtomicBoolean loseResponse = new AtomicBoolean();
-  private boolean loseAdmissionRead;
   private Runnable beforeCalendar = () -> {};
   private String lostPath;
   private IngestionTestClient transport;
@@ -129,12 +128,6 @@ class CollectorSportingBoundaryIntegrationTest {
                       "Synthetic lost acknowledgement after actual backend commit");
                 }
               }
-              if (loseAdmissionRead
-                  && request.getMethod() == HttpMethod.GET
-                  && path.startsWith("/ingestion/collection-cycles/")) {
-                response.close();
-                throw new IOException("Synthetic unavailable admission confirmation");
-              }
               return response;
             });
     ApiClient api = transport.api();
@@ -160,12 +153,10 @@ class CollectorSportingBoundaryIntegrationTest {
   }
 
   @Test
-  @DisplayName(
-      "Confirms lost admission before reading, allocating the sporting order before the provider")
-  void confirmsAdmissionBeforeReading() {
+  @DisplayName("Uses acknowledged admission and allocates the sporting order before the provider")
+  void admitsBeforeReading() {
     // Given
     lostPath = "/ingestion/collection-cycles";
-    loseResponse.set(true);
     CollectorLifecycle.AdmittedCycle context = lifecycle.admit(CONTROL, null, 0, null);
     FfvbAcquisition provider = mock(FfvbAcquisition.class);
     FfvbAcquisition.Resource resource = mock(FfvbAcquisition.Resource.class);
@@ -180,7 +171,7 @@ class CollectorSportingBoundaryIntegrationTest {
                       count(
                           HttpMethod.GET,
                           "/ingestion/collection-cycles/" + context.getCycle().id()))
-                  .isEqualTo(1);
+                  .isZero();
               // Discovery consumed 1; this probe returns 3 only if calendar allocation preceded
               // read.
               assertThat(context.nextReadOrdinal()).isEqualTo(3);
@@ -190,10 +181,9 @@ class CollectorSportingBoundaryIntegrationTest {
         .thenReturn(new FfvbAcquisition.Read<>(calendar("M1", LocalDate.of(2026, 10, 24)), NOW));
 
     // When
-    boolean completed = passage(provider).execute(context);
+    passage(provider).execute(context);
 
     // Then
-    assertThat(completed).isTrue();
     assertThat(count(HttpMethod.POST, lostPath)).isEqualTo(1);
     assertThat(runtime.sql.queryForObject("SELECT COUNT(*) FROM collection_cycle", Integer.class))
         .isEqualTo(1);
@@ -310,10 +300,9 @@ class CollectorSportingBoundaryIntegrationTest {
         .thenReturn(new FfvbAcquisition.Read<>(calendar("M1", LocalDate.of(2026, 10, 24)), NOW));
 
     // When
-    boolean completed = passage(provider).execute(cycle);
+    passage(provider).execute(cycle);
 
     // Then
-    assertThat(completed).isTrue();
     assertThat(
             runtime.sql.queryForMap(
                 "SELECT outcome,obtained_count,rejected_count,reason_type FROM collection_result WHERE scope_id=? AND stage='CALENDAR' AND phase='INTEGRATION'",
@@ -346,27 +335,29 @@ class CollectorSportingBoundaryIntegrationTest {
     URI reasonType = URI.create("urn:blockout:acquisition:" + category);
 
     // When
-    boolean confirmed =
-        lifecycle.validate(
-            validation,
-            new CollectionBackend.Validation(
-                validation.getCycle().id(),
-                SourceValidationStateEnum.INVALID,
-                Instant.now(),
-                null,
-                "Synthetic candidate failure",
-                reasonType));
+    lifecycle.validate(
+        validation,
+        new CollectionBackend.Validation(
+            validation.getCycle().id(),
+            SourceValidationStateEnum.INVALID,
+            Instant.now(),
+            null,
+            "Synthetic candidate failure",
+            reasonType));
 
     // Then
-    assertThat(confirmed).isTrue();
     assertThat(
             runtime.sql.queryForObject(
                 "SELECT reason_type FROM collection_source_binding WHERE id=?",
                 String.class,
                 SOURCE))
         .isEqualTo(reasonType.toString());
-    assertThat(backend.cycle(validation.getCycle().id()).state())
-        .isEqualTo(CollectionCycleStateEnum.COMPLETED);
+    assertThat(
+            runtime.sql.queryForObject(
+                "SELECT completed_at IS NOT NULL FROM collection_cycle WHERE id=?",
+                Boolean.class,
+                validation.getCycle().id()))
+        .isTrue();
   }
 
   @Test
@@ -375,7 +366,6 @@ class CollectorSportingBoundaryIntegrationTest {
     // Given
     lostPath = "/ingestion/collection-cycles";
     loseResponse.set(true);
-    loseAdmissionRead = true;
 
     // When / Then
     assertThatThrownBy(() -> lifecycle.admit(CONTROL, null, 0, null))
@@ -384,33 +374,40 @@ class CollectorSportingBoundaryIntegrationTest {
             failure ->
                 assertThat(failure.getKind()).isEqualTo(CollectionBackendFailure.Kind.UNCONFIRMED));
     assertThat(count(HttpMethod.POST, lostPath)).isEqualTo(1);
+    assertThat(requests)
+        .noneMatch(
+            request ->
+                request.method() == HttpMethod.GET
+                    && request.path().startsWith("/ingestion/collection-cycles/"));
     assertThat(runtime.sql.queryForObject("SELECT COUNT(*) FROM collection_cycle", Integer.class))
         .isEqualTo(1);
     assertThat(runtime.sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Integer.class))
         .isZero();
   }
 
-  @ParameterizedTest
-  @ValueSource(booleans = {true, false})
-  @DisplayName("Lost completion remains uncertain unless the original cycle read confirms it")
-  void confirmsLostCompletion(boolean confirmationAvailable) {
+  @Test
+  @DisplayName(
+      "A lost completion acknowledgement preserves backend commit without confirmation reads")
+  void retainsCommittedCompletionAfterResponseLoss() {
     // Given
     CollectorLifecycle.AdmittedCycle context = lifecycle.admit(CONTROL, null, 0, null);
     lostPath = "/ingestion/collection-cycles/" + context.getCycle().id() + "/completion";
     loseResponse.set(true);
-    loseAdmissionRead = !confirmationAvailable;
     Instant completedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
 
-    // When
-    boolean completed = lifecycle.complete(context, completedAt);
-
-    // Then
-    assertThat(completed).isEqualTo(confirmationAvailable);
+    // When / Then
+    assertThatThrownBy(() -> lifecycle.complete(context, completedAt))
+        .isInstanceOf(CollectionBackendFailure.class);
     assertThat(count(HttpMethod.PUT, lostPath)).isEqualTo(1);
     assertThat(count(HttpMethod.GET, "/ingestion/collection-cycles/" + context.getCycle().id()))
-        .isEqualTo(1);
-    loseAdmissionRead = false;
-    assertThat(backend.cycle(context.getCycle().id()).completedAt()).isEqualTo(completedAt);
+        .isZero();
+    assertThat(
+            runtime.sql.queryForObject(
+                "SELECT completed_at = ? FROM collection_cycle WHERE id=?",
+                Boolean.class,
+                java.sql.Timestamp.from(completedAt),
+                context.getCycle().id()))
+        .isTrue();
   }
 
   @Test
@@ -436,10 +433,9 @@ class CollectorSportingBoundaryIntegrationTest {
                 UUID.fromString("00000000-0000-4000-8000-000000000199"));
 
     // When
-    boolean completed = passage(provider).execute(context);
+    passage(provider).execute(context);
 
     // Then
-    assertThat(completed).isFalse();
     assertThat(lifecycle.isActive()).isFalse();
     assertThat(runtime.sql.queryForList("SELECT reference FROM sporting_match", String.class))
         .containsExactly("RETAINED");
@@ -536,10 +532,9 @@ class CollectorSportingBoundaryIntegrationTest {
         .thenReturn(new FfvbAcquisition.Read<>(calendar("M1", LocalDate.of(2026, 10, 24)), NOW));
 
     // When
-    boolean completed = passage(provider).execute(context);
+    passage(provider).execute(context);
 
     // Then
-    assertThat(completed).isTrue();
     assertThat(count(HttpMethod.POST, lostPath)).isEqualTo(1);
     assertThat(runtime.sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Integer.class))
         .isEqualTo(1);
@@ -555,8 +550,12 @@ class CollectorSportingBoundaryIntegrationTest {
                 String.class,
                 POOL))
         .isEqualTo("UNCONFIRMED");
-    assertThat(backend.cycle(context.getCycle().id()).state())
-        .isEqualTo(CollectionCycleStateEnum.COMPLETED);
+    assertThat(
+            runtime.sql.queryForObject(
+                "SELECT completed_at IS NOT NULL FROM collection_cycle WHERE id=?",
+                Boolean.class,
+                context.getCycle().id()))
+        .isTrue();
   }
 
   @Test
@@ -617,8 +616,12 @@ class CollectorSportingBoundaryIntegrationTest {
                         .isEqualTo(CollectionBackendFailure.Kind.CONFLICT));
         assertThat(runtime.sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Integer.class))
             .isEqualTo(1);
-        assertThat(backend.cycle(context.getCycle().id()).state())
-            .isEqualTo(CollectionCycleStateEnum.INTERRUPTED);
+        assertThat(
+                runtime.sql.queryForObject(
+                    "SELECT c.incarnation_id <> r.incarnation_id AND c.completed_at IS NULL FROM collection_cycle c CROSS JOIN collector_runtime r WHERE c.id=? AND r.id=1",
+                    Boolean.class,
+                    context.getCycle().id()))
+            .isTrue();
       } finally {
         blocker.rollback();
       }

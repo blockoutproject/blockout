@@ -152,21 +152,21 @@ last_over_time(
 
 Use the same No Data/Error handling. Snapshot zero is an observed absence of this operator need, not supplier recovery. A failed discovery cannot report invented absence. A successful catalog reports classification needs independently of sporting acquisition eligibility.
 
-Add a separate actionable collector-log rule for unresolved terminal/reporting operations. Evaluate every minute, pending **0s**, A below, threshold **greater than 0**:
+Add a separate actionable collector-log rule for failed ordinary schedule attempts. Evaluate every minute, pending **0s**, A below, threshold **greater than 0**:
 
 ```logql
-sum by (environment, service_name, operation, cycleId) (
+sum by (environment, service_name, operation) (
   count_over_time(
     {environment="preproduction", service_name="blockout-collector"}
     | json
-    | operation=~"collection_admission|collection_completion|collection_result"
-    | outcome="unconfirmed"
+    | operation="collection_schedule"
+    | outcome="UNCONFIRMED"
     [14d]
   )
 )
 ```
 
-The existing `cycleId` is the originally attempted capability, retained for private current-state inspection. A live process with an unconfirmed terminal write must be covered; external API availability alone cannot detect it. Alert expiry supplies no confirmation. Inspect current state and follow [explicit collection recovery](../operations/README.md#collection-inspection-and-explicit-recovery); no mutation replay, instantaneous crash detector or background repair is introduced. Separately alert on backend `operation=collection_diagnostics, outcome=unavailable` with `count_over_time` over the same window, grouped only by environment/service, so diagnostic failure is not silent business recovery.
+The scheduler reports ordinary attempt failure with a safe category. Inspect current backend work and follow [explicit collection recovery](../operations/README.md#collection-inspection-and-explicit-recovery) when an admitted cycle remains RUNNING. A later ordinary poll may proceed if no admission committed or a terminal completion already committed. There is no collector acknowledgement lock, same-ID confirmation protocol or requirement to recover an original log capability. Alert expiry supplies no successful completion evidence. Separately alert on backend `operation=collection_diagnostics, outcome=unavailable` over the same window, grouped only by environment/service. An interrupted process can still require manual inspection; no crash detector or automatic repair is introduced.
 
 Current-entry discovery precedes a season/control and has no `CollectionResult`. Its `source_discovery` batch summaries carry a fixed official-entry `scope` and `collection_entry_usable`: **0** after unavailable, unqualified or partial discovery, **1** after a new usable observation of that same entry. Recognized source structure may remain usable without enough seasonal attribution to propose a year; no year is guessed. Accepted independent FFVB proposals survive an unreadable sibling, but cannot repair the whole entry. Entry scopes are fixed nonpersonal names; no raw URL or provider identifier is a label.
 

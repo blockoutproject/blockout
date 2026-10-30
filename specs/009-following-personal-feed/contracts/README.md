@@ -20,7 +20,7 @@ Unknown/hidden targets and unknown/unavailable selected seasons return the share
 
 The personal calendar reuses MatchCalendarResponse with hasAvailableFollows in the enclosing response. The boolean concerns eligible follows in the selected season, independent of category. Reuse [F03 parameters](../../../contracts/http/mobile/consultation/parameters.yaml) for category, timeZone and nextDay, and its team/pool/season summaries. These projections and the flag are evaluated together; no copied calendar structure or match-origin metadata.
 
-Public and private operations use no-store. Existing BadRequest, Unauthorized, Forbidden, NotFound, UnsupportedMediaType where applicable, and AccessUnavailable cover ordinary failures. Invalid query/body shapes are rejected, including unknown properties/parameters. A lost mutation response causes one bounded read before explicit retry; no error code introduces another screen.
+Public and private operations use no-store. Existing BadRequest, Unauthorized, Forbidden, NotFound, UnsupportedMediaType where applicable, and AccessUnavailable cover ordinary failures. Generated MVC conversion and Bean Validation own declared query types and bounds; unknown query parameters are ignored and supported scalar spellings follow Spring. Calendar grouping still requires an available IANA zone. Body shape/presence validation remains with its shared generated/Jackson owner. A lost mutation response causes one bounded read before explicit retry; no error code introduces another screen.
 
 ## Compatibility and consumers
 

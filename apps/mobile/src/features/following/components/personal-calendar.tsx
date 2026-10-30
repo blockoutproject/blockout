@@ -57,7 +57,7 @@ export function PersonalCalendar({
   );
   const calendar = useInfiniteQuery({
     ...options,
-    enabled: (query) => active && query.state.status !== "error",
+    enabled: active,
     select: (data) => {
       const latest = data.pages.at(-1);
       return {

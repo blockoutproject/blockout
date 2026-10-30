@@ -30,12 +30,12 @@ public final class NotificationCursor {
   }
 
   /**
-   * Decodes a continuation with the JDK parsers, retaining only microsecond keys in the canonical
-   * format emitted by {@link #encode}. No separate date or UUID grammar is maintained.
+   * Decodes ordinary timestamp and UUID positions with the JDK parsers. Alternate supported
+   * spellings grant no additional authority.
    *
    * @param cursor token supplied by a client, absent for a fresh traversal
    * @return exact continuation, or null
-   * @throws ResponseStatusException for malformed syntax, keys or unsupported precision
+   * @throws ResponseStatusException for malformed syntax or keys
    */
   public static Continuation decode(String cursor) {
     if (cursor == null) return null;
@@ -48,8 +48,6 @@ public final class NotificationCursor {
           new Continuation(
               Instant.parse(decoded.substring(0, separator)),
               UUID.fromString(decoded.substring(separator + 1)));
-      if (keys.createdAt().getNano() % 1000 != 0 || !cursor.equals(encode(keys)))
-        throw new IllegalArgumentException();
       return keys;
     } catch (IllegalArgumentException | DateTimeParseException invalid) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST);

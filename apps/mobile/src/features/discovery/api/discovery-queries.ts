@@ -14,223 +14,147 @@ import type {
   PoolSearchResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
-import { getSessionQueryKey } from "../../../shared/query/query-client";
+import type { SessionSnapshot } from "../../accounts/session/account-session-provider";
 import type { useOrdinaryRequest } from "../../access/ordinary-request";
+import { uniqueSearchResults } from "../model/search-result";
 import {
   createDiscoveryContext,
   type DiscoveryResource,
 } from "./discovery-context";
 
-/** Generated collection envelopes retain their resource-specific summaries and optional cursor. */
+/** Generated collection envelopes retain each resource's summaries and server cursor. */
 export type DiscoveryPage =
   ClubSearchResponse | TeamSearchResponse | PoolSearchResponse;
-
-/** Validated textual page and dispatch time, compared with F03's existing refusal timestamp. */
-export type DiscoveryTextRead = DiscoveryPage & { startedAt: number };
-
-/** Captured F05 generation guards public completions without waiting for account resolution. */
-type DiscoverySession = NonNullable<ApiFetchOptions["session"]>;
-
-/** F12 remains the only owner of current ordinary admission and deliberate bypass intent. */
+/** Ordinary admission is public; explicit bypass captures the original native credential owner. */
 type DiscoveryAdmission = Pick<
   ReturnType<typeof useOrdinaryRequest>,
   "request" | "bypass"
 >;
+type Credentials = () => Promise<{ accessToken: string } | undefined>;
 
-/**
- * Builds one textual infinite-query entry for type, normalized text, filters and captured access/session.
- * Empty text never executes a textual read. Cursor state belongs only to
- * pageParam. Every execution prepares fresh F12 options after any bypass credentials; generated
- * transport validates once and rejects cancelled/obsolete completions. No ordinary work is replayed.
- */
+/** Prepares only explicit bypass credentials, without a client session/refusal protocol. */
+async function request(
+  admission: DiscoveryAdmission,
+  getCredentials: Credentials,
+  signal: AbortSignal,
+): Promise<ApiFetchOptions> {
+  let headers: Record<string, string> | undefined;
+  if (admission.bypass) {
+    const credentials = await getCredentials();
+    if (!credentials?.accessToken) throw new ApiError("http", 401);
+    headers = { Authorization: `Bearer ${credentials.accessToken}` };
+  }
+  return admission.request({ signal, headers });
+}
+
+/** Native infinite pages use generated normalized selections; no detail-refusal timestamp graph edits them. */
 export function createDiscoveryQueryOptions(
   resource: DiscoveryResource,
   input: Omit<ListTeamsParams, "cursor" | "exampleIds">,
-  session: DiscoverySession,
+  session: SessionSnapshot,
   admission: DiscoveryAdmission,
-  getCredentials: () => Promise<{ accessToken: string } | undefined>,
+  getCredentials: Credentials,
 ) {
   const context = createDiscoveryContext(resource, input);
-  const intent = admission.bypass;
   return infiniteQueryOptions({
-    queryKey: intent
-      ? getSessionQueryKey(session.generation, [
+    queryKey: admission.bypass
+      ? [
           "discovery-bypass",
-          intent.accountId,
-          intent.intentId,
+          session.subject,
+          session.accountId,
           ...context.queryKey,
-        ])
-      : ["discovery", session.generation, ...context.queryKey],
+        ]
+      : context.queryKey,
     enabled:
       context.params.q !== undefined &&
       /[^\p{White_Space}]/u.test(context.params.q),
     initialPageParam: undefined as string | undefined,
-    queryFn: async ({
-      signal,
-      pageParam,
-      client,
-      queryKey,
-    }): Promise<DiscoveryTextRead> => {
-      const startedAt = Date.now();
-      try {
-        let headers: Record<string, string> | undefined;
-        if (intent) {
-          const credentials = await getCredentials();
-          if (!credentials?.accessToken) throw new ApiError("http", 401);
-          headers = { Authorization: `Bearer ${credentials.accessToken}` };
-        }
-        const options = admission.request({ session, signal, headers });
-        const params = { ...context.params, cursor: pageParam };
-        const page =
-          resource === "club"
-            ? await listClubs(params, options)
-            : resource === "team"
-              ? await listTeams(params, options)
-              : await listPools(params, options);
-        return { ...page, startedAt };
-      } catch (error) {
-        // An access or visibility refusal invalidates previously authorized pages without resetting the request lifecycle.
-        if (
-          !signal.aborted &&
-          error instanceof ApiError &&
-          error.kind === "http" &&
-          (error.status === 401 || error.status === 403 || error.status === 404)
-        ) {
-          client
-            .getQueryCache()
-            .find({ queryKey, exact: true })
-            ?.setState({ data: undefined, dataUpdatedAt: 0 });
-        }
-        throw error;
-      }
+    queryFn: async ({ signal, pageParam }): Promise<DiscoveryPage> => {
+      const options = await request(admission, getCredentials, signal);
+      const params = { ...context.params, cursor: pageParam };
+      return resource === "club"
+        ? listClubs(params, options)
+        : resource === "team"
+          ? listTeams(params, options)
+          : listPools(params, options);
     },
     getNextPageParam: (page) => page.nextCursor,
   });
 }
 
-/** Current choices have their own generated key and captured admission, independently of search text. */
+/** Each visit reads current generated choices independently of search text and Pro. */
 export function createSearchOptionsQueryOptions(
   resourceType: SearchResourceTypeEnum,
-  session: DiscoverySession,
+  session: SessionSnapshot,
   admission: DiscoveryAdmission,
-  getCredentials: () => Promise<{ accessToken: string } | undefined>,
+  getCredentials: Credentials,
 ) {
-  const intent = admission.bypass;
-  const generatedKey = getGetSportingSearchOptionsQueryKey({ resourceType });
+  const generated = getGetSportingSearchOptionsQueryKey({ resourceType });
   return queryOptions({
-    queryKey: intent
-      ? getSessionQueryKey(session.generation, [
+    queryKey: admission.bypass
+      ? [
           "discovery-options-bypass",
-          intent.accountId,
-          intent.intentId,
-          ...generatedKey,
-        ])
-      : ["discovery-options", session.generation, ...generatedKey],
-    // Entering a new visit reads current choices before selecting its default; sheets retain this observer.
+          session.subject,
+          session.accountId,
+          ...generated,
+        ]
+      : generated,
     refetchOnMount: "always",
-    // A new visit also rereads a failed initial catalogue; no retry is scheduled within a visit.
     retryOnMount: true,
-    queryFn: async ({ signal }) => {
-      let headers: Record<string, string> | undefined;
-      if (intent) {
-        const credentials = await getCredentials();
-        if (!credentials?.accessToken) throw new ApiError("http", 401);
-        headers = { Authorization: `Bearer ${credentials.accessToken}` };
-      }
-      return getSportingSearchOptions(
+    queryFn: async ({ signal }) =>
+      getSportingSearchOptions(
         { resourceType },
-        admission.request({ session, signal, headers }),
-      );
-    },
+        await request(admission, getCredentials, signal),
+      ),
   });
 }
 
-/** Validated examples with request-dispatch time, so an older detail error cannot veto newer authority. */
-export interface DiscoveryExamplesRead {
-  page: DiscoveryPage;
-  startedAt: number;
-}
-
 /**
- * One bounded example read, isolated by visit, exact context and ordered retained selection.
- * An empty retained selection is resolved locally; omission is reserved for a genuinely new selection.
- * Ordinary failures keep Query's accepted data while current admission refusals clear it.
+ * One visit/context owns its bounded identity selection. Refresh supplies those IDs to the server;
+ * the native key stays stable and the accepted page supplies its own UUIDs, so no response transfer or cache surgery
+ * is required. A completely exhausted selection stays empty until a new visit or filter context.
  */
 export function createSearchExamplesQueryOptions(
   resource: DiscoveryResource,
   input: Omit<ListTeamsParams, "cursor" | "exampleIds">,
-  retained: readonly string[] | undefined,
   visit: string,
-  session: DiscoverySession,
+  session: SessionSnapshot,
   admission: DiscoveryAdmission,
-  getCredentials: () => Promise<{ accessToken: string } | undefined>,
+  getCredentials: Credentials,
 ) {
-  const context = createDiscoveryContext(resource, {
-    ...input,
-    ...(retained?.length ? { exampleIds: [...retained] } : {}),
-  });
-  const intent = admission.bypass;
+  const context = createDiscoveryContext(resource, input);
   return queryOptions({
-    // Retained identity keys are populated from the accepted selection; only explicit owners reread them.
     staleTime: Infinity,
-    queryKey: intent
-      ? getSessionQueryKey(session.generation, [
+    queryKey: admission.bypass
+      ? [
           "discovery-examples-bypass",
-          intent.accountId,
-          intent.intentId,
+          session.subject,
+          session.accountId,
           visit,
           ...context.queryKey,
-          retained,
-        ])
-      : [
-          "discovery-examples",
-          session.generation,
-          visit,
-          ...context.queryKey,
-          retained,
-        ],
-    queryFn: async ({
-      signal,
-      client,
-      queryKey,
-    }): Promise<DiscoveryExamplesRead> => {
-      const startedAt = Date.now();
-      if (retained?.length === 0)
-        return { page: emptyExamples(resource), startedAt };
-      try {
-        let headers: Record<string, string> | undefined;
-        if (intent) {
-          const credentials = await getCredentials();
-          if (!credentials?.accessToken) throw new ApiError("http", 401);
-          headers = { Authorization: `Bearer ${credentials.accessToken}` };
-        }
-        const options = admission.request({ session, signal, headers });
-        const page =
-          resource === "club"
-            ? await listClubs(context.params, options)
-            : resource === "team"
-              ? await listTeams(context.params, options)
-              : await listPools(context.params, options);
-        return { page, startedAt };
-      } catch (error) {
-        if (
-          !signal.aborted &&
-          error instanceof ApiError &&
-          error.kind === "http" &&
-          [401, 403, 404].includes(error.status ?? 0)
-        ) {
-          client
-            .getQueryCache()
-            .find({ queryKey, exact: true })
-            ?.setState({ data: undefined, dataUpdatedAt: 0 });
-        }
-        throw error;
-      }
+        ]
+      : ["discovery-examples", visit, ...context.queryKey],
+    queryFn: async ({ signal, client, queryKey }): Promise<DiscoveryPage> => {
+      const previous = client.getQueryData<DiscoveryPage>(queryKey);
+      const retained =
+        previous &&
+        uniqueSearchResults([previous]).map((item) => item.identity.id);
+      if (retained?.length === 0) return emptyExamples(resource);
+      const options = await request(admission, getCredentials, signal);
+      const params = {
+        ...context.params,
+        ...(retained ? { exampleIds: [...retained] } : {}),
+      };
+      return resource === "club"
+        ? listClubs(params, options)
+        : resource === "team"
+          ? listTeams(params, options)
+          : listPools(params, options);
     },
   });
 }
 
-/** A locally exhausted retained selection has the same generated shape as a successful empty read. */
+/** An exhausted selection keeps its generated successful empty envelope. */
 function emptyExamples(resource: DiscoveryResource): DiscoveryPage {
   if (resource === "club") return { clubs: [] };
   if (resource === "team") return { teams: [] };

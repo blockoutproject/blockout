@@ -1,6 +1,7 @@
 package com.blockout.collector.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -100,7 +101,7 @@ class LoggingIntegrationTest {
             new IllegalStateException("harmless-secret"));
     when(backend.record(eq(admitted.getCycle().id()), any())).thenThrow(responseLost);
     when(backend.complete(admitted.getCycle().id(), now)).thenThrow(responseLost);
-    when(backend.cycle(admitted.getCycle().id())).thenReturn(admitted.getCycle());
+
     CollectPassage passage =
         new CollectPassage(
             backend,
@@ -115,10 +116,10 @@ class LoggingIntegrationTest {
             new CollectionStageMapperImpl());
 
     // When
-    boolean confirmed = passage.execute(admitted);
+    assertThatThrownBy(() -> passage.execute(admitted))
+        .isInstanceOf(CollectionBackendFailure.class);
 
     // Then
-    assertThat(confirmed).isFalse();
     assertThat(output.getAll()).doesNotContain("private-provider-body", "harmless-secret");
     JsonMapper json = JsonMapper.builder().build();
     List<JsonNode> events = output.getOut().lines().map(json::readTree).toList();
@@ -144,10 +145,6 @@ class LoggingIntegrationTest {
               assertThat(event.path("phase").asText()).isEqualTo("acquisition");
               assertThat(event.path("outcome").asText()).isEqualTo("unconfirmed");
             });
-    assertThat(events)
-        .filteredOn(event -> event.path("operation").asText().equals("collection_completion"))
-        .singleElement()
-        .satisfies(event -> assertThat(event.path("outcome").asText()).isEqualTo("unconfirmed"));
   }
 
   @Test

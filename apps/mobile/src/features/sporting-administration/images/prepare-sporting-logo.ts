@@ -8,14 +8,11 @@ import {
   SaveFormat,
   type ImageRef,
 } from "expo-image-manipulator";
-import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
 
 /** Returns an app-owned cache File by copying admissible PNG/JPEG bytes or preparing one bounded PNG; rejected output is deleted. Borrowed input remains with the selection owner until preparation settles; the library original is untouched. */
 export async function prepareSportingLogo(
   asset: ImagePickerAsset,
-  session: NonNullable<ApiFetchOptions["session"]>,
 ): Promise<File> {
-  if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
   if (
     !Number.isSafeInteger(asset.width) ||
     !Number.isSafeInteger(asset.height) ||
@@ -27,9 +24,9 @@ export async function prepareSportingLogo(
   const mediaType = asset.mimeType ?? original.type;
   if (
     (mediaType === "image/png" || mediaType === "image/jpeg") &&
-    asset.width * asset.height <= 4_194_304 &&
+    asset.width * asset.height <= 4194304 &&
     original.size > 0 &&
-    original.size <= 5_242_880
+    original.size <= 5242880
   ) {
     const file = new File(
       Paths.cache,
@@ -37,8 +34,6 @@ export async function prepareSportingLogo(
     );
     try {
       original.copy(file);
-      if (!session.isCurrent(session.generation))
-        throw new ApiError("cancelled");
       return file;
     } catch (error) {
       deleteOwnedImage(file);
@@ -50,20 +45,19 @@ export async function prepareSportingLogo(
   let rendered: ImageRef | undefined;
   let file: File | undefined;
   try {
-    if (asset.width * asset.height > 4_194_304)
+    if (asset.width * asset.height > 4194304)
       context.resize({
         width: Math.max(
           1,
           Math.floor(
-            asset.width * Math.sqrt(4_194_304 / (asset.width * asset.height)),
+            asset.width * Math.sqrt(4194304 / (asset.width * asset.height)),
           ),
         ),
       });
     rendered = await context.renderAsync();
     const output = await rendered.saveAsync({ format: SaveFormat.PNG });
     file = new File(output.uri);
-    if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
-    if (file.size < 1 || file.size > 5_242_880)
+    if (file.size < 1 || file.size > 5242880)
       throw new ImageValidationError("Prepared image exceeds the upload limit");
     return file;
   } catch (error) {

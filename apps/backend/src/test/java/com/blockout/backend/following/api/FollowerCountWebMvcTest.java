@@ -129,8 +129,8 @@ class FollowerCountWebMvcTest {
         "accountId=other",
         "bypass=true"
       })
-  @DisplayName("Rejects personal filters and undeclared query properties")
-  void rejectsQuery(String query) throws Exception {
+  @DisplayName("Ignores undeclared public count query fields")
+  void ignoresQuery(String query) throws Exception {
     // Given
     MockHttpServletRequestBuilder request = get(path("team") + "?" + query);
 
@@ -138,8 +138,8 @@ class FollowerCountWebMvcTest {
     ResultActions response = mvc.perform(request);
 
     // Then
-    response.andExpect(status().isBadRequest());
-    verifyNoInteractions(counts, accounts);
+    response.andExpect(status().isOk());
+    verifyNoInteractions(accounts);
   }
 
   @ParameterizedTest

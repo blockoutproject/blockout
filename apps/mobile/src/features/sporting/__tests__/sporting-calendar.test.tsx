@@ -1,6 +1,12 @@
+import {
+  useLayoutEffect,
+  useState as useQueryFixtureState,
+  type PropsWithChildren as QueryFixtureProps,
+  PropsWithChildren,
+} from "react";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
-import type { PropsWithChildren } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -69,11 +75,26 @@ const mockFetch = jest.fn();
 const mockPush = jest.fn();
 let mockFocused = true;
 const environment = { ...process.env };
-let client = createQueryClient();
+let client: QueryClient;
+let publicClient = createQueryClient();
 let calendar: MatchCalendarResponse;
 
+/** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
+function PrivateQueries({ children }: QueryFixtureProps) {
+  const current = useQueryClient();
+  // Configure this fresh real client before descendant public observers start their first request.
+  useQueryFixtureState(() => {
+    current.setQueryDefaults([], { retry: false });
+    return true;
+  });
+  useLayoutEffect(() => {
+    client = current;
+  }, [current]);
+  return children;
+}
+
 beforeEach(() => {
-  client = createQueryClient();
+  publicClient = createQueryClient();
   mockFetch.mockReset();
   mockPush.mockReset();
   mockFocused = true;
@@ -105,7 +126,8 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await cleanup();
-  client.clear();
+  client?.clear();
+  publicClient.clear();
   jest.restoreAllMocks();
   process.env = { ...environment };
 });
@@ -120,12 +142,14 @@ function Providers({ children }: PropsWithChildren) {
           insets: { top: 0, right: 0, bottom: 0, left: 0 },
         }}
       >
-        <QueryClientProvider client={client}>
+        <QueryClientProvider client={publicClient}>
           <ThemeProvider>
             <ActionFeedbackProvider scopeKey="test">
               <ApplicationAccessProvider>
                 <AccountSessionProvider>
-                  <AdvertisingProviders>{children}</AdvertisingProviders>
+                  <PrivateQueries>
+                    <AdvertisingProviders>{children}</AdvertisingProviders>
+                  </PrivateQueries>
                 </AccountSessionProvider>
               </ApplicationAccessProvider>
             </ActionFeedbackProvider>
@@ -366,8 +390,8 @@ it("keeps pagination unavailable while a successful first-page replacement is pe
   ).toHaveLength(2);
 });
 
-it("retains the captured groups after a failed new-zone refresh and retries that zone only on another pull", async () => {
-  // Given: native Intl supplies the device zone; generated HTTP and Query remain real.
+it("selects normal new-zone loading and error before an explicit retry", async () => {
+  // Given
   let deviceZone = "Europe/Paris";
   const resolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
   jest
@@ -389,46 +413,48 @@ it("retains the captured groups after a failed new-zone refresh and retries that
   mockFetch.mockClear().mockReturnValue(pending.promise);
   deviceZone = "America/New_York";
 
-  // When: explicit refresh reads the new zone while its accepted old grouping stays visible.
+  // When
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
   expect(
-    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("progressbar", { name: "Chargement en cours" }),
   ).toBeOnTheScreen();
+
+  // When
   await act(async () => pending.resolve(Response.json({}, { status: 500 })));
 
-  // Then: failure keeps the original accepted grouping and reports one toast without adopting the failed key.
-  await screen.findByRole("alert", { name: /Une erreur est survenue/ });
+  // Then
   expect(
-    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
-  ).toBeOnTheScreen();
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeEnabled();
   expect(
-    screen.queryByRole("button", { name: /Réessayer/ }),
+    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
   ).not.toBeOnTheScreen();
-  expect(mockFetch).toHaveBeenCalledTimes(1);
 
   // When
   mockFetch.mockImplementation(async () =>
     Response.json({ ...calendar, timeZone: deviceZone, days: [] }),
   );
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
 
-  // Then: only the next explicit pull retries the new zone's first page.
+  // Then
   await screen.findByText("Aucun match pour cette sélection");
   expect(
-    mockFetch.mock.calls.map(([url]) => {
-      const target = new URL(url);
-      return [
-        target.searchParams.get("timeZone"),
-        target.searchParams.get("nextDay"),
-      ];
-    }),
+    mockFetch.mock.calls.map(([url]) => [
+      new URL(url).searchParams.get("timeZone"),
+      new URL(url).searchParams.get("nextDay"),
+    ]),
   ).toEqual([
     ["America/New_York", null],
     ["America/New_York", null],
   ]);
 });
 
-it("appends only the focused active calendar and reports a failed cursor by toast and retries it from its footer", async () => {
+it("reports a failed active cursor and retries the same boundary from its footer", async () => {
   // Given: two complete days arrive through the real Query owner, with a controlled continuation failure.
   calendar = { ...calendar, nextDay: "2026-09-21" };
   const nextMatch = {
@@ -457,7 +483,7 @@ it("appends only the focused active calendar and reports a failed cursor by toas
       }),
     );
   });
-  const view = await render(
+  await render(
     <CalendarTab>
       <SportingCalendar
         selection={{ teamId: sportingId, category: "upcoming" }}
@@ -469,42 +495,7 @@ it("appends only the focused active calendar and reports a failed cursor by toas
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   mockFetch.mockClear();
 
-  // When: the route is covered while its selected calendar stays mounted.
-  mockFocused = false;
-  await fireEvent(
-    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
-    "endReached",
-  );
-
-  // Then
-  expect(mockFetch).not.toHaveBeenCalled();
-  mockFocused = true;
-
-  // When: a retained but inactive calendar receives a native end-of-list event.
-  await view.rerender(
-    <CalendarTab>
-      <SportingCalendar
-        selection={{ teamId: sportingId, category: "upcoming" }}
-        active={false}
-      />
-    </CalendarTab>,
-  );
-  await fireEvent(
-    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
-    "endReached",
-  );
-
-  // Then
-  expect(mockFetch).not.toHaveBeenCalled();
-
-  // When: returning activates automatic continuation without rereading the accepted first page.
-  await view.rerender(
-    <CalendarTab>
-      <SportingCalendar
-        selection={{ teamId: sportingId, category: "upcoming" }}
-      />
-    </CalendarTab>,
-  );
+  // When
   await fireEvent(
     screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
     "endReached",
@@ -549,6 +540,61 @@ it("appends only the focused active calendar and reports a failed cursor by toas
   expect(
     screen.queryByRole("button", { name: "Charger les journées suivantes" }),
   ).not.toBeOnTheScreen();
+});
+
+it("does not append from a covered or inactive calendar", async () => {
+  // Given: two complete days arrive through the real Query owner, with a controlled continuation failure.
+  calendar = { ...calendar, nextDay: "2026-09-21" };
+  mockFetch.mockImplementation(async (url: string) =>
+    new URL(url).pathname.endsWith("/application-access")
+      ? Response.json(applicationAccessResponse())
+      : Response.json(calendar),
+  );
+  const view = await render(
+    <CalendarTab>
+      <SportingCalendar
+        selection={{ teamId: sportingId, category: "upcoming" }}
+      />
+    </CalendarTab>,
+    { wrapper: Providers },
+  );
+  await layoutNativeTabs();
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  mockFetch.mockClear();
+
+  // When: the route is covered while its selected calendar stays mounted.
+  mockFocused = false;
+  await fireEvent(
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    "endReached",
+  );
+
+  // Then
+  expect(mockFetch).not.toHaveBeenCalled();
+  mockFocused = true;
+
+  // When: a retained but inactive calendar receives a native end-of-list event.
+  await view.rerender(
+    <CalendarTab>
+      <SportingCalendar
+        selection={{ teamId: sportingId, category: "upcoming" }}
+        active={false}
+      />
+    </CalendarTab>,
+  );
+  await fireEvent(
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    "endReached",
+  );
+
+  // Then
+  expect(mockFetch).not.toHaveBeenCalled();
+
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).searchParams.has("nextDay"),
+    ),
+  ).toHaveLength(0);
 });
 
 it("pages from club information through teams to the calendar and back without rereading common data", async () => {

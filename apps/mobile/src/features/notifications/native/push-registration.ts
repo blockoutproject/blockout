@@ -11,55 +11,62 @@ import type { AccountCredentialCleanup } from "../../accounts";
 import type { InboxOwner, InboxRequest } from "../api/inbox-queries";
 import { readPushInstallation } from "./installation-identity";
 import { clearNotificationBadge } from "./notification-badge";
-
 /** The sole installation registration owner; contains no inbox, session authority or persisted credentials. */
 export type PushRegistration = ReturnType<typeof createPushRegistration>;
-
 /** Owns one sign-in association and controllable SDK/HTTP work; failures wait for the next ordinary occasion. */
 export function createPushRegistration() {
   let connection:
     | {
-        owner: InboxOwner & { accountId: string };
+        owner: InboxOwner & {
+          accountId: string;
+        };
         id: string;
-        credentials: () => Promise<{ accessToken: string } | undefined>;
+        credentials: () => Promise<
+          | {
+              accessToken: string;
+            }
+          | undefined
+        >;
       }
     | undefined;
   let currentRequest: AbortController | undefined;
   // One storage read/write per process owner also prevents competing first-registration UUID creation.
   let installation: Promise<string> | undefined;
-
   /** Stops obsolete work without claiming that an already transmitted PUT can be recalled. */
   function cancel() {
     currentRequest?.abort();
     currentRequest = undefined;
   }
-
   return {
     cancel,
     /** Discards in-memory association/work on external invalidation; explicit departures capture removal first. */
-    reset(owner: Pick<InboxOwner, "generation" | "accountId">) {
+    reset(owner: Pick<InboxOwner, "subject" | "accountId">) {
       clearNotificationBadge();
       if (
         connection &&
-        (connection.owner.generation !== owner.generation ||
+        (connection.owner.subject !== owner.subject ||
           connection.owner.accountId !== owner.accountId)
       ) {
         cancel();
         connection = undefined;
       }
     },
-
     /** Obtains an Expo address after capturing authority; a native APNs/FCM listener supplies only an occasion. */
     async register(
       owner: InboxOwner,
       projectId: string,
       request: InboxRequest,
-      credentials: () => Promise<{ accessToken: string } | undefined>,
+      credentials: () => Promise<
+        | {
+            accessToken: string;
+          }
+        | undefined
+      >,
       devicePushToken?: Notifications.DevicePushToken,
     ) {
-      if (!owner.accountId || !owner.isCurrent(owner.generation)) return;
+      if (!owner.accountId) return;
       if (
-        connection?.owner.generation !== owner.generation ||
+        connection?.owner.subject !== owner.subject ||
         connection.owner.accountId !== owner.accountId
       ) {
         connection = {
@@ -74,9 +81,7 @@ export function createPushRegistration() {
       currentRequest = controller;
       /** Rechecks the original command after every native wait, independently of transport cancellation. */
       const current = () =>
-        !controller.signal.aborted &&
-        owner.isCurrent(owner.generation) &&
-        connection === original;
+        !controller.signal.aborted && connection === original;
       try {
         if (Platform.OS === "android")
           await Notifications.setNotificationChannelAsync("default", {
@@ -111,7 +116,6 @@ export function createPushRegistration() {
           {
             ...options,
             signal: options.signal ?? controller.signal,
-            session: owner,
             schema: PushSubscriptionResponse,
           },
         );
@@ -119,7 +123,6 @@ export function createPushRegistration() {
         // Best effort only: no replay, provider payload logging or new unavailable-account state.
       }
     },
-
     /** Captures one exact old resource synchronously, clears memory/badge and bounds all cleanup I/O to three seconds. */
     prepareRemoval(): AccountCredentialCleanup | undefined {
       cancel();
@@ -127,28 +130,21 @@ export function createPushRegistration() {
       connection = undefined;
       clearNotificationBadge();
       if (!original) return;
-      return async (session) => {
+      return async () => {
         const controller = new AbortController();
         let timer: ReturnType<typeof setTimeout> | undefined;
         const deadline = new Promise<void>((resolve) => {
           timer = setTimeout(() => {
             controller.abort();
             resolve();
-          }, 3_000);
+          }, 3000);
         });
         /** Credentials remain SDK-owned and are never retained solely to retry cleanup. */
         const remove = async () => {
           const credentials = await original.credentials();
-          if (
-            !credentials ||
-            controller.signal.aborted ||
-            !session.isCurrent(session.generation)
-          )
-            return;
+          if (!credentials || controller.signal.aborted) return;
           await deletePushSubscription(original.owner.accountId, original.id, {
-            session,
             signal: controller.signal,
-            timeoutMs: 3_000,
             headers: { Authorization: `Bearer ${credentials.accessToken}` },
           });
         };

@@ -22,11 +22,9 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.core.task.SyncTaskExecutor;
 import org.springframework.scheduling.TaskScheduler;
@@ -48,8 +46,7 @@ class AcquisitionSchedulerTest {
 
   @ParameterizedTest
   @ValueSource(booleans = {false, true})
-  @DisplayName(
-      "A definite admission refusal releases the scope even when the secondary runtime read is unavailable")
+  @DisplayName("A later ordinary poll remains eligible when admission and runtime inspection fail")
   void preservesDefiniteAdmissionRefusal(boolean validation) {
     // Given
     when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
@@ -133,10 +130,9 @@ class AcquisitionSchedulerTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"false,UNCONFIRMED", "true,UNCONFIRMED", "false,REJECTED", "true,REJECTED"})
-  @DisplayName(
-      "Uncertain control and candidate admissions retain their original identity across later ticks")
-  void retainsUnconfirmedAdmission(boolean validation, CollectionBackendFailure.Kind readFailure) {
+  @ValueSource(booleans = {false, true})
+  @DisplayName("A later ordinary tick can attempt fresh admission after a response loss")
+  void attemptsLaterAdmission(boolean validation) {
     // Given
     when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
     when(backend.register(0, lifecycle.getIncarnationId()))
@@ -170,19 +166,22 @@ class AcquisitionSchedulerTest {
     doThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.UNCONFIRMED, null))
         .when(backend)
         .admit(any());
-    when(backend.cycle(any())).thenThrow(new CollectionBackendFailure(readFailure, null));
 
     // When
     tasks.get(2).run();
     tasks.get(2).run();
 
-    // Then: neither an unavailable read nor a missing-cycle response authorizes a fresh UUID.
+    // Then: no provider work starts without an acknowledged admission.
     org.mockito.ArgumentCaptor<CollectionBackend.StartCycle> admission =
         org.mockito.ArgumentCaptor.forClass(CollectionBackend.StartCycle.class);
-    verify(backend).admit(admission.capture());
-    verify(backend).cycle(admission.getValue().cycleId());
-    assertThat(admission.getValue().controlId()).isEqualTo(validation ? null : CONTROL);
-    assertThat(admission.getValue().sourceBindingId()).isEqualTo(validation ? CONTROL : null);
+    verify(backend, times(2)).admit(admission.capture());
+
+    assertThat(admission.getAllValues().get(0).cycleId())
+        .isNotEqualTo(admission.getAllValues().get(1).cycleId());
+    assertThat(admission.getAllValues().getLast().controlId())
+        .isEqualTo(validation ? null : CONTROL);
+    assertThat(admission.getAllValues().getLast().sourceBindingId())
+        .isEqualTo(validation ? CONTROL : null);
     verifyNoInteractions(passages, qualification);
   }
 
@@ -304,8 +303,54 @@ class AcquisitionSchedulerTest {
   }
 
   @Test
-  @DisplayName("Unavailable current work never starts supplier work or registers again")
-  void rejectsUnconfirmedWork() {
+  @DisplayName(
+      "A committed completion whose response is lost permits a later backend-admitted opportunity")
+  void pollsAfterLostCompletion() {
+    // Given
+    when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
+    when(backend.register(0, lifecycle.getIncarnationId()))
+        .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
+    lifecycle.start();
+    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+    AcquisitionScheduler scheduler =
+        new AcquisitionScheduler(
+            timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
+    scheduler.start();
+    org.mockito.ArgumentCaptor<Runnable> scheduled =
+        org.mockito.ArgumentCaptor.forClass(Runnable.class);
+    verify(timer, times(3)).schedule(scheduled.capture(), any(Trigger.class));
+    Runnable poll = scheduled.getAllValues().get(1);
+    when(backend.work(lifecycle.getIncarnationId()))
+        .thenReturn(
+            new CollectionBackend.Work(
+                List.of(
+                    new CollectionBackend.ControlWork(
+                        CONTROL,
+                        CollectionFamilyEnum.FFVB,
+                        SEASON,
+                        0,
+                        true,
+                        CollectionSeasonStateEnum.ACTIVE,
+                        null,
+                        null,
+                        null)),
+                List.of()));
+    doThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.UNCONFIRMED, null))
+        .when(passages)
+        .execute(any());
+
+    // When
+    poll.run();
+    poll.run();
+
+    // Then: backend work, not client acknowledgement memory, owns eligibility.
+    verify(backend, times(2)).admit(any());
+    verify(passages, times(2)).execute(any());
+  }
+
+  @Test
+  @DisplayName("A backend RUNNING cycle excludes another admission after an unacknowledged passage")
+  void skipsBackendRunningCycle() {
     // Given
     when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
     when(backend.register(0, lifecycle.getIncarnationId()))
@@ -318,201 +363,28 @@ class AcquisitionSchedulerTest {
     org.mockito.ArgumentCaptor<Runnable> scheduled =
         org.mockito.ArgumentCaptor.forClass(Runnable.class);
     verify(timer, times(3)).schedule(scheduled.capture(), any(Trigger.class));
-    List<Runnable> tasks = scheduled.getAllValues();
     when(backend.work(lifecycle.getIncarnationId()))
-        .thenThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.UNCONFIRMED, null));
+        .thenReturn(
+            new CollectionBackend.Work(
+                List.of(
+                    new CollectionBackend.ControlWork(
+                        CONTROL,
+                        CollectionFamilyEnum.FFVB,
+                        SEASON,
+                        0,
+                        true,
+                        CollectionSeasonStateEnum.ACTIVE,
+                        null,
+                        null,
+                        REQUEST)),
+                List.of()));
+
     // When
-    tasks.get(1).run();
+    scheduled.getAllValues().get(1).run();
+
     // Then
     verify(backend, never()).admit(any());
-    verify(backend).register(0, lifecycle.getIncarnationId());
-    verifyNoInteractions(passages, qualification, discovery);
-  }
-
-  @Test
-  @DisplayName(
-      "A lost completion response and failed confirmation block later automatic admission of that control")
-  void retainsUnconfirmedTerminalScope() {
-    // Given
-    when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
-    when(backend.register(0, lifecycle.getIncarnationId()))
-        .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
-    lifecycle.start();
-    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
-    AcquisitionScheduler scheduler =
-        new AcquisitionScheduler(
-            timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
-    scheduler.start();
-    org.mockito.ArgumentCaptor<Runnable> scheduled =
-        org.mockito.ArgumentCaptor.forClass(Runnable.class);
-    verify(timer, times(3)).schedule(scheduled.capture(), any(Trigger.class));
-    List<Runnable> tasks = scheduled.getAllValues();
-    CollectionBackend.ControlWork before =
-        new CollectionBackend.ControlWork(
-            CONTROL,
-            CollectionFamilyEnum.FFVB,
-            SEASON,
-            0,
-            true,
-            CollectionSeasonStateEnum.ACTIVE,
-            null,
-            null,
-            null);
-    CollectionBackend.ControlWork completed =
-        new CollectionBackend.ControlWork(
-            CONTROL,
-            CollectionFamilyEnum.FFVB,
-            SEASON,
-            1,
-            true,
-            CollectionSeasonStateEnum.ACTIVE,
-            null,
-            null,
-            null);
-    when(backend.work(lifecycle.getIncarnationId()))
-        .thenReturn(
-            new CollectionBackend.Work(List.of(before), List.of()),
-            new CollectionBackend.Work(List.of(completed), List.of()));
-    AtomicBoolean acceptedCompletion = new AtomicBoolean();
-    when(backend.complete(any(), any()))
-        .thenAnswer(
-            call -> {
-              acceptedCompletion.set(true);
-              throw new CollectionBackendFailure(CollectionBackendFailure.Kind.UNCONFIRMED, null);
-            });
-    when(backend.cycle(any()))
-        .thenThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.UNCONFIRMED, null));
-    when(passages.execute(any()))
-        .thenAnswer(
-            call -> lifecycle.complete(call.getArgument(0), Instant.parse("2026-10-24T10:00:00Z")));
-
-    // When
-    tasks.get(1).run();
-    tasks.get(1).run();
-
-    // Then: no new admission can discard the original retained cycle after the peer recovers.
-    assertThat(acceptedCompletion).isTrue();
-    verify(backend).admit(any());
-    verify(backend).complete(any(), any());
-    verify(backend).cycle(any());
-    verify(passages).execute(any());
-    assertThat(lifecycle.isActive()).isTrue();
-  }
-
-  @Test
-  @DisplayName("Unconfirmed control ownership leaves other controls eligible on later ticks")
-  void isolatesUnconfirmedScope() {
-    // Given
-    when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
-    when(backend.register(0, lifecycle.getIncarnationId()))
-        .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
-    lifecycle.start();
-    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
-    UUID other = UUID.fromString("00000000-0000-4000-8000-000000000187");
-    AcquisitionScheduler scheduler =
-        new AcquisitionScheduler(
-            timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
-    scheduler.start();
-    org.mockito.ArgumentCaptor<Runnable> scheduled =
-        org.mockito.ArgumentCaptor.forClass(Runnable.class);
-    verify(timer, times(3)).schedule(scheduled.capture(), any(Trigger.class));
-    List<Runnable> tasks = scheduled.getAllValues();
-    when(backend.work(lifecycle.getIncarnationId()))
-        .thenReturn(
-            new CollectionBackend.Work(
-                List.of(
-                    new CollectionBackend.ControlWork(
-                        CONTROL,
-                        CollectionFamilyEnum.FFVB,
-                        SEASON,
-                        0,
-                        true,
-                        CollectionSeasonStateEnum.ACTIVE,
-                        null,
-                        null,
-                        null),
-                    new CollectionBackend.ControlWork(
-                        other,
-                        CollectionFamilyEnum.LNV,
-                        SEASON,
-                        0,
-                        true,
-                        CollectionSeasonStateEnum.ACTIVE,
-                        null,
-                        null,
-                        null)),
-                List.of()));
-    when(passages.execute(any()))
-        .thenAnswer(
-            call -> {
-              CollectorLifecycle.AdmittedCycle context = call.getArgument(0);
-              return other.equals(context.getCycle().controlId());
-            });
-
-    // When
-    tasks.get(1).run();
-    tasks.get(1).run();
-
-    // Then
-    verify(backend)
-        .admit(
-            org.mockito.ArgumentMatchers.argThat(command -> CONTROL.equals(command.controlId())));
-    verify(backend, times(2))
-        .admit(org.mockito.ArgumentMatchers.argThat(command -> other.equals(command.controlId())));
-  }
-
-  @Test
-  @DisplayName(
-      "Local ownership covers an in-progress confirmation and releases after confirmed completion")
-  void holdsUntilConfirmed() {
-    // Given
-    when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
-    when(backend.register(0, lifecycle.getIncarnationId()))
-        .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
-    lifecycle.start();
-    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
-    AcquisitionScheduler scheduler =
-        new AcquisitionScheduler(
-            timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
-    scheduler.start();
-    org.mockito.ArgumentCaptor<Runnable> scheduled =
-        org.mockito.ArgumentCaptor.forClass(Runnable.class);
-    verify(timer, times(3)).schedule(scheduled.capture(), any(Trigger.class));
-    List<Runnable> tasks = scheduled.getAllValues();
-    when(backend.work(lifecycle.getIncarnationId()))
-        .thenReturn(
-            new CollectionBackend.Work(
-                List.of(
-                    new CollectionBackend.ControlWork(
-                        CONTROL,
-                        CollectionFamilyEnum.FFVB,
-                        SEASON,
-                        0,
-                        true,
-                        CollectionSeasonStateEnum.ACTIVE,
-                        null,
-                        null,
-                        null)),
-                List.of()));
-    AtomicBoolean nestedTick = new AtomicBoolean();
-    when(passages.execute(any()))
-        .thenAnswer(
-            call -> {
-              // Simulate the backend already projecting COMPLETED while its response is being
-              // confirmed.
-              if (nestedTick.compareAndSet(false, true)) tasks.get(1).run();
-              return true;
-            });
-
-    // When
-    tasks.get(1).run();
-
-    // Then: the overlapping opportunity cannot admit a second cycle.
-    verify(backend).admit(any());
-
-    // When a later ordinary tick follows confirmed completion, it is eligible again.
-    tasks.get(1).run();
-    verify(backend, times(2)).admit(any());
+    verifyNoInteractions(passages, qualification);
   }
 
   /**

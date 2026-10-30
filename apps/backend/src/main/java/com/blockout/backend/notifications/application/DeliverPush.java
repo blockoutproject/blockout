@@ -12,12 +12,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
+import java.util.stream.Gatherers;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /** Single-project bounded after-commit attempts; SQL remains the sole durable inbox. */
 @Slf4j
@@ -39,20 +43,21 @@ public class DeliverPush {
    *
    * @param ready successful commit's original allocations and associations
    */
-  @EventListener
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  @Order(Ordered.HIGHEST_PRECEDENCE)
   public void onReady(AfterCommitAnnouncements.Ready ready) {
     if (!enabled) return;
-    List<Attempt> batch = new ArrayList<>(100);
-    for (Created created : ready.entries()) {
-      for (Target target : ready.targets().getOrDefault(created.entry().accountId(), List.of())) {
-        batch.add(new Attempt(created, target));
-        if (batch.size() == 100) {
-          submit(List.copyOf(batch));
-          batch.clear();
-        }
-      }
+    try {
+      ready.entries().stream()
+          .flatMap(
+              created ->
+                  ready.targets().getOrDefault(created.entry().accountId(), List.of()).stream()
+                      .map(target -> new Attempt(created, target)))
+          .gather(Gatherers.windowFixed(100))
+          .forEach(this::submit);
+    } catch (RuntimeException failure) {
+      lost("handoff_unavailable", ready.entries().size());
     }
-    if (!batch.isEmpty()) submit(List.copyOf(batch));
   }
 
   /**

@@ -7,20 +7,17 @@ import {
   SaveFormat,
   type ImageRef,
 } from "expo-image-manipulator";
-import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
 
 /**
  * Adapts one ImageField native square crop to bounded PNG without modifying the library original.
  * A large source is allowed: the byte limit applies to the single prepared output. ImageManipulator
  * owns aspect-preserving resize and PNG encoding; the server validates actual content. Native failures
- * delete any prepared output before rejecting; obsolete generations reject as cancellations.
+ * delete any prepared output before rejecting; the owning mounted form decides whether to display a completed preparation.
  * The returned File is owned by the draft/upload consumer and must be deleted when both release it.
  */
 export async function prepareProfilePhoto(
   asset: ImagePickerAsset,
-  session: NonNullable<ApiFetchOptions["session"]>,
 ): Promise<File> {
-  if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
   if (
     !Number.isSafeInteger(asset.width) ||
     asset.width < 1 ||
@@ -36,7 +33,6 @@ export async function prepareProfilePhoto(
     rendered = await context.renderAsync();
     const output = await rendered.saveAsync({ format: SaveFormat.PNG });
     file = new File(output.uri);
-    if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
     if (file.size < 1 || file.size > 5 * 1024 * 1024)
       throw new ImageValidationError(
         "La photo préparée doit être un PNG de 5 Mio maximum.",

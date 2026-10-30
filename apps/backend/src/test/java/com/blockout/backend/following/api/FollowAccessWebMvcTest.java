@@ -19,6 +19,11 @@ import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
+import com.blockout.backend.following.application.FollowState;
+import com.blockout.backend.following.application.ReadFollowLists;
+import com.blockout.backend.following.application.ReadFollowOptions;
+import com.blockout.backend.following.application.ReadFollowerCount;
+import com.blockout.backend.following.application.ReadPersonalCalendar;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import java.util.Optional;
 import java.util.Set;
@@ -42,7 +47,7 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 
 /** Real F05 identity, F12 admission and security with controlled SQL/transaction collaborators. */
-@WebMvcTest(controllers = FollowingContractWebMvcTest.Adapter.class)
+@WebMvcTest(controllers = FollowingController.class)
 @Import({
   SecurityConfiguration.class,
   HttpConfiguration.class,
@@ -52,7 +57,8 @@ import org.springframework.transaction.support.SimpleTransactionStatus;
   MaintenanceAdmission.class,
   ActionAuthorization.class,
   CurrentPermissions.class,
-  FollowingContractWebMvcTest.Adapter.class
+  FollowingApiMapperImpl.class,
+  com.blockout.backend.sporting.api.ConsultationApiMapperImpl.class
 })
 @DisplayName("Following original owner admission")
 class FollowAccessWebMvcTest {
@@ -61,6 +67,11 @@ class FollowAccessWebMvcTest {
   private static final String ISSUER = "https://identity.example.invalid/";
   private static final String PATH = "/accounts/" + ORIGINAL + "/team-follows/" + REPLACEMENT;
   @Autowired MockMvc mvc;
+  @MockitoBean FollowState state;
+  @MockitoBean ReadFollowLists lists;
+  @MockitoBean ReadFollowOptions options;
+  @MockitoBean ReadFollowerCount counts;
+  @MockitoBean ReadPersonalCalendar calendars;
   @MockitoBean AccountAccess accounts;
   @MockitoBean AccessSettingsStore settings;
   @MockitoBean PermissionStore permissions;

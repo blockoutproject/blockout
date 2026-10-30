@@ -90,6 +90,7 @@ jest.mock("@react-native-async-storage/async-storage", () =>
   ),
 );
 beforeEach(async () => {
+  jest.useFakeTimers();
   await completeDiscovery();
   Object.assign(process.env, {
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
@@ -110,14 +111,17 @@ afterEach(async () => {
   focusManager.setFocused(undefined);
   onlineManager.setOnline(true);
   process.env = { ...environment };
+  jest.clearAllTimers();
+  jest.useRealTimers();
 });
 
 /** Mounts the production root around route probes; Expo owns deep-link fallback and history. */
 async function openRoute(path: string) {
-  return renderRouter(
+  const view = await renderRouter(
     {
       _layout: () => <RootLayout />,
       onboarding: OnboardingRoute,
+      "age-declaration": () => <Text>Age declaration</Text>,
       "(ordinary)/_layout": () => <Stack />,
       "(operations)/_layout": OperationsLayout,
       access: AccessGateScreen,
@@ -135,6 +139,9 @@ async function openRoute(path: string) {
     },
     { initialUrl: path },
   );
+  // Native read recovery has three bounded backoff delays before the terminal error state.
+  await act(async () => jest.advanceTimersByTimeAsync(8_000));
+  return view;
 }
 
 it("opens the actual shared support route as a guest without acquiring credentials", async () => {
@@ -212,15 +219,18 @@ it.each(["/support", "/legal", "/sign-in", "/administration"])(
   },
 );
 
-it("does not rerun a complete check on foreground or reconnect", async () => {
+it("uses a fresh complete read on native focus and reconnect", async () => {
   // Given
-  mockFetch.mockResolvedValue(
-    new Response(JSON.stringify(applicationAccessResponse()), {
-      headers: { "Content-Type": "application/json" },
-    }),
-  );
+  const full = applicationAccessResponse();
+  mockFetch.mockImplementation(async () => Response.json(full));
   await openRoute("/");
   await screen.findByText("Ordinary home");
+  full.maintenance = {
+    revision: 1,
+    active: true,
+    message: "Maintenance",
+    imageUrl: null,
+  };
 
   // When
   await act(async () => {
@@ -231,7 +241,10 @@ it("does not rerun a complete check on foreground or reconnect", async () => {
   });
 
   // Then
-  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(
+    await screen.findByRole("header", { name: "Blockout est en maintenance" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Ordinary home")).toBeNull();
 });
 
 /** Complete canonical Fetch response; errors remain real transport errors. */
@@ -451,11 +464,9 @@ it("keeps ordinary public admission independent of an account 503", async () => 
   expect(await screen.findByText("Ordinary home")).toBeOnTheScreen();
 });
 
-it("recovers from an unavailable cold check only through an explicit successful retry", async () => {
+it("allows explicit retry after native cold-check recovery is exhausted", async () => {
   // Given
-  mockFetch
-    .mockRejectedValueOnce(new Error("Offline"))
-    .mockImplementation(async () => json(applicationAccessResponse()));
+  mockFetch.mockRejectedValue(new Error("Offline"));
   const user = userEvent.setup();
   await openRoute("/support");
   await screen.findByRole("alert", {
@@ -463,6 +474,7 @@ it("recovers from an unavailable cold check only through an explicit successful 
   });
 
   // When
+  mockFetch.mockResolvedValue(json(applicationAccessResponse()));
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
@@ -471,7 +483,7 @@ it("recovers from an unavailable cold check only through an explicit successful 
     mockFetch.mock.calls.filter(([url]) =>
       String(url).endsWith("/application-access"),
     ),
-  ).toHaveLength(2);
+  ).toHaveLength(5);
 });
 
 it("a bypass-only account makes its explicit personal choice before ordinary access", async () => {

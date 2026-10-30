@@ -13,7 +13,7 @@ Cursor:
   name: cursor
   in: query
   required: false
-  description: Opaque continuation for the same nonempty text and filters; forbidden for examples.
+  description: Opaque native position for nonempty-text traversal; reuse with the same criteria. Cross-context reuse can skip results and grants no access. Forbidden for examples.
   schema:
     type: string
     description: Value returned by nextCursor; clients must not interpret or construct it.

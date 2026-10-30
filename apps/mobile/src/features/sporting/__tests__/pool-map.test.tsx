@@ -1,3 +1,9 @@
+import {
+  useLayoutEffect,
+  useState as useQueryFixtureState,
+  type PropsWithChildren as QueryFixtureProps,
+} from "react";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -70,14 +76,29 @@ const pool = matchDetail().match.pool;
 const secondTeamId = "00000000-0000-4000-8000-000000002152";
 const thirdTeamId = "00000000-0000-4000-8000-000000002153";
 const professionalId = "00000000-0000-4000-8000-000000002154";
-let client = createQueryClient();
+let client: QueryClient;
+let publicClient = createQueryClient();
 let participants: PoolParticipantsResponse;
 let table: PoolStandingsResponse;
 let participantsFailure = false;
 let standingsFailure = false;
 
+/** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
+function PrivateQueries({ children }: QueryFixtureProps) {
+  const current = useQueryClient();
+  // Configure this fresh real client before descendant public observers start their first request.
+  useQueryFixtureState(() => {
+    current.setQueryDefaults([], { retry: false });
+    return true;
+  });
+  useLayoutEffect(() => {
+    client = current;
+  }, [current]);
+  return children;
+}
+
 beforeEach(() => {
-  client = createQueryClient();
+  publicClient = createQueryClient();
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "test-client";
@@ -121,7 +142,8 @@ beforeEach(() => {
 
 afterEach(async () => {
   await cleanup();
-  client.clear();
+  client?.clear();
+  publicClient.clear();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
@@ -156,12 +178,14 @@ async function open(content = panel()) {
             insets: { top: 0, left: 0, right: 0, bottom: 0 },
           }}
         >
-          <QueryClientProvider client={client}>
+          <QueryClientProvider client={publicClient}>
             <ThemeProvider>
               <ActionFeedbackProvider scopeKey="map-test">
                 <ApplicationAccessProvider>
                   <AccountSessionProvider>
-                    <AdvertisingProviders>{children}</AdvertisingProviders>
+                    <PrivateQueries>
+                      <AdvertisingProviders>{children}</AdvertisingProviders>
+                    </PrivateQueries>
                   </AccountSessionProvider>
                 </ApplicationAccessProvider>
               </ActionFeedbackProvider>

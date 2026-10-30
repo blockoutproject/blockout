@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import Constants from "expo-constants";
 import mobileAds, {
   AdsConsent,
   AdsConsentPrivacyOptionsRequirementStatus,
@@ -47,10 +48,10 @@ export interface AdvertisingPrivacyOptions {
   adUnitId?: string;
 }
 
-/** Identifies one applicable attempt, including establishment within an unchanged generation. */
+/** Identifies one applicable attempt, including business-account establishment. */
 function contextKey(context: AdvertisingPrivacyContext) {
-  const session = context.account.getSnapshot();
-  return `${session.generation}:${session.accountId}:${context.account.status}:${context.pro.status}:${context.admission.ordinary}:${context.category}`;
+  const session = context.account;
+  return `${session.subject}:${session.accountId}:${context.account.status}:${context.pro.status}:${context.admission.ordinary}:${context.category}`;
 }
 
 /**
@@ -173,7 +174,7 @@ export function createAdvertisingPrivacy({
       return;
     const context = getContext();
     const key = contextKey(context);
-    const session = context.account.getSnapshot();
+    const session = context.account;
     const privacyOptionsRequired =
       (action === "options" || consentCategory === context.category) &&
       snapshot.privacyOptionsRequired;
@@ -341,4 +342,20 @@ export function createAdvertisingPrivacy({
       listeners.clear();
     },
   };
+}
+
+/** Allocates the installation-wide SDK owner, closed until its React context supplies actual eligibility. */
+export function createInstallationAdvertisingPrivacy() {
+  return createAdvertisingPrivacy({
+    adUnitId:
+      Platform.OS === "ios"
+        ? Constants.expoConfig?.extra?.advertising?.iosInterstitialUnitId
+        : Constants.expoConfig?.extra?.advertising?.androidInterstitialUnitId,
+    getContext: () => ({
+      account: { subject: null, accountId: null, status: "guest" },
+      pro: { status: "guest" },
+      admission: { ordinary: false },
+      category: "under16",
+    }),
+  });
 }

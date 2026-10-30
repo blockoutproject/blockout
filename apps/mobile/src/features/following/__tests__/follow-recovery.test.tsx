@@ -1,6 +1,6 @@
 import {
-  act,
   cleanup,
+  act,
   screen,
   userEvent,
   waitFor,
@@ -26,7 +26,6 @@ import {
   followerCountKey,
   followListKey,
 } from "../api/following-keys";
-import { bindSessionQueries } from "../../../shared/query/query-client";
 
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
@@ -57,18 +56,22 @@ const season = {
 };
 const environment = { ...process.env };
 let fixture: ReturnType<typeof followingFixture>;
+let following = false;
 /** Scenario-neutral generated transport; each test explicitly replaces decisive failures or counts. */
 async function transport(url: string, request?: RequestInit) {
   if (url.endsWith("/application-access"))
     return Response.json(applicationAccessResponse());
   if (url.endsWith("/accounts/me")) return Response.json(accountResponse());
   if (url.endsWith("/follower-count")) return Response.json({ count: 2 });
-  if (request?.method === "PUT")
-    return Response.json(JSON.parse(String(request.body)));
-  return Response.json({ following: false });
+  if (request?.method === "PUT") {
+    following = JSON.parse(String(request.body)).following;
+    return Response.json({ following });
+  }
+  return Response.json({ following });
 }
 beforeEach(() => {
   fixture = followingFixture();
+  following = false;
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
@@ -84,13 +87,13 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await cleanup();
-  fixture.client.clear();
+  fixture.dispose();
   process.env = { ...environment };
   jest.restoreAllMocks();
   jest.useRealTimers();
 });
 
-it("observes once while a delayed original write can still complete later", async () => {
+it("reports an uncertain write and permits only a later explicit attempt", async () => {
   // Given
   let saved = false;
   let writes = 0;
@@ -117,7 +120,7 @@ it("observes once while a delayed original write can still complete later", asyn
   // Then
   expect(
     screen.getByRole("button", {
-      name: "Suivre",
+      name: "Réessayer le suivi",
       selected: false,
       busy: false,
     }),
@@ -129,7 +132,7 @@ it("observes once while a delayed original write can still complete later", asyn
         url.includes("/team-follows/") && request?.method !== "PUT",
     ),
   ).toHaveLength(2);
-  expect(screen.queryByText(/annulé|confirmé/)).not.toBeOnTheScreen();
+  expect(screen.queryByText(/annulé/)).not.toBeOnTheScreen();
 });
 
 it("preserves confirmed state when actual count and private dependent rereads fail", async () => {
@@ -140,6 +143,8 @@ it("preserves confirmed state when actual count and private dependent rereads fa
       saved = true;
       return Promise.resolve(Response.json({ following: true }));
     }
+    if (url.includes("/team-follows/"))
+      return Promise.resolve(Response.json({ following: saved }));
     if (
       saved &&
       (url.endsWith("/follower-count") || url.endsWith("/accounts/me"))
@@ -204,72 +209,65 @@ it.each(["guest", "other"])(
       expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
     );
     const original = { ...fixture.session, accountId: currentAccount };
-    const unbind = bindSessionQueries(
-      fixture.client,
-      fixture.session.subscribe,
-      fixture.session.isCurrent,
+    await user.press(screen.getByRole("button", { name: "Suivre" }));
+    await waitFor(() =>
+      expect(
+        mockFetch.mock.calls.filter(
+          ([url, request]) =>
+            url.includes("/team-follows/") && request?.method !== "PUT",
+        ),
+      ).toHaveLength(2),
     );
-    try {
-      await user.press(screen.getByRole("button", { name: "Suivre" }));
-      await waitFor(() =>
-        expect(
-          mockFetch.mock.calls.filter(
-            ([url, request]) =>
-              url.includes("/team-follows/") && request?.method !== "PUT",
-          ),
-        ).toHaveLength(2),
-      );
 
-      // When
-      await act(async () => {
-        await fixture.session.clearCredentials();
-      });
-      mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|other"));
-      mockAuth0.saveCredentials.mockResolvedValue();
-      if (middle === "other") {
-        currentAccount = "00000000-0000-4000-8000-000000000099";
-        attempted = false;
-        await act(async () => {
-          await fixture.session.signIn("https://api.example.invalid");
-        });
-        await waitFor(() =>
-          expect(fixture.session.accountId).toBe(currentAccount),
-        );
-        await act(async () => {
-          await fixture.session.clearCredentials();
-        });
-      }
-      currentAccount = original.accountId;
+    // When
+    await act(async () => {
+      await fixture.session.clearCredentials();
+    });
+    mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|other"));
+    mockAuth0.getCredentials.mockResolvedValue(credentialsFor("auth0|other"));
+    mockAuth0.saveCredentials.mockResolvedValue();
+    if (middle === "other") {
+      currentAccount = "00000000-0000-4000-8000-000000000099";
       attempted = false;
-      mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|demo"));
       await act(async () => {
         await fixture.session.signIn("https://api.example.invalid");
       });
       await waitFor(() =>
-        expect(fixture.session.accountId).toBe(original.accountId),
+        expect(fixture.session.accountId).toBe(currentAccount),
       );
       await act(async () => {
-        observation.resolve(Response.json({ following: true }));
+        await fixture.session.clearCredentials();
       });
-
-      // Then
-      await waitFor(() => expect(fixture.client.isMutating()).toBe(0));
-      expect(
-        await screen.findByRole("button", {
-          name: "Suivre",
-          selected: false,
-          busy: false,
-        }),
-      ).toBeOnTheScreen();
-      expect(
-        fixture.client.getQueryData(followStateKey(original, team)),
-      ).toBeUndefined();
-      expect(
-        mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
-      ).toHaveLength(1);
-    } finally {
-      unbind();
     }
+    currentAccount = original.accountId;
+    attempted = false;
+    mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|demo"));
+    mockAuth0.getCredentials.mockResolvedValue(credentialsFor("auth0|demo"));
+    await act(async () => {
+      await fixture.session.signIn("https://api.example.invalid");
+    });
+    await waitFor(() =>
+      expect(fixture.session.accountId).toBe(original.accountId),
+    );
+    await act(async () => {
+      observation.resolve(Response.json({ following: true }));
+    });
+
+    // Then
+    await waitFor(() => expect(fixture.client.isMutating()).toBe(0));
+    expect(
+      await screen.findByRole("button", {
+        name: "Suivre",
+        selected: false,
+        busy: false,
+      }),
+    ).toBeOnTheScreen();
+    expect(fixture.client.getQueryData(followStateKey(original, team))).toEqual(
+      { following: false },
+    );
+    expect(
+      mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+    ).toHaveLength(1);
   },
 );
 
@@ -308,6 +306,7 @@ it("rereads only the affected public counter after confirmation without provisio
 
   // When
   confirmed = true;
+  following = true;
   await act(async () => {
     write.resolve(Response.json({ following: true }));
   });
@@ -332,7 +331,7 @@ it("rereads only the affected public counter after confirmation without provisio
 });
 
 it.each(["team", "pool"] as const)(
-  "withdraws an actual %s page and suspends shared controls after its public count establishes absence",
+  "retains public %s presentation while a missing count suspends private follow controls",
   async (type) => {
     // Given
     const target = { type, id: team.id };
@@ -403,19 +402,12 @@ it.each(["team", "pool"] as const)(
     );
 
     // Then
+    expect(screen.getByText("Current sporting identity")).toBeOnTheScreen();
     await waitFor(() =>
       expect(
-        screen.queryByText("Current sporting identity"),
-      ).not.toBeOnTheScreen(),
+        screen.queryAllByRole("button", { name: "Suivi", disabled: false }),
+      ).toHaveLength(0),
     );
-    expect(
-      screen.queryByRole("button", { name: "Suivi", disabled: false }),
-    ).not.toBeOnTheScreen();
-    expect(
-      mockFetch.mock.calls.filter(([url]) =>
-        url.endsWith(`/${type}s/${target.id}`),
-      ),
-    ).toHaveLength(1);
   },
 );
 
@@ -499,7 +491,7 @@ it("applies public absence to an account established while the first counter is 
       mockFetch.mock.calls.filter(([url]) => url.endsWith("/follower-count")),
     ).toHaveLength(1),
   );
-  const generation = fixture.session.generation;
+  const subject = fixture.session.subject;
   await act(async () => {
     profile.resolve(Response.json(accountResponse()));
   });
@@ -532,15 +524,15 @@ it("applies public absence to an account established while the first counter is 
   });
 
   // Then
+  expect(
+    screen.getByText("Profile resolves after public read starts"),
+  ).toBeOnTheScreen();
+  expect(fixture.session.subject).toBe(subject);
   await waitFor(() =>
     expect(
-      screen.queryByText("Profile resolves after public read starts"),
-    ).not.toBeOnTheScreen(),
+      screen.queryAllByRole("button", { name: "Suivi", disabled: false }),
+    ).toHaveLength(0),
   );
-  expect(fixture.session.generation).toBe(generation);
-  expect(
-    screen.queryByRole("button", { name: "Suivi", disabled: false }),
-  ).not.toBeOnTheScreen();
   expect(
     fixture.client
       .getQueryData<InfiniteData<ListTeamFollows200>>(listKey)

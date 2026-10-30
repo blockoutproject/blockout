@@ -19,7 +19,7 @@ export interface InstallationAge {
   nativePrivacy: AdvertisingPrivacySnapshot;
   /** Retries only the installation read after an explicit failure. */
   retryRead(): void;
-  /** Acknowledges the write and native preparation before navigation; SDK failure never rolls back storage. */
+  /** Acknowledges the persisted category; independent consent failure keeps advertising disabled. */
   confirm(age: number): Promise<boolean> | undefined;
 }
 

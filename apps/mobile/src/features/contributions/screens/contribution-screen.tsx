@@ -1,22 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useOwnContributions } from "../api/own-contributions";
-import { ContributionForm } from "../forms/contribution-form";
-import {
-  useConsultationQueries,
-  MatchSummary,
-} from "../../sporting/match-consultation";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { Button } from "../../../shared/components/button";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
+import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { Page, PageContent } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
-import { FormScrollView } from "../../../shared/components/form-scroll-view";
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
-import { ScreenState } from "../../../shared/components/screen-state";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { Button } from "../../../shared/components/button";
 import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ScreenState } from "../../../shared/components/screen-state";
+import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import { ErrorState } from "../../../shared/components/state-card";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
+import {
+  MatchSummary,
+  useConsultationQueries,
+} from "../../sporting/match-consultation";
+import { useOwnContributions } from "../api/own-contributions";
+import { ContributionForm } from "../forms/contribution-form";
 
 /** Exact match route; F05/F12 and the generated owner read retain authority over submission. */
 export interface ContributionScreenProps {
@@ -33,16 +33,13 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
   const authenticated = editing.session.status === "authenticated";
   /** Pull-to-refresh observes displayed reads only; it cannot release command uncertainty. */
   async function refresh() {
-    if (editing.submit.isPending()) return;
+    if (editing.submit.isPending) return;
     feedback.clear();
     const results = await Promise.allSettled([
       editing.refresh(),
       match.refetch({ throwOnError: true }),
     ]);
-    if (
-      editing.session.isCurrent(editing.session.generation) &&
-      results.some((result) => result.status === "rejected")
-    )
+    if (results.some((result) => result.status === "rejected"))
       feedback.error();
   }
   return (
@@ -58,7 +55,7 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
               authenticated && editing.usable && current ? (
                 <DataRefreshControl
                   progressViewOffset={headerHeight}
-                  enabled={!editing.submit.pending}
+                  enabled={!editing.submit.isPending}
                   refreshing={editing.query.isRefetching || match.isRefetching}
                   onRefresh={() => void refresh()}
                 />
@@ -120,7 +117,7 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
                   />
                 )}
                 <ContributionForm
-                  key={`${editing.session.generation}:${editing.session.accountId}:${matchId}`}
+                  key={`${editing.session.subject}:${editing.session.accountId}:${matchId}`}
                   matchId={matchId}
                   current={current}
                   editing={editing}

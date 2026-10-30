@@ -1,5 +1,4 @@
 import { genderLabel, formatLabel } from "../classification-presentation";
-import { hashKey, useQuery } from "@tanstack/react-query";
 import { useSportingNavigation } from "../navigation";
 import { ChevronRight } from "lucide-react-native";
 import type { ReactNode } from "react";
@@ -12,12 +11,11 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
-import { consultationOpeningPolicy } from "../api/consultation-queries";
-import { useConsultationQueries } from "../api/use-consultation-queries";
+import { useSportingLogo } from "../api/use-sporting-logo";
 import { SportingMedia, SportingCover } from "./sporting-media";
 import { DivisionPaint } from "./division-paint";
 
-/** Addressed public identity; artwork reads use the same generated admission boundary as JSON. */
+/** Addressed sporting identity; public native artwork and explicit bypass share the owning resource guard. */
 export interface SportingLogoProps {
   identity: SportingIdentityResponse;
   kind: "club" | "team" | "division";
@@ -26,43 +24,23 @@ export interface SportingLogoProps {
   renderWithAtmosphere?: (logo: ReactNode, atmosphere: ReactNode) => ReactNode;
 }
 
-/** Shares the canonical image query between the visible crest and its optional decorative cover. */
-function useSportingLogo(
-  identity: SportingIdentityResponse,
-  kind: SportingLogoProps["kind"],
-) {
-  const queries = useConsultationQueries();
-  const options =
-    kind === "club"
-      ? queries.clubLogo(identity.id)
-      : kind === "team"
-        ? queries.teamLogo(identity.id)
-        : queries.divisionLogo(identity.id);
-  const query = useQuery({
-    ...options,
-    enabled: !!identity.logoUrl,
-    ...consultationOpeningPolicy,
-  });
-  return { query, queryKey: options.queryKey };
-}
-
-/** Retains authorized artwork after refresh failure; missing/refused artwork keeps a readable identity. */
+/** Native image failure keeps a readable identity; known resource restriction withdraws foreground and atmosphere. */
 export function SportingLogo({
   identity,
   kind,
   size = tokens.size.media.row,
   renderWithAtmosphere,
 }: SportingLogoProps) {
-  const { query: logo, queryKey } = useSportingLogo(identity, kind);
+  const logo = useSportingLogo(identity, kind);
   return (
     <SportingMedia
-      key={`${hashKey(queryKey)}:${logo.dataUpdatedAt}`}
+      key={`${identity.id}:${identity.logoUrl ?? ""}`}
       identity={identity}
       kind={kind}
       size={size}
-      uri={identity.logoUrl ? logo.data : undefined}
-      loading={!!identity.logoUrl && logo.isPending}
-      error={!!identity.logoUrl && logo.isError}
+      uri={logo.uri}
+      loading={logo.loading}
+      error={logo.error}
       renderWithAtmosphere={renderWithAtmosphere}
     />
   );
@@ -74,11 +52,11 @@ export function SportingArtwork({
 }: {
   division: SportingDivisionResponse;
 }) {
-  const { query: logo, queryKey } = useSportingLogo(division, "division");
-  return division.logoUrl && logo.data ? (
+  const logo = useSportingLogo(division, "division");
+  return logo.uri ? (
     <SportingCover
-      key={`${hashKey(queryKey)}:${logo.dataUpdatedAt}`}
-      uri={logo.data}
+      key={`${division.id}:${division.logoUrl ?? ""}`}
+      uri={logo.uri}
       primary={division.color}
     />
   ) : null;

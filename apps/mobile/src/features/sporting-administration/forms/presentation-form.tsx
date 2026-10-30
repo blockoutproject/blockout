@@ -1,19 +1,17 @@
 import { ErrorState } from "../../../shared/components/state-card";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { requiresPresentationReread } from "../api/presentation-recovery";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
 import { useImageSelection } from "../../../shared/images/use-image-selection";
 import { ImageValidationError } from "../../../shared/images/image-validation-error";
 import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
 import { ImageOff } from "lucide-react-native";
 import { useDivisionActivity } from "../api/classification";
 import { DivisionColorFields } from "../components/division-color-fields";
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
+import { useEffect, useRef } from "react";
+import { Controller, useFormState, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { DivisionActivityAction } from "../components/division-activity-action";
@@ -24,7 +22,6 @@ import { TextField } from "../../../shared/components/text-field";
 import { Surface } from "../../../shared/components/surface";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
-import { useAccountSession } from "../../accounts/current-account";
 import {
   usePresentationLogo,
   type Presentation,
@@ -32,12 +29,9 @@ import {
   type usePresentation,
 } from "../api/presentation";
 import { prepareSportingLogo } from "../images/prepare-sporting-logo";
-import {
-  presentationSchema,
-  type PresentationValues,
-} from "../schemas/presentation-schema";
+import { type PresentationValues } from "../schemas/presentation-schema";
 import { presentationValues } from "./presentation-values";
-import { presentationEditor } from "./presentation-editor";
+import { usePresentationDraft } from "./use-presentation-draft";
 
 /** One original resource and session; background reads never replace this form's editable snapshot. */
 export interface PresentationFormProps {
@@ -46,7 +40,6 @@ export interface PresentationFormProps {
   editing: ReturnType<typeof usePresentation>;
   disabled: boolean;
 }
-
 /** Saves one revision atomically and retains dirty fields through refusals and explicit original-target rereads. */
 export function PresentationForm({
   presentation,
@@ -54,7 +47,6 @@ export function PresentationForm({
   editing,
   disabled,
 }: PresentationFormProps) {
-  const session = useAccountSession();
   const router = useRouter();
   const confirmAction = useActionConfirmation();
   const activity = useDivisionActivity(target.id ?? "");
@@ -63,34 +55,24 @@ export function PresentationForm({
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();
   const mounted = useRef(false);
-  const [editor] = useState(() =>
-    presentationEditor(session, target, presentation),
-  );
-  const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
+  const editor = usePresentationDraft(presentation);
+  const state = editor.state;
   const { baseline } = state;
-  const feedback =
-    state.feedback ??
-    (editing.save.needsRead || activity.save.needsRead
-      ? "Le résultat doit être vérifié. Relisez la présentation avant de réessayer."
-      : undefined);
-  const { control, handleSubmit, setError, setValue } =
-    useForm<PresentationValues>({
-      resolver: zodResolver(presentationSchema),
-      formControl: editor.form.formControl,
-    });
+  const feedback = state.feedback ?? undefined;
+  const { control, handleSubmit, setError, setValue } = editor.form;
   const imageSelection = useImageSelection({
-    canSelect: () => !editing.save.isPending(),
+    canSelect: () => !editing.save.isPending,
     onSelect: async (assets) => {
       const asset = assets[0];
-      if (!asset || !session.isCurrent(session.generation)) return;
+      if (!asset) return;
       try {
-        const prepared = await prepareSportingLogo(asset, session);
-        if (mounted.current && session.isCurrent(session.generation))
+        const prepared = await prepareSportingLogo(asset);
+        if (mounted.current)
           editor.replaceLogo({ action: "replace", prepared });
         else deleteOwnedImage(prepared);
       } catch (error) {
         if (!(error instanceof ImageValidationError)) throw error;
-        if (mounted.current && session.isCurrent(session.generation))
+        if (mounted.current)
           setError("logo", {
             message:
               "Impossible de préparer le logo. Votre choix précédent est conservé.",
@@ -98,7 +80,7 @@ export function PresentationForm({
       }
     },
   });
-  // Read the retained control's current state on remount; RHF remains the sole submission owner.
+  // RHF owns this mounted route's fields and dirty state.
   const { isDirty, dirtyFields } = useFormState({
     control,
   });
@@ -118,15 +100,14 @@ export function PresentationForm({
     presentation.kind !== "division-creation" &&
     baseline.kind !== "division-creation" &&
     presentation.data.revision !== baseline.data.revision;
-  const rereadRequired =
-    editing.save.needsRead || activity.save.needsRead || changed;
+  const rereadRequired = changed;
   const created = creating && baseline.kind === "division";
   const busy =
     disabled ||
     created ||
     imageSelection.pending ||
-    editing.save.pending ||
-    activity.save.pending ||
+    editing.save.isPending ||
+    activity.save.isPending ||
     editing.query.isFetching;
   const currentLogo =
     baseline.kind !== "pool" && baseline.kind !== "division-creation"
@@ -159,22 +140,19 @@ export function PresentationForm({
     baseline.kind !== "division" && baseline.kind !== "division-creation"
       ? baseline.data.names
       : undefined;
-
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
     };
   }, []);
-
-  /** Only the user's save event writes; conflicts and uncertain outcomes require a new current-state read. */
+  /** Only an explicit save writes; ordinary errors preserve mounted input for refresh or retry. */
   async function submit(values: PresentationValues) {
     if (
       !mounted.current ||
       imageSelection.isPending() ||
       busy ||
-      rereadRequired ||
-      !session.isCurrent(session.generation)
+      rereadRequired
     )
       return;
     if (
@@ -201,26 +179,19 @@ export function PresentationForm({
       }))
     )
       return;
-    if (
-      !mounted.current ||
-      imageSelection.isPending() ||
-      !session.isCurrent(session.generation)
-    )
-      return;
+    if (!mounted.current || imageSelection.isPending()) return;
     editor.update({ ...state, feedback: undefined });
     const file =
       values.logo.action === "replace" ? values.logo.prepared : undefined;
-    const attempt = editing.save.start({
+    const attempt = editing.save.mutateAsync({
       revision:
         baseline.kind === "division-creation" ? "" : baseline.data.revision,
       values,
     });
-    if (!attempt) return;
     actionFeedback.clear();
     editor.beginUpload(file);
     try {
       const accepted = await attempt;
-      if (!session.isCurrent(session.generation)) return;
       editor.update({
         baseline: accepted,
         feedback: undefined,
@@ -230,16 +201,19 @@ export function PresentationForm({
         editor.discard();
       }
     } catch (error) {
-      if (!session.isCurrent(session.generation)) return;
-      if (requiresPresentationReread(error)) {
+      if (
+        error instanceof ApiError &&
+        error.status === 409 &&
+        error.problem?.type !== "urn:blockout:problem:conflict"
+      ) {
         editor.update({
-          ...editor.getSnapshot(),
+          ...editor.state,
           feedback:
             "Le résultat doit être vérifié. Relisez la présentation avant de réessayer.",
         });
       } else {
         editor.update({
-          ...editor.getSnapshot(),
+          ...editor.state,
           feedback: undefined,
         });
         if (
@@ -265,18 +239,9 @@ export function PresentationForm({
   }
   /** Refreshes non-dirty fields and the revision only after a successful explicit read; no write is replayed. */
   async function reread() {
-    const { result, reconciled } = await editing.save.reconcile(
-      [editing.queryKey],
-      () => editing.query.refetch(),
-      (result) => !result.isError && !!result.data,
-    );
-    if (
-      !mounted.current ||
-      imageSelection.isPending() ||
-      !session.isCurrent(session.generation)
-    )
-      return;
-    if (!reconciled || result.isError || !result.data) {
+    const result = await (() => editing.query.refetch())();
+    if (!mounted.current || imageSelection.isPending()) return;
+    if (result.isError || !result.data) {
       actionFeedback.error();
       return;
     }
@@ -292,8 +257,8 @@ export function PresentationForm({
     if (
       baseline.kind !== "division" ||
       imageSelection.isPending() ||
-      editing.save.pending ||
-      activity.save.pending ||
+      editing.save.isPending ||
+      activity.save.isPending ||
       editing.query.isFetching ||
       !activity.authority.enabled ||
       rereadRequired
@@ -310,22 +275,15 @@ export function PresentationForm({
       }))
     )
       return;
-    if (
-      !mounted.current ||
-      imageSelection.isPending() ||
-      !session.isCurrent(session.generation)
-    )
-      return;
+    if (!mounted.current || imageSelection.isPending()) return;
     try {
-      const attempt = activity.save.start({
+      const attempt = activity.save.mutateAsync({
         revision: division.revision,
         active: !division.active,
       });
-      if (!attempt) return;
-      editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      editor.update({ ...editor.state, feedback: undefined });
       actionFeedback.clear();
       const response = await attempt;
-      if (!session.isCurrent(session.generation)) return;
       const accepted: Presentation = { kind: "division", data: response };
       editor.update({
         baseline: accepted,
@@ -335,15 +293,14 @@ export function PresentationForm({
       });
       editor.reset(presentationValues(accepted), true);
     } catch (error) {
-      if (!session.isCurrent(session.generation)) return;
-      if (requiresPresentationReread(error))
+      if (error instanceof ApiError && error.status === 409)
         editor.update({
-          ...editor.getSnapshot(),
+          ...editor.state,
           feedback:
             "L’action n’a pas abouti. Relisez l’état courant avant de réessayer.",
         });
       else {
-        editor.update({ ...editor.getSnapshot(), feedback: undefined });
+        editor.update({ ...editor.state, feedback: undefined });
         actionFeedback.error();
       }
     }
@@ -565,8 +522,8 @@ export function PresentationForm({
           onPress={() => void reread()}
           disabled={
             imageSelection.pending ||
-            editing.save.pending ||
-            activity.save.pending ||
+            editing.save.isPending ||
+            activity.save.isPending ||
             editing.query.isFetching
           }
           loading={editing.query.isFetching}
@@ -584,7 +541,7 @@ export function PresentationForm({
           label="Enregistrer"
           fullWidth
           disabled={busy || rereadRequired}
-          loading={editing.save.executing}
+          loading={editing.save.isPending}
           onPress={() => void handleSubmit(submit)()}
         />
       )}
@@ -593,10 +550,10 @@ export function PresentationForm({
         activity.authority.permissions?.manageDivisionLifecycle === true && (
           <DivisionActivityAction
             division={baseline.data}
-            executing={activity.save.executing}
+            executing={activity.save.isPending}
             disabled={
               imageSelection.pending ||
-              editing.save.pending ||
+              editing.save.isPending ||
               editing.query.isFetching ||
               rereadRequired
             }

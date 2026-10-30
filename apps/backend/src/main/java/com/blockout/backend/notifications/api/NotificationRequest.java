@@ -3,7 +3,6 @@ package com.blockout.backend.notifications.api;
 import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.generated.mobile.model.MarkNotificationReadRequest;
 import com.blockout.backend.notifications.application.NotificationContext;
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -33,25 +32,8 @@ public class NotificationRequest {
   }
 
   /**
-   * Rejects undeclared query fields and repeated scalar cursors, which generated binding ignores.
-   * Cursor structure/continuation validity belongs to the later inbox reader.
-   *
-   * @param request native request preserving repeated and unknown query values
-   * @param collection whether this is the only operation permitting the cursor query parameter
-   * @throws ResponseStatusException with status 400 for unsupported query intent
-   */
-  public void validateQuery(HttpServletRequest request, boolean collection) {
-    for (String parameter : request.getParameterMap().keySet()) {
-      if (!collection
-          || !parameter.equals("cursor")
-          || request.getParameterValues(parameter).length != 1)
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
-    }
-  }
-
-  /**
    * Enforces the true-only boolean enum missing from Java's generated Bean Validation annotations.
-   * Required/null/type/unknown-field checks remain with the generated DTO and strict HTTP mapper.
+   * Required/null/type checks remain with the generated DTO and configured HTTP mapper.
    *
    * @param body validated generated read document
    * @throws ResponseStatusException with status 400 for unsupported false intent

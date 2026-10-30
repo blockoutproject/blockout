@@ -1,6 +1,9 @@
 package com.blockout.backend.following.api;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -10,26 +13,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.config.HttpConfiguration;
-import com.blockout.backend.following.api.FollowingRequest.QueryShape;
-import com.blockout.backend.following.application.FollowContext;
-import com.blockout.backend.generated.mobile.api.FollowingApi;
+import com.blockout.backend.following.application.FollowState;
+import com.blockout.backend.following.application.ReadFollowLists;
+import com.blockout.backend.following.application.ReadFollowOptions;
+import com.blockout.backend.following.application.ReadFollowerCount;
+import com.blockout.backend.following.application.ReadPersonalCalendar;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
-import com.blockout.backend.generated.mobile.model.FollowOptionsResponse;
-import com.blockout.backend.generated.mobile.model.FollowStateResponse;
-import com.blockout.backend.generated.mobile.model.FollowerCountResponse;
-import com.blockout.backend.generated.mobile.model.MatchCalendarResponse;
-import com.blockout.backend.generated.mobile.model.PersonalMatchCalendarResponse;
-import com.blockout.backend.generated.mobile.model.PoolFollowsResponse;
-import com.blockout.backend.generated.mobile.model.ReplaceFollowStateRequest;
-import com.blockout.backend.generated.mobile.model.TeamFollowsResponse;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
-import jakarta.servlet.http.HttpServletRequest;
-import java.time.LocalDate;
+import com.blockout.backend.sporting.api.ConsultationApiMapperImpl;
+import com.blockout.backend.sporting.application.ConsultationViews;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,28 +36,31 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.web.bind.annotation.RestController;
 
-/** Real generated MVC bindings with controlled responses, without persisted following behavior. */
-@WebMvcTest(controllers = FollowingContractWebMvcTest.Adapter.class)
+/** Production following controller and generated bindings with controlled application ports. */
+@WebMvcTest(controllers = FollowingController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import({
   HttpConfiguration.class,
   ApiExceptionHandler.class,
   FollowingRequest.class,
-  FollowingContractWebMvcTest.Adapter.class
+  FollowingApiMapperImpl.class,
+  ConsultationApiMapperImpl.class
 })
 @DisplayName("Following generated contract boundary")
 public class FollowingContractWebMvcTest {
   public static final String ACCOUNT = "00000000-0000-4000-8000-000000000001";
   public static final String TARGET = "00000000-0000-4000-8000-000000000002";
   @Autowired MockMvc mvc;
-  @Autowired Adapter adapter;
+  @MockitoBean FollowState state;
+  @MockitoBean ReadFollowerCount counts;
+  @MockitoBean ReadFollowOptions options;
+  @MockitoBean ReadPersonalCalendar calendars;
+  @MockitoBean ReadFollowLists lists;
   @MockitoBean CurrentAccount current;
 
   /**
@@ -69,9 +68,24 @@ public class FollowingContractWebMvcTest {
    */
   @BeforeEach
   void owner() {
-    adapter.page = null;
-    adapter.season = null;
     when(current.findId()).thenReturn(Optional.of(UUID.fromString(ACCOUNT)));
+    when(state.replace(any(), anyBoolean())).thenAnswer(invocation -> invocation.getArgument(1));
+    when(counts.read(any())).thenReturn(9007199254740991L);
+    when(lists.teams(any(), any(), anyLong()))
+        .thenReturn(new ReadFollowLists.Teams(List.of(), null));
+    when(lists.pools(any(), any(), anyLong()))
+        .thenReturn(new ReadFollowLists.Pools(List.of(), null));
+    when(options.read(any())).thenReturn(new ReadFollowOptions.Options(List.of(), null));
+    when(calendars.read(any(), any(), any()))
+        .thenReturn(
+            new ReadPersonalCalendar.Calendar(
+                false,
+                new ConsultationViews.Calendar(
+                    CalendarCategoryEnum.UPCOMING,
+                    "Europe/Paris",
+                    OffsetDateTime.parse("2026-10-24T00:00:00Z"),
+                    List.of(),
+                    null)));
   }
 
   @ParameterizedTest
@@ -141,8 +155,8 @@ public class FollowingContractWebMvcTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.items").isEmpty())
         .andExpect(jsonPath("$.nextPage").doesNotExist());
-    assertThat(adapter.page).isZero();
-    assertThat(adapter.season).isNull();
+    if (kind.equals("team")) verify(lists).teams(UUID.fromString(ACCOUNT), null, 0L);
+    else verify(lists).pools(UUID.fromString(ACCOUNT), null, 0L);
 
     // When
     ResultActions selected =
@@ -150,12 +164,13 @@ public class FollowingContractWebMvcTest {
 
     // Then
     selected.andExpect(status().isOk());
-    assertThat(adapter.page).isEqualTo(107374182L);
-    assertThat(adapter.season).isEqualTo(UUID.fromString(TARGET));
+    if (kind.equals("team"))
+      verify(lists).teams(UUID.fromString(ACCOUNT), UUID.fromString(TARGET), 107374182L);
+    else verify(lists).pools(UUID.fromString(ACCOUNT), UUID.fromString(TARGET), 107374182L);
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"-1", "107374183", "9007199254740992", "0.5", "null", "0x10", "1 2"})
+  @ValueSource(strings = {"-1", "107374183", "9007199254740992", "0.5", "null"})
   @DisplayName("Rejects pages outside the generated native offset bound")
   void rejectsPage(String page) throws Exception {
     // Given
@@ -174,21 +189,14 @@ public class FollowingContractWebMvcTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "/team-follows?future=1",
-        "/pool-follows?page=0&page=1",
-        "/team-follows?seasonId=",
-        "/team-follows?seasonId=1-1-1-1-1",
-        "/team-follows?page=",
-        "/follow-options?seasonId=",
         "/matches?category=unknown&timeZone=Europe/Paris",
         "/matches?category=UPCOMING&timeZone=Europe/Paris",
         "/matches?category=COMPLETED&timeZone=Europe/Paris",
         "/matches?category=upcoming&timeZone=invalid",
         "/matches?category=upcoming&timeZone=Europe/Paris&nextDay=2026-02-30",
-        "/matches?category=upcoming&timeZone=Europe/Paris&unknown=1",
         "/matches?category=upcoming&timeZone=Europe/Paris&timeZone=UTC"
       })
-  @DisplayName("Rejects undeclared, repeated or coerced query shapes")
+  @DisplayName("Rejects malformed generated values and non-IANA calendar zones")
   void rejectsQuery(String suffix) throws Exception {
     // Given
     MockHttpServletRequestBuilder request = get("/accounts/" + ACCOUNT + suffix);
@@ -269,127 +277,5 @@ public class FollowingContractWebMvcTest {
         .andExpect(jsonPath("$.hasAvailableFollows").value(false))
         .andExpect(jsonPath("$.calendar.category").value("upcoming"))
         .andExpect(jsonPath("$.calendar.nextDay").doesNotExist());
-  }
-
-  /** Test-only provider of the real generated interface; no production endpoint is registered. */
-  @RestController
-  @RequiredArgsConstructor
-  public static class Adapter implements FollowingApi {
-    private final HttpServletRequest request;
-    private final FollowingRequest requests;
-    Long page;
-    UUID season;
-
-    /**
-     * Adds the canonical cache policy to a controlled generated response.
-     *
-     * @param body test-owned generated response
-     * @param <T> generated body type
-     * @return the non-cacheable successful representation
-     */
-    private <T> ResponseEntity<T> response(T body) {
-      return ResponseEntity.ok().header("Cache-Control", "no-store").body(body);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public ResponseEntity<FollowStateResponse> getTeamFollowState(
-        UUID accountId, UUID teamId, Boolean bypass) {
-      requests.validateQuery(request, QueryShape.MEMBER);
-      requests.member(accountId, FollowContext.TargetType.TEAM, teamId);
-      return response(new FollowStateResponse(false));
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public ResponseEntity<FollowStateResponse> replaceTeamFollowState(
-        UUID accountId, UUID teamId, ReplaceFollowStateRequest body, Boolean bypass) {
-      requests.validateQuery(request, QueryShape.MEMBER);
-      requests.member(accountId, FollowContext.TargetType.TEAM, teamId);
-      return response(new FollowStateResponse(body.getFollowing()));
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public ResponseEntity<FollowerCountResponse> getTeamFollowerCount(UUID teamId, Boolean bypass) {
-      requests.validateQuery(request, QueryShape.MEMBER);
-      return response(new FollowerCountResponse(9007199254740991L));
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public ResponseEntity<TeamFollowsResponse> listTeamFollows(
-        UUID accountId, Boolean bypass, UUID seasonId, Long page) {
-      requests.validateQuery(request, QueryShape.LIST);
-      requests.requireOwner(accountId);
-      this.page = page;
-      this.season = seasonId;
-      return response(new TeamFollowsResponse(List.of()));
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public ResponseEntity<FollowStateResponse> getPoolFollowState(
-        UUID accountId, UUID poolId, Boolean bypass) {
-      requests.validateQuery(request, QueryShape.MEMBER);
-      requests.member(accountId, FollowContext.TargetType.POOL, poolId);
-      return response(new FollowStateResponse(false));
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public ResponseEntity<FollowStateResponse> replacePoolFollowState(
-        UUID accountId, UUID poolId, ReplaceFollowStateRequest body, Boolean bypass) {
-      requests.validateQuery(request, QueryShape.MEMBER);
-      requests.member(accountId, FollowContext.TargetType.POOL, poolId);
-      return response(new FollowStateResponse(body.getFollowing()));
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public ResponseEntity<FollowerCountResponse> getPoolFollowerCount(UUID poolId, Boolean bypass) {
-      requests.validateQuery(request, QueryShape.MEMBER);
-      return response(new FollowerCountResponse(9007199254740991L));
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public ResponseEntity<PoolFollowsResponse> listPoolFollows(
-        UUID accountId, Boolean bypass, UUID seasonId, Long page) {
-      requests.validateQuery(request, QueryShape.LIST);
-      requests.requireOwner(accountId);
-      this.page = page;
-      this.season = seasonId;
-      return response(new PoolFollowsResponse(List.of()));
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public ResponseEntity<FollowOptionsResponse> getFollowOptions(UUID accountId, Boolean bypass) {
-      requests.validateQuery(request, QueryShape.MEMBER);
-      requests.requireOwner(accountId);
-      return response(new FollowOptionsResponse(List.of()));
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public ResponseEntity<PersonalMatchCalendarResponse> listPersonalMatches(
-        UUID accountId,
-        CalendarCategoryEnum category,
-        String timeZone,
-        Boolean bypass,
-        UUID seasonId,
-        LocalDate nextDay) {
-      requests.validateQuery(request, QueryShape.CALENDAR);
-      requests.requireOwner(accountId);
-      return response(
-          new PersonalMatchCalendarResponse(
-              false,
-              new MatchCalendarResponse(
-                  CalendarCategoryEnum.UPCOMING,
-                  "Europe/Paris",
-                  OffsetDateTime.parse("2026-10-24T00:00:00Z"),
-                  List.of())));
-    }
   }
 }

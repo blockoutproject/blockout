@@ -2,7 +2,6 @@ import { QueryObserver } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react-native";
 import type { PoolStandingsResponse } from "../../../../.generated/schemas/index.zod";
 import { createQueryClient } from "../../../shared/query/query-client";
-import { createSessionGeneration } from "../../accounts/session/session-generation";
 import { createConsultationQueries } from "../api/consultation-queries";
 import { sportingId } from "../test-support/consultation-data";
 
@@ -30,9 +29,9 @@ let client = createQueryClient();
 
 /** Captures a real current session and ordinary admission while controlling only HTTP. */
 function publicQueries() {
-  const session = createSessionGeneration();
+  const session = { subject: null, accountId: null };
   return createConsultationQueries(
-    { ...session.getSnapshot(), isCurrent: session.isCurrent },
+    session,
     { request: (options) => options },
     jest.fn(),
   );
@@ -40,6 +39,7 @@ function publicQueries() {
 
 beforeEach(() => {
   client = createQueryClient();
+  client.setQueryDefaults([], { retry: false });
   mockFetch.mockReset();
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
 });
@@ -85,81 +85,6 @@ it.each([false, true])(
     }
   },
 );
-
-it("unlinks only the refused team in retained standings of the same current context", async () => {
-  // Given
-  const queries = publicQueries();
-  const otherContext = publicQueries();
-  mockFetch.mockImplementation((url: string) =>
-    url.endsWith("/standings")
-      ? Promise.resolve(Response.json(table))
-      : Promise.resolve(Response.json({}, { status: 404 })),
-  );
-  await client.query(queries.standings(sportingId));
-  await client.query(otherContext.standings(sportingId));
-  const originalTimestamp = client.getQueryState(
-    queries.standings(sportingId).queryKey,
-  )?.dataUpdatedAt;
-
-  // When
-  await expect(client.query(queries.team(sportingId))).rejects.toMatchObject({
-    kind: "http",
-    status: 404,
-  });
-
-  // Then
-  expect(client.getQueryData(queries.standings(sportingId).queryKey)).toEqual({
-    ...table,
-    rows: [
-      { sourceName: "Official row", position: 7, statistics: { Ratio: "∞" } },
-    ],
-  });
-  expect(
-    client.getQueryState(queries.standings(sportingId).queryKey)?.dataUpdatedAt,
-  ).toBe(originalTimestamp);
-  expect(
-    client.getQueryData(otherContext.standings(sportingId).queryKey)?.rows[0]
-      .team?.id,
-  ).toBe(sportingId);
-});
-
-it("cancels an older table read before it can restore a now forbidden association", async () => {
-  // Given
-  const queries = publicQueries();
-  mockFetch.mockResolvedValueOnce(Response.json(table));
-  await client.query(queries.standings(sportingId));
-  let finish: ((response: Response) => void) | undefined;
-  let signal: AbortSignal | undefined;
-  mockFetch.mockImplementation((url: string, options?: RequestInit) => {
-    if (url.endsWith("/standings")) {
-      signal = options?.signal ?? undefined;
-      return new Promise<Response>((resolve) => {
-        finish = resolve;
-      });
-    }
-    return Promise.resolve(Response.json({}, { status: 404 }));
-  });
-  const late = client
-    .query({ ...queries.standings(sportingId), staleTime: 0 })
-    .catch(() => undefined);
-  await waitFor(() => expect(finish).toBeDefined());
-
-  // When
-  await expect(client.query(queries.team(sportingId))).rejects.toMatchObject({
-    status: 404,
-  });
-  finish?.(Response.json(table));
-  await late;
-
-  // Then
-  expect(signal?.aborted).toBe(true);
-  expect(
-    client.getQueryData(queries.standings(sportingId).queryKey)?.rows[0].team,
-  ).toBeUndefined();
-  expect(
-    client.getQueryData(queries.standings(sportingId).queryKey)?.observedAt,
-  ).toBe(table.observedAt);
-});
 
 it("preserves links when an ordinary team read fails without a visibility refusal", async () => {
   // Given

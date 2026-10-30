@@ -1,7 +1,4 @@
-import { onlineManager } from "@tanstack/react-query";
-import { binaryImagePreview } from "../../../shared/api/binary-image-preview";
 import { createConsultationQueries } from "../api/consultation-queries";
-import { createSessionGeneration } from "../../accounts/session/session-generation";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { sportingId, matchDetail } from "../test-support/consultation-data";
 
@@ -19,7 +16,6 @@ beforeEach(() => {
   mockFetch.mockReset();
 });
 afterEach(() => {
-  onlineManager.setOnline(true);
   jest.restoreAllMocks();
   if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
   else process.env.EXPO_PUBLIC_API_URL = originalUrl;
@@ -27,9 +23,9 @@ afterEach(() => {
 
 /** Uses real session and admission preparation while controlling only the network boundary. */
 function publicQueries() {
-  const session = createSessionGeneration();
+  const session = { subject: null, accountId: null };
   return createConsultationQueries(
-    { ...session.getSnapshot(), isCurrent: session.isCurrent },
+    session,
     { request: (options) => options },
     jest.fn(),
   );
@@ -86,26 +82,6 @@ it.each(["team", "pool"] as const)(
   },
 );
 
-it("attempts an offline public read once without replaying on reconnect", async () => {
-  // Given
-  const client = createQueryClient();
-  const options = publicQueries().clubTeams(sportingId, sportingId);
-  onlineManager.setOnline(false);
-  mockFetch.mockRejectedValue(new TypeError("synthetic offline"));
-  try {
-    // When
-    const result = client.query(options);
-
-    // Then
-    await expect(result).rejects.toMatchObject({ kind: "network" });
-    onlineManager.setOnline(true);
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(client.getQueryState(options.queryKey)?.fetchStatus).toBe("idle");
-  } finally {
-    client.clear();
-  }
-});
-
 it("accepts an owner date without inventing a missing source time zone", async () => {
   // Given
   const client = createQueryClient();
@@ -123,57 +99,6 @@ it("accepts an owner date without inventing a missing source time zone", async (
     expect(result.match.schedule.localDate).toBe("2026-10-25");
     expect(result.match.schedule.timeZone).toBeUndefined();
     expect(result.match.schedule.instant).toBeUndefined();
-  } finally {
-    client.clear();
-  }
-});
-
-it("cancels a prepared logo preview when its captured maintenance bypass ends", async () => {
-  // Given: generated binary transport and Query are real; native conversion completion is controlled.
-  const session = createSessionGeneration();
-  session.setAccount(session.getSnapshot().generation, sportingId);
-  const intent = new AbortController();
-  const client = createQueryClient();
-  const options = createConsultationQueries(
-    { ...session.getSnapshot(), isCurrent: session.isCurrent },
-    {
-      bypass: {
-        ...session.getSnapshot(),
-        intentId: "logo-preview",
-        signal: intent.signal,
-      },
-      request: (request) => ({
-        ...request,
-        signal: request.signal
-          ? AbortSignal.any([request.signal, intent.signal])
-          : intent.signal,
-      }),
-    },
-    async () => ({ accessToken: "synthetic-token" }),
-  ).clubLogo(sportingId);
-  const converting = Promise.withResolvers<AbortSignal | null | undefined>();
-  const conversion = Promise.withResolvers<string>();
-  jest.mocked(binaryImagePreview).mockImplementationOnce((_blob, signal) => {
-    converting.resolve(signal);
-    return conversion.promise;
-  });
-  mockFetch.mockResolvedValue(
-    new Response("synthetic-image", {
-      headers: { "Content-Type": "image/png" },
-    }),
-  );
-  const result = client.query(options);
-  const rejected = expect(result).rejects.toMatchObject({ kind: "cancelled" });
-  const signal = await converting.promise;
-  try {
-    // When
-    intent.abort();
-    conversion.resolve("data:image/png;base64,c3ludGhldGlj");
-
-    // Then
-    await rejected;
-    expect(signal?.aborted).toBe(true);
-    expect(client.getQueryData(options.queryKey)).toBeUndefined();
   } finally {
     client.clear();
   }

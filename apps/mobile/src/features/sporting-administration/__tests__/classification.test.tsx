@@ -1,6 +1,12 @@
+import { useLayoutEffect } from "react";
+import { ClassificationVisitProvider } from "../forms/classification-visit";
 import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClientProvider,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import {
   getGetPoolClassificationQueryKey,
   getListClubTeamsQueryKey,
@@ -16,7 +22,7 @@ import {
 import { Alert, Pressable, Text } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
-import type { ComponentType } from "react";
+import type { ComponentType, PropsWithChildren } from "react";
 import RootLayout from "../../../app/_layout";
 import OnboardingRoute from "../../../app/onboarding";
 import OperationsLayout from "../../../app/(operations)/_layout";
@@ -106,7 +112,8 @@ let stored = {
   effective: classification as typeof classification | null,
 };
 let permissions: Record<string, boolean>;
-let client = createQueryClient();
+let client: QueryClient;
+let publicClient = createQueryClient();
 const environment = { ...process.env };
 /** Deterministic transport responses still pass through the real generated schema boundary. */
 function json(value: unknown, status = 200) {
@@ -148,7 +155,7 @@ async function respond(
 beforeEach(async () => {
   await completeDiscovery();
   jest.mocked(initializeV2Installation).mockResolvedValue();
-  client = createQueryClient();
+  publicClient = createQueryClient();
   stored = { id, revision: "r1", setting: null, effective: classification };
   permissions = {
     manageSportingClassification: true,
@@ -167,10 +174,21 @@ beforeEach(async () => {
 });
 afterEach(async () => {
   await cleanup();
-  client.clear();
+  client?.clear();
+  publicClient.clear();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
+/** Selects the real private lifetime client and disables read retries only for these failure scenarios. */
+function PrivateQueries({ children }: PropsWithChildren) {
+  const current = useQueryClient();
+  useLayoutEffect(() => {
+    client = current;
+    current.setQueryDefaults([], { retry: false });
+  }, [current]);
+  return children;
+}
+
 /** Uses real session, access, Query and theme owners; only device credentials and HTTP are controlled. */
 async function renderEditor(
   kind: "pack" | "pool" | "divisions" | "division" = "pool",
@@ -204,11 +222,17 @@ async function renderEditor(
     {
       initialUrl: "/",
       wrapper: ({ children }) => (
-        <QueryClientProvider client={client}>
+        <QueryClientProvider client={publicClient}>
           <ThemeProvider>
             <ApplicationAccessProvider>
               <AccountSessionProvider>
-                <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+                <PrivateQueries>
+                  <AccountFeedbackProvider>
+                    <ClassificationVisitProvider>
+                      {children}
+                    </ClassificationVisitProvider>
+                  </AccountFeedbackProvider>
+                </PrivateQueries>
               </AccountSessionProvider>
             </ApplicationAccessProvider>
           </ThemeProvider>
@@ -252,6 +276,17 @@ it("announces the pending division catalogue without inventing editable rows", a
 it("submits a complete pool override after confirmation and excludes inactive choices", async () => {
   // Given
   jest.spyOn(Alert, "alert");
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "PUT") {
+      stored = {
+        ...stored,
+        revision: "r2",
+        setting: { divisionId, format: "4x4", gender: "mixed" },
+      };
+      return Promise.resolve(json(stored));
+    }
+    return respond(url, options);
+  });
   const user = userEvent.setup();
   await renderEditor();
   await screen.findByRole("radio", { name: "Du pack" });
@@ -353,6 +388,13 @@ it("removes the complete pack default with explicit null", async () => {
   // Given
   stored.setting = classification;
   jest.spyOn(Alert, "alert");
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "PUT") {
+      stored = { ...stored, revision: "r2", setting: null };
+      return Promise.resolve(json(stored));
+    }
+    return respond(url, options);
+  });
   const user = userEvent.setup();
   await renderEditor("pack");
   await screen.findByRole("radio", { name: "Sans classification" });
@@ -423,38 +465,44 @@ it("retains dirty choices and displays conflicting scopes without applying a sub
     screen.getByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "2 × 2" });
   await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
   );
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+  ).toHaveLength(1);
 });
-it("requires a successful current-state read after an uncertain write and preserves the draft", async () => {
+it("preserves a failed write draft without requiring recovery or replaying the request", async () => {
   // Given
   stored.setting = classification;
   jest.spyOn(Alert, "alert");
-  const initialFetch = respond;
   mockFetch.mockImplementation((url, options) =>
     options?.method === "PUT"
       ? Promise.reject(new TypeError("Lost response"))
-      : initialFetch(url, options),
+      : respond(url, options),
   );
   const user = userEvent.setup();
   await renderEditor();
-  await screen.findByRole("button", { name: "Format" });
-  // When
   await user.press(await screen.findByRole("button", { name: "Format" }));
   await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
   await screen.findByRole("button", { name: "Format" });
+
+  // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await act(async () => nativeAlertAction("Enregistrer")());
-  await screen.findByRole("button", { name: "Relire la classification" });
-  stored = { ...stored, revision: "r2" };
-  await user.press(
-    await screen.findByRole("button", { name: "Relire la classification" }),
-  );
+
   // Then
+  await screen.findByText(
+    "Une erreur est survenue. Veuillez réessayer plus tard.",
+  );
   expect(
     screen.getByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+  );
+  expect(
+    screen.queryByRole("button", { name: "Relire la classification" }),
+  ).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
   ).toHaveLength(1);
@@ -462,6 +510,14 @@ it("requires a successful current-state read after an uncertain write and preser
 it("uses an independent explicit activity command with the division revision", async () => {
   // Given
   jest.spyOn(Alert, "alert");
+  let current = division;
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "PUT")
+      current = { ...division, revision: "d2", active: false };
+    return String(url).includes(`/divisions/${divisionId}`)
+      ? Promise.resolve(json(current))
+      : respond(url, options);
+  });
   const user = userEvent.setup();
   await renderEditor("division");
   // When
@@ -516,7 +572,7 @@ it("refuses an incomplete override without opening confirmation or writing", asy
   ).toBe(false);
 });
 
-it("keeps a failed recovery read blocking and never retries the uncertain write", async () => {
+it("keeps dirty choices through a failed ordinary refresh without retrying the write", async () => {
   // Given
   stored.setting = classification;
   jest.spyOn(Alert, "alert");
@@ -538,11 +594,11 @@ it("keeps a failed recovery read blocking and never retries the uncertain write"
   await screen.findByRole("button", { name: "Format" });
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await act(async () => nativeAlertAction("Enregistrer")());
-  await screen.findByRole("button", { name: "Relire la classification" });
-  failedRead = true;
-  await user.press(
-    await screen.findByRole("button", { name: "Relire la classification" }),
+  await screen.findByText(
+    "Une erreur est survenue. Veuillez réessayer plus tard.",
   );
+  failedRead = true;
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
   await screen.findByText(
@@ -559,7 +615,7 @@ it("keeps a failed recovery read blocking and never retries the uncertain write"
   ).toHaveLength(1);
 });
 
-it("reconciles uncertain deactivation before offering explicit reactivation", async () => {
+it("refreshes saved activity after a failed deactivation response before explicit reactivation", async () => {
   // Given
   jest.spyOn(Alert, "alert");
   const initialFetch = respond;
@@ -625,7 +681,12 @@ async function openRoutes() {
           <PermissionRefresh />
         </>
       ),
-      "(operations)/_layout": OperationsLayout,
+      "(operations)/_layout": () => (
+        <>
+          <OperationsLayout />
+          <PermissionRefresh />
+        </>
+      ),
       "(operations)/administration/maintenance": () => (
         <Text>Maintenance route</Text>
       ),
@@ -651,52 +712,32 @@ async function openRoutes() {
   );
 }
 
-it("retains a classification draft and uncertainty through actual protected-route removal", async () => {
+it("drops the local classification draft when its protected route is removed", async () => {
   // Given
   permissions = { manageSportingClassification: true };
   stored.setting = classification;
   const user = userEvent.setup();
   await openRoutes();
-  const permissionRead = Promise.withResolvers<Response>();
-  const initialFetch = respond;
-  mockFetch.mockImplementation((url, options) =>
-    String(url).endsWith("/accounts/me")
-      ? permissionRead.promise
-      : options?.method === "PUT"
-        ? Promise.reject(new TypeError("Lost response"))
-        : initialFetch(url, options),
-  );
-  await user.press(
-    await screen.findByRole("button", { name: "Relire les permissions" }),
-  );
-  await user.press(screen.getByText("Modifier la classification"));
+  await user.press(await screen.findByText("Modifier la classification"));
   await user.press(await screen.findByRole("button", { name: "Format" }));
   await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
   await screen.findByRole("button", { name: "Format" });
-  jest.spyOn(Alert, "alert");
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Enregistrer")());
-  await screen.findByRole("button", { name: "Relire la classification" });
 
   // When
-  await act(async () =>
-    permissionRead.resolve(
-      json(
-        {
-          type: "urn:blockout:problem:unavailable",
-          title: "Unavailable",
-          status: 503,
-        },
-        503,
-      ),
-    ),
+  permissions = {};
+  await user.press(
+    await screen.findByRole("button", { name: "Relire les permissions" }),
   );
+
+  // Then
   await waitFor(() =>
     expect(
       screen.queryByRole("button", { name: "Format" }),
     ).not.toBeOnTheScreen(),
   );
-  mockFetch.mockImplementation(initialFetch);
+
+  // When
+  permissions = { manageSportingClassification: true };
   await user.press(
     await screen.findByRole("button", { name: "Relire les permissions" }),
   );
@@ -705,24 +746,14 @@ it("retains a classification draft and uncertainty through actual protected-rout
   // Then
   expect(
     await screen.findByRole("button", { name: "Format" }),
-  ).toHaveAccessibilityValue({ text: "4 × 4" });
+  ).toHaveAccessibilityValue({ text: "6 × 6" });
   expect(
-    await screen.findByRole("button", { name: "Relire la classification" }),
-  ).toBeOnTheScreen();
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
-  );
-  // When
-  await act(async () => router.back());
-  // Then
-  expect(Alert.alert).toHaveBeenLastCalledWith(
-    "Abandonner les modifications ?",
-    "Votre brouillon n’a pas été enregistré.",
-    expect.any(Array),
-    expect.any(Object),
-  );
+    screen.queryByText("Modifications non enregistrées"),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+  ).toBe(false);
 });
-
 it("admits the divisions administration destination for the lifecycle grant alone", async () => {
   // Given
   permissions = { manageDivisionLifecycle: true };
@@ -748,7 +779,6 @@ it.each(["classification", "activity"])(
   async (operation) => {
     // Given
     const clubKey = getListClubTeamsQueryKey(id, { seasonId: inactiveId });
-    client.setQueryData(clubKey, { seasonId: inactiveId, items: [] });
     jest.spyOn(Alert, "alert");
     let accepted = false;
     mockFetch.mockImplementation((url, options) => {
@@ -772,6 +802,7 @@ it.each(["classification", "activity"])(
     });
     const user = userEvent.setup();
     await renderEditor(operation === "activity" ? "division" : "pool");
+    client.setQueryData(clubKey, { seasonId: inactiveId, items: [] });
 
     // When
     if (operation === "activity")
@@ -796,9 +827,9 @@ it.each(["classification", "activity"])(
     await waitFor(() =>
       expect(client.getQueryState(clubKey)?.isInvalidated).toBe(true),
     );
-    expect(client.getQueryState(["/application-access"])?.isInvalidated).toBe(
-      false,
-    );
+    expect(
+      publicClient.getQueryState(["/application-access"])?.isInvalidated,
+    ).toBe(false);
   },
 );
 
@@ -807,26 +838,28 @@ it("distinguishes a stale revision and uses the reread revision only on explicit
   stored.setting = classification;
   jest.spyOn(Alert, "alert");
   let refuse = true;
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "PUT"
-      ? Promise.resolve(
-          refuse
-            ? json(
-                {
-                  type: "urn:blockout:problem:stale-revision",
-                  title: "Conflict",
-                  status: 409,
-                },
-                409,
-              )
-            : json({
-                ...stored,
-                revision: "r3",
-                setting: { ...classification, format: "4x4" },
-              }),
-        )
-      : respond(url, options),
-  );
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method !== "PUT") return respond(url, options);
+    if (refuse) {
+      stored = { ...stored, revision: "r2" };
+      return Promise.resolve(
+        json(
+          {
+            type: "urn:blockout:problem:stale-revision",
+            title: "Conflict",
+            status: 409,
+          },
+          409,
+        ),
+      );
+    }
+    stored = {
+      ...stored,
+      revision: "r3",
+      setting: { ...classification, format: "4x4" },
+    };
+    return Promise.resolve(json(stored));
+  });
   const user = userEvent.setup();
   await renderEditor();
   await user.press(await screen.findByRole("button", { name: "Format" }));
@@ -861,33 +894,51 @@ it("distinguishes a stale revision and uses the reread revision only on explicit
   });
 });
 
-it("reauthorizes a held native confirmation after the current classification grant is revoked", async () => {
+it("retains dirty choices when the server refuses a confirmation after the grant was revoked", async () => {
   // Given
   jest.spyOn(Alert, "alert");
+  stored.setting = classification;
   const user = userEvent.setup();
   await renderEditor();
-  await user.press(await screen.findByRole("button", { name: "Enregistrer" }));
-
-  // When
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  await screen.findByRole("button", { name: "Format" });
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   permissions = { manageDivisionLifecycle: true };
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PUT"
+      ? Promise.resolve(
+          json(
+            {
+              type: "urn:blockout:problem:forbidden",
+              title: "Forbidden",
+              status: 403,
+            },
+            403,
+          ),
+        )
+      : respond(url, options),
+  );
   await act(async () =>
     client.refetchQueries({
-      predicate: ({ queryKey }) =>
-        queryKey.some((part) => part === "/accounts/me"),
+      predicate: ({ queryKey }) => queryKey.includes("/accounts/me"),
     }),
   );
+
+  // When
   await act(async () => nativeAlertAction("Enregistrer")());
 
   // Then
-  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
+  await screen.findByText(
+    "Une erreur est survenue. Veuillez réessayer plus tard.",
   );
   expect(
-    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
-  ).toBe(false);
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+  ).toHaveLength(1);
 });
-
 it("shows current activity on reentry for an operator with classification permission only", async () => {
   // Given
   permissions = { manageSportingClassification: true };
@@ -1010,16 +1061,7 @@ it("discards a held classification confirmation when its protected route is remo
   stored.setting = classification;
   const user = userEvent.setup();
   await openRoutes();
-  const permissionRead = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation((url, options) =>
-    String(url).endsWith("/accounts/me")
-      ? permissionRead.promise
-      : respond(url, options),
-  );
-  await user.press(
-    await screen.findByRole("button", { name: "Relire les permissions" }),
-  );
-  await user.press(screen.getByText("Modifier la classification"));
+  await user.press(await screen.findByText("Modifier la classification"));
   jest.spyOn(Alert, "alert");
   await user.press(await screen.findByRole("button", { name: "Enregistrer" }));
   const confirmation = jest
@@ -1031,17 +1073,9 @@ it("discards a held classification confirmation when its protected route is remo
     throw new Error("Missing native classification confirmation");
 
   // When
-  await act(async () =>
-    permissionRead.resolve(
-      json(
-        {
-          type: "urn:blockout:problem:unavailable",
-          title: "Unavailable",
-          status: 503,
-        },
-        503,
-      ),
-    ),
+  permissions = {};
+  await user.press(
+    await screen.findByRole("button", { name: "Relire les permissions" }),
   );
   await waitFor(() =>
     expect(
@@ -1364,7 +1398,7 @@ it("keeps an open format selector unavailable through a refused then failed clas
   expect(screen.queryByText("Une erreur est survenue")).toBeNull();
 });
 
-it("refuses a held save confirmation after its current classification read is refused", async () => {
+it("retains the draft when the server refuses a held save after its current read was refused", async () => {
   // Given
   jest.spyOn(Alert, "alert");
   stored.setting = classification;
@@ -1390,7 +1424,7 @@ it("refuses a held save confirmation after its current classification read is re
   // Then
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
-  ).toHaveLength(0);
+  ).toHaveLength(1);
   expect(
     screen.getByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });

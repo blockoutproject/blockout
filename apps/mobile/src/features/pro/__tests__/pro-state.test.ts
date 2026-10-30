@@ -1,7 +1,7 @@
+import type { SessionSnapshot, AccountSession } from "../../accounts";
 import Purchases, {
   type PurchasesEntitlementInfo,
 } from "react-native-purchases";
-import { createSessionGeneration, type AccountSession } from "../../accounts";
 import { customerInfo, entitlement } from "../test-support/customer-info";
 import {
   getProState,
@@ -19,21 +19,20 @@ jest.mock("react-native-purchases", () => ({
   },
 }));
 const { VERIFICATION_RESULT } = Purchases;
-
-let session: ReturnType<typeof createSessionGeneration>;
-let account: Pick<AccountSession, "status" | "getSnapshot">;
+let session: SessionSnapshot;
+let account: Pick<AccountSession, "status" | "subject" | "accountId">;
 let native: ProSessionState;
-
 beforeEach(() => {
-  session = createSessionGeneration();
-  session.setAccount(
-    session.getSnapshot().generation,
-    "00000000-0000-4000-8000-000000000001",
-  );
-  account = { status: "authenticated", getSnapshot: session.getSnapshot };
+  session = { subject: null, accountId: null };
+  session = {
+    subject: `auth0|${"00000000-0000-4000-8000-000000000001"}`,
+    accountId: "00000000-0000-4000-8000-000000000001",
+  };
+  account = { ...account, ...session };
+  account = { status: "authenticated", ...session };
   const active = { "Blockout Pro": entitlement() };
   native = {
-    session: session.getSnapshot(),
+    session: { ...session },
     association: "associated",
     operation: "idle",
     customerInfo: customerInfo({
@@ -43,27 +42,23 @@ beforeEach(() => {
     }),
   };
 });
-
 it("gives guests no former entitlement or operation presentation", () => {
   // Given
   const previous = { ...native, operation: "pending" as const };
-
   // When
-  session.invalidate();
+  session = { subject: null, accountId: null };
+  account = { ...account, ...session };
   account.status = "guest";
   const state = getProState(account, previous);
-
   // Then
   expect(state).toEqual({ status: "guest" });
 });
-
 it("requires usable-account establishment before consuming native state", () => {
   // Given
-  session.invalidate();
-
+  session = { subject: null, accountId: null };
+  account = { ...account, ...session };
   // When
   const state = getProState(account, native);
-
   // Then
   expect(state).toEqual({
     status: "unavailable",
@@ -71,7 +66,6 @@ it("requires usable-account establishment before consuming native state", () => 
     operation: "idle",
   });
 });
-
 it.each([
   "restoring",
   "authentication-error",
@@ -80,10 +74,8 @@ it.each([
 ] as const)("does not publish rights while authentication is %s", (status) => {
   // Given
   account.status = status;
-
   // When
   const state = getProState(account, native);
-
   // Then
   expect(state).toEqual({
     status: "unavailable",
@@ -91,16 +83,13 @@ it.each([
     operation: "idle",
   });
 });
-
 it.each(["pending", "failed"] as const)(
   "keeps association %s distinct from inactivity",
   (association) => {
     // Given
     const evidence = { ...native, association };
-
     // When
     const state = getProState(account, evidence);
-
     // Then
     expect(state).toEqual({
       status: "unavailable",
@@ -109,14 +98,11 @@ it.each(["pending", "failed"] as const)(
     });
   },
 );
-
 it("waits for association when there is no evidence for this session", () => {
   // Given
   const evidence = null;
-
   // When
   const state = getProState(account, evidence);
-
   // Then
   expect(state).toEqual({
     status: "unavailable",
@@ -124,7 +110,6 @@ it("waits for association when there is no evidence for this session", () => {
     operation: "idle",
   });
 });
-
 it.each([
   "idle",
   "failed",
@@ -136,10 +121,8 @@ it.each([
   (operation) => {
     // Given
     const evidence = { ...native, customerInfo: null, operation };
-
     // When
     const state = getProState(account, evidence);
-
     // Then
     expect(state).toEqual({
       status: "unavailable",
@@ -148,7 +131,6 @@ it.each([
     });
   },
 );
-
 it.each([
   { label: "paid with renewal disabled", values: { willRenew: false } },
   {
@@ -181,7 +163,10 @@ it.each([
       expirationDateMillis: null,
     },
   },
-] satisfies { label: string; values: Partial<PurchasesEntitlementInfo> }[])(
+] satisfies {
+  label: string;
+  values: Partial<PurchasesEntitlementInfo>;
+}[])(
   "preserves SDK-active $label without recalculating dates or inferring paid origin",
   ({ values }) => {
     // Given: dates intentionally precede today; only the SDK decides active/cache validity.
@@ -195,10 +180,8 @@ it.each([
         verification: VERIFICATION_RESULT.NOT_REQUESTED,
       }),
     };
-
     // When
     const state = getProState(account, evidence);
-
     // Then
     expect(state).toEqual({
       status: "active",
@@ -208,7 +191,6 @@ it.each([
     if (state.status === "active") expect(state.entitlement).toBe(right);
   },
 );
-
 it("uses the active map rather than historical rights, other entitlements or subscription products", () => {
   // Given
   const info = customerInfo({
@@ -222,14 +204,11 @@ it("uses the active map rather than historical rights, other entitlements or sub
     ...native,
     customerInfo: { ...info, activeSubscriptions: ["monthly"] },
   };
-
   // When
   const state = getProState(account, evidence);
-
   // Then
   expect(state).toEqual({ status: "inactive", operation: "idle" });
 });
-
 it.each([
   "cancelled",
   "pending",
@@ -241,10 +220,8 @@ it.each([
   (operation) => {
     // Given
     const evidence = { ...native, operation };
-
     // When
     const state = getProState(account, evidence);
-
     // Then
     expect(state).toEqual({
       status: "active",
@@ -253,7 +230,6 @@ it.each([
     });
   },
 );
-
 it.each([
   "cancelled",
   "pending",
@@ -272,32 +248,26 @@ it.each([
         verification: VERIFICATION_RESULT.NOT_REQUESTED,
       }),
     };
-
     // When
     const state = getProState(account, evidence);
-
     // Then
     expect(state).toEqual({ status: "inactive", operation });
   },
 );
-
-it.each([
-  "00000000-0000-4000-8000-000000000002",
-  "00000000-0000-4000-8000-000000000001",
-])(
+it.each(["00000000-0000-4000-8000-000000000002"])(
   "rejects a late read and operation across logout then account %s",
   async (nextAccount) => {
-    // Given: the real F05 generation owner; the native completion is controlled.
+    // Given: plain native principal snapshots; the native completion is controlled.
     const completion = Promise.withResolvers<ProSessionState>();
     const result = completion.promise.then((evidence) =>
       getProState(account, evidence),
     );
-
     // When
-    session.invalidate();
-    session.setAccount(session.getSnapshot().generation, nextAccount);
+    session = { subject: null, accountId: null };
+    account = { ...account, ...session };
+    session = { subject: `auth0|${nextAccount}`, accountId: nextAccount };
+    account = { ...account, ...session };
     completion.resolve({ ...native, operation: "completed" });
-
     // Then
     expect(await result).toEqual({
       status: "unavailable",
@@ -306,18 +276,16 @@ it.each([
     });
   },
 );
-
 it("discards prior rights immediately on a direct account switch", () => {
   // Given
   const previous = native;
-
   // When
-  session.setAccount(
-    session.getSnapshot().generation,
-    "00000000-0000-4000-8000-000000000002",
-  );
+  session = {
+    subject: `auth0|${"00000000-0000-4000-8000-000000000002"}`,
+    accountId: "00000000-0000-4000-8000-000000000002",
+  };
+  account = { ...account, ...session };
   const state = getProState(account, previous);
-
   // Then
   expect(state).toEqual({
     status: "unavailable",

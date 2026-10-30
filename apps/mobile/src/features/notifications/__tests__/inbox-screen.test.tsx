@@ -1,4 +1,4 @@
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -11,10 +11,7 @@ import {
 import { AppState, Text, type AppStateStatus } from "react-native";
 import { NotificationsScreen } from "../screens/notifications-screen";
 import { NotificationState } from "../state/notification-state";
-import {
-  createQueryClient,
-  bindSessionQueries,
-} from "../../../shared/query/query-client";
+import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import {
   AccountSessionProvider,
@@ -33,7 +30,7 @@ import { ApplicationAccessProvider } from "../../access/queries/use-application-
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { notificationResponse } from "../test-support/notification-data";
 import { notificationMessageSamples } from "../test-support/notification-message-samples";
-import { useLayoutEffect, type PropsWithChildren } from "react";
+import { useLayoutEffect, useState, type PropsWithChildren } from "react";
 import { setBadgeCountAsync } from "expo-notifications";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
@@ -66,6 +63,7 @@ jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ push: mockPush }),
   useNavigation: () => mockNavigation,
+  useIsFocused: () => mockFocused,
 }));
 const mockPush = jest.fn();
 let mockFocused = true;
@@ -78,6 +76,7 @@ const mockNavigation = {
 const mockFetch = jest.fn();
 const env = { ...process.env };
 let client = createQueryClient();
+let privateClient: ReturnType<typeof createQueryClient>;
 const row = notificationResponse();
 let rows = [row];
 let total = 7;
@@ -88,14 +87,15 @@ let readResponseLost = false;
 /** Native and HTTP are controlled; session, admission, Query, generated clients and visible controls stay real. */
 function Harness({ children }: PropsWithChildren) {
   const session = useAccountSession();
+  const cache = useQueryClient();
+  useLayoutEffect(() => {
+    privateClient = cache;
+  }, [cache]);
+  useState(() => cache.setDefaultOptions({ queries: { retry: false } }));
   useLayoutEffect(() => {
     currentSession = session;
   }, [session]);
   useCurrentAccount();
-  useLayoutEffect(
-    () => bindSessionQueries(client, session.subscribe, session.isCurrent),
-    [session.subscribe, session.isCurrent],
-  );
   return (
     <AccountFeedbackProvider>
       <NotificationState>{children}</NotificationState>
@@ -132,6 +132,7 @@ async function response(url: string, init: RequestInit): Promise<Response> {
 beforeEach(() => {
   jest.useFakeTimers({ now: new Date("2026-10-27T12:00:00Z") });
   client = createQueryClient();
+  client.setDefaultOptions({ queries: { retry: false } });
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "synthetic-client";
@@ -153,6 +154,7 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  privateClient?.clear();
   await jest.runOnlyPendingTimersAsync();
   jest.useRealTimers();
   process.env = { ...env };
@@ -251,7 +253,7 @@ it("keeps four family choices in server order through refresh and reopening", as
   ).toBeNull();
 });
 
-it("keeps confirmed reading after navigation fails, including a discreet lost-response observation", async () => {
+it("refreshes read state after a lost response even when navigation fails", async () => {
   // Given
   readResponseLost = true;
   mockPush.mockImplementation(() => {
@@ -277,9 +279,9 @@ it("keeps confirmed reading after navigation fails, including a discreet lost-re
 
 it("revalidates cached cards on focus without pulling, and shows progress only for a manual pull", async () => {
   // Given: automatic focus and the native pull use the same real Query read owner.
-  await showInbox();
+  const view = await showInbox();
   await screen.findByRole("link", { name: /non lue$/ });
-  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
   let finishRead: (value: Response) => void = () => undefined;
   const delayedRead = jest.fn(
     () =>
@@ -298,6 +300,10 @@ it("revalidates cached cards on focus without pulling, and shows progress only f
   expect(focus).toBeDefined();
 
   // When
+  mockFocused = false;
+  await view.rerender(<NotificationsScreen />);
+  mockFocused = true;
+  await view.rerender(<NotificationsScreen />);
   await act(async () => focus?.());
   await waitFor(() => expect(delayedRead).toHaveBeenCalledTimes(1));
   await act(async () => jest.advanceTimersByTimeAsync(1));
@@ -306,7 +312,7 @@ it("revalidates cached cards on focus without pulling, and shows progress only f
   expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
   expect(screen.getByRole("link", { name: /non lue$/ })).toBeOnTheScreen();
   await act(async () => finishRead(Response.json({ notifications: rows })));
-  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
 
   // When
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");

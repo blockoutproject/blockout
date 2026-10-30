@@ -1,5 +1,6 @@
+import { createInstallationAdvertisingPrivacy } from "../../advertising/advertising-privacy";
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   cleanup,
@@ -12,7 +13,7 @@ import {
 import { renderRouter } from "expo-router/testing-library";
 import { Stack } from "expo-router";
 import { Dimensions, Linking, Text } from "react-native";
-import { useLayoutEffect } from "react";
+import { useEffect, useState, useLayoutEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import TabsLayout from "../../../app/(ordinary)/(tabs)/_layout";
 import NotificationsRoute from "../../../app/(ordinary)/(tabs)/notifications";
@@ -22,15 +23,9 @@ import SearchFiltersRoute from "../../../app/(ordinary)/(tabs)/search/(sheets)/f
 import SearchChoiceRoute from "../../../app/(ordinary)/(tabs)/search/(sheets)/choice";
 import MatchRoute from "../../../app/(ordinary)/matches/[matchId]";
 import { NotificationState } from "../state/notification-state";
-import {
-  createQueryClient,
-  bindSessionQueries,
-} from "../../../shared/query/query-client";
+import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import {
-  AccountSessionProvider,
-  useAccountSession,
-} from "../../accounts/session/account-session-provider";
+import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import { accountResponse } from "../../accounts/test-support/account-response";
 import {
@@ -83,23 +78,28 @@ const mockFetch = jest.fn();
 const env = { ...process.env };
 const row = notificationResponse();
 let client = createQueryClient();
+let privateClient: ReturnType<typeof createQueryClient>;
 let total = 7;
 const streamUrl =
   "https://www.youtube.com/watch?v=synthetic&edition=exact%2Fone";
 let match: MatchDetailResponse;
 
 /** Real inbox/match Router and session/privacy owners; native SDKs and HTTP remain controlled. */
-function SessionRoutes() {
-  const session = useAccountSession();
-  useLayoutEffect(
-    () => bindSessionQueries(client, session.subscribe, session.isCurrent),
-    [session.subscribe, session.isCurrent],
-  );
+function SessionRoutes({
+  privacy,
+}: {
+  privacy: ReturnType<typeof createInstallationAdvertisingPrivacy>;
+}) {
+  const cache = useQueryClient();
+  useLayoutEffect(() => {
+    privateClient = cache;
+  }, [cache]);
+
   return (
     <AccountFeedbackProvider>
       <AccessAdmissionProvider>
         <ProProvider>
-          <AgeDeclarationProvider enabled>
+          <AgeDeclarationProvider enabled privacy={privacy}>
             <NotificationState>
               <Stack screenOptions={{ headerShown: false }} />
             </NotificationState>
@@ -112,13 +112,15 @@ function SessionRoutes() {
 
 /** Owns one cache and the real gesture root; pager/list geometry remains a controlled native boundary. */
 function Root() {
+  const [privacy] = useState(createInstallationAdvertisingPrivacy);
+  useEffect(() => () => privacy.dispose(), [privacy]);
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={client}>
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              <SessionRoutes />
+              <SessionRoutes privacy={privacy} />
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
@@ -189,6 +191,7 @@ beforeEach(async () => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  privateClient?.clear();
   await jest.runOnlyPendingTimersAsync();
   jest.useRealTimers();
   process.env = { ...env };
@@ -410,7 +413,7 @@ it("removes the zero-count tab badge after a confirmed summary refresh", async (
   expect(screen.queryByText("7")).toBeNull();
 });
 
-it("restarts from newest on tab return while a continuation is still in flight", async () => {
+it("retains native in-flight pagination on tab return and allows explicit refresh afterward", async () => {
   // Given
   const delayed = Promise.withResolvers<Response>();
   const newest = {
@@ -447,17 +450,20 @@ it("restarts from newest on tab return while a continuation is still in flight",
     screen.getByRole("button", { name: "Notifications, 7 non lues" }),
   );
 
+  // Then: returning to an existing observer does not replace its in-flight native page.
+  expect(
+    await screen.findByRole("link", { name: /^Le résultat/ }),
+  ).toBeOnTheScreen();
+  await act(async () => delayed.resolve(Response.json({ notifications: [] })));
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
   // Then
   expect(
     await screen.findByRole("link", { name: /^Nouvelle information/ }),
   ).toBeOnTheScreen();
   expect(screen.queryByRole("link", { name: /^Le résultat/ })).toBeNull();
-  await act(async () =>
-    delayed.resolve(Response.json({ notifications: [row] })),
-  );
-  expect(
-    screen.getByRole("link", { name: /^Nouvelle information/ }),
-  ).toBeOnTheScreen();
 });
 
 it("retains every native tab action and its full accessible name with enlarged text in a narrow window", async () => {

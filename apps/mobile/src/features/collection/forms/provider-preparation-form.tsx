@@ -1,13 +1,13 @@
+import { ApiError } from "../../../shared/api/api-fetch";
 import { SeasonIdentity, SourceBadge } from "../components/source-summary";
 import { Surface } from "../../../shared/components/surface";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
-import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { useFormState } from "react-hook-form";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useRouter } from "expo-router";
 import { ChevronRight, Globe, Trophy } from "lucide-react-native";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type {
   CollectionProviderEnum,
@@ -15,47 +15,35 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { Button } from "../../../shared/components/button";
 import { EmptyState } from "../../../shared/components/state-card";
-
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import type { useSeasonPreparation } from "../api/use-source-preparation";
-
 import { CreateSourceForm } from "./create-source-form";
-import { providerPreparationEditor } from "./provider-preparation-editor";
+import { useProviderPreparationDraft } from "./use-provider-preparation-draft";
 import { createSourceValues } from "./create-source-values";
 
-/** Shares the original season revision and launch selection with its retained manual-source draft. */
+/** Shares a coherent season revision and selection with the mounted manual-source form. */
 export interface ProviderPreparationFormProps {
   season: CollectionSeasonResponse;
   provider: CollectionProviderEnum;
   editing: ReturnType<typeof useSeasonPreparation>;
 }
-
-/** A season-revision snapshot protects the explicit selection and the manual addition form through reconciliation. */
+/** Keeps the original selection baseline until explicit reset or accepted save. */
 export function ProviderPreparationForm({
   season,
   provider,
   editing,
 }: ProviderPreparationFormProps) {
   const { authority } = editing;
-  const { session } = authority;
   const router = useRouter();
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();
   const confirmAction = useActionConfirmation();
   const mounted = useRef(false);
-  const [editor] = useState(() =>
-    providerPreparationEditor(session, season, provider),
-  );
-  const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
+  const editor = useProviderPreparationDraft(season);
+  const state = editor.state;
   const { baseline, selected, adding } = state;
-  const feedback =
-    state.feedback ??
-    (editing.create.needsRead
-      ? "Le résultat doit être vérifié avant une nouvelle action."
-      : editing.seasonInvalidated
-        ? "L’état de la saison doit être relu avant une nouvelle action."
-        : undefined);
+  const feedback = state.feedback ?? undefined;
   const { isDirty } = useFormState({ control: editor.form.control });
   const confirmDiscard = useDiscardChanges(isDirty, editor.discard);
   useEffect(() => {
@@ -72,13 +60,11 @@ export function ProviderPreparationForm({
   const busy =
     editing.sources.isError ||
     !authority.enabled ||
-    editing.create.pending ||
+    editing.create.isPending ||
+    editing.launch.isPending ||
     editing.season.isFetching ||
     editing.sources.isFetching;
-  const reconciliationRequired =
-    editing.create.needsRead ||
-    editing.seasonInvalidated ||
-    season.revision > baseline.revision;
+  const reconciliationRequired = season.revision > baseline.revision;
   const rereadRequired = reconciliationRequired || editing.season.isError;
   const ready = sources
     .filter(
@@ -94,38 +80,25 @@ export function ProviderPreparationForm({
     selection.length > 0 &&
     selection.every((id) => ready.includes(id));
   const Icon = provider === "lnv" ? Trophy : Globe;
-
-  /** Cancels only this addition; the retained provider owner still protects subsequent drafts. */
+  /** Cancels this mounted addition through the ordinary dirty-form confirmation. */
   async function cancelAddition() {
-    if (editing.create.isPending()) return;
+    if (editing.create.isPending) return;
     const accepted = await confirmDiscard(() => {
-      if (
-        mounted.current &&
-        session.isCurrent(session.generation) &&
-        !editing.create.isPending()
-      )
+      if (mounted.current && !editing.create.isPending)
         editor.form.reset(createSourceValues());
     });
-    if (
-      !accepted ||
-      !mounted.current ||
-      !session.isCurrent(session.generation) ||
-      editing.create.isPending()
-    )
-      return;
-    editor.update({ ...editor.getSnapshot(), adding: false });
+    if (!accepted || !mounted.current || editing.create.isPending) return;
+    editor.update({ ...editor.state, adding: false });
   }
-
-  /** Leaves selection and manual values intact; only uncertain/conflicting commands require reconciliation. */
+  /** Preserves mounted input and reports a server revision conflict distinctly. */
   function failed(error: unknown) {
-    if (!session.isCurrent(session.generation)) return;
-    if (requiresRevisionRead(error)) {
+    if (error instanceof ApiError && error.status === 409) {
       editor.update({
-        ...editor.getSnapshot(),
+        ...editor.state,
         feedback: "Le résultat doit être vérifié avant une nouvelle action.",
       });
     } else {
-      editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      editor.update({ ...editor.state, feedback: undefined });
       actionFeedback.error();
     }
   }
@@ -150,25 +123,17 @@ export function ProviderPreparationForm({
   }
   /** Sends exactly the selection against its read revision and clears it only after confirmed acceptance. */
   async function launch(confirmed: string[]) {
-    if (
-      !session.isCurrent(session.generation) ||
-      busy ||
-      rereadRequired ||
-      !canLaunch
-    )
-      return;
+    if (busy || rereadRequired || !canLaunch) return;
     try {
-      const attempt = editing.launch.start({
+      const attempt = editing.launch.mutateAsync({
         revision: baseline.revision,
         sourceBindingIds: confirmed,
       });
-      if (!attempt) return;
-      editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      editor.update({ ...editor.state, feedback: undefined });
       actionFeedback.clear();
       const accepted = await attempt;
-      if (!session.isCurrent(session.generation)) return;
       editor.update({
-        ...editor.getSnapshot(),
+        ...editor.state,
         baseline: accepted,
         selected: null,
         feedback: "Sources sélectionnées lancées.",
@@ -179,22 +144,10 @@ export function ProviderPreparationForm({
   }
   /** Reads the entire launch context; a failed half-read cannot unlock an old selection or replay its command. */
   async function reread() {
-    const {
-      result: [seasonResult, sourcesResult],
-      reconciled,
-    } = await editing.create.reconcile(
-      [editing.seasonKey, editing.sourcesKey],
-      () => Promise.all([editing.season.refetch(), editing.sources.refetch()]),
-      ([seasonRead, sourcesRead]) =>
-        !seasonRead.isError &&
-        !!seasonRead.data &&
-        seasonRead.data.revision >= baseline.revision &&
-        !sourcesRead.isError &&
-        !!sourcesRead.data,
-    );
-    if (!mounted.current || !session.isCurrent(session.generation)) return;
+    const [seasonResult, sourcesResult] = await (() =>
+      Promise.all([editing.season.refetch(), editing.sources.refetch()]))();
+    if (!mounted.current) return;
     if (
-      !reconciled ||
       seasonResult.isError ||
       sourcesResult.isError ||
       !seasonResult.data ||
@@ -205,7 +158,7 @@ export function ProviderPreparationForm({
       return;
     }
     editor.update({
-      ...editor.getSnapshot(),
+      ...editor.state,
       baseline: seasonResult.data,
       feedback: "État relu. Vérifiez votre saisie avant une nouvelle action.",
     });
@@ -269,7 +222,7 @@ export function ProviderPreparationForm({
             fullWidth
             onPress={confirmLaunch}
             disabled={busy || rereadRequired || !canLaunch}
-            loading={editing.launch.executing}
+            loading={editing.launch.isPending}
           />
           {selected !== null && !canLaunch && (
             <Button

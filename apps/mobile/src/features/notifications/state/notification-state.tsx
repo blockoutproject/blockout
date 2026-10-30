@@ -1,6 +1,4 @@
-import { getSessionQueryKey } from "../../../shared/query/query-client";
 import {
-  queryOptions,
   useInfiniteQuery,
   useQuery,
   useQueryClient,
@@ -24,38 +22,29 @@ import {
   expireInbox,
   notificationExpiry,
 } from "./inbox-expiry";
-
 /** Mounts current private synchronization under ordinary access, with no secondary cache or session owner. */
 export function NotificationState({ children }: PropsWithChildren) {
   const { session, queries } = useInboxQueries();
-  // Disabled observations still rerender for timer/cache decisions without starting private requests for guests.
-  const summary = useQuery(
-    queries?.summary ??
-      queryOptions({
-        queryKey: getSessionQueryKey(session.generation, [
-          "notification-summary-unavailable",
-        ]),
-        enabled: false,
-        queryFn: async () => ({ unreadCount: 0 }),
-      }),
-  );
-  useNotificationBadge(
-    session,
-    queries ? confirmedUnreadCount(summary.data) : undefined,
-  );
   return (
     <>
-      {queries && (
-        <InboxExpiry
-          key={`${session.generation}:${session.accountId}`}
-          queries={queries}
-        />
-      )}
+      {queries && <NotificationSync session={session} queries={queries} />}
       {children}
     </>
   );
 }
 
+/** Binds badge and retention work only while the actual inbox owner is mounted. */
+function NotificationSync({
+  session,
+  queries,
+}: {
+  session: import("../../accounts").SessionSnapshot;
+  queries: ReturnType<typeof createInboxQueries>;
+}) {
+  const summary = useQuery(queries.summary);
+  useNotificationBadge(session, confirmedUnreadCount(summary.data));
+  return <InboxExpiry queries={queries} />;
+}
 /** One ordinary timeout follows the earliest loaded or summary expiry; resume checks age before refresh. */
 function InboxExpiry({
   queries,
@@ -103,7 +92,7 @@ function InboxExpiry({
           if (Date.now() < deadline) arm();
           else void onExpiry();
         },
-        Math.max(0, Math.min(deadline - Date.now(), 2_147_483_647)),
+        Math.max(0, Math.min(deadline - Date.now(), 2147483647)),
       );
     }
     arm();

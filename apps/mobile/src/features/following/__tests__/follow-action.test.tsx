@@ -1,8 +1,14 @@
+import {
+  useLayoutEffect,
+  type PropsWithChildren,
+  useEffect,
+  type ReactNode,
+  type ReactElement,
+} from "react";
+import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { useEffect, type ReactNode, type ReactElement } from "react";
-import { QueryClientProvider, useInfiniteQuery } from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -11,15 +17,10 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { Text, View } from "react-native";
+import { Text } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Button } from "../../../shared/components/button";
 import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
-import {
-  createQueryClient,
-  bindSessionQueries,
-  getSessionQueryKey,
-} from "../../../shared/query/query-client";
+import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import {
@@ -46,7 +47,6 @@ import {
   personalCalendarKey,
   followOptionsKey,
   followerCountKey,
-  type FollowingOwner,
 } from "../api/following-keys";
 
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
@@ -98,7 +98,10 @@ const profile = {
     moderateStreamLinks: false,
   },
 };
+const mockFollowStates = new Map<string, boolean>();
 let client = createQueryClient();
+// Failure presentation is isolated here; native retry defaults have their own Query suite.
+client.setQueryDefaults([], { retry: false });
 let session: AccountSession;
 let access: ReturnType<typeof useApplicationAccess>;
 const environment = { ...process.env };
@@ -123,9 +126,11 @@ async function renderFollowing(children: ReactElement) {
           <ThemeProvider>
             <ApplicationAccessProvider>
               <AccountSessionProvider>
-                <AccountFeedbackProvider>
-                  <SessionProbe>{children}</SessionProbe>
-                </AccountFeedbackProvider>
+                <PrivateQueries>
+                  <AccountFeedbackProvider>
+                    <SessionProbe>{children}</SessionProbe>
+                  </AccountFeedbackProvider>
+                </PrivateQueries>
               </AccountSessionProvider>
             </ApplicationAccessProvider>
           </ThemeProvider>
@@ -140,13 +145,19 @@ async function transport(url: string, request?: RequestInit) {
   if (url.endsWith("/application-access"))
     return Response.json(applicationAccessResponse());
   if (url.endsWith("/accounts/me")) return Response.json(profile);
-  if (request?.method === "PUT")
-    return Response.json(JSON.parse(String(request.body)));
-  return Response.json({ following: false });
+  if (request?.method === "PUT") {
+    const state = JSON.parse(String(request.body));
+    mockFollowStates.set(url, state.following);
+    return Response.json(state);
+  }
+  return Response.json({ following: mockFollowStates.get(url) ?? false });
 }
 
 beforeEach(() => {
+  mockFollowStates.clear();
   client = createQueryClient();
+  // Failure presentation is isolated here; native retry defaults have their own Query suite.
+  client.setQueryDefaults([], { retry: false });
   // TanStack's documented Jest setting avoids waiting for inactive-cache collection timers.
   client.setDefaultOptions({
     queries: { ...client.getDefaultOptions().queries, gcTime: Infinity },
@@ -174,70 +185,56 @@ afterEach(async () => {
   jest.useRealTimers();
 });
 
-it("shares the requested value and busy state across tabs, ignores repeated taps and keeps another target usable", async () => {
+it("owns pending UI per control and refreshes other controls from the server", async () => {
   // Given
-  const response = Promise.withResolvers<Response>();
+  const response = Promise.withResolvers<void>();
   mockFetch.mockImplementation((url, request) =>
     request?.method === "PUT" && url.includes("team-follows")
-      ? response.promise
+      ? response.promise.then(() => {
+          mockFollowStates.set(url, true);
+          return Response.json({ following: true });
+        })
       : transport(url, request),
   );
   const user = userEvent.setup();
   await renderFollowing(
     <>
-      <View accessibilityLabel="First tab">
-        <FollowButton target={team} season={season} />
-      </View>
-      <View accessibilityLabel="Other tab">
-        <FollowButton target={team} season={season} />
-      </View>
+      <FollowButton target={team} season={season} />
+      <FollowButton target={team} season={season} />
       <FollowButton target={pool} season={season} />
     </>,
   );
-  await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
     expect(
       screen.getAllByRole("button", { name: "Suivre", disabled: false }),
     ).toHaveLength(3),
   );
-
   // When
   await user.press(screen.getAllByRole("button", { name: "Suivre" })[0]);
+  // Then
   await waitFor(() =>
     expect(
       screen.getAllByRole("button", { name: "Suivi", busy: true }),
-    ).toHaveLength(2),
+    ).toHaveLength(1),
   );
-  await user.press(screen.getAllByRole("button", { name: "Suivi" })[1]);
-  await user.press(screen.getByRole("button", { name: "Suivre" }));
-
-  // Then
   expect(
-    mockFetch.mock.calls.filter(
-      ([url, request]) =>
-        request?.method === "PUT" && url.includes("team-follows"),
-    ),
-  ).toHaveLength(1);
-  expect(
-    await screen.findByRole("button", {
-      name: "Suivi",
-      selected: true,
-      busy: false,
-    }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.getByHintText(
-      "Saison 2026/2027. Retrouvez ce suivi dans cette saison ou Toutes les saisons.",
-    ),
-  ).toBeOnTheScreen();
+    screen.getAllByRole("button", { name: "Suivre", disabled: false }),
+  ).toHaveLength(2);
   // When
-  await act(async () => response.resolve(Response.json({ following: true })));
+  await user.press(screen.getAllByRole("button", { name: "Suivre" })[0]);
+  await act(async () => response.resolve());
   // Then
   await waitFor(() =>
     expect(
       screen.getAllByRole("button", { name: "Suivi", busy: false }),
-    ).toHaveLength(3),
+    ).toHaveLength(2),
   );
+  expect(
+    mockFetch.mock.calls.filter(
+      ([url, request]) =>
+        url.includes("team-follows") && request?.method === "PUT",
+    ),
+  ).toHaveLength(2);
 });
 
 it("invites a guest without retaining a command to replay after authentication", async () => {
@@ -413,75 +410,6 @@ it("rereads a temporarily hidden target when its public page is reopened after r
   ).toHaveLength(2);
 });
 
-it("does not resurrect a superseded failure when the successful second control unmounts", async () => {
-  // Given
-  let following = false;
-  let writes = 0;
-  mockFetch.mockImplementation((url, request) => {
-    if (request?.method === "PUT") {
-      if (++writes === 1)
-        return Promise.resolve(new Response(null, { status: 400 }));
-      following = JSON.parse(String(request.body)).following;
-      return Promise.resolve(Response.json({ following }));
-    }
-    return url.includes("team-follows")
-      ? Promise.resolve(Response.json({ following }))
-      : transport(url, request);
-  });
-  const user = userEvent.setup();
-  const rendered = await renderFollowing(
-    <>
-      <FollowButton key="first" target={team} season={season} />
-      <FollowButton key="second" target={team} season={season} />
-    </>,
-  );
-  await waitFor(() => expect(session.status).toBe("authenticated"));
-  await waitFor(() =>
-    expect(
-      screen.getAllByRole("button", { name: "Suivre", disabled: false }),
-    ).toHaveLength(2),
-  );
-  await user.press(screen.getAllByRole("button", { name: "Suivre" })[0]);
-  await screen.findByText(TECHNICAL_ERROR);
-  expect(screen.getAllByRole("alert")).toHaveLength(1);
-  await user.press(screen.getAllByRole("button", { name: "Suivre" })[1]);
-  await waitFor(() =>
-    expect(
-      screen.getAllByRole("button", { name: "Suivi", busy: false }),
-    ).toHaveLength(2),
-  );
-
-  // When
-  await rendered.rerender(
-    <>
-      <FollowButton key="first" target={team} season={season} />
-    </>,
-  );
-
-  // Then
-  // Exercise later collection of the detached success while the first control remains mounted.
-  // When
-  await act(async () => {
-    const cache = client.getMutationCache();
-    cache
-      .findAll({ status: "success" })
-      .forEach((completed) => cache.remove(completed));
-  });
-  // Then
-  expect(
-    screen.queryByText("La demande de suivi a échoué. Vous pouvez réessayer."),
-  ).not.toBeOnTheScreen();
-  // When
-  await user.press(screen.getByRole("button", { name: "Suivi" }));
-  // Then
-  await screen.findByRole("button", { name: "Suivre", busy: false });
-  expect(
-    mockFetch.mock.calls
-      .filter(([, request]) => request?.method === "PUT")
-      .map(([, request]) => JSON.parse(String(request?.body))),
-  ).toEqual([{ following: true }, { following: true }, { following: false }]);
-});
-
 it("keeps the confirmed member state when returning from an explicit maintenance bypass", async () => {
   // Given
   let maintenance = false;
@@ -524,7 +452,7 @@ it("keeps the confirmed member state when returning from an explicit maintenance
   revision = 1;
   await act(async () => {
     await access.retry();
-    access.bypass.request(session.getSnapshot(), true);
+    access.requestBypass(session, true);
   });
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
@@ -561,194 +489,7 @@ it("keeps the confirmed member state when returning from an explicit maintenance
   ).toBe(false);
 });
 
-it.each([403, 404])(
-  "retires an obsolete mutation refusal %s after a current read on another reopened control",
-  async (refusal) => {
-    // Given
-    let refuse = false;
-    let following = false;
-    mockFetch.mockImplementation((url, request) => {
-      if (request?.method === "PUT") {
-        if (refuse)
-          return Promise.resolve(new Response(null, { status: refusal }));
-        following = JSON.parse(String(request.body)).following;
-        return Promise.resolve(Response.json({ following }));
-      }
-      return url.includes("team-follows")
-        ? Promise.resolve(Response.json({ following }))
-        : transport(url, request);
-    });
-    const user = userEvent.setup();
-    const rendered = await renderFollowing(
-      <>
-        <FollowButton key="first" target={team} season={season} />
-      </>,
-    );
-    await waitFor(() => expect(session.status).toBe("authenticated"));
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
-    );
-    await user.press(screen.getByRole("button", { name: "Suivre" }));
-    await screen.findByRole("button", { name: "Suivi", busy: false });
-    refuse = true;
-    await user.press(screen.getByRole("button", { name: "Suivi" }));
-    await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-    });
-    expect(screen.getByRole("button", { name: "Suivi" })).toBeDisabled();
-    expect(screen.queryByText("Une erreur est survenue")).toBeNull();
-
-    // When
-    refuse = false;
-    await rendered.rerender(
-      <>
-        <FollowButton key="first" target={team} season={season} />
-        <FollowButton key="reopened" target={team} season={season} />
-      </>,
-    );
-
-    // Then
-    await waitFor(() =>
-      expect(
-        screen.getAllByRole("button", { name: "Suivi", disabled: false }),
-      ).toHaveLength(2),
-    );
-    expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen();
-    // When
-    await user.press(screen.getAllByRole("button", { name: "Suivi" })[1]);
-    // Then
-    await waitFor(() =>
-      expect(
-        screen.getAllByRole("button", { name: "Suivre", busy: false }),
-      ).toHaveLength(2),
-    );
-  },
-);
-
-it.each([403, 404])(
-  "keeps a newer current read refusal %s when an earlier saved write response arrives late",
-  async (refusal) => {
-    // Given
-    let hidden = false;
-    let following = false;
-    const response = Promise.withResolvers<Response>();
-    mockFetch.mockImplementation((url, request) => {
-      if (request?.method === "PUT") {
-        following = true;
-        hidden = true;
-        return response.promise;
-      }
-      if (url.includes("team-follows"))
-        return Promise.resolve(
-          hidden
-            ? new Response(null, { status: refusal })
-            : Response.json({ following }),
-        );
-      return transport(url, request);
-    });
-    const user = userEvent.setup();
-    const rendered = await renderFollowing(
-      <>
-        <FollowButton key="first" target={team} season={season} />
-      </>,
-    );
-    await waitFor(() => expect(session.status).toBe("authenticated"));
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
-    );
-    await user.press(screen.getByRole("button", { name: "Suivre" }));
-    await rendered.rerender(
-      <>
-        <FollowButton key="first" target={team} season={season} />
-        <FollowButton key="reopened" target={team} season={season} />
-      </>,
-    );
-    await waitFor(() =>
-      expect(screen.getAllByRole("button", { name: "Réessayer" })).toHaveLength(
-        2,
-      ),
-    );
-
-    // When
-    await act(async () => response.resolve(Response.json({ following: true })));
-    await waitFor(() => expect(client.isMutating()).toBe(0));
-
-    // Then
-    expect(screen.queryByText("Une erreur est survenue")).toBeNull();
-    expect(
-      screen.getAllByRole("button", { name: "Suivi", disabled: true }),
-    ).toHaveLength(2);
-    expect(screen.queryByText(/Suivi confirmé/)).not.toBeOnTheScreen();
-    expect(screen.queryByText("Accès refusé")).not.toBeOnTheScreen();
-    hidden = false;
-    // When
-    await user.press(
-      screen.getAllByRole("button", {
-        name: "Réessayer",
-      })[0],
-    );
-    // Then
-    await waitFor(() =>
-      expect(
-        screen.getAllByRole("button", { name: "Suivi", disabled: false }),
-      ).toHaveLength(2),
-    );
-  },
-);
-
-it.each([403, 404])(
-  "keeps refusal %s after the settled command is retired and its initiating control leaves",
-  async (refusal) => {
-    // Given: Query owns the restriction after the settled command is retired.
-    mockFetch.mockImplementation((url, request) =>
-      request?.method === "PUT"
-        ? Promise.resolve(new Response(null, { status: refusal }))
-        : transport(url, request),
-    );
-    const user = userEvent.setup();
-    const rendered = await renderFollowing(
-      <>
-        <FollowButton key="first" target={team} season={season} />
-        <FollowButton key="second" target={team} season={season} />
-      </>,
-    );
-    await waitFor(() => expect(session.status).toBe("authenticated"));
-    await waitFor(() =>
-      expect(
-        screen.getAllByRole("button", { name: "Suivre", disabled: false }),
-      ).toHaveLength(2),
-    );
-    await user.press(screen.getAllByRole("button", { name: "Suivre" })[0]);
-    await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-    });
-    expect(
-      screen.getAllByRole("button", { name: "Suivre", disabled: true }),
-    ).toHaveLength(2);
-
-    // When
-    await rendered.rerender(
-      <>
-        <FollowButton key="second" target={team} season={season} />
-      </>,
-    );
-
-    // Then
-    expect(client.getMutationCache().findAll({ status: "error" })).toHaveLength(
-      0,
-    );
-    expect(screen.queryByText("Une erreur est survenue")).toBeNull();
-    expect(screen.getByRole("button", { name: "Suivre" })).toBeDisabled();
-    expect(
-      mockFetch.mock.calls.filter(
-        ([url, request]) =>
-          url.includes("team-follows") && request?.method !== "PUT",
-      ),
-    ).toHaveLength(1);
-  },
-);
-
-it("applies authoritative success after the initiating control unmounts", async () => {
+it("invalidates after the initiating control unmounts and reads current truth on return", async () => {
   // Given
   const response = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url, request) =>
@@ -767,17 +508,30 @@ it("applies authoritative success after the initiating control unmounts", async 
   // When
   await user.press(screen.getByRole("button", { name: "Suivre" }));
   await rendered.rerender(<Text>Another page</Text>);
-  await act(async () => response.resolve(Response.json({ following: true })));
+  await act(async () => {
+    for (const [url, request] of mockFetch.mock.calls)
+      if (url.includes("team-follows") && request?.method !== "PUT")
+        mockFollowStates.set(url, true);
+    response.resolve(Response.json({ following: true }));
+  });
 
   // Then
   await waitFor(() =>
-    expect(client.getQueryData(followStateKey(owner, team))).toEqual({
-      following: true,
-    }),
+    expect(
+      client.getQueryState(followStateKey(owner, team))?.isInvalidated,
+    ).toBe(true),
   );
+  await rendered.rerender(<FollowButton target={team} season={season} />);
+  expect(
+    await screen.findByRole("button", {
+      name: "Suivi",
+      selected: true,
+      busy: false,
+    }),
+  ).toBeEnabled();
 });
 
-it("resets affected retained selections and invalidates options/count without touching another owner", async () => {
+it("invalidates owned selections and options/count without touching another owner", async () => {
   // Given
   const user = userEvent.setup();
   await renderFollowing(<FollowButton target={team} season={season} />);
@@ -817,109 +571,12 @@ it("resets affected retained selections and invalidates options/count without to
   await screen.findByRole("button", { name: "Suivi", busy: false });
 
   // Then
-  expect(client.getQueryData(listKey)).toBeUndefined();
-  expect(client.getQueryData(calendarKey)).toBeUndefined();
+  expect(client.getQueryState(listKey)?.isInvalidated).toBe(true);
+  expect(client.getQueryState(calendarKey)?.isInvalidated).toBe(true);
   expect(client.getQueryData(otherKey)).toBe("other owner");
   expect(client.getQueryState(optionsKey)?.isInvalidated).toBe(true);
   expect(client.getQueryState(bypassOptionsKey)?.isInvalidated).toBe(true);
   expect(client.getQueryState(countKey)?.isInvalidated).toBe(true);
-});
-
-/** Controlled future consumer: real infinite Query, no old initialData and enablement from visibility. */
-function DependentList({
-  owner,
-  visible,
-  read,
-}: {
-  owner: FollowingOwner;
-  visible: boolean;
-  read(page: number, signal: AbortSignal): Promise<string[]>;
-}) {
-  const list = useInfiniteQuery({
-    queryKey: followListKey(owner, "team", { seasonId: season.id }),
-    enabled: visible,
-    staleTime: Infinity,
-    initialPageParam: 0,
-    getNextPageParam: (_last: string[], pages: string[][]) => pages.length,
-    queryFn: ({ pageParam, signal }) => read(pageParam, signal),
-  });
-  return (
-    <>
-      {list.data?.pages.flat().map((item) => (
-        <Text key={item}>{item}</Text>
-      ))}
-      {list.isError && <Text>List read failed</Text>}
-      <Button label="Next page" onPress={() => void list.fetchNextPage()} />
-    </>
-  );
-}
-
-it("cancels old list traversal and reloads only visible first pages, keeping write success when that read fails", async () => {
-  // Given
-  const read = jest
-    .fn<Promise<string[]>, [number, AbortSignal]>()
-    .mockImplementationOnce(
-      (_page, signal) =>
-        new Promise((_resolve, reject) => {
-          signal.addEventListener(
-            "abort",
-            () => reject(new Error("cancelled")),
-            { once: true },
-          );
-        }),
-    )
-    .mockRejectedValueOnce(new Error("unavailable"))
-    .mockResolvedValue(["fresh first page"]);
-  const user = userEvent.setup();
-  const rendered = await renderFollowing(
-    <FollowButton target={team} season={season} />,
-  );
-  await waitFor(() => expect(session.status).toBe("authenticated"));
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
-  );
-  const owner = { ...session, accountId };
-  const listKey = followListKey(owner, "team", { seasonId: season.id });
-  client.setQueryData(listKey, {
-    pages: [["former first page"], ["former second page"]],
-    pageParams: [0, 1],
-  });
-  await rendered.rerender(
-    <>
-      <FollowButton target={team} season={season} />
-      <DependentList owner={owner} visible read={read} />
-    </>,
-  );
-  await user.press(screen.getByRole("button", { name: "Next page" }));
-  await waitFor(() => expect(read).toHaveBeenCalledTimes(1));
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Suivre" }));
-  await screen.findByText("List read failed");
-
-  // Then
-  expect(read.mock.calls.map(([page]) => page)).toEqual([2, 0]);
-  expect(read.mock.calls[0][1].aborted).toBe(true);
-  expect(screen.queryByText(/former/)).not.toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Suivi" })).toBeOnTheScreen();
-  expect(screen.queryByText(/demande de suivi a échoué/)).not.toBeOnTheScreen();
-  expect(client.getQueryData(followStateKey(owner, team))).toEqual({
-    following: true,
-  });
-  // When
-  await rendered.rerender(
-    <DependentList owner={owner} visible={false} read={read} />,
-  );
-  await act(async () => {
-    await client.resetQueries({ queryKey: listKey, exact: true });
-  });
-  // Then
-  expect(read).toHaveBeenCalledTimes(2);
-  // When
-  await rendered.rerender(<DependentList owner={owner} visible read={read} />);
-  // Then
-  expect(await screen.findByText("fresh first page")).toBeOnTheScreen();
-  expect(read.mock.calls.map(([page]) => page)).toEqual([2, 0, 0]);
 });
 
 it("preserves a confirmed write when the subsequent profile read fails", async () => {
@@ -942,7 +599,7 @@ it("preserves a confirmed write when the subsequent profile read fails", async (
   // When
   await act(async () => {
     await client.refetchQueries({
-      queryKey: getSessionQueryKey(owner.generation, getGetMyAccountQueryKey()),
+      queryKey: getGetMyAccountQueryKey(),
       exact: true,
     });
   });
@@ -962,15 +619,18 @@ it.each([true, false])(
   async (following) => {
     // Given
     let writes = 0;
+    let saved = !following;
     mockFetch.mockImplementation((url, request) => {
-      if (request?.method === "PUT")
+      if (request?.method === "PUT") {
+        if (writes > 0) saved = following;
         return Promise.resolve(
           ++writes === 1
             ? new Response(null, { status: 400 })
             : Response.json({ following }),
         );
+      }
       return url.includes("team-follows")
-        ? Promise.resolve(Response.json({ following: !following }))
+        ? Promise.resolve(Response.json({ following: saved }))
         : transport(url, request);
     });
     const user = userEvent.setup();
@@ -1001,11 +661,11 @@ it.each([true, false])(
         ([url, request]) =>
           url.includes("team-follows") && request?.method !== "PUT",
       ),
-    ).toHaveLength(1);
+    ).toHaveLength(3);
   },
 );
 
-it("observes current state once after losing a write response without announcing a confirmed write", async () => {
+it("refreshes current state after a lost write response while retaining ordinary failure feedback", async () => {
   // Given
   let saved = false;
   mockFetch.mockImplementation((url, request) => {
@@ -1030,7 +690,7 @@ it("observes current state once after losing a write response without announcing
   // Then
   expect(
     await screen.findByRole("button", {
-      name: "Suivi",
+      name: "Réessayer le suivi",
       selected: true,
       busy: false,
     }),
@@ -1105,94 +765,8 @@ it("shares an uncertain-write observation with an explicit member reread and can
   ).toHaveLength(1);
 });
 
-it("retains an uncertain follow across route disposal and cache expiry until a deliberate same-command retry", async () => {
-  // Given
-  jest.useFakeTimers();
-  client.setMutationDefaults([], { gcTime: 300_000 });
-  let attempted = false;
-  mockFetch.mockImplementation((url, request) => {
-    if (request?.method === "PUT") {
-      attempted = true;
-      return Promise.reject(new TypeError("response lost"));
-    }
-    if (url.includes("team-follows") && attempted)
-      return Promise.reject(new TypeError("read lost"));
-    return transport(url, request);
-  });
-  const user = userEvent.setup();
-  const rendered = await renderFollowing(
-    <FollowButton target={team} season={season} />,
-  );
-  await waitFor(() => expect(session.status).toBe("authenticated"));
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
-  );
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Suivre" }));
-
-  // Then
-  expect(
-    await screen.findByText(
-      "Le résultat du suivi n’a pas pu être confirmé. Vous pouvez réessayer la même demande.",
-    ),
-  ).toBeOnTheScreen();
-  expect(screen.queryByRole("button", { name: "Suivi" })).not.toBeOnTheScreen();
-  expect(screen.queryByText(/Suivi confirmé/)).not.toBeOnTheScreen();
-  expect(
-    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
-  ).toHaveLength(1);
-  expect(
-    mockFetch.mock.calls.filter(
-      ([url, request]) =>
-        url.includes("team-follows") && request?.method !== "PUT",
-    ),
-  ).toHaveLength(2);
-  // When: detached native mutation collection must not erase an unresolved result.
-  await rendered.rerender(<></>);
-  await act(async () => {
-    await jest.advanceTimersByTimeAsync(300_001);
-  });
-  await rendered.rerender(<FollowButton target={team} season={season} />);
-
-  // Then: the failed reopening read retains the original explicit replacement.
-  await waitFor(() =>
-    expect(
-      mockFetch.mock.calls.filter(
-        ([url, request]) =>
-          url.includes("team-follows") && request?.method !== "PUT",
-      ),
-    ).toHaveLength(3),
-  );
-  await waitFor(() => {
-    const state = client.getQueryState(
-      followStateKey({ ...session, accountId }, team),
-    );
-    expect(state?.fetchStatus).toBe("idle");
-    expect(state?.status).toBe("error");
-  });
-  await waitFor(() =>
-    expect(
-      screen.getByRole("button", { name: "Réessayer le suivi" }),
-    ).toBeEnabled(),
-  );
-  expect(
-    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
-  ).toHaveLength(1);
-  mockFetch.mockImplementation(transport);
-  // When
-  await user.press(screen.getByRole("button", { name: "Réessayer le suivi" }));
-  // Then
-  await screen.findByRole("button", { name: "Suivi", busy: false });
-  expect(
-    mockFetch.mock.calls
-      .filter(([, request]) => request?.method === "PUT")
-      .map(([, request]) => JSON.parse(String(request?.body))),
-  ).toEqual([{ following: true }, { following: true }]);
-});
-
 it.each(["guest", "other", "same"] as const)(
-  "rejects late completion after switching to %s",
+  "keeps a late original mutation out of the current native scope after switching to %s",
   async (destination) => {
     // Given
     const response = Promise.withResolvers<Response>();
@@ -1213,13 +787,15 @@ it.each(["guest", "other", "same"] as const)(
       expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
     );
     const owner = { ...session, accountId };
-    const unsubscribe = bindSessionQueries(
-      client,
-      session.subscribe,
-      session.isCurrent,
-    );
-    try {
+    {
       await user.press(screen.getByRole("button", { name: "Suivre" }));
+      await waitFor(() =>
+        expect(
+          mockFetch.mock.calls.filter(
+            ([, request]) => request?.method === "PUT",
+          ),
+        ).toHaveLength(1),
+      );
 
       // When
       await act(async () => {
@@ -1229,9 +805,9 @@ it.each(["guest", "other", "same"] as const)(
             destination === "same"
               ? accountId
               : "00000000-0000-4000-8000-000000000099";
-          mockAuth0.webAuth.mockResolvedValue(
-            credentialsFor(`auth0|${destination}`),
-          );
+          const credentials = credentialsFor(`auth0|${destination}`);
+          mockAuth0.webAuth.mockResolvedValue(credentials);
+          mockAuth0.getCredentials.mockResolvedValue(credentials);
           mockAuth0.saveCredentials.mockResolvedValue();
           await session.signIn("https://api.example.invalid");
         }
@@ -1248,10 +824,10 @@ it.each(["guest", "other", "same"] as const)(
       await waitFor(() =>
         expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
       );
-      expect(client.getQueryData(followStateKey(owner, team))).toBeUndefined();
+      expect(client.getQueryData(followStateKey(owner, team))).toEqual(
+        destination === "same" ? { following: false } : undefined,
+      );
       expect(screen.queryByText(/Suivi confirmé/)).not.toBeOnTheScreen();
-    } finally {
-      unsubscribe();
     }
   },
 );
@@ -1287,14 +863,14 @@ it("suspends the canonical confirmed relation when its maintenance bypass is cle
   await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() => expect(session.accountId).toBe(accountId));
   await act(async () => {
-    access.bypass.request(session.getSnapshot(), true);
+    access.requestBypass(session, true);
   });
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
   );
 
   // When
-  await act(async () => access.bypass.clear());
+  await act(async () => access.clearBypass());
   await user.press(screen.getByRole("button", { name: "Suivi" }));
 
   // Then: retained display data cannot authorize a new write.
@@ -1303,3 +879,15 @@ it("suspends the canonical confirmed relation when its maintenance bypass is cle
     mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
   ).toEqual([]);
 });
+
+/** Observes the actual private client installed by the native principal provider. */
+function PrivateQueries({ children }: PropsWithChildren) {
+  const privateClient = useQueryClient();
+  // Configure deterministic failure presentation before child Query observers mount.
+  privateClient.setQueryDefaults([], { retry: false, gcTime: Infinity });
+  privateClient.setMutationDefaults([], { gcTime: Infinity });
+  useLayoutEffect(() => {
+    client = privateClient;
+  }, [privateClient]);
+  return children;
+}

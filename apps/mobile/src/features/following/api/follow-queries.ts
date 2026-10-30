@@ -1,7 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import {
-  getTeamFollowState,
   getPoolFollowState,
+  getTeamFollowState,
 } from "../../../../.generated/mobile";
 import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
 import {
@@ -9,11 +9,10 @@ import {
   type FollowingOwner,
   type FollowingTarget,
 } from "./following-keys";
-import { retireSettledFollowAttempts } from "./follow-mutations";
 
 /**
  * Defines the sole confirmed member read for a captured account/session/target.
- * Observers and uncertain-write observations share its generated call, cancellation and cache.
+ * Observers share its generated call, cancellation and cache.
  * Fresh reads retire settled feedback only; a pending replacement remains provisional until it settles.
  */
 export function createFollowStateQueryOptions(
@@ -35,13 +34,8 @@ export function createFollowStateQueryOptions(
       const state = await (target.type === "team"
         ? getTeamFollowState(owner.accountId, target.id, options)
         : getPoolFollowState(owner.accountId, target.id, options));
-      if (
-        !owner.isCurrent(owner.generation) ||
-        signal.aborted ||
-        options.signal?.aborted
-      )
+      if (signal.aborted || options.signal?.aborted)
         throw new ApiError("cancelled");
-      retireSettledFollowAttempts(client, owner, target);
       return state;
     },
   });

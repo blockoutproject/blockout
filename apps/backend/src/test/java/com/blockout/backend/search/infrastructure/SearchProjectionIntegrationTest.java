@@ -575,8 +575,9 @@ class SearchProjectionIntegrationTest {
   }
 
   @Test
-  @DisplayName("A lost alias acknowledgement is resolved from native aliases before cleanup")
-  void resolvesUncertainAliasSuccess() throws Exception {
+  @DisplayName(
+      "A lost alias acknowledgement reports failure while already-published aliases remain usable")
+  void reportsUncertainAliasOutcome() throws Exception {
     // Given
     full();
     Map<Kind, String> candidate = writer.createGeneration();
@@ -610,10 +611,11 @@ class SearchProjectionIntegrationTest {
         new OpenSearchProjectionWriter(controlled, new SearchIndexProperties(PREFIX));
 
     // When
-    uncertain.publish(candidate);
-    uncertain.cleanup();
+    Throwable failure =
+        org.assertj.core.api.Assertions.catchThrowable(() -> uncertain.publish(candidate));
 
     // Then
+    assertThat(failure).isInstanceOf(SearchUnavailableException.class);
     assertThat(aliases().keySet()).containsExactlyInAnyOrderElementsOf(candidate.values());
     assertThat(document("clubs", CLUB).names()).containsExactly("Replacement");
   }

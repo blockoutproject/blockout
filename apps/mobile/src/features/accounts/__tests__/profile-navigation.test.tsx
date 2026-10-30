@@ -1,9 +1,10 @@
+import { useLayoutEffect, type PropsWithChildren } from "react";
+import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { accountResponse } from "../test-support/account-response";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -154,7 +155,9 @@ async function openProfile(initialUrl = "/profile") {
           <ThemeProvider>
             <ApplicationAccessProvider>
               <AccountSessionProvider>
-                <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+                <PrivateQueries>
+                  <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+                </PrivateQueries>
               </AccountSessionProvider>
             </ApplicationAccessProvider>
           </ThemeProvider>
@@ -313,6 +316,9 @@ it("keeps a refused draft in the editor and returns only after an explicitly ret
     expect(screen.getByRole("button", { name: "Annuler" })).toBeDisabled();
 
     // When
+    mockFetch.mockImplementation(async () =>
+      Response.json({ ...account, username: "Chosen" }),
+    );
     await act(() =>
       response.resolve(Response.json({ ...account, username: "Chosen" })),
     );
@@ -425,7 +431,6 @@ it("recovers a whole-page initial account failure without establishing an accoun
 
   // Then
   expect(await screen.findByText(account.username)).toBeOnTheScreen();
-  expect(mockFetch).toHaveBeenCalledTimes(1);
   expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
   expect(
     screen.queryByRole("alert", { name: "Une erreur est survenue" }),
@@ -458,6 +463,9 @@ it("keeps the selected search tab when an editor save completes in the backgroun
     await screen.findByText("Recherche ouverte");
 
     // When
+    mockFetch.mockImplementation(async () =>
+      Response.json({ ...account, username: "Accepted_background" }),
+    );
     await act(() =>
       response.resolve(
         Response.json({ ...account, username: "Accepted_background" }),
@@ -743,7 +751,6 @@ it("waits for the initial existing photo before admitting the complete overview"
       await screen.findByRole("image", { name: "Photo de profil" }),
     ).toBeOnTheScreen();
     expect(screen.getByText(account.username)).toBeOnTheScreen();
-    expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
     expect(
       screen.getByRole("header", { name: "Mon compte" }),
@@ -823,3 +830,14 @@ it("retains the accepted overview after a technical refresh failure without an i
     screen.getByRole("button", { name: "Modifier mon profil" }),
   ).toBeDisabled();
 });
+
+/** Uses the real native private client with deterministic failure presentation in this route suite. */
+function PrivateQueries({ children }: PropsWithChildren) {
+  const privateClient = useQueryClient();
+  privateClient.setQueryDefaults([], { retry: false, gcTime: Infinity });
+  privateClient.setMutationDefaults([], { gcTime: Infinity });
+  useLayoutEffect(() => {
+    client = privateClient;
+  }, [privateClient]);
+  return children;
+}

@@ -200,14 +200,6 @@ public interface CollectionBackend {
   Cycle admit(StartCycle command);
 
   /**
-   * Confirms the original cycle after an uncertain response.
-   *
-   * @param id original admission UUID
-   * @return current retained cycle after uncertainty; no new admission is created
-   */
-  Cycle cycle(UUID id);
-
-  /**
    * Reads one bounded page of the immutable admitted selection.
    *
    * @param cycleId admitted control

@@ -2,6 +2,10 @@
 
 Commands available for this repository are in [README verification](../../README.md#verification). The scenarios below remain future qualification unless explicitly covered by the scoped evidence at the end of this guide. Use F13's selected test tools and generated consumers, not invented Nx targets or an additional E2E framework.
 
+## Current native ownership qualification
+
+The 2026-10-30 simplification replaces the former client observation/revision ledger with the latest complete Query read, ordinary library recovery and native mutation invalidation. Form drafts belong to their mounted RHF visit. F05 owns a private cache per native principal; the public access query remains above that lifetime. Earlier dated observations below qualify their named revisions, including technical guarantees intentionally retired by the [current specification clarification](spec.md#clarifications); they do not certify the replacement. Backend maintenance, permissions and concurrent-edit revisions remain authoritative. Current execution results and unavailable provider/native boundaries are recorded with the delivery evidence.
+
 ## Prerequisites
 
 Use isolated PostgreSQL and native development builds with valid environment-specific Auth0 configuration. Prepare a guest, ordinary usable accounts and operators with separate grants; use no production credentials in committed fixtures. Have both settings groups loaded and controllable. Use F13's [contract qualification](../003-shared-quality/quickstart.md#contract-boundary), the [canonical operations](contracts/README.md#operations-and-semantics) and [data constraints](data-model.md), rather than duplicating their setup here.
@@ -159,7 +163,7 @@ The final affected check passes generation, ESLint, TypeScript, 61 suites/934 te
 npm run test --workspace=@blockout/mobile -- --runTestsByPath \
   src/features/access/__tests__/application-versions-settings.test.tsx \
   src/features/access/__tests__/application-versions-route.test.tsx \
-  src/features/access/__tests__/application-versions-editor.test.ts
+  src/features/access/__tests__/application-versions-draft.test.tsx
 NX_LOAD_DOT_ENV_FILES=false NX_DAEMON=false NX_ISOLATE_PLUGINS=false \
   npx nx run mobile:verify --output-style=static
 ```

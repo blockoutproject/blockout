@@ -1,4 +1,5 @@
-import { QueryClientProvider } from "@tanstack/react-query";
+import { useState, useLayoutEffect, type PropsWithChildren } from "react";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -90,6 +91,7 @@ const mockFetch = jest.fn<
 const previous = { ...process.env };
 const match = matchDetail();
 let client = createQueryClient();
+let privateClient: ReturnType<typeof createQueryClient>;
 let context = ownContributions();
 let rows: OwnStreamContributionResponse[] = [];
 let pages: number[] = [];
@@ -192,12 +194,13 @@ beforeEach(() => {
   });
 });
 afterEach(async () => {
-  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
   await act(async () => {
-    await client.cancelQueries();
+    await privateClient.cancelQueries();
   });
   await cleanup();
   client.clear();
+  privateClient?.clear();
   jest.restoreAllMocks();
   process.env = { ...previous };
 });
@@ -209,15 +212,26 @@ async function mount() {
       <ThemeProvider>
         <ApplicationAccessProvider>
           <AccountSessionProvider>
-            <AccountFeedbackProvider>
-              <OwnContributionsScreen matchId={match.match.id} />
-              <SessionExit />
-            </AccountFeedbackProvider>
+            <PrivateQueries>
+              <AccountFeedbackProvider>
+                <OwnContributionsScreen matchId={match.match.id} />
+                <SessionExit />
+              </AccountFeedbackProvider>
+            </PrivateQueries>
           </AccountSessionProvider>
         </ApplicationAccessProvider>
       </ThemeProvider>
     </QueryClientProvider>,
   );
+}
+/** Configures one-shot failure fixtures on the actual identity-owned cache before mounting feature readers. */
+function PrivateQueries({ children }: PropsWithChildren) {
+  const cache = useQueryClient();
+  useState(() => cache.setDefaultOptions({ queries: { retry: false } }));
+  useLayoutEffect(() => {
+    privateClient = cache;
+  }, [cache]);
+  return children;
 }
 /** Uses real session and profile commands for current-owner lifecycle scenarios. */
 function SessionExit() {
@@ -543,7 +557,7 @@ it("does not acquire an ownerless public contribution or offer actions for an em
   expect(patches).toHaveLength(0);
 });
 
-it("does not restore the acknowledged withdrawn editor when its following read fails", async () => {
+it("retains the private previous read after accepted withdrawal when its refresh fails", async () => {
   // Given
   const user = userEvent.setup();
   await mount();
@@ -557,25 +571,23 @@ it("does not restore the acknowledged withdrawn editor when its following read f
       ?.find((button: { style?: string }) => button.style === "destructive")
       ?.onPress?.();
   });
-  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
 
-  // Then
-  expect(screen.queryByLabelText("Adresse du lien")).not.toBeOnTheScreen();
-  expect(
-    screen.queryByRole("button", { name: "Retirer" }),
-  ).not.toBeOnTheScreen();
-  expect(screen.getByText("Lien retiré")).toBeOnTheScreen();
-  expect(screen.getByText("En attente de validation")).toBeOnTheScreen();
+  // Then: no second write is attempted, and the still-private history stays a previous server read.
+  expect(screen.getByLabelText("Adresse du lien")).toHaveDisplayValue(
+    "https://youtu.be/history-2",
+  );
+  expect(patches).toHaveLength(1);
   expect(mockDismissTo).toHaveBeenCalledWith({
     pathname: "/matches/[matchId]",
     params: { matchId: match.match.id },
   });
-  expect(patches).toEqual([
-    {
-      id: version(2, "active").id,
-      body: { action: "withdraw", revision: "initial" },
-    },
-  ]);
+  // When
+  failRead = false;
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  // Then
+  expect(await screen.findByText("Lien retiré")).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Adresse du lien")).not.toBeOnTheScreen();
 });
 
 it("does not dispatch an old confirmation after the original session changes", async () => {
@@ -909,7 +921,7 @@ it.each(["refresh", "reconcile", "acknowledgement"])(
           ?.onPress?.();
       });
     }
-    await waitFor(() => expect(client.isFetching()).toBe(0));
+    await waitFor(() => expect(privateClient.isFetching()).toBe(0));
     await user.scrollTo(screen.getByLabelText("Liste de mes propositions"), {
       y: 9000,
       contentSize: { width: 400, height: 10000 },
@@ -956,7 +968,7 @@ it("keeps original-owner history read-only through a technical profile refresh f
   await user.press(
     screen.getByRole("button", { name: "Actualiser le profil" }),
   );
-  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
 
   // Then
   expect(screen.getByText("Votre lien public")).toBeOnTheScreen();
@@ -990,7 +1002,7 @@ it.each([401, 403, 404])(
     await user.pullToRefresh(
       screen.getByLabelText("Liste de mes propositions"),
     );
-    await waitFor(() => expect(client.isFetching()).toBe(0));
+    await waitFor(() => expect(privateClient.isFetching()).toBe(0));
 
     // Then
     expect(
@@ -1003,7 +1015,7 @@ it.each([401, 403, 404])(
     // When: a later technical failure cannot undo the sporting refusal.
     failure = "technical";
     await user.press(await screen.findByRole("button", { name: "Réessayer" }));
-    await waitFor(() => expect(client.isFetching()).toBe(0));
+    await waitFor(() => expect(privateClient.isFetching()).toBe(0));
 
     // Then
     expect(
@@ -1116,7 +1128,7 @@ it("retains the draft and every authorized page with toast-only refresh failure 
   // When
   failRead = true;
   await user.pullToRefresh(screen.getByLabelText("Liste de mes propositions"));
-  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
   await user.scrollTo(screen.getByLabelText("Liste de mes propositions"), {
     y: 9000,
     contentSize: { width: 400, height: 10000 },
@@ -1218,7 +1230,7 @@ it.each([401, 403, 404])(
     const retry = await screen.findByRole("button", { name: "Réessayer" });
     failure = "technical";
     await user.press(retry);
-    await waitFor(() => expect(client.isFetching()).toBe(0));
+    await waitFor(() => expect(privateClient.isFetching()).toBe(0));
 
     // Then
     expect(
@@ -1264,7 +1276,7 @@ it.each([401, 403, 404])(
         ?.find((button: { style?: string }) => button.style === "destructive")
         ?.onPress?.();
     });
-    await waitFor(() => expect(client.isFetching()).toBe(0));
+    await waitFor(() => expect(privateClient.isFetching()).toBe(0));
 
     // Then
     expect(

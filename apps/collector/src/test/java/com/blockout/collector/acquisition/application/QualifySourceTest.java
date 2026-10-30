@@ -74,10 +74,9 @@ class QualifySourceTest {
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
 
     // When
-    boolean confirmed = service.execute(context);
+    service.execute(context);
 
     // Then
-    assertThat(confirmed).isTrue();
     verify(http).page(url);
     verify(backend)
         .validate(
@@ -89,7 +88,7 @@ class QualifySourceTest {
                 "2026/2027",
                 null,
                 null));
-    verify(backend, never()).cycle(any());
+
     verify(backend, never()).complete(any(), any());
   }
 

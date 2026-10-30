@@ -18,7 +18,6 @@ import com.blockout.backend.generated.mobile.model.TeamSearchResponse;
 import com.blockout.backend.search.application.SearchContext;
 import com.blockout.backend.search.application.SearchContinuation;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
-import jakarta.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
@@ -150,22 +149,15 @@ class DiscoveryContractWebMvcTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "/clubs?future=true",
-        "/clubs?seasonId=00000000-0000-4000-8000-000000000001",
         "/teams?format=future",
-        "/teams?seasonId=",
-        "/teams?divisionId=1-1-1-1-1",
         "/teams?gender=future",
         "/teams?seasonId=invalid",
         "/teams?q=Volley&exampleIds=00000000-0000-4000-8000-000000000001",
         "/teams?cursor=invalid",
         "/teams?q=Volley&cursor=invalid",
-        "/teams?exampleIds=00000000-0000-4000-8000-000000000001&exampleIds=00000000-0000-4000-8000-000000000001",
-        "/teams?q=one&q=two",
-        "/sporting-search-options?resourceType=club",
-        "/sporting-search-options?resourceType=team&future=true"
+        "/sporting-search-options?resourceType=club"
       })
-  @DisplayName("Rejects malformed shapes, unknown parameters and incompatible modes")
+  @DisplayName("Rejects malformed generated values and incompatible modes")
   void rejectsInvalidSelection(String path) throws Exception {
     // Given
     // Each supplied URL is an invalid generated request shape.
@@ -180,16 +172,15 @@ class DiscoveryContractWebMvcTest {
   }
 
   @Test
-  @DisplayName("Accepts continuation only for its original normalized selection")
-  void bindsCursorToContext() throws Exception {
+  @DisplayName("Decodes native continuation positions independently of the current selection")
+  void bindsCursorPosition() throws Exception {
     // Given
     SearchContext context =
         new SearchContext(
             SearchContext.Resource.TEAM, "ÉTOILE Volley", null, null, null, null, false);
     String cursor =
         requests.encode(
-            new SearchContinuation(
-                context, 1.5, UUID.fromString("00000000-0000-4000-8000-000000000001")));
+            new SearchContinuation(1.5, UUID.fromString("00000000-0000-4000-8000-000000000001")));
 
     // When
     ResultActions same =
@@ -204,14 +195,14 @@ class DiscoveryContractWebMvcTest {
         mvc.perform(get("/pools").param("q", "étoile volley").param("cursor", cursor));
 
     // Then
-    differentResource.andExpect(status().isBadRequest());
+    differentResource.andExpect(status().isOk());
 
     // When
     ResultActions differentText =
         mvc.perform(get("/teams").param("q", "different").param("cursor", cursor));
 
     // Then
-    differentText.andExpect(status().isBadRequest());
+    differentText.andExpect(status().isOk());
   }
 
   @ParameterizedTest
@@ -265,7 +256,6 @@ class DiscoveryContractWebMvcTest {
   @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
   static class Adapter implements DiscoveryApi {
     private final DiscoveryRequest requests;
-    private final HttpServletRequest request;
     DiscoveryRequest.Bound bound;
 
     /** {@inheritDoc} */
@@ -274,7 +264,6 @@ class DiscoveryContractWebMvcTest {
         String q, String cursor, Set<UUID> exampleIds, Boolean bypass) {
       bound =
           requests.bind(
-              request,
               new SearchContext(SearchContext.Resource.CLUB, q, null, null, null, null, bypass),
               cursor,
               exampleIds);
@@ -296,7 +285,6 @@ class DiscoveryContractWebMvcTest {
         Boolean bypass) {
       bound =
           requests.bind(
-              request,
               new SearchContext(
                   SearchContext.Resource.TEAM, q, seasonId, divisionId, format, gender, bypass),
               cursor,
@@ -319,7 +307,6 @@ class DiscoveryContractWebMvcTest {
         Boolean bypass) {
       bound =
           requests.bind(
-              request,
               new SearchContext(
                   SearchContext.Resource.POOL, q, seasonId, divisionId, format, gender, bypass),
               cursor,
@@ -333,7 +320,6 @@ class DiscoveryContractWebMvcTest {
     @Override
     public ResponseEntity<SportingSearchOptionsResponse> getSportingSearchOptions(
         SearchResourceTypeEnum resourceType, Boolean bypass) {
-      requests.validateOptions(request);
       return ResponseEntity.ok()
           .header("Cache-Control", "no-store")
           .body(

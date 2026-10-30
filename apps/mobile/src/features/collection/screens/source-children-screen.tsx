@@ -15,7 +15,6 @@ import { useNavigation, useRouter } from "expo-router";
 import { Layers } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
-
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { tokens } from "../../../shared/theme/tokens";
@@ -53,12 +52,10 @@ export function SourceChildrenScreen({
   async function loadMore() {
     if (
       !authority.enabled ||
-      !authority.session.isCurrent(authority.session.generation) ||
       !navigation.isFocused() ||
       !query.hasNextPage ||
       denied ||
-      query.isFetching ||
-      authority.account.isFetching
+      query.isFetching
     )
       return;
     feedback.clear();
@@ -67,7 +64,6 @@ export function SourceChildrenScreen({
       result.isFetchNextPageError &&
       result.data &&
       !isAccessDenied(result.error) &&
-      authority.session.isCurrent(authority.session.generation) &&
       navigation.isFocused()
     )
       feedback.error();
@@ -179,9 +175,7 @@ export function SourceChildrenScreen({
                     <ListContinuation
                       loading={query.isFetchingNextPage}
                       failed={query.isFetchNextPageError}
-                      disabled={
-                        query.isFetching || authority.account.isFetching
-                      }
+                      disabled={query.isFetching}
                       onRetry={loadMore}
                     />
                   </View>

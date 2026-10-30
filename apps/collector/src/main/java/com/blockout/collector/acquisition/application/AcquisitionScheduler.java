@@ -2,9 +2,7 @@ package com.blockout.collector.acquisition.application;
 
 import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionSeasonStateEnum;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
@@ -23,18 +21,13 @@ public class AcquisitionScheduler {
   private final DiscoverSeasonSources discovery;
   private final CollectPassage passages;
   private final QualifySource qualification;
-  // Local admission/acknowledgement ownership, which backend projections cannot establish.
-  private final Set<Scope> heldScopes = ConcurrentHashMap.newKeySet();
-
-  /** One control or candidate identity, independent of a later revision or request. */
-  private record Scope(UUID controlId, UUID sourceBindingId) {}
 
   /**
    * Wires managed native scheduling and bounded execution, without starting provider work.
    *
    * @param timer lenient scheduling clock
    * @param executor bounded passage executor with no pending queue
-   * @param lifecycle once-registered startup and uncertainty policy
+   * @param lifecycle once-registered startup and backend admission
    * @param discovery current entry discovery independent of seasons
    * @param passages existing admitted passage implementation
    * @param qualification exact admitted candidate qualification
@@ -75,7 +68,7 @@ public class AcquisitionScheduler {
     CollectionBackend.Work work = lifecycle.work();
     if (requests) {
       for (CollectionBackend.ValidationWork candidate : work.validations()) {
-        schedule(new Scope(null, candidate.sourceBindingId()), candidate.revision(), null);
+        schedule(null, candidate.sourceBindingId(), candidate.revision(), null);
       }
     }
     for (CollectionBackend.ControlWork control : work.controls()) {
@@ -90,63 +83,34 @@ public class AcquisitionScheduler {
                       && control.seasonState() != CollectionSeasonStateEnum.ACTIVE)))) continue;
       boolean minuteWork = control.requestId() != null || control.seasonId() == null;
       if (minuteWork != requests) continue;
-      schedule(new Scope(control.id(), null), control.revision(), control.requestId());
+      schedule(control.id(), null, control.revision(), control.requestId());
     }
   }
 
   /**
-   * Claims an opportunity before asynchronous admission; native saturation releases it immediately.
+   * Submits one opportunity; the backend alone serializes admitted work for its scope.
    *
-   * @param scope exact independent control or candidate
+   * @param controlId exact control, absent for validation
+   * @param sourceBindingId exact candidate, absent for collection
    * @param revision fresh configuration revision
-   * @param requestId pending control intent, absent for periodic work or validation
+   * @param requestId pending control intent, otherwise absent
    */
-  private void schedule(Scope scope, long revision, UUID requestId) {
-    if (!heldScopes.add(scope)) return;
-    if (!submit(() -> execute(scope, revision, requestId))) heldScopes.remove(scope);
-  }
-
-  /**
-   * Retains ownership from admission through terminal confirmation, including uncertain admission.
-   * Only a definite admission refusal or confirmed terminal result releases it. Current-work and
-   * COMPLETED projections cannot prove receipt of the original acknowledgement. Other scopes remain
-   * eligible; unresolved scopes require inspection and explicit process restart.
-   *
-   * @param scope identity already claimed locally
-   * @param revision configuration revision used by this single admission attempt
-   * @param requestId exact pending control intent, otherwise absent
-   */
-  private void execute(Scope scope, long revision, UUID requestId) {
-    CollectorLifecycle.AdmittedCycle context;
+  private void schedule(UUID controlId, UUID sourceBindingId, long revision, UUID requestId) {
     try {
-      context = lifecycle.admit(scope.controlId(), scope.sourceBindingId(), revision, requestId);
-    } catch (CollectionBackendFailure failure) {
-      if (failure.getKind() != CollectionBackendFailure.Kind.UNCONFIRMED) heldScopes.remove(scope);
-      throw failure;
-    }
-    boolean confirmed =
-        scope.sourceBindingId() == null
-            ? passages.execute(context)
-            : qualification.execute(context);
-    if (confirmed) heldScopes.remove(scope);
-  }
-
-  /**
-   * Rejects saturated work before admission; the next ordinary tick reads current intent again.
-   *
-   * @param work one admission and passage, never retained in a queue on saturation
-   * @return whether the native executor accepted the opportunity
-   */
-  private boolean submit(Runnable work) {
-    try {
-      executor.execute(() -> safely(work));
-      return true;
+      executor.execute(
+          () ->
+              safely(
+                  () -> {
+                    CollectorLifecycle.AdmittedCycle context =
+                        lifecycle.admit(controlId, sourceBindingId, revision, requestId);
+                    if (sourceBindingId == null) passages.execute(context);
+                    else qualification.execute(context);
+                  }));
     } catch (TaskRejectedException saturated) {
       log.atWarn()
           .addKeyValue("operation", "collection_schedule")
           .addKeyValue("outcome", "saturated")
           .log("Acquisition capacity is full; this opportunity was skipped");
-      return false;
     }
   }
 
@@ -170,7 +134,7 @@ public class AcquisitionScheduler {
           .addKeyValue("operation", "collection_schedule")
           .addKeyValue("outcome", "failed")
           .addKeyValue("exceptionType", failure.getClass().getSimpleName())
-          .log("Acquisition opportunity failed; inspect current state before recovery");
+          .log("Acquisition opportunity failed; the next tick reads current backend state");
     }
   }
 }

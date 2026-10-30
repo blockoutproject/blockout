@@ -10,7 +10,6 @@ import com.niamedtech.expo.exposerversdk.ExpoPushNotificationClient;
 import com.niamedtech.expo.exposerversdk.util.ObjectMapperFactory;
 import java.time.Clock;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.hc.client5.http.HttpResponseException;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -58,8 +57,8 @@ public class PushDeliveryConfiguration {
   }
 
   /**
-   * Uses Spring Boot's native HTTP builder with ordinary deadlines/redirects and no replay. The
-   * native status interceptor preserves typed HTTP refusal even when its body is empty.
+   * Uses Spring Boot's native HTTP builder; the SDK owns status decoding and refusal semantics.
+   * Automatic retries stay disabled for the detached POST operation.
    *
    * @param settings configured HTTP bounds and redirect policy from application.yaml
    * @return SDK-supported client, closed by Spring with this context
@@ -67,16 +66,7 @@ public class PushDeliveryConfiguration {
   @Bean(defaultCandidate = false)
   CloseableHttpClient pushHttpClient(HttpClientSettings settings) {
     return new HttpComponentsHttpClientBuilder()
-        .withCustomizer(
-            builder ->
-                builder
-                    .disableAutomaticRetries()
-                    .addResponseInterceptorLast(
-                        (response, entity, context) -> {
-                          if (response.getCode() >= 300)
-                            throw new HttpResponseException(
-                                response.getCode(), "Expo request refused");
-                        }))
+        .withCustomizer(builder -> builder.disableAutomaticRetries())
         .build(settings);
   }
 

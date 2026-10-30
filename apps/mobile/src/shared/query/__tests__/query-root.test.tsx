@@ -6,12 +6,10 @@ import {
   userEvent,
 } from "@testing-library/react-native";
 import { Stack } from "expo-router";
-import { useState, type ComponentType } from "react";
+import { type ComponentType } from "react";
 import { Pressable, Text } from "react-native";
 import RootLayout from "../../../app/_layout";
-import { useAccountSession } from "../../../features/accounts/session/account-session-provider";
 import { mockAuth0 } from "../../../features/accounts/test-support/native-auth0";
-import { getSessionQueryKey } from "../query-client";
 
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
@@ -43,11 +41,22 @@ jest.mock("@react-native-async-storage/async-storage", () =>
   ),
 );
 
+jest.mock("expo/fetch", () => ({
+  fetch: async () =>
+    Response.json(
+      jest
+        .requireActual("../../api/test-support/application-access")
+        .applicationAccessResponse(),
+    ),
+}));
+
 const originalConfiguration = {
+  EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
   EXPO_PUBLIC_AUTH0_DOMAIN: process.env.EXPO_PUBLIC_AUTH0_DOMAIN,
   EXPO_PUBLIC_AUTH0_CLIENT_ID: process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID,
 };
 beforeEach(() => {
+  process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
   mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(false);
@@ -65,8 +74,6 @@ afterEach(async () => {
 /** Reads and changes shared cache through the actual root provider, without a business route. */
 function CacheConsumer() {
   const client = useQueryClient();
-  const session = useAccountSession();
-  const [signedOut, setSignedOut] = useState(false);
   const { data } = useQuery({
     queryKey: ["root-cache-probe"],
     initialData: 3,
@@ -82,23 +89,10 @@ function CacheConsumer() {
         accessibilityLabel="Update cached count"
         onPress={() => {
           client.setQueryData(["root-cache-probe"], 4);
-          client.setQueryData(
-            getSessionQueryKey(session.generation, ["private-probe"]),
-            "private",
-          );
+          client.setQueryData(["private-probe"], "private");
         }}
       >
         <Text>Count: {data}</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Sign out"
-        onPress={async () => {
-          await session.signOut();
-          setSignedOut(true);
-        }}
-      >
-        <Text>Sign out</Text>
       </Pressable>
       <Text>
         Private probe cached:{" "}
@@ -109,7 +103,6 @@ function CacheConsumer() {
           ? "yes"
           : "no"}
       </Text>
-      {signedOut && <Text>Signed out locally</Text>}
     </>
   );
 }
@@ -119,7 +112,7 @@ it("scopes the route cache to the lifetime of one root", async () => {
   jest.mocked(Stack).mockImplementation(CacheConsumer);
   const user = userEvent.setup();
   const root = await render(<RootLayout />);
-  expect(screen.getByText("Count: 3")).toBeOnTheScreen();
+  expect(await screen.findByText("Count: 3")).toBeOnTheScreen();
 
   // When
   await user.press(screen.getByRole("button", { name: "Update cached count" }));
@@ -133,23 +126,5 @@ it("scopes the route cache to the lifetime of one root", async () => {
   await render(<RootLayout />);
 
   // Then
-  expect(screen.getByText("Count: 3")).toBeOnTheScreen();
-});
-
-it("removes private cache at local invalidation even when remote logout fails", async () => {
-  // Given: the root, session, Query and SDK React provider are real; native browser I/O rejects.
-  jest.mocked(Stack).mockImplementation(CacheConsumer);
-  mockAuth0.webAuthLogout.mockRejectedValue(new Error("Provider unavailable"));
-  const user = userEvent.setup();
-  await render(<RootLayout />);
-  await user.press(screen.getByRole("button", { name: "Update cached count" }));
-  expect(screen.getByText("Private probe cached: yes")).toBeOnTheScreen();
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Sign out" }));
-
-  // Then
-  expect(screen.getByText("Signed out locally")).toBeOnTheScreen();
-  expect(screen.getByText("Private probe cached: no")).toBeOnTheScreen();
-  expect(screen.getByText("Count: 4")).toBeOnTheScreen();
+  expect(await screen.findByText("Count: 3")).toBeOnTheScreen();
 });

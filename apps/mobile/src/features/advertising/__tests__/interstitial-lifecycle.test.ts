@@ -21,7 +21,6 @@ jest.mock("react-native-google-mobile-ads", () => ({
   InterstitialAd: { createForAdRequest: jest.fn(() => mockCreateAd()) },
 }));
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-
 const mockCreateAd = jest.fn(controlledInterstitial);
 const noFill: AdError = Object.assign(new Error("private provider payload"), {
   namespace: "googleMobileAds",
@@ -31,7 +30,6 @@ const noFill: AdError = Object.assign(new Error("private provider payload"), {
   reason: "no-fill",
   phase: "load" as const,
 });
-
 beforeEach(() =>
   mockCreateAd.mockReset().mockImplementation(controlledInterstitial),
 );
@@ -39,7 +37,6 @@ afterEach(() => {
   jest.restoreAllMocks();
   jest.useRealTimers();
 });
-
 /** One valid accepted sporting intent, with its own transient deduplication key. */
 function action() {
   return {
@@ -50,7 +47,6 @@ function action() {
     open: jest.fn(),
   };
 }
-
 /** Advances only accepted sporting actions; the SDK and time remain controlled by each test. */
 async function nineActions(
   lifecycle: ReturnType<typeof createInterstitialLifecycle>,
@@ -58,7 +54,6 @@ async function nineActions(
   for (let index = 0; index < 9; index++)
     await openSportingAdTransition(lifecycle, action());
 }
-
 it("preloads one instance with current request options and resets only on OPENED", async () => {
   // Given
   const { input } = advertisingContext();
@@ -71,12 +66,10 @@ it("preloads one instance with current request options and resets only on OPENED
   const ad = mockCreateAd.mock.results[0].value;
   await nineActions(lifecycle);
   ad.emit(AdEventType.LOADED);
-
   // When
   const destination = action();
   const result = openSportingAdTransition(lifecycle, destination);
   await Promise.resolve();
-
   // Then: a resolved show promise neither opens nor dismisses the ad.
   expect(InterstitialAd.createForAdRequest).toHaveBeenCalledWith("test-unit", {
     requestNonPersonalizedAdsOnly: true,
@@ -94,7 +87,6 @@ it("preloads one instance with current request options and resets only on OPENED
   expect(mockCreateAd).toHaveBeenCalledTimes(2);
   expect(mockCreateAd.mock.results[1].value.load).toHaveBeenCalledTimes(1);
 });
-
 it.each(["closed", "error", "rejected", "synchronous"])(
   "releases once on %s before destroy and ignores retired events",
   async (outcome) => {
@@ -118,7 +110,6 @@ it.each(["closed", "error", "rejected", "synchronous"])(
       ad.show.mockImplementation(() => {
         throw new Error("private provider payload");
       });
-
     // When
     const result = openSportingAdTransition(lifecycle, destination);
     if (outcome === "closed") ad.emit(AdEventType.CLOSED);
@@ -129,7 +120,6 @@ it.each(["closed", "error", "rejected", "synchronous"])(
     ad.emit(AdEventType.CLOSED);
     ad.emit(AdEventType.OPENED);
     ad.emit(AdEventType.LOADED);
-
     // Then
     expect(destination.open).toHaveBeenCalledTimes(1);
     expect(ad.destroy).toHaveBeenCalledTimes(1);
@@ -145,7 +135,6 @@ it.each(["closed", "error", "rejected", "synchronous"])(
     }
   },
 );
-
 it("waits for the next eligible sporting action after no-fill without treating it as an incident", async () => {
   // Given
   const { input } = advertisingContext();
@@ -155,7 +144,6 @@ it("waits for the next eligible sporting action after no-fill without treating i
   });
   lifecycle.preload();
   const ad = mockCreateAd.mock.results[0].value;
-
   // When
   ad.emit(AdEventType.ERROR, noFill);
   lifecycle.preload();
@@ -163,7 +151,6 @@ it("waits for the next eligible sporting action after no-fill without treating i
     ...action(),
     kind: "foreground",
   });
-
   // Then
   expect(mockCreateAd).toHaveBeenCalledTimes(1);
   expect(Sentry.captureException).not.toHaveBeenCalled();
@@ -171,8 +158,7 @@ it("waits for the next eligible sporting action after no-fill without treating i
   expect(mockCreateAd).toHaveBeenCalledTimes(2);
   expect(lifecycle.count).toBe(1);
 });
-
-it.each([3_599_999, 3_600_000, 3_600_001])(
+it.each([3599999, 3600000, 3600001])(
   "uses LOADED freshness at %i ms and never displays an expired replacement late",
   async (age) => {
     // Given
@@ -188,12 +174,10 @@ it.each([3_599_999, 3_600_000, 3_600_001])(
     await nineActions(lifecycle);
     clock.mockReturnValue(1000 + age);
     const destination = action();
-
     // When
     const result = openSportingAdTransition(lifecycle, destination);
-
     // Then
-    if (age < 3_600_000) {
+    if (age < 3600000) {
       expect(ad.show).toHaveBeenCalledTimes(1);
       expect(destination.open).not.toHaveBeenCalled();
       ad.emit(AdEventType.CLOSED);
@@ -209,12 +193,11 @@ it.each([3_599_999, 3_600_000, 3_600_001])(
     expect(lifecycle.count).toBe(10);
   },
 );
-
 it.each(["privacy", "session", "destination"])(
   "settles %s invalidation before destruction and preserves the count",
   async (change) => {
     // Given
-    const { input, session } = advertisingContext();
+    let { input, session } = advertisingContext();
     const lifecycle = createInterstitialLifecycle({
       adUnitId: "test-unit",
       getInput: () => input,
@@ -231,14 +214,15 @@ it.each(["privacy", "session", "destination"])(
         change === "privacy" ? 1 : 0,
       ),
     );
-
     // When
-    if (change === "session") session.invalidate();
+    if (change === "session") {
+      session = { subject: "auth0|other", accountId: "other" };
+      input = { ...input, account: { ...input.account, ...session } };
+    }
     if (change === "destination") valid = false;
     lifecycle.invalidate();
     ad.emit(AdEventType.CLOSED);
     ad.emit(AdEventType.OPENED);
-
     // Then
     expect(await result).toEqual({
       status: change === "privacy" ? "opened" : "abandoned",
@@ -248,10 +232,9 @@ it.each(["privacy", "session", "destination"])(
     expect(mockCreateAd).toHaveBeenCalledTimes(1);
   },
 );
-
 it("rechecks authorization before show and discards incompatible session and mode preparation", async () => {
   // Given
-  const { input, session } = advertisingContext();
+  let { input, session } = advertisingContext();
   let current = input;
   const lifecycle = createInterstitialLifecycle({
     adUnitId: "test-unit",
@@ -262,20 +245,20 @@ it("rechecks authorization before show and discards incompatible session and mod
   ad.emit(AdEventType.LOADED);
   await nineActions(lifecycle);
   current = { ...input, admission: { ordinary: false } };
-
   // When
   await openSportingAdTransition(lifecycle, action());
-  session.invalidate();
+  session = { subject: "auth0|other", accountId: "other" };
+  current = { ...current, account: { ...current.account, ...session } };
   current = {
     ...input,
+    account: { ...input.account, ...session },
     choices: {
-      session: session.getSnapshot(),
+      session: { ...session },
       canRequestAds: true,
       authorizedMode: "personalized",
     },
   };
   lifecycle.preload();
-
   // Then
   expect(ad.show).not.toHaveBeenCalled();
   expect(ad.destroy).toHaveBeenCalledTimes(1);
@@ -285,7 +268,6 @@ it("rechecks authorization before show and discards incompatible session and mod
     { requestNonPersonalizedAdsOnly: false },
   );
 });
-
 it("does not preload after dismissal when current authorization has been withdrawn", async () => {
   // Given
   const { input } = advertisingContext();
@@ -301,16 +283,13 @@ it("does not preload after dismissal when current authorization has been withdra
   const result = openSportingAdTransition(lifecycle, action());
   ad.emit(AdEventType.OPENED);
   current = { ...input, choices: null };
-
   // When
   ad.emit(AdEventType.CLOSED);
-
   // Then
   await result;
   expect(mockCreateAd).toHaveBeenCalledTimes(1);
   expect(lifecycle.count).toBe(0);
 });
-
 it("keeps destination errors separate from ad failure after dismissal", async () => {
   // Given
   const { input } = advertisingContext();
@@ -329,17 +308,14 @@ it("keeps destination errors separate from ad failure after dismissal", async ()
       throw error;
     },
   });
-
   // When
   ad.emit(AdEventType.OPENED);
   ad.emit(AdEventType.CLOSED);
-
   // Then
   expect(await result).toEqual({ status: "destination-failed", error });
   expect(Sentry.captureException).not.toHaveBeenCalled();
   expect(mockCreateAd).toHaveBeenCalledTimes(2);
 });
-
 it("allows restart to abandon a callback-free hang without a watchdog or replay", async () => {
   // Given
   jest.useFakeTimers();
@@ -355,14 +331,12 @@ it("allows restart to abandon a callback-free hang without a watchdog or replay"
   const destination = action();
   const completed = jest.fn();
   void openSportingAdTransition(lifecycle, destination).then(completed);
-
   // When
   await jest.advanceTimersByTimeAsync(24 * 60 * 60 * 1000);
   const restarted = createInterstitialLifecycle({
     adUnitId: "test-unit",
     getInput: () => input,
   });
-
   // Then
   expect(completed).not.toHaveBeenCalled();
   expect(destination.open).not.toHaveBeenCalled();
@@ -371,7 +345,6 @@ it("allows restart to abandon a callback-free hang without a watchdog or replay"
   expect(mockCreateAd).toHaveBeenCalledTimes(1);
   jest.useRealTimers();
 });
-
 it.each(["create", "load", "sdk-error"])(
   "releases content after %s preparation failure and waits for another eligible action",
   async (failure) => {
@@ -391,7 +364,6 @@ it.each(["create", "load", "sdk-error"])(
       ad.load.mockImplementationOnce(() => {
         throw new Error("private provider details");
       });
-
     // When
     lifecycle.preload();
     if (failure === "sdk-error")
@@ -399,7 +371,6 @@ it.each(["create", "load", "sdk-error"])(
     lifecycle.preload();
     const destination = action();
     await openSportingAdTransition(lifecycle, destination);
-
     // Then
     expect(destination.open).toHaveBeenCalledTimes(1);
     expect(lifecycle.count).toBe(1);
@@ -410,22 +381,24 @@ it.each(["create", "load", "sdk-error"])(
     );
   },
 );
-
 it.each(["switch", "first-account"])(
   "ignores obsolete OPENED and abandons the destination after %s before provider invalidation",
   async (change) => {
     // Given
-    const { input, session } = advertisingContext();
-    if (change === "switch")
-      session.setAccount(
-        session.getSnapshot().generation,
-        "00000000-0000-4000-8000-000000000001",
-      );
+    let { input, session } = advertisingContext();
+    if (change === "switch") {
+      session = {
+        subject: `auth0|${"00000000-0000-4000-8000-000000000001"}`,
+        accountId: "00000000-0000-4000-8000-000000000001",
+      };
+      input = { ...input, account: { ...input.account, ...session } };
+    }
     let current = {
       ...input,
+      account: { ...input.account, ...session },
       choices: {
         ...input.choices,
-        session: session.getSnapshot(),
+        session: { ...session },
         canRequestAds: true,
         authorizedMode: "limited" as const,
       },
@@ -440,19 +413,18 @@ it.each(["switch", "first-account"])(
     await nineActions(lifecycle);
     const destination = action();
     const result = openSportingAdTransition(lifecycle, destination);
-
     // When
-    session.setAccount(
-      session.getSnapshot().generation,
-      "00000000-0000-4000-8000-000000000002",
-    );
+    session = {
+      subject: `auth0|${"00000000-0000-4000-8000-000000000002"}`,
+      accountId: "00000000-0000-4000-8000-000000000002",
+    };
+    current = { ...current, account: { ...current.account, ...session } };
     current = {
       ...current,
-      choices: { ...current.choices, session: session.getSnapshot() },
+      choices: { ...current.choices, session: { ...session } },
     };
     ad.emit(AdEventType.OPENED);
     ad.emit(AdEventType.CLOSED);
-
     // Then
     expect(await result).toEqual({ status: "abandoned" });
     expect(destination.open).not.toHaveBeenCalled();

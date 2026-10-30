@@ -1,6 +1,6 @@
 import {
-  act,
   cleanup,
+  act,
   screen,
   userEvent,
   waitFor,
@@ -74,7 +74,7 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await cleanup();
-  fixture.client.clear();
+  fixture.dispose();
   process.env = { ...environment };
   jest.restoreAllMocks();
   jest.useRealTimers();
@@ -279,7 +279,7 @@ it("isolates deliberate maintenance bypass from the anonymous public count", asy
   await act(async () => {
     active = true;
     await fixture.admission.retry();
-    fixture.admission.bypass.request(fixture.session.getSnapshot(), true);
+    fixture.admission.requestBypass(fixture.session, true);
   });
 
   // When / Then

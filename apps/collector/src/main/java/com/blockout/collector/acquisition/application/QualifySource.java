@@ -47,14 +47,13 @@ public class QualifySource {
    * Qualifies the frozen candidate retained by admission and submits its terminal evidence once.
    *
    * @param context confirmed candidate capability
-   * @return whether the original terminal operation was confirmed
    */
-  public boolean execute(CollectorLifecycle.AdmittedCycle context) {
+  public void execute(CollectorLifecycle.AdmittedCycle context) {
     if (context.getCycle().sourceBindingId() == null)
       throw new IllegalArgumentException("Candidate context required");
     context.nextReadOrdinal();
     Evidence evidence = qualify(context.getCycle().candidate());
-    return lifecycle.validate(
+    lifecycle.validate(
         context,
         new CollectionBackend.Validation(
             context.getCycle().id(),

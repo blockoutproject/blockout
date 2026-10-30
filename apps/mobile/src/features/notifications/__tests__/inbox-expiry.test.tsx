@@ -1,5 +1,4 @@
 import { createQueryClient } from "../../../shared/query/query-client";
-import { createSessionGeneration } from "../../accounts";
 import { createInboxQueries } from "../api/inbox-queries";
 import {
   expireInbox,
@@ -30,15 +29,12 @@ afterEach(async () => {
 
 it("invalidates seven unread when an unloaded entry expires without manufacturing a partial total", async () => {
   // Given
-  const session = createSessionGeneration();
-  session.setAccount(
-    session.getSnapshot().generation,
-    notificationResponse().id,
-  );
-  const owner = { ...session.getSnapshot(), isCurrent: session.isCurrent };
+  const owner = {
+    subject: "auth0|owner",
+    accountId: notificationResponse().id,
+  };
   const queries = createInboxQueries(owner, async (signal?: AbortSignal) => ({
     signal,
-    session: owner,
   }));
   const row = notificationResponse();
   client.setQueryData(queries.inbox.queryKey, {
@@ -78,10 +74,8 @@ it.each(["2026-03-08T07:00:00Z", "2026-10-25T01:00:00Z"])(
   async (createdAt) => {
     // Given
     const row = { ...notificationResponse(), createdAt };
-    const session = createSessionGeneration();
-    session.setAccount(session.getSnapshot().generation, row.id);
-    const owner = { ...session.getSnapshot(), isCurrent: session.isCurrent };
-    const queries = createInboxQueries(owner, async () => ({ session: owner }));
+    const owner = { subject: "auth0|owner", accountId: row.id };
+    const queries = createInboxQueries(owner, async () => ({}));
     jest.setSystemTime(notificationExpiry(row) - 1);
     mockFetch.mockResolvedValueOnce(Response.json({ notifications: [row] }));
     expect(

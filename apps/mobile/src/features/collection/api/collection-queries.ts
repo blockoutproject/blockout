@@ -23,15 +23,12 @@ import {
   listCollectionSources,
 } from "../../../../.generated/mobile";
 import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
-import { getSessionQueryKey } from "../../../shared/query/query-client";
 
-/** Captured collection authority rechecks the current grant after obtaining native credentials. */
+/** Collection query availability and native authenticated request preparation. */
 export interface CollectionQueryAuthority {
-  session: { generation: string };
   enabled: boolean;
   request(): Promise<ApiFetchOptions>;
 }
-
 /** Defines every collection read once; native Query owns data, cancellation, pagination and status. */
 export function createCollectionQueries(authority: CollectionQueryAuthority) {
   /** Removes a refused list or control snapshot so a later technical failure cannot resurrect it. */
@@ -47,10 +44,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
     /** Canonical seasons, without provider calls or implicit season creation. */
     seasons: () =>
       queryOptions({
-        queryKey: getSessionQueryKey(
-          authority.session.generation,
-          getListCollectionSeasonsQueryKey(),
-        ),
+        queryKey: getListCollectionSeasonsQueryKey(),
         enabled: authority.enabled,
         gcTime: 0,
         queryFn: async (context) => {
@@ -67,10 +61,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
     /** One season shared by navigation, preparation and terminal closure. */
     season: (seasonId: string) =>
       queryOptions({
-        queryKey: getSessionQueryKey(
-          authority.session.generation,
-          getGetCollectionSeasonQueryKey(seasonId),
-        ),
+        queryKey: getGetCollectionSeasonQueryKey(seasonId),
         enabled: authority.enabled,
         gcTime: 0,
         queryFn: async ({ signal, client, queryKey }) => {
@@ -89,10 +80,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
     /** Complete source configuration for the selected season. */
     sources: (seasonId: string) =>
       queryOptions({
-        queryKey: getSessionQueryKey(
-          authority.session.generation,
-          getListCollectionSourcesQueryKey(seasonId),
-        ),
+        queryKey: getListCollectionSourcesQueryKey(seasonId),
         enabled: authority.enabled,
         gcTime: 0,
         queryFn: async ({ signal }) =>
@@ -104,10 +92,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
     /** Exact source binding whose accepted response also reconciles candidate commands. */
     source: (sourceId: string) =>
       queryOptions({
-        queryKey: getSessionQueryKey(
-          authority.session.generation,
-          getGetCollectionSourceQueryKey(sourceId),
-        ),
+        queryKey: getGetCollectionSourceQueryKey(sourceId),
         enabled: authority.enabled,
         gcTime: 0,
         queryFn: async ({ signal }) =>
@@ -120,10 +105,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
     children: (sourceId: string, parentId?: string) => {
       const params = { parentId, size: 50 };
       return infiniteQueryOptions({
-        queryKey: getSessionQueryKey(
-          authority.session.generation,
-          getListCollectionSourceChildrenQueryKey(sourceId, params),
-        ),
+        queryKey: getListCollectionSourceChildrenQueryKey(sourceId, params),
         enabled: authority.enabled,
         gcTime: 0,
         initialPageParam: 0,
@@ -145,10 +127,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
     controls: (seasonId?: string) => {
       const params = seasonId ? { seasonId } : undefined;
       return queryOptions({
-        queryKey: getSessionQueryKey(
-          authority.session.generation,
-          getListCollectionControlsQueryKey(params),
-        ),
+        queryKey: getListCollectionControlsQueryKey(params),
         enabled: authority.enabled,
         gcTime: 0,
         queryFn: async (context) => {
@@ -166,10 +145,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
     /** Current control configuration shared by observation and explicit command reconciliation. */
     control: (controlId: string) =>
       queryOptions({
-        queryKey: getSessionQueryKey(
-          authority.session.generation,
-          getGetCollectionControlQueryKey(controlId),
-        ),
+        queryKey: getGetCollectionControlQueryKey(controlId),
         enabled: authority.enabled,
         gcTime: 0,
         queryFn: async (context) => {
@@ -187,10 +163,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
     results: (controlId: string) => {
       const params = { size: 50 };
       return infiniteQueryOptions({
-        queryKey: getSessionQueryKey(
-          authority.session.generation,
-          getListCollectionResultsQueryKey(controlId, params),
-        ),
+        queryKey: getListCollectionResultsQueryKey(controlId, params),
         enabled: authority.enabled,
         gcTime: 0,
         initialPageParam: 0,

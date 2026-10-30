@@ -28,7 +28,6 @@ import { ProfileIdentity } from "../components/profile-identity";
 import { ProfileSignIn } from "../components/profile-sign-in";
 import { ProfileSupportAction } from "../components/profile-support-action";
 import { useAccountSession } from "../session/account-session-provider";
-import { useGuestNavigation } from "../hooks/use-guest-navigation";
 import { PageHeader } from "../../../shared/components/page-header";
 import {
   ScrollChrome,
@@ -56,7 +55,17 @@ export function ProfileScreen({
   const session = useAccountSession();
   const account = useCurrentAccount();
   const router = useRouter();
-  const guest = useGuestNavigation();
+  const feedback = useActionFeedback();
+  /** Uses SDK browser logout; cancellation preserves the signed-in account and safe retry feedback. */
+  async function signOut() {
+    feedback.clear();
+    try {
+      await session.signOut();
+      router.replace("/");
+    } catch {
+      feedback.error();
+    }
+  }
   const { colors } = useTheme();
   const { saving, refreshing, refresh } = useProfileRefresh(account);
   const connected = session.status === "authenticated";
@@ -118,7 +127,7 @@ export function ProfileScreen({
             </PageScrollView>
           ) : (
             <ProfileContent
-              key={`${session.generation}:${account.data?.accountId ?? "guest"}`}
+              key={`${session.subject}:${account.data?.accountId ?? "guest"}`}
               scroll={{ onScroll, headerHeight }}
               refreshControl={
                 connected ? (
@@ -172,8 +181,8 @@ export function ProfileScreen({
                   label="Se déconnecter"
                   variant="secondary"
                   fullWidth
-                  onPress={() => void guest.continueAsGuest()}
-                  loading={guest.pending}
+                  onPress={() => void signOut()}
+                  loading={session.operation === "signing-out"}
                 />
               )}
               {connected && (
@@ -276,12 +285,16 @@ function AccountAgeRetry() {
   return (
     <Button
       label="Réessayer"
-      loading={establishment.pending}
+      loading={establishment.isPending}
       onPress={() => {
         feedback.clear();
-        void establishment.start(session)?.catch(() => {
-          if (session.isCurrent(session.generation)) feedback.error();
-        });
+        if (!session.subject) return;
+        void establishment
+          .mutateAsync({
+            subject: session.subject,
+            getCredentials: session.getCredentials,
+          })
+          ?.catch(() => feedback.error());
       }}
     />
   );

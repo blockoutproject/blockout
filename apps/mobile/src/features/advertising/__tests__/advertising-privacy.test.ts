@@ -1,3 +1,4 @@
+import type { SessionSnapshot } from "../../accounts";
 import { PermissionStatus } from "expo";
 import { nativeUserChoices } from "../test-support/native-privacy";
 import { Platform } from "react-native";
@@ -14,7 +15,6 @@ import {
   requestTrackingPermissionsAsync,
 } from "expo-tracking-transparency";
 import { setAdvertiserTrackingEnabled } from "@react-native-google-mobile-ads/facebook";
-import { createSessionGeneration } from "../../accounts";
 import {
   createAdvertisingPrivacy,
   type AdvertisingPrivacyContext,
@@ -74,13 +74,12 @@ const personalized = nativeUserChoices({
   selectPersonalisedAds: true,
   selectBasicAds: true,
 });
-let session: ReturnType<typeof createSessionGeneration>;
+let session: SessionSnapshot;
 let context: AdvertisingPrivacyContext;
-
 beforeEach(() => {
-  session = createSessionGeneration();
+  session = { subject: null, accountId: null };
   context = {
-    account: { status: "guest", getSnapshot: session.getSnapshot },
+    account: { status: "guest", ...session },
     pro: { status: "guest" },
     admission: { ordinary: true },
     category: "adult",
@@ -137,7 +136,6 @@ beforeEach(() => {
     );
 });
 afterEach(() => jest.restoreAllMocks());
-
 it.each([
   ["under16", "child", "G", true],
   ["16–17", "teen", "T", false],
@@ -154,10 +152,8 @@ it.each([
       getContext: () => context,
       adUnitId: "test-unit",
     });
-
     // When
     const preparation = privacy.prepare();
-
     // Then: no native consent or request can overtake configuration acknowledgement.
     expect(mobileAds().setRequestConfiguration).toHaveBeenCalledWith({
       ageRestrictedTreatment: treatment,
@@ -179,7 +175,6 @@ it.each([
     privacy.dispose();
   },
 );
-
 it("requests iOS ATT only after applicable adult UMP, without a duplicate even if the system stays undetermined", async () => {
   // Given
   jest.replaceProperty(Platform, "OS", "ios");
@@ -195,11 +190,9 @@ it("requests iOS ATT only after applicable adult UMP, without a duplicate even i
     canAskAgain: true,
   } as Awaited<ReturnType<typeof requestTrackingPermissionsAsync>>);
   const privacy = createAdvertisingPrivacy({ getContext: () => context });
-
   // When
   const preparation = privacy.prepare();
   await Promise.resolve();
-
   // Then
   expect(requestTrackingPermissionsAsync).not.toHaveBeenCalled();
   expect(mockAds.initialize).not.toHaveBeenCalled();
@@ -211,7 +204,6 @@ it("requests iOS ATT only after applicable adult UMP, without a duplicate even i
   expect(requestTrackingPermissionsAsync).toHaveBeenCalledTimes(1);
   privacy.dispose();
 });
-
 it.each([
   "under16",
   "16–17",
@@ -246,10 +238,8 @@ it.each([
       },
     };
   const privacy = createAdvertisingPrivacy({ getContext: () => context });
-
   // When
   await privacy.prepare();
-
   // Then
   expect(requestTrackingPermissionsAsync).not.toHaveBeenCalled();
   expect(privacy.getSnapshot().choices?.authorizedMode).not.toBe(
@@ -259,7 +249,6 @@ it.each([
     expect(mockAds.initialize).not.toHaveBeenCalled();
   privacy.dispose();
 });
-
 it.each([
   "native-refusal",
   "configuration-error",
@@ -289,7 +278,6 @@ it.each([
       getContext: () => context,
       adUnitId: "test-unit",
     });
-
     // When
     await privacy.prepare()?.catch(() => undefined);
     const open = jest.fn();
@@ -300,7 +288,6 @@ it.each([
       isCurrent: () => true,
       open,
     });
-
     // Then
     expect(open).toHaveBeenCalledTimes(1);
     expect(privacy.getSnapshot().choices?.canRequestAds ?? false).toBe(false);
@@ -312,7 +299,6 @@ it.each([
     privacy.dispose();
   },
 );
-
 it.each(["configuration", "gathering"])(
   "keeps the same native action available after %s fails while recovering a corrected age",
   async (failure) => {
@@ -333,10 +319,8 @@ it.each(["configuration", "gathering"])(
       .length;
     const priorRequests = jest.mocked(InterstitialAd.createForAdRequest).mock
       .calls.length;
-
     // When
     await privacy.refreshOptions();
-
     // Then: opening the menu only reads native applicability; the action must reestablish the corrected age.
     expect(privacy.getSnapshot()).toMatchObject({
       privacyOptionsRequired: true,
@@ -372,7 +356,6 @@ it.each(["configuration", "gathering"])(
     privacy.dispose();
   },
 );
-
 it("reuses native cached choices and supports limited advertising after optional processing is refused", async () => {
   // Given
   jest.replaceProperty(Platform, "OS", "android");
@@ -384,10 +367,8 @@ it("reuses native cached choices and supports limited advertising after optional
     getContext: () => context,
     adUnitId: "test-unit",
   });
-
   // When
   await privacy.prepare();
-
   // Then
   expect(privacy.getSnapshot().choices?.authorizedMode).toBe("limited");
   expect(InterstitialAd.createForAdRequest).toHaveBeenCalledWith("test-unit", {
@@ -396,7 +377,6 @@ it("reuses native cached choices and supports limited advertising after optional
   expect(AdsConsent.reset).not.toHaveBeenCalled();
   privacy.dispose();
 });
-
 it("invalidates initialized adult → teen → child → adult preparation before reconfiguration, preserving the threshold", async () => {
   // Given
   jest.replaceProperty(Platform, "OS", "android");
@@ -413,7 +393,6 @@ it("invalidates initialized adult → teen → child → adult preparation befor
       isCurrent: () => true,
       open: jest.fn(),
     });
-
   // When / Then: each confirmed treatment change retires even a same-mode ad before any pending configuration.
   for (const category of ["16–17", "under16", "adult"] as const) {
     const previous = jest
@@ -451,7 +430,6 @@ it("invalidates initialized adult → teen → child → adult preparation befor
   expect(AdsConsent.reset).not.toHaveBeenCalled();
   privacy.dispose();
 });
-
 it("keeps SDK privacy options conditional and refreshes authorization after a successful change", async () => {
   // Given
   jest.replaceProperty(Platform, "OS", "android");
@@ -469,11 +447,9 @@ it("keeps SDK privacy options conditional and refreshes authorization after a su
   jest
     .mocked(AdsConsent.showPrivacyOptionsForm)
     .mockReturnValueOnce(form.promise);
-
   // When
   const change = privacy.showOptions();
   await Promise.resolve();
-
   // Then
   expect(previous.destroy).toHaveBeenCalledTimes(1);
   expect(privacy.getSnapshot().choices).toBeNull();
@@ -498,7 +474,6 @@ it("keeps SDK privacy options conditional and refreshes authorization after a su
   expect(privacy.getSnapshot().privacyOptionsRequired).toBe(false);
   privacy.dispose();
 });
-
 it("discards late private callbacks across a session change without inheriting the old authorization", async () => {
   // Given
   const consent =
@@ -512,20 +487,18 @@ it("discards late private callbacks across a session change without inheriting t
   });
   const preparing = privacy.prepare();
   await Promise.resolve();
-
   // When
-  session.invalidate();
+  session = { subject: null, accountId: null };
+  context = { ...context, account: { ...context.account, ...session } };
   privacy.suspend();
   consent.resolve(consentInfo);
   await preparing;
-
   // Then
   expect(privacy.getSnapshot().choices).toBeNull();
   expect(mockAds.initialize).not.toHaveBeenCalled();
   expect(requestTrackingPermissionsAsync).not.toHaveBeenCalled();
   privacy.dispose();
 });
-
 it("sets Meta's documented tracking flag only on older iOS before initialization", async () => {
   // Given
   jest.replaceProperty(Platform, "OS", "ios");
@@ -535,15 +508,12 @@ it("sets Meta's documented tracking flag only on older iOS before initialization
     expect(setAdvertiserTrackingEnabled).toHaveBeenCalledWith(true);
     return [];
   });
-
   // When
   await privacy.prepare();
-
   // Then
   expect(setAdvertiserTrackingEnabled).toHaveBeenCalledWith(true);
   privacy.dispose();
 });
-
 it("reestablishes UMP age treatment before privacy options can recover a failed correction", async () => {
   // Given: an initialized adult ad must never survive a confirmed child correction.
   jest.replaceProperty(Platform, "OS", "android");
@@ -558,14 +528,12 @@ it("reestablishes UMP age treatment before privacy options can recover a failed 
   );
   await privacy.prepare()?.catch(() => undefined);
   expect(privacy.getSnapshot().privacyOptionsRequired).toBe(false);
-
   // When
   const consent = Promise.withResolvers<AdsConsentInfo>();
   jest.mocked(AdsConsent.gatherConsent).mockReturnValueOnce(consent.promise);
   const recovery = privacy.showOptions();
   await Promise.resolve();
   await Promise.resolve();
-
   // Then: native options are not a bypass around the corrected UMP under-age flag.
   expect(AdsConsent.gatherConsent).toHaveBeenLastCalledWith({
     tagForUnderAgeOfConsent: true,
@@ -581,7 +549,6 @@ it("reestablishes UMP age treatment before privacy options can recover a failed 
   expect(privacy.getSnapshot().choices?.authorizedMode).toBe("contextual");
   privacy.dispose();
 });
-
 it("refreshes Pro privacy applicability after an obsolete in-flight free preparation settles", async () => {
   // Given: permission work started while the current entitlement was unknown.
   jest.replaceProperty(Platform, "OS", "ios");
@@ -600,12 +567,10 @@ it("refreshes Pro privacy applicability after an obsolete in-flight free prepara
   };
   privacy.suspend();
   expect(privacy.refreshOptions()).toBeUndefined();
-
   // When
   consent.resolve(consentInfo);
   await preparation;
   await privacy.synchronize();
-
   // Then: Pro keeps its required native controls without a new consent or ATT prompt.
   expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledWith({
     tagForUnderAgeOfConsent: false,

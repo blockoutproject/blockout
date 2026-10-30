@@ -6,7 +6,6 @@ import com.niamedtech.expo.exposerversdk.exception.ErrorResponseException;
 import com.niamedtech.expo.exposerversdk.request.PushNotification;
 import com.niamedtech.expo.exposerversdk.response.ReceiptResponse.Receipt;
 import com.niamedtech.expo.exposerversdk.response.TicketResponse.Ticket;
-import com.niamedtech.expo.exposerversdk.util.ObjectMapperFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -14,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.hc.client5.http.HttpResponseException;
 import org.springframework.core.NestedExceptionUtils;
 
 /**
@@ -34,11 +32,6 @@ public class ExpoPushClient implements PushProvider {
       throw new IllegalArgumentException("Send batch limit");
     List<PushNotification> notifications = messages.stream().map(mapper::toDto).toList();
     try {
-      for (PushNotification notification : notifications) {
-        // Measure with the SDK's own serializer, including its omission of null optional fields.
-        if (ObjectMapperFactory.getInstance().writeValueAsBytes(notification).length > 4096)
-          throw new IllegalArgumentException("Payload limit");
-      }
       List<Ticket> tickets = client.sendPushNotifications(notifications);
       List<Outcome> outcomes = new ArrayList<>();
       for (int i = 0; i < messages.size(); i++)
@@ -121,14 +114,10 @@ public class ExpoPushClient implements PushProvider {
    * parsed/logged.
    *
    * @param failure SDK transport or decoding failure
-   * @return explicit HTTP refusal versus unavailable/uncertain evidence
+   * @return native parsed refusal versus unavailable/uncertain evidence
    */
   private Outcome failed(IOException failure) {
     Throwable cause = NestedExceptionUtils.getMostSpecificCause(failure);
-    if (cause instanceof HttpResponseException response) {
-      if (response.getStatusCode() == 401 || response.getStatusCode() == 403) configurationAlert();
-      return new Outcome(Status.REJECTED, null);
-    }
     return new Outcome(
         cause instanceof ErrorResponseException ? Status.REJECTED : Status.UNKNOWN, null);
   }

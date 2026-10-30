@@ -43,9 +43,7 @@ interface PendingDestination {
 
 /** Compares both F05 coordinates, including first account establishment within one generation. */
 function sameSession(left: SessionSnapshot, right: SessionSnapshot) {
-  return (
-    left.generation === right.generation && left.accountId === right.accountId
-  );
+  return left.subject === right.subject && left.accountId === right.accountId;
 }
 
 /**
@@ -83,7 +81,7 @@ export function createInterstitialLifecycle({
     const destination = pending;
     if (!destination) return;
     if (
-      !sameSession(destination.session, getInput().account.getSnapshot()) ||
+      !sameSession(destination.session, getInput().account) ||
       !destination.action.isCurrent()
     ) {
       complete(destination, { status: "abandoned" });
@@ -111,7 +109,7 @@ export function createInterstitialLifecycle({
   ) {
     return (
       getAdvertisingEligibility(input).canRequestAds &&
-      sameSession(instance.session, input.account.getSnapshot()) &&
+      sameSession(instance.session, input.account) &&
       instance.mode === input.choices?.authorizedMode
     );
   }
@@ -162,7 +160,7 @@ export function createInterstitialLifecycle({
           requestNonPersonalizedAdsOnly:
             input.choices?.authorizedMode !== "personalized",
         }),
-        session: input.account.getSnapshot(),
+        session: input.account,
         mode: input.choices?.authorizedMode ?? null,
         loadedAt: null,
         showing: false,
@@ -239,7 +237,7 @@ export function createInterstitialLifecycle({
         action,
         result,
         resolve: (outcome) => resolve(outcome),
-        session: input.account.getSnapshot(),
+        session: input.account,
         released: false,
       };
       const pro = input.pro;

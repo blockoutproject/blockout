@@ -66,7 +66,7 @@ contracts/http/     # canonical mobile routes and existing shared definitions
 
 ## Persistence and concurrency
 
-`FollowState` groups member reads and desired-state replacements because they share original-account serialization, current target admission and the same persistence port. Its two public operations own their transactions, including the write-capable locked read; the private admission step adds no transaction proxy. Relation UUID/no-op semantics and the separate `ReadFollowEligibility` audience API remain unchanged.
+`FollowState` groups the coherent member read/replacement family behind the same persistence port. A member GET uses a short read-only repeatable-read transaction, checking original account existence and current F02 visibility without the account write lock. It may report the snapshot preceding a concurrent write or erasure. Replacements still take F05’s account lock before relation effects; erasure/write ordering, relation UUID/no-op semantics and `ReadFollowEligibility` remain unchanged. Each public operation owns its transaction; the private visibility step adds no transaction proxy.
 
 Use two association tables with UUID identity, account/target foreign keys and uniqueness on each account–target pair. Deletion removes the relation; recreating it assigns a new identity. Hidden targets retain relationships. Account erasure removes all relations atomically, including hidden ones. See [data model](data-model.md).
 

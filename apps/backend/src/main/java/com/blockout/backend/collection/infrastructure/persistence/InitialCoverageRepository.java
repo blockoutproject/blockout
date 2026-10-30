@@ -1,11 +1,13 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
+import com.blockout.backend.collection.application.model.InitialCoverage;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 /** Bounded current reports selected through their canonical source-season owner. */
@@ -34,15 +36,16 @@ interface InitialCoverageRepository
       Set<UUID> sourceIds, Set<UUID> scopeIds);
 
   /**
-   * Reads still undecided rows at ordinary passage completion.
+   * Finishes undecided coverage in the enclosing cycle-completion transaction.
    *
    * @param cycleId original admitted cycle
-   * @param status exact state requiring a terminal unavailable result
-   * @param page bounded page; updating rows requires consuming the first page again
-   * @return bounded outstanding report rows
+   * @param requested state eligible for the terminal transition
+   * @param unavailable terminal state for coverage without accepted evidence
    */
-  Slice<InitialCoverageEntity> findByCycleIdAndStatus(
-      UUID cycleId,
-      com.blockout.backend.collection.application.model.InitialCoverage.Status status,
-      Pageable page);
+  @Modifying(flushAutomatically = true)
+  @Query(
+      "UPDATE InitialCoverageEntity r SET r.status = :unavailable"
+          + " WHERE r.cycleId = :cycleId AND r.status = :requested")
+  void finishRequested(
+      UUID cycleId, InitialCoverage.Status requested, InitialCoverage.Status unavailable);
 }

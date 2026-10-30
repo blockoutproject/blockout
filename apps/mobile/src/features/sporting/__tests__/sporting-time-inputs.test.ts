@@ -1,6 +1,5 @@
 import type { MatchCalendarResponse } from "../../../../.generated/schemas/index.zod";
 import { createQueryClient } from "../../../shared/query/query-client";
-import { createSessionGeneration } from "../../accounts/session/session-generation";
 import { createConsultationQueries } from "../api/consultation-queries";
 import {
   formatSportingDay,
@@ -22,9 +21,9 @@ it("keeps captured calendar days and continuation inputs while display uses the 
   // Given: real generated requests/cache; controlled pages are not a calendar UI or database query.
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   const client = createQueryClient();
-  const session = createSessionGeneration();
+  const session = { subject: null, accountId: null };
   const queries = createConsultationQueries(
-    { ...session.getSnapshot(), isCurrent: session.isCurrent },
+    session,
     { request: (options) => options },
     jest.fn(),
   );

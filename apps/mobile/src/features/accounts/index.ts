@@ -1,9 +1,7 @@
-/** F05's public session contract for current-account consumers. */
+/** F05 exposes SDK-derived identity and the original-principal credential handoff. */
 export type {
   AccountSession,
+  AccountCommandSession,
   AccountCredentialCleanup,
+  SessionSnapshot,
 } from "./session/account-session-provider";
-export {
-  createSessionGeneration,
-  type SessionSnapshot,
-} from "./session/session-generation";

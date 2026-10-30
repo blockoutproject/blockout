@@ -30,14 +30,14 @@ import {
   UserRound,
   type LucideIcon,
 } from "lucide-react-native";
-import { useQuery, queryOptions } from "@tanstack/react-query";
+import { useQuery, skipToken } from "@tanstack/react-query";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { getGetNotificationSummaryQueryKey } from "../../../../.generated/mobile";
 import { useInboxQueries } from "../../../features/notifications/api/use-inbox-queries";
 import { confirmedUnreadCount } from "../../../features/notifications/state/inbox-expiry";
-import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useReducedMotion } from "../../../shared/theme/use-reduced-motion";
@@ -49,14 +49,10 @@ export default function TabsLayout() {
   const sheetVisible = useSegments().includes("(sheets)");
   const { session, queries } = useInboxQueries();
   const summary = useQuery({
-    ...(queries?.summary ??
-      queryOptions({
-        queryKey: getSessionQueryKey(session.generation, [
-          "notification-summary-unavailable",
-        ]),
-        enabled: false,
-        queryFn: async () => ({ unreadCount: 0 }),
-      })),
+    queryKey: getGetNotificationSummaryQueryKey(
+      session.accountId ?? "unavailable",
+    ),
+    queryFn: queries?.summary.queryFn ?? skipToken,
     enabled: false,
   });
   const count = queries ? confirmedUnreadCount(summary.data) : undefined;

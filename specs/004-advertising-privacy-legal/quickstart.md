@@ -2,6 +2,8 @@
 
 The mobile dependency/configuration foundation, current-context eligibility and isolated interstitial lifecycle are executable. The installation-local age form and ordinary-home guard are also executable. Ordered native configuration/consent/ATT and the two-action privacy/correction sheets are executable with controlled SDK I/O. Actual sporting callsite integration and native serving remain separate qualification work.
 
+The current [runtime composition](plan.md#runtime-composition) separates category/date persistence from consent preparation and keeps one installation-wide native owner above private identity replacement. Recheck storage success/failure, independent consent failure/retry and a subject/category change while native preparation runs. A successful storage acknowledgement may release the age form while ads stay disabled. Earlier dated captures/tests below establish their original revision, including any former coupled submit timing; they do not qualify this replacement native sequence.
+
 ## Controlled eligibility boundary (T003/T004)
 
 Run `npm run test --workspace=@blockout/mobile -- --runInBand src/features/advertising/__tests__/advertising-eligibility.test.ts` after the README's installation and mobile generation steps. The suite uses real F05 generations and F09's exported `getProState` projection, with the public F09 projection from synthetic native entitlement evidence, controlled F12 ordinary admission and explicit native-choice inputs. It covers guests without entitlement retrieval, active paid/gifted Pro, unknown signed-in rights, inactive rights, authorized modes, blocked admission, A → B and A → guest → A, including obsolete choices and first account establishment within one generation.

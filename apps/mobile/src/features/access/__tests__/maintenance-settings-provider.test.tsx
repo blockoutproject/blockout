@@ -5,7 +5,8 @@ import {
   useApplicationAccess,
 } from "../queries/use-application-access";
 import { Alert, Text } from "react-native";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { useLayoutEffect, useState, type PropsWithChildren } from "react";
 import {
   cleanup,
   act,
@@ -29,7 +30,6 @@ import {
   getApplicationVersionSettings,
   changeApplicationVersionSettings,
   getApplicationAccess,
-  getGetApplicationAccessQueryKey,
 } from "../../../../.generated/mobile";
 import { MaintenanceSettingsScreen } from "../screens/maintenance-settings-screen";
 
@@ -70,6 +70,7 @@ let mockLoseNextResponse = false;
 let mockPatchCount = 0;
 let mockPublicReads = 0;
 let client = createQueryClient();
+let clients = new Set([client]);
 const environment = { ...process.env };
 const provider = process.env.BLOCKOUT_ACCESS_PROVIDER_URL;
 const one = {
@@ -93,6 +94,10 @@ suite("configured provider and generated consumer integration", () => {
       EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
     });
     client = createQueryClient();
+    clients = new Set([client]);
+    client.setDefaultOptions({
+      mutations: { ...client.getDefaultOptions().mutations, gcTime: Infinity },
+    });
     mockLoseNextResponse = false;
     mockPatchCount = 0;
     mockPublicReads = 0;
@@ -126,7 +131,8 @@ suite("configured provider and generated consumer integration", () => {
   });
   afterEach(async () => {
     await cleanup();
-    client.clear();
+    for (const cache of clients) cache.clear();
+    clients.clear();
     jest.restoreAllMocks();
     process.env = { ...environment };
   });
@@ -341,14 +347,12 @@ suite("configured provider and generated consumer integration", () => {
       "First editor draft",
     );
   });
-  it("retains a committed lost-response draft and closes admission without a public refetch", async () => {
+  it("refreshes complete public admission after a lost response without replaying the committed write", async () => {
     // Given
     const user = userEvent.setup();
-    const publicKey = getGetApplicationAccessQueryKey();
     await renderEditor();
     await screen.findByLabelText("Message de maintenance");
     await screen.findByText("Admission verified");
-    const full = client.getQueryData(publicKey);
     const publicReads = mockPublicReads;
     await user.clear(screen.getByLabelText("Message de maintenance"));
     await user.type(
@@ -369,7 +373,9 @@ suite("configured provider and generated consumer integration", () => {
     expect(
       screen.getByDisplayValue("Committed despite lost response"),
     ).toBeOnTheScreen();
-    const writes = mockPatchCount;
+    await waitFor(() => expect(mockPublicReads).toBeGreaterThan(publicReads));
+    expect(await screen.findByText("Admission verified")).toBeOnTheScreen();
+    expect(mockPatchCount).toBe(1);
 
     // When
     await user.press(
@@ -380,23 +386,10 @@ suite("configured provider and generated consumer integration", () => {
     await screen.findByText(
       "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
     );
-    expect(mockPatchCount).toBe(writes);
-
-    // When
-    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAlertAction("Enregistrer")());
-
-    // Then
-    await waitFor(() =>
-      expect(
-        screen.queryByText("Modifications non enregistrées"),
-      ).not.toBeOnTheScreen(),
-    );
     expect(
-      await screen.findByText("Admission requires retry"),
+      screen.getByDisplayValue("Committed despite lost response"),
     ).toBeOnTheScreen();
-    expect(client.getQueryData(publicKey)).toEqual(full);
-    expect(mockPublicReads).toBe(publicReads);
+    expect(mockPatchCount).toBe(1);
   });
 });
 /** Mounts the actual form component with its real F05/Query owners, outside production route admission. */
@@ -412,7 +405,9 @@ async function renderEditor() {
           <ThemeProvider>
             <ApplicationAccessProvider>
               <AccountSessionProvider>
-                <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+                <PrivateCache>
+                  <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+                </PrivateCache>
               </AccountSessionProvider>
             </ApplicationAccessProvider>
           </ThemeProvider>
@@ -430,4 +425,18 @@ function AccessObservation() {
       {snapshot.complete ? "Admission verified" : "Admission requires retry"}
     </Text>
   );
+}
+
+/** Retains the actual private cache only for explicit native resource teardown after each case. */
+function PrivateCache({ children }: PropsWithChildren) {
+  const cache = useQueryClient();
+  useState(() => {
+    cache.setDefaultOptions({
+      mutations: { ...cache.getDefaultOptions().mutations, gcTime: Infinity },
+    });
+  });
+  useLayoutEffect(() => {
+    clients.add(cache);
+  }, [cache]);
+  return children;
 }

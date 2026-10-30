@@ -1,9 +1,6 @@
 import {
-  hashKey,
   infiniteQueryOptions,
   type InfiniteData,
-  type InfiniteQueryExecuteOptions,
-  type GetNextPageParamFunction,
   type QueryClient,
   type QueryKey,
 } from "@tanstack/react-query";
@@ -14,152 +11,39 @@ import type {
   MatchSummaryResponse,
 } from "../../../../.generated/schemas/index.zod";
 import type { createConsultationQueries } from "./consultation-queries";
-import { resourceUnavailable } from "../model/consultation-availability";
 
 /** Exact selector/category/loading-zone inputs; Query alone owns the exclusive continuation. */
 export type CalendarSelection = Omit<ListMatchesParams, "nextDay">;
 
-/**
- * Retains the generated selection without implicit refetch, including invalidation.
- * The shared transport keeps no-retry/always-network and current session/bypass checks.
- * Native zero-delay garbage collection discards a closed page's unobserved traversal;
- * mounted panels retain observers. A known refusal suppresses this selector across categories/zones.
- */
+/** Native infinite traversal retains server day cursors and uses ordinary freshness/garbage collection. */
 export function createCalendarOptions(
   queries: Pick<ReturnType<typeof createConsultationQueries>, "calendar">,
   selection: CalendarSelection,
 ) {
   const first = queries.calendar(selection);
-  // Generated keys end with request parameters. Native partial matching addresses this selector
-  // across categories/zones while preserving the generated path and session/bypass prefix.
-  const scopeKey = [
-    ...first.queryKey.slice(0, -1),
-    {
-      clubId: selection.clubId,
-      seasonId: selection.seasonId,
-      teamId: selection.teamId,
-      poolId: selection.poolId,
-    },
-  ];
   return infiniteQueryOptions({
     queryKey: first.queryKey,
-    meta: { consultationResource: "calendar-traversal" },
     initialPageParam: undefined as string | undefined,
-    queryFn: async (context) => {
-      try {
-        return await queries
-          .calendar({
-            ...selection,
-            ...(context.pageParam ? { nextDay: context.pageParam } : {}),
-          })
-          .queryFn(context);
-      } catch (error) {
-        if (
-          !selection.poolId &&
-          !context.signal.aborted &&
-          error instanceof Error &&
-          resourceUnavailable(error)
-        ) {
-          await discardCalendarSelection(
-            context.client,
-            scopeKey,
-            context.queryKey,
-            error,
-          );
-        }
-        throw error;
-      }
-    },
+    queryFn: (context) =>
+      queries
+        .calendar({
+          ...selection,
+          ...(context.pageParam ? { nextDay: context.pageParam } : {}),
+        })
+        .queryFn(context),
     getNextPageParam: (last: MatchCalendarResponse) => last.nextDay,
-    staleTime: "static",
-    gcTime: 0,
-    refetchOnMount: false,
-    // A visited initial failure stays on its card until an explicit read retry.
-    retryOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    retry: false,
-    networkMode: "always",
   });
 }
 
-/**
- * Suppresses a refused selector without replacing it with a successful empty calendar.
- * The pool read family also calls this for its independent detail/standings/participant reads.
- * @param client existing root QueryClient
- * @param scopeKey native partial generated key for this selector and captured session/admission
- * @param currentKey request currently reporting the refusal; its original error must settle normally
- * @param error current admitted refusal retained for explicit retry
- */
-export async function discardCalendarSelection(
+/** Invalidates the selected native traversal; active infinite queries refetch every retained page. */
+export function refreshCalendar(
   client: QueryClient,
-  scopeKey: QueryKey,
-  currentKey: QueryKey,
-  error: Error,
+  options: { queryKey: QueryKey },
 ) {
-  await client.cancelQueries(
-    {
-      queryKey: scopeKey,
-      predicate: (query) => query.queryHash !== hashKey(currentKey),
-    },
-    { revert: false },
+  return client.invalidateQueries(
+    { queryKey: options.queryKey, exact: true },
+    { throwOnError: true },
   );
-  for (const query of client.getQueryCache().findAll({ queryKey: scopeKey }))
-    query.setState({
-      data: undefined,
-      dataUpdatedAt: 0,
-      error,
-      status: "error",
-    });
-}
-
-/**
- * Cancels obsolete append work before a supported first-page stale fetch.
- * Native Query replaces cached pages only after success. Ordinary failure retains authorized
- * groups; the view reports explicit refresh failure without changing the loading zone.
- */
-export async function refreshCalendar<TPage, TKey extends QueryKey>(
-  client: QueryClient,
-  options: InfiniteQueryExecuteOptions<
-    TPage,
-    Error,
-    InfiniteData<TPage>,
-    TKey,
-    string | undefined
-  > & { getNextPageParam: GetNextPageParamFunction<string | undefined, TPage> },
-) {
-  await client.cancelQueries({ queryKey: options.queryKey, exact: true });
-  return client.infiniteQuery({ ...options, staleTime: 0, pages: 1 });
-}
-
-/**
- * Applies a known match refusal to retained calendars in the captured session/bypass context.
- * Cancels older reads without reverting their data, then removes only that identity; source times,
- * grouping and continuation remain unchanged. No refusal registry or new network read is created.
- * @param client existing root QueryClient
- * @param queryKey generated calendar collection prefix in the captured session/bypass context
- * @param matchId exact identity refused by its current detail read
- */
-export async function removeUnavailableCalendarMatch(
-  client: QueryClient,
-  queryKey: QueryKey,
-  matchId: string,
-) {
-  await client.cancelQueries({ queryKey }, { revert: false });
-  for (const query of client.getQueryCache().findAll({ queryKey })) {
-    const data = client.getQueryData<InfiniteData<MatchCalendarResponse>>(
-      query.queryKey,
-    );
-    if (data)
-      query.setState({
-        data: {
-          ...data,
-          pages: data.pages.map((page) =>
-            filterCalendarMatches(page, (match) => match.id !== matchId),
-          ),
-        },
-      });
-  }
 }
 
 /** Filters currently unauthorized rows and their empty groups while preserving source context/cursor. */
@@ -181,40 +65,6 @@ export function filterCalendarMatches(
       }))
       .filter((day) => day.pools.length > 0),
   };
-}
-
-/**
- * Removes only a refused pool from retained team/club windows and traversals in this context.
- * Older mixed reads are cancelled before they can restore its groups; other groups, source times,
- * loading zones and continuation remain unchanged. Direct other-pool selections are untouched.
- * @param client existing root QueryClient
- * @param queryKey generated calendar collection prefix in the captured session/admission context
- * @param poolId exact pool refused by a current owner read
- */
-export async function removeUnavailableCalendarPool(
-  client: QueryClient,
-  queryKey: QueryKey,
-  poolId: string,
-) {
-  const filters = { queryKey: [...queryKey, { poolId: undefined }] };
-  await client.cancelQueries(filters, { revert: false });
-  for (const query of client.getQueryCache().findAll(filters)) {
-    if (query.meta?.consultationResource === "calendar-traversal") {
-      const data = client.getQueryData<InfiniteData<MatchCalendarResponse>>(
-        query.queryKey,
-      );
-      if (data)
-        query.setState({
-          data: {
-            ...data,
-            pages: data.pages.map((page) => withoutCalendarPool(page, poolId)),
-          },
-        });
-    } else {
-      const data = client.getQueryData<MatchCalendarResponse>(query.queryKey);
-      if (data) query.setState({ data: withoutCalendarPool(data, poolId) });
-    }
-  }
 }
 
 /** Keeps the page's attribution/progression while dropping only groups with the refused exact pool. */

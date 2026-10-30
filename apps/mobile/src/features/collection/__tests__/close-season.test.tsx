@@ -2,6 +2,7 @@ import { createQueryClient } from "../../../shared/query/query-client";
 import {
   act,
   cleanup,
+  fireEvent,
   screen,
   userEvent,
   waitFor,
@@ -51,6 +52,7 @@ const mockBack = jest.fn();
 const environment = { ...process.env };
 let peer: ReturnType<typeof collectionPeer>;
 let client = createQueryClient();
+let privateClient: ReturnType<typeof createQueryClient>;
 beforeEach(() => {
   peer = collectionPeer();
   client = createQueryClient();
@@ -72,6 +74,7 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  privateClient?.clear();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
@@ -80,10 +83,20 @@ it("requires the exact displayed label and sends the current revision once", asy
   // Given
   mockFetch.mockImplementation((url, options) =>
     options?.method === "POST"
-      ? Promise.resolve(json({ ...peer.season, revision: 6, state: "closed" }))
+      ? Promise.resolve(
+          json(
+            (peer.season = { ...peer.season, revision: 6, state: "closed" }),
+          ),
+        )
       : peer.reads(url, options),
   );
-  await renderCollection(<CloseSeasonScreen seasonId={seasonId} />, client);
+  await renderCollection(
+    <CloseSeasonScreen seasonId={seasonId} />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
   const user = userEvent.setup();
   const input = await screen.findByLabelText("Nom exact de la saison");
   expect(screen.queryByRole("button", { name: "Relire l’état" })).toBeNull();
@@ -118,64 +131,49 @@ it("requires the exact displayed label and sends the current revision once", asy
 });
 
 it.each([409, "lost"])(
-  "retains the exact draft after %s, background refresh and route removal until explicit reread",
+  "keeps a %s failed draft only for its mounted visit",
   async (failure) => {
     // Given
     const user = userEvent.setup();
     mockFetch.mockImplementation((url, options) =>
       options?.method === "POST"
         ? failure === "lost"
-          ? Promise.reject(new TypeError("Connection lost"))
+          ? Promise.reject(new TypeError("lost"))
           : Promise.resolve(refused(409))
         : peer.reads(url, options),
     );
     const view = await renderCollection(
       <CloseSeasonScreen seasonId={seasonId} />,
       client,
+      (cache) => {
+        privateClient = cache;
+      },
     );
     await user.type(
       await screen.findByLabelText("Nom exact de la saison"),
       "2026/2027",
     );
-
     // When
     await user.press(
-      await screen.findByRole("button", { name: "Clôturer définitivement" }),
+      screen.getByRole("button", { name: "Clôturer définitivement" }),
     );
-    await screen.findByText(
-      "Le résultat doit être vérifié avant une nouvelle action.",
-    );
-    peer.season = { ...peer.season, revision: 7 };
-    await act(async () => client.invalidateQueries());
+    await screen.findByRole("alert");
+    // Then
+    expect(screen.getByDisplayValue("2026/2027")).toBeOnTheScreen();
+    // When
     await view.rerender(<></>);
     await view.rerender(<CloseSeasonScreen seasonId={seasonId} />);
-
     // Then
-    expect(await screen.findByDisplayValue("2026/2027")).toBeOnTheScreen();
     expect(
-      screen.getByRole("button", { name: "Clôturer définitivement" }),
-    ).toBeDisabled();
-    // When
-    // A remount may still be reading; only an available action can start explicit reconciliation.
-    await user.press(
-      await screen.findByRole("button", {
-        name: "Relire l’état",
-        disabled: false,
-      }),
-    );
-    // Then
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: "Clôturer définitivement" }),
-      ).toBeEnabled(),
-    );
+      await screen.findByLabelText("Nom exact de la saison"),
+    ).toHaveDisplayValue("");
     expect(
-      mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+      mockFetch.mock.calls.filter(([, init]) => init?.method === "POST"),
     ).toHaveLength(1);
   },
 );
 
-it("rereads an uncertain accepted closure without repeating the write", async () => {
+it("observes an accepted closure through ordinary invalidation after a lost response", async () => {
   // Given
   const user = userEvent.setup();
   mockFetch.mockImplementation((url, options) => {
@@ -185,7 +183,13 @@ it("rereads an uncertain accepted closure without repeating the write", async ()
     }
     return peer.reads(url, options);
   });
-  await renderCollection(<CloseSeasonScreen seasonId={seasonId} />, client);
+  await renderCollection(
+    <CloseSeasonScreen seasonId={seasonId} />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
   await user.type(
     await screen.findByLabelText("Nom exact de la saison"),
     "2026/2027",
@@ -195,13 +199,6 @@ it("rereads an uncertain accepted closure without repeating the write", async ()
   await user.press(
     await screen.findByRole("button", { name: "Clôturer définitivement" }),
   );
-  await screen.findByText(
-    "Le résultat doit être vérifié avant une nouvelle action.",
-  );
-  await user.press(
-    await screen.findByRole("button", { name: "Relire l’état" }),
-  );
-
   // Then
   expect(
     await screen.findByText("Saison clôturée · historique conservé"),
@@ -217,7 +214,13 @@ it("rereads an uncertain accepted closure without repeating the write", async ()
 it("cancels through ordinary back without changing the season", async () => {
   // Given
   const user = userEvent.setup();
-  await renderCollection(<CloseSeasonScreen seasonId={seasonId} />, client);
+  await renderCollection(
+    <CloseSeasonScreen seasonId={seasonId} />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
   await screen.findByLabelText("Nom exact de la saison");
 
   // When
@@ -239,6 +242,9 @@ it("retains entered text while current collection permission is unavailable", as
       <AccountActions />
     </>,
     client,
+    (cache) => {
+      privateClient = cache;
+    },
   );
   await user.type(
     await screen.findByLabelText("Nom exact de la saison"),
@@ -267,7 +273,13 @@ it("retains entered text while current collection permission is unavailable", as
 it("retains an incorrect draft through a background revision change and refuses to submit it", async () => {
   // Given
   const user = userEvent.setup();
-  await renderCollection(<CloseSeasonScreen seasonId={seasonId} />, client);
+  await renderCollection(
+    <CloseSeasonScreen seasonId={seasonId} />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
   await user.type(
     await screen.findByLabelText("Nom exact de la saison"),
     "2026/",
@@ -275,7 +287,7 @@ it("retains an incorrect draft through a background revision change and refuses 
 
   // When
   peer.season = { ...peer.season, revision: 6 };
-  await act(async () => client.invalidateQueries());
+  await act(async () => privateClient.invalidateQueries());
 
   // Then
   expect(screen.getByDisplayValue("2026/")).toBeOnTheScreen();
@@ -295,7 +307,13 @@ it("retains the draft after a definite refusal and can explicitly submit again",
       ? Promise.resolve(refused(422))
       : peer.reads(url, options),
   );
-  await renderCollection(<CloseSeasonScreen seasonId={seasonId} />, client);
+  await renderCollection(
+    <CloseSeasonScreen seasonId={seasonId} />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
   await user.type(
     await screen.findByLabelText("Nom exact de la saison"),
     "2026/2027",
@@ -323,7 +341,11 @@ it("retains the draft after a definite refusal and can explicitly submit again",
   // When
   mockFetch.mockImplementation((url, options) =>
     options?.method === "POST"
-      ? Promise.resolve(json({ ...peer.season, revision: 6, state: "closed" }))
+      ? Promise.resolve(
+          json(
+            (peer.season = { ...peer.season, revision: 6, state: "closed" }),
+          ),
+        )
       : peer.reads(url, options),
   );
   await user.press(
@@ -353,7 +375,7 @@ it("retains the draft after a definite refusal and can explicitly submit again",
   ]);
 });
 
-it("does not unlock uncertain closure when its explicit current-state read fails", async () => {
+it("retains a failed draft while an ordinary refresh is unavailable", async () => {
   // Given
   const user = userEvent.setup();
   let readAvailable = true;
@@ -365,7 +387,13 @@ it("does not unlock uncertain closure when its explicit current-state read fails
         ? Promise.resolve(refused(503))
         : peer.reads(url, options),
   );
-  await renderCollection(<CloseSeasonScreen seasonId={seasonId} />, client);
+  await renderCollection(
+    <CloseSeasonScreen seasonId={seasonId} />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
   await user.type(
     await screen.findByLabelText("Nom exact de la saison"),
     "2026/2027",
@@ -373,15 +401,12 @@ it("does not unlock uncertain closure when its explicit current-state read fails
   await user.press(
     await screen.findByRole("button", { name: "Clôturer définitivement" }),
   );
-  await screen.findByText(
-    "Le résultat doit être vérifié avant une nouvelle action.",
-  );
+  await screen.findByRole("alert");
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
 
   // When
   readAvailable = false;
-  await user.press(
-    await screen.findByRole("button", { name: "Relire l’état" }),
-  );
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
   expect(
