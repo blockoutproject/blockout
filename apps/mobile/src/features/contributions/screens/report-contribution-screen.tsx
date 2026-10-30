@@ -10,6 +10,7 @@ import type {
   MatchDetailResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
@@ -139,7 +140,8 @@ function ReportForm({
     (match.data?.streamContributionId === contributionId
       ? match.data.streamUrl
       : undefined);
-  const reported = query.data?.reported === true;
+  const reported =
+    command.data?.reported === true || query.data?.reported === true;
   const busy = command.isPending;
   /** Explicit cancellation abandons this draft and returns without invoking a write. */
   function cancel() {
@@ -148,7 +150,8 @@ function ReportForm({
   }
   /** Sends one validated private reason, preserving refusals and ignoring obsolete session/route callbacks. */
   async function send(body: CreateStreamReportRequest) {
-    if (!reporting.usable || query.isError || busy || reported) return;
+    if (!reporting.usable || isAccessDenied(query.error) || busy || reported)
+      return;
     const attempt = command.mutateAsync(body);
     try {
       await attempt;
@@ -212,7 +215,7 @@ function ReportForm({
             label="Envoyer le signalement"
             fullWidth
             loading={command.isPending}
-            disabled={!reporting.usable || query.isError || busy}
+            disabled={!reporting.usable || isAccessDenied(query.error) || busy}
             onPress={() => void handleSubmit(send)()}
           />
           <Button

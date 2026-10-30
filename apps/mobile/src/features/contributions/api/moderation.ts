@@ -263,6 +263,12 @@ export function useModerationMatch(
         );
       void client.invalidateQueries({ queryKey });
     }
+    const resource = getListModeratedStreamContributionsQueryKey(matchId)[0];
+    void client.invalidateQueries({
+      predicate: (query) =>
+        typeof query.queryKey[0] === "string" &&
+        query.queryKey[0].startsWith(`${resource}/`),
+    });
     void client.invalidateQueries({ queryKey: matchKey, exact: true });
   }
   const publish = useMutation({

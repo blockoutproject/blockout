@@ -186,6 +186,7 @@ export function useOwnContributions(matchId: string) {
         schema: OwnStreamContributionDetailResponse,
       }),
     onSettled: accept,
+    onError: (error) => refuseAccess(error),
   });
   const change = useMutation({
     retry: false,
