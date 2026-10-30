@@ -940,12 +940,13 @@ it("ignores a held native selection after the session is invalidated", async () 
   );
 });
 
-/** Mounts the real root/protected route; other destinations are explicit unrelated route probes. */
+/** Mounts real root/operational layouts with every declared route; unrelated destinations remain probes. */
 async function openRoutes(initialUrl = "/") {
   return renderRouter(
     {
       _layout: () => <RootLayout />,
       onboarding: OnboardingRoute,
+      "age-declaration": () => null,
       access: AccessProbe,
       "(ordinary)/_layout": () => (
         <Stack screenOptions={{ headerShown: false }} />

@@ -3,5 +3,31 @@
   "defaultBase": "develop",
   "neverConnectToCloud": true,
   "analytics": false,
-  "plugins": []
+  "plugins": [],
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "sharedGlobals": [
+      "{workspaceRoot}/nx.json",
+      "{workspaceRoot}/package.json",
+      "{workspaceRoot}/package-lock.json",
+      "{workspaceRoot}/.npmrc",
+      "{workspaceRoot}/.nvmrc",
+      "{workspaceRoot}/.prettierrc.json",
+      "{workspaceRoot}/.prettierignore",
+      "{workspaceRoot}/.redocly.yaml",
+      "{workspaceRoot}/pom.xml",
+      "{workspaceRoot}/mvnw",
+      "{workspaceRoot}/mvnw.cmd",
+      "{workspaceRoot}/.mvn/**/*",
+      "{workspaceRoot}/checkstyle.xml",
+      "{workspaceRoot}/infra/postgres/init-roles.sql",
+      "{workspaceRoot}/infra/opensearch/**/*",
+      "{workspaceRoot}/.github/workflows/**/*"
+    ]
+  },
+  "targetDefaults": {
+    "verify": { "inputs": ["default", "^default"] },
+    "bundle": { "inputs": ["default", "^default"] },
+    "generate": { "inputs": ["default", "^default"] }
+  }
 }

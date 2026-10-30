@@ -162,7 +162,7 @@ function AccessRoute() {
   return <AccessGateScreen />;
 }
 
-/** Real production root, operational groups and preparation routes; Expo owns protection and history. */
+/** Mounts real root/operational layouts with every declared route; unrelated destinations are null probes. */
 async function openRoute(path: string) {
   return renderRouter(
     {
@@ -173,9 +173,16 @@ async function openRoute(path: string) {
         </>
       ),
       onboarding: OnboardingRoute,
+      "age-declaration": () => null,
       "(ordinary)/_layout": () => <Stack />,
       "(ordinary)/index": () => <Text>Ordinary home</Text>,
       "(operations)/_layout": OperationsLayout,
+      "(operations)/administration/classification/[kind]/[id]": () => null,
+      "(operations)/administration/classification-selection": () => null,
+      "(operations)/administration/divisions/index": () => null,
+      "(operations)/administration/divisions/[id]": () => null,
+      "(operations)/administration/divisions/new": () => null,
+      "(operations)/administration/presentation/[kind]/[id]": () => null,
       "(operations)/administration/index": AdministrationRoute,
       "(operations)/administration/maintenance": () => (
         <Text>Maintenance editor</Text>

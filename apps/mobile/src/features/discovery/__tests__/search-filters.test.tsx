@@ -157,7 +157,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Supplies the actual required owners; the membership input only selects F13 presentation. */
+/** Mounts real query/session owners and the production Search sheet groups with controlled HTTP/native I/O. */
 async function renderSearch() {
   const result = await renderRouter(
     {
@@ -166,8 +166,8 @@ async function renderSearch() {
       ),
       "search/_layout": SearchLayout,
       "search/index": SearchScreen,
-      "search/filters": SearchFilters,
-      "search/choice": SearchFilterChoice,
+      "search/(sheets)/filters": SearchFilters,
+      "search/(sheets)/choice": SearchFilterChoice,
       detail: () => <Text>Controlled detail destination</Text>,
     },
     {

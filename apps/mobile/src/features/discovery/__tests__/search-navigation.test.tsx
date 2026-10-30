@@ -156,7 +156,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** The exact club route is opened externally here; card activation/F11 wiring belongs to F04 T031. */
+/** Mounts production Search sheet groups; exact-club navigation is external and card activation belongs to F04 T031. */
 async function renderSearch() {
   const result = await renderRouter(
     {
@@ -165,8 +165,8 @@ async function renderSearch() {
       ),
       "search/_layout": SearchLayout,
       "search/index": SearchScreen,
-      "search/filters": SearchFilters,
-      "search/choice": SearchFilterChoice,
+      "search/(sheets)/filters": SearchFilters,
+      "search/(sheets)/choice": SearchFilterChoice,
       "clubs/[clubId]": ClubRoute,
     },
     {

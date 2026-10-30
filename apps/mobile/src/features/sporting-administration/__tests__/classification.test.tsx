@@ -204,6 +204,7 @@ async function renderEditor(
         ) : (
           <ClassificationScreen target={{ kind, id }} />
         ),
+      /** Reads the real selector route parameters while keeping its visit owner in the fixture wrapper. */
       "administration/classification-selection":
         function SelectionRouteFixture() {
           const params = useLocalSearchParams<{
@@ -665,13 +666,14 @@ function PermissionRefresh() {
     </Pressable>
   );
 }
-/** Real root and operational protection exercise admission changes; unrelated destinations remain probes. */
+/** Real root and operational layouts retain all declared routes; unrelated destinations remain probes. */
 async function openRoutes() {
   return renderRouter(
     {
       _layout: () => <RootLayout />,
       access: PermissionRefresh,
       onboarding: OnboardingRoute,
+      "age-declaration": () => null,
       "(ordinary)/_layout": () => (
         <Stack screenOptions={{ headerShown: false }} />
       ),

@@ -29,6 +29,9 @@ jobs:
 
   verify:
     needs: source
+    permissions:
+      contents: read
+      actions: read
     uses: ./.github/workflows/ci.yml
 
   server:
