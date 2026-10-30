@@ -414,6 +414,8 @@ it("traverses all 47 stable identities through three pages in one context", asyn
   mockFetch.mockImplementation((url: string) => {
     const parsed = new URL(url);
     if (!parsed.pathname.endsWith("/clubs")) return publicReads(url);
+    if (!parsed.searchParams.get("q"))
+      return Promise.resolve(Response.json({ clubs: clubs.slice(0, 5) }));
     const start = Number(parsed.searchParams.get("cursor") ?? 0);
     return Promise.resolve(
       Response.json({

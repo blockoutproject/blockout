@@ -61,7 +61,11 @@ public class DiscoveryRequest {
     if (cursor != null && context.examples()) throw invalid();
     return new Bound(
         context,
-        exampleIds == null ? null : List.copyOf(exampleIds),
+        exampleIds == null
+            ? null
+            : java.util.Arrays.stream(request.getParameterValues("exampleIds"))
+                .map(UUID::fromString)
+                .toList(),
         cursor == null ? null : decode(cursor, context));
   }
 

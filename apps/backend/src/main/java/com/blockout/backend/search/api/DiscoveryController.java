@@ -13,6 +13,7 @@ import com.blockout.backend.search.application.ReadSearchOptions;
 import com.blockout.backend.search.application.SearchContext;
 import com.blockout.backend.search.application.SearchContinuation;
 import com.blockout.backend.search.application.SearchEngine;
+import com.blockout.backend.search.application.SearchExamples;
 import com.blockout.backend.search.application.SearchPage;
 import com.blockout.backend.search.application.SearchUnavailableException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,13 +23,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.CacheControl;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.TransactionException;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
-/** Generated textual collections after the shared F12 security/filter admission. */
+/** Generated discovery collections after the shared F12 security/filter admission. */
 @RestController
 @RequiredArgsConstructor
 @Slf4j
@@ -129,16 +128,17 @@ public class DiscoveryController implements DiscoveryApi {
   }
 
   /**
-   * Validates the canonical mode before textual orchestration; examples have their own owner.
+   * Validates the canonical mode before current text or example orchestration.
    *
    * @param context admitted current selection
    * @param cursor optional encoded boundary
    * @param exampleIds retained selection, forbidden for textual search
-   * @return current textual page
+   * @return current collection, with no pagination for examples
    */
   private SearchPage read(SearchContext context, String cursor, Set<UUID> exampleIds) {
     DiscoveryRequest.Bound bound = requests.bind(request, context, cursor, exampleIds);
-    if (context.examples()) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE);
+    if (bound.exampleIds() != null)
+      return reads.examples(context, new SearchExamples(bound.exampleIds()));
     SearchContinuation continuation = bound.continuation();
     return reads.read(
         context,
