@@ -22,6 +22,7 @@ import com.blockout.backend.following.application.FollowState;
 import com.blockout.backend.following.application.FollowUnavailableTargetException;
 import com.blockout.backend.following.application.ReadFollowLists;
 import com.blockout.backend.following.application.ReadFollowOptions;
+import com.blockout.backend.following.application.ReadFollowerCount;
 import com.blockout.backend.following.application.ReadPersonalCalendar;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
@@ -72,6 +73,7 @@ class PersonalCalendarWebMvcTest {
   private static final UUID ACCOUNT = UUID.fromString(FollowingContractWebMvcTest.ACCOUNT);
   private static final UUID SEASON = UUID.fromString(FollowingContractWebMvcTest.TARGET);
   @Autowired private MockMvc mvc;
+  @MockitoBean private ReadFollowerCount counts;
   @MockitoBean private FollowState state;
   @MockitoBean private ReadFollowOptions options;
   @MockitoBean private ReadPersonalCalendar calendars;

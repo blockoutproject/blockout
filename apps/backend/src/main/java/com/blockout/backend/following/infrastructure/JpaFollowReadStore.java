@@ -1,5 +1,6 @@
 package com.blockout.backend.following.infrastructure;
 
+import com.blockout.backend.following.application.FollowContext.Target;
 import com.blockout.backend.following.application.FollowContext.TargetType;
 import com.blockout.backend.following.application.FollowReadStore;
 import com.blockout.backend.following.application.ReadFollowLists;
@@ -24,13 +25,33 @@ import org.springframework.data.domain.SliceImpl;
 import org.springframework.data.jpa.support.PageableUtils;
 import org.springframework.stereotype.Repository;
 
-/** Composes personal selections in JPA without hydrating another owner's entities. */
+/**
+ * Counts relations and composes personal selections in JPA without hydrating another owner's
+ * entities.
+ */
 @Repository
 @RequiredArgsConstructor
 public class JpaFollowReadStore implements FollowReadStore {
   private final EntityManager entities;
   private final SportingSeasonSelection sporting;
   private final SportingTargetSelection targets;
+
+  /** {@inheritDoc} */
+  @Override
+  public long count(Target target) {
+    CriteriaBuilder builder = entities.getCriteriaBuilder();
+    CriteriaQuery<Long> query = builder.createQuery(Long.class);
+    Root<?> follow =
+        target.type() == TargetType.TEAM
+            ? query.from(TeamFollowEntity.class)
+            : query.from(PoolFollowEntity.class);
+    query
+        .select(builder.count(follow))
+        .where(
+            builder.equal(
+                follow.get(target.type() == TargetType.TEAM ? "teamId" : "poolId"), target.id()));
+    return entities.createQuery(query).getSingleResult();
+  }
 
   /** {@inheritDoc} */
   @Override

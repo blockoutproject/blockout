@@ -25,6 +25,7 @@ import com.blockout.backend.following.application.FollowState;
 import com.blockout.backend.following.application.FollowUnavailableTargetException;
 import com.blockout.backend.following.application.ReadFollowLists;
 import com.blockout.backend.following.application.ReadFollowOptions;
+import com.blockout.backend.following.application.ReadFollowerCount;
 import com.blockout.backend.following.application.ReadPersonalCalendar;
 import com.blockout.backend.generated.mobile.model.SportFormatEnum;
 import com.blockout.backend.generated.mobile.model.SportGenderEnum;
@@ -75,6 +76,7 @@ class FollowListsWebMvcTest {
   private static final UUID SEASON = UUID.fromString("00000000-0000-4000-8000-000000002026");
   private static final UUID TARGET = UUID.fromString("00000000-0000-4000-8000-000000000021");
   @Autowired private MockMvc mvc;
+  @MockitoBean private ReadFollowerCount counts;
   @MockitoBean private FollowState state;
   @MockitoBean private ReadFollowOptions options;
   @MockitoBean private ReadPersonalCalendar calendars;

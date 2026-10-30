@@ -1,10 +1,12 @@
 package com.blockout.backend.following.api;
 
 import com.blockout.backend.following.api.FollowingRequest.QueryShape;
+import com.blockout.backend.following.application.FollowContext.Target;
 import com.blockout.backend.following.application.FollowContext.TargetType;
 import com.blockout.backend.following.application.FollowState;
 import com.blockout.backend.following.application.ReadFollowLists;
 import com.blockout.backend.following.application.ReadFollowOptions;
+import com.blockout.backend.following.application.ReadFollowerCount;
 import com.blockout.backend.following.application.ReadPersonalCalendar;
 import com.blockout.backend.generated.mobile.api.FollowingApi;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
@@ -22,16 +24,15 @@ import java.time.ZoneId;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
-/** Canonical following routes; public counts retain their later story owner. */
+/** Canonical private following routes and independently readable public relation counts. */
 @RestController
 @RequiredArgsConstructor
 public class FollowingController implements FollowingApi {
   private final FollowState state;
+  private final ReadFollowerCount counts;
   private final ReadFollowOptions options;
   private final ReadPersonalCalendar calendars;
   private final ReadFollowLists lists;
@@ -88,13 +89,26 @@ public class FollowingController implements FollowingApi {
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<FollowerCountResponse> getTeamFollowerCount(UUID teamId, Boolean bypass) {
-    throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED);
+    return countResponse(new Target(TargetType.TEAM, teamId));
   }
 
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<FollowerCountResponse> getPoolFollowerCount(UUID poolId, Boolean bypass) {
-    throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED);
+    return countResponse(new Target(TargetType.POOL, poolId));
+  }
+
+  /**
+   * Validates the public query shape without resolving the viewer's private original account.
+   *
+   * @param target exact sporting identity supplied by the canonical route
+   * @return non-cacheable direct count with no follower identities
+   */
+  private ResponseEntity<FollowerCountResponse> countResponse(Target target) {
+    requests.validateQuery(request, QueryShape.MEMBER);
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(new FollowerCountResponse(counts.read(target)));
   }
 
   /** {@inheritDoc} */

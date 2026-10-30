@@ -30,6 +30,7 @@ import com.blockout.backend.following.application.FollowState;
 import com.blockout.backend.following.application.FollowUnavailableTargetException;
 import com.blockout.backend.following.application.ReadFollowLists;
 import com.blockout.backend.following.application.ReadFollowOptions;
+import com.blockout.backend.following.application.ReadFollowerCount;
 import com.blockout.backend.following.application.ReadPersonalCalendar;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import java.util.Optional;
@@ -74,6 +75,7 @@ class FollowStateWebMvcTest {
   private static final UUID TARGET = UUID.fromString(FollowingContractWebMvcTest.TARGET);
   private static final String ISSUER = "https://identity.example.invalid/";
   @Autowired private MockMvc mvc;
+  @MockitoBean private ReadFollowerCount counts;
   @MockitoBean private FollowState state;
   @MockitoBean private ReadFollowOptions options;
   @MockitoBean private ReadPersonalCalendar calendars;

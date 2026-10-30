@@ -5,10 +5,18 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Persistence selections for current personal lists, options and calendars; no managed sporting or
+ * Persistence selections for public counts and current personal selections; no managed sporting or
  * account data escapes.
  */
 public interface FollowReadStore {
+  /**
+   * Counts existing relations without account hydration, personal filters or visibility deletion.
+   *
+   * @param target exact typed identity whose current visibility is admitted by the caller
+   * @return the database's direct relation count; absence of rows is a genuine zero
+   */
+  long count(FollowContext.Target target);
+
   /**
    * Selects an original owner's currently visible targets in native French name/UUID order.
    *

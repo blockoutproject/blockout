@@ -115,7 +115,12 @@ export function useFollowMutation(
         try {
           const previousUpdates =
             client.getQueryState(stateKey)?.dataUpdateCount ?? 0;
-          const state = await client.query({ ...options, staleTime: 0 });
+          const state = await client.query({
+            ...options,
+            staleTime: 0,
+            retry: false,
+            networkMode: "always",
+          });
           // Native cancellation can resolve with reverted data; only a newly accepted read is evidence.
           if (
             !owner.isCurrent(owner.generation) ||
