@@ -136,7 +136,11 @@ class ReportContributionIntegrationTest extends ContributionScenario {
   @DisplayName("Reporting ignores publication age window and quota on an ownerless link")
   void reportsOwnerlessWithoutPublicationEligibility() throws Exception {
     // Given
-    UUID version = submit(AUTHOR, "0", "https://youtu.be/viewed", false).version().id();
+    submit(FOLLOWER, "0", "https://youtu.be/first", false);
+    submit(FOLLOWER, "1", "https://youtu.be/second", false);
+    submit(FOLLOWER, "2", "https://youtu.be/third", false);
+    moderator(AUTHOR);
+    UUID version = submit(AUTHOR, "3", "https://youtu.be/viewed", true).version().id();
     sql.update("UPDATE contribution_version SET owner_id=NULL WHERE id=?", version);
     sql.update("UPDATE account SET principal_created_at=NULL WHERE id=?", FOLLOWER);
     sql.update("UPDATE sporting_match SET reliable_start=NULL WHERE id=?", matchId);
@@ -147,6 +151,7 @@ class ReportContributionIntegrationTest extends ContributionScenario {
     // Then
     response.andExpect(status().isCreated());
     assertThat(count("contribution_report")).isEqualTo(1);
+    assertThat(reads.read(FOLLOWER, matchId, 0).usage().versionsUsed()).isEqualTo(3);
   }
 
   @Test

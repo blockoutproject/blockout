@@ -204,3 +204,45 @@ Scoped iOS/Android observations at `e9a6ece6`, including builds and controlled f
 The [integrated native evidence](https://github.com/blockoutproject/blockout/pull/562#issuecomment-6479911193) exercises production source `84e723e7` on compatible iOS 27.1 and Android API 37 development clients. iOS keyboard dismissal and cancelling the native discard confirmation preserve the exact draft; the captured future-match form is ineligible for ordinary submission and supplies no new acknowledgement proof. Android font enlargement recreates the Activity without changing the process, returns to the home route and yields a readable empty form on explicit reopening. This establishes neither retained-context cropping nor draft persistence across recreation, and does not erase the earlier failed observation. The real Stream link panel is exercised on both platforms; native external handoff and return are observed on Android. The iOS handoff remains unqualified. The compact contribution summary remains informational and has no navigation dependency. Real TalkBack 17.0 speech captions verify the link field name/hint and the empty-value validation alert on this source; no POST is issued. These two cases do not qualify complete reader traversal or VoiceOver.
 
 T009/T015/T016 construction is complete with the generated/RHF/Query tests, public projection proof and these scoped native observations. The full F03 match status still truncates after a live Android theme change at 130% text; it is absent from the compact F08 context and retains its failed result under [F13 native qualification](../003-shared-quality/quickstart.md#native-presentation-qualification). This grants no Android exception or global native acceptance. T017 retains the complete US1 acceptance execution; T049/T056 and F13 T073 retain the broader journeys, runtime matrix and assistive-technology qualification.
+
+### Exact-version reporting — T027–T032
+
+`ReportContributionIntegrationTest` executes the generated report routes over the real migrated
+PostgreSQL mappings and F02/F05 lock owners. It covers trimmed private reasons, self-report refusal,
+ownerless links, exhausted publication quota/unknown age/time without a reporting restriction,
+thresholds three/ten from current definitive-result evidence, correction without immediate hiding,
+unchanged duplicates after hiding and first-reason retention. PostgreSQL cases qualify exact-version
+foreign keys, non-null reporter uniqueness, independently counted anonymous rows, root-before-account
+locking and both report/replacement orders without retargeting. The unresolved hold remains effective
+for different authors and addresses. Anonymous attribution/reason updates are controlled SQL fixtures;
+actual F05 erasure and US5 selection/reactivation remain T033/T050 and their owning qualification.
+
+`ContributionReportsWebMvcTest` exercises reason-only generated binding, rejection of invented
+revision/unknown fields, original-account scope, current ordinary admission, canonical conflicts,
+201 exact account/version Location, unchanged 200 and no-store. Own-report GET exposes only
+`reported`, including a prior report on an inactive version while the match remains viewable.
+
+The report and entry suites use the real RHF form, Query, generated transport and F05/F12 providers
+with controlled HTTP/native I/O. They cover the viewed version and address, guest invitation without
+replay, validation, retained drafts, in-flight duplicate suppression, ordinary errors after conflict
+or invalid acknowledgement, and a later explicit retry on the same target. No match-refresh action,
+stale-target explanation or special report recovery state is added. Confirmed success is independent
+of derivative-read failure; old session/departure callbacks cannot publish a success to another view.
+
+The owner’s 2026-10-30 simplification is recorded in the existing [report composition](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5534-59410),
+whose visible form already contained only the required reason and Send/Cancel actions. Its private
+composition descriptions now explicitly exclude report refresh/recovery controls. The matching
+[prototype revision](https://github.com/blockoutproject/product-prototype/commit/bf53c53a11870bf52f5f17043c2c14fafadb8173)
+uses ordinary errors after report response loss and preserves its exact target/first recorded reason
+on a later explicit retry. These prototype/design checks do not qualify native or provider behavior.
+
+Scoped native captures at application source `9c5090350d3a433b013339c0c32940d9c1ea06aa` use reused
+`com.blockout.local` development clients, production screens/the native report route and real
+Query/F05/F12 providers, with fictional auth/storage and a local HTTP peer. iOS 27.0 presents the
+ordinary light report form from the exact match entry; Android API 37 presents the dark enlarged-text
+form and ordinary error toast with the viewed address/reason retained and no extra refresh action.
+The run separately observes cancellation without a write and an obsolete-target POST remaining on its
+captured version. The peer records only write metadata, never the private reason. These observations
+establish neither full protected-root/deep-link startup, minimum-OS coverage, reader speech, actual
+moderation/erasure, provider/production operation nor global design/native approval. T033 and the
+remaining full-story/session/accessibility qualification remain open.
