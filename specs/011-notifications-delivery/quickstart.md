@@ -11,7 +11,7 @@ The [model](data-model.md), [contracts](contracts/README.md) and owning specific
 ## Foundation evidence
 
 T001 reuses the [shared stack](../003-shared-quality/plan.md) and SDK-compatible `expo-notifications`
-(`~58.1.6` in the [manifest](../../apps/mobile/package.json)). Package compatibility does not qualify
+(`~58.1.7` in the [manifest](../../apps/mobile/package.json)). Package compatibility does not qualify
 provider configuration. T002 retains the XML master and [disposable baseline/freeze policy](../../README.md#local-development);
 no external retained-data posture is qualified.
 
@@ -181,6 +181,8 @@ executed checks and unavailable evidence belong in the delivery PR.
 
 ## Essential scenarios
 
+T030’s [physical push preparation](#physical-push-preparation) expands the native rows below; execution remains T041.
+
 | Boundary        | Exercise                                                                                                                                                                                                                     | Expected result                                                                                                                                                                                                                                                                                                                                       |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Trigger         | Link before H, corrected/unknown hour, publication after H, definitive/provisional result, initial finished discovery and historical reconstruction.                                                                         | Current eligible events only; before-H link waits for ordinary processing around H; no historical result burst or guessed midnight.                                                                                                                                                                                                                   |
@@ -254,3 +256,58 @@ This stream-only composition does not complete the document/reporting scope of
 and [200% screen](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=1072-24724)
 remain the visual references. Automated semantic cases do not establish narrow-screen geometry,
 native text resizing or VoiceOver/TalkBack behavior; T060 retains those qualifications separately.
+
+## After-commit push construction
+
+T028/T034/T035 use the actual `AfterCommitAnnouncements.Ready` boundary: the mandatory
+producer transaction captures current private association row identities/revisions/addresses
+alongside original F06 relation incarnations, and rollback emits nothing. The bounded native
+Spring worker consumes only successful commits. It reuses the current inbox/F03/F08 projection,
+original F05 account and exact F06 relation reads, then checks F12 maintenance immediately before
+each provider batch. Current association replacement, owner/entry removal, age 29, sporting hiding,
+missing reliable H, before-H or final-result live state suppress remaining work. Result-family
+wording can reflect a withdrawn link without exposing its former URL.
+
+[Application cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/PushDeliveryTest.java)
+and [PostgreSQL cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/PushDeliveryIntegrationTest.java)
+cover this transport construction with controlled external I/O; [HTTP cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/infrastructure/ExpoPushClientTest.java)
+exercise actual RestClient serialization and partial/refused/uncertain/missing evidence.
+[Configuration cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/infrastructure/PushDeliveryConfigurationTest.java)
+exercise native binding, activation validation and queue rejection. Run
+`./mvnw -B -ntp -pl apps/backend verify -Dtest='PushDeliveryTest,ExpoPushClientTest,PushDeliveryConfigurationTest' -Dit.test=PushDeliveryIntegrationTest`.
+
+The [operations input guide](../../infra/operations/README.md#sporting-push-inputs-and-failure-limits)
+owns exact activation names, one enabled sender per project, credentials/channels, bounds and safe
+diagnostics. Tickets live only in memory for one observation around fifteen minutes later. No
+receipt callback, overload, restart or maintenance skip creates resend/catch-up work. These tests
+establish no physical receipt, APNs/FCM credential validity, production activation, actual F05
+erasure orchestration or complete producer-to-provider qualification. T038/T040/T041 and the
+cross-owner restriction qualifications retain those obligations.
+
+## Physical push preparation
+
+T030 prepares the A26–A33 cases below; it does **not** execute T041. Before running them, obtain
+separate authorization for the exact isolated Expo/Apple/Firebase environments, test accounts,
+physical iOS/Android devices and native development/release binaries at the reviewed revision.
+Use the matching inputs and private credential procedure in the
+[operations guide](../../infra/operations/README.md#sporting-push-inputs-and-failure-limits).
+Do not use production destinations, Expo Go or a mock as phone-delivery evidence. The SDK's support
+for some simulators/emulators does not replace the accepted physical iOS/Android qualification.
+The added config plugin requires a new authorized native binary for these cases; no EAS/store
+build or provider/project mutation was performed by construction.
+
+| Physical case                    | Prerequisites and exercise                                                                                                                                                                                                    | Required observation                                                                                                                                                                                                                 |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Permission/channel               | Isolated credentials, fresh installation or known permission state; Android channel `default` before requesting the Expo address. Refuse permission, then use an ordinary authorized registration occasion after changing it. | Inbox eligibility is unchanged; denial produces no claim of delivery. Record platform/permission/channel state and actual resulting association privately.                                                                           |
+| Foreground/background            | Send one safe sporting event with the app foregrounded, then another while backgrounded/locked.                                                                                                                               | Foreground has no banner/list/sound/badge or replacement alert, while ordinary inbox refresh remains independent. Separately record provider ticket, APNs/FCM receipt and observed phone presentation; none substitutes for another. |
+| Badges/system notices            | Multi-page inbox with unloaded unread rows; supported and unsupported launcher badge behavior; retain a presented notice across opening and sign-out.                                                                         | Confirmed current-account summary owns the supported badge and sign-out resets it best effort. Background values may be stale and system notices may remain; no push-carried count, enumeration or recall is promised.               |
+| Cold and old taps                | Terminate the app, tap one notice twice, then repeat under account B, guest and a newly recreated A account; include a purged/expired entry.                                                                                  | One ordinary match route under current rights, independent owner read only for the matching original account. No former-inbox request, resurrected entry or duplicate route.                                                         |
+| Maintenance/current restrictions | Activate isolated F12 maintenance after inbox commit but before a controllable send; include an operator recipient and a link withdrawn/hidden before handoff.                                                                | No new handoff for any recipient, while inbox/facts and purge remain intact. Deactivation causes no catch-up. A message already handed off may still arrive; opening enforces current access.                                        |
+| Offline delay                    | Controlled offline physical device, safe wording and unchanged provider default lifetime; restore connectivity after the event's sporting situation changes.                                                                  | Record actual delay and receipt separately; no active-broadcast/free-video claim, live TTL override or promise of eventual delivery. An old tap opens only the current match.                                                        |
+| Account/destination races        | A → guest → A/B, token rotation, delayed removal/receipt and an old PUT already transmitted before reassociation; erase the original account through its actual F05 owner.                                                    | New connection/row identities protect replacements. A transmitted old PUT may win until the next ordinary current registration; no repair/replay loop or old private access. No system-notice recall is assumed.                     |
+| Provider failure/process loss    | Authorized controlled refusal/timeout/invalid-destination outcome and process shutdown before send/receipt; no private raw diagnostic in public evidence.                                                                     | Inbox remains committed, uncertainty is distinct from rejection, only the exact `DeviceNotRegistered` target is invalidated, receipts are observed once if available, and restart/overload causes no resend.                         |
+
+For each executed case, retain reviewed commit/native build, physical device/OS, isolated environment,
+scenario and passed/failed/unavailable result in the owning qualification evidence. Keep private
+addresses, credentials, ticket IDs and attachments outside this public repository. A successful
+sample does not establish delivery guarantees or complete the other outstanding F07 tasks.

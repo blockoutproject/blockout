@@ -1,6 +1,7 @@
 package com.blockout.backend.notifications.infrastructure;
 
 import com.blockout.backend.notifications.application.PushSubscriptionStore.Association;
+import com.blockout.backend.notifications.application.PushSubscriptionStore.Target;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -13,6 +14,28 @@ import org.springframework.data.jpa.repository.Query;
  * access.
  */
 interface PushSubscriptionRepository extends JpaRepository<PushSubscriptionEntity, UUID> {
+  /**
+   * Captures detached private targets for one locked original owner.
+   *
+   * @param accountId original account UUID
+   * @return existing row incarnations without a delivery ledger
+   */
+  @Query(
+      "SELECT NEW com.blockout.backend.notifications.application.PushSubscriptionStore$Target(p.id, p.revision, p.expoPushToken) FROM PushSubscriptionEntity p WHERE p.accountId=:accountId")
+  List<Target> targets(UUID accountId);
+
+  /**
+   * Rechecks all private target values and ownership just before handoff.
+   *
+   * @param accountId original account
+   * @param id captured row identity
+   * @param revision captured JPA revision
+   * @param address captured private address
+   * @return whether this exact association still exists
+   */
+  boolean existsByAccountIdAndIdAndRevisionAndExpoPushToken(
+      UUID accountId, UUID id, long revision, String address);
+
   /**
    * Reads the complete affected-owner set in one statement without hydrating private managed state.
    *

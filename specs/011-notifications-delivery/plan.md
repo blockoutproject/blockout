@@ -12,11 +12,11 @@ Keep sporting announcement facts and personal inbox entries in the existing back
 
 **Language/Version**: Java 25 / Spring Boot 4.1.1; TypeScript / Expo SDK 58 / React Native 0.88 / React 19.3.0, under [F13](../003-shared-quality/plan.md).
 
-**Primary Dependencies**: Existing Spring Data JPA/Hibernate, Spring scheduling/transaction events/RestClient, TanStack Query and F13 generated HTTP interfaces. Add the SDK-compatible `expo-notifications` package during authorized application implementation; no community Java SDK or separate sending service.
+**Primary Dependencies**: Existing Spring Data JPA/Hibernate, Spring scheduling/transaction events/RestClient, TanStack Query and F13 generated HTTP interfaces. The SDK-compatible `expo-notifications` package is installed; no community Java SDK or separate sending service.
 
 **Storage**: PostgreSQL 18.6; personal mobile cache and pending push/receipt work in memory. Installation UUID and connection-association identity are small device metadata, not a persisted inbox or cleanup credential.
 
-**Testing**: JUnit/Spring MVC/Testcontainers PostgreSQL; Jest Expo/React Native Testing Library and physical-device qualification. Current repository checks cover documents and OpenAPI only.
+**Testing**: JUnit/Spring MVC/Testcontainers PostgreSQL; Jest Expo/React Native Testing Library and physical-device qualification. Use the actual F13 repository verification targets; controlled transport and SQL tests do not establish physical receipt.
 
 **Target Platform**: Existing Linux backend; native iOS/Android builds and Expo Push with APNs/FCM.
 
@@ -98,7 +98,7 @@ A push contains notification, owner-account and match identities plus safe sport
 
 After commit, ordinary Spring asynchronous processing uses immutable send context containing notification identity, selected follow relation identities and targeted associations. Reassess maintenance, owner existence, entry age/visibility, at least one original still-eligible follow, destination and content before external handoff. Removing/recreating a follow is not continuity. Current maintenance skips every new push, including operator recipients. The check does not promise an atomic stop or recall across an external network call.
 
-The Expo adapter uses Spring RestClient with bounded waits. Follow native limits: at most 100 messages per request in one project, 600 messages/second/project and 4 KiB per payload. Dispatch through a bounded ordinary executor/paced batches; an overloaded or stopped process can drop unsent work with a safe diagnostic. Do not add a durable queue or automatic resend after refusal, timeout or uncertain response. These limits are provider constraints, not a Blockout capacity target.
+The [bounded sender construction](research.md#bounded-sender-construction) records the implemented executor, pacing and receipt-memory bounds; the environment permits one enabled sender per project. The Expo adapter uses Spring RestClient with bounded waits. Follow native limits: at most 100 messages per request in one project, 600 messages/second/project and 4 KiB per payload. Dispatch through a bounded ordinary executor/paced batches; an overloaded or stopped process can drop unsent work with a safe diagnostic. Do not add a durable queue or automatic resend after refusal, timeout or uncertain response. These limits are provider constraints, not a Blockout capacity target.
 
 Retain returned ticket IDs and their exact association/revision only in memory. An ordinary scheduled callback checks receipts once around fifteen minutes later, grouping up to 1,000 IDs per request. Missing/failed checks or a restart lose the evidence without resending. Process per-ticket errors and only invalidate the still-matching association/revision for `DeviceNotRegistered`. A late receipt cannot remove a newer registration. No SQL transaction spans either provider call.
 

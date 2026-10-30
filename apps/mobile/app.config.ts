@@ -20,6 +20,10 @@ if (
 }
 
 const easSlug = process.env.EXPO_PROJECT_SLUG;
+// Public build-time identity. Keep the retained EAS default unless an isolated project is explicit.
+const expoProjectId =
+  process.env.EXPO_PROJECT_ID ??
+  (easSlug ? "10cdf86a-a81e-496a-bcaa-07c132678f6d" : undefined);
 const applicationId = production
   ? "com.blockoutproject.blockout"
   : preview
@@ -45,6 +49,10 @@ const config: ExpoConfig = {
   plugins: [
     ["expo-router", { sitemap: false }],
     "expo-image",
+    [
+      "expo-notifications",
+      { defaultChannel: "default", enableBackgroundRemoteNotifications: false },
+    ],
     [
       "react-native-maps",
       {
@@ -175,11 +183,11 @@ const config: ExpoConfig = {
   },
   android: {
     package: applicationId,
+    // Private file input supplied by the authorized build environment, never committed.
+    googleServicesFile: process.env.FCM_GOOGLE_SERVICES_FILE,
   },
   extra: {
-    ...(easSlug
-      ? { eas: { projectId: "10cdf86a-a81e-496a-bcaa-07c132678f6d" } }
-      : {}),
+    ...(expoProjectId ? { eas: { projectId: expoProjectId } } : {}),
     // Public V2 inputs only; the future F11 lifecycle owns consent and SDK initialization.
     advertising: {
       iosInterstitialUnitId: process.env.ADMOB_V2_IOS_INTERSTITIAL_UNIT_ID,

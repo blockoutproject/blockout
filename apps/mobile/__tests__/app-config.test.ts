@@ -5,6 +5,8 @@ beforeEach(() => {
   for (const name of [
     "APP_VARIANT",
     "EXPO_PROJECT_SLUG",
+    "EXPO_PROJECT_ID",
+    "FCM_GOOGLE_SERVICES_FILE",
     "REVENUECAT_TEST_STORE_API_KEY",
     "REVENUECAT_IOS_API_KEY",
     "REVENUECAT_ANDROID_API_KEY",
@@ -200,3 +202,24 @@ it.each(["local", "development", "preview", "production"])(
     ]);
   },
 );
+
+it("configures isolated push inputs without a secret or background task", () => {
+  // Given
+  process.env.EXPO_PROJECT_ID = "00000000-0000-4000-8000-000000000001";
+  process.env.FCM_GOOGLE_SERVICES_FILE =
+    "/private/synthetic/google-services.json";
+
+  // When
+  const { default: config } =
+    jest.requireActual<typeof import("../app.config")>("../app.config");
+
+  // Then
+  expect(config.extra?.eas?.projectId).toBe(process.env.EXPO_PROJECT_ID);
+  expect(config.android?.googleServicesFile).toBe(
+    process.env.FCM_GOOGLE_SERVICES_FILE,
+  );
+  expect(config.plugins).toContainEqual([
+    "expo-notifications",
+    { defaultChannel: "default", enableBackgroundRemoteNotifications: false },
+  ]);
+});

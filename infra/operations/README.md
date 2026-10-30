@@ -363,3 +363,63 @@ F03 uses `react-native-maps` 1.27.2 with Apple Maps on iOS and Google Maps on An
 Before authorized Android map use, supply a separate appropriately scoped key for the intended environment. Restrict it to **Android applications**, with the exact application package and SHA-1 signing-certificate fingerprint of each authorized build. The configured packages are `com.blockout.local`, `com.blockoutproject.blockout.preproduction` and `com.blockoutproject.blockout`; release verification must use the certificate that signs the installed artifact (including Play App Signing where applicable), not an assumed local/upload certificate. Restrict the key's APIs to **Maps SDK for Android**. Keep real key values and private provider evidence outside this repository; a mobile key is embedded in its native artifact and relies on verified restrictions.
 
 This declares inputs and expected restrictions only. Real credentials, provider configuration/restriction checks and physical iOS/Android qualification remain [F03 T040](../../specs/007-sporting-consultation/tasks.md), using its [prepared map cases](../../specs/007-sporting-consultation/quickstart.md#native-map-construction-and-qualification-cases--t035). Building without a key does not qualify Android map use.
+
+## Sporting push inputs and failure limits
+
+F07 uses one Expo project per environment, with **one enabled backend sender per project**.
+Its single Spring worker paces batches of at most 100 by 200 ms (at most 500 messages/second,
+within Expo's 600/project/second limit). Do not enable independent replicas or another sender
+against that same project without revisiting the aggregate rate boundary. Inbox/facts remain in
+PostgreSQL regardless of transport activation. No production/provider activation is established
+by this configuration.
+
+- Backend: `BLOCKOUT_NOTIFICATIONS_PUSH_ENABLED` defaults to `false`;
+  `BLOCKOUT_NOTIFICATIONS_PUSH_PROJECT_ID` names the existing isolated project and
+  `BLOCKOUT_NOTIFICATIONS_PUSH_ACCESS_TOKEN` is its private server bearer credential. Enabling
+  requires both inputs. Enable Expo's enhanced push security separately only with authorization,
+  and keep the server credential in the private environment/secret store. Never expose it in a
+  mobile bundle, repository, shell transcript or diagnostic payload.
+- Native `apps/mobile/app.config.ts`: `EXPO_PROJECT_ID` supplies the public build-time project UUID
+  consumed by the existing `getExpoPushTokenAsync({ projectId })` lifecycle. Without an override,
+  the existing `EXPO_PROJECT_SLUG` EAS configuration retains its current project UUID; a plain
+  local build has none and does not register. Select matching native/backend project inputs;
+  the Expo address itself does not prove its project to the backend. Mixed-project rejection is
+  dropped, never split/retried. Preserve F14's existing production application/project identity.
+- Android: `FCM_GOOGLE_SERVICES_FILE` is the environment-owned absolute path to the matching
+  `google-services.json`; keep the file outside Git. The matching private FCM v1 service-account
+  credential belongs to the isolated Expo/EAS project's service credentials, never the bundle or
+  backend token field. The existing SDK creates channel `default` (label `Notifications`, default
+  importance) before permission/token acquisition. The `expo-notifications` config plugin uses
+  that channel. User/channel settings still control presentation.
+- iOS: the isolated application identifier, APNs key and matching provisioning entitlement belong
+  to the authorized Apple/Expo build credentials. No APNs secret is read from application config.
+  The SDK plugin supplies ordinary native notification configuration; background remote
+  notifications remain disabled. Adding the plugin changes future native binaries and does not
+  update an already installed development client.
+
+The [official Expo send/receipt API](https://docs.expo.dev/push-notifications/sending-notifications/)
+was checked on 2026-10-30: 100 messages/request in one project, 600 messages/second/project,
+4 KiB payloads and 1,000 IDs/receipt request. RestClient uses the existing 3-second connect and
+5-second read bounds, with no redirect or application resend. Only safe sporting title/body and
+`ownerAccountId`/`notificationId`/`matchId` routing data accompany the destination. No badge, old
+video URL, profile, live-specific TTL, image extension, interactive action or background sync is
+added. Omitted TTL/expiration retain the provider default, possibly four weeks. A late notice
+makes no current-stream promise.
+
+The worker queue holds at most 100 batches; up to 100 delayed receipt callbacks retain at most
+100 ticket IDs each. Both are memory only and disappear on shutdown/restart. Each accepted ticket
+is observed once around fifteen minutes later. A refusal, uncertain response, missing receipt,
+overload or maintenance skip produces no resend, replay or catch-up. `DeviceNotRegistered` removes
+only the matching private row identity/revision/address, so a late receipt cannot remove a newer
+registration. A last current-maintenance check prevents each new handoff including operators;
+changes after that check cannot atomically stop or recall an external message.
+
+Monitor existing structured stdout fields `operation=sporting_push` (drop reason/count),
+`operation=expo_push_evidence` (acceptance/rejection/unknown counts) and
+`operation=sporting_push_configuration` (disabled/enabled or credential/project alert). These
+contain no account/destination/ticket identities, content, raw provider error or secret.
+Acceptance at Expo/APNs/FCM is not phone receipt. Correct credentials/project settings only in an
+authorized environment; do not repair lost transient work by replaying announcements. Follow the
+[physical preparation](../../specs/011-notifications-delivery/quickstart.md#physical-push-preparation)
+for the separately owned device/provider qualification. No EAS/store build or provider mutation
+is authorized by this runbook.

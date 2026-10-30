@@ -36,6 +36,11 @@ server:
 
 blockout:
   notifications:
+    push:
+      # Opt-in only after isolated credentials and project ownership are qualified.
+      enabled: ${BLOCKOUT_NOTIFICATIONS_PUSH_ENABLED:false}
+      project-id: ${BLOCKOUT_NOTIFICATIONS_PUSH_PROJECT_ID:}
+      access-token: ${BLOCKOUT_NOTIFICATIONS_PUSH_ACCESS_TOKEN:}
     # One ordinary pass per UTC day; Spring's '-' value is for isolated tests only.
     retention-cron: ${BLOCKOUT_NOTIFICATIONS_RETENTION_CRON:0 0 3 * * *}
   consultation:

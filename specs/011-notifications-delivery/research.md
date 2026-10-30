@@ -10,6 +10,31 @@
 
 **Evidence.** [Expo sending](https://docs.expo.dev/push-notifications/sending-notifications/), [FAQ](https://docs.expo.dev/push-notifications/faq/), [native setup](https://docs.expo.dev/push-notifications/push-notifications-setup/), [SDK 58 notifications](https://docs.expo.dev/versions/v58.0.0/sdk/notifications/), [FCM message lifetime](https://firebase.google.com/docs/cloud-messaging/customize-messages/setting-message-lifespan). The SDK page lists the compatible package family; resolve its compatible patch through the ordinary Expo installation procedure during implementation, without upgrading the shared stack. These are documented capabilities, not an integrated Java/mobile qualification. Expo Go is not native push evidence.
 
+### Bounded sender construction
+
+The official send/setup/SDK pages were rechecked on 2026-10-30; their request/rate/payload/receipt
+limits and enhanced-security bearer header remain consistent with the accepted decision. Expo's
+retry recommendations are not delivery requirements: this implementation deliberately retains the
+approved single attempt and single delayed receipt observation. Support for some emulators/simulators
+does not supersede the accepted physical iOS/Android qualification.
+
+`AfterCommitAnnouncements` captures association row incarnations inside the existing producer
+transaction, preventing a later registration from receiving historical work. `ReadPushEligibility`
+uses the existing current inbox/F03/F08 projection and F06 identity API in a short read-only
+transaction. A normal unavailable member uses `ReadInbox.availableMember` instead of catching a
+transactional exception that has already marked its enclosing read transaction rollback-only.
+No owner repository/entity is imported across feature boundaries.
+
+One ordinary `ThreadPoolTaskExecutor` worker, 100 queued batches of up to 100 targets and a 200 ms
+minimum interval keep a single project's rate at or below 500 messages/second. This conservative
+pacing satisfies the 600 limit without a custom token bucket. The environment must have only one
+enabled sender for that Expo project; this is no distributed rate guarantee across replicas.
+One native scheduler retains at most 100 receipt callbacks (100 tickets each), bounded by a native
+semaphore. Each callback runs once around fifteen minutes after acceptance; no SQL transaction
+spans either HTTP operation. Shutdown/rejection discards only transient work. These local bounds
+are implementation limits, not a capacity promise or recovery mechanism. Exact input names and
+safe operational handling remain in the [operations guide](../../infra/operations/README.md#sporting-push-inputs-and-failure-limits).
+
 ## Transactional inbox and approximate start-time announcements
 
 **Decision.** Invoke required F07 writes in the producer's local database transaction, under existing match/account locking. After commit, submit only best-effort external work. Use one ordinary scheduled eligibility pass every minute for links published before H; process later publications and results through accepted transitions.

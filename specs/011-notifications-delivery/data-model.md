@@ -48,7 +48,7 @@ A receipt invalidates only the native row identity/revision/address captured for
 
 ## Ephemeral processing and mobile data
 
-After-commit send context references newly created entries, the original eligible follow relation IDs, and selected association IDs/revisions. Ticket IDs retained for the single delayed receipt check live only in process memory. A restart discards this work; it does not change inbox persistence or trigger replay. These are transient integration values, not additional database entities.
+After-commit send context references newly created entries, the original eligible follow relation IDs, and selected private association row IDs/revisions/addresses. Associations are captured under the producer’s existing account locks before commit; registrations accepted later are not added to that context. Ticket IDs retained for the single delayed receipt check live only in process memory. A restart discards this work; it does not change inbox persistence or trigger replay. These are transient integration values, not additional database entities.
 
 The mobile query cache holds validated responses by account/session and continuation. Read confirmations remain monotone within that cache, and expired/known-restricted content cannot be restored by older responses. No read journal or complete inbox mirror is added. Logout/account changes clear private queries and local badge, regardless of best-effort disassociation outcome.
 

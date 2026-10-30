@@ -26,6 +26,19 @@ public class JpaPushSubscriptionStore implements PushSubscriptionStore {
 
   /** {@inheritDoc} */
   @Override
+  public List<Target> targets(UUID accountId) {
+    return List.copyOf(subscriptions.targets(accountId));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean current(UUID accountId, Target target) {
+    return subscriptions.existsByAccountIdAndIdAndRevisionAndExpoPushToken(
+        accountId, target.id(), target.revision(), target.address());
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public List<Association> affected(Registration registration) {
     return List.copyOf(
         subscriptions.affected(
@@ -69,6 +82,7 @@ public class JpaPushSubscriptionStore implements PushSubscriptionStore {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public boolean invalidate(UUID id, long revision, String address) {
     return subscriptions.invalidate(id, revision, address) != 0;
   }
