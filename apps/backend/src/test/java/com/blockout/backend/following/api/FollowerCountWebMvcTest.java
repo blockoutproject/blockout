@@ -227,7 +227,12 @@ class FollowerCountWebMvcTest {
     verifyNoInteractions(counts);
   }
 
-  /** Exact typed sporting identity; no account belongs to the public count input. */
+  /**
+   * Builds an exact typed sporting identity without a private account selector.
+   *
+   * @param kind scenario's team or pool route kind
+   * @return the public target passed to the application reader
+   */
   private Target target(String kind) {
     return new Target(kind.equals("team") ? TargetType.TEAM : TargetType.POOL, SEASON);
   }
@@ -243,7 +248,12 @@ class FollowerCountWebMvcTest {
                     .claim("azp", "mobile-test"));
   }
 
-  /** Returns the canonical generated public count route. */
+  /**
+   * Returns the canonical generated public count route.
+   *
+   * @param kind scenario's team or pool route kind
+   * @return the exact count resource path
+   */
   private String path(String kind) {
     return "/" + kind + "s/" + SEASON + "/follower-count";
   }

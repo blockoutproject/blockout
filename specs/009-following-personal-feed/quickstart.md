@@ -110,7 +110,10 @@ it does not manufacture that number of database rows.
 and the compact counter. HTTP/native identity I/O are controlled. Unknown/invalid/failed reads
 never become zero; retained permitted counts identify a failed refresh and expose count-only retry.
 Current permission/visibility refusals remove retained values, including across a subsequent network
-failure. `follow-recovery.test.tsx` composes the actual F03 action region with the counter and
+failure. A current public count NotFound also withdraws the actual F03 team/pool detail,
+reuses its participant/list/calendar cleanup and suspends shared follow controls without a full-detail
+reread. The private opaque member NotFound does not establish public target absence.
+`follow-recovery.test.tsx` composes the actual F03 action region with the counter and
 existing shared mutation lifecycle. It covers a delayed original write after one observation,
 failed dependent count/profile reads after confirmed success and A → guest/B → A while the old
 observation is pending. The existing `follow-action.test.tsx` also covers definite refusal,

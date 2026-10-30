@@ -248,6 +248,41 @@ export function createConsultationQueries(
   }
 
   return {
+    /**
+     * Applies a current public team/pool absence to this captured sporting context without rereading
+     * full details. Cancels older representations before withdrawing them, then reuses existing
+     * participant/list/calendar cleanup. Private opaque member errors must never enter this boundary.
+     */
+    async rejectTarget(
+      context: QueryFunctionContext,
+      type: "team" | "pool",
+      id: string,
+      error: ApiError,
+    ) {
+      if (
+        context.signal.aborted ||
+        !session.isCurrent(session.generation) ||
+        error.status !== 404
+      )
+        return;
+      if (type === "pool") {
+        await discardPool(context, id, error);
+        return;
+      }
+      const queryKey = key(getGetTeamQueryKey(id));
+      await context.client.cancelQueries(
+        { queryKey, exact: true },
+        { revert: false },
+      );
+      context.client.getQueryCache().find({ queryKey, exact: true })?.setState({
+        data: undefined,
+        dataUpdatedAt: 0,
+        status: "error",
+        error,
+        errorUpdatedAt: Date.now(),
+      });
+      await removeUnavailableTeam(context, id);
+    },
     /** Current club PNG/JPEG through the generated binary transport and the same admission. */
     clubLogo: (clubId: string) =>
       queryOptions({

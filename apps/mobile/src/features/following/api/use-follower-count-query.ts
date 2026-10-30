@@ -6,7 +6,8 @@ import {
 } from "../../../../.generated/mobile";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { isAccessDenied } from "../../../shared/api/access-denied";
-import { isFollowRestriction } from "./follow-mutations";
+import { useSportingTargetAvailability } from "../../sporting/availability";
+import { restrictFollowTarget, isFollowRestriction } from "./follow-mutations";
 import { useAccountSession } from "../../accounts/current-account";
 import { useOrdinaryRequest } from "../../access/ordinary-request";
 import {
@@ -23,13 +24,16 @@ export function useFollowerCountQuery(target: FollowingTarget) {
   const session = useAccountSession();
   const admission = useOrdinaryRequest();
   const { getCredentials } = useAuth0();
-  const owner = admission.bypass ? captureFollowingOwner(session) : null;
+  const original = captureFollowingOwner(session);
+  const owner = admission.bypass ? original : null;
+  const rejectTarget = useSportingTargetAvailability();
   return useQuery({
     queryKey: followerCountKey(target, owner ?? undefined),
     enabled: admission.admitted && (!admission.bypass || owner !== null),
     refetchOnMount: "always",
     retryOnMount: true,
-    queryFn: async ({ signal, client, queryKey }) => {
+    queryFn: async (context) => {
+      const { signal, client, queryKey } = context;
       try {
         let headers: Record<string, string> | undefined;
         if (admission.bypass) {
@@ -52,6 +56,12 @@ export function useFollowerCountQuery(target: FollowingTarget) {
           !signal.aborted &&
           (isAccessDenied(error) || isFollowRestriction(error))
         ) {
+          if (error instanceof ApiError && error.status === 404) {
+            if (original)
+              await restrictFollowTarget(client, original, target, error);
+            await rejectTarget(context, target.type, target.id, error);
+          }
+          // Withdrawal may unmount this counter and cancel its read; clear after native reversion.
           // A later network error must not resurrect a count whose current read was refused.
           client.getQueryCache().find({ queryKey, exact: true })?.setState({
             data: undefined,
