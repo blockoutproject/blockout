@@ -43,6 +43,7 @@ import {
   useOwnContributions,
 } from "../api/own-contributions";
 import { ContributionForm } from "../forms/contribution-form";
+import { ContributionStateBadge } from "../components/contribution-state-badge";
 
 /** One match's personal proposals; the original-account read supplies permissions and sporting refusal revokes retained details. */
 export interface OwnContributionsScreenProps {
@@ -335,38 +336,14 @@ interface ProposalRowProps {
 function ProposalRow({ item }: ProposalRowProps) {
   const { colors } = useTheme();
   const state = states[item.state];
-  const backgroundColor =
-    item.state === "active"
-      ? colors.successSubtle
-      : item.state === "pending"
-        ? colors.warning
-        : item.state === "rejected" || item.state === "hidden"
-          ? colors.errorSubtle
-          : colors.subtle;
-  const color =
-    item.state === "active"
-      ? colors.onSuccessSubtle
-      : item.state === "pending"
-        ? colors.onWarning
-        : item.state === "rejected" || item.state === "hidden"
-          ? colors.error
-          : colors.secondaryText;
   return (
     <View style={styles.proposal}>
       <View style={styles.proposalContent}>
-        <Text
-          accessibilityHint={state.explanation}
-          style={[
-            styles.badge,
-            { color, backgroundColor },
-            item.state === "active" && {
-              borderWidth: tokens.border.thin,
-              borderColor: colors.onSuccessSubtle,
-            },
-          ]}
-        >
-          {state.title}
-        </Text>
+        <ContributionStateBadge
+          state={item.state}
+          label={state.title}
+          explanation={state.explanation}
+        />
         <Text
           selectable
           style={[tokens.typography.body, { color: colors.text }]}
@@ -391,12 +368,4 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.md,
   },
   proposalContent: { flex: 1, minWidth: 0, gap: tokens.spacing.tight },
-  badge: {
-    ...tokens.typography.metadata,
-    alignSelf: "flex-start",
-    minHeight: tokens.size.icon.lg,
-    paddingHorizontal: tokens.spacing.sm,
-    paddingVertical: tokens.spacing.xs,
-    borderRadius: tokens.radius.control,
-  },
 });

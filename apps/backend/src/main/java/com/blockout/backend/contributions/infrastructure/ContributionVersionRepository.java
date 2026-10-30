@@ -47,6 +47,16 @@ interface ContributionVersionRepository extends JpaRepository<ContributionVersio
   List<Attribution> findAttributions(UUID matchId, Collection<State> states);
 
   /**
+   * Projects a historical source without attaching its mutable attribution before F05 locks.
+   *
+   * @param id exact retained source
+   * @return scalar attribution, or empty for an unknown member
+   */
+  @Query(
+      "SELECT v.ownerId AS ownerId, v.publicationActorId AS publicationActorId, v.decisionActorId AS decisionActorId FROM ContributionVersionEntity v WHERE v.id = :id")
+  Optional<Attribution> findAttribution(UUID id);
+
+  /**
    * Reads a bounded deterministic maintenance batch, exclusive of the last processed match.
    *
    * @param state active lifecycle selected by the store

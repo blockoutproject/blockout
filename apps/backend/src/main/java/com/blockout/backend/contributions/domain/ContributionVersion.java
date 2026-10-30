@@ -30,6 +30,20 @@ public record ContributionVersion(
     UUID replacedByVersionId,
     Decision publication,
     Decision decision) {
+  /**
+   * Supplies existing owner and useful decision actors for bounded current-name projection.
+   *
+   * @return distinct non-null original-account references; no reporter identity is included
+   */
+  public java.util.Set<UUID> attributionAccounts() {
+    return java.util.stream.Stream.of(
+            ownerId,
+            publication == null ? null : publication.actorId(),
+            decision == null ? null : decision.actorId())
+        .filter(java.util.Objects::nonNull)
+        .collect(java.util.stream.Collectors.toUnmodifiableSet());
+  }
+
   /** Owned lifecycle states, persisted as stable strings. */
   public enum State {
     ACTIVE,

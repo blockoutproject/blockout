@@ -21,6 +21,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class JpaAccountStore implements AccountStore {
+  /** {@inheritDoc} */
+  @Override
+  public java.util.Map<UUID, String> displayNames(java.util.Set<UUID> ids) {
+    if (ids.isEmpty()) return java.util.Map.of();
+    return accounts.findNames(ids).stream()
+        .collect(
+            java.util.stream.Collectors.toUnmodifiableMap(
+                AccountRepository.Name::getId, AccountRepository.Name::getUsername));
+  }
+
   private final AccountRepository accounts;
   private final AccountPhotoRepository photos;
   private final AccountPersistenceMapper mapper;

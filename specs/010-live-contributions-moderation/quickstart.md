@@ -246,3 +246,83 @@ captured version. The peer records only write metadata, never the private reason
 establish neither full protected-root/deep-link startup, minimum-OS coverage, reader speech, actual
 moderation/erasure, provider/production operation nor global design/native approval. T033 and the
 remaining full-story/session/accessibility qualification remain open.
+
+### Private moderation construction — T034–T044
+
+`ModerateContributionIntegrationTest` exercises production approval, rejection, withdrawal and
+new-version reactivation over migrated PostgreSQL, retaining source ownership, useful decisions,
+independent holds and immutable quota participation. Actual F05 account locks coordinate controlled
+owner deletion and grant withdrawal; concurrent decisions preserve the first accepted revision.
+Real F07 inbox constraint failures roll back approval/reactivation, version changes, revision and
+announcement allowance. These controlled account deletions do not qualify F05's complete erasure
+or reason-clearing orchestration, which remains with T050/T055 and F05's owning qualification.
+
+`ModerationReadIntegrationTest` qualifies PostgreSQL literal escaped ILIKE, combined version
+criteria, hidden/dateless and unclassified context, distinct tied-activity match pages, version/report
+pages beyond twenty, SQL totals, independent active members and historical reports after hold
+resolution. Bounded query-count evidence checks sporting hydration without N+1. A controlled
+concurrent report between page selection and aggregate reads proves the actual short repeatable-read
+snapshot; subsequent requests may observe newer facts. Canonical private season choices do not
+require collection-management permission.
+
+`ContributionModerationWebMvcTest` checks generated command grammar, original actor, current
+complete grant, ordinary admission, no-store/Accept-Patch, the new-member reactivation Location,
+useful decision lineage and required null erased reasons without reporter identity.
+`moderation.test.tsx` uses real screens, RHF, generated transport, private Query/session/admission
+owners and controlled HTTP/native I/O for content-shaped initial skeletons, exact confirmations, cancellation, literal filtered
+pagination/first-page refresh, failed versus empty queues, private hidden context, historical reports,
+retained drafts/editing revision across tab changes, acknowledged success despite a later read failure,
+visible continuation failures with retained pages, refusal cancellation of concurrent reads, and no polling.
+Background reads never animate the native refresh indicator; only the explicit refresh gesture owns
+that indicator, following the existing sporting-calendar composition. A successful explicit active-page
+refresh preserves the address while adopting the current revision/address for a new intentional
+confirmation after conflict. Exact lineage navigation and its read-only sheet distinguish same-address
+versions even when the related source is outside loaded history pages. Administrative
+queries use generated resource keys within the existing principal-owned private QueryClient;
+obsolete unused account-prefixed moderation key scaffolding is removed.
+
+Local native construction checks ran on the reused `com.blockout.local` development clients:
+iPhone 18 Pro A / iOS 27.0 (`2C22FCF3-D4A7-4F84-BAB1-F358C71C7649`, 402 × 874 points)
+and Android `Pixel_9` (`emulator-5554`, 1080 × 2424 pixels), with final captures at application
+source `7937234d`. Production routes/components, F05 private Query/session and the Auth0 JavaScript
+SDK were retained; an external temporary launcher controlled only the native credential boundary
+and a fictional HTTP peer. This does not
+qualify the full product root/onboarding or actual identity/provider operations. Temporary entry,
+Metro resolver and package-main changes were restored; no qualification mechanism is shipped.
+
+The final composition follows the owner's existing-application priority in the
+[design reconciliation](plan.md#design-reconciliation-and-evidence): the shared native `PagedTabs`
+and `TabLegendList`, search filter/season controls, personal contribution editor and ordinary
+grouped rows/buttons. Final iOS and Android observations exercise horizontal swipes, returning to
+the active page with the exact dirty address retained, and tab entry without an automatic native
+refresh animation. iOS complete address replacement and cancellation of the native replacement
+dialog preserve the original/new address pair and send no write. Its historical report disclosure
+retains three exact-version reports, including the unavailable erased reason. Android's real
+software keyboard leaves the field and final action reachable; cancelling withdrawal sends no
+command, and one explicitly confirmed replacement sends one command and shows acknowledgement.
+Android season selection/apply returns to the queue; final filter/season captures verify full-width
+apply/reset buttons and the same grouped choices and spacing tokens as search.
+
+The iOS run used a hardware keyboard and does not establish software-keyboard occlusion behavior.
+Screen-reader speech, enlarged-text/minimum-OS coverage and full session/erasure scenarios remain
+with T056. Representative captures belong in the delivery PR Conversation with their tested source
+revision; no screenshot is committed. The owner-approved native composition is reconciled in
+[the moderation journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1240-1876),
+preserving the queue `1293:3968`, active `1240:1882`, pending `1310:6016`, historical
+reports `4736:32107` and constrained dark editor `1270:3237`. New search-style filter evidence
+is `7524:8064`; initial queue/editor skeletons are `7526:8249` and `7526:8859`. Earlier filter/action
+references `4730:31181` and `4736:32744` were already absent at reconciliation and are superseded by
+these live frames. The new UI Library `surface/inset` role (`3999:4`) and its two primitive references
+are published current, with Light `#20212408` and Dark `#FFFFFF08`; reports retain `surface/default`.
+Structural inspection finds live instances, editable Outfit text and discrete sporting logos, without
+a flattened screen image. The constrained field uses intrinsic height for enlarged text.
+
+The matching [prototype revision](https://github.com/blockoutproject/product-prototype/commit/f4b2c60c5319470b2f063fa94b00a8bb4ed65cf9)
+reuses its existing pager, native-refresh review control, filters and ordinary buttons. Its shared match
+card, always-mounted prefilled editor, grouped disclosures, exact-source read-only report sheet and
+initial skeletons follow the approved native presentation. Model tests (223), typecheck/build and eighteen
+affected browser checks pass, including draft retention across tabs, exact-address cancellation,
+source-report separation and shared sporting-media fallback at 320 points / enlarged text in both themes.
+These checks qualify the standalone fictional prototype only. T045's integrated current-owner
+qualification, T050/T055 erasure and T056's complete platform/accessibility matrix remain separate;
+controlled SQL, JavaScript or native fixtures establish no provider/production or global design approval.

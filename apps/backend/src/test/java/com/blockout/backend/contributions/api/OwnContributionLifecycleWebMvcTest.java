@@ -75,6 +75,10 @@ class OwnContributionLifecycleWebMvcTest {
   @MockitoBean private ChangeOwnContribution changes;
   @MockitoBean private ReadOwnContributions reads;
   @MockitoBean private AccountAccess accounts;
+
+  @MockitoBean
+  private com.blockout.backend.contributions.application.ModerationStore moderationReads;
+
   @MockitoBean private AccessSettingsStore settings;
   @MockitoBean private PermissionStore permissions;
   @MockitoBean private PlatformTransactionManager transactions;

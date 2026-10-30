@@ -14,6 +14,14 @@ import java.util.UUID;
  */
 public interface AccountStore {
   /**
+   * Reads current attribution names without loading profile/photo data per version.
+   *
+   * @param ids original lifecycle identities needed by a bounded private page
+   * @return existing names keyed by identity; erased accounts are omitted
+   */
+  java.util.Map<UUID, String> displayNames(java.util.Set<UUID> ids);
+
+  /**
    * Resolves only the lifecycle identity without loading profile state before a later row lock.
    *
    * @param issuer exact validated issuer

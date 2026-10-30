@@ -6,6 +6,7 @@ import java.util.UUID;
 /**
  * Scalar encounter visibility facts, excluding result, referee, document and division-image data.
  *
+ * @param id retained match identity
  * @param poolId retained contextual owner
  * @param catalogEligible current catalog presence
  * @param calendarEmpty current qualified empty-calendar restriction
@@ -17,6 +18,7 @@ import java.util.UUID;
  * @param awayTeamId retained away participant whose current membership must be checked
  */
 record MatchVisibilityRow(
+    UUID id,
     UUID poolId,
     boolean catalogEligible,
     boolean calendarEmpty,

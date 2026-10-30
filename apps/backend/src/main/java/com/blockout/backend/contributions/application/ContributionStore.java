@@ -112,6 +112,26 @@ public interface ContributionStore {
   Set<UUID> attributionAccounts(UUID matchId);
 
   /**
+   * Projects historical source attribution without attaching a version before account locking.
+   *
+   * @param versionId exact source, including terminal versions
+   * @return existing owner and useful decision actors, excluding nulls
+   */
+  Set<UUID> versionAttributionAccounts(UUID versionId);
+
+  /**
+   * Selects an existing pending version or creates a source-linked exempt reactivation, replacing
+   * the active version and superseding all pending alternatives before selection.
+   *
+   * @param versionId exact checked pending or historical source
+   * @param actor original moderator protected by the account lock
+   * @param now accepted decision instant
+   * @param reactivate whether to create a new version rather than approve the existing proposal
+   * @return selected active member; the source remains historical on reactivation
+   */
+  ContributionVersion select(UUID versionId, UUID actor, java.time.Instant now, boolean reactivate);
+
+  /**
    * Reads an exact version without authorizing its caller.
    *
    * @param id retained version identity
@@ -192,14 +212,14 @@ public interface ContributionStore {
   /**
    * Detached native page, independent from a total or cross-request snapshot promise.
    *
-   * @param items current caller-only versions in stable order
+   * @param items currently authorized retained versions in stable order
    * @param hasNext whether the native Slice found another page
    */
   record VersionPage(java.util.List<ContributionVersion> items, boolean hasNext) {
     /**
      * Detaches the returned page.
      *
-     * @param items current caller-only page
+     * @param items currently authorized retained page
      * @param hasNext native continuation evidence
      */
     public VersionPage {

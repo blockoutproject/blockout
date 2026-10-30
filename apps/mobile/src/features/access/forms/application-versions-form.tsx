@@ -10,7 +10,8 @@ import { toApplicationVersionsRequest } from "../api/application-versions-reques
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useApplicationVersionsDraft } from "./use-application-versions-draft";
 import { applicationUpdateMessage } from "../application-update-message";
-import { ChevronDown, ChevronRight, Check } from "lucide-react-native";
+import { Check } from "lucide-react-native";
+import { DisclosureChevron } from "../../../shared/components/disclosure-chevron";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useFormState, useWatch } from "react-hook-form";
 import {
@@ -160,7 +161,6 @@ export function ApplicationVersionsForm({
           const ios = platform === "ios";
           const name = ios ? "iOS" : "Android";
           const open = expanded[platform];
-          const Chevron = open ? ChevronDown : ChevronRight;
           return (
             <View
               key={platform}
@@ -187,11 +187,7 @@ export function ApplicationVersionsForm({
                 <Text style={[styles.minimum, { color: colors.secondaryText }]}>
                   {current[platform].minimumVersion || "Aucun minimum"}
                 </Text>
-                <Chevron
-                  accessible={false}
-                  size={tokens.size.icon.md}
-                  color={colors.icon}
-                />
+                <DisclosureChevron expanded={open} />
               </Pressable>
               <View
                 style={[styles.fields, !open && styles.hidden]}

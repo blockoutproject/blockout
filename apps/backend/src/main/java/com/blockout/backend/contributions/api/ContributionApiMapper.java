@@ -1,6 +1,7 @@
 package com.blockout.backend.contributions.api;
 
 import com.blockout.backend.config.MappingConfiguration;
+import com.blockout.backend.contributions.application.ReadModeration;
 import com.blockout.backend.contributions.application.ReadOwnContributions;
 import com.blockout.backend.contributions.domain.ContributionEligibility.Status;
 import com.blockout.backend.contributions.domain.ContributionVersion;
@@ -16,7 +17,6 @@ import com.blockout.backend.generated.mobile.model.StreamQuotaResponse;
 import com.blockout.backend.generated.mobile.model.StreamSubmissionEligibilityResponse;
 import com.blockout.backend.shared.mapping.TemporalMapping;
 import java.net.URI;
-import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -49,16 +49,31 @@ public interface ContributionApiMapper {
    * Wraps a moderation result with the current permitted attribution.
    *
    * @param source acknowledged result
-   * @param authorName current visible attribution or null
+   * @param names current original-owner/decision names; erased lifecycles are omitted
+   * @param reportCount current exact-version report facts, including anonymous rows
    * @return revision and authorized moderation presentation
    */
   default com.blockout.backend.generated.mobile.model.ModeratedStreamContributionDetailResponse
       toDto(
           com.blockout.backend.contributions.application.SubmitContribution.Outcome source,
-          String authorName) {
+          java.util.Map<java.util.UUID, String> names,
+          long reportCount) {
     return new com.blockout.backend.generated.mobile.model
         .ModeratedStreamContributionDetailResponse(
-        source.revision(), toDto(source.version(), authorName));
+        source.revision(),
+        toDto(
+            new ReadModeration.Version(
+                source.version(),
+                source.version().ownerId() == null ? null : names.get(source.version().ownerId()),
+                source.version().publication() == null
+                        || source.version().publication().actorId() == null
+                    ? null
+                    : names.get(source.version().publication().actorId()),
+                source.version().decision() == null || source.version().decision().actorId() == null
+                    ? null
+                    : names.get(source.version().decision().actorId()),
+                reportCount,
+                true)));
   }
 
   /**
@@ -149,37 +164,55 @@ public interface ContributionApiMapper {
   }
 
   /**
-   * Presents a completed direct-publication result, including a recognized pending repetition.
+   * Projects all useful decision facts, lineage and actions from a current private snapshot.
    *
-   * @param version current version returned by the completed command
-   * @param authorName current permitted attribution, absent after erasure
-   * @return private response whose actions match the actual version state
+   * @param source authorized version with current attribution/counts/publication restrictions
+   * @return canonical private member without any reporter identity
    */
-  default ModeratedStreamContributionResponse toDto(
-      ContributionVersion version, String authorName) {
-    OwnStreamContributionResponse own = toDto(version);
+  default ModeratedStreamContributionResponse toDto(ReadModeration.Version source) {
+    ContributionVersion version = source.version();
     boolean pending = version.state() == ContributionVersion.State.PENDING;
-    List<StreamDecisionResponse> decisions =
-        version.publication() == null
-            ? List.of()
-            : List.of(
-                new StreamDecisionResponse(
-                        StreamDecisionEnum.PUBLISH,
-                        TemporalMapping.toDate(version.publication().at()))
-                    .actorName(authorName));
+    java.util.ArrayList<StreamDecisionResponse> decisions = new java.util.ArrayList<>();
+    if (version.publication() != null)
+      decisions.add(decision(version.publication(), source.publicationActorName()));
+    if (version.decision() != null)
+      decisions.add(decision(version.decision(), source.decisionActorName()));
+    decisions.sort(java.util.Comparator.comparing(StreamDecisionResponse::getAt));
     return new ModeratedStreamContributionResponse(
             version.id(),
-            own.getUrl(),
-            own.getPlatform(),
-            own.getState(),
-            own.getSubmittedAt(),
-            0L,
-            pending,
+            address(version.address()),
+            toDto(version.address()),
+            state(version.state()),
+            TemporalMapping.toDate(version.createdAt()),
+            source.reportCount(),
+            pending && source.canPublish(),
             pending,
             version.state() == ContributionVersion.State.ACTIVE,
-            false,
+            source.canPublish()
+                && com.blockout.backend.contributions.domain.ContributionDecision.canReactivate(
+                    version.state()),
             decisions)
-        .authorName(authorName);
+        .authorName(source.authorName())
+        .sourceVersionId(version.sourceVersionId())
+        .replacedByVersionId(version.replacedByVersionId());
+  }
+
+  /** Maps useful domain decisions without treating automatic hiding as an attributed command. */
+  default StreamDecisionResponse decision(ContributionVersion.Decision source, String actorName) {
+    StreamDecisionEnum kind =
+        switch (source.kind()) {
+          case PUBLICATION -> StreamDecisionEnum.PUBLISH;
+          case APPROVAL -> StreamDecisionEnum.APPROVE;
+          case REACTIVATION -> StreamDecisionEnum.REACTIVATE;
+          case REJECTION -> StreamDecisionEnum.REJECT;
+          case CANCELLATION -> StreamDecisionEnum.CANCEL;
+          case SUPERSESSION -> StreamDecisionEnum.SUPERSEDE;
+          case WITHDRAWAL -> StreamDecisionEnum.WITHDRAW;
+          case HIDING -> StreamDecisionEnum.HIDE;
+          case REPLACEMENT -> StreamDecisionEnum.REPLACE;
+        };
+    return new StreamDecisionResponse(kind, TemporalMapping.toDate(source.at()))
+        .actorName(actorName);
   }
 
   /**

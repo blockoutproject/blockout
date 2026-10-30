@@ -22,6 +22,8 @@ export const appearanceColors = {
     canvas: "#FCFCFD",
     surface: reference.white,
     subtle: "#2021240F",
+    // Soft grouped surface approved through the native moderation review; its designated-library projection is tracked by F08.
+    insetSurface: "#20212408",
     mediaPlaceholder: "#EDEDEE",
     // UI Library media/logo-surface stays white in both appearances; fallback content retains neutral ink.
     logoSurface: reference.white,
@@ -76,6 +78,7 @@ export const appearanceColors = {
     canvas: "#0D0D0E",
     surface: "#19191A",
     subtle: "#FFFFFF14",
+    insetSurface: "#FFFFFF08",
     mediaPlaceholder: "#2B2B2D",
     logoSurface: reference.white,
     logoInk: reference.neutral900,

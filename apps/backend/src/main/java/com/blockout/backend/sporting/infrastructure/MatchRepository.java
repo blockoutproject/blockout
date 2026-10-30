@@ -81,17 +81,17 @@ interface MatchRepository extends JpaRepository<MatchEntity, UUID> {
   /**
    * Projects current visibility without loading result, document or image state.
    *
-   * @param id exact match identity
-   * @return scalar current restrictions, or empty for an unknown match
+   * @param ids exact match identities
+   * @return scalar current restrictions, omitting unknown matches
    */
   @Query(
       """
       SELECT NEW com.blockout.backend.sporting.infrastructure.MatchVisibilityRow(
-        p.id, p.catalogEligible, p.calendarEmpty, d.id, d.active,
+        m.id, p.id, p.catalogEligible, p.calendarEmpty, d.id, d.active,
         m.present, m.localDate, m.homeTeam.id, m.awayTeam.id)
-      FROM MatchEntity m JOIN m.pool p LEFT JOIN p.division d WHERE m.id = :id
+      FROM MatchEntity m JOIN m.pool p LEFT JOIN p.division d WHERE m.id IN :ids
       """)
-  Optional<MatchVisibilityRow> findVisibility(UUID id);
+  List<MatchVisibilityRow> findVisibilities(Set<UUID> ids);
 
   /**
    * Hydrates admitted match facts with their pool season and classification. Participant identities
@@ -103,7 +103,7 @@ interface MatchRepository extends JpaRepository<MatchEntity, UUID> {
   @Query(
       """
       SELECT m FROM MatchEntity m
-      JOIN FETCH m.pool p JOIN FETCH p.season JOIN FETCH p.division
+      JOIN FETCH m.pool p JOIN FETCH p.season LEFT JOIN FETCH p.division
       WHERE m.id IN :ids
       """)
   List<MatchEntity> findPresentationByIdIn(Set<UUID> ids);

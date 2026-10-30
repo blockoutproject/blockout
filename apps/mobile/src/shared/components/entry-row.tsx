@@ -10,10 +10,13 @@ import {
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
 import { LoadingIndicator } from "./loading-indicator";
+import { DisclosureChevron } from "./disclosure-chevron";
 
 /** Basic native list row; the caller owns navigation or selection semantics and unavailable state. */
 export interface EntryRowProps extends PressableProps {
   label: string;
+  /** A non-interactive badge stays beside the label, independently of the trailing disclosure. */
+  labelAccessory?: ReactNode;
   icon?: ReactNode;
   /** Decorative radio/check or other existing row status; never a separate nested action. */
   trailing?: ReactNode;
@@ -24,6 +27,7 @@ export interface EntryRowProps extends PressableProps {
 /** Shared 48-point minimum grows with text; Link can forward its native activation unchanged. */
 export function EntryRow({
   label,
+  labelAccessory,
   icon,
   trailing,
   disclosure = false,
@@ -65,7 +69,10 @@ export function EntryRow({
           {loading ? <LoadingIndicator color={colors.icon} /> : icon}
         </View>
       )}
-      <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+      <View style={styles.labelGroup}>
+        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+        {labelAccessory}
+      </View>
       {trailing && (
         <View
           accessible={false}
@@ -74,13 +81,15 @@ export function EntryRow({
           {trailing}
         </View>
       )}
-      {disclosure && (
+      {typeof props.accessibilityState?.expanded === "boolean" && !trailing ? (
+        <DisclosureChevron expanded={props.accessibilityState.expanded} />
+      ) : disclosure ? (
         <ChevronRight
           accessible={false}
           size={tokens.size.icon.sm}
           color={colors.icon}
         />
-      )}
+      ) : null}
     </Pressable>
   );
 }
@@ -100,5 +109,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  label: { ...tokens.typography.strong, flex: 1, minWidth: 0 },
+  labelGroup: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+  },
+  label: { ...tokens.typography.strong, flexShrink: 1, minWidth: 0 },
 });

@@ -9,6 +9,22 @@ import org.springframework.data.jpa.repository.Query;
 
 /** Native Spring Data queries for exact account identities and original-row locking. */
 interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
+  /** Current scalar attribution; no provider identity or private profile content. */
+  interface Name {
+    UUID getId();
+
+    String getUsername();
+  }
+
+  /**
+   * Loads names for one bounded original-account selection without profile/photo hydration.
+   *
+   * @param ids original lifecycles
+   * @return existing scalar names
+   */
+  @Query("SELECT a.id AS id, a.username AS username FROM AccountEntity a WHERE a.id IN :ids")
+  java.util.List<Name> findNames(java.util.Set<UUID> ids);
+
   /**
    * Projects the exact principal's lifecycle without adding a profile to the persistence context.
    *

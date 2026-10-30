@@ -116,6 +116,57 @@ public class JpaContributionStore implements ContributionStore {
 
   /** {@inheritDoc} */
   @Override
+  public Set<UUID> versionAttributionAccounts(UUID versionId) {
+    Set<UUID> accounts = new HashSet<>();
+    versions
+        .findAttribution(versionId)
+        .ifPresent(
+            row -> {
+              if (row.getOwnerId() != null) accounts.add(row.getOwnerId());
+              if (row.getPublicationActorId() != null) accounts.add(row.getPublicationActorId());
+              if (row.getDecisionActorId() != null) accounts.add(row.getDecisionActorId());
+            });
+    return Set.copyOf(accounts);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public ContributionVersion select(UUID versionId, UUID actor, Instant now, boolean reactivate) {
+    ContributionVersionEntity source = versions.findById(versionId).orElseThrow();
+    List<ContributionVersionEntity> replaced = new ArrayList<>();
+    for (ContributionVersionEntity current :
+        versions.findByMatchIdAndStateIn(
+            source.getMatchId(), List.of(State.ACTIVE, State.PENDING))) {
+      if (!reactivate && current.getId().equals(versionId)) continue;
+      if (current.getState() == State.ACTIVE) {
+        decide(current, State.REPLACED, DecisionKind.REPLACEMENT, actor, now);
+        replaced.add(current);
+      } else decide(current, State.SUPERSEDED, DecisionKind.SUPERSESSION, actor, now);
+    }
+    versions.flush();
+    ContributionVersionEntity selected = source;
+    if (reactivate) {
+      selected =
+          new ContributionVersionEntity(
+              source.getMatchId(),
+              new StreamAddress(source.getAddress()),
+              source.getOwnerId(),
+              State.ACTIVE,
+              now,
+              false,
+              source.getId());
+      versions.save(selected);
+    } else selected.setState(State.ACTIVE);
+    selected.setPublicationKind(reactivate ? DecisionKind.REACTIVATION : DecisionKind.APPROVAL);
+    selected.setPublicationAt(now);
+    selected.setPublicationActorId(actor);
+    for (ContributionVersionEntity old : replaced) old.setReplacedByVersionId(selected.getId());
+    return mapper.toDomain(selected);
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public Optional<ContributionVersion> version(UUID id) {
     return versions.findById(id).map(mapper::toDomain);
   }
