@@ -12,7 +12,7 @@ import {
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { AppState } from "react-native";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 
@@ -46,8 +46,15 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
   const queries = useConsultationQueries();
   const match = useQuery(queries.match(matchId));
   const { refetch } = match;
+  const feedback = useActionFeedback();
+  // Effect-owned rereads use the latest feedback owner without making it a request dependency.
+  const reread = useEffectEvent(async () => {
+    const result = await refetch({ cancelRefetch: false });
+    if (result.isError && result.data && !isAccessDenied(result.error))
+      feedback.error();
+  });
   useEffect(() => {
-    if (focused) void refetch({ cancelRefetch: false });
+    if (focused) void reread();
   }, [focused, matchId, refetch]);
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
@@ -56,7 +63,7 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
         setPresentation({
           timeZone: currentSportingTimeZone(),
         });
-        if (focused) void refetch({ cancelRefetch: false });
+        if (focused) void reread();
       }
     });
     return () => subscription.remove();
@@ -68,9 +75,9 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
     data?.streamUrl ? data.streamContributionId : undefined,
     data?.streamUrl,
   );
-  const feedback = useActionFeedback();
   /** A failed explicit refresh keeps authorized content and reports only the attempted read. */
   async function refresh() {
+    feedback.clear();
     const [result, entryResult] = await Promise.all([
       match.refetch({ cancelRefetch: false }),
       contribution.refresh(),
@@ -129,7 +136,6 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
               <ScreenState>{blockingState}</ScreenState>
             ) : (
               <PageContent>
-                {match.isError && <ReadFeedback query={match} />}
                 {data && (
                   <>
                     <MatchSummary

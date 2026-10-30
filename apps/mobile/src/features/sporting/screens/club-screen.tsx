@@ -87,6 +87,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
       : undefined;
   /** Explicit refresh retains each authorized scope; initial failures keep their existing read retry. */
   async function refresh() {
+    feedback.clear();
     if (tab === "teams" && data && season) {
       const result = await teams.refetch({ cancelRefetch: false });
       if (result.isError && result.data && !isAccessDenied(result.error))
@@ -167,12 +168,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
               />
             )
           }
-          collapsibleHeader={
-            <PageContent>
-              {identity}
-              {club.isError && <ReadFeedback query={club} />}
-            </PageContent>
-          }
+          collapsibleHeader={<PageContent>{identity}</PageContent>}
           renderTabBar={(props) => (
             <>
               <PagerTabBar {...props} />

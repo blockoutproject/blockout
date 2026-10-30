@@ -13,7 +13,6 @@ import { AppState, type AppStateStatus } from "react-native";
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { mockAuth0 } from "../../accounts/test-support/native-auth0";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import {
   ConsultationProviders,
   consultationPublicClient,
@@ -62,7 +61,6 @@ const environment = { ...process.env };
 let client: QueryClient;
 let publicClient: QueryClient;
 let detail = matchDetail();
-const season = detail.match.pool.season;
 
 function reads(url: string) {
   return consultationResponse(url, detail);
@@ -367,4 +365,32 @@ it("refreshes only the active club tab while preserving common information and s
   expect(new URL(mockFetch.mock.calls[0][0]).searchParams.get("category")).toBe(
     "completed",
   );
+});
+
+it("uses only transient feedback for a failed focus reread while keeping accepted match facts", async () => {
+  // Given
+  const opened = await renderPage(
+    <MatchScreen matchId={sportingId} focused={false} />,
+  );
+  await screen.findByText("Home");
+  mockFetch.mockImplementation((url: string) =>
+    url.endsWith(`/matches/${sportingId}`)
+      ? Promise.reject(new TypeError("offline"))
+      : reads(url),
+  );
+
+  // When
+  await opened.rerender(<MatchScreen matchId={sportingId} focused />);
+
+  // Then
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  expect(screen.getByText("Home")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
 });

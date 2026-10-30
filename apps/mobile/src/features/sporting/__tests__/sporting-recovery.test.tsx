@@ -4,6 +4,7 @@ import { type QueryClient } from "@tanstack/react-query";
 import {
   act,
   cleanup,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -185,7 +186,7 @@ it.each(pages)(
 );
 
 it.each(pages)(
-  "keeps authorized $kind facts with useful retry after a failed current read",
+  "keeps authorized $kind facts after a failed owner invalidation",
   async ({ path, element, label }) => {
     // Given
     await renderPage(element);
@@ -204,18 +205,19 @@ it.each(pages)(
 
     // Then
     expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    await waitFor(() => expect(client.isFetching()).toBe(0));
     expect(
-      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
-    ).toBeOnTheScreen();
+      screen.queryByRole("button", { name: "Réessayer" }),
+    ).not.toBeOnTheScreen();
     expect(
       screen.queryByText(/Aucune équipe|Aucun match/),
     ).not.toBeOnTheScreen();
 
     // When
     mockFetch.mockImplementation(reads);
-    await userEvent
-      .setup()
-      .press(screen.getByRole("button", { name: "Réessayer" }));
+    await act(() =>
+      client.invalidateQueries({ queryKey: [path], exact: true }),
+    );
 
     // Then
     await waitFor(() =>
@@ -674,5 +676,59 @@ it.each(["current", "former"] as const)(
     expect(new Headers(logoRequests[0][1].headers).get("Authorization")).toBe(
       "Bearer test-access-token",
     );
+  },
+);
+
+it.each([
+  {
+    kind: "club",
+    element: <ClubScreen clubId={sportingId} />,
+    path: `/clubs/${sportingId}`,
+    label: "Club des Rives",
+  },
+  {
+    kind: "match",
+    element: <MatchScreen matchId={sportingId} />,
+    path: `/matches/${sportingId}`,
+    label: "Home",
+  },
+])(
+  "keeps $kind content and only one toast after a failed native pull, then recovers on the next pull",
+  async ({ element, path, label }) => {
+    // Given
+    await renderPage(element);
+    await screen.findAllByText(label);
+    await layoutNativeTabs();
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).pathname === path
+        ? Promise.reject(new TypeError("offline"))
+        : reads(url),
+    );
+
+    // When: userEvent cannot perform the native RefreshControl gesture.
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then
+    expect(
+      await screen.findByRole("alert", {
+        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(
+      screen.queryByRole("button", { name: "Réessayer" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+
+    // When
+    mockFetch.mockImplementation(reads);
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   },
 );
