@@ -1,11 +1,19 @@
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
+import { Text, Pressable } from "react-native";
+import { useEffect } from "react";
+import ClubRoute from "../../../app/(ordinary)/clubs/[clubId]";
+import SupportLayout from "../../../app/(ordinary)/support/_layout";
+import { SupportScreen } from "../../support/screens/support-screen";
+import { AccountAdmissionProvider } from "../../accounts/components/account-admission";
+import { useConsultationQueries } from "../../sporting/match-consultation";
 import { renderRouter } from "expo-router/testing-library";
 import {
   QueryClientProvider,
   useInfiniteQuery,
+  useQuery,
   focusManager,
   onlineManager,
   type InfiniteData,
@@ -31,7 +39,10 @@ import { SearchScreen } from "../screens/search-screen";
 import { SearchFilters } from "../components/search-filters";
 import { SearchFilterChoice } from "../components/search-filter-choice";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
+import {
+  AccountSessionProvider,
+  useAccountSession,
+} from "../../accounts/session/account-session-provider";
 import { mockAuth0 } from "../../accounts/test-support/native-auth0";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
@@ -51,6 +62,9 @@ jest.mock("react-native-auth0", () => {
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
+jest.mock("react-native-keyboard-controller", () =>
+  jest.requireActual("react-native-keyboard-controller/jest"),
+);
 jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),
 }));
@@ -85,6 +99,14 @@ function publicReads(url: string): Promise<Response> {
           { club: { id: secondId, name: "Volley" }, city: "Niort" },
         ],
         nextCursor: "next",
+      }),
+    );
+  if (parsed.pathname.endsWith(`/clubs/${secondId}`))
+    return Promise.resolve(
+      Response.json({
+        club: { id: secondId, name: "Volley Niort" },
+        contacts: {},
+        seasons: [],
       }),
     );
   if (parsed.pathname.endsWith("/teams"))
@@ -126,6 +148,8 @@ beforeEach(() => {
   jest.mocked(initializeV2Installation).mockResolvedValue(undefined);
   mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(false);
   mockAuth0.getCredentials.mockReset();
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockAuth0.webAuthLogout.mockReset().mockResolvedValue();
   mockFetch.mockReset().mockImplementation(publicReads);
 });
 afterEach(async () => {
@@ -148,6 +172,11 @@ async function renderSearch() {
       "search/index": SearchScreen,
       "search/(sheets)/filters": SearchFilters,
       "search/(sheets)/choice": SearchFilterChoice,
+      "clubs/[clubId]": ClubRoute,
+      "support/_layout": SupportLayout,
+      "support/index": SupportScreen,
+      "pool-refusal": PoolChildRead,
+      session: SessionCommands,
     },
     {
       initialUrl: "/search",
@@ -163,9 +192,12 @@ async function renderSearch() {
               <ThemeProvider>
                 <ApplicationAccessProvider>
                   <AccountSessionProvider>
-                    <AccountFeedbackProvider>
-                      {children}
-                    </AccountFeedbackProvider>
+                    <SessionQueryBinding />
+                    <AccountAdmissionProvider admitted>
+                      <AccountFeedbackProvider>
+                        {children}
+                      </AccountFeedbackProvider>
+                    </AccountAdmissionProvider>
                   </AccountSessionProvider>
                 </ApplicationAccessProvider>
               </ThemeProvider>
@@ -178,6 +210,204 @@ async function renderSearch() {
   await layoutNativeTabs();
   return result;
 }
+
+/** Uses the root's existing F13 binding with the actual F05 provider, rather than a simulated generation. */
+function SessionQueryBinding() {
+  const { subscribe, isCurrent } = useAccountSession();
+  useEffect(
+    () => bindSessionQueries(client, subscribe, isCurrent),
+    [subscribe, isCurrent],
+  );
+  return null;
+}
+
+/** Exercises F05 generation invalidation while Search remains on the navigation stack. */
+function SessionCommands() {
+  const session = useAccountSession();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Quitter la session"
+      onPress={() => session.invalidate()}
+    >
+      <Text>Quitter la session</Text>
+    </Pressable>
+  );
+}
+
+/** F03's real child refusal timestamps the existing parent key; no Search restriction is fabricated. */
+function PoolChildRead() {
+  const queries = useConsultationQueries();
+  useQuery({ ...queries.pool(firstId), enabled: false });
+  const read = useQuery(queries.standings(firstId));
+  return (
+    <Text>{read.isError ? "Poule indisponible" : "Lecture du classement"}</Text>
+  );
+}
+
+it.each([401, 403, 404, "network"] as const)(
+  "applies the actual detail owner's %s outcome to retained text results on return",
+  async (outcome) => {
+    // Given: the exact F03 route is opened externally; card activation belongs to T031.
+    const user = userEvent.setup();
+    await renderSearch();
+    await user.press(screen.getByRole("tab", { name: "Clubs" }));
+    await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+    await screen.findByText("Niort");
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).pathname.endsWith("/clubs")
+        ? Promise.reject(new TypeError("offline"))
+        : publicReads(url),
+    );
+    await act(async () =>
+      client.refetchQueries({ queryKey: ["discovery"], type: "active" }),
+    );
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).pathname.endsWith(`/clubs/${secondId}`)
+        ? outcome === "network"
+          ? Promise.reject(new TypeError("private detail diagnostic"))
+          : Promise.resolve(
+              Response.json({ status: outcome }, { status: outcome }),
+            )
+        : publicReads(url),
+    );
+    const reads = mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).pathname.endsWith("/clubs"),
+    ).length;
+
+    // When
+    await act(async () => router.push(`/clubs/${secondId}`));
+    await screen.findByRole("alert");
+    await act(async () => router.back());
+
+    // Then: refusal removes only its UUID; a network failure preserves the still-permitted result.
+    expect(screen.getByText("Lyon")).toBeOnTheScreen();
+    if (outcome === "network")
+      expect(screen.getByText("Niort")).toBeOnTheScreen();
+    else expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
+    expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(url).pathname.endsWith("/clubs"),
+      ),
+    ).toHaveLength(reads);
+    expect(
+      screen.queryByText("private detail diagnostic"),
+    ).not.toBeOnTheScreen();
+  },
+);
+
+it("removes a late text response after a current F03 child refusal without issuing a replacement read", async () => {
+  // Given
+  const pending = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string) => {
+    const parsed = new URL(url);
+    if (parsed.pathname.endsWith("/pools") && parsed.searchParams.get("q"))
+      return pending.promise;
+    if (parsed.pathname.endsWith(`/pools/${firstId}/standings`))
+      return Promise.resolve(Response.json({ status: 404 }, { status: 404 }));
+    return publicReads(url);
+  });
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.press(screen.getByRole("tab", { name: "Poules" }));
+  await screen.findByText("Poule A");
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.some(
+        ([url]) =>
+          new URL(url).pathname.endsWith("/pools") &&
+          new URL(url).searchParams.has("q"),
+      ),
+    ).toBe(true),
+  );
+
+  // When: the parent timestamp is supplied by F03 before the older collection response arrives.
+  await act(async () => router.push("/pool-refusal"));
+  await screen.findByText("Poule indisponible");
+  await act(async () =>
+    pending.resolve(
+      Response.json({
+        pools: [
+          {
+            pool: { id: firstId, name: "Poule interdite" },
+            season,
+            classification: {},
+            competitionName: "Ligue",
+            phaseName: "Finale",
+          },
+        ],
+      }),
+    ),
+  );
+  await act(async () => router.back());
+
+  // Then
+  expect(
+    await screen.findByText("Aucun résultat pour ces critères"),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText(/Poule interdite|Poule A/)).not.toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
+});
+
+it("opens the existing support form from failed Search without publishing the editable query and returns to its context", async () => {
+  // Given
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith("/teams") &&
+    new URL(url).searchParams.has("gender")
+      ? Promise.reject(new TypeError("private upstream diagnostic"))
+      : publicReads(url),
+  );
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.paste(
+    screen.getByLabelText("Rechercher"),
+    "Saisie confidentielle",
+  );
+  await user.press(screen.getByRole("button", { name: "Filtres" }));
+  await user.press(await screen.findByRole("button", { name: "Genre" }));
+  await user.press(await screen.findByRole("radio", { name: "Féminin" }));
+  await user.press(
+    await screen.findByRole("button", { name: "Appliquer les filtres" }),
+  );
+  await screen.findByRole("alert");
+  const reads = mockFetch.mock.calls.length;
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Signaler un problème" }),
+  );
+
+  // Then: the real F10 layout/form receives only its allowlisted origin, with no submit effect.
+  expect(
+    await screen.findByText("Assistance et suggestions"),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("Recherche")).toBeOnTheScreen();
+  expect(screen).toHavePathname("/support");
+  expect(screen).toHaveSearchParams({ originScreen: "search" });
+  expect(
+    screen.queryByDisplayValue("Saisie confidentielle"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByText("private upstream diagnostic"),
+  ).not.toBeOnTheScreen();
+  expect(mockFetch).toHaveBeenCalledTimes(reads);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+  // Then
+  expect(screen).toHavePathname("/search");
+  expect(
+    screen.getByRole("tab", { name: "Équipes", selected: true }),
+  ).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Saisie confidentielle")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Filtres actifs" }),
+  ).toBeOnTheScreen();
+  expect(mockFetch).toHaveBeenCalledTimes(reads);
+});
 
 it("keeps both authorized pages after a failed reread and explicitly retries the whole traversal", async () => {
   // Given: accepted pages and their cursor belong to the same real infinite Query.
@@ -668,7 +898,9 @@ it.each(["session", "bypass"])(
     await hook.rerender({ queryOptions: currentOptions });
     await waitFor(() =>
       expect(hook.result.current.data?.pages).toEqual([
-        { clubs: [{ club: { id: secondId, name: "Contexte actuel" } }] },
+        expect.objectContaining({
+          clubs: [{ club: { id: secondId, name: "Contexte actuel" } }],
+        }),
       ]),
     );
     await act(async () => {
@@ -683,7 +915,9 @@ it.each(["session", "bypass"])(
     // Then
     expect(currentOptions.queryKey).not.toEqual(oldOptions.queryKey);
     expect(hook.result.current.data?.pages).toEqual([
-      { clubs: [{ club: { id: secondId, name: "Contexte actuel" } }] },
+      expect.objectContaining({
+        clubs: [{ club: { id: secondId, name: "Contexte actuel" } }],
+      }),
     ]);
     if (change === "session")
       expect(client.getQueryData(oldOptions.queryKey)).toBeUndefined();
@@ -691,3 +925,178 @@ it.each(["session", "bypass"])(
     unbind();
   },
 );
+
+it("keeps public criteria and retained examples across real session invalidation while rejecting a late old read and private cache", async () => {
+  // Given: the collection is public, while the seeded private value uses F13's real session namespace.
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await screen.findByText("Niort");
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+  await screen.findByText("Niort");
+  const oldKey = client
+    .getQueryCache()
+    .findAll({ queryKey: ["discovery"], type: "active" })[0]!.queryKey;
+  const privateKey = ["session", oldKey[1], "private-account-value"];
+  client.setQueryData(privateKey, { name: "Ancien compte privé" });
+  const pending = Promise.withResolvers<Response>();
+  let oldSignal: AbortSignal | undefined;
+  mockFetch.mockImplementation((url: string, options: RequestInit) => {
+    if (new URL(url).pathname.endsWith("/clubs")) {
+      oldSignal = options.signal ?? undefined;
+      return pending.promise;
+    }
+    return publicReads(url);
+  });
+  let reread: Promise<void> | undefined;
+  await act(async () => {
+    reread = client.refetchQueries({ queryKey: oldKey, exact: true });
+  });
+  await waitFor(() => expect(oldSignal).toBeDefined());
+
+  // When
+  await act(async () => router.push("/session"));
+  mockFetch.mockImplementation(publicReads);
+  await user.press(screen.getByRole("button", { name: "Quitter la session" }));
+  await act(async () => {
+    pending.resolve(
+      Response.json({
+        clubs: [{ club: { id: secondId, name: "Ancienne réponse tardive" } }],
+      }),
+    );
+    await reread;
+  });
+  await act(async () => router.back());
+
+  // Then
+  expect(await screen.findByText("Niort")).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("tab", { name: "Clubs", selected: true }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Ancienne réponse tardive")).not.toBeOnTheScreen();
+  expect(oldSignal?.aborted).toBe(true);
+  expect(client.getQueryData(privateKey)).toBeUndefined();
+  expect(
+    client
+      .getQueryCache()
+      .findAll({ queryKey: ["discovery"], type: "active" })[0]!.queryKey,
+  ).not.toEqual(oldKey);
+
+  // When: clearing the public RHF draft reuses the same retained identities in the current generation.
+  await user.press(
+    screen.getByRole("button", { name: "Effacer la recherche" }),
+  );
+
+  // Then
+  await screen.findByText("Exemples");
+  const lastRead = mockFetch.mock.calls
+    .filter(([url]) => new URL(url).pathname.endsWith("/clubs"))
+    .at(-1)![0];
+  expect(new URL(lastRead).searchParams.getAll("exampleIds")).toEqual([
+    firstId,
+    secondId,
+  ]);
+});
+
+it("discards the private support draft on F05 invalidation and retains the public Search draft on return", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley public");
+  await screen.findByText("Club public");
+  await user.press(
+    screen.getByRole("button", { name: "Signaler un problème" }),
+  );
+  await screen.findByText("Assistance et suggestions");
+  await user.paste(screen.getByLabelText("Titre"), "Brouillon privé");
+
+  // When
+  await act(async () => router.push("/session"));
+  await user.press(screen.getByRole("button", { name: "Quitter la session" }));
+  await act(async () => router.back());
+
+  // Then
+  expect(screen.queryByDisplayValue("Brouillon privé")).not.toBeOnTheScreen();
+  expect(screen.getByLabelText("Titre")).toHaveDisplayValue("");
+  expect(screen.getByText("Recherche")).toBeOnTheScreen();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+  // Then
+  expect(screen.getByDisplayValue("Volley public")).toBeOnTheScreen();
+});
+
+it("cancels an older append when F03 refuses a retained target and never restores its late page", async () => {
+  // Given
+  const pending = Promise.withResolvers<Response>();
+  let appendSignal: AbortSignal | undefined;
+  mockFetch.mockImplementation((url: string, options: RequestInit) => {
+    const parsed = new URL(url);
+    if (
+      parsed.pathname.endsWith("/clubs") &&
+      parsed.searchParams.has("cursor")
+    ) {
+      appendSignal = options.signal ?? undefined;
+      return pending.promise;
+    }
+    if (parsed.pathname.endsWith(`/clubs/${secondId}`))
+      return Promise.resolve(Response.json({ status: 404 }, { status: 404 }));
+    return publicReads(url);
+  });
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+  await screen.findByText("Niort");
+  await fireEvent(
+    screen.getByLabelText("Résultats de recherche"),
+    "endReached",
+  );
+  await waitFor(() => expect(appendSignal).toBeDefined());
+
+  // When
+  await act(async () => router.push(`/clubs/${secondId}`));
+  await screen.findByRole("alert");
+  await act(async () =>
+    pending.resolve(
+      Response.json({
+        clubs: [{ club: { id: secondId, name: "Retour interdit" } }],
+      }),
+    ),
+  );
+  await act(async () => router.back());
+
+  // Then
+  expect(appendSignal?.aborted).toBe(true);
+  expect(screen.getByText("Lyon")).toBeOnTheScreen();
+  expect(screen.queryByText(/Niort|Retour interdit/)).not.toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
+});
+
+it("accepts a new authoritative text read after an older detail refusal", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+  await screen.findByText("Niort");
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith(`/clubs/${secondId}`)
+      ? Promise.resolve(Response.json({ status: 404 }, { status: 404 }))
+      : publicReads(url),
+  );
+  await act(async () => router.push(`/clubs/${secondId}`));
+  await screen.findByRole("alert");
+  await act(async () => router.back());
+  expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
+
+  // When
+  await user.clear(screen.getByLabelText("Rechercher"));
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley actuel");
+
+  // Then
+  expect(await screen.findByText("Niort")).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Volley actuel")).toBeOnTheScreen();
+});
