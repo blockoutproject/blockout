@@ -13,6 +13,7 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -60,10 +61,14 @@ class ExpoPushTransportIntegrationTest {
                     .withConnectTimeout(Duration.ofSeconds(3))
                     .withReadTimeout(Duration.ofSeconds(5)))) {
       ExpoPushNotificationClient sdk =
-          ExpoPushNotificationClient.builder()
-              .setHttpClient(http)
+          new PushDeliveryConfiguration()
+              .expoPushSdkBuilder(
+                  http,
+                  new PushProperties(
+                      true,
+                      UUID.fromString("00000000-0000-4000-8000-000000000001"),
+                      "synthetic-not-a-credential"))
               .setBaseUri("http://127.0.0.1:" + server.getAddress().getPort())
-              .setAccessToken("synthetic-not-a-credential")
               .build();
       PushProvider provider = new ExpoPushClient(sdk, Mappers.getMapper(ExpoPushMapper.class));
       Message message =
@@ -120,7 +125,7 @@ class ExpoPushTransportIntegrationTest {
           String response =
               operation.equals("send")
                   ? "{\"data\":[{\"status\":\"ok\",\"id\":\"accepted\"},{\"status\":\"error\",\"details\":{\"error\":\"DeviceNotRegistered\"}}]}"
-                  : "{\"data\":{\"invalid\":{\"status\":\"error\",\"details\":{\"error\":\"DeviceNotRegistered\"}}}}";
+                  : "{\"data\":{\"other\":{\"status\":\"error\",\"details\":{\"error\":\"MismatchSenderId\"}},\"invalid\":{\"status\":\"error\",\"details\":{\"error\":\"DeviceNotRegistered\"}}}}";
           byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
           exchange.getResponseHeaders().add("Content-Type", "application/json");
           exchange.sendResponseHeaders(200, bytes.length);
@@ -131,8 +136,13 @@ class ExpoPushTransportIntegrationTest {
     try (CloseableHttpClient http =
         new PushDeliveryConfiguration().pushHttpClient(HttpClientSettings.defaults())) {
       ExpoPushNotificationClient sdk =
-          ExpoPushNotificationClient.builder()
-              .setHttpClient(http)
+          new PushDeliveryConfiguration()
+              .expoPushSdkBuilder(
+                  http,
+                  new PushProperties(
+                      true,
+                      UUID.fromString("00000000-0000-4000-8000-000000000001"),
+                      "synthetic-not-a-credential"))
               .setBaseUri("http://127.0.0.1:" + server.getAddress().getPort())
               .build();
       PushProvider provider = new ExpoPushClient(sdk, Mappers.getMapper(ExpoPushMapper.class));
@@ -145,18 +155,23 @@ class ExpoPushTransportIntegrationTest {
               new NotificationMessage("Sport", "Faits actuels"));
 
       // When
-      List<Status> outcomes =
-          operation.equals("send")
-              ? provider.send(List.of(message, message)).stream()
-                  .map(PushProvider.Outcome::status)
-                  .toList()
-              : List.of(provider.receipts(List.of("invalid", "missing")).get("invalid").status());
+      List<Status> outcomes;
+      if (operation.equals("send")) {
+        outcomes =
+            provider.send(List.of(message, message)).stream()
+                .map(PushProvider.Outcome::status)
+                .toList();
+      } else {
+        Map<String, PushProvider.Outcome> receipts =
+            provider.receipts(List.of("other", "invalid", "missing"));
+        outcomes = List.of(receipts.get("other").status(), receipts.get("invalid").status());
+      }
 
       // Then
       assertThat(requests.get()).isEqualTo(1);
       if (operation.equals("send"))
         assertThat(outcomes).containsExactly(Status.ACCEPTED, Status.DEVICE_NOT_REGISTERED);
-      else assertThat(outcomes).containsExactly(Status.DEVICE_NOT_REGISTERED);
+      else assertThat(outcomes).containsExactly(Status.REJECTED, Status.DEVICE_NOT_REGISTERED);
     } finally {
       server.stop(0);
     }

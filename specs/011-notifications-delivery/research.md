@@ -38,7 +38,11 @@ A standard Apache response interceptor raises a typed `HttpResponseException` on
 even with an empty/non-JSON body, before SDK decoding. F07 maps the numeric status and never parses
 private SDK exception messages. SDK/transport decoding failures remain unknown evidence; they do
 not cause resend, reconstructed responses or a replacement parser. Spring owns and closes the
-HTTP pool. Loopback cases exercise the real SDK’s serialization/decoding and the production HTTP
+HTTP pool. The SDK declares an annotated `UNKNOWN` receipt-error value but does not enable its
+native Jackson fallback; a documented `MismatchSenderId` otherwise rejects an entire mixed response,
+including an independent `DeviceNotRegistered`. At SDK startup, enable the standard
+`READ_UNKNOWN_ENUM_VALUES_USING_DEFAULT_VALUE` on its public mapper. This uses the SDK’s own value
+without a model/parser patch and preserves the known invalidation signal. Loopback cases exercise the real SDK’s serialization/decoding and the production HTTP
 client, including single-attempt refusal. Boot manages the existing Apache/Jackson/logging versions;
 no framework upgrade is selected. The SDK’s raw response DEBUG logger is disabled through ordinary
 Spring logging configuration, leaving only F07’s safe evidence categories/counts.

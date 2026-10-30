@@ -5,7 +5,9 @@ import com.blockout.backend.notifications.application.PushProvider;
 import com.blockout.backend.notifications.application.PushSubscriptionStore;
 import com.blockout.backend.notifications.application.ReadPushEligibility;
 import com.blockout.backend.notifications.application.SportingPushAdmission;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.niamedtech.expo.exposerversdk.ExpoPushNotificationClient;
+import com.niamedtech.expo.exposerversdk.util.ObjectMapperFactory;
 import java.time.Clock;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.client5.http.HttpResponseException;
@@ -88,17 +90,34 @@ public class PushDeliveryConfiguration {
   @Bean
   ExpoPushNotificationClient expoPushSdkClient(
       @Qualifier("pushHttpClient") CloseableHttpClient httpClient, PushProperties properties) {
-    ExpoPushNotificationClient.Builder builder =
-        ExpoPushNotificationClient.builder()
-            .setHttpClient(httpClient)
-            .setBaseUri("https://exp.host/--/api/v2");
-    if (properties.enabled()) builder.setAccessToken(properties.accessToken());
+    ExpoPushNotificationClient.Builder builder = expoPushSdkBuilder(httpClient, properties);
     log.atInfo()
         .addKeyValue("operation", "sporting_push_configuration")
         .addKeyValue("provider", "expo")
         .addKeyValue("outcome", properties.enabled() ? "enabled" : "disabled")
         .log("Push configuration loaded; provider activation remains environment-owned");
     return builder.build();
+  }
+
+  /**
+   * Configures the SDK once at application startup through its public mapper and builder. The
+   * declared native UNKNOWN receipt error preserves other valid outcomes in mixed responses.
+   *
+   * @param httpClient native bounded transport owned by this application context
+   * @param properties environment access-token configuration
+   * @return configured SDK builder; the caller completes construction
+   */
+  ExpoPushNotificationClient.Builder expoPushSdkBuilder(
+      CloseableHttpClient httpClient, PushProperties properties) {
+    // The SDK declares UNKNOWN for receipt errors but leaves its native fallback disabled.
+    ObjectMapperFactory.getInstance()
+        .enable(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_USING_DEFAULT_VALUE);
+    ExpoPushNotificationClient.Builder builder =
+        ExpoPushNotificationClient.builder()
+            .setHttpClient(httpClient)
+            .setBaseUri("https://exp.host/--/api/v2");
+    if (properties.enabled()) builder.setAccessToken(properties.accessToken());
+    return builder;
   }
 
   /**

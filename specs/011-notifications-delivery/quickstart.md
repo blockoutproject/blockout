@@ -273,7 +273,7 @@ and [PostgreSQL cases](../../apps/backend/src/test/java/com/blockout/backend/not
 cover this transport construction with controlled external I/O; [SDK mapping cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/infrastructure/ExpoPushClientTest.java)
 exercise real mapping into the SDK’s native request model and partial/refused/uncertain/missing SDK evidence.
 [Native transport cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/infrastructure/ExpoPushTransportIntegrationTest.java)
-exercise the actual Java SDK and Apache client against a disposable loopback server, proving native serialization/decoding and one POST for send/receipt 429/503 responses with enhanced-security headers and no underlying automatic retry.
+exercise the actual Java SDK and Apache client against a disposable loopback server, proving native serialization/decoding and one POST for send/receipt 429/503 responses with enhanced-security headers and no underlying automatic retry. A mixed `MismatchSenderId`/`DeviceNotRegistered` receipt response uses the SDK’s native UNKNOWN fallback and preserves the exact invalidation signal.
 [Configuration cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/infrastructure/PushDeliveryConfigurationTest.java)
 exercise native binding, activation validation and queue rejection. Run
 `./mvnw -B -ntp -pl apps/backend verify -Dtest='PushDeliveryTest,ExpoPushClientTest,PushDeliveryConfigurationTest' -Dit.test=PushDeliveryIntegrationTest,ExpoPushTransportIntegrationTest`.
