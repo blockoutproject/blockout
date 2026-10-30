@@ -14,7 +14,6 @@ import { useAccountSession } from "../../accounts/current-account";
 import type { CustomerInfo } from "react-native-purchases";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
-import type { ProOperation } from "../pro-state";
 import { usePro } from "../pro-provider";
 import { canPurchasePro } from "../pro-offering";
 import {
@@ -80,7 +79,7 @@ export function ProPresentationScreen({
     liveAccount.current = account;
   }, [account]);
   const closed = useRef(false);
-  const restoreStarted = useRef<ProOperation | false>(false);
+  const restoreStarted = useRef(false);
   const paywallFinished = useRef(false);
   const offeringAttempt = useRef<symbol | null>(null);
   /** Reads the live F05 snapshot, including business UUID establishment for the native principal. */
@@ -137,12 +136,13 @@ export function ProPresentationScreen({
   }
   /** Accepts one attributed native result without equating operation completion with active rights. */
   function finishRestore(customerInfo?: CustomerInfo, error?: unknown) {
-    const previous = restoreStarted.current;
-    if (previous === false || !isCurrentPresentation()) return;
+    if (!restoreStarted.current || !isCurrentPresentation()) return;
     restoreStarted.current = false;
+    const current = getState();
+    if (current.status === "guest") return;
     void completeOperation(
       restoredProOperation(
-        previous,
+        current.operation,
         customerInfo ? "restored" : restoreErrorOutcome(error),
       ),
       customerInfo,

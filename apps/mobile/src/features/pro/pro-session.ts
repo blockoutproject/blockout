@@ -203,8 +203,8 @@ export function createProSession() {
     await refresh(session);
   }
 
-  /** Records native restoration and captures its preceding outcome without starting a second store call. */
-  function beginRestore(session: SessionSnapshot): ProOperation | false {
+  /** Records native restoration without replacing unresolved payment or starting a second store call. */
+  function beginRestore(session: SessionSnapshot): boolean {
     if (
       !isAssociated(session) ||
       !snapshot.evidence ||
@@ -218,7 +218,7 @@ export function createProSession() {
         ...snapshot,
         evidence: { ...snapshot.evidence, operation: "restoring" },
       });
-    return previous;
+    return true;
   }
 
   return {
@@ -301,22 +301,26 @@ export function createProSession() {
 
     /** Explicit fallback for a missing offer/unknown rights; no retry or restoration on account entry. */
     async restore(session: SessionSnapshot) {
-      const previous = beginRestore(session);
-      if (previous === false) return;
+      if (!beginRestore(session)) return;
       const association = snapshot.evidence?.session;
       try {
         const customerInfo = await Purchases.restorePurchases();
-        if (snapshot.evidence?.session !== association) return;
+        if (!snapshot.evidence || snapshot.evidence.session !== association)
+          return;
         await completeOperation(
           session,
-          restoredProOperation(previous, "restored"),
+          restoredProOperation(snapshot.evidence.operation, "restored"),
           customerInfo,
         );
       } catch (error) {
-        if (snapshot.evidence?.session !== association) return;
+        if (!snapshot.evidence || snapshot.evidence.session !== association)
+          return;
         await completeOperation(
           session,
-          restoredProOperation(previous, restoreErrorOutcome(error)),
+          restoredProOperation(
+            snapshot.evidence.operation,
+            restoreErrorOutcome(error),
+          ),
         );
       }
     },

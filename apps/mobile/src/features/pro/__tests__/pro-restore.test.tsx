@@ -475,3 +475,41 @@ it("keeps confirmed payment visible when a restore is still unfinished after rou
   );
   expect(screen.getByText(/Paiement confirmé/)).toBeOnTheScreen();
 });
+it.each(["direct", "customer center"])(
+  "preserves a payment confirmed while %s restoration is in flight",
+  async (source) => {
+    // Given
+    const user = userEvent.setup();
+    await mount();
+    await screen.findByText("Native paywall");
+    await act(() => pro.completeOperation("uncertain"));
+    const result = Promise.withResolvers<CustomerInfo>();
+    mockPurchases.restorePurchases.mockReturnValueOnce(result.promise);
+    if (source === "direct")
+      await user.press(
+        screen.getByRole("button", { name: "Restaurer mes achats" }),
+      );
+    else {
+      await user.press(
+        screen.getByRole("button", { name: "Gérer ou restaurer mes achats" }),
+      );
+      await screen.findByText("Native management");
+      await act(() => mockCenter.onRestoreStarted!());
+    }
+
+    // When
+    await act(() => pro.completeOperation("purchased"));
+    const empty = customerInfo({
+      active: {},
+      all: {},
+      verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+    });
+    if (source === "direct") await act(() => result.resolve(empty));
+    else
+      await act(() => mockCenter.onRestoreCompleted!({ customerInfo: empty }));
+
+    // Then
+    expect(await screen.findByText(/Paiement confirmé/)).toBeOnTheScreen();
+    expect(pro.state).toEqual({ status: "inactive", operation: "purchased" });
+  },
+);
