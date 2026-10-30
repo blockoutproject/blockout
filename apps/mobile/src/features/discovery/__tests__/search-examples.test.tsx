@@ -6,7 +6,13 @@ import { router, Stack } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import { useConsultationQueries } from "../../sporting/match-consultation";
 import { useQuery, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, screen, userEvent } from "@testing-library/react-native";
+import {
+  act,
+  cleanup,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import SearchLayout from "../../../app/(ordinary)/(tabs)/search/_layout";
 import { SearchScreen } from "../screens/search-screen";
 import ClubRoute from "../../../app/(ordinary)/clubs/[clubId]";
@@ -507,6 +513,29 @@ it("allows a new visit to select an identity whose previous detail refusal is st
   expect(
     new URL(collectionCalls("clubs").at(-1)![0]).searchParams.has("exampleIds"),
   ).toBe(false);
+
+  // When: a reopened detail read is abandoned before it can establish new authority.
+  const pending = Promise.withResolvers<Response>();
+  let signal: AbortSignal | undefined;
+  mockFetch.mockImplementation((url: string, options: RequestInit) => {
+    if (new URL(url).pathname.endsWith(`/clubs/${secondId}`)) {
+      signal = options.signal ?? undefined;
+      return pending.promise;
+    }
+    return publicReads(url);
+  });
+  await act(async () => router.push(`/clubs/${secondId}`));
+  await waitFor(() => expect(signal).toBeDefined());
+  await act(async () => router.back());
+  await act(async () =>
+    pending.resolve(
+      await publicReads(`https://api.example.invalid/clubs/${secondId}`),
+    ),
+  );
+
+  // Then: native cancellation restores the historical error, which must not remove current examples.
+  expect(signal?.aborted).toBe(true);
+  expect(screen.getByText("Niort")).toBeOnTheScreen();
 });
 
 it("resolves zero retained examples locally after a failed reread and subsequent detail refusals", async () => {

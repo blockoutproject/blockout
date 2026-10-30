@@ -117,11 +117,12 @@ export function useSearchExamplesQuery(
           return;
         const removed = currentIds.filter((id) => {
           const key = consultation[resource](id).queryKey;
-          // F03 child reads propagate an explicit current error without rewriting its native timestamp.
+          // F03 propagates a partial error update; native cancellation restores the full historical state.
           const propagated =
             event.query.queryHash === hashKey(key) &&
             event.action.type === "setState" &&
-            event.action.state.error != null;
+            event.action.state.error != null &&
+            !("errorUpdatedAt" in event.action.state);
           return exampleRefused(client, key, propagated ? 0 : read.startedAt);
         });
         if (state.status !== "success" && !removed.length) return;
