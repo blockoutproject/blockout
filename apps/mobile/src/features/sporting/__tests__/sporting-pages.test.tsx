@@ -504,25 +504,6 @@ it("keeps the pool season and phase independent of later standings and map conte
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 });
 
-it("shows the undelivered pool map as unavailable without inventing a read or recovery", async () => {
-  // Given: pool metadata and the independently loaded standings have settled.
-  const user = userEvent.setup();
-  await renderPage(<PoolScreen poolId={sportingId} />);
-  mockFetch.mockClear();
-
-  // When
-  await user.press(screen.getByRole("tab", { name: "Carte" }));
-  await layoutNativeTabs();
-
-  // Then: the map has no read owner yet and therefore offers no fabricated recovery.
-  expect(
-    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
-  ).toBeOnTheScreen();
-  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
-  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
-  expect(mockFetch).not.toHaveBeenCalled();
-});
-
 it.each(["Équipes", "À venir", "Terminés"])(
   "shows one accepted no-season state in Club %s and refreshes only its club metadata",
   async (label) => {

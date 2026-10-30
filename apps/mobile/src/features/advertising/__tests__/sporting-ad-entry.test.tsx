@@ -19,6 +19,7 @@ import { AdEventType } from "react-native-google-mobile-ads";
 import type {
   MatchDetailResponse,
   PoolStandingsResponse,
+  PoolParticipantsResponse,
 } from "../../../../.generated/schemas/index.zod";
 import {
   AccountSessionProvider,
@@ -135,6 +136,7 @@ const nativeNotificationId = "00000000-0000-4000-8000-000000000288";
 const nativeMatchId = "00000000-0000-4000-8000-000000000289";
 let failNativeRead = false;
 let table: PoolStandingsResponse;
+let participants: PoolParticipantsResponse;
 
 beforeEach(async () => {
   // Inbox retention and native-ad freshness use a fixed current instant; native Query timers stay controlled.
@@ -158,6 +160,7 @@ beforeEach(async () => {
   push = createPushRegistration();
   mockFocused = true;
   failNativeRead = false;
+  participants = { poolId: matchDetail().match.pool.pool.id, items: [] };
   table = {
     poolId: matchDetail().match.pool.pool.id,
     availability: "available",
@@ -185,6 +188,7 @@ beforeEach(async () => {
     .mockImplementation(async (url: string, init?: RequestInit) => {
       const path = new URL(url).pathname;
       if (path.endsWith("/standings")) return Response.json(table);
+      if (path.endsWith("/participants")) return Response.json(participants);
       if (path.startsWith("/pools/"))
         return Response.json({ pool: matchDetail().match.pool });
       if (path.startsWith("/teams/"))
@@ -734,4 +738,70 @@ it("abandons a participation pool link when the actual team page changes its tab
 
   // Then
   expect(mockPush).toHaveBeenCalledTimes(9);
+});
+
+it("abandons a pending map team opening when a coincident team replaces the selection", async () => {
+  // Given
+  const pool = matchDetail().match.pool;
+  const firstId = "00000000-0000-4000-8000-000000000301";
+  const secondId = "00000000-0000-4000-8000-000000000302";
+  participants = {
+    poolId: pool.pool.id,
+    items: [
+      {
+        team: {
+          team: { id: firstId, name: "Rives" },
+          season: pool.season,
+          classification: {},
+          professional: false,
+          club: { id: firstId, name: "Club des Rives" },
+        },
+        location: { latitude: 46.16, longitude: -1.15, label: "La Rochelle" },
+      },
+      {
+        team: {
+          team: { id: secondId, name: "Marais" },
+          season: pool.season,
+          classification: {},
+          professional: false,
+          club: { id: secondId, name: "Club du Marais" },
+        },
+        location: { latitude: 46.16, longitude: -1.15, label: "La Rochelle" },
+      },
+    ],
+  };
+  await mount({ resourcePage: "pool" });
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("tab", { name: "Carte" }));
+  await layoutNativeTabs();
+  // MarkerPress is a native event outside userEvent's Pressable interaction contract.
+  await fireEvent(
+    await screen.findByRole("button", { name: "La Rochelle: Rives, Marais" }),
+    "press",
+    { stopPropagation: jest.fn() },
+  );
+  for (let index = 0; index < 9; index++)
+    await user.press(screen.getByRole("link", { name: "Club" }));
+  await user.press(screen.getByRole("link", { name: "Voir l’équipe" }));
+  expect(ad.show).toHaveBeenCalledTimes(1);
+  expect(mockPush).toHaveBeenCalledTimes(9);
+
+  // When
+  await user.press(screen.getByRole("radio", { name: "Marais" }));
+  await act(async () => {
+    ad.emit(AdEventType.OPENED);
+    ad.emit(AdEventType.CLOSED);
+  });
+
+  // Then
+  expect(mockPush).toHaveBeenCalledTimes(9);
+  expect(mockPush).not.toHaveBeenCalledWith({
+    pathname: "/teams/[teamId]",
+    params: { teamId: firstId },
+  });
+  await user.press(screen.getByRole("link", { name: "Voir l’équipe" }));
+  expect(mockPush).toHaveBeenLastCalledWith({
+    pathname: "/teams/[teamId]",
+    params: { teamId: secondId },
+  });
 });

@@ -53,6 +53,14 @@ public class JpaContributionStore implements ContributionStore {
 
   /** {@inheritDoc} */
   @Override
+  public Optional<ContributionVersion> ownActive(UUID matchId, UUID ownerId) {
+    return versions
+        .findByMatchIdAndOwnerIdAndState(matchId, ownerId, State.ACTIVE)
+        .map(mapper::toDomain);
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public Optional<ContributionVersion> pending(UUID matchId, UUID ownerId) {
     return versions
         .findByMatchIdAndOwnerIdAndState(matchId, ownerId, State.PENDING)
@@ -82,6 +90,12 @@ public class JpaContributionStore implements ContributionStore {
   @Override
   public Optional<ContributionVersion> version(UUID id) {
     return versions.findById(id).map(mapper::toDomain);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public long ownProposalCount(UUID matchId, UUID ownerId) {
+    return versions.countByMatchIdAndOwnerId(matchId, ownerId);
   }
 
   /** {@inheritDoc} */
@@ -133,6 +147,16 @@ public class JpaContributionStore implements ContributionStore {
     versions.save(created);
     for (ContributionVersionEntity old : replaced) old.setReplacedByVersionId(created.getId());
     return mapper.toDomain(created);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public ContributionVersion decide(
+      UUID versionId, State state, ContributionVersion.Decision decision) {
+    ContributionVersionEntity version = versions.findById(versionId).orElseThrow();
+    decide(version, state, decision.kind(), decision.actorId(), decision.at());
+    return mapper.toDomain(version);
   }
 
   /**

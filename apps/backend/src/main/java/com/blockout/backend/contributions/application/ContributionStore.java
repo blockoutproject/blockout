@@ -37,6 +37,15 @@ public interface ContributionStore {
   Optional<ContributionVersion> active(UUID matchId);
 
   /**
+   * Reads the caller-owned active version independently of the personal page.
+   *
+   * @param matchId current match
+   * @param ownerId usable original account identity
+   * @return the owner's current active version, or empty for absent, foreign or erased ownership
+   */
+  Optional<ContributionVersion> ownActive(UUID matchId, UUID ownerId);
+
+  /**
    * Reads only the original account's current proposal, never an anonymous proposal.
    *
    * @param matchId existing F02 match
@@ -75,6 +84,17 @@ public interface ContributionStore {
   Optional<ContributionVersion> version(UUID id);
 
   /**
+   * Counts all caller-owned versions independently of lifecycle, pagination and quota
+   * participation. The caller includes this aggregate in the same read snapshot as the personal
+   * page.
+   *
+   * @param matchId current match
+   * @param ownerId original account
+   * @return exact count of this owner's versions, including the current active version
+   */
+  long ownProposalCount(UUID matchId, UUID ownerId);
+
+  /**
    * Reads twenty caller-owned versions in creation descending/UUID ascending order.
    *
    * @param matchId current match
@@ -103,6 +123,18 @@ public interface ContributionStore {
       boolean active,
       boolean moderator,
       java.time.Instant now);
+
+  /**
+   * Applies one accepted exact-version lifecycle decision without changing immutable version facts.
+   * The caller has checked ownership, state and revision under sporting/account locks.
+   *
+   * @param versionId exact existing target version
+   * @param state accepted terminal state
+   * @param decision useful action, instant and original actor attribution
+   * @return updated detached version; other versions and hold remain unchanged
+   */
+  ContributionVersion decide(
+      UUID versionId, ContributionVersion.State state, ContributionVersion.Decision decision);
 
   /**
    * Advances the match revision exactly once; moderator selection also resolves the hold.

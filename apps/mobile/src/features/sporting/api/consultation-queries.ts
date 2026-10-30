@@ -30,6 +30,7 @@ import {
   getGetMatchQueryKey,
 } from "../../../../.generated/mobile";
 import type {
+  PoolParticipantsResponse,
   PoolStandingsResponse,
   TeamLogoSelectionEnum,
 } from "../../../../.generated/schemas/index.zod";
@@ -114,8 +115,11 @@ export function createConsultationQueries(
     throw error;
   }
 
-  /** Cancels older tables in this same session/admission context before removing only the refused team link. */
-  async function unlinkUnavailableTeam(
+  /**
+   * Cancels older pool reads in this context, then removes the refused participant and unlinks its official rows.
+   * Other participants, including coincident points, keep their source values and original cache freshness.
+   */
+  async function removeUnavailableTeam(
     context: QueryFunctionContext,
     teamId: string,
   ) {
@@ -130,10 +134,24 @@ export function createConsultationQueries(
     const filters = {
       queryKey: key([]),
       predicate: (query: Query) =>
-        query.meta?.consultationResource === "standings",
+        query.meta?.consultationResource === "standings" ||
+        query.meta?.consultationResource === "participants",
     };
     await context.client.cancelQueries(filters, { revert: false });
     for (const query of context.client.getQueryCache().findAll(filters)) {
+      if (query.meta?.consultationResource === "participants") {
+        const data = context.client.getQueryData<PoolParticipantsResponse>(
+          query.queryKey,
+        );
+        if (!data?.items.some((item) => item.team.team.id === teamId)) continue;
+        query.setState({
+          data: {
+            ...data,
+            items: data.items.filter((item) => item.team.team.id !== teamId),
+          },
+        });
+        continue;
+      }
       const data = context.client.getQueryData<PoolStandingsResponse>(
         query.queryKey,
       );
@@ -308,7 +326,7 @@ export function createConsultationQueries(
             return await getTeam(teamId, await request(context));
           } catch (error) {
             if (!context.signal.aborted && resourceUnavailable(error))
-              await unlinkUnavailableTeam(context, teamId);
+              await removeUnavailableTeam(context, teamId);
             return rejectUnavailable(error, context);
           }
         },
@@ -355,6 +373,7 @@ export function createConsultationQueries(
     /** Viewable pool participants, regardless of standings availability or map coverage. */
     participants: (poolId: string) =>
       queryOptions({
+        meta: { consultationResource: "participants" },
         queryKey: key(getListPoolParticipantsQueryKey(poolId)),
         queryFn: async (context) => {
           try {

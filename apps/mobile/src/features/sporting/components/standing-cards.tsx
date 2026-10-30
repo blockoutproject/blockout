@@ -6,6 +6,7 @@ import type { StandingRowResponse } from "../../../../.generated/schemas/index.z
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { SportingLogo } from "./sporting-identity";
+import { StandingPerformanceBar } from "./standing-performance-bar";
 
 /** Accepted source rows and columns; presentation never supplies a missing rank, statistic or association. */
 export interface StandingCardsProps {
@@ -118,15 +119,24 @@ function StandingCard({
           </View>
         )}
         <View style={podium ? styles.podiumIdentity : styles.rowIdentity}>
-          <Text
+          <View
             style={[
               styles.rank,
               podium ? styles.podiumRank : styles.rowRank,
-              { backgroundColor: rank.fill, color: rank.content },
+              { backgroundColor: rank.fill },
             ]}
           >
-            {row.position ?? "—"}
-          </Text>
+            <Text
+              style={[
+                podium
+                  ? tokens.typography.headingLg
+                  : tokens.typography.headingSm,
+                { color: rank.content },
+              ]}
+            >
+              {row.position ?? "—"}
+            </Text>
+          </View>
           {logo}
           {!podium && (
             <Text
@@ -150,7 +160,7 @@ function StandingCard({
           <StandingPoints row={row} column={points} podium />
         )}
         <View style={styles.performance}>
-          <PerformanceBar row={row} columns={columns} />
+          <StandingPerformanceBar row={row} columns={columns} />
           <View style={podium ? styles.podiumStatistics : styles.rowStatistics}>
             {statistics.map((column) => (
               <View
@@ -246,57 +256,6 @@ function StandingPoints({
   );
 }
 
-/** An optional decorative ratio requires exact published G/P counts; it never supplies missing numbers. */
-function PerformanceBar({
-  row,
-  columns,
-}: {
-  row: StandingRowResponse;
-  columns: readonly string[];
-}) {
-  const { colors } = useTheme();
-  const won = row.statistics.G;
-  const lost = row.statistics.P;
-  if (
-    !columns.includes("G") ||
-    !columns.includes("P") ||
-    won === undefined ||
-    lost === undefined ||
-    !/^\d+$/.test(won) ||
-    !/^\d+$/.test(lost)
-  )
-    return null;
-  const wins = Number(won);
-  const losses = Number(lost);
-  if (
-    !Number.isSafeInteger(wins) ||
-    !Number.isSafeInteger(losses) ||
-    !Number.isSafeInteger(wins + losses) ||
-    wins + losses === 0
-  )
-    return null;
-  return (
-    <View accessible={false} pointerEvents="none" style={styles.performanceBar}>
-      {wins > 0 && (
-        <View
-          style={[
-            styles.performanceSegment,
-            { flex: wins, backgroundColor: colors.performance.won },
-          ]}
-        />
-      )}
-      {losses > 0 && (
-        <View
-          style={[
-            styles.performanceSegment,
-            { flex: losses, backgroundColor: colors.performance.lost },
-          ]}
-        />
-      )}
-    </View>
-  );
-}
-
 /** The approved subtle gradient uses the semantic published-rank fill in the current appearance. */
 function RankTint({ color }: { color: string }) {
   const { colors } = useTheme();
@@ -376,18 +335,16 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   rank: {
-    textAlign: "center",
-    textAlignVertical: "center",
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: tokens.radius.sm,
     overflow: "hidden",
   },
   podiumRank: {
-    ...tokens.typography.headingLg,
     minWidth: tokens.sporting.standingsCard.podiumRankWidth,
     minHeight: tokens.sporting.standingsCard.podiumRankHeight,
   },
   rowRank: {
-    ...tokens.typography.headingSm,
     minWidth: tokens.sporting.standingsRankWidth,
     minHeight: tokens.sporting.standingsRankHeight,
   },
@@ -408,14 +365,6 @@ const styles = StyleSheet.create({
   },
   podiumPoints: { alignItems: "center" },
   performance: { gap: tokens.spacing.sm, width: "100%" },
-  performanceBar: {
-    flexDirection: "row",
-    gap: tokens.spacing.optical,
-    height: tokens.sporting.standingsCard.performanceHeight,
-  },
-  performanceSegment: {
-    height: tokens.sporting.standingsCard.performanceHeight,
-  },
   podiumStatistics: {
     flexDirection: "row",
     flexWrap: "wrap",

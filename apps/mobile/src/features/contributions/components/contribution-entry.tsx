@@ -1,28 +1,61 @@
 import { useRouter } from "expo-router";
-import { Plus } from "lucide-react-native";
-import { Button } from "../../../shared/components/button";
+import { Pressable, StyleSheet, Text } from "react-native";
+import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { Button, type ButtonProps } from "../../../shared/components/button";
+import { useTheme } from "../../../shared/theme/theme-provider";
+import { tokens } from "../../../shared/theme/tokens";
 import { useOwnContributionsRead } from "../api/own-contributions";
 
-/** Public match entry offered to guests or currently eligible accounts, independently of Pro. */
+/** F08 supplies either the card's primary destination or its compact personal-proposals header entry. */
 export interface ContributionEntryProps {
   entry: ReturnType<typeof useContributionEntry>;
-  contextColor?: string;
+  header?: boolean;
+  contextColor?: ButtonProps["contextColor"];
+  contextGradient?: ButtonProps["contextGradient"];
+  contextForeground?: ButtonProps["contextForeground"];
 }
 
-/** Supplies the entry and its current read to the match's existing refresh composition. */
-export function useContributionEntry(matchId: string, available = true) {
+/** Keeps private read/refresh ownership mounted on the match; only the independent active projection proves public ownership. */
+export function useContributionEntry(
+  matchId: string,
+  available = true,
+  publicContributionId?: string,
+) {
   const router = useRouter();
   const { session, query, usable, profile } = useOwnContributionsRead(
     matchId,
     available,
   );
+  const current = query.data?.pages[0];
+  const authorized = available && usable && !query.isError;
+  const hasProposals = authorized && (current?.proposalCount ?? 0) > 0;
+  const ownsPublic =
+    authorized &&
+    !!publicContributionId &&
+    current?.activeContribution?.id === publicContributionId;
+  // Only an established or in-progress session can resolve private ownership; failed F05 sessions retain public consultation.
+  const publicOwnershipUnknown =
+    available &&
+    !!publicContributionId &&
+    (session.status === "authenticated" ||
+      session.status === "restoring" ||
+      session.status === "authenticating") &&
+    (!authorized || !current);
+  const canPropose =
+    available &&
+    (session.status === "guest" ||
+      (authorized && current?.eligibility.canSubmit === true));
   return {
-    visible:
-      available &&
-      (session.status === "guest" ||
-        (usable &&
-          !query.isError &&
-          query.data?.pages[0]?.eligibility.canSubmit === true)),
+    hasProposals,
+    ownsPublic,
+    publicOwnershipUnknown,
+    ownershipRead:
+      session.status === "authenticated"
+        ? usable
+          ? query
+          : profile
+        : undefined,
+    canPropose,
     refreshing: query.isRefetching || profile.isRefetching,
     /** Reobserves the existing owner on match refresh; a recovered profile enables its dependent query. */
     refresh() {
@@ -32,8 +65,15 @@ export function useContributionEntry(matchId: string, available = true) {
         ? query.refetch({ cancelRefetch: false })
         : profile.refetch({ cancelRefetch: false });
     },
-    /** Carries only the match or invitation reason, never an address or deferred command. */
+    /** Opens the existing owner screen without replaying a mutation or carrying an address. */
     open() {
+      router.push({
+        pathname: "/matches/[matchId]/contributions",
+        params: { matchId },
+      });
+    },
+    /** An eligible first proposal opens its form directly; guests retain the existing F05 invitation. */
+    propose() {
       if (session.status === "guest")
         router.push({
           pathname: "/sign-in-invitation",
@@ -48,21 +88,50 @@ export function useContributionEntry(matchId: string, available = true) {
   };
 }
 
-/** Presents only an available action using the shared sporting button. */
+/** Keeps contributed-link ownership unresolved through native read feedback before exposing the appropriate action. */
 export function ContributionEntry({
   entry,
-  contextColor,
+  header = false,
+  ...context
 }: ContributionEntryProps) {
-  if (!entry.visible) return null;
+  const { colors } = useTheme();
+  if (header)
+    return entry.hasProposals ? (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Gérer mes propositions"
+        onPress={entry.open}
+        style={styles.manage}
+      >
+        <Text
+          style={[
+            tokens.typography.body,
+            { color: colors.secondaryText, textDecorationLine: "underline" },
+          ]}
+        >
+          Gérer
+        </Text>
+      </Pressable>
+    ) : null;
+  if (entry.publicOwnershipUnknown)
+    return entry.ownershipRead ? (
+      <ReadFeedback query={entry.ownershipRead} />
+    ) : null;
+  if (!entry.ownsPublic && !entry.canPropose) return null;
   return (
     <Button
-      label="Stream link"
-      accessibilityHint="Proposer une adresse de diffusion pour ce match"
-      leadingIcon={Plus}
-      variant="inverse"
-      size="compact"
-      contextColor={contextColor}
-      onPress={entry.open}
+      {...context}
+      label={entry.ownsPublic ? "Modifier le lien" : "Proposer un lien"}
+      fullWidth
+      onPress={entry.ownsPublic ? entry.open : entry.propose}
     />
   );
 }
+const styles = StyleSheet.create({
+  manage: {
+    minHeight: tokens.touch.minimum,
+    minWidth: tokens.touch.minimum,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});

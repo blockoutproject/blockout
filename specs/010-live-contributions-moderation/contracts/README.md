@@ -4,7 +4,7 @@ The backend supplies the existing [mobile OpenAPI root](../../../contracts/http/
 
 | Boundary              | Provider → consumer                       | Source and effect                                                                                                                                                                                                |
 | --------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Own contributions     | Backend → signed-in mobile                | Account/match collection and member GET/POST/PATCH; original account scope, eligibility/quotas, private personal history.                                                                                        |
+| Own contributions     | Backend → signed-in mobile                | Account/match collection and member GET/POST/PATCH; original account scope, eligibility/quotas, private personal proposals and their all-state total.                                                            |
 | Reporting             | Backend → signed-in mobile                | Account/version report GET/POST; first reason and exact-version deduplication, no historical request receipt.                                                                                                    |
 | Moderation            | Backend → authorized mobile               | Match queue, match versions, version decisions/reactivations and reports. One stream-link moderation grant; current actor UUID in commands.                                                                      |
 | Public stream         | F08 backend state → F03 projection/mobile | [MatchDetailResponse](../../../contracts/http/mobile/consultation/schemas.yaml) adds optional streamContributionId exactly when streamUrl is contributive. No private details.                                   |
@@ -12,12 +12,18 @@ The backend supplies the existing [mobile OpenAPI root](../../../contracts/http/
 | Account erasure       | F05 → F08 persistence                     | Clear version/decision attribution and report author/reason in the local deletion transaction; retain counted facts and decisions. No extra HTTP operation.                                                      |
 | Notification facts    | F08/F02 → F07 in-process                  | Accepted match/version/public-availability transition and current composition under the match transaction. Required internal effects are atomic; post-commit push remains best effort. No new message transport. |
 
+The optional `activeContribution` is the current exact caller-owned active member, independent of the loaded page and absent for another owner or no active member. It shares the existing read snapshot with context, total and page. The current native history exposes no cancellation command; the existing exact-member PATCH contract is retained.
+
+The own collection requires `proposalCount`, a nonnegative safe integer counting all original-account/match versions, including active and terminal states. The count is an SQL aggregate independent of pagination, read coherently with the page/context; an empty collection returns zero.
+
 Read lists in pages of twenty with optional nextPage; preserve filters and reset on refresh. Searches are literal case-insensitive fragments, not wildcard syntax. Private representations and errors use no-store. Body revision conflicts reuse the existing 409 problem; no conditional HTTP precondition or 412 contract is introduced. PATCH uses atomic application/json change documents; omitted fields are not invented updates and null is rejected in these required command inputs.
 
 Completed creation returns 201 and a resource Location; existing current repetitions return 200. A report Location identifies the account/version report subresource; a reactivation Location identifies the new administrative contribution member, not a new job. Reports do not transfer to another version. Current reads after uncertainty may still precede delayed completion; no automatic write retry or exact historical receipt.
 
 F13 owns [dialect, generators and validation](../../003-shared-quality/contracts/README.md). Keep Java server interfaces/DTOs and Orval types/query functions/Zod schemas generated from the same root. Added response fields are compatible with tolerant readers; new operations are additive. Finite enums are named components and new values require deliberate compatibility review. No generated output, runtime, external provider API, generic bulk operation or hypermedia framework is introduced by this dossier.
 
-The delivered submission/member-read operations use the `StreamSubmission` generation tag,
-separating their executable Java interface from later lifecycle/moderation operations. Routes,
-operation IDs, request/response schemas and mobile consumer names remain unchanged.
+The delivered submission/member-read operations and own-version PATCH use the `StreamSubmission`
+generation tag, separating their executable Java interface from future reporting/moderation
+operations. Routes, operation IDs, request/response schemas and mobile consumer names remain
+unchanged. The PATCH retains its exact target and required viewed revision; cancellation and
+withdrawal return the current private member with `Accept-Patch: application/json` and `no-store`.

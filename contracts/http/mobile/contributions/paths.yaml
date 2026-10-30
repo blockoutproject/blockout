@@ -132,7 +132,7 @@ OwnMember:
   patch:
     operationId: updateOwnStreamContribution
     tags:
-      - StreamContributions
+      - StreamSubmission
     summary: Cancel or withdraw my version
     description:
       Requires the original usable owner account and a currently viewable match.

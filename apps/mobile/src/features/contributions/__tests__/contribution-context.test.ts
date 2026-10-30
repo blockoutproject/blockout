@@ -112,6 +112,7 @@ it("uses the infinite query page parameter without splitting the traversal key",
     return new Response(
       JSON.stringify({
         revision: "opaque:first",
+        proposalCount: 0,
         eligibility: { canSubmit: false, requiresApproval: true },
         quota: {
           versionsUsed: 3,

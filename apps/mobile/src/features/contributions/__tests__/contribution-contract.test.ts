@@ -25,6 +25,7 @@ import {
   UpdateOwnStreamContributionRequest,
 } from "../../../../.generated/schemas/index.zod";
 import { createQueryClient } from "../../../shared/query/query-client";
+import { ownContributions } from "../test-support/contribution-data";
 
 const id = "00000000-0000-4000-8000-000000000001";
 const instant = "2026-10-24T12:00:00Z";
@@ -388,6 +389,7 @@ it("preserves an opaque owner revision and nullable-independent quota context", 
   // Given
   const body = {
     revision: "opaque:α/not-a-counter",
+    proposalCount: 0,
     eligibility: { canSubmit: false, requiresApproval: true },
     quota: {
       versionsUsed: 3,
@@ -411,6 +413,46 @@ it("preserves an opaque owner revision and nullable-independent quota context", 
   expect(result.eligibility).not.toHaveProperty("reason");
   expect(result.eligibility).not.toHaveProperty("eligibleAt");
 });
+
+it.each([0, Number.MAX_SAFE_INTEGER])(
+  "admits the server proposal total %i independently of the loaded page",
+  async (proposalCount) => {
+    // Given
+    const body = ownContributions({ proposalCount });
+    mockFetch.mockResolvedValue(Response.json(body));
+
+    // When
+    const result = await listOwnStreamContributions(id, id);
+
+    // Then
+    expect(result.proposalCount).toBe(proposalCount);
+    expect(result.items).toEqual([]);
+  },
+);
+
+it.each([undefined, null, -1, 0.5, Number.MAX_SAFE_INTEGER + 1, "1"])(
+  "rejects proposal total %s before admitting the response into Query",
+  async (proposalCount) => {
+    // Given
+    mockFetch.mockResolvedValue(
+      Response.json({ ...ownContributions(), proposalCount }),
+    );
+    const client = createQueryClient();
+    const key = ["invalid-owner-total"];
+
+    // When
+    const result = client.fetchQuery({
+      queryKey: key,
+      queryFn: () => listOwnStreamContributions(id, id),
+    });
+
+    // Then
+    await expect(result).rejects.toMatchObject({ kind: "schema" });
+    expect(client.getQueryData(key)).toBeUndefined();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    client.clear();
+  },
+);
 
 it.each(["contributed", "professional", "absent"])(
   "accepts the public %s stream projection without private attribution",

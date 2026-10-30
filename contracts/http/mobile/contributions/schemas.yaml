@@ -307,7 +307,10 @@ StreamQuotaResponse:
 OwnStreamContributionsResponse:
   title: OwnStreamContributionsResponse
   type: object
-  description: Owner context and one page of personal versions for a viewable match.
+  description:
+    Owner context and one page of personal versions for a viewable match. activeContribution is the
+    current caller-owned active version, independent of pagination; omitted when no active version
+    belongs to the caller. It never contains another account's version.
   additionalProperties: true
   properties:
     revision:
@@ -320,6 +323,14 @@ OwnStreamContributionsResponse:
       $ref: "#/StreamSubmissionEligibilityResponse"
     quota:
       $ref: "#/StreamQuotaResponse"
+    proposalCount:
+      type: integer
+      description: Total caller-owned versions for this match across every state, including active and moderator-created versions; independent of pagination and quota usage.
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+    activeContribution:
+      $ref: "#/OwnStreamContributionResponse"
     items:
       type: array
       description: Owned versions by creation instant descending, then UUID ascending.
@@ -338,6 +349,7 @@ OwnStreamContributionsResponse:
     - revision
     - eligibility
     - quota
+    - proposalCount
     - items
 StreamDecisionResponse:
   title: StreamDecisionResponse
