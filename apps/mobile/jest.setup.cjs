@@ -59,6 +59,14 @@ jest.mock(
 jest.mock("@react-native-google-mobile-ads/facebook", () => ({
   setAdvertiserTrackingEnabled: jest.fn(),
 }));
+
+// Map construction is native; sporting suites keep real queries and selection with controlled map events.
+jest.mock(
+  "react-native-maps",
+  () =>
+    jest.requireActual("./src/features/sporting/test-support/native-maps")
+      .nativeMaps,
+);
 jest.mock("expo-tracking-transparency", () => ({
   getTrackingPermissionsAsync: jest.fn(async () => ({
     status: "denied",
