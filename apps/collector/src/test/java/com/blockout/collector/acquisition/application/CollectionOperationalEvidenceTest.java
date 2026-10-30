@@ -106,7 +106,7 @@ class CollectionOperationalEvidenceTest {
     when(geocoder.read("Synthetic municipality", null, "9")).thenThrow(failure);
 
     // When
-    boolean completed = passage.execute(cycle);
+    passage.execute(cycle);
 
     // Then
     ArgumentCaptor<CollectionBackend.Result> result =
@@ -117,7 +117,7 @@ class CollectionOperationalEvidenceTest {
     assertThat(result.getValue().outcome()).isEqualTo(CollectionOutcomeEnum.FAILED);
     assertThat(result.getValue().reason()).doesNotContain("private-provider-body");
     assertThat(result.getValue().scopeId()).isEqualTo(CLUB);
-    assertThat(completed).isTrue();
+
     verifyNoInteractions(sporting);
     verify(geocoder).read("Synthetic municipality", null, "9");
     assertThat(output.getAll()).doesNotContain("private-provider-body");

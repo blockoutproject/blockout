@@ -133,14 +133,8 @@ class JpaCollectionStore implements CollectionStore {
   @Override
   @Transactional(propagation = Propagation.MANDATORY)
   public void finishInitialCoverage(UUID cycleId) {
-    while (true) {
-      Slice<InitialCoverageEntity> pending =
-          coverage.findByCycleIdAndStatus(
-              cycleId, InitialCoverage.Status.REQUESTED, PageRequest.of(0, 200));
-      if (pending.isEmpty()) break;
-      pending.forEach(row -> row.setStatus(InitialCoverage.Status.UNAVAILABLE));
-      coverage.flush();
-    }
+    coverage.finishRequested(
+        cycleId, InitialCoverage.Status.REQUESTED, InitialCoverage.Status.UNAVAILABLE);
   }
 
   /** {@inheritDoc} */

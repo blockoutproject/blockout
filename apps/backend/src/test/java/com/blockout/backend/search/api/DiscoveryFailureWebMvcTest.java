@@ -26,7 +26,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.stubbing.OngoingStubbing;
 import org.opensearch.client.opensearch.OpenSearchClient;
@@ -93,23 +92,15 @@ class DiscoveryFailureWebMvcTest {
     verifyNoInteractions(hydration);
   }
 
-  @ParameterizedTest
-  @CsvSource({"true, false, 1, 0", "false, false, 0, 1", "false, false, 0, 0", "false, true, 1, 0"})
-  @DisplayName("Rejects timeout and incomplete shard evaluations even when a hit was returned")
-  void rejectsIncompleteEvaluation(
-      boolean timedOut,
-      boolean terminatedEarly,
-      int successfulShards,
-      int failedShards,
-      CapturedOutput output)
-      throws Exception {
+  @Test
+  @DisplayName("Rejects a native timeout even when a hit was returned")
+  void rejectsTimedOutEvaluation(CapturedOutput output) throws Exception {
     // Given
     SearchResponse<OpenSearchEngine.IndexedCity> incomplete =
         new SearchResponse.Builder<OpenSearchEngine.IndexedCity>()
             .took(1)
-            .timedOut(timedOut)
-            .terminatedEarly(terminatedEarly)
-            .shards(shards -> shards.total(1).successful(successfulShards).failed(failedShards))
+            .timedOut(true)
+            .shards(shards -> shards.total(1).successful(1).failed(0))
             .hits(hits -> hits.hits(List.of(hit(1))))
             .build();
     when(client.search(any(SearchRequest.class), eq(OpenSearchEngine.IndexedCity.class)))

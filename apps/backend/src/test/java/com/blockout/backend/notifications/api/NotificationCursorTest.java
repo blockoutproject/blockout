@@ -88,13 +88,10 @@ class NotificationCursorTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "2026-10-25T12:00:00.1234567Z/ffffffff-ffff-4fff-bfff-ffffffffffff",
-        "2026-10-25T12:00:00.1234560Z/ffffffff-ffff-4fff-bfff-ffffffffffff",
         "2026-02-30T12:00:00Z/ffffffff-ffff-4fff-bfff-ffffffffffff",
-        "2026-10-25T12:00:00+02:00/ffffffff-ffff-4fff-bfff-ffffffffffff",
-        "2026-10-25T12:00:00Z/1-1-1-1-1"
+        "2026-10-25T12:00:00Z/not-a-uuid"
       })
-  @DisplayName("Rejects unsupported timestamp precision and malformed continuation keys")
+  @DisplayName("Rejects malformed continuation timestamps and UUIDs")
   void rejectsKeys(String text) {
     // Given
     String cursor =

@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Gatherers;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -42,13 +43,15 @@ public class ProjectSearch {
               .filter(scope -> scope.kind().name().equals(kind.name()))
               .map(Scope::id)
               .toList();
-      for (int offset = 0; offset < ids.size(); offset += 200) {
-        Set<UUID> batch =
-            new LinkedHashSet<>(ids.subList(offset, Math.min(offset + 200, ids.size())));
-        List<SearchDocuments> documents =
-            sporting.publicInputs(kind, batch).stream().map(SearchDocuments::from).toList();
-        writer.update(kind, batch, documents);
-      }
+      ids.stream()
+          .gather(Gatherers.windowFixed(200))
+          .forEach(
+              window -> {
+                Set<UUID> batch = new LinkedHashSet<>(window);
+                List<SearchDocuments> documents =
+                    sporting.publicInputs(kind, batch).stream().map(SearchDocuments::from).toList();
+                writer.update(kind, batch, documents);
+              });
     }
   }
 

@@ -248,12 +248,10 @@ class CollectorPresentationBoundaryIntegrationTest {
     LnvAcquisition lnv = stubProfessionalWithNativeImages();
 
     // When
-    boolean completed =
-        passageWithStubbedDiscovery(lnv, mock(ClubSheets.class), mock(MunicipalGeocoder.class))
-            .execute(cycle);
+    passageWithStubbedDiscovery(lnv, mock(ClubSheets.class), mock(MunicipalGeocoder.class))
+        .execute(cycle);
 
     // Then
-    assertThat(completed).isTrue();
     assertThat(imageReads)
         .hasValue(2); // Two teams share one URL: deduplication is by team, not URL.
     assertThat(runtime.sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Integer.class))
@@ -295,13 +293,11 @@ class CollectorPresentationBoundaryIntegrationTest {
         source);
     CollectorLifecycle.AdmittedCycle first = lifecycle.admit(CONTROL, null, 0, firstRequest);
     imageStatus = 404;
-    assertThat(
-            passageWithStubbedDiscovery(
-                    stubProfessionalWithNativeImages(),
-                    mock(ClubSheets.class),
-                    mock(MunicipalGeocoder.class))
-                .execute(first))
-        .isTrue();
+    passageWithStubbedDiscovery(
+            stubProfessionalWithNativeImages(),
+            mock(ClubSheets.class),
+            mock(MunicipalGeocoder.class))
+        .execute(first);
     UUID selected =
         runtime.sql.queryForObject(
             "SELECT id FROM sporting_team WHERE native_reference='HOME'", UUID.class);
@@ -334,15 +330,13 @@ class CollectorPresentationBoundaryIntegrationTest {
     // When
     CollectorLifecycle.AdmittedCycle retry = lifecycle.admit(CONTROL, null, revision, retryRequest);
     CollectionBackend.TargetPage targets = backend.targets(retry.getCycle().id(), 0);
-    boolean completed =
-        passageWithStubbedDiscovery(
-                stubProfessionalWithNativeImages(),
-                mock(ClubSheets.class),
-                mock(MunicipalGeocoder.class))
-            .execute(retry);
+    passageWithStubbedDiscovery(
+            stubProfessionalWithNativeImages(),
+            mock(ClubSheets.class),
+            mock(MunicipalGeocoder.class))
+        .execute(retry);
 
     // Then
-    assertThat(completed).isTrue();
     assertThat(targets.items())
         .singleElement()
         .satisfies(
@@ -405,15 +399,13 @@ class CollectorPresentationBoundaryIntegrationTest {
     }
 
     // When
-    boolean completed =
-        passageWithStubbedDiscovery(
-                stubProfessionalWithNativeImages(),
-                mock(ClubSheets.class),
-                mock(MunicipalGeocoder.class))
-            .execute(cycle);
+    passageWithStubbedDiscovery(
+            stubProfessionalWithNativeImages(),
+            mock(ClubSheets.class),
+            mock(MunicipalGeocoder.class))
+        .execute(cycle);
 
     // Then
-    assertThat(completed).isTrue();
     assertThat(imageReads).hasValue(2);
     assertThat(
             runtime.sql.queryForObject(
@@ -461,12 +453,10 @@ class CollectorPresentationBoundaryIntegrationTest {
             new SportingObservation.Locality("2", GeocodingOutcomeEnum.LOCATED, 45.76, 4.84));
 
     // When
-    boolean completed =
-        passageWithStubbedDiscovery(mock(LnvAcquisition.class), mock(ClubSheets.class), geocoder)
-            .execute(cycle);
+    passageWithStubbedDiscovery(mock(LnvAcquisition.class), mock(ClubSheets.class), geocoder)
+        .execute(cycle);
 
     // Then
-    assertThat(completed).isTrue();
     verify(geocoder).read("Lyon", "69001", "2");
     assertThat(
             runtime.sql.queryForObject(
@@ -501,12 +491,10 @@ class CollectorPresentationBoundaryIntegrationTest {
             });
 
     // When
-    boolean completed =
-        passageWithStubbedDiscovery(mock(LnvAcquisition.class), mock(ClubSheets.class), geocoder)
-            .execute(cycle);
+    passageWithStubbedDiscovery(mock(LnvAcquisition.class), mock(ClubSheets.class), geocoder)
+        .execute(cycle);
 
     // Then
-    assertThat(completed).isTrue();
     assertThat(
             runtime.sql.queryForObject(
                 "SELECT latitude FROM sporting_club WHERE id=?", Double.class, CLUB))
@@ -538,12 +526,10 @@ class CollectorPresentationBoundaryIntegrationTest {
         .thenThrow(new IllegalStateException("Synthetic transport failure"));
 
     // When
-    boolean completed =
-        passageWithStubbedDiscovery(mock(LnvAcquisition.class), mock(ClubSheets.class), geocoder)
-            .execute(cycle);
+    passageWithStubbedDiscovery(mock(LnvAcquisition.class), mock(ClubSheets.class), geocoder)
+        .execute(cycle);
 
     // Then
-    assertThat(completed).isTrue();
     assertThat(
             runtime.sql.queryForObject(
                 "SELECT latitude FROM sporting_club WHERE id=?", Double.class, CLUB))
@@ -574,12 +560,10 @@ class CollectorPresentationBoundaryIntegrationTest {
     MunicipalGeocoder geocoder = mock(MunicipalGeocoder.class);
 
     // When
-    boolean completed =
-        passageWithStubbedDiscovery(mock(LnvAcquisition.class), mock(ClubSheets.class), geocoder)
-            .execute(cycle);
+    passageWithStubbedDiscovery(mock(LnvAcquisition.class), mock(ClubSheets.class), geocoder)
+        .execute(cycle);
 
     // Then
-    assertThat(completed).isTrue();
     verifyNoInteractions(geocoder);
     assertThat(submissions).isEmpty();
     assertThat(contacts().at("/city/effectiveValue").isNull()).isTrue();
@@ -624,13 +608,10 @@ class CollectorPresentationBoundaryIntegrationTest {
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(SHEETS, null, 0, null);
 
     // When
-    boolean completed =
-        passageWithStubbedDiscovery(
-                mock(LnvAcquisition.class), sheets, mock(MunicipalGeocoder.class))
-            .execute(cycle);
+    passageWithStubbedDiscovery(mock(LnvAcquisition.class), sheets, mock(MunicipalGeocoder.class))
+        .execute(cycle);
 
     // Then
-    assertThat(completed).isTrue();
     JsonNode current = contacts();
     assertThat(current.at("/city/effectiveValue").asString()).isEqualTo("Lyon");
     assertThat(current.at("/city/sourceValue").asString()).isEqualTo("Marseille");

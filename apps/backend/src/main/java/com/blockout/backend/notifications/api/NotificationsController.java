@@ -8,7 +8,6 @@ import com.blockout.backend.generated.mobile.model.NotificationsResponse;
 import com.blockout.backend.notifications.application.MarkNotificationRead;
 import com.blockout.backend.notifications.application.NotificationContext;
 import com.blockout.backend.notifications.application.ReadInbox;
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
@@ -20,7 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class NotificationsController implements NotificationsApi {
   private final NotificationRequest request;
-  private final HttpServletRequest http;
   private final ReadInbox reads;
   private final MarkNotificationRead marks;
   private final NotificationApiMapper mapper;
@@ -30,7 +28,6 @@ public class NotificationsController implements NotificationsApi {
   public ResponseEntity<NotificationsResponse> listNotifications(
       UUID accountId, String cursor, Boolean bypass) {
     NotificationContext owner = request.owner(accountId);
-    request.validateQuery(http, true);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(mapper.toDto(reads.page(owner, NotificationCursor.decode(cursor))));
@@ -41,7 +38,6 @@ public class NotificationsController implements NotificationsApi {
   public ResponseEntity<NotificationResponse> getNotification(
       UUID accountId, UUID notificationId, Boolean bypass) {
     NotificationContext owner = request.owner(accountId);
-    request.validateQuery(http, false);
     return member(mapper.toDto(reads.member(owner, notificationId)));
   }
 
@@ -50,7 +46,6 @@ public class NotificationsController implements NotificationsApi {
   public ResponseEntity<NotificationSummaryResponse> getNotificationSummary(
       UUID accountId, Boolean bypass) {
     NotificationContext owner = request.owner(accountId);
-    request.validateQuery(http, false);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(mapper.toDto(reads.summary(owner)));
@@ -61,7 +56,6 @@ public class NotificationsController implements NotificationsApi {
   public ResponseEntity<NotificationResponse> markNotificationRead(
       UUID accountId, UUID notificationId, MarkNotificationReadRequest body, Boolean bypass) {
     NotificationContext owner = request.owner(accountId);
-    request.validateQuery(http, false);
     request.requireRead(body);
     return member(mapper.toDto(marks.mark(owner, notificationId)));
   }

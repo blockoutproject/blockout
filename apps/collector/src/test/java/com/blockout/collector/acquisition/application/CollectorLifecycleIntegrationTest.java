@@ -5,9 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import com.blockout.collector.acquisition.infrastructure.CollectorStartup;
 import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendClient;
 import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendMapperImpl;
@@ -26,17 +23,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/**
- * Exercises startup and read-only uncertainty recovery through a controlled generated HTTP peer.
- */
+/** Exercises startup and one-attempt admission through a controlled generated HTTP peer. */
 @DisplayName("Collector startup and uncertain admission through the generated client")
 class CollectorLifecycleIntegrationTest {
   private HttpServer server;
@@ -50,8 +42,6 @@ class CollectorLifecycleIntegrationTest {
   private boolean refuseAdmission;
   private boolean contradictoryPurpose;
   private boolean omitCandidate;
-  private boolean refuseCycleRead;
-  private int unavailableCycleStatus = 503;
   private CollectorLifecycle lifecycle;
   private CollectionBackendClient backend;
 
@@ -141,8 +131,7 @@ class CollectorLifecycleIntegrationTest {
             }
             body = cycle;
           } else {
-            status = refuseCycleRead ? unavailableCycleStatus : 200;
-            body = refuseCycleRead ? "{}" : cycle;
+            body = cycle;
           }
           byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
           exchange.getResponseHeaders().add("Content-Type", "application/json");
@@ -228,33 +217,27 @@ class CollectorLifecycleIntegrationTest {
 
   @Test
   @DisplayName(
-      "Reads the same cycle after a lost admission response before exposing provider context")
-  void confirmsUncertainAdmission() {
+      "A lost admission response exposes no provider capability and triggers no confirmation read")
+  void refusesLostAdmission() {
     // Given
     lifecycle.start();
     loseAdmission = true;
     UUID control = UUID.fromString("00000000-0000-4000-8000-000000000001");
 
-    // When
-    CollectorLifecycle.AdmittedCycle context = lifecycle.admit(control, null, 0, null);
-
-    // Then
-    assertThat(context.getCycle().id()).isEqualTo(admitted);
-    assertThat(calls.subList(2, calls.size()))
-        .containsExactly(
-            "POST /ingestion/collection-cycles", "GET /ingestion/collection-cycles/" + admitted);
-    assertThat(context.nextReadOrdinal()).isEqualTo(1);
-    assertThat(context.nextReadOrdinal()).isEqualTo(2);
+    // When / Then
+    assertThatThrownBy(() -> lifecycle.admit(control, null, 0, null))
+        .isInstanceOfSatisfying(
+            CollectionBackendFailure.class,
+            failure ->
+                assertThat(failure.getKind()).isEqualTo(CollectionBackendFailure.Kind.UNCONFIRMED));
+    assertThat(calls.subList(2, calls.size())).containsExactly("POST /ingestion/collection-cycles");
   }
 
-  @ParameterizedTest
-  @ValueSource(booleans = {false, true})
-  @DisplayName(
-      "Confirmed admission retains the exact candidate from its original response or recovery read")
-  void retainsConfirmedCandidate(boolean responseLost) {
+  @Test
+  @DisplayName("Confirmed admission retains the exact candidate from its original response")
+  void retainsConfirmedCandidate() {
     // Given
     lifecycle.start();
-    loseAdmission = responseLost;
     UUID source = UUID.fromString("00000000-0000-4000-8000-000000000151");
 
     // When
@@ -270,76 +253,21 @@ class CollectorLifecycleIntegrationTest {
                 "2026/2027",
                 com.blockout.collector.generated.ingestion.model.CollectionProviderEnum.LNV,
                 "901"));
-    List<String> expected =
-        responseLost
-            ? List.of(
-                "POST /ingestion/collection-cycles", "GET /ingestion/collection-cycles/" + admitted)
-            : List.of("POST /ingestion/collection-cycles");
-    assertThat(calls.subList(2, calls.size())).containsExactlyElementsOf(expected);
+    assertThat(calls.subList(2, calls.size())).containsExactly("POST /ingestion/collection-cycles");
     assertThat(context.nextReadOrdinal()).isEqualTo(1);
   }
 
-  @ParameterizedTest
-  @ValueSource(ints = {404, 503})
-  @DisplayName(
-      "An unresolved original admission remains uncertain and logs its original UUID for inspection")
-  void refusesUnconfirmedAdmission(int readStatus) {
-    // Given
-    lifecycle.start();
-    loseAdmission = true;
-    refuseCycleRead = true;
-    unavailableCycleStatus = readStatus;
-    Logger logger = (Logger) LoggerFactory.getLogger(CollectorLifecycle.class);
-    ListAppender<ILoggingEvent> events = new ListAppender<>();
-    events.start();
-    logger.addAppender(events);
-    try {
-      // When
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () ->
-              lifecycle.admit(
-                  UUID.fromString("00000000-0000-4000-8000-000000000151"), null, 0, null);
-
-      // Then
-      assertThatThrownBy(action)
-          .isInstanceOfSatisfying(
-              CollectionBackendFailure.class,
-              failure ->
-                  assertThat(failure.getKind())
-                      .isEqualTo(CollectionBackendFailure.Kind.UNCONFIRMED));
-      assertThat(calls.stream().filter(call -> call.startsWith("POST"))).hasSize(1);
-      assertThat(events.list)
-          .singleElement()
-          .satisfies(
-              event -> {
-                assertThat(event.getKeyValuePairs())
-                    .anySatisfy(
-                        pair -> {
-                          assertThat(pair.key).isEqualTo("cycleId");
-                          assertThat(pair.value).isEqualTo(admitted);
-                        });
-              });
-    } finally {
-      logger.detachAppender(events);
-      events.stop();
-    }
-  }
-
   @Test
-  @DisplayName("Confirms a lost startup acknowledgement without another registration")
-  void confirmsLostRegistration() {
+  @DisplayName("A lost startup acknowledgement fails startup without a recovery read")
+  void refusesLostRegistration() {
     // Given
     loseRegistration = true;
 
-    // When
-    lifecycle.start();
-
-    // Then
+    // When / Then
+    assertThatThrownBy(lifecycle::start).isInstanceOf(CollectionBackendFailure.class);
+    assertThat(lifecycle.isActive()).isFalse();
     assertThat(calls)
-        .containsExactly(
-            "GET /ingestion/collector-runtime",
-            "PUT /ingestion/collector-runtime",
-            "GET /ingestion/collector-runtime");
+        .containsExactly("GET /ingestion/collector-runtime", "PUT /ingestion/collector-runtime");
     assertThat(registered).isEqualTo(lifecycle.getIncarnationId());
   }
 

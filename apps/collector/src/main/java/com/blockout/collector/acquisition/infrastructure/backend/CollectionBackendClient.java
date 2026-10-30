@@ -53,12 +53,6 @@ public class CollectionBackendClient implements CollectionBackend {
 
   /** {@inheritDoc} */
   @Override
-  public Cycle cycle(UUID id) {
-    return BackendExchange.once(() -> mapper.toView(api.getCollectionCycle(id)));
-  }
-
-  /** {@inheritDoc} */
-  @Override
   public TargetPage targets(UUID cycleId, long page) {
     return BackendExchange.once(
         () -> mapper.toView(api.listCollectionCycleTargets(cycleId, page, 50)));

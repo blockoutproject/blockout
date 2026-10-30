@@ -47,9 +47,8 @@ public class CollectPassage {
    * time.
    *
    * @param context backend-confirmed control capability; source validation has a separate owner
-   * @return whether terminal completion was confirmed, independently from stage success
    */
-  public boolean execute(CollectorLifecycle.AdmittedCycle context) {
+  public void execute(CollectorLifecycle.AdmittedCycle context) {
     if (context.getCycle().controlId() == null)
       throw new IllegalArgumentException("A control passage is required");
     try {
@@ -155,7 +154,7 @@ public class CollectPassage {
             || target.kind() == CollectionTargetKindEnum.GEOCODING) seasonless(context, target);
       }
       details.flush();
-      return lifecycle.complete(context, clock.instant());
+      lifecycle.complete(context, clock.instant());
     } catch (CollectionBackendFailure failure) {
       if (failure.getKind() != CollectionBackendFailure.Kind.CONFLICT) throw failure;
       lifecycle.inspectConflict(failure);
@@ -164,7 +163,6 @@ public class CollectPassage {
           .addKeyValue("cycleId", context.getCycle().id())
           .addKeyValue("outcome", "refused")
           .log("Admitted context was refused; no further reads or completion were attempted");
-      return false;
     }
   }
 

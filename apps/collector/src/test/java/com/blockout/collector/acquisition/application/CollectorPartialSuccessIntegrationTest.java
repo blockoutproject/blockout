@@ -16,7 +16,6 @@ import com.blockout.collector.acquisition.infrastructure.backend.SportingObserva
 import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.collector.generated.ingestion.api.SportingApi;
-import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.StandingsPublicationStateEnum;
 import com.blockout.collector.ingestion.IngestionTestClient;
@@ -170,10 +169,9 @@ class CollectorPartialSuccessIntegrationTest {
                 NOW));
 
     // When
-    boolean completed = passage(source).execute(cycle);
+    passage(source).execute(cycle);
 
     // Then
-    assertThat(completed).isTrue();
     assertThat(runtime.sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Integer.class))
         .isEqualTo(101);
     assertThat(
@@ -203,8 +201,12 @@ class CollectorPartialSuccessIntegrationTest {
                 POOL))
         .containsEntry("obtained_count", 99L)
         .containsEntry("rejected_count", 1L);
-    assertThat(backend.cycle(cycle.getCycle().id()).state())
-        .isEqualTo(CollectionCycleStateEnum.COMPLETED);
+    assertThat(
+            runtime.sql.queryForObject(
+                "SELECT completed_at IS NOT NULL FROM collection_cycle WHERE id=?",
+                Boolean.class,
+                cycle.getCycle().id()))
+        .isTrue();
     assertThat(writes.stream().filter(path -> path.endsWith("/calendar-observations")).count())
         .isEqualTo(2);
   }
@@ -289,10 +291,9 @@ class CollectorPartialSuccessIntegrationTest {
             });
 
     // When
-    boolean completed = passage(source).execute(cycle);
+    passage(source).execute(cycle);
 
     // Then
-    assertThat(completed).isTrue();
     assertThat(result(POOL, "CALENDAR", "ACQUISITION")).isEqualTo("FAILED");
     assertThat(result(POOL, "STANDINGS", "INTEGRATION")).isEqualTo("SUCCESS");
     assertThat(result(OTHER_POOL, "CALENDAR", "INTEGRATION")).isEqualTo("SUCCESS");
@@ -352,10 +353,9 @@ class CollectorPartialSuccessIntegrationTest {
           "ALTER TABLE sporting_standing_row ADD CONSTRAINT qualification_194_row CHECK (source_name <> 'Synthetic refused row')");
       try {
         // When
-        boolean completed = passage(source).execute(cycle);
+        passage(source).execute(cycle);
 
         // Then
-        assertThat(completed).isTrue();
         assertThat(result(POOL, "STANDINGS", "ACQUISITION")).isEqualTo("SUCCESS");
         assertThat(result(POOL, "STANDINGS", "INTEGRATION")).isEqualTo("UNCONFIRMED");
         assertThat(result(POOL, "CALENDAR", "INTEGRATION")).isEqualTo("SUCCESS");
@@ -471,10 +471,9 @@ class CollectorPartialSuccessIntegrationTest {
             });
 
     // When
-    boolean completed = passage(source).execute(cycle);
+    passage(source).execute(cycle);
 
     // Then
-    assertThat(completed).isTrue();
     assertThat(result(POOL, "CALENDAR", "ACQUISITION"))
         .isEqualTo(failure.equals("Header only") ? "PARTIAL" : "FAILED");
     assertThat(runtime.sql.queryForObject("SELECT present FROM sporting_match", Boolean.class))
@@ -501,10 +500,9 @@ class CollectorPartialSuccessIntegrationTest {
     when(source.calendar(any())).thenReturn(new FfvbAcquisition.Read<>(complete(), NOW));
 
     // When
-    boolean completed = passage(source).execute(cycle);
+    passage(source).execute(cycle);
 
     // Then
-    assertThat(completed).isTrue();
     assertThat(result(POOL, "CALENDAR", "ACQUISITION")).isEqualTo("SUCCESS");
     assertThat(result(POOL, "CALENDAR", "INTEGRATION")).isEqualTo("SUCCESS");
     assertThat(runtime.sql.queryForObject("SELECT present FROM sporting_match", Boolean.class))
@@ -642,7 +640,7 @@ class CollectorPartialSuccessIntegrationTest {
     // Given
     CollectorLifecycle.AdmittedCycle previous = lifecycle.admit(CONTROL, null, 0, null);
     sporting.calendar(POOL, context(previous), complete(match("RETAINED", ORIGINAL_DATE)));
-    assertThat(lifecycle.complete(previous, Instant.now())).isTrue();
+    lifecycle.complete(previous, Instant.now());
     runtime.sql.update(
         "UPDATE sporting_season SET collection_state='PREPARING' WHERE id=?", SEASON);
     UUID request = UUID.fromString("00000000-0000-4000-8000-000000194002");
@@ -684,7 +682,7 @@ class CollectorPartialSuccessIntegrationTest {
     // Given
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
     sporting.calendar(POOL, context(cycle), complete(match("RETAINED", ORIGINAL_DATE)));
-    assertThat(lifecycle.complete(cycle, Instant.now())).isTrue();
+    lifecycle.complete(cycle, Instant.now());
     runtime.sql.update("UPDATE sporting_season SET collection_state='CLOSED' WHERE id=?", SEASON);
     long revision =
         runtime.sql.queryForObject(

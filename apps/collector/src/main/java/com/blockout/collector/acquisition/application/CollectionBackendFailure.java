@@ -7,7 +7,7 @@ import lombok.Getter;
  */
 @Getter
 public class CollectionBackendFailure extends RuntimeException {
-  /** Chooses rejection, supersession checks or read-only confirmation; never mutation replay. */
+  /** Distinguishes definite refusal, supersession checks and unavailable/uncertain transport. */
   public enum Kind {
     CONFLICT,
     REJECTED,

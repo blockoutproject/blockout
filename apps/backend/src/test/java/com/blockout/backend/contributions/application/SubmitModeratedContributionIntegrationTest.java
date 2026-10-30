@@ -15,11 +15,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /** Real command commit and current F05 attribution with a controlled post-commit account change. */
@@ -114,7 +115,7 @@ class SubmitModeratedContributionIntegrationTest extends ContributionScenario {
      *
      * @param event actual committed allocations from the moderator publication
      */
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void ready(AfterCommitAnnouncements.Ready event) {
       transaction.executeWithoutResult(
           status -> {

@@ -16,7 +16,6 @@ import com.blockout.backend.search.application.SearchEngine;
 import com.blockout.backend.search.application.SearchExamples;
 import com.blockout.backend.search.application.SearchPage;
 import com.blockout.backend.search.application.SearchUnavailableException;
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +35,6 @@ public class DiscoveryController implements DiscoveryApi {
   private final ReadSearchOptions options;
   private final DiscoveryRequest requests;
   private final DiscoveryApiMapper mapper;
-  private final HttpServletRequest request;
 
   /** {@inheritDoc} */
   @Override
@@ -48,7 +46,7 @@ public class DiscoveryController implements DiscoveryApi {
     SearchPage page = read(context, cursor, exampleIds);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toClubDto(page, cursor(context, page)));
+        .body(mapper.toClubDto(page, cursor(page)));
   }
 
   /** {@inheritDoc} */
@@ -74,7 +72,7 @@ public class DiscoveryController implements DiscoveryApi {
     SearchPage page = read(context, cursor, exampleIds);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toTeamDto(page, cursor(context, page)));
+        .body(mapper.toTeamDto(page, cursor(page)));
   }
 
   /** {@inheritDoc} */
@@ -100,7 +98,7 @@ public class DiscoveryController implements DiscoveryApi {
     SearchPage page = read(context, cursor, exampleIds);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toPoolDto(page, cursor(context, page)));
+        .body(mapper.toPoolDto(page, cursor(page)));
   }
 
   /**
@@ -112,7 +110,6 @@ public class DiscoveryController implements DiscoveryApi {
   @Override
   public ResponseEntity<SportingSearchOptionsResponse> getSportingSearchOptions(
       SearchResourceTypeEnum resourceType, Boolean bypass) {
-    requests.validateOptions(request);
     try {
       return ResponseEntity.ok()
           .cacheControl(CacheControl.noStore())
@@ -136,7 +133,7 @@ public class DiscoveryController implements DiscoveryApi {
    * @return current collection, with no pagination for examples
    */
   private SearchPage read(SearchContext context, String cursor, Set<UUID> exampleIds) {
-    DiscoveryRequest.Bound bound = requests.bind(request, context, cursor, exampleIds);
+    DiscoveryRequest.Bound bound = requests.bind(context, cursor, exampleIds);
     if (bound.exampleIds() != null)
       return reads.examples(context, new SearchExamples(bound.exampleIds()));
     SearchContinuation continuation = bound.continuation();
@@ -148,15 +145,14 @@ public class DiscoveryController implements DiscoveryApi {
   }
 
   /**
-   * Encodes only the consumed native boundary for this exact admitted selection.
+   * Encodes only the consumed native boundary; it grants no authority.
    *
-   * @param context current normalized selection and admission intent
    * @param page completed current page
    * @return ordinary opaque continuation, or null at exhaustion
    */
-  private String cursor(SearchContext context, SearchPage page) {
+  private String cursor(SearchPage page) {
     return page.next() == null
         ? null
-        : requests.encode(new SearchContinuation(context, page.next().score(), page.next().id()));
+        : requests.encode(new SearchContinuation(page.next().score(), page.next().id()));
   }
 }

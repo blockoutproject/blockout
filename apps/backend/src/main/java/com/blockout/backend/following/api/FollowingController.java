@@ -1,6 +1,5 @@
 package com.blockout.backend.following.api;
 
-import com.blockout.backend.following.api.FollowingRequest.QueryShape;
 import com.blockout.backend.following.application.FollowContext.Target;
 import com.blockout.backend.following.application.FollowContext.TargetType;
 import com.blockout.backend.following.application.FollowState;
@@ -18,9 +17,7 @@ import com.blockout.backend.generated.mobile.model.PoolFollowsResponse;
 import com.blockout.backend.generated.mobile.model.ReplaceFollowStateRequest;
 import com.blockout.backend.generated.mobile.model.TeamFollowsResponse;
 import com.blockout.backend.sporting.application.ConsultationRequest.CalendarWindow;
-import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
@@ -38,13 +35,11 @@ public class FollowingController implements FollowingApi {
   private final ReadFollowLists lists;
   private final FollowingApiMapper mapper;
   private final FollowingRequest requests;
-  private final HttpServletRequest request;
 
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<FollowStateResponse> getTeamFollowState(
       UUID accountId, UUID teamId, Boolean bypass) {
-    requests.validateQuery(request, QueryShape.MEMBER);
     return stateResponse(state.read(requests.member(accountId, TargetType.TEAM, teamId)));
   }
 
@@ -52,7 +47,6 @@ public class FollowingController implements FollowingApi {
   @Override
   public ResponseEntity<FollowStateResponse> replaceTeamFollowState(
       UUID accountId, UUID teamId, ReplaceFollowStateRequest body, Boolean bypass) {
-    requests.validateQuery(request, QueryShape.MEMBER);
     return stateResponse(
         state.replace(requests.member(accountId, TargetType.TEAM, teamId), body.getFollowing()));
   }
@@ -61,7 +55,6 @@ public class FollowingController implements FollowingApi {
   @Override
   public ResponseEntity<FollowStateResponse> getPoolFollowState(
       UUID accountId, UUID poolId, Boolean bypass) {
-    requests.validateQuery(request, QueryShape.MEMBER);
     return stateResponse(state.read(requests.member(accountId, TargetType.POOL, poolId)));
   }
 
@@ -69,7 +62,6 @@ public class FollowingController implements FollowingApi {
   @Override
   public ResponseEntity<FollowStateResponse> replacePoolFollowState(
       UUID accountId, UUID poolId, ReplaceFollowStateRequest body, Boolean bypass) {
-    requests.validateQuery(request, QueryShape.MEMBER);
     return stateResponse(
         state.replace(requests.member(accountId, TargetType.POOL, poolId), body.getFollowing()));
   }
@@ -99,13 +91,12 @@ public class FollowingController implements FollowingApi {
   }
 
   /**
-   * Validates the public query shape without resolving the viewer's private original account.
+   * Reads the public count without resolving the viewer's private original account.
    *
    * @param target exact sporting identity supplied by the canonical route
    * @return non-cacheable direct count with no follower identities
    */
   private ResponseEntity<FollowerCountResponse> countResponse(Target target) {
-    requests.validateQuery(request, QueryShape.MEMBER);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(new FollowerCountResponse(counts.read(target)));
@@ -115,7 +106,6 @@ public class FollowingController implements FollowingApi {
   @Override
   public ResponseEntity<TeamFollowsResponse> listTeamFollows(
       UUID accountId, Boolean bypass, UUID seasonId, Long page) {
-    requests.validateQuery(request, QueryShape.LIST);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(mapper.toDto(lists.teams(requests.requireOwner(accountId), seasonId, page)));
@@ -125,7 +115,6 @@ public class FollowingController implements FollowingApi {
   @Override
   public ResponseEntity<PoolFollowsResponse> listPoolFollows(
       UUID accountId, Boolean bypass, UUID seasonId, Long page) {
-    requests.validateQuery(request, QueryShape.LIST);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(mapper.toDto(lists.pools(requests.requireOwner(accountId), seasonId, page)));
@@ -134,7 +123,6 @@ public class FollowingController implements FollowingApi {
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<FollowOptionsResponse> getFollowOptions(UUID accountId, Boolean bypass) {
-    requests.validateQuery(request, QueryShape.MEMBER);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(mapper.toDto(options.read(requests.requireOwner(accountId))));
@@ -149,7 +137,6 @@ public class FollowingController implements FollowingApi {
       Boolean bypass,
       UUID seasonId,
       LocalDate nextDay) {
-    requests.validateQuery(request, QueryShape.CALENDAR);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(
@@ -157,6 +144,6 @@ public class FollowingController implements FollowingApi {
                 calendars.read(
                     requests.requireOwner(accountId),
                     seasonId,
-                    new CalendarWindow(category, ZoneId.of(timeZone), nextDay))));
+                    new CalendarWindow(category, requests.calendarZone(timeZone), nextDay))));
   }
 }

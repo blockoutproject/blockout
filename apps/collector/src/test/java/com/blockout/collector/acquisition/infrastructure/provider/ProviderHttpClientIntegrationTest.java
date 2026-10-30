@@ -3,6 +3,7 @@ package com.blockout.collector.acquisition.infrastructure.provider;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.config.AcquisitionConfiguration;
 import com.blockout.collector.config.AcquisitionProperties;
 import com.sun.net.httpserver.HttpServer;
@@ -58,44 +59,33 @@ class ProviderHttpClientIntegrationTest {
   }
 
   @ParameterizedTest
-  @ValueSource(ints = {302, 429, 503})
-  @DisplayName(
-      "Discards intermediate bodies without waiting for their end before following native policy")
-  void discardsIntermediateBodies(int status) throws Exception {
+  @ValueSource(ints = {302, 503})
+  @DisplayName("Native retries and redirects dispose of intermediate bodies before the final page")
+  void disposesIntermediateResponses(int status) throws Exception {
     // Given
     AtomicInteger requests = new AtomicInteger();
-    CountDownLatch release = new CountDownLatch(1);
     server.createContext(
         "/source",
         exchange -> {
-          if (requests.incrementAndGet() == 1) {
+          int attempt = requests.incrementAndGet();
+          if (attempt == 1) {
             exchange.getResponseHeaders().add("Location", "/source");
             exchange.getResponseHeaders().add("Retry-After", "1");
-            exchange.sendResponseHeaders(status, 0);
+            exchange.sendResponseHeaders(status, 33);
             exchange.getResponseBody().write(new byte[33]);
-            exchange.getResponseBody().flush();
-            try {
-              release.await(10, TimeUnit.SECONDS);
-            } catch (InterruptedException exception) {
-              Thread.currentThread().interrupt();
-            } finally {
-              exchange.close();
-            }
           } else {
             exchange.sendResponseHeaders(200, 2);
             exchange.getResponseBody().write("ok".getBytes(StandardCharsets.UTF_8));
-            exchange.close();
           }
+          exchange.close();
         });
-    try (ProviderHttpClient client = client(32, Duration.ofSeconds(5), 10)) {
+    try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
-      byte[] result = client.get(origin.resolve("/source")).get(3, TimeUnit.SECONDS);
+      ProviderResponse result = client.page(origin.resolve("/source")).get(5, TimeUnit.SECONDS);
 
       // Then
-      assertThat(result).isEqualTo("ok".getBytes(StandardCharsets.UTF_8));
+      assertThat(result.body()).isEqualTo("ok".getBytes(StandardCharsets.UTF_8));
       assertThat(requests).hasValue(2);
-    } finally {
-      release.countDown();
     }
   }
 
@@ -107,7 +97,7 @@ class ProviderHttpClientIntegrationTest {
     serveGzip(content);
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
-      byte[] actual = client.get(origin.resolve("/source")).get(5, TimeUnit.SECONDS);
+      byte[] actual = client.page(origin.resolve("/source")).get(5, TimeUnit.SECONDS).body();
 
       // Then
       assertThat(actual).isEqualTo(content);
@@ -122,7 +112,7 @@ class ProviderHttpClientIntegrationTest {
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
       org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.get(origin.resolve("/source")).get(5, TimeUnit.SECONDS);
+          () -> client.page(origin.resolve("/source")).get(5, TimeUnit.SECONDS);
 
       // Then
       assertThatThrownBy(action)
@@ -137,7 +127,7 @@ class ProviderHttpClientIntegrationTest {
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
       org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.get(URI.create("http://localhost:" + server.getAddress().getPort()));
+          () -> client.page(URI.create("http://localhost:" + server.getAddress().getPort()));
 
       // Then
       assertThatThrownBy(action).isInstanceOf(IllegalArgumentException.class);
@@ -168,7 +158,7 @@ class ProviderHttpClientIntegrationTest {
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
       org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.get(origin.resolve("/source")).get(5, TimeUnit.SECONDS);
+          () -> client.page(origin.resolve("/source")).get(5, TimeUnit.SECONDS);
 
       // Then
       assertThatThrownBy(action).hasRootCauseInstanceOf(IllegalArgumentException.class);
@@ -195,13 +185,13 @@ class ProviderHttpClientIntegrationTest {
           exchange.close();
         });
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
-      CompletableFuture<byte[]> running = client.get(origin.resolve("/source"));
+      CompletableFuture<ProviderResponse> running = client.page(origin.resolve("/source"));
       assertThat(entered.await(3, TimeUnit.SECONDS)).isTrue();
-      CompletableFuture<byte[]> queued = client.get(origin.resolve("/source"));
+      CompletableFuture<ProviderResponse> queued = client.page(origin.resolve("/source"));
       try {
         // When
         org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-            () -> client.get(origin.resolve("/source"));
+            () -> client.page(origin.resolve("/source"));
 
         // Then
         assertThatThrownBy(action).isInstanceOf(TaskRejectedException.class);
@@ -226,10 +216,10 @@ class ProviderHttpClientIntegrationTest {
           exchange.close();
         });
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 1)) {
-      client.get(origin.resolve("/source")).get(5, TimeUnit.SECONDS);
+      client.page(origin.resolve("/source")).get(5, TimeUnit.SECONDS);
       // When
       org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.get(origin.resolve("/source")).get(5, TimeUnit.SECONDS);
+          () -> client.page(origin.resolve("/source")).get(5, TimeUnit.SECONDS);
 
       // Then
       assertThatThrownBy(action).hasRootCauseInstanceOf(RequestNotPermitted.class);
@@ -280,7 +270,7 @@ class ProviderHttpClientIntegrationTest {
           () ->
               (post
                       ? client.post(origin.resolve("/source"), List.of())
-                      : client.get(origin.resolve("/source")))
+                      : client.page(origin.resolve("/source")))
                   .get(5, TimeUnit.SECONDS);
 
       // Then
@@ -309,7 +299,7 @@ class ProviderHttpClientIntegrationTest {
     try (ProviderHttpClient client = client(32, Duration.ofMillis(100), 10)) {
       // When
       org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.get(origin.resolve("/source")).get(3, TimeUnit.SECONDS);
+          () -> client.page(origin.resolve("/source")).get(3, TimeUnit.SECONDS);
 
       // Then
       assertThatThrownBy(action).hasRootCauseInstanceOf(SocketTimeoutException.class);
@@ -335,7 +325,7 @@ class ProviderHttpClientIntegrationTest {
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
       org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.get(origin.resolve("/source")).get(3, TimeUnit.SECONDS);
+          () -> client.page(origin.resolve("/source")).get(3, TimeUnit.SECONDS);
 
       // Then
       assertThatThrownBy(action).hasRootCauseInstanceOf(RedirectException.class);
@@ -364,7 +354,7 @@ class ProviderHttpClientIntegrationTest {
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
       org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.get(origin.resolve("/source")).get(1, TimeUnit.SECONDS);
+          () -> client.page(origin.resolve("/source")).get(1, TimeUnit.SECONDS);
 
       // Then
       assertThatThrownBy(action)

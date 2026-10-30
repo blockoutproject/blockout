@@ -370,6 +370,32 @@ class FollowRelationsIntegrationTest {
     }
   }
 
+  @Test
+  @DisplayName("A member snapshot completes while another transaction holds the account write lock")
+  void readsWithoutAccountWriteLock() {
+    // Given
+    state.replace(context(TargetType.TEAM), true);
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      // When: the native read must finish before this competing transaction releases its lock.
+      Boolean following =
+          transaction.execute(
+              status -> {
+                accounts.lock(ACCOUNT);
+                sql.update("UPDATE account SET username='pending-name' WHERE id=?", ACCOUNT);
+                return CompletableFuture.supplyAsync(
+                        () -> state.read(context(TargetType.TEAM)), worker)
+                    .orTimeout(10, TimeUnit.SECONDS)
+                    .join();
+              });
+
+      // Then
+      assertThat(following).isTrue();
+      assertThat(relation(TargetType.TEAM).accountId()).isEqualTo(ACCOUNT);
+      verifyNoInteractions(provider);
+    }
+  }
+
   @ParameterizedTest
   @ValueSource(booleans = {false, true})
   @DisplayName(

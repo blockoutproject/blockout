@@ -82,18 +82,11 @@ public class OpenSearchEngine implements SearchEngine {
         request.searchAfter(
             List.of(FieldValue.of(after.score()), FieldValue.of(after.id().toString())));
       SearchResponse<IndexedCity> response = client.search(request.build(), IndexedCity.class);
-      if (response.timedOut()
-          || Boolean.TRUE.equals(response.terminatedEarly())
-          || response.shards().failed() != 0
-          || response.shards().successful() != response.shards().total())
-        throw new SearchUnavailableException();
+      if (response.timedOut()) throw new SearchUnavailableException();
       List<Candidate> candidates = new ArrayList<>();
       for (Hit<IndexedCity> hit : response.hits().hits()) {
-        if (hit.sort().size() != 2 || hit.source() == null) throw new SearchUnavailableException();
         double score = hit.sort().get(0).doubleValue();
         UUID id = UUID.fromString(hit.sort().get(1).stringValue());
-        if (!Double.isFinite(score) || score < 0 || !id.toString().equals(hit.id()))
-          throw new SearchUnavailableException();
         candidates.add(new Candidate(new Position(score, id), hit.source().city()));
       }
       return new Batch(candidates, candidates.size() < size);

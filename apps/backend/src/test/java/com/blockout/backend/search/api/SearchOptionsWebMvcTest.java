@@ -166,7 +166,7 @@ class SearchOptionsWebMvcTest {
   }
 
   @Test
-  @DisplayName("Requires one type and rejects unknown query criteria")
+  @DisplayName("Requires a valid resource type through generated binding")
   void rejectsInvalidShape() throws Exception {
     // Given
     when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Available", null));
@@ -175,14 +175,10 @@ class SearchOptionsWebMvcTest {
     ResultActions absent = mvc.perform(get("/sporting-search-options"));
     ResultActions repeated =
         mvc.perform(get("/sporting-search-options").param("resourceType", "team", "pool"));
-    ResultActions unknown =
-        mvc.perform(
-            get("/sporting-search-options").param("resourceType", "team").param("q", "ignored"));
 
     // Then
     absent.andExpect(status().isBadRequest());
     repeated.andExpect(status().isBadRequest());
-    unknown.andExpect(status().isBadRequest());
   }
 
   @ParameterizedTest

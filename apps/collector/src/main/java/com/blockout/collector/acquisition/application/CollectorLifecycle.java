@@ -2,7 +2,6 @@ package com.blockout.collector.acquisition.application;
 
 import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -13,7 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * One startup incarnation, read-confirmed admission and pre-read ordinals; no restart/replay loop.
+ * One startup incarnation, acknowledged admission and pre-read ordinals; no restart/replay loop.
  */
 @Service
 @RequiredArgsConstructor
@@ -26,21 +25,15 @@ public class CollectorLifecycle {
   @Getter private volatile boolean active;
 
   /**
-   * Reads then conditionally registers once; an uncertain acknowledgement is confirmed by a read. A
-   * superseded or unconfirmed startup fails without another registration attempt.
+   * Reads then conditionally registers once. Failure ends startup without confirming or replaying
+   * registration; an operator may explicitly restart the process.
    */
   public synchronized void start() {
     if (registrationAttempted)
       throw new IllegalStateException("Collector startup was already attempted");
     registrationAttempted = true;
     CollectionBackend.Runtime current = backend.current();
-    CollectionBackend.Runtime registered;
-    try {
-      registered = backend.register(current.revision(), incarnationId);
-    } catch (CollectionBackendFailure failure) {
-      if (failure.getKind() != CollectionBackendFailure.Kind.UNCONFIRMED) throw failure;
-      registered = backend.current();
-    }
+    CollectionBackend.Runtime registered = backend.register(current.revision(), incarnationId);
     if (!incarnationId.equals(registered.incarnationId()))
       throw new IllegalStateException("Collector startup is not current");
     active = true;
@@ -63,7 +56,8 @@ public class CollectorLifecycle {
   }
 
   /**
-   * Allocates one cycle UUID, attempts admission once and reads that exact cycle after uncertainty.
+   * Allocates one cycle UUID and attempts admission once. Only its successful response permits
+   * provider reads; a failed attempt ends and the next ordinary poll reads backend eligibility.
    *
    * @param controlId selected control, absent for validation
    * @param sourceBindingId selected candidate, absent for collection
@@ -83,14 +77,7 @@ public class CollectorLifecycle {
       cycle = backend.admit(command);
     } catch (CollectionBackendFailure failure) {
       inspectConflict(failure);
-      if (failure.getKind() != CollectionBackendFailure.Kind.UNCONFIRMED) throw failure;
-      try {
-        cycle = backend.cycle(command.cycleId());
-      } catch (CollectionBackendFailure readFailure) {
-        unresolvedAdmission(command);
-        // A refused/missing read cannot turn an uncertain write into a definite admission refusal.
-        throw new CollectionBackendFailure(CollectionBackendFailure.Kind.UNCONFIRMED, readFailure);
-      }
+      throw failure;
     }
     if (!incarnationId.equals(cycle.incarnationId())
         || cycle.state() == CollectionCycleStateEnum.INTERRUPTED) stop();
@@ -101,7 +88,6 @@ public class CollectorLifecycle {
         || cycle.state() != CollectionCycleStateEnum.RUNNING
         || (controlId != null && (cycle.mode() == null || cycle.candidate() != null))
         || (sourceBindingId != null && (cycle.mode() != null || cycle.candidate() == null))) {
-      unresolvedAdmission(command);
       throw new IllegalStateException("Backend did not confirm the requested runnable context");
     }
     return new AdmittedCycle(cycle);
@@ -124,21 +110,6 @@ public class CollectorLifecycle {
     }
   }
 
-  /**
-   * Keeps the original attempted identity available for manual inspection without provider data.
-   *
-   * @param command single original admission; later polling must not allocate another identity
-   */
-  private void unresolvedAdmission(CollectionBackend.StartCycle command) {
-    log.atError()
-        .addKeyValue("operation", "collection_admission")
-        .addKeyValue("cycleId", command.cycleId())
-        .addKeyValue("controlId", command.controlId())
-        .addKeyValue("sourceBindingId", command.sourceBindingId())
-        .addKeyValue("outcome", "unconfirmed")
-        .log("Original admission requires manual inspection; no new UUID may be attempted");
-  }
-
   /** Stops new reads/admission after supersession; no automatic re-registration is possible. */
   public void stop() {
     active = false;
@@ -149,79 +120,33 @@ public class CollectorLifecycle {
   }
 
   /**
-   * Attempts normal completion once and reads the same cycle once after uncertainty.
+   * Sends normal completion once; failure remains an ordinary backend error.
    *
    * @param context original admitted control capability
-   * @param completedAt actual end, sent at the contract's persisted microsecond precision
-   * @return whether completion is confirmed; false requires manual resolution
+   * @param completedAt actual passage end
    */
-  public boolean complete(AdmittedCycle context, Instant completedAt) {
+  public void complete(AdmittedCycle context, Instant completedAt) {
     if (context.getCycle().controlId() == null)
       throw new IllegalArgumentException("Control completion requires a control passage");
-    completedAt = completedAt.truncatedTo(ChronoUnit.MICROS);
-    try {
-      CollectionBackend.Cycle completed = backend.complete(context.getCycle().id(), completedAt);
-      if (completed.state() == CollectionCycleStateEnum.COMPLETED
-          && completedAt.equals(completed.completedAt())) return true;
-    } catch (CollectionBackendFailure failure) {
-      if (failure.getKind() == CollectionBackendFailure.Kind.UNCONFIRMED
-          && confirmsCompletion(context, completedAt)) return true;
-    }
-    unresolved(context);
-    return false;
+    backend.complete(context.getCycle().id(), completedAt);
   }
 
   /**
-   * Publishes candidate evidence once; it cannot be replaced with control completion.
+   * Publishes candidate evidence once, independently of control completion.
    *
    * @param context original admitted candidate capability
    * @param result interpretation owned by source qualification
-   * @return whether the atomic terminal write is confirmed
    */
-  public boolean validate(AdmittedCycle context, CollectionBackend.Validation result) {
+  public void validate(AdmittedCycle context, CollectionBackend.Validation result) {
     if (context.getCycle().sourceBindingId() == null
         || !context.getCycle().id().equals(result.cycleId()))
       throw new IllegalArgumentException("Candidate result requires its admitted context");
     try {
       backend.validate(context.getCycle().sourceBindingId(), result);
-      return true;
     } catch (CollectionBackendFailure failure) {
-      if (failure.getKind() == CollectionBackendFailure.Kind.UNCONFIRMED
-          && confirmsCompletion(context, null)) return true;
+      inspectConflict(failure);
+      throw failure;
     }
-    unresolved(context);
-    return false;
-  }
-
-  /**
-   * Confirms the original terminal operation with one read.
-   *
-   * @param context original capability
-   * @param completedAt submitted control timestamp, or null for source-owned validation completion
-   * @return one-read confirmation without mutation replay
-   */
-  private boolean confirmsCompletion(AdmittedCycle context, Instant completedAt) {
-    try {
-      CollectionBackend.Cycle current = backend.cycle(context.getCycle().id());
-      return current.id().equals(context.getCycle().id())
-          && current.state() == CollectionCycleStateEnum.COMPLETED
-          && (completedAt == null || completedAt.equals(current.completedAt()));
-    } catch (CollectionBackendFailure failure) {
-      return false;
-    }
-  }
-
-  /**
-   * Reports unresolved completion once without exposing backend diagnostics.
-   *
-   * @param context unresolved original operation, kept blocked for manual inspection
-   */
-  private void unresolved(AdmittedCycle context) {
-    log.atError()
-        .addKeyValue("operation", "collection_completion")
-        .addKeyValue("cycleId", context.getCycle().id())
-        .addKeyValue("outcome", "unconfirmed")
-        .log("Collection completion requires manual resolution; no mutation was replayed");
   }
 
   /** Refuses work before startup confirmation or after supersession. */

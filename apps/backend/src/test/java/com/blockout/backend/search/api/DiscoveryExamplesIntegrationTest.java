@@ -245,20 +245,18 @@ class DiscoveryExamplesIntegrationTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"duplicates", "size", "type", "blank", "text", "cursor", "clubFilter"})
+  @ValueSource(strings = {"size", "type", "blank", "text", "cursor"})
   @DisplayName("Rejects invalid retained shapes and forbidden mode combinations")
   void rejectsInvalidParameters(String scenario) throws Exception {
     // Given
     MockHttpServletRequestBuilder request = get("/clubs");
     switch (scenario) {
-      case "duplicates" -> request.param("exampleIds", id(1).toString(), id(1).toString());
       case "size" ->
           request.param("exampleIds", ids().stream().map(UUID::toString).toArray(String[]::new));
       case "type" -> request.param("exampleIds", "not-a-uuid");
       case "blank" -> request.param("exampleIds", "");
       case "text" -> request.param("exampleIds", id(1).toString()).param("q", "club");
       case "cursor" -> request.param("exampleIds", id(1).toString()).param("cursor", "opaque");
-      case "clubFilter" -> request.param("seasonId", SEASON.toString());
       default -> throw new IllegalArgumentException();
     }
 
@@ -267,6 +265,33 @@ class DiscoveryExamplesIntegrationTest {
 
     // Then
     result.andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("Native Set binding collapses repeated retained identities")
+  void collapsesRepeatedExamples() throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request =
+        get("/clubs").param("exampleIds", id(1).toString(), id(1).toString());
+
+    // When
+    JsonNode response = read(request);
+
+    // Then
+    assertThat(identities(response, "clubs")).containsExactly(id(1));
+  }
+
+  @Test
+  @DisplayName("Unbound query parameters leave current club examples unchanged")
+  void ignoresUnboundParameters() throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request = get("/clubs").param("seasonId", SEASON.toString());
+
+    // When
+    JsonNode response = read(request);
+
+    // Then
+    assertThat(identities(response, "clubs")).containsExactly(id(1), id(2), id(3), id(4), id(5));
   }
 
   @Test

@@ -1,6 +1,6 @@
 package com.blockout.collector.acquisition.application;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -20,7 +20,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Proves completion confirmation using real lifecycle-issued capabilities and a controlled backend.
+ * Proves one-attempt terminal effects using real lifecycle-issued capabilities and a controlled
+ * backend.
  */
 @DisplayName("Collector lifecycle completion")
 class CollectorLifecycleTest {
@@ -30,8 +31,8 @@ class CollectorLifecycleTest {
   private final CollectorLifecycle lifecycle = new CollectorLifecycle(backend);
 
   @Test
-  @DisplayName("Confirms an uncertain completion by one read of the original cycle")
-  void confirmsCompletionOnce() {
+  @DisplayName("A lost completion acknowledgement propagates without a confirmation read")
+  void propagatesCompletionFailure() {
     // Given
     when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
     when(backend.register(0, lifecycle.getIncarnationId()))
@@ -39,21 +40,17 @@ class CollectorLifecycleTest {
     lifecycle.start();
     when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
     CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
-    when(backend.complete(admitted.getCycle().id(), NOW)).thenThrow(uncertain());
-    when(backend.cycle(admitted.getCycle().id())).thenReturn(completed(admitted, NOW));
+    CollectionBackendFailure failure = uncertain();
+    when(backend.complete(admitted.getCycle().id(), NOW)).thenThrow(failure);
 
-    // When
-    boolean confirmed = lifecycle.complete(admitted, NOW);
-
-    // Then
-    assertThat(confirmed).isTrue();
+    // When / Then
+    assertThatThrownBy(() -> lifecycle.complete(admitted, NOW)).isSameAs(failure);
     verify(backend).complete(admitted.getCycle().id(), NOW);
-    verify(backend).cycle(admitted.getCycle().id());
   }
 
   @Test
-  @DisplayName("Confirms nanosecond clock completion at the persisted microsecond precision")
-  void confirmsPersistedPrecision() {
+  @DisplayName("Sends the actual completion timestamp once without an acknowledgement protocol")
+  void completesOnce() {
     // Given
     when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
     when(backend.register(0, lifecycle.getIncarnationId()))
@@ -62,44 +59,19 @@ class CollectorLifecycleTest {
     when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
     CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
     Instant actualEnd = NOW.plusNanos(123_456_789);
-    Instant persistedEnd = NOW.plusNanos(123_456_000);
-    when(backend.complete(admitted.getCycle().id(), persistedEnd))
-        .thenReturn(completed(admitted, persistedEnd));
+    when(backend.complete(admitted.getCycle().id(), actualEnd))
+        .thenReturn(completed(admitted, actualEnd));
 
     // When
-    boolean confirmed = lifecycle.complete(admitted, actualEnd);
+    lifecycle.complete(admitted, actualEnd);
 
     // Then
-    assertThat(confirmed).isTrue();
-    verify(backend).complete(admitted.getCycle().id(), persistedEnd);
-    verify(backend, never()).cycle(any());
+    verify(backend).complete(admitted.getCycle().id(), actualEnd);
   }
 
   @Test
-  @DisplayName("Leaves an unconfirmed completion blocked after a single confirmation read")
-  void leavesUnconfirmedCompletionBlocked() {
-    // Given
-    when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
-    when(backend.register(0, lifecycle.getIncarnationId()))
-        .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
-    lifecycle.start();
-    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
-    CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
-    when(backend.complete(admitted.getCycle().id(), NOW)).thenThrow(uncertain());
-    when(backend.cycle(admitted.getCycle().id())).thenReturn(admitted.getCycle());
-
-    // When
-    boolean confirmed = lifecycle.complete(admitted, NOW);
-
-    // Then
-    assertThat(confirmed).isFalse();
-    verify(backend).complete(admitted.getCycle().id(), NOW);
-    verify(backend).cycle(admitted.getCycle().id());
-  }
-
-  @Test
-  @DisplayName("Confirms atomic candidate completion without substituting a control completion")
-  void confirmsCandidateResultOnce() {
+  @DisplayName("A lost validation result propagates without substituting control completion")
+  void propagatesCandidateResultFailure() {
     // Given
     when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
     when(backend.register(0, lifecycle.getIncarnationId()))
@@ -115,17 +87,12 @@ class CollectorLifecycleTest {
             "2026/2027",
             null,
             null);
-    doThrow(uncertain()).when(backend).validate(CONTROL, result);
-    when(backend.cycle(admitted.getCycle().id()))
-        .thenReturn(completed(admitted, NOW.plusSeconds(1)));
+    CollectionBackendFailure failure = uncertain();
+    doThrow(failure).when(backend).validate(CONTROL, result);
 
-    // When
-    boolean confirmed = lifecycle.validate(admitted, result);
-
-    // Then
-    assertThat(confirmed).isTrue();
+    // When / Then
+    assertThatThrownBy(() -> lifecycle.validate(admitted, result)).isSameAs(failure);
     verify(backend).validate(CONTROL, result);
-    verify(backend).cycle(admitted.getCycle().id());
     verify(backend, never()).complete(any(), any());
   }
 

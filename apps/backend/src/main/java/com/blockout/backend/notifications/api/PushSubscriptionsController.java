@@ -6,7 +6,6 @@ import com.blockout.backend.generated.mobile.model.ReplacePushSubscriptionReques
 import com.blockout.backend.notifications.application.ChangePushSubscriptions;
 import com.blockout.backend.notifications.application.NotificationContext;
 import com.blockout.backend.notifications.application.PushSubscriptionStore.Replacement;
-import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +21,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class PushSubscriptionsController implements PushSubscriptionsApi {
   private final NotificationRequest request;
-  private final HttpServletRequest http;
   private final ChangePushSubscriptions changes;
   private final NotificationApiMapper mapper;
 
@@ -31,7 +29,6 @@ public class PushSubscriptionsController implements PushSubscriptionsApi {
   public ResponseEntity<PushSubscriptionResponse> replacePushSubscription(
       UUID accountId, UUID subscriptionId, ReplacePushSubscriptionRequest body, Boolean bypass) {
     NotificationContext owner = request.owner(accountId);
-    request.validateQuery(http, false);
     Replacement result =
         changes.replace(mapper.toRegistration(body, subscriptionId, owner.accountId()));
     ResponseEntity.BodyBuilder response =
@@ -47,7 +44,6 @@ public class PushSubscriptionsController implements PushSubscriptionsApi {
   public ResponseEntity<Void> deletePushSubscription(
       UUID accountId, UUID subscriptionId, Boolean bypass) {
     NotificationContext owner = request.owner(accountId);
-    request.validateQuery(http, false);
     changes.remove(owner, subscriptionId);
     return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
   }

@@ -45,7 +45,7 @@ class ExpoPushTransportIntegrationTest {
           body.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
           authorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
           int attempt = requests.incrementAndGet();
-          // An empty refusal body must still be classified from the native HTTP status.
+          // The SDK cannot classify an empty refusal body; it remains ordinary unknown evidence.
           byte[] response =
               attempt == 1 ? new byte[0] : "{\"data\":[]}".getBytes(StandardCharsets.UTF_8);
           exchange.getResponseHeaders().add("Content-Type", "application/json");
@@ -87,7 +87,7 @@ class ExpoPushTransportIntegrationTest {
 
       // Then
       assertThat(requests.get()).isEqualTo(1);
-      assertThat(outcome).isEqualTo(Status.REJECTED);
+      assertThat(outcome).isEqualTo(Status.UNKNOWN);
       assertThat(authorization.get()).isEqualTo("Bearer synthetic-not-a-credential");
       JsonNode payload = JsonMapper.builder().build().readTree(body.get());
       if (operation.equals("send")) {

@@ -7,9 +7,10 @@ import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Reads and replaces one original-account follow member under the same account lock. */
+/** Reads one original-account member and serializes desired-state writes under the account lock. */
 @Service
 @RequiredArgsConstructor
 public class FollowState {
@@ -18,17 +19,18 @@ public class FollowState {
   private final FollowStore store;
 
   /**
-   * Reads confirmed state under the original-account lock used by writers. This read deliberately
-   * uses a write-capable transaction because PostgreSQL must acquire that row lock.
+   * Reads member state from one ordinary snapshot without taking the account write lock. A
+   * concurrent write or erasure may complete after this snapshot began.
    *
    * @param context already admitted original owner and exact target
    * @return persisted relation existence; absence needs no row
    * @throws AccountNotFoundException when the original lifecycle has disappeared
    * @throws FollowUnavailableTargetException for an unknown or currently hidden target
    */
-  @Transactional
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public boolean read(FollowContext context) {
-    requireTarget(context);
+    if (!accounts.exists(context.accountId())) throw new AccountNotFoundException();
+    requireVisibleTarget(context);
     return store.find(context).isPresent();
   }
 
@@ -44,7 +46,8 @@ public class FollowState {
    */
   @Transactional
   public boolean replace(FollowContext context, boolean following) {
-    requireTarget(context);
+    if (!accounts.lock(context.accountId())) throw new AccountNotFoundException();
+    requireVisibleTarget(context);
     if (following) {
       if (store.find(context).isEmpty()) store.add(context);
     } else {
@@ -54,16 +57,13 @@ public class FollowState {
   }
 
   /**
-   * Locks only the original account in the public operation's transaction, then reads F02's current
-   * decision without sporting locks. A caller holding sporting roots must have acquired them in
-   * owner order first; no provider work, replacement identity or later sporting-root lock occurs.
+   * Reads the target's current F02 visibility inside the caller's transaction without sporting
+   * locks.
    *
    * @param context exact original account and sporting identity
-   * @throws AccountNotFoundException when the original lifecycle no longer exists
    * @throws FollowUnavailableTargetException when the exact target is unknown or hidden
    */
-  private void requireTarget(FollowContext context) {
-    if (!accounts.lock(context.accountId())) throw new AccountNotFoundException();
+  private void requireVisibleTarget(FollowContext context) {
     Kind kind =
         switch (context.target().type()) {
           case TEAM -> Kind.TEAM;

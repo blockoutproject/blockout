@@ -65,21 +65,6 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
     return executor.submitCompletable(() -> response(new HttpGet(uri)));
   }
 
-  /**
-   * Queues a bounded GET shared by every season/family using this provider.
-   *
-   * @param uri official source location
-   * @return complete decompressed bytes, or an exceptional future on acquisition failure
-   * @throws IllegalArgumentException for an unsupported origin or embedded credentials
-   * @throws TaskRejectedException when active/pending capacity is full
-   */
-  public CompletableFuture<byte[]> get(URI uri) {
-    requireOrigin(uri, origins);
-    HttpGet request = new HttpGet(uri);
-    request.setHeader("Cache-Control", "no-store");
-    return executor.submitCompletable(() -> read(request));
-  }
-
   /** Status and bounded body for the one provider error whose meaning needs interpretation. */
   public record StatusResponse(int status, byte[] body) {}
 

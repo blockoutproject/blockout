@@ -858,10 +858,9 @@ class CollectPassageTest {
       when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
 
       // When
-      boolean finished = passage.execute(admitted);
+      passage.execute(admitted);
 
       // Then
-      assertThat(finished).isTrue();
       ArgumentCaptor<CollectionBackend.Result> results =
           ArgumentCaptor.forClass(CollectionBackend.Result.class);
       verify(backend, times(3)).record(eq(admitted.getCycle().id()), results.capture());
@@ -996,10 +995,9 @@ class CollectPassageTest {
                   2, UUID.fromString("00000000-0000-4000-8000-000000000199")));
 
       // When
-      boolean completed = passage.execute(admitted);
+      passage.execute(admitted);
 
       // Then
-      assertThat(completed).isFalse();
       verifyNoInteractions(sporting);
       verify(resource, never()).standings(any());
       verify(backend, never()).complete(any(), any());
@@ -1021,10 +1019,9 @@ class CollectPassageTest {
       when(backend.current()).thenThrow(uncertain());
 
       // When
-      boolean completed = passage.execute(admitted);
+      passage.execute(admitted);
 
       // Then
-      assertThat(completed).isFalse();
       assertThat(lifecycle.isActive()).isTrue();
       verifyNoInteractions(sporting, ffvb, lnv, clubs, geocoder, discovery);
       verify(backend, never()).complete(any(), any());
@@ -1049,10 +1046,9 @@ class CollectPassageTest {
       when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
 
       // When
-      boolean finished = passage.execute(admitted);
+      passage.execute(admitted);
 
       // Then
-      assertThat(finished).isTrue();
       ArgumentCaptor<CollectionBackend.Result> result =
           ArgumentCaptor.forClass(CollectionBackend.Result.class);
       verify(backend).record(eq(admitted.getCycle().id()), result.capture());

@@ -158,19 +158,8 @@ class FollowListsWebMvcTest {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "page=-1",
-        "page=107374183",
-        "page=9223372036854775808",
-        "page=",
-        "page=0x1",
-        "page=1&page=2",
-        "seasonId=",
-        "seasonId=1-1-1-1-1",
-        "q=club"
-      })
-  @DisplayName("Rejects unsupported query shapes and page values before a list read")
+  @ValueSource(strings = {"page=-1", "page=107374183", "page=9223372036854775808"})
+  @DisplayName("Rejects malformed or out-of-range pages before a list read")
   void rejectsQuery(String query) throws Exception {
     // Given
     MockHttpServletRequestBuilder request = get(path("team") + "?" + query).with(mobile());

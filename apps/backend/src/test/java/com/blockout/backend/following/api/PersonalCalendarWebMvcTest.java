@@ -173,14 +173,13 @@ class PersonalCalendarWebMvcTest {
         "category=upcoming&timeZone=Missing/Zone",
         "category=upcoming",
         "timeZone=Europe/Paris",
-        "category=upcoming&timeZone=Europe/Paris&q=x",
         "category=upcoming&timeZone=Europe/Paris&nextDay=not-a-date",
-        "category=upcoming&timeZone=Europe/Paris&seasonId=",
         "category=upcoming&category=completed&timeZone=Europe/Paris"
       })
-  @DisplayName("Rejects undeclared repeated or malformed calendar inputs")
+  @DisplayName("Rejects malformed required calendar inputs and invalid zones")
   void rejectsQuery(String query) throws Exception {
     // Given
+    owner();
     MockHttpServletRequestBuilder request = get(path() + "?" + query).with(mobile());
 
     // When

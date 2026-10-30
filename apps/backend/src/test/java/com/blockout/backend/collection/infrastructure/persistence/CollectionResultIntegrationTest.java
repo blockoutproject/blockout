@@ -173,6 +173,7 @@ class CollectionResultIntegrationTest {
   void admitPassage() {
     when(clock.instant()).thenReturn(OBSERVED);
     sql.update("DELETE FROM collection_result");
+    sql.update("DELETE FROM collection_initial_coverage");
     sql.update("DELETE FROM collection_cycle");
     sql.update(
         "UPDATE collection_control SET enabled = TRUE, current_cycle_id = NULL, last_success_at = NULL, last_attempt_at = NULL WHERE id = ?",
@@ -190,6 +191,58 @@ class CollectionResultIntegrationTest {
         "INSERT INTO collection_target(cycle_id,scope_id,kind) VALUES (?,?,'CLUB_SHEET')",
         cycle.id(),
         SCOPE);
+  }
+
+  @Test
+  @DisplayName(
+      "Initial completion finishes every requested row while preserving terminal and other-cycle coverage")
+  void completesInitialCoverageSet() {
+    // Given
+    UUID source = UUID.fromString("00000000-0000-4000-8000-000000990171");
+    UUID otherCycle = UUID.fromString("00000000-0000-4000-8000-000000990172");
+    sql.update("DELETE FROM collection_source_binding WHERE id=?", source);
+    sql.update(
+        "INSERT INTO collection_source_binding(id,season_id,provider,organizer_reference,validation_state,locked,launched) VALUES (?,?,'FFVB','INITIAL-BULK','QUALIFIED',TRUE,FALSE)",
+        source,
+        seasons.getOrCreate(2026).id());
+    sql.update("UPDATE collection_cycle SET mode='INITIAL_IMPORT' WHERE id=?", cycle.id());
+    List<Object[]> rows = new ArrayList<>();
+    for (int index = 0; index < 205; index++) {
+      rows.add(new Object[] {source, new UUID(0, 990200L + index), "REQUESTED", cycle.id()});
+    }
+    for (String status : List.of("OBTAINED", "REJECTED", "UNAVAILABLE")) {
+      rows.add(new Object[] {source, new UUID(0, 991000L + rows.size()), status, cycle.id()});
+    }
+    rows.add(new Object[] {source, new UUID(0, 992000), "REQUESTED", otherCycle});
+    sql.batchUpdate(
+        "INSERT INTO collection_initial_coverage(source_binding_id,scope_id,stage,phase,status,cycle_id,cycle_order,read_ordinal) VALUES (?,?,'CALENDAR','ACQUISITION',?,?,1,0)",
+        rows);
+    Instant completedAt = cycle.startedAt().plusSeconds(1);
+
+    // When
+    results.complete(cycle.id(), completedAt);
+    results.complete(cycle.id(), completedAt);
+
+    // Then: the cycle's managed state and the set transition commit together.
+    assertThat(collectionWork.get(cycle.id()).completedAt()).isEqualTo(completedAt);
+    assertThat(
+            sql.queryForObject(
+                "SELECT COUNT(*) FROM collection_initial_coverage WHERE cycle_id=? AND status='UNAVAILABLE'",
+                Integer.class,
+                cycle.id()))
+        .isEqualTo(206);
+    assertThat(
+            sql.queryForList(
+                "SELECT status FROM collection_initial_coverage WHERE cycle_id=? AND status<>'UNAVAILABLE' ORDER BY status",
+                String.class,
+                cycle.id()))
+        .containsExactly("OBTAINED", "REJECTED");
+    assertThat(
+            sql.queryForObject(
+                "SELECT status FROM collection_initial_coverage WHERE cycle_id=?",
+                String.class,
+                otherCycle))
+        .isEqualTo("REQUESTED");
   }
 
   @Test
