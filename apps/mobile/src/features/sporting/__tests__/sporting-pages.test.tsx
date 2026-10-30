@@ -159,6 +159,7 @@ function PrivateQueries({ children }: QueryFixtureProps) {
 }
 
 beforeEach(() => {
+  jest.useFakeTimers();
   publicClient = createQueryClient();
   match = matchDetail();
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
@@ -195,6 +196,9 @@ afterEach(async () => {
   await cleanup();
   client?.clear();
   publicClient.clear();
+  // Jest owns pending native/Query batching; restore real time only after unmounted work is drained.
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });

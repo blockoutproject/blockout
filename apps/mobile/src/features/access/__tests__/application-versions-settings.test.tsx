@@ -122,12 +122,13 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Selects the real private lifetime client and disables read retries only for these failure scenarios. */
+/** Selects the real private client with one-shot reads and no detached mutation GC timers in these scenarios. */
 function PrivateQueries({ children }: PropsWithChildren) {
   const current = useQueryClient();
   useLayoutEffect(() => {
     client = current;
     current.setQueryDefaults([], { retry: false });
+    current.setMutationDefaults([], { gcTime: Infinity });
   }, [current]);
   return children;
 }

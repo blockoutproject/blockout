@@ -81,9 +81,10 @@ const account = {
   hasPhoto: false,
   permissions: { manageCollection: true },
 };
-let client = createQueryClient();
+let publicClient = createQueryClient();
+let client = publicClient;
 // Failure presentation is isolated here; native retry defaults have their own Query suite.
-client.setQueryDefaults([], { retry: false });
+publicClient.setQueryDefaults([], { retry: false });
 let season: CollectionSeasonResponse;
 let source: SourceBindingResponse;
 let sources: SourceBindingResponse[];
@@ -151,9 +152,10 @@ async function reads(url: RequestInfo | URL): Promise<Response> {
 }
 beforeEach(() => {
   mockIsFocused.mockReset().mockReturnValue(true);
-  client = createQueryClient();
+  publicClient = createQueryClient();
+  client = publicClient;
   // Failure presentation is isolated here; native retry defaults have their own Query suite.
-  client.setQueryDefaults([], { retry: false });
+  publicClient.setQueryDefaults([], { retry: false });
   permissions = { manageCollection: true };
   season = {
     id: seasonId,
@@ -182,6 +184,7 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  publicClient.clear();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
@@ -192,7 +195,7 @@ async function renderPreparation(
 ) {
   return render(content, {
     wrapper: ({ children }) => (
-      <QueryClientProvider client={client}>
+      <QueryClientProvider client={publicClient}>
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
@@ -1462,7 +1465,7 @@ it("keeps refused season navigation hidden through a failed reread until a succe
   expect(screen.queryByText("Une erreur est survenue")).toBeNull();
 });
 
-/** Observes the actual private client installed by the native principal provider. */
+/** Captures the identity-owned private cache while retaining the public cache for fixture cleanup. */
 function PrivateQueries({ children }: PropsWithChildren) {
   const privateClient = useQueryClient();
   // Configure deterministic failure presentation before child Query observers mount.

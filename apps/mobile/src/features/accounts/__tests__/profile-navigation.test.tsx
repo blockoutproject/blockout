@@ -54,7 +54,8 @@ const mockFetch = jest.fn<
   Promise<Response>,
   [RequestInfo | URL, RequestInit?]
 >();
-let client = createQueryClient();
+let publicClient = createQueryClient();
+let client = publicClient;
 const previousEnvironment = { ...process.env };
 const account = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000569",
@@ -64,7 +65,8 @@ const account = accountResponse({
 });
 
 beforeEach(() => {
-  client = createQueryClient();
+  publicClient = createQueryClient();
+  client = publicClient;
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
@@ -84,6 +86,7 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  publicClient.clear();
   process.env = { ...previousEnvironment };
   jest.restoreAllMocks();
 });
@@ -151,7 +154,7 @@ async function openProfile(initialUrl = "/profile") {
     {
       initialUrl,
       wrapper: ({ children }) => (
-        <QueryClientProvider client={client}>
+        <QueryClientProvider client={publicClient}>
           <ThemeProvider>
             <ApplicationAccessProvider>
               <AccountSessionProvider>
@@ -831,7 +834,7 @@ it("retains the accepted overview after a technical refresh failure without an i
   ).toBeDisabled();
 });
 
-/** Uses the real native private client with deterministic failure presentation in this route suite. */
+/** Captures private query access without replacing the fixture's separately owned public cache. */
 function PrivateQueries({ children }: PropsWithChildren) {
   const privateClient = useQueryClient();
   privateClient.setQueryDefaults([], { retry: false, gcTime: Infinity });

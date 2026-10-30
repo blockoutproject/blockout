@@ -99,7 +99,8 @@ const profile = {
   },
 };
 const mockFollowStates = new Map<string, boolean>();
-let client = createQueryClient();
+let publicClient = createQueryClient();
+let client = publicClient;
 // Failure presentation is isolated here; native retry defaults have their own Query suite.
 client.setQueryDefaults([], { retry: false });
 let session: AccountSession;
@@ -122,7 +123,7 @@ async function renderFollowing(children: ReactElement) {
   return render(children, {
     wrapper: ({ children }) => (
       <GestureHandlerRootView>
-        <QueryClientProvider client={client}>
+        <QueryClientProvider client={publicClient}>
           <ThemeProvider>
             <ApplicationAccessProvider>
               <AccountSessionProvider>
@@ -155,7 +156,8 @@ async function transport(url: string, request?: RequestInit) {
 
 beforeEach(() => {
   mockFollowStates.clear();
-  client = createQueryClient();
+  publicClient = createQueryClient();
+  client = publicClient;
   // Failure presentation is isolated here; native retry defaults have their own Query suite.
   client.setQueryDefaults([], { retry: false });
   // TanStack's documented Jest setting avoids waiting for inactive-cache collection timers.
@@ -180,6 +182,7 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  publicClient.clear();
   process.env = { ...environment };
   jest.restoreAllMocks();
   jest.useRealTimers();
@@ -880,7 +883,7 @@ it("suspends the canonical confirmed relation when its maintenance bypass is cle
   ).toEqual([]);
 });
 
-/** Observes the actual private client installed by the native principal provider. */
+/** Captures the real private client while the fixture retains its separate public-cache owner for cleanup. */
 function PrivateQueries({ children }: PropsWithChildren) {
   const privateClient = useQueryClient();
   // Configure deterministic failure presentation before child Query observers mount.

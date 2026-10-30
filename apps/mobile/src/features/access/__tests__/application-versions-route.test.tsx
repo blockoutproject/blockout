@@ -1,3 +1,5 @@
+import { useLayoutEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
 import {
   cleanup,
@@ -145,8 +147,12 @@ async function openRoute(path: string) {
   );
 }
 
-/** Allows a current account read while the real protected editor is mounted. */
+/** Refreshes the real account while the editor is mounted and keeps fixture mutations free of detached GC timers. */
 function PermissionRefresh() {
+  const cache = useQueryClient();
+  useLayoutEffect(() => {
+    cache.setMutationDefaults([], { gcTime: Infinity });
+  }, [cache]);
   const account = useCurrentAccount();
   return (
     <Pressable

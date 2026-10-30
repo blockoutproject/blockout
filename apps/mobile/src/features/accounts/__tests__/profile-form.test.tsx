@@ -95,7 +95,8 @@ const mockFetch = jest.fn<
   Promise<Response>,
   [RequestInfo | URL, RequestInit?]
 >();
-let client = createQueryClient();
+let publicClient = createQueryClient();
+let client = publicClient;
 // Failure presentation is isolated here; native retry defaults have their own Query suite.
 client.setQueryDefaults([], { retry: false });
 const account = accountResponse({
@@ -106,6 +107,7 @@ const account = accountResponse({
 const previousEnvironment = { ...process.env };
 
 beforeEach(() => {
+  jest.useFakeTimers();
   mockFile.exists = true;
   mockFile.delete.mockReset();
   mockPickedFile.delete.mockReset();
@@ -118,7 +120,8 @@ beforeEach(() => {
           ? mockPickedFile
           : mockFile) as unknown as File,
     );
-  client = createQueryClient();
+  publicClient = createQueryClient();
+  client = publicClient;
   // Failure presentation is isolated here; native retry defaults have their own Query suite.
   client.setQueryDefaults([], { retry: false });
   mockNavigate.mockReset();
@@ -148,6 +151,10 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  publicClient.clear();
+  // Jest owns pending native/Query batching; restore real time only after unmounted work is drained.
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
   process.env = { ...previousEnvironment };
   jest.restoreAllMocks();
 });
@@ -155,7 +162,7 @@ afterEach(async () => {
 /** Real account/form owners with controlled I/O; navigation intent is observed without unmounting the editor. */
 async function mountProfile() {
   await render(
-    <QueryClientProvider client={client}>
+    <QueryClientProvider client={publicClient}>
       <ThemeProvider>
         <ApplicationAccessProvider>
           <AccountSessionProvider>
@@ -553,7 +560,9 @@ it("preserves the active save and suspends refresh and cancellation", async () =
   // Then
   await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1));
   expect(screen.getByDisplayValue("Chosen")).toBeOnTheScreen();
-  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
+  await waitFor(() =>
+    expect(screen.getByLabelText("Actualiser les données")).toBeEnabled(),
+  );
 });
 
 it("uses the accepted profile result before returning from the editor", async () => {
@@ -1204,7 +1213,7 @@ it("keeps a sent profile file until its upload settles after sign-out", async ()
   expect(mockNavigate).not.toHaveBeenCalled();
 });
 
-/** Observes the actual private client installed by the native principal provider. */
+/** Captures the real private client while the fixture retains its separate public-cache owner for cleanup. */
 function PrivateQueries({ children }: PropsWithChildren) {
   const privateClient = useQueryClient();
   // Configure deterministic failure presentation before child Query observers mount.

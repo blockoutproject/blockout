@@ -179,12 +179,13 @@ afterEach(async () => {
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
-/** Selects the real private lifetime client and disables read retries only for these failure scenarios. */
+/** Selects the real private client with one-shot reads and no detached mutation GC timers in these scenarios. */
 function PrivateQueries({ children }: PropsWithChildren) {
   const current = useQueryClient();
   useLayoutEffect(() => {
     client = current;
     current.setQueryDefaults([], { retry: false });
+    current.setMutationDefaults([], { gcTime: Infinity });
   }, [current]);
   return children;
 }
@@ -651,8 +652,12 @@ it("refreshes saved activity after a failed deactivation response before explici
   ).toHaveLength(1);
 });
 
-/** Exposes only an explicit account refresh through the real current-account Query owner. */
+/** Exposes real account refresh and keeps protected-route fixture mutations free of detached GC timers. */
 function PermissionRefresh() {
+  const cache = useQueryClient();
+  useLayoutEffect(() => {
+    cache.setMutationDefaults([], { gcTime: Infinity });
+  }, [cache]);
   const account = useCurrentAccount();
   return (
     <Pressable

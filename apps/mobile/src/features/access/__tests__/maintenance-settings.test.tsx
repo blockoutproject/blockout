@@ -79,6 +79,7 @@ const account = accountResponse({
 let stored: import("../../../../.generated/schemas/index.zod").MaintenanceSettingsResponse =
   { ...initial };
 beforeEach(() => {
+  jest.useFakeTimers();
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
   publicClient = createQueryClient();
   mockAccessResponse = mockApplicationAccessResponse();
@@ -104,6 +105,9 @@ afterEach(async () => {
   await cleanup();
   client?.clear();
   publicClient.clear();
+  // Await pending Query batches before restoring the test's real timer environment.
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
@@ -279,7 +283,7 @@ it("separates content preparation from explicit activation", async () => {
     ).not.toBeOnTheScreen(),
   );
   expect(
-    screen.getByRole("button", {
+    await screen.findByRole("button", {
       name: "Enregistrer",
       busy: false,
     }),
