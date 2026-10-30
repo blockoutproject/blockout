@@ -44,6 +44,7 @@ jest.mock("expo/fetch", () => ({
 const env = { ...process.env };
 let publicClient = createQueryClient();
 beforeEach(() => {
+  jest.useFakeTimers();
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
@@ -61,6 +62,9 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   publicClient.clear();
+  // Await pending Query batches before restoring the test's real timer environment.
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
   process.env = { ...env };
 });
 /** The process public cache is deliberately outside the real identity-owned private cache. */
