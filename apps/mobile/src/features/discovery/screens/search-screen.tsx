@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
-    paddingHorizontal: tokens.spacing.screen,
+    paddingRight: tokens.spacing.screen,
   },
   tabs: { flex: 1, minWidth: 0 },
   toolbar: {
