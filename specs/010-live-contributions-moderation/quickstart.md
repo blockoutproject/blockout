@@ -106,6 +106,99 @@ evidence must identify the executed revision, platform and exact
 alone does not qualify native networking, provider behavior or screen-reader announcements.
 Full moderation/lifecycle and extended uncertain-response recovery retain their owning tasks.
 
+### Personal contribution lifecycle — T018–T022
+
+`OwnContributionLifecycleWebMvcTest` exercises generated PATCH binding, strict commands,
+original-account scope, ordinary admission, conflicts and private headers.
+`OwnContributionLifecycleIntegrationTest` executes production commands over HTTP with migrated
+PostgreSQL mappings and real F02/F05 owners. It covers independent active/pending versions,
+current-condition replacement, exact terminal repetition, stale revision before no-op,
+immutable addresses/quota participation and report holds. An account-lock race verifies that
+withdrawal cannot restore a publication actor erased while the command waits. The retained
+backend cancellation command is separately qualified; the current native history exposes no
+such action. Historical decision/erasure fixtures do not qualify actual US5/F05 orchestration.
+
+`ReadOwnContributionsIntegrationTest` qualifies all-state totals independently of twenty-item
+pages and ordinary quotas, true-empty zero, isolation and the exact owned active projection
+outside the first page. Other owners' active versions are omitted. Contract/generated-client
+checks qualify the optional member and safe integer total.
+
+The contribution suites exercise the real screens, RHF, generated transport, Query and session
+owners with controlled native I/O and HTTP. The current match card opens an initial proposal
+form directly, or a distinct prefilled editor for the exact owned public version. Replacement,
+withdrawal and initial submission require one native confirmation and return to the exact
+match only after acknowledgement. Cancelled dialogs preserve drafts and send nothing. Tests
+cover captured revisions/addresses, pristine active-version refresh, dirty refetch retention, duplicate suppression and late
+callbacks after session change or departure. The exhaustive history has no row commands;
+textual badges, addresses, separators and “Mes propositions (number)” remain visible, including
+zero and totals beyond loaded pages.
+
+Current 401/403/404 refuses and removes private data, including an F03 refusal observed before
+navigation; a later technical failure cannot restore it. Ordinary outages preserve authorized
+pages and explicit retry. A successful refresh replaces traversal from page zero; failed
+refresh retains all accepted pages. Continuation stops on error or outside active focus. An
+acknowledged withdrawal clears its exact active projection even if the derivative read fails,
+without advancing old aggregate revision/eligibility or undoing acknowledgement. These tests do
+not establish native networking, keyboard behavior or assistive-technology execution.
+
+Use fictional accounts/addresses on compatible iOS and Android development clients. More than
+twenty historical versions must be moderator-created and quota-exempt; ordinary active/pending
+versions retain their real consumption. Check the following construction boundaries:
+
+- A card without a public URL opens the blank proposal form directly. Cancel its confirmation,
+  then accept one valid proposal and observe one POST and return to the match.
+- An exactly owned public link offers “Modifier le lien” rather than external opening or
+  self-reporting. Its editor starts with the previous address, retains edits on refresh and
+  confirms replacement before returning to the match. Cancellation preserves the draft.
+- The compact withdrawal action confirms the exact active URL/version, then returns to the
+  match while preserving independent pending versions and consumed quota.
+- The personal history is exhaustive and read-only across pending, active and terminal states.
+  Traverse beyond twenty versions, refresh from page zero and retain authorized information
+  on technical read failure. An ownerless or other-owner link grants no ownership.
+- Inspect the real keyboard, native back/discard behavior, safe areas, both themes and enlarged
+  text on both platforms. Record actual reader speech/focus separately from accessibility
+  semantics in an inspection tree.
+
+Earlier [row/lifecycle captures](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6510562999)
+and [ellipsis-entry captures](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6510989325)
+retain their exact source revisions and narrow execution proofs. Their entry placement,
+row-cancellation controls and empty-management detour are superseded by the current
+[owner direction](plan.md#design-reconciliation-and-evidence); those captures do not establish
+this revised interaction. The [current native evidence](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6511946128)
+identifies source `aa4d229e5138d1429e6bea76987c3e7b6296c622`. After reviewing that result,
+the owner explicitly authorized synchronization and removal of obsolete Figma/prototype states.
+
+The [current Figma journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5511-51086)
+contains fourteen representative editable screens and fifteen used private composition masters;
+twenty-four obsolete screens and nineteen unused masters were removed. Final inspection finds
+live library references without broken instances and Outfit product text. The
+[prototype captures and delivery](https://github.com/blockoutproject/product-prototype/pull/15#issuecomment-6512645456) at
+`db183a56f9b70d828d87623254a2eb8d3ab2b317` passes 223 model tests, 29 Chromium cases,
+TypeScript and build. Browser checks cover the three card entries, prefilled replacement,
+cancelled confirmation, acknowledged returns, withdrawal, read-only/zero history, report
+cancellation, narrow/dark layouts and the header inset regression. This prototype uses only
+fictional local services; its dialogs represent native confirmations and do not qualify native
+platform execution. The existing build chunk-size advisory remains. US4 native reporting and
+the wider qualification matrix retain their own scope.
+
+The current [native captures and observations](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6511946128)
+use production screens on compatible iOS 27.0 and Android 17/API 37 development clients with
+fictional Auth0/storage and a controlled HTTP peer. Both platforms exercise direct first
+proposal, prefilled own-link editing, native replacement and withdrawal confirmations, and
+return to the exact match after one acknowledged write. Android replacement cancellation and
+iOS initial-submission cancellation preserve the draft and send nothing. Pending replacements
+retain the public version until its independent confirmed withdrawal; the peer records the
+pending row and consumed quota afterward. iOS also verifies the non-owned public opening
+action and readable dark presentation at extra-extra-extra-large text, then restores light/large.
+Android traverses twenty-five read-only versions through pages zero/one, then refreshes to
+an empty collection with “Mes propositions (0)” still visible. Its real software keyboard
+leaves the editor and submission action reachable. This run does not establish iOS
+software-keyboard presentation, real provider behavior or reader speech.
+
+T023, US4 reporting, actual US5/US6 moderation/erasure, T049/T056 and the minimum-OS/narrow-device
+and screen-reader matrix retain their own qualification. A synthetic peer establishes only its
+rendering, transport and interaction boundaries; it is not provider or global design approval.
+
 Scoped iOS/Android observations at `e9a6ece6`, including builds and controlled fixtures, are recorded in the [native contribution evidence](https://github.com/blockoutproject/blockout/pull/557#issuecomment-6475614201). Available-entry/form composition, keyboard/back, retained drafts, real refusal/explicit retry, acknowledgement and exact active public projection were observed. That run also reported cropped labels after live Android text enlargement and development navigation warnings; its missing screen-reader and minimum-OS evidence remains explicitly unqualified.
 
 The [integrated native evidence](https://github.com/blockoutproject/blockout/pull/562#issuecomment-6479911193) exercises production source `84e723e7` on compatible iOS 27.1 and Android API 37 development clients. iOS keyboard dismissal and cancelling the native discard confirmation preserve the exact draft; the captured future-match form is ineligible for ordinary submission and supplies no new acknowledgement proof. Android font enlargement recreates the Activity without changing the process, returns to the home route and yields a readable empty form on explicit reopening. This establishes neither retained-context cropping nor draft persistence across recreation, and does not erase the earlier failed observation. The real Stream link panel is exercised on both platforms; native external handoff and return are observed on Android. The iOS handoff remains unqualified. The compact contribution summary remains informational and has no navigation dependency. Real TalkBack 17.0 speech captions verify the link field name/hint and the empty-value validation alert on this source; no POST is issued. These two cases do not qualify complete reader traversal or VoiceOver.

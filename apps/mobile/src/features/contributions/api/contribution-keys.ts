@@ -29,12 +29,22 @@ type ModerationFilters = Omit<ListStreamModerationParams, "page">;
 /** Exact version selection retained for every page in one match traversal. */
 type VersionFilters = Omit<ListModeratedStreamContributionsParams, "page">;
 
+/** One match command family serializes owner intentions across forms, history and route removal. */
+function ownCommands(actor: ContributionActor, matchId: string) {
+  return getSessionQueryKey(actor.generation, [
+    ...getListOwnStreamContributionsQueryKey(actor.accountId, matchId),
+    "commands",
+  ]);
+}
+
 /**
  * Scopes generated resource/operation keys to F05's captured account and generation.
  * Public F03 data retains its own keys. Keys confer no permission or callback validity;
  * F13 transport and F05's existing cleanup guard obsolete work independently.
  */
 export const contributionKeys = {
+  /** Shared owner-command exclusion and required-read scope for one original match. */
+  ownCommands,
   /** Personal traversal; start at page zero and supply subsequent pages through pageParam. */
   own: (actor: ContributionActor, matchId: string) =>
     getSessionQueryKey(
@@ -89,21 +99,21 @@ export const contributionKeys = {
     ]),
 
   /** Original-account submission intent; revision and address stay in the command variables. */
-  submit: (actor: ContributionActor, matchId: string) =>
-    getSessionQueryKey(actor.generation, [
-      ...getCreateStreamContributionMutationKey(),
-      actor.accountId,
-      matchId,
-    ]),
+  submit: (actor: ContributionActor, matchId: string) => [
+    ...ownCommands(actor, matchId),
+    ...getCreateStreamContributionMutationKey(),
+  ],
 
-  /** Cancellation/withdrawal intent on the exact personal version. */
-  updateOwn: (actor: ContributionActor, matchId: string, versionId: string) =>
-    getSessionQueryKey(actor.generation, [
-      ...getUpdateOwnStreamContributionMutationKey(),
-      actor.accountId,
-      matchId,
-      versionId,
-    ]),
+  /** Owner changes retain the selected exact version in command variables, or in a member-specific key. */
+  updateOwn: (
+    actor: ContributionActor,
+    matchId: string,
+    versionId?: string,
+  ) => [
+    ...ownCommands(actor, matchId),
+    ...getUpdateOwnStreamContributionMutationKey(),
+    ...(versionId ? [versionId] : []),
+  ],
 
   /** Reporting intent on one version; no revision or report reason is stored in its key. */
   report: (actor: ContributionActor, versionId: string) =>

@@ -1,5 +1,6 @@
 package com.blockout.backend.contributions.api;
 
+import com.blockout.backend.contributions.application.ContributionConflictException;
 import com.blockout.backend.contributions.application.ContributionRejectedException;
 import com.blockout.backend.shared.http.HttpProblems;
 import org.springframework.core.annotation.Order;
@@ -12,6 +13,17 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 @Order(0)
 public class ContributionExceptionHandler {
+
+  /**
+   * Refuses an incompatible exact-version action without exposing another contribution's state.
+   *
+   * @param failure bounded lifecycle conflict
+   * @return canonical private conflict requiring a current read before a new explicit action
+   */
+  @ExceptionHandler(ContributionConflictException.class)
+  ResponseEntity<Object> conflict(ContributionConflictException failure) {
+    return HttpProblems.response(HttpStatus.CONFLICT, "urn:blockout:problem:conflict");
+  }
 
   /**
    * Maps current policy refusal without exposing addresses, identities or technical faults.

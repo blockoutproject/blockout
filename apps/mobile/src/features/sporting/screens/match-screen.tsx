@@ -26,6 +26,7 @@ import { MatchSummary } from "../components/match-summary";
 import { MatchSetScores } from "../components/match-set-scores";
 import { MatchInformation } from "../components/match-information";
 import { MatchLinks } from "../components/match-links";
+import { divisionTextColor } from "../presentation";
 import { currentSportingTimeZone } from "../model/sporting-time";
 
 /** Exact dated public match identity; contextual actions remain with their feature owners. */
@@ -53,7 +54,11 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
   const queries = useConsultationQueries();
   const match = useQuery(queries.match(matchId));
   const data = match.data;
-  const contribution = useMatchContributionAction(matchId, !!data);
+  const contribution = useMatchContributionAction(
+    matchId,
+    !!data,
+    data?.streamUrl ? data.streamContributionId : undefined,
+  );
   const feedback = useActionFeedback();
   /** A failed explicit refresh keeps authorized content and reports only the attempted read. */
   async function refresh() {
@@ -126,14 +131,42 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
                       }
                       displayTimeZone={presentation.timeZone}
                     />
-                    <MatchContributionAction
-                      entry={contribution}
-                      contextColor={
-                        data.match.pool.classification.division?.color
+                    <MatchSetScores match={data.match} sets={data.sets} />
+                    <MatchLinks
+                      detail={data}
+                      action={
+                        contribution.hasProposals &&
+                        !contribution.ownsPublic ? (
+                          <MatchContributionAction
+                            entry={contribution}
+                            header
+                          />
+                        ) : undefined
+                      }
+                      primaryAction={
+                        contribution.publicOwnershipUnknown ||
+                        contribution.ownsPublic ||
+                        (!data.streamUrl && contribution.canPropose) ? (
+                          <MatchContributionAction
+                            entry={contribution}
+                            contextColor={
+                              data.match.pool.classification.division?.color
+                            }
+                            contextGradient={
+                              data.match.pool.classification.division?.gradient
+                            }
+                            contextForeground={
+                              data.match.pool.classification.division
+                                ? divisionTextColor(
+                                    data.match.pool.classification.division
+                                      .color,
+                                  )
+                                : undefined
+                            }
+                          />
+                        ) : undefined
                       }
                     />
-                    <MatchSetScores match={data.match} sets={data.sets} />
-                    <MatchLinks detail={data} />
                     <MatchInformation
                       detail={data}
                       displayTimeZone={presentation.timeZone}

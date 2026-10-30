@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -8,7 +9,7 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { Pressable, Text } from "react-native";
+import { Alert, Pressable, Text } from "react-native";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import {
@@ -27,6 +28,8 @@ import {
   mockAuth0,
 } from "../../accounts/test-support/native-auth0";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+import { ContributionForm } from "../forms/contribution-form";
+import { useOwnContributions } from "../api/own-contributions";
 import { ContributionScreen } from "../screens/contribution-screen";
 import { ownContributions } from "../test-support/contribution-data";
 import { matchDetail } from "../../sporting/test-support/consultation-data";
@@ -46,7 +49,12 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   usePreventRemove: jest.fn(),
-  useRouter: () => ({ push: mockPush, back: mockBack, canGoBack: () => true }),
+  useRouter: () => ({
+    push: mockPush,
+    back: mockBack,
+    dismissTo: mockDismissTo,
+    canGoBack: () => true,
+  }),
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, init?: RequestInit) =>
@@ -65,6 +73,7 @@ jest.mock("expo/fetch", () => ({
 let mockMaintenance = false;
 const mockPush = jest.fn();
 const mockBack = jest.fn();
+const mockDismissTo = jest.fn();
 const mockFetch = jest.fn<
   Promise<Response>,
   [RequestInfo | URL, RequestInit?]
@@ -83,7 +92,7 @@ const accepted = {
     canCancel: false,
     canWithdraw: true,
   },
-};
+} as const;
 let client = createQueryClient();
 let context = ownContributions();
 let failRefresh = false;
@@ -96,6 +105,8 @@ beforeEach(() => {
   posts = [];
   mockPush.mockReset();
   mockBack.mockReset();
+  mockDismissTo.mockReset();
+  jest.spyOn(Alert, "alert").mockImplementation(() => {});
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
@@ -140,17 +151,20 @@ afterEach(async () => {
   await cleanup();
   client.clear();
   process.env = { ...previous };
+  jest.restoreAllMocks();
 });
 
 /** Real session, generated HTTP, Query, screen and RHF form; native SDK/HTTP/navigation alone are controlled. */
-async function mount() {
+async function mount(
+  content: ReactNode = <ContributionScreen matchId={match.match.id} />,
+) {
   await render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
         <ApplicationAccessProvider>
           <AccountSessionProvider>
             <AccountFeedbackProvider>
-              <ContributionScreen matchId={match.match.id} />
+              {content}
               <SessionExit />
             </AccountFeedbackProvider>
           </AccountSessionProvider>
@@ -197,8 +211,10 @@ it("invites a guest without retaining a deferred publication", async () => {
   mockAuth0.hasValidCredentials.mockResolvedValue(false);
   const user = userEvent.setup();
   await mount();
+
   // When
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
+
   // Then
   expect(mockPush).toHaveBeenCalledWith({
     pathname: "/sign-in-invitation",
@@ -222,8 +238,10 @@ it.each([
       eligibility: { canSubmit: false, requiresApproval: false, reason },
     });
     await mount();
+
     // When
     await screen.findByLabelText("Adresse du lien");
+
     // Then
     expect(
       screen.getByRole("button", { name: "Soumettre le lien" }),
@@ -243,8 +261,10 @@ it("validates unsupported addresses before any request", async () => {
     await screen.findByLabelText("Adresse du lien"),
     "https://youtube.com.evil.invalid/video",
   );
+
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+
   // Then
   expect(
     await screen.findByText(
@@ -252,6 +272,7 @@ it("validates unsupported addresses before any request", async () => {
     ),
   ).toBeOnTheScreen();
   expect(posts).toHaveLength(0);
+  expect(Alert.alert).not.toHaveBeenCalled();
 });
 
 it("retains dirty input through refresh and a refused submission", async () => {
@@ -279,12 +300,21 @@ it("retains dirty input through refresh and a refused submission", async () => {
       { status: 422 },
     ),
   );
+
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)?.[2]
+      ?.find((button) => button.text === "Soumettre le lien")
+      ?.onPress?.(),
+  );
+
   // Then
   await screen.findByText("Le lien a été refusé. Votre saisie est conservée.");
   expect(screen.getByDisplayValue(accepted.contribution.url)).toBeOnTheScreen();
-  expect(mockBack).not.toHaveBeenCalled();
+  expect(mockDismissTo).not.toHaveBeenCalled();
 });
 
 it("keeps confirmed success when dependent reads fail and excludes duplicate actions", async () => {
@@ -300,15 +330,31 @@ it("keeps confirmed success when dependent reads fail and excludes duplicate act
     if (init) posts.push(init);
     return pending.promise;
   });
+
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)?.[2]
+      ?.find((button) => button.text === "Soumettre le lien")
+      ?.onPress?.(),
+  );
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)?.[2]
+      ?.find((button) => button.text === "Soumettre le lien")
+      ?.onPress?.(),
+  );
   failRefresh = true;
   await act(async () =>
     pending.resolve(Response.json(accepted, { status: 201 })),
   );
+
   // Then
-  await waitFor(() => expect(mockBack).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(mockDismissTo).toHaveBeenCalledTimes(1));
   expect(posts).toHaveLength(1);
   expect(JSON.parse(String(posts[0].body))).toEqual({
     revision: "initial",
@@ -333,13 +379,22 @@ it("ignores a late accepted response after session departure", async () => {
   );
   mockFetch.mockImplementationOnce(() => pending.promise);
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)?.[2]
+      ?.find((button) => button.text === "Soumettre le lien")
+      ?.onPress?.(),
+  );
+
   // When
   await user.press(screen.getByRole("button", { name: "Quitter la session" }));
   await act(async () =>
     pending.resolve(Response.json(accepted, { status: 201 })),
   );
+
   // Then
-  expect(mockBack).not.toHaveBeenCalled();
+  expect(mockDismissTo).not.toHaveBeenCalled();
   expect(
     await screen.findByRole("button", { name: "Se connecter" }),
   ).toBeOnTheScreen();
@@ -366,8 +421,10 @@ it("suspends submission when the current profile is unavailable and permits a re
     return reads(url, init);
   });
   await mount();
+
   // When
   await user.press(await screen.findByRole("button", { name: "Réessayer" }));
+
   // Then
   expect(await screen.findByLabelText("Adresse du lien")).toBeOnTheScreen();
   expect(posts).toHaveLength(0);
@@ -394,10 +451,19 @@ it("uses moderator eligibility without local age, clock, quota or Pro gates", as
     await screen.findByLabelText("Adresse du lien"),
     accepted.contribution.url,
   );
+
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)?.[2]
+      ?.find((button) => button.text === "Soumettre le lien")
+      ?.onPress?.(),
+  );
+
   // Then
-  await waitFor(() => expect(mockBack).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(mockDismissTo).toHaveBeenCalledTimes(1));
   expect(posts).toHaveLength(1);
 });
 
@@ -411,8 +477,10 @@ it("refuses malformed generated reads before cache admission", async () => {
         : Response.json(match),
   );
   await mount();
+
   // When
   await screen.findByRole("button", { name: "Réessayer" });
+
   // Then
   expect(screen.queryByLabelText("Adresse du lien")).not.toBeOnTheScreen();
   expect(
@@ -450,22 +518,39 @@ it("keeps a draft after conflict and requires a fresh explicit submission", asyn
       { status: 409 },
     );
   });
+
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)?.[2]
+      ?.find((button) => button.text === "Soumettre le lien")
+      ?.onPress?.(),
+  );
   await waitFor(() =>
     expect(
       screen.getByRole("button", { name: "Soumettre le lien" }),
     ).toBeEnabled(),
   );
+
   // Then
   expect(posts).toHaveLength(1);
   expect(screen.getByDisplayValue(accepted.contribution.url)).toBeOnTheScreen();
-  expect(mockBack).not.toHaveBeenCalled();
+  expect(mockDismissTo).not.toHaveBeenCalled();
 
   // When: a new explicit action uses the newly observed revision.
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)?.[2]
+      ?.find((button) => button.text === "Soumettre le lien")
+      ?.onPress?.(),
+  );
+
   // Then
-  await waitFor(() => expect(mockBack).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(mockDismissTo).toHaveBeenCalledTimes(1));
   expect(posts).toHaveLength(2);
   expect(JSON.parse(String(posts[1].body)).revision).toBe("current");
 });
@@ -482,9 +567,18 @@ it("keeps an uncertain failure guarded after a failed read without write replay"
     if (init) posts.push(init);
     throw new TypeError("Response lost");
   });
+
   // When
   failRefresh = true;
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)?.[2]
+      ?.find((button) => button.text === "Soumettre le lien")
+      ?.onPress?.(),
+  );
+
   // Then
   expect(
     await screen.findByRole("button", { name: "Vérifier la contribution" }),
@@ -499,7 +593,7 @@ it("keeps an uncertain failure guarded after a failed read without write replay"
     ).toBeEnabled(),
   );
   expect(posts).toHaveLength(1);
-  expect(mockBack).not.toHaveBeenCalled();
+  expect(mockDismissTo).not.toHaveBeenCalled();
 });
 
 it("does not replay a guest invitation after explicit sign-in", async () => {
@@ -508,14 +602,16 @@ it("does not replay a guest invitation after explicit sign-in", async () => {
   const user = userEvent.setup();
   await mount();
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
+
   // When
   await user.press(screen.getByRole("button", { name: "Revenir au compte" }));
+
   // Then
   expect(await screen.findByLabelText("Adresse du lien")).toHaveDisplayValue(
     "",
   );
   expect(posts).toHaveLength(0);
-  expect(mockBack).not.toHaveBeenCalled();
+  expect(mockDismissTo).not.toHaveBeenCalled();
 });
 
 it("retains the address after a new time restriction without adding availability copy", async () => {
@@ -545,8 +641,17 @@ it("retains the address after a new time restriction without adding availability
       { status: 422 },
     );
   });
+
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)?.[2]
+      ?.find((button) => button.text === "Soumettre le lien")
+      ?.onPress?.(),
+  );
+
   // Then
   expect(
     await screen.findByText(
@@ -564,8 +669,10 @@ it("retains the address after a new time restriction without adding availability
 it("presents only the address and supported platforms before submission", async () => {
   // Given
   await mount();
+
   // When
   await screen.findByLabelText("Adresse du lien");
+
   // Then: the ordinary form has no repeated introduction, availability disclaimer or quota counters.
   expect(screen.getByText("YouTube, Twitch ou Facebook")).toBeOnTheScreen();
   expect(
@@ -610,8 +717,17 @@ it("refreshes the actual F03 match key after a publication under explicit mainte
   );
   await waitFor(() => expect(client.isFetching()).toBe(0));
   const before = matchReads;
+
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)?.[2]
+      ?.find((button) => button.text === "Soumettre le lien")
+      ?.onPress?.(),
+  );
+
   // Then
   await waitFor(() => expect(matchReads).toBeGreaterThan(before));
   expect(posts).toHaveLength(1);
@@ -624,6 +740,7 @@ it("shows compact match context without inventing unknown scores or extra sporti
   // Given
   await mount();
   await screen.findByLabelText("Adresse du lien");
+
   // When / Then
   expect(screen.getByText("Home")).toBeOnTheScreen();
   expect(screen.getByText("Away")).toBeOnTheScreen();
@@ -643,9 +760,320 @@ it("delegates failed native session restoration to F05 instead of showing an end
   );
   const user = userEvent.setup();
   await mount();
+
   // When
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
+
   // Then
   expect(mockPush).toHaveBeenCalledWith("/sign-in");
   expect(posts).toHaveLength(0);
 });
+
+it("waits for exact-address confirmation and cancels without dispatch or navigation", async () => {
+  // Given
+  const user = userEvent.setup();
+  await mount();
+  await user.type(
+    await screen.findByLabelText("Adresse du lien"),
+    "https://youtu.be/confirmed",
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+
+  // Then
+  expect(Alert.alert).toHaveBeenCalledWith(
+    "Soumettre ce lien ?",
+    expect.stringContaining("https://youtu.be/confirmed"),
+    expect.any(Array),
+    expect.anything(),
+  );
+  expect(posts).toHaveLength(0);
+
+  // When
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls[0]?.[2]?.find((button) => button.style === "cancel")
+      ?.onPress?.(),
+  );
+
+  // Then
+  expect(posts).toHaveLength(0);
+  expect(mockDismissTo).not.toHaveBeenCalled();
+  expect(
+    screen.getByDisplayValue("https://youtu.be/confirmed"),
+  ).toBeOnTheScreen();
+});
+
+/** Exercises the actual retained editor and generated command owner without the surrounding personal list. */
+function ReplacementForm() {
+  const editing = useOwnContributions(match.match.id);
+  const current = editing.query.data?.pages[0];
+  return current ? (
+    <ContributionForm
+      matchId={match.match.id}
+      current={current}
+      editing={editing}
+      replacement={current.activeContribution}
+    />
+  ) : null;
+}
+
+it("updates a pristine replacement field when the current active version changes", async () => {
+  // Given: the retained Query data initially seeds version A without any user edit.
+  context = ownContributions({
+    proposalCount: 1,
+    activeContribution: accepted.contribution,
+  });
+  await mount(<ReplacementForm />);
+  expect(await screen.findByLabelText("Adresse du lien")).toHaveDisplayValue(
+    accepted.contribution.url,
+  );
+  const replacement = {
+    ...accepted.contribution,
+    id: "00000000-0000-4000-8000-000000000009",
+    url: "https://youtu.be/current-version",
+  };
+  context = ownContributions({
+    revision: "current-version",
+    proposalCount: 2,
+    activeContribution: replacement,
+  });
+
+  // When: a successful original-account read accepts version B.
+  await act(async () =>
+    client.refetchQueries({
+      predicate: (query) =>
+        query.queryKey.some(
+          (part) =>
+            typeof part === "string" && part.includes("stream-contributions"),
+        ),
+    }),
+  );
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByLabelText("Adresse du lien")).toHaveDisplayValue(
+      replacement.url,
+    ),
+  );
+  expect(
+    screen.getByRole("button", { name: "Remplacer le lien" }),
+  ).toBeEnabled();
+  expect(posts).toHaveLength(0);
+  expect(Alert.alert).not.toHaveBeenCalled();
+});
+
+it("prefills the published URL once and preserves a changed replacement through a successful refetch", async () => {
+  // Given
+  context = ownContributions({
+    proposalCount: 1,
+    activeContribution: accepted.contribution,
+  });
+  const user = userEvent.setup();
+  await mount(<ReplacementForm />);
+  expect(await screen.findByLabelText("Adresse du lien")).toHaveDisplayValue(
+    accepted.contribution.url,
+  );
+  await user.clear(screen.getByLabelText("Adresse du lien"));
+  await user.type(
+    screen.getByLabelText("Adresse du lien"),
+    "https://youtu.be/edited",
+  );
+  context = ownContributions({
+    revision: "new-read",
+    proposalCount: 2,
+    activeContribution: {
+      ...accepted.contribution,
+      id: "00000000-0000-4000-8000-000000000009",
+      url: "https://youtu.be/refetched",
+    },
+  });
+
+  // When
+  await act(async () =>
+    client.refetchQueries({
+      predicate: (query) =>
+        query.queryKey.some(
+          (part) =>
+            typeof part === "string" && part.includes("stream-contributions"),
+        ),
+    }),
+  );
+
+  // Then
+  expect(screen.getByLabelText("Adresse du lien")).toHaveDisplayValue(
+    "https://youtu.be/edited",
+  );
+  expect(
+    screen.getByRole("header", { name: "Votre lien public" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Remplacer le lien" }),
+  ).toBeEnabled();
+  expect(posts).toHaveLength(0);
+});
+
+it("confirms a replacement with its viewed revision once and returns to the exact match after acknowledgement", async () => {
+  // Given
+  context = ownContributions({ activeContribution: accepted.contribution });
+  const user = userEvent.setup();
+  await mount(<ReplacementForm />);
+  await user.clear(await screen.findByLabelText("Adresse du lien"));
+  await user.type(
+    screen.getByLabelText("Adresse du lien"),
+    "https://youtu.be/replacement",
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
+  await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
+
+  // Then
+  expect(Alert.alert).toHaveBeenCalledTimes(1);
+  expect(jest.mocked(Alert.alert).mock.calls[0]?.[1]).toContain(
+    accepted.contribution.url,
+  );
+  expect(jest.mocked(Alert.alert).mock.calls[0]?.[1]).toContain(
+    "https://youtu.be/replacement",
+  );
+  expect(posts).toHaveLength(0);
+
+  // When: a read changes the revision while the original native confirmation remains open.
+  context = ownContributions({
+    revision: "later",
+    activeContribution: accepted.contribution,
+  });
+  await act(async () =>
+    client.refetchQueries({
+      predicate: (query) =>
+        query.queryKey.some(
+          (part) =>
+            typeof part === "string" && part.includes("stream-contributions"),
+        ),
+    }),
+  );
+  const confirm = jest
+    .mocked(Alert.alert)
+    .mock.calls[0]?.[2]?.find(
+      (button) => button.text === "Remplacer le lien",
+    )?.onPress;
+  await act(async () => {
+    confirm?.();
+    confirm?.();
+  });
+
+  // Then
+  await waitFor(() =>
+    expect(mockDismissTo).toHaveBeenCalledWith({
+      pathname: "/matches/[matchId]",
+      params: { matchId: match.match.id },
+    }),
+  );
+  expect(posts).toHaveLength(1);
+  expect(JSON.parse(String(posts[0].body))).toEqual({
+    revision: "initial",
+    url: "https://youtu.be/replacement",
+  });
+});
+
+it("withdraws only the confirmed published version despite an edited draft and unavailable submission eligibility", async () => {
+  // Given
+  context = ownContributions({
+    activeContribution: accepted.contribution,
+    eligibility: { canSubmit: false, requiresApproval: false },
+  });
+  const boundary = mockFetch.getMockImplementation();
+  const writes: { url: string; body: unknown }[] = [];
+  mockFetch.mockImplementation(async (url, init) => {
+    if (init?.method === "PATCH") {
+      writes.push({ url: String(url), body: JSON.parse(String(init.body)) });
+      return Response.json({
+        ...accepted,
+        contribution: {
+          ...accepted.contribution,
+          state: "withdrawn",
+          canWithdraw: false,
+        },
+      });
+    }
+    if (!boundary) throw new Error("Missing test HTTP boundary");
+    return boundary(url, init);
+  });
+  const user = userEvent.setup();
+  await mount(<ReplacementForm />);
+  await user.clear(await screen.findByLabelText("Adresse du lien"));
+  await user.type(
+    screen.getByLabelText("Adresse du lien"),
+    "https://youtu.be/unsaved",
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Retirer" }));
+
+  // Then
+  expect(jest.mocked(Alert.alert).mock.calls[0]?.[1]).toContain(
+    accepted.contribution.url,
+  );
+  expect(jest.mocked(Alert.alert).mock.calls[0]?.[1]).not.toContain("unsaved");
+  expect(writes).toHaveLength(0);
+
+  // When
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls[0]?.[2]?.find((button) => button.text === "Retirer le lien")
+      ?.onPress?.(),
+  );
+
+  // Then
+  await waitFor(() =>
+    expect(mockDismissTo).toHaveBeenCalledWith({
+      pathname: "/matches/[matchId]",
+      params: { matchId: match.match.id },
+    }),
+  );
+  expect(writes).toEqual([
+    {
+      url: expect.stringContaining(
+        `/stream-contributions/${accepted.contribution.id}`,
+      ),
+      body: { action: "withdraw", revision: "initial" },
+    },
+  ]);
+  expect(posts).toHaveLength(0);
+});
+
+it.each(["cancel", "session", "unmount"])(
+  "does not dispatch a held withdrawal after %s",
+  async (departure) => {
+    // Given
+    context = ownContributions({ activeContribution: accepted.contribution });
+    const user = userEvent.setup();
+    await mount(<ReplacementForm />);
+    await user.press(await screen.findByRole("button", { name: "Retirer" }));
+    const buttons = jest.mocked(Alert.alert).mock.calls[0]?.[2];
+    const confirm = buttons?.find(
+      (button) => button.text === "Retirer le lien",
+    )?.onPress;
+
+    // When
+    if (departure === "cancel")
+      await act(async () =>
+        buttons?.find((button) => button.style === "cancel")?.onPress?.(),
+      );
+    if (departure === "session")
+      await user.press(
+        screen.getByRole("button", { name: "Quitter la session" }),
+      );
+    if (departure === "unmount") await cleanup();
+    await act(async () => confirm?.());
+
+    // Then
+    expect(
+      mockFetch.mock.calls.some(([, init]) => init?.method === "PATCH"),
+    ).toBe(false);
+    expect(mockDismissTo).not.toHaveBeenCalled();
+  },
+);

@@ -1,11 +1,16 @@
 import type { OwnStreamContributionsResponse } from "../../../../.generated/schemas/index.zod";
 
-/** Synthetic original-account eligibility; each scenario owns its decisive restrictions and versions. */
+/** Synthetic owner context; supplied items keep their active projection coherent unless a scenario explicitly overrides it. */
 export function ownContributions(
   overrides: Partial<OwnStreamContributionsResponse> = {},
 ): OwnStreamContributionsResponse {
+  const activeContribution = overrides.items?.find(
+    (item) => item.state === "active",
+  );
   return {
+    ...(activeContribution ? { activeContribution } : {}),
     revision: "initial",
+    proposalCount: 0,
     eligibility: { canSubmit: true, requiresApproval: false },
     quota: {
       versionsUsed: 0,

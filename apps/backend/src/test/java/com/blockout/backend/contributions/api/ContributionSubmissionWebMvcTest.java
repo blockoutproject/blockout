@@ -21,6 +21,7 @@ import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
+import com.blockout.backend.contributions.application.ChangeOwnContribution;
 import com.blockout.backend.contributions.application.ContributionRejectedException;
 import com.blockout.backend.contributions.application.ReadOwnContributions;
 import com.blockout.backend.contributions.application.SubmitContribution;
@@ -79,6 +80,7 @@ class ContributionSubmissionWebMvcTest {
       "/accounts/" + OWNER + "/matches/" + MATCH + "/stream-contributions";
   @Autowired private MockMvc mvc;
   @MockitoBean private SubmitContribution submissions;
+  @MockitoBean private ChangeOwnContribution changes;
   @MockitoBean private ReadOwnContributions reads;
   @MockitoBean private AccountAccess accounts;
   @MockitoBean private AccessSettingsStore settings;
@@ -271,6 +273,8 @@ class ContributionSubmissionWebMvcTest {
             null,
             new com.blockout.backend.contributions.domain.ContributionQuota.Usage(1, 1, true),
             Instant.parse("2026-10-24T22:00:00Z"),
+            1,
+            version(),
             new com.blockout.backend.contributions.application.ContributionStore.VersionPage(
                 List.of(version()), false),
             0);
@@ -285,6 +289,8 @@ class ContributionSubmissionWebMvcTest {
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.eligibility.requiresApproval").value(true))
         .andExpect(jsonPath("$.quota.versionsUsed").value(1))
+        .andExpect(jsonPath("$.proposalCount").value(1))
+        .andExpect(jsonPath("$.activeContribution.id").value(VERSION.toString()))
         .andExpect(jsonPath("$.items[0].url").value("https://youtube.com/synthetic"))
         .andExpect(jsonPath("$.nextPage").doesNotExist());
   }

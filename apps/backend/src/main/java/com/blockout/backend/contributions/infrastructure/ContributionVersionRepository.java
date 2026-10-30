@@ -68,12 +68,12 @@ interface ContributionVersionRepository extends JpaRepository<ContributionVersio
   Optional<ContributionVersionEntity> findByMatchIdAndState(UUID matchId, State state);
 
   /**
-   * Reads one owner's unique current proposal without exposing another owner's history.
+   * Reads one owner's unique active or pending version without exposing another owner's history.
    *
    * @param matchId current encounter
    * @param ownerId original submitting account
-   * @param state uniquely constrained owner state, currently pending
-   * @return current proposal, or empty when absent
+   * @param state active or pending state protected by native conditional uniqueness
+   * @return current owner-scoped version, or empty when absent
    */
   Optional<ContributionVersionEntity> findByMatchIdAndOwnerIdAndState(
       UUID matchId, UUID ownerId, State state);
@@ -86,6 +86,15 @@ interface ContributionVersionRepository extends JpaRepository<ContributionVersio
    * @return versions whose lifecycle can change in this transaction
    */
   List<ContributionVersionEntity> findByMatchIdAndStateIn(UUID matchId, Collection<State> states);
+
+  /**
+   * Counts every matching owner's version without a lifecycle, page or quota filter.
+   *
+   * @param matchId current encounter
+   * @param ownerId original owner whose retained versions may be exposed
+   * @return exact matching count from the caller's current database snapshot
+   */
+  long countByMatchIdAndOwnerId(UUID matchId, UUID ownerId);
 
   /**
    * Reads a native Slice without a count query or cross-page snapshot promise.

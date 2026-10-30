@@ -11,10 +11,11 @@ interface ContributionEditor {
 }
 const editors = new Map<string, ContributionEditor>();
 
-/** Keeps only the current session's address control; Query retains commands and generated responses separately. */
+/** Seeds only the first original-account/match control; later reads cannot overwrite a retained draft. */
 export function contributionEditor(
   session: AccountSession,
   matchId: string,
+  initialUrl?: string,
 ): ContributionEditor {
   const key = `${session.generation}:${session.accountId}:${matchId}`;
   const retained = editors.get(key);
@@ -27,7 +28,7 @@ export function contributionEditor(
   });
   const editor: ContributionEditor = {
     form: createFormControl<ContributionValues>({
-      defaultValues: contributionValues(),
+      defaultValues: contributionValues(initialUrl),
     }),
     /** A late completion cannot release a replacement draft for the same original match. */
     release() {
