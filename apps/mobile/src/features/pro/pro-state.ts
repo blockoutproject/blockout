@@ -6,6 +6,9 @@ import type { AccountSession, SessionSnapshot } from "../accounts";
 /** Transient operation presentation, independent of SDK entitlement and never persisted. */
 export type ProOperation =
   | "idle"
+  | "restoring"
+  | "restored"
+  | "restore-uncertain"
   | "purchasing"
   | "cancelled"
   | "pending"

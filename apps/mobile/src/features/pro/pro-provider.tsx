@@ -7,6 +7,7 @@ import {
   useSyncExternalStore,
   useEffectEvent,
   useMemo,
+  useRef,
   type PropsWithChildren,
 } from "react";
 import { AppState } from "react-native";
@@ -33,7 +34,11 @@ export interface ProContext {
   ): Promise<void>;
   /** Reserves one eligible native purchase synchronously; false must resume(false) at the SDK boundary. */
   beginPurchase(): boolean;
-  /** Records an interrupted purchase as uncertain without cancelling the store transaction. */
+  /** Records explicit provider restoration; false rejects obsolete/busy starts without replacing payment evidence. */
+  beginRestore(): boolean;
+  /** Explicitly invokes native restoration only after current-account association. */
+  restore(): Promise<void>;
+  /** Records an interrupted purchase/restoration as uncertain without cancelling the store transaction. */
   dismissPresentation(): Promise<void>;
 }
 const ProSessionContext = createContext<ProContext | null>(null);
@@ -49,6 +54,14 @@ export function ProProvider({ children }: PropsWithChildren) {
     proSession.getSnapshot,
   );
   const session = useMemo(() => ({ subject, accountId }), [subject, accountId]);
+  // Native callbacks may outlive a removed route, but never their private principal/UUID lifetime.
+  const mountedSession = useRef<typeof session | null>(session);
+  useLayoutEffect(() => {
+    mountedSession.current = session;
+    return () => {
+      mountedSession.current = null;
+    };
+  }, [session]);
   useLayoutEffect(() => {
     proSession.setTarget(
       status === "authenticated" ? session : { ...session, accountId: null },
@@ -76,11 +89,25 @@ export function ProProvider({ children }: PropsWithChildren) {
   const retry = useCallback(() => proSession.retry(session), [session]);
   const completeOperation = useCallback(
     (operation: ProOperation, customerInfo?: CustomerInfo) =>
-      proSession.completeOperation(session, operation, customerInfo),
+      mountedSession.current === session
+        ? proSession.completeOperation(session, operation, customerInfo)
+        : Promise.resolve(),
     [session],
   );
   const beginPurchase = useCallback(
     () => proSession.beginPurchase(session),
+    [session],
+  );
+  const beginRestore = useCallback(
+    () =>
+      mountedSession.current === session && proSession.beginRestore(session),
+    [session],
+  );
+  const restore = useCallback(
+    () =>
+      mountedSession.current === session
+        ? proSession.restore(session)
+        : Promise.resolve(),
     [session],
   );
   const dismissPresentation = useCallback(
@@ -98,6 +125,8 @@ export function ProProvider({ children }: PropsWithChildren) {
         retry,
         completeOperation,
         beginPurchase,
+        beginRestore,
+        restore,
         dismissPresentation,
       }}
     >

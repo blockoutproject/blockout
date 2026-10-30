@@ -44,7 +44,7 @@ The versioned [React Native SDK](https://github.com/RevenueCat/react-native-purc
 
 **Alternatives considered**: A customer allowlist adds reviewer/test administration; a second project introduces duplication and continuity work. Neither is needed for the accepted scope. [Sandbox documentation](https://www.revenuecat.com/docs/test-and-launch/sandbox) confirms test and production receipts can coexist on a customer; tests therefore use dedicated accounts, with no claim of project-level isolation.
 
-The SDK owner retains successive identity calls and attributed read/operation tokens because these sequence a process-wide native API. They are separate from the removed general F05 epoch, detached editor registries and failed-command ledgers. The nine-state Pro operation presentation and the existing native/provider qualification gates remain applicable.
+The SDK owner retains successive identity calls and attributed read/operation tokens because these sequence a process-wide native API. They are separate from the removed general F05 epoch, detached editor registries and failed-command ledgers. The transient Pro operation presentation and the existing native/provider qualification gates remain applicable.
 
 ## Restoration, gifts and erasure
 
@@ -55,3 +55,5 @@ The SDK owner retains successive identity calls and attributed read/operation to
 **Alternatives considered**: An automatic migration/recovery engine, per-purchase transfer guarantees, email-based merging and automatic compensatory gifts exceed the agreed behavior or provider guarantees. Manual assistance with verified evidence covers exceptions without a new service or ledger.
 
 **Evidence limits**: Console settings are not successful restoration evidence. Both stores, cross-store assistance, independent gifts and deletion/recreation require controlled native qualification. No customer inventory proves absence of gifts; that premise comes from the owner and must be rechecked before cutover.
+
+The installed 10.13.0 purchases API exposes `restorePurchases(): Promise<CustomerInfo>`; its [versioned source](https://github.com/RevenueCat/react-native-purchases/blob/10.13.0/src/purchases.ts) requires an explicit user action because the store may prompt for authentication. Use it only for the existing destination's independent fallback action. The official provider components already execute restoration and expose the callbacks described in the [plan](plan.md#entry-offers-and-assistance), so invoking it again from a native callback would duplicate an operation. Preserve operation completion separately from current active rights and let ordinary SDK reads recover; no custom retry, receipt inspection endpoint or automatic compensation is warranted. Callback/Router tests establish local attribution and navigation only; T034 retains actual receipt, cross-store, independent-gift and erasure qualification.

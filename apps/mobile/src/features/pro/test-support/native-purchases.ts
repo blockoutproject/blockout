@@ -17,6 +17,10 @@ export const mockPurchases = {
   >(),
   logOut: jest.fn<ReturnType<typeof Purchases.logOut>, []>(),
   getCustomerInfo: jest.fn<ReturnType<typeof Purchases.getCustomerInfo>, []>(),
+  restorePurchases: jest.fn<
+    ReturnType<typeof Purchases.restorePurchases>,
+    []
+  >(),
   getOfferings: jest.fn<ReturnType<typeof Purchases.getOfferings>, []>(),
   addCustomerInfoUpdateListener: jest.fn<
     ReturnType<typeof Purchases.addCustomerInfoUpdateListener>,

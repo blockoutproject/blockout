@@ -46,3 +46,25 @@ export function verifiedProOperation(
     ? "completed"
     : operation;
 }
+
+/** A failed restoration grants nothing; cancellation is quiet and other outcomes require verification. */
+export function restoreErrorOutcome(error: unknown): ProOperation {
+  return typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === Purchases.PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR
+    ? "cancelled"
+    : "restore-uncertain";
+}
+
+/** Restoration cannot erase unresolved payment evidence or encourage a second payment. */
+export function restoredProOperation(
+  current: ProOperation,
+  outcome: ProOperation,
+): ProOperation {
+  return ["purchased", "pending", "uncertain", "already-owned"].includes(
+    current,
+  )
+    ? current
+    : outcome;
+}
