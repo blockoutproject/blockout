@@ -59,9 +59,6 @@ jobs:
     name: ${{ matrix.project }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    permissions:
-      contents: read
-      actions: read
     strategy:
       fail-fast: false
       matrix:
@@ -93,16 +90,12 @@ jobs:
       - name: Install locked workspace dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Select the PR comparison revisions with Nx
-        if: github.event_name == 'pull_request'
-        uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5
-        with:
-          main-branch-name: ${{ github.base_ref }}
-
       - name: Verify the affected application and its contract dependencies
         if: github.event_name == 'pull_request'
         env:
           PROJECT: ${{ matrix.project }}
+          NX_BASE: ${{ github.event.pull_request.base.sha }}
+          NX_HEAD: ${{ github.sha }}
         # Nx's documented project patterns intersect affected projects with this matrix entry.
         run: npx nx affected -t verify --exclude="*,!$PROJECT" --output-style=static
 
