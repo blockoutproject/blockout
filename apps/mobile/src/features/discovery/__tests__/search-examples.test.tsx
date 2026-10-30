@@ -1,6 +1,7 @@
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { Text } from "react-native";
 import { router, Stack } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -134,6 +135,7 @@ async function renderSearch(proAccent = false) {
       "search/(sheets)/filters": SearchFilters,
       "search/(sheets)/choice": SearchFilterChoice,
       "clubs/[clubId]": ClubRoute,
+      home: () => <Text>Accueil de test</Text>,
     },
     {
       initialUrl: "/search",
@@ -460,4 +462,118 @@ it("starts a new selection on a new visit even with the previous query cache ret
   expect(
     new URL(collectionCalls("teams").at(-1)![0]).searchParams.has("exampleIds"),
   ).toBe(false);
+});
+
+it("allows a new visit to select an identity whose previous detail refusal is still cached", async () => {
+  // Given: the old visit removes Niort after the real F03 detail returns 404.
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await screen.findByText("Niort");
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith(`/clubs/${secondId}`)
+      ? Promise.resolve(Response.json({ status: 404 }, { status: 404 }))
+      : publicReads(url),
+  );
+  await act(async () => router.push(`/clubs/${secondId}`));
+  await screen.findByRole("alert");
+  await act(async () => router.back());
+  expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
+  await act(async () => router.replace("/home"));
+  await screen.findByText("Accueil de test");
+  mockFetch.mockImplementation(publicReads);
+
+  // When: new current backend authority admits the identity in a new visit.
+  await act(async () => router.replace("/search"));
+  await layoutNativeTabs();
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+
+  // Then
+  expect(await screen.findByText("Niort")).toBeOnTheScreen();
+  expect(
+    new URL(collectionCalls("clubs").at(-1)![0]).searchParams.has("exampleIds"),
+  ).toBe(false);
+});
+
+it("resolves zero retained examples locally after a failed reread and subsequent detail refusals", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await screen.findByText("Niort");
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith("/clubs")
+      ? Promise.reject(new TypeError("offline"))
+      : publicReads(url),
+  );
+  await act(async () =>
+    client.refetchQueries({ queryKey: ["discovery-examples"], type: "active" }),
+  );
+  await screen.findByRole("button", { name: "Réessayer" });
+  const reads = collectionCalls("clubs").length;
+  mockFetch.mockImplementation((url: string) =>
+    /\/clubs\/[^/]+$/.test(new URL(url).pathname)
+      ? Promise.resolve(Response.json({ status: 404 }, { status: 404 }))
+      : publicReads(url),
+  );
+
+  // When: both exact detail owners establish current hiding without a collection reread.
+  await act(async () => router.push(`/clubs/${secondId}`));
+  await screen.findByRole("alert");
+  await act(async () => router.back());
+  await act(async () => router.push(`/clubs/${firstId}`));
+  await screen.findByRole("alert");
+  await act(async () => router.back());
+
+  // Then
+  expect(
+    await screen.findByText("Aucun résultat pour ces critères"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(collectionCalls("clubs")).toHaveLength(reads);
+});
+
+it("rejects an in-flight retained response that predates a current detail refusal", async () => {
+  // Given: HTTP deliberately completes after the request has been cancelled.
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await screen.findByText("Niort");
+  const pending = Promise.withResolvers<Response>();
+  const started = Promise.withResolvers<void>();
+  let requestSignal: AbortSignal | undefined;
+  mockFetch.mockImplementation((url: string, options: RequestInit) => {
+    if (new URL(url).pathname.endsWith("/clubs")) {
+      requestSignal = options.signal ?? undefined;
+      started.resolve();
+      return pending.promise;
+    }
+    if (new URL(url).pathname.endsWith(`/clubs/${secondId}`))
+      return Promise.resolve(Response.json({ status: 404 }, { status: 404 }));
+    return publicReads(url);
+  });
+  let reread: Promise<void> | undefined;
+  await act(async () => {
+    reread = client.refetchQueries({
+      queryKey: ["discovery-examples"],
+      type: "active",
+    });
+    await started.promise;
+  });
+
+  // When
+  await act(async () => router.push(`/clubs/${secondId}`));
+  await screen.findByRole("alert");
+  await act(async () => router.back());
+  await act(async () => {
+    pending.resolve(await publicReads("https://api.example.invalid/clubs"));
+    await reread;
+  });
+
+  // Then
+  expect(requestSignal?.aborted).toBe(true);
+  expect(screen.getByText("Lyon")).toBeOnTheScreen();
+  expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
 });

@@ -137,6 +137,12 @@ export function createSearchOptionsQueryOptions(
   });
 }
 
+/** Validated examples with request-dispatch time, so an older detail error cannot veto newer authority. */
+export interface DiscoveryExamplesRead {
+  page: DiscoveryPage;
+  startedAt: number;
+}
+
 /**
  * One bounded example read, isolated by visit, exact context and ordered retained selection.
  * An empty retained selection is resolved locally; omission is reserved for a genuinely new selection.
@@ -175,8 +181,14 @@ export function createSearchExamplesQueryOptions(
           ...context.queryKey,
           retained,
         ],
-    queryFn: async ({ signal, client, queryKey }): Promise<DiscoveryPage> => {
-      if (retained?.length === 0) return emptyExamples(resource);
+    queryFn: async ({
+      signal,
+      client,
+      queryKey,
+    }): Promise<DiscoveryExamplesRead> => {
+      const startedAt = Date.now();
+      if (retained?.length === 0)
+        return { page: emptyExamples(resource), startedAt };
       try {
         let headers: Record<string, string> | undefined;
         if (intent) {
@@ -185,11 +197,13 @@ export function createSearchExamplesQueryOptions(
           headers = { Authorization: `Bearer ${credentials.accessToken}` };
         }
         const options = admission.request({ session, signal, headers });
-        if (resource === "club")
-          return await listClubs(context.params, options);
-        if (resource === "team")
-          return await listTeams(context.params, options);
-        return await listPools(context.params, options);
+        const page =
+          resource === "club"
+            ? await listClubs(context.params, options)
+            : resource === "team"
+              ? await listTeams(context.params, options)
+              : await listPools(context.params, options);
+        return { page, startedAt };
       } catch (error) {
         if (
           !signal.aborted &&

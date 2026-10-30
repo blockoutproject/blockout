@@ -3,7 +3,7 @@ import { ApiError } from "../../../shared/api/api-fetch";
 import { useConsultationQueries } from "../../sporting/match-consultation";
 import { uniqueSearchResults } from "../model/search-result";
 import { createDiscoveryContext } from "./discovery-context";
-import type { DiscoveryPage } from "./discovery-queries";
+import type { DiscoveryPage, DiscoveryExamplesRead } from "./discovery-queries";
 import {
   hashKey,
   isCancelledError,
@@ -81,23 +81,30 @@ export function useSearchExamplesQuery(
   const query = useQuery({ ...options, enabled: active, subscribed: active });
   const consultation = useConsultationQueries();
   const identities = uniqueSearchResults(
-    query.data ? [query.data] : undefined,
+    query.data ? [query.data.page] : undefined,
   ).map((item) => item.identity.id);
   const rejected = identities.filter((id) =>
-    exampleRefused(client, consultation[resource](id).queryKey),
+    exampleRefused(
+      client,
+      consultation[resource](id).queryKey,
+      query.data?.startedAt ?? Infinity,
+    ),
   );
   const data =
     query.data && rejected.length
-      ? withoutExamples(query.data, rejected)
-      : query.data;
+      ? withoutExamples(query.data.page, rejected)
+      : query.data?.page;
 
   useEffect(
     () =>
       client.getQueryCache().subscribe((event) => {
         if (event.type !== "updated") return;
-        const state = client.getQueryState<DiscoveryPage>(options.queryKey);
+        const state = client.getQueryState<DiscoveryExamplesRead>(
+          options.queryKey,
+        );
         if (!state?.data || isCancelledError(state.error)) return;
-        const currentIds = uniqueSearchResults([state.data]).map(
+        const read = state.data;
+        const currentIds = uniqueSearchResults([read.page]).map(
           (item) => item.identity.id,
         );
         const detailKeys = currentIds.map((id) =>
@@ -109,7 +116,11 @@ export function useSearchExamplesQuery(
         )
           return;
         const removed = currentIds.filter((id) =>
-          exampleRefused(client, consultation[resource](id).queryKey),
+          exampleRefused(
+            client,
+            consultation[resource](id).queryKey,
+            read.startedAt,
+          ),
         );
         if (state.status !== "success" && !removed.length) return;
         const ids = currentIds.filter((id) => !removed.includes(id));
@@ -128,11 +139,11 @@ export function useSearchExamplesQuery(
           { queryKey: options.queryKey, exact: true },
           { revert: false },
         );
-        client.setQueryData(
-          next.queryKey,
-          withoutExamples(state.data, removed),
-        );
-        if (state.status === "error")
+        client.setQueryData(next.queryKey, {
+          ...read,
+          page: withoutExamples(read.page, removed),
+        });
+        if (state.status === "error" && ids.length > 0)
           client
             .getQueryCache()
             .find({ queryKey: next.queryKey, exact: true })
@@ -169,11 +180,14 @@ function withoutExamples(
 }
 
 /** Reads the existing F03 refusal for one exact session/admission/resource key without issuing a read. */
-function exampleRefused(client: QueryClient, key: QueryKey) {
-  const error = client.getQueryState(key)?.error;
+function exampleRefused(client: QueryClient, key: QueryKey, startedAt: number) {
+  const state = client.getQueryState(key);
+  const error = state?.error;
   return (
+    state !== undefined &&
     error instanceof ApiError &&
     error.kind === "http" &&
+    state.errorUpdatedAt >= startedAt &&
     [401, 403, 404].includes(error.status ?? 0)
   );
 }
