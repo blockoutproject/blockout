@@ -162,7 +162,10 @@ populated return without rereading, confirmed-mutation reset while hidden and fi
 on display. Current F03 refusals cancel older continuations and withdraw only the refused identity;
 retired account responses never become current results. Successful calendar absence also withdraws
 overlapping lists without rereading them on return. Native cancellation restores accepted state
-before removing a refused identity, including an interrupted first-page refresh. A failed refresh
+before removing a refused identity, including an interrupted first-page refresh. When a late hidden
+calendar or current team-detail refusal cancels an initial list read without accepted pages, Query
+exposes ordinary error/retry rather than idle pending state; explicit retry alone admits a new page.
+A failed refresh
 with remaining pages exposes its own explicit retry at the list edge before automatic continuation
 resumes. Original-account refusals withdraw both lists and retained calendars within the same
 session/admission context. A seasonal NotFound followed by successful options omission removes

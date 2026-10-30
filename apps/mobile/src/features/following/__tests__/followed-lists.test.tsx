@@ -720,3 +720,117 @@ it.each([undefined, season.id])(
     close();
   },
 );
+
+it("keeps initial list reads retryable when a late hidden calendar establishes absence", async () => {
+  // Given: the calendar starts before the visible tab changes to Following.
+  const calendarResponse = Promise.withResolvers<Response>();
+  const teamResponse = Promise.withResolvers<Response>();
+  const poolResponse = Promise.withResolvers<Response>();
+  mockFetch
+    .mockReturnValueOnce(calendarResponse.promise)
+    .mockReturnValueOnce(teamResponse.promise)
+    .mockReturnValueOnce(poolResponse.promise);
+  const calendarOptions = createPersonalCalendarOptions(
+    owner,
+    request,
+    { seasonId: season.id, category: "upcoming", timeZone: "Europe/Paris" },
+    read,
+  );
+  const calendar = new InfiniteQueryObserver(client, calendarOptions);
+  const closeCalendar = calendar.subscribe(() => {});
+  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+  calendar.setOptions({ ...calendarOptions, enabled: false });
+  const teams = new InfiniteQueryObserver(
+    client,
+    createFollowListOptions(owner, request, "team", season.id, read),
+  );
+  const pools = new InfiniteQueryObserver(
+    client,
+    createFollowListOptions(owner, request, "pool", season.id, read),
+  );
+  const closeTeams = teams.subscribe(() => {});
+  const closePools = pools.subscribe(() => {});
+  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3));
+
+  // When: the unchanged season accepts the late calendar without available follows.
+  calendarResponse.resolve(
+    Response.json({
+      hasAvailableFollows: false,
+      calendar: {
+        category: "upcoming",
+        timeZone: "Europe/Paris",
+        evaluatedAt: "2026-10-29T12:00:00Z",
+        days: [],
+      },
+    }),
+  );
+
+  // Then: cancelled initial reads expose ordinary retry, not permanent pending or invented emptiness.
+  await waitFor(() => expect(calendar.getCurrentResult().isSuccess).toBe(true));
+  for (const observer of [teams, pools]) {
+    expect(observer.getCurrentResult().status).toBe("error");
+    expect(observer.getCurrentResult().fetchStatus).toBe("idle");
+    expect(observer.getCurrentResult().data).toBeUndefined();
+  }
+  expect(mockFetch).toHaveBeenCalledTimes(3);
+
+  // When: the existing read-error control explicitly retries each independent collection.
+  teamResponse.resolve(Response.json({ items: [team(1)] }));
+  poolResponse.resolve(Response.json({ items: [] }));
+  mockFetch.mockImplementation(async () => Response.json({ items: [] }));
+  await Promise.all([teams.refetch(), pools.refetch()]);
+
+  // Then: only those explicit retries admit current empty pages; old responses cannot reappear.
+  for (const observer of [teams, pools]) {
+    expect(observer.getCurrentResult().status).toBe("success");
+    expect(observer.getCurrentResult().data?.pages).toEqual([{ items: [] }]);
+  }
+  expect(mockFetch).toHaveBeenCalledTimes(5);
+  closeCalendar();
+  closeTeams();
+  closePools();
+});
+
+it("keeps an initial follow list retryable after a current team-detail refusal", async () => {
+  // Given: the first list read is still pending when its current team becomes unavailable.
+  session.setAccount(owner.generation, accountId);
+  const queries = createConsultationQueries(
+    { ...session.getSnapshot(), isCurrent: session.isCurrent },
+    { request: (options) => options },
+    jest.fn(),
+  );
+  const late = Promise.withResolvers<Response>();
+  mockFetch.mockReturnValueOnce(late.promise);
+  const observer = new InfiniteQueryObserver(
+    client,
+    createFollowListOptions(owner, request, "team", season.id, read),
+  );
+  const close = observer.subscribe(() => {});
+  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+  mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
+
+  // When
+  await expect(
+    client.query(queries.team(team(1).team.id)),
+  ).rejects.toMatchObject({
+    status: 404,
+  });
+
+  // Then: there is no accepted page to revert to, so the read must expose retry.
+  expect(observer.getCurrentResult().status).toBe("error");
+  expect(observer.getCurrentResult().fetchStatus).toBe("idle");
+  expect(observer.getCurrentResult().data).toBeUndefined();
+  expect(mockFetch).toHaveBeenCalledTimes(2);
+
+  // When
+  late.resolve(Response.json({ items: [team(1)] }));
+  mockFetch.mockResolvedValueOnce(Response.json({ items: [team(2)] }));
+  await observer.refetch();
+
+  // Then: explicit retry cannot resurrect the refused identity from the cancelled response.
+  expect(observer.getCurrentResult().data?.pages).toEqual([
+    { items: [team(2)] },
+  ]);
+  expect(mockFetch).toHaveBeenCalledTimes(3);
+  close();
+});
