@@ -352,6 +352,10 @@ it.each([false, true])(
     expect(
       screen.queryByRole("button", { name: "Proposer un nouveau lien" }),
     ).not.toBeOnTheScreen();
+    expect(screen.queryByText(/versions pour ce match/)).not.toBeOnTheScreen();
+    expect(
+      screen.queryByText(/Journée de Paris jusqu’au/),
+    ).not.toBeOnTheScreen();
     if (hasActive)
       expect(
         screen.getByDisplayValue(version(2, "active").url),
@@ -434,6 +438,8 @@ it("withdraws only the active version when publication is unavailable and leaves
   expect(
     screen.getByText("Le quota de versions est atteint."),
   ).toBeOnTheScreen();
+  expect(screen.queryByText(/versions pour ce match/)).not.toBeOnTheScreen();
+  expect(screen.queryByText(/Journée de Paris jusqu’au/)).not.toBeOnTheScreen();
 });
 
 it("keeps terminal French explanations private and traverses more than twenty moderator-created historical versions", async () => {

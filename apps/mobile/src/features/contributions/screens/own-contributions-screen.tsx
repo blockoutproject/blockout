@@ -43,7 +43,6 @@ import {
   useOwnContributions,
 } from "../api/own-contributions";
 import { ContributionForm } from "../forms/contribution-form";
-import { ContributionQuota } from "../components/contribution-quota";
 
 /** One match's personal proposals; the original-account read supplies permissions and sporting refusal revokes retained details. */
 export interface OwnContributionsScreenProps {
@@ -277,16 +276,17 @@ export function OwnContributionsScreen({
                         replacement={active}
                       />
                     )}
-                    {!active && (
-                      <ContributionQuota
-                        quota={current.quota}
-                        eligibility={current.eligibility}
-                        moderator={
-                          editing.profile.data?.permissions
-                            .moderateStreamLinks === true
-                        }
-                      />
-                    )}
+                    {!current.eligibility.canSubmit &&
+                      current.eligibility.reason && (
+                        <Text
+                          style={[
+                            tokens.typography.body,
+                            { color: colors.secondaryText },
+                          ]}
+                        >
+                          {current.eligibility.reason}
+                        </Text>
+                      )}
                   </>
                 )}
                 <Text

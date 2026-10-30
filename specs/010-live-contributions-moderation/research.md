@@ -18,8 +18,6 @@
 
 **Alternatives:** Unsynchronized counts alone cannot enforce concurrent quotas. Synchronized counters, daily reset jobs and distributed locks add lifecycle work without need. A general decision/event ledger duplicates the necessary version state. F07's required internal effects stay in the same transaction; its ordinary post-commit push is not guaranteed delivery.
 
-The mobile quota summary consumes the existing generated projection rather than counting loaded history or repeating eligibility rules. An absolute date uses the same French `Intl` options as F03, and its public time formatter supplies date-specific local time. Formatting reads the current display zone without consulting the phone clock for a decision. A server retry boundary remains a request to recheck current conditions; Paris-day end never renews the lifetime match limit. This needs no contract or F03 implementation change.
-
 ## Current-state reads and HTTP resources
 
 **Decision:** Keep the existing mobile OpenAPI root, page-based twenty-item lists and shared Problem Details. Commands carry the viewed contribution revision; administrative commands also carry the original actor account UUID. A stale revision returns 409 before duplicate/no-op evaluation. A lost response permits one bounded current-state read and a later explicit action, never an automatic write retry or exact historical receipt.

@@ -78,12 +78,6 @@ journeys remain with their existing tasks. F08 T016/F03 public projection is qua
 
 ## Reads and mobile
 
-### Quota presentation — T024/T025
-
-`contribution-quota.test.tsx` composes the real contribution and own-history screens, session, Query and generated transport with controlled HTTP/native credentials/navigation. Exercise reached lifetime/daily usage, the same-day match flag versus yesterday's match, an unchanged current address, retained rejected/cancelled usage, refusal with a dirty draft, and moderation permission versus ordinary/Pro presentation. Render the server ends of the 23-hour and 25-hour Paris days in Paris and New York; an already-past server boundary must leave dispatch disabled until a new accepted read allows it. Count the summary once when history includes the active editor. Run the owning mobile verification from the README.
-
-For native review, use compatible development clients and fictional owner reads to capture the ordinary form and personal history, a reached quota/recheck boundary, system light/dark and enlarged text. Check scrolling and accessible textual usage without a timer or polling. Controlled rendering and generated-client tests do not qualify actual US5 moderation/grant changes, lifecycle/erasure integration, provider behavior or T026; those tasks retain their existing owners and limits.
-
 Use more than twenty versions/reports/matches where applicable, including identical timestamps, hidden matches and erased authors. Check deterministic tie-breaks, literal search, combined filters, current counts and clean offset bounds. Concurrent changes may move pages; refresh restarts at zero. “To review” retains reported active links until their situation changes, without a dismissal action. After resolving a hiding wait, old reports and masked versions leave the current badges but remain in version history; rejected-version totals remain correct beyond one page.
 
 With Jest Expo/React Native Testing Library and native device checks, preserve drafts on refusal, disable duplicate in-flight actions and reread affected views after confirmation. Lose a response, delay its completion and fail the bounded read: show ordinary error/retry without replay or invented historical success. A failed refresh after confirmed success must not undo that success. Sign out/change accounts during reads/writes and reject old callbacks, including returning to the same account. No reconnect replay, polling or offline queue.

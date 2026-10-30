@@ -16,8 +16,6 @@ The optional `activeContribution` is the current exact caller-owned active membe
 
 The own collection requires `proposalCount`, a nonnegative safe integer counting all original-account/match versions, including active and terminal states. The count is an SQL aggregate independent of pagination, read coherently with the page/context; an empty collection returns zero.
 
-The quota summary consumes the existing generated `StreamQuotaResponse` fields `versionsUsed`, `dailyMatchesUsed`, `matchCountedToday` and `dayEndsAt`, alongside `StreamSubmissionEligibilityResponse`. `eligibleAt` is an optional server-supplied recheck boundary; neither it nor `dayEndsAt` grants local permission. No schema, generated mirror or new endpoint is needed.
-
 Read lists in pages of twenty with optional nextPage; preserve filters and reset on refresh. Searches are literal case-insensitive fragments, not wildcard syntax. Private representations and errors use no-store. Body revision conflicts reuse the existing 409 problem; no conditional HTTP precondition or 412 contract is introduced. PATCH uses atomic application/json change documents; omitted fields are not invented updates and null is rejected in these required command inputs.
 
 Completed creation returns 201 and a resource Location; existing current repetitions return 200. A report Location identifies the account/version report subresource; a reactivation Location identifies the new administrative contribution member, not a new job. Reports do not transfer to another version. Current reads after uncertainty may still precede delayed completion; no automatic write retry or exact historical receipt.

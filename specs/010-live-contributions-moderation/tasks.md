@@ -96,21 +96,16 @@ description: "Implementation tasks for F08 live contributions and moderation"
 
 ---
 
-## Phase 5: User Story 3 — Understand contribution limits (Priority: P1)
+## Phase 5: User Story 3 — Apply contribution limits consistently (Priority: P1)
 
-**Goal**: Explain ordinary usage/deadlines without incorrect consumption or refunds.
+**Goal**: Enforce ordinary limits without incorrect consumption or refunds.
 
 **Scope**: A17–A21; FR-017–020, FR-027; SC-003.
 
-**Independent Test**: Observe third/fourth boundaries, same-day continuation, 23/25-hour days, unchanged submissions at quota and moderation exemption; show one retry instant in Paris/New York.
+**Independent Test**: Observe third/fourth boundaries, same-day continuation, 23/25-hour days, unchanged submissions at quota and moderation exemption; apply the same instant in Paris/New York.
 
-### Tests for User Story 3
+### Qualification for User Story 3
 
-- [x] T024 [P] [US3] Write failing quota presentation cases in `apps/mobile/src/features/contributions/__tests__/contribution-quota.test.tsx` using generated versionsUsed/dailyMatchesUsed/matchCountedToday/dayEndsAt and eligibility. Cover reached limits, same address, yesterday's match, Paris DST/local display, refused attempts and cancelled/rejected versions retaining usage. Moderator exemption grants no ordinary free/Pro privilege. Backend quota tests already precede implementation in T008.
-
-### Implementation and qualification for User Story 3
-
-- [x] T025 [US3] Add `apps/mobile/src/features/contributions/components/contribution-quota.tsx` and compose it in `own-contributions-screen.tsx`/`contribution-form.tsx`, making T024 pass. Display authoritative usage/local retry deadlines through F03 formatting; no phone-time eligibility, local midnight reset, countdown polling or mirrored quota.
 - [ ] T026 [US3] Execute A17–A21 through `specs/010-live-contributions-moderation/quickstart.md#versions-quotas-and-concurrency` using T008 races plus actual US2/US5 lifecycle/grant changes when available. Verify immutable flagged use, equality before quota refusal and no refunds; approval/reactivation charge neither author quota. Delayed-response proof depends on T051, not a replay or receipt guarantee.
 
 ---
@@ -179,7 +174,7 @@ description: "Implementation tasks for F08 live contributions and moderation"
 - [ ] T046 [P] [US6] Write failing erasure-participant cases in `apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionErasureIntegrationTest.java`. Exercise F05 erasure across version owners, publication/approval/later decision actors and several reporters/reasons, including hidden/ownerless pending versions. Preserve counts/holds/decisions, distinct anonymous rows, lineage and unrelated quotas; no new activity, ownership recovery or sporting-root acquisition after F05's account lock. Combine actual reactivation/report/submission races with failed-erasure rollback.
 - [ ] T047 [P] [US6] Write failing interruption/session cases in `apps/mobile/src/features/contributions/__tests__/contribution-recovery.test.tsx` using actual generated calls/QueryClient and controlled delays. Cover submission/cancel/withdraw/report/every moderator action: one bounded authorized current read after uncertainty, failed read retaining ordinary error/draft, delayed completion after read, newer state without historical-success claims and no replay. Confirmed success survives read failure; old callbacks are rejected after session change, A → guest → A and initiating-view unmount.
 - [ ] T048 [P] [US6] Write failing safe-diagnostic cases in `apps/backend/src/test/java/com/blockout/backend/contributions/api/ContributionFailureLoggingTest.java` and `apps/mobile/src/features/contributions/__tests__/contribution-diagnostics.test.ts`. Distinguish policy refusal/conflict, uncertain mutation and unexpected SQL/read failure with accountable boundary/correlation. Exclude URLs/query strings, reasons, identities, tokens and provider payloads; F05/F11's original-target cleanup exception does not extend to contribution content.
-- [ ] T049 [P] [US6] Prepare native cases in `specs/010-live-contributions-moderation/quickstart.md#reads-and-mobile` for narrow/light/dark/system appearance, enlarged text, VoiceOver/TalkBack, focus/actions, active/pending coexistence, quotas, erased reasons and interrupted recovery. State required iOS/Android builds, actual owners and controlled network/time fixtures; no web-prototype or provider-availability evidence substitutes for native proof.
+- [ ] T049 [P] [US6] Prepare native cases in `specs/010-live-contributions-moderation/quickstart.md#reads-and-mobile` for narrow/light/dark/system appearance, enlarged text, VoiceOver/TalkBack, focus/actions, active/pending coexistence, quota-refused actions, erased reasons and interrupted recovery. State required iOS/Android builds, actual owners and controlled network/time fixtures; no web-prototype or provider-availability evidence substitutes for native proof.
 
 ### Implementation and qualification for User Story 6
 
@@ -214,7 +209,7 @@ Setup → foundation blocks all stories. Within each story, tests precede associ
 | Foundation | T001 → T002 → T003/T004 → T005.                                       | F13 generation, F05 usable original-account context and F12 action definitions.                                                          |
 | US1        | T006–T009 → T010–T016 → T017. Quotas exist from T011/T012.            | Current F02/F05/F12, F03 entry; T006/T008/T012–T014 and T054 share the F02/F07 atomic delivery before production submission is complete. |
 | US2        | US1 state/reads → T018/T019 → T020–T022.                              | T023 closes decision/erasure sequences with US5/T050; no prerequisite cycle.                                                             |
-| US3        | US1 quota reads and US2 personal screen → T024 → T025.                | T026 reuses early backend tests with actual lifecycle decisions/T051.                                                                    |
+| US3        | US1 quota protections and US2 lifecycle → T026.                       | T026 reuses early backend tests with actual lifecycle decisions/T051.                                                                    |
 | US4        | US1 revision/hold/submission boundary → T027/T028 → T029–T032.        | T033 needs actual US5 selection/reactivation and T050 for full report-history proof.                                                     |
 | US5        | US1 direct publication/locks and US4 reports → T034–T037 → T038–T044. | T045 requires real grants/current sporting reads; erased-owner race completes with T050.                                                 |
 | US6        | Relevant commands/queries/schema → T046–T049 → T050–T053.             | T054 actual F02/F07; T055 actual owner integrations; T056 native builds.                                                                 |
@@ -234,7 +229,7 @@ Setup → foundation blocks all stories. Within each story, tests precede associ
 ```text
 F13 bounded foundation + F02/F05/F12 inputs → setup/foundation
 foundation → US1 submission/quota/transition boundary
-US1 → US2 personal lifecycle → US3 quota presentation
+US1 → US2 personal lifecycle → US3 quota qualification
 US1 → US4 exact-version reports/hold
 US1 + US4 → US5 complete moderation
 actual commands + F05 → US6 erasure/recovery
@@ -242,7 +237,7 @@ F02 + F08 + F07 transactional handler → T054 atomic integration
 all stories + actual native builds → final qualification/polish
 ```
 
-US4 may begin after its US1 inputs without US2/US3 screens. Their final cross-story proofs wait for actual decisions/erasure without blocking those implementations. The first MVP is protected submission, not permission to omit quotas, required F07 effects or remaining P1 journeys.
+US4 may begin after its US1 inputs without US2 screens or US3 qualification. Their final cross-story proofs wait for actual decisions/erasure without blocking those implementations. The first MVP is protected submission, not permission to omit quotas, required F07 effects or remaining P1 journeys.
 
 ### Parallel Opportunities
 
@@ -252,7 +247,7 @@ Marked tests use different files after shared inputs. Serialize changes to `cont
 
 - **US1**: T006 HTTP + T007 policy + T008 PostgreSQL + T009 mobile cases. T010–T016 follow required inputs; F07 real binding remains T054.
 - **US2**: T018 backend + T019 mobile cases; lifecycle commands/APIs/UI then follow.
-- **US3**: T024 is self-contained mobile test preparation after quota inputs; no independent backend implementation is needed because protection already lives in US1.
+- **US3**: T026 qualifies quota protections already implemented in US1 together with the actual lifecycle inputs; it adds no quota presentation.
 - **US4**: T027 backend/report cases + T028 mobile cases before T029–T032.
 - **US5**: T034 decisions + T035 reads + T036 HTTP + T037 UI. Serialize shared store/mapper/query edits.
 - **US6**: T046 erasure + T047 recovery + T048 diagnostics + T049 native preparation. Real-owner/device proofs follow implementation; no concurrent quickstart edits.
@@ -260,6 +255,6 @@ Marked tests use different files after shared inputs. Serialize changes to `cont
 ## Implementation Strategy
 
 1. **MVP first**: Complete setup/foundation and US1; prove protected ordinary/moderator submission, current permissions, age/time/quotas and conditional uniqueness. Controlled F07 tests are not an integrated release gate pass.
-2. **Incremental delivery**: Add personal lifecycle and quota presentation, exact reports/hold and complete moderation; validate each independent story before claiming completion. Related outcomes remain explicit later proofs.
+2. **Incremental delivery**: Add personal lifecycle, qualify quotas, then add exact reports/hold and complete moderation; validate each independent story before claiming completion. Related outcomes remain explicit later proofs.
 3. **Real boundaries**: Integrate F05 erasure, session/current-state recovery and actual F02/F07 atomicity. Qualify native devices/design/accessibility with current grants/visibility and no replay.
 4. **Completion**: Execute generated consumers and final quickstart. Retain manual/error limits, report unavailable evidence and keep provider configuration, production operations and deployment separately authorized.

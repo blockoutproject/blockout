@@ -231,7 +231,7 @@ it.each([
   "La publication ouvre une heure avant le match.",
   "Les contributions ne sont pas disponibles pour ce match professionnel.",
 ])(
-  "keeps a refused form unavailable with the current server explanation: %s",
+  "keeps a refused form unavailable without an eligibility ledger: %s",
   async (reason) => {
     // Given
     context = ownContributions({
@@ -246,11 +246,9 @@ it.each([
     expect(
       screen.getByRole("button", { name: "Soumettre le lien" }),
     ).toBeDisabled();
-    expect(screen.getByText(reason)).toBeOnTheScreen();
-    expect(
-      screen.queryByText(/À revérifier à partir du/),
-    ).not.toBeOnTheScreen();
-    expect(screen.getByText(/0\/3 versions pour ce match/)).toBeOnTheScreen();
+    expect(screen.queryByText(reason)).not.toBeOnTheScreen();
+    expect(screen.queryByText(/Disponible à partir du/)).not.toBeOnTheScreen();
+    expect(screen.queryByText(/versions pour ce match/)).not.toBeOnTheScreen();
     expect(posts).toHaveLength(0);
   },
 );
@@ -616,7 +614,7 @@ it("does not replay a guest invitation after explicit sign-in", async () => {
   expect(mockDismissTo).not.toHaveBeenCalled();
 });
 
-it("retains the address after a new time restriction and presents the server retry boundary", async () => {
+it("retains the address after a new time restriction without adding availability copy", async () => {
   // Given
   const user = userEvent.setup();
   await mount();
@@ -660,8 +658,7 @@ it("retains the address after a new time restriction and presents the server ret
       "Le lien a été refusé. Votre saisie est conservée.",
     ),
   ).toBeOnTheScreen();
-  expect(screen.getByText(/À revérifier à partir du/)).toBeOnTheScreen();
-  expect(screen.getByText(context.eligibility.reason ?? "")).toBeOnTheScreen();
+  expect(screen.queryByText(/Disponible à partir du/)).not.toBeOnTheScreen();
   expect(screen.getByDisplayValue(accepted.contribution.url)).toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Soumettre le lien" }),
@@ -669,20 +666,20 @@ it("retains the address after a new time restriction and presents the server ret
   expect(posts).toHaveLength(1);
 });
 
-it("keeps the address form concise alongside its quota summary", async () => {
+it("presents only the address and supported platforms before submission", async () => {
   // Given
   await mount();
 
   // When
   await screen.findByLabelText("Adresse du lien");
 
-  // Then: quota information does not restore the superseded introduction or availability disclaimer.
+  // Then: the ordinary form has no repeated introduction, availability disclaimer or quota counters.
   expect(screen.getByText("YouTube, Twitch ou Facebook")).toBeOnTheScreen();
   expect(
     screen.queryByText("Une adresse de diffusion pour ce match."),
   ).not.toBeOnTheScreen();
   expect(screen.queryByText(/L’adresse ne prouve pas/)).not.toBeOnTheScreen();
-  expect(screen.getAllByText(/versions pour ce match/)).toHaveLength(1);
+  expect(screen.queryByText(/versions pour ce match/)).not.toBeOnTheScreen();
 });
 
 it("refreshes the actual F03 match key after a publication under explicit maintenance bypass", async () => {
