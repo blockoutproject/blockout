@@ -5,21 +5,19 @@ import com.blockout.backend.notifications.application.PushProvider;
 import com.blockout.backend.notifications.application.PushSubscriptionStore;
 import com.blockout.backend.notifications.application.ReadPushEligibility;
 import com.blockout.backend.notifications.application.SportingPushAdmission;
+import com.niamedtech.expo.exposerversdk.ExpoPushNotificationClient;
 import java.time.Clock;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.HttpResponseException;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.HttpClientSettings;
+import org.springframework.boot.http.client.HttpComponentsHttpClientBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.client.ClientHttpRequestFactory;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
-import org.springframework.web.client.RestClient;
-import tools.jackson.databind.json.JsonMapper;
 
 /** Native Spring bounded executor and volatile delayed receipt scheduling for one Expo project. */
 @Configuration(proxyBeanMethods = false)
@@ -58,43 +56,61 @@ public class PushDeliveryConfiguration {
   }
 
   /**
-   * Owns the Expo transport pool with configured deadlines/redirects and no native replay.
+   * Uses Spring Boot's native HTTP builder with ordinary deadlines/redirects and no replay. The
+   * native status interceptor preserves typed HTTP refusal even when its body is empty.
    *
-   * @param settings native Boot HTTP settings from application.yaml
-   * @return request factory closed by Spring with this context
+   * @param settings configured HTTP bounds and redirect policy from application.yaml
+   * @return SDK-supported client, closed by Spring with this context
    */
   @Bean(defaultCandidate = false)
-  HttpComponentsClientHttpRequestFactory pushRequestFactory(HttpClientSettings settings) {
-    return ClientHttpRequestFactoryBuilder.httpComponents()
-        .withHttpClientCustomizer(HttpClientBuilder::disableAutomaticRetries)
+  CloseableHttpClient pushHttpClient(HttpClientSettings settings) {
+    return new HttpComponentsHttpClientBuilder()
+        .withCustomizer(
+            builder ->
+                builder
+                    .disableAutomaticRetries()
+                    .addResponseInterceptorLast(
+                        (response, entity, context) -> {
+                          if (response.getCode() >= 300)
+                            throw new HttpResponseException(
+                                response.getCode(), "Expo request refused");
+                        }))
         .build(settings);
   }
 
   /**
-   * Uses Boot's ordinary configured connect/read bounds (3/5 seconds), with no redirects/resends.
+   * Builds the Java SDK referenced by Expo, using its public client/token configuration.
    *
-   * @param builder Boot-configured bounded HTTP client builder
-   * @param properties environment input; no provider operation is performed at startup
-   * @param json native application JSON mapper
-   * @param factory dedicated native Expo transport
-   * @return focused official Expo send/receipt adapter
+   * @param httpClient dedicated bounded native client with automatic retries disabled
+   * @param properties explicit environment/project configuration
+   * @return upstream SDK; no provider operation is performed at startup
    */
   @Bean
-  PushProvider expoPushClient(
-      RestClient.Builder builder,
-      PushProperties properties,
-      JsonMapper json,
-      @Qualifier("pushRequestFactory") ClientHttpRequestFactory factory) {
-    RestClient.Builder configured =
-        builder.requestFactory(factory).baseUrl("https://exp.host/--/api/v2/push");
-    if (properties.enabled())
-      configured.defaultHeaders(headers -> headers.setBearerAuth(properties.accessToken()));
+  ExpoPushNotificationClient expoPushSdkClient(
+      @Qualifier("pushHttpClient") CloseableHttpClient httpClient, PushProperties properties) {
+    ExpoPushNotificationClient.Builder builder =
+        ExpoPushNotificationClient.builder()
+            .setHttpClient(httpClient)
+            .setBaseUri("https://exp.host/--/api/v2");
+    if (properties.enabled()) builder.setAccessToken(properties.accessToken());
     log.atInfo()
         .addKeyValue("operation", "sporting_push_configuration")
         .addKeyValue("provider", "expo")
         .addKeyValue("outcome", properties.enabled() ? "enabled" : "disabled")
         .log("Push configuration loaded; provider activation remains environment-owned");
-    return new ExpoPushClient(configured.build(), json);
+    return builder.build();
+  }
+
+  /**
+   * Keeps F07 mapping and provider limits outside the SDK without copying its protocol models.
+   *
+   * @param client native Expo-listed Java SDK
+   * @param mapper generated mechanical mapping to the SDK's native request type
+   * @return focused F07 provider adapter
+   */
+  @Bean
+  PushProvider expoPushClient(ExpoPushNotificationClient client, ExpoPushMapper mapper) {
+    return new ExpoPushClient(client, mapper);
   }
 
   /**

@@ -2,11 +2,11 @@
 
 ## Expo delivery through the existing Java backend
 
-**Decision.** Use Expo Push's official HTTP API through Spring RestClient and SDK-compatible `expo-notifications` on native clients. Keep ordinary system permissions/channels, an explicit SDK handler suppressing foreground presentation and default provider delivery lifetime. The backend sends after commit, without automatic resend. Inspect tickets/receipts once through in-memory work.
+**Decision (revised 2026-10-30).** Use the Java SDK currently listed by Expo, `io.github.hlspablo:expo-server-sdk-java:3.1.6`, and SDK-compatible `expo-notifications` on native clients. The owner explicitly requested the Expo-listed Java SDK in this implementation conversation, superseding the former direct-RestClient/no-community-SDK technical selection. Expo labels this SDK community-maintained; its Node SDK alone is maintained by the Expo team. Keep ordinary system permissions/channels, an explicit SDK handler suppressing foreground presentation and default provider delivery lifetime. The backend sends after commit, without automatic resend. Inspect tickets/receipts once through in-memory work.
 
-**Rationale.** One provider boundary serves the existing Expo application without another deployable or Java community SDK. Expo documents message batches of 100, receipt batches of 1,000, a project rate of 600 messages/second, 4 KiB payloads and receipt inspection around fifteen minutes later. Its recommended receipt window is limited; a ticket/receipt confirms acceptance at a provider boundary, not receipt on a phone. A restart may lose unsent push and receipt work while the database inbox remains available. A native Spring task executor/scheduler is sufficient; no delivery status table is justified by the accepted best-effort behavior.
+**Rationale.** One provider boundary serves the existing Expo application without another deployable or copied provider protocol model. Use the SDK’s public builder, `PushNotification`, ticket/receipt types and serializer. A generated mechanical mapper supplies safe F07 fields; response decisions remain local application evidence, not new SDK DTOs. Expo documents message batches of 100, receipt batches of 1,000, a project rate of 600 messages/second, 4 KiB payloads and receipt inspection around fifteen minutes later. Its recommended receipt window is limited; a ticket/receipt confirms acceptance at a provider boundary, not receipt on a phone. A restart may lose unsent push and receipt work while the database inbox remains available. A native Spring task executor/scheduler is sufficient; no delivery status table is justified by the accepted best-effort behavior.
 
-**Alternatives considered.** Direct APNs/FCM adds two server integrations. A Node sender adds a service only for transport. A persistent outbox, receipt journal and automatic retries improve recovery that the owner explicitly does not require. Short live-specific expiry was rejected in favor of ordinary provider delivery after prolonged offline use; wording must remain factual rather than claim a live stream is currently running.
+**Alternatives considered.** The previous direct RestClient adapter avoided a dependency, but the owner now prefers the provider-listed Java SDK to handwritten protocol handling. Direct APNs/FCM adds two server integrations. A Node sender adds a service only for transport. A persistent outbox, receipt journal and automatic retries improve recovery that the owner explicitly does not require. Short live-specific expiry was rejected in favor of ordinary provider delivery after prolonged offline use; wording must remain factual rather than claim a live stream is currently running.
 
 **Evidence.** [Expo sending](https://docs.expo.dev/push-notifications/sending-notifications/), [FAQ](https://docs.expo.dev/push-notifications/faq/), [native setup](https://docs.expo.dev/push-notifications/push-notifications-setup/), [SDK 58 notifications](https://docs.expo.dev/versions/v58.0.0/sdk/notifications/), [FCM message lifetime](https://firebase.google.com/docs/cloud-messaging/customize-messages/setting-message-lifespan). The SDK page lists the compatible package family; resolve its compatible patch through the ordinary Expo installation procedure during implementation, without upgrading the shared stack. These are documented capabilities, not an integrated Java/mobile qualification. Expo Go is not native push evidence.
 
@@ -25,13 +25,23 @@ transaction. A normal unavailable member uses `ReadInbox.availableMember` instea
 transactional exception that has already marked its enclosing read transaction rollback-only.
 No owner repository/entity is imported across feature boundaries.
 
-Boot 4.1.1 selects the installed Apache HttpClient 5.6.4 transport. Its native 429/503 recovery
-can repeat a JSON POST even without application retries. The dedicated Expo request factory
-therefore uses Boot's [native client customizer](https://docs.spring.io/spring-boot/api/java/org/springframework/boot/http/client/HttpComponentsClientHttpRequestFactoryBuilder.html)
-and Apache's [automatic-retry switch](https://hc.apache.org/httpcomponents-client-5.6.x/current/httpclient5/apidocs/org/apache/hc/client5/http/impl/classic/HttpClientBuilder.html)
-to disable that recovery while retaining configured deadlines and redirect policy. Spring owns
-and closes this factory's pool. Loopback HTTP cases exercise the actual native transport rather
-than replacing it with `MockRestServiceServer`.
+The [SDK listed by Expo](https://docs.expo.dev/push-notifications/sending-notifications/#send-push-notifications-using-a-server)
+is [published on Maven Central](https://github.com/hlspablo/expo-server-sdk-java#installation). Version 3.1.6
+accepts a `CloseableHttpClient`, base URI and access token through its public builder. Its native
+optional badge/TTL/expiration values remain null and are omitted by its own serializer. F07 measures
+the SDK-serialized request for the 4 KiB bound, using the public serializer helper rather than a
+second JSON shape. The SDK performs synchronous calls with no application retry machinery.
+
+Use Spring Boot’s native `HttpComponentsHttpClientBuilder` with the configured HTTP settings and
+Apache’s `disableAutomaticRetries()`: native 429/503 recovery would otherwise replay a JSON POST.
+A standard Apache response interceptor raises a typed `HttpResponseException` on HTTP refusal,
+even with an empty/non-JSON body, before SDK decoding. F07 maps the numeric status and never parses
+private SDK exception messages. SDK/transport decoding failures remain unknown evidence; they do
+not cause resend, reconstructed responses or a replacement parser. Spring owns and closes the
+HTTP pool. Loopback cases exercise the real SDK’s serialization/decoding and the production HTTP
+client, including single-attempt refusal. Boot manages the existing Apache/Jackson/logging versions;
+no framework upgrade is selected. The SDK’s raw response DEBUG logger is disabled through ordinary
+Spring logging configuration, leaving only F07’s safe evidence categories/counts.
 
 One ordinary `ThreadPoolTaskExecutor` worker, 100 queued batches of up to 100 targets and a 200 ms
 minimum interval keep a single project's rate at or below 500 messages/second. This conservative

@@ -101,6 +101,9 @@ management:
           additional-path: server:/health
 
 logging:
+  level:
+    # The upstream Java SDK has a raw response-body DEBUG log; never enable it here.
+    com.niamedtech.expo.exposerversdk: "OFF"
   structured:
     format:
       console: ecs

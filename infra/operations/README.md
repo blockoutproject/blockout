@@ -399,8 +399,8 @@ by this configuration.
 
 The [official Expo send/receipt API](https://docs.expo.dev/push-notifications/sending-notifications/)
 was checked on 2026-10-30: 100 messages/request in one project, 600 messages/second/project,
-4 KiB payloads and 1,000 IDs/receipt request. RestClient uses the existing 3-second connect and
-5-second read bounds, with redirects and native Apache automatic retries disabled. Neither the application nor the underlying transport resends a request. Only safe sporting title/body and
+4 KiB payloads and 1,000 IDs/receipt request. The Expo-listed Java SDK uses the existing 3-second connect and
+5-second read bounds, with redirects and native Apache automatic retries disabled. Neither the SDK nor the underlying transport resends a request. Only safe sporting title/body and
 `ownerAccountId`/`notificationId`/`matchId` routing data accompany the destination. No badge, old
 video URL, profile, live-specific TTL, image extension, interactive action or background sync is
 added. Omitted TTL/expiration retain the provider default, possibly four weeks. A late notice
@@ -413,6 +413,8 @@ overload or maintenance skip produces no resend, replay or catch-up. `DeviceNotR
 only the matching private row identity/revision/address, so a late receipt cannot remove a newer
 registration. A last current-maintenance check prevents each new handoff including operators;
 changes after that check cannot atomically stop or recall an external message.
+
+Keep `logging.level.com.niamedtech.expo.exposerversdk=OFF`: the upstream SDK has a raw response-body DEBUG log, which must not expose private provider evidence. Do not enable that logger; do not parse/log SDK exception messages.
 
 Monitor existing structured stdout fields `operation=sporting_push` (drop reason/count),
 `operation=expo_push_evidence` (acceptance/rejection/unknown counts) and
