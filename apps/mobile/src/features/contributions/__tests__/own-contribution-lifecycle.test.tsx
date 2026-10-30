@@ -1081,7 +1081,7 @@ it("recovers a refused match when its successful retry settles after the persona
   expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled();
 });
 
-it("retains every authorized page when match and history refresh both fail technically", async () => {
+it("retains the draft and every authorized page with toast-only refresh failure feedback", async () => {
   // Given
   rows = Array.from({ length: 21 }, (_, index) =>
     version(index + 1, index === 0 ? "active" : "replaced"),
@@ -1096,6 +1096,11 @@ it("retains every authorized page when match and history refresh both fail techn
   const user = userEvent.setup();
   await mount();
   await screen.findByText("Votre lien public");
+  await user.clear(screen.getByLabelText("Adresse du lien"));
+  await user.type(
+    screen.getByLabelText("Adresse du lien"),
+    "https://youtu.be/retained-draft",
+  );
   await fireEvent(
     screen.getByLabelText("Liste de mes propositions"),
     "endReached",
@@ -1113,11 +1118,70 @@ it("retains every authorized page when match and history refresh both fail techn
   });
 
   // Then
-  expect(screen.getByText("Dernier lien public connu")).toBeOnTheScreen();
+  expect(screen.getByText("Votre lien public")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByDisplayValue("https://youtu.be/retained-draft"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer la lecture" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByText(/L’actualisation a échoué/)).not.toBeOnTheScreen();
   expect(
     await screen.findByText("https://youtu.be/history-21"),
   ).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Retirer" })).toBeDisabled();
+  expect(
+    screen.getByRole("button", { name: "Remplacer le lien" }),
+  ).toBeDisabled();
+
+  // When: a new explicit refresh succeeds without submitting the retained draft.
+  failRead = false;
+  await user.pullToRefresh(screen.getByLabelText("Liste de mes propositions"));
+
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Remplacer le lien" }),
+    ).toBeEnabled(),
+  );
+  expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled();
+  expect(
+    screen.getByDisplayValue("https://youtu.be/retained-draft"),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(patches).toEqual([]);
+  expect(alert).not.toHaveBeenCalled();
+});
+
+it("keeps pending-only history after a failed refresh without an inline retry action", async () => {
+  // Given
+  rows = [version(1, "pending")];
+  const user = userEvent.setup();
+  await mount();
+  await screen.findByText("Mes propositions (1)");
+
+  // When
+  failRead = true;
+  await user.pullToRefresh(screen.getByLabelText("Liste de mes propositions"));
+
+  // Then
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("https://youtu.be/history-1")).toBeOnTheScreen();
+  expect(screen.getByText("Mes propositions (1)")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer la lecture" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByText(/L’actualisation a échoué/)).not.toBeOnTheScreen();
+  expect(patches).toEqual([]);
 });
 
 it.each([401, 403, 404])(

@@ -837,13 +837,15 @@ it("keeps a confirmed replacement distinct from retained proposals after returni
   );
 
   // Then
+  expect(await screen.findByText("Votre lien public")).toBeOnTheScreen();
   expect(
-    await screen.findByText("Dernier lien public connu"),
-  ).toBeOnTheScreen();
-  expect(screen.queryByText("Votre lien public")).not.toBeOnTheScreen();
+    screen.queryByText(
+      /Les modifications déjà confirmées restent enregistrées/,
+    ),
+  ).not.toBeOnTheScreen();
   expect(
-    screen.getByText(/Les modifications déjà confirmées restent enregistrées/),
-  ).toBeOnTheScreen();
+    screen.queryByRole("button", { name: "Réessayer la lecture" }),
+  ).not.toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Retirer" })).toBeDisabled();
   expect(submissions).toBe(1);
   expect(Alert.alert).toHaveBeenCalledTimes(1);

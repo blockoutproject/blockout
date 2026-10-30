@@ -114,7 +114,6 @@ export function OwnContributionsScreen({
   }, []);
   const { query, change, submit, session } = editing;
   const current = query.data?.pages[0];
-  const stale = query.isError && !query.isFetchNextPageError;
   const authorized =
     editing.canRetain &&
     !isOwnContributionAccessDenied(query.error) &&
@@ -288,28 +287,6 @@ export function OwnContributionsScreen({
                           {current.eligibility.reason}
                         </Text>
                       )}
-                    {stale && (
-                      <>
-                        <Text
-                          accessibilityLiveRegion="polite"
-                          style={[
-                            tokens.typography.body,
-                            { color: colors.secondaryText },
-                          ]}
-                        >
-                          L’actualisation a échoué. L’état des versions
-                          affichées peut avoir changé. Les modifications déjà
-                          confirmées restent enregistrées.
-                        </Text>
-                        {!active && (
-                          <Button
-                            label="Réessayer la lecture"
-                            onPress={() => void refresh()}
-                            loading={query.isFetching}
-                          />
-                        )}
-                      </>
-                    )}
                   </>
                 )}
                 <Text
