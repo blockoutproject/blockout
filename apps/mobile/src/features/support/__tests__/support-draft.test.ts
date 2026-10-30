@@ -191,3 +191,31 @@ it.each(["authentication", "account-establishment"])(
     expect(supportValues(context).subject).toBe("account");
   },
 );
+
+it("admits only Search provenance and a valid attempted target without free query or diagnostics", () => {
+  // Given
+  const origin = {
+    screen: "search",
+    targetType: "club",
+    targetId: "00000000-0000-4000-8000-000000000242",
+    q: "private query",
+    filters: { gender: "female" },
+    error: "raw diagnostic",
+  };
+
+  // When
+  const context = supportContext(origin);
+  const href = supportHref(origin);
+
+  // Then
+  expect(context).toEqual({
+    screen: "Recherche",
+    action: "Consultation de la cible",
+    target: { type: "club", id: origin.targetId },
+  });
+  expect(href.params).toEqual({
+    originScreen: "search",
+    targetType: "club",
+    targetId: origin.targetId,
+  });
+});

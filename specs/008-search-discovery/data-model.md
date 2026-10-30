@@ -35,7 +35,7 @@ Useful operational values are last rebuild outcome/success time and bounded scop
 - **Search context**: Resource type, normalized text, optional sporting filters and applicable access/session context. Empty text selects examples; nonempty text selects exhaustive textual traversal.
 - **Continuation**: Native score/UUID sort values plus context binding, opaque to the mobile. No server snapshot, expiry job or retained result set. Invalid structure/context is a bad request; a changed index is ordinarily traversed live until refresh.
 - **Examples**: At most five resource UUIDs in selected order, retained in the visit for each applicable tab/filter context. Reread removes no-longer-eligible identities without replacement; a changed filter selects again.
-- **Search page**: Up to twenty current resource summaries and an optional next cursor; no total. Failure does not erase previous authorized pages or establish exhaustion.
+- **Search page**: Up to twenty current resource summaries and an optional next cursor; no total. Query also retains local request-dispatch time for comparison with the existing F03 refusal timestamp; it is not a wire field or a restriction registry. Failure does not erase previous authorized pages or establish exhaustion. Current refusals prune identities without replacing them.
 - **Options**: Current viewable seasons for the requested team/pool type and active divisions, plus the existing format/gender values. Successful empty and failed retrieval are different states.
 
 All visit values live in ordinary mobile navigation/component state or TanStack Query according to their role. There is no persisted search history, private profile enrichment or duplicate backend catalogue.

@@ -1,5 +1,8 @@
 import { hashKey } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
+import { Flag } from "lucide-react-native";
+import { IconButton } from "../../../shared/components/icon-button";
+import { supportHref } from "../../support";
 import { Image } from "expo-image";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
@@ -58,6 +61,7 @@ const searchTabs = [
  * Owner-authorized reread failures retain usable rows with explicit retry; an old empty response
  * cannot establish current absence. There is no refresh gesture or automatic replay.
  * Generated Unicode validation rejects over-limit text without truncating the user's draft.
+ * The existing F10 route receives only Search provenance; RHF text and visit criteria stay local.
  */
 export function SearchScreen() {
   const visit = useSearchVisit();
@@ -195,7 +199,24 @@ export function SearchScreen() {
         }))}
         renderTabBar={(props) => (
           <>
-            <PagerTabBar {...props} />
+            <View style={styles.navigation}>
+              <View style={styles.tabs}>
+                <PagerTabBar {...props} />
+              </View>
+              <IconButton
+                label="Signaler un problème"
+                onPress={() => {
+                  Keyboard.dismiss();
+                  router.push(supportHref({ screen: "search" }));
+                }}
+              >
+                <Flag
+                  accessible={false}
+                  size={tokens.size.icon.lg}
+                  color={colors.icon}
+                />
+              </IconButton>
+            </View>
             <View style={styles.controls}>
               <View style={styles.toolbar}>
                 <View style={styles.search}>
@@ -343,10 +364,16 @@ function SearchScene({
     )
       feedback.error();
   }
+  // Refusals can empty an unfinished textual traversal; only an explicit continuation may resume it.
+  const continueEmpty =
+    !examples &&
+    items.length === 0 &&
+    textQuery.hasNextPage &&
+    (!query.isError || textQuery.isFetchNextPageError);
   const error =
-    query.isError && items.length === 0 ? (
+    (query.isError || continueEmpty) && items.length === 0 ? (
       <ErrorState
-        onRetry={() => void query.refetch()}
+        onRetry={continueEmpty ? loadMore : () => void query.refetch()}
         retrying={query.isFetching}
       />
     ) : undefined;
@@ -404,6 +431,14 @@ function SearchScene({
 }
 
 const styles = StyleSheet.create({
+  // Product Design 916:2892: the shared reporting action sits beside the resource tabs.
+  navigation: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+    paddingRight: tokens.spacing.screen,
+  },
+  tabs: { flex: 1, minWidth: 0 },
   toolbar: {
     flexDirection: "row",
     gap: tokens.spacing.sm,

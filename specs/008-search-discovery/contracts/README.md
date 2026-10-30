@@ -24,3 +24,7 @@ These are additive routes; existing F03 routes and wire meanings remain unchange
 Use F13's OpenAPI YAML 3.0.4 → Redocly validation/bundle → OpenAPI Generator Java interfaces/DTOs and Orval mobile functions/types/Zod. One validated JSON response enters Query once. The collector consumes no F04 HTTP endpoint; after-commit projection requests and current sporting reads are in-process application interfaces, with no extra REST surface. UUID-based detail routes remain the mobile's existing navigation contract; these additions do not claim a hypermedia API.
 
 The [qualification boundary](../quickstart.md#contracts-and-access) records scoped generated compilation, query-array encoding, Unicode length handling and response validation. Discovery's generator tag isolates its four operations; story adapters still supply the business responses and shared access admission. Generated files remain ignored outputs.
+
+## Existing support navigation boundary
+
+Search opens F10's existing `supportHref` route with its finite `search` screen origin. F10 maps it to “Recherche”; known detail targets continue through its existing type/UUID validation. No query text, tab/filter payload, raw error or attachment is added to the URL or support context. This changes no HTTP contract, submission transport or private destination. F05/F13 still own session invalidation and F10 owns private draft disposal.

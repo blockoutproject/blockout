@@ -13,6 +13,7 @@ export interface SupportOrigin {
   failureReason?: unknown;
 }
 const screens = {
+  search: "Recherche",
   profile: "Profil",
   "sign-in": "Connexion",
   club: "Club",

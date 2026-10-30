@@ -25,6 +25,9 @@ import {
 export type DiscoveryPage =
   ClubSearchResponse | TeamSearchResponse | PoolSearchResponse;
 
+/** Validated textual page and dispatch time, compared with F03's existing refusal timestamp. */
+export type DiscoveryTextRead = DiscoveryPage & { startedAt: number };
+
 /** Captured F05 generation guards public completions without waiting for account resolution. */
 type DiscoverySession = NonNullable<ApiFetchOptions["session"]>;
 
@@ -67,7 +70,8 @@ export function createDiscoveryQueryOptions(
       pageParam,
       client,
       queryKey,
-    }): Promise<DiscoveryPage> => {
+    }): Promise<DiscoveryTextRead> => {
+      const startedAt = Date.now();
       try {
         let headers: Record<string, string> | undefined;
         if (intent) {
@@ -77,9 +81,13 @@ export function createDiscoveryQueryOptions(
         }
         const options = admission.request({ session, signal, headers });
         const params = { ...context.params, cursor: pageParam };
-        if (resource === "club") return await listClubs(params, options);
-        if (resource === "team") return await listTeams(params, options);
-        return await listPools(params, options);
+        const page =
+          resource === "club"
+            ? await listClubs(params, options)
+            : resource === "team"
+              ? await listTeams(params, options)
+              : await listPools(params, options);
+        return { ...page, startedAt };
       } catch (error) {
         // An access or visibility refusal invalidates previously authorized pages without resetting the request lifecycle.
         if (

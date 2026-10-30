@@ -3,10 +3,15 @@ import { ApiError } from "../../../shared/api/api-fetch";
 import { useConsultationQueries } from "../../sporting/match-consultation";
 import { uniqueSearchResults } from "../model/search-result";
 import { createDiscoveryContext } from "./discovery-context";
-import type { DiscoveryPage, DiscoveryExamplesRead } from "./discovery-queries";
+import type {
+  DiscoveryPage,
+  DiscoveryExamplesRead,
+  DiscoveryTextRead,
+} from "./discovery-queries";
 import {
   hashKey,
   isCancelledError,
+  type InfiniteData,
   type QueryClient,
   type QueryKey,
   useQuery,
@@ -26,6 +31,8 @@ import {
 /**
  * Subscribes only the visible public text scene through the existing F05/F12 and F13 owners.
  * Native neighbour mounting starts no read; tab return keeps Query's no-refetch/no-retry-on-mount rules.
+ * Same-context F03 refusals newer than a page dispatch prune Query and cancel older in-flight work;
+ * network failures retain permitted rows, and a later authoritative read may admit reappearance.
  */
 export function useDiscoveryQuery(
   resource: DiscoveryResource,
@@ -42,7 +49,60 @@ export function useDiscoveryQuery(
     admission,
     getCredentials,
   );
-  return useInfiniteQuery({ ...options, subscribed: active });
+  const client = useQueryClient();
+  const consultation = useConsultationQueries();
+  const query = useInfiniteQuery({ ...options, subscribed: active });
+  const detail = consultation[resource];
+  useEffect(
+    () =>
+      client.getQueryCache().subscribe(async (event) => {
+        if (event.type !== "updated") return;
+        const state = client.getQueryState<InfiniteData<DiscoveryTextRead>>(
+          options.queryKey,
+        );
+        if (!state?.data || isCancelledError(state.error)) return;
+        const pages = state.data.pages;
+        const detailKeys = uniqueSearchResults(pages).map((item) =>
+          hashKey(detail(item.identity.id).queryKey),
+        );
+        if (
+          event.query.queryHash !== hashKey(options.queryKey) &&
+          !detailKeys.includes(event.query.queryHash)
+        )
+          return;
+        const permitted = pages.map((page) =>
+          withoutRefusedResults(client, page, detail),
+        );
+        if (permitted.every((page, index) => page === pages[index])) return;
+        // Await native reversion before pruning so cancellation cannot replace success with a false append error.
+        await client.cancelQueries({ queryKey: options.queryKey, exact: true });
+        const current = client
+          .getQueryCache()
+          .find<InfiniteData<DiscoveryTextRead>>({
+            queryKey: options.queryKey,
+            exact: true,
+          });
+        const data = current?.state.data;
+        if (!current || !data) return;
+        const currentPages = data.pages.map((page) =>
+          withoutRefusedResults(client, page, detail),
+        );
+        if (currentPages.every((page, index) => page === data.pages[index]))
+          return;
+        // This same-key update preserves native status, prior ordinary errors, cursor state and freshness.
+        current.setState({ data: { ...data, pages: currentPages } });
+      }),
+    [client, options.queryKey, detail],
+  );
+  return {
+    ...query,
+    data: query.data && {
+      ...query.data,
+      pages: query.data.pages.map((page) =>
+        withoutRefusedResults(client, page, detail),
+      ),
+    },
+  };
 }
 
 /**
@@ -84,7 +144,7 @@ export function useSearchExamplesQuery(
     query.data ? [query.data.page] : undefined,
   ).map((item) => item.identity.id);
   const rejected = identities.filter((id) =>
-    exampleRefused(
+    resourceRefused(
       client,
       consultation[resource](id).queryKey,
       query.data?.startedAt ?? Infinity,
@@ -92,7 +152,7 @@ export function useSearchExamplesQuery(
   );
   const data =
     query.data && rejected.length
-      ? withoutExamples(query.data.page, rejected)
+      ? withoutResults(query.data.page, rejected)
       : query.data?.page;
 
   useEffect(
@@ -116,7 +176,7 @@ export function useSearchExamplesQuery(
         )
           return;
         const removed = currentIds.filter((id) =>
-          exampleRefused(
+          resourceRefused(
             client,
             consultation[resource](id).queryKey,
             read.startedAt,
@@ -141,7 +201,7 @@ export function useSearchExamplesQuery(
         );
         client.setQueryData(next.queryKey, {
           ...read,
-          page: withoutExamples(read.page, removed),
+          page: withoutResults(read.page, removed),
         });
         if (state.status === "error" && ids.length > 0)
           client
@@ -167,20 +227,53 @@ export function useSearchExamplesQuery(
   return { ...query, data };
 }
 
-/** Removes only currently refused UUIDs, preserving every other generated summary and its order. */
-function withoutExamples(
+/** Removes current refusals using each page's dispatch time; historical detail errors cannot veto a later read. */
+function withoutRefusedResults(
+  client: QueryClient,
+  page: DiscoveryTextRead,
+  detail: (id: string) => { queryKey: QueryKey },
+): DiscoveryTextRead {
+  const removed = uniqueSearchResults([page])
+    .filter((item) =>
+      resourceRefused(
+        client,
+        detail(item.identity.id).queryKey,
+        page.startedAt,
+      ),
+    )
+    .map((item) => item.identity.id);
+  return removed.length
+    ? { ...withoutResults(page, removed), startedAt: page.startedAt }
+    : page;
+}
+
+/** Removes only currently refused UUIDs, preserving the generated envelope, cursor and every other summary's order. */
+function withoutResults(
   page: DiscoveryPage,
   ids: readonly string[],
 ): DiscoveryPage {
   if ("clubs" in page)
-    return { clubs: page.clubs.filter((item) => !ids.includes(item.club.id)) };
+    return {
+      ...page,
+      clubs: page.clubs.filter((item) => !ids.includes(item.club.id)),
+    };
   if ("teams" in page)
-    return { teams: page.teams.filter((item) => !ids.includes(item.team.id)) };
-  return { pools: page.pools.filter((item) => !ids.includes(item.pool.id)) };
+    return {
+      ...page,
+      teams: page.teams.filter((item) => !ids.includes(item.team.id)),
+    };
+  return {
+    ...page,
+    pools: page.pools.filter((item) => !ids.includes(item.pool.id)),
+  };
 }
 
 /** Reads the existing F03 refusal for one exact session/admission/resource key without issuing a read. */
-function exampleRefused(client: QueryClient, key: QueryKey, startedAt: number) {
+function resourceRefused(
+  client: QueryClient,
+  key: QueryKey,
+  startedAt: number,
+) {
   const state = client.getQueryState(key);
   const error = state?.error;
   return (
