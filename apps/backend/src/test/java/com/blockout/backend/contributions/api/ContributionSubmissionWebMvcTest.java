@@ -83,6 +83,10 @@ class ContributionSubmissionWebMvcTest {
   @MockitoBean private ChangeOwnContribution changes;
   @MockitoBean private ReadOwnContributions reads;
   @MockitoBean private AccountAccess accounts;
+
+  @MockitoBean
+  private com.blockout.backend.contributions.application.ModerationStore moderationReads;
+
   @MockitoBean private AccessSettingsStore settings;
   @MockitoBean private PermissionStore permissions;
   @MockitoBean private PlatformTransactionManager transactions;
@@ -321,7 +325,8 @@ class ContributionSubmissionWebMvcTest {
             java.util.Set.of(com.blockout.backend.access.domain.Permission.MODERATE_STREAM_LINKS));
     when(submissions.submit(any(), any(), any(), any(), anyBoolean()))
         .thenReturn(new SubmitContribution.Outcome(version(), "1", true));
-    when(accounts.displayName(OWNER)).thenReturn("Synthetic");
+    when(accounts.displayNames(java.util.Set.of(OWNER)))
+        .thenReturn(java.util.Map.of(OWNER, "Synthetic"));
 
     // When
     ResultActions response =

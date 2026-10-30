@@ -73,4 +73,51 @@ class ContributionApiMapperTest {
     assertThat(response.getActiveContribution()).isNull();
     assertThat(response.getQuota().getVersionsUsed()).isZero();
   }
+
+  @org.junit.jupiter.api.Test
+  @DisplayName(
+      "Repeated moderator publication preserves the original approval actor rather than naming the owner")
+  void preservesOriginalApprovalActor() {
+    // Given
+    java.util.UUID owner = java.util.UUID.fromString("00000000-0000-4000-8000-000000000001");
+    java.util.UUID moderator = java.util.UUID.fromString("00000000-0000-4000-8000-000000000002");
+    com.blockout.backend.contributions.domain.ContributionVersion version =
+        new com.blockout.backend.contributions.domain.ContributionVersion(
+            java.util.UUID.randomUUID(),
+            java.util.UUID.randomUUID(),
+            new com.blockout.backend.contributions.domain.StreamAddress(
+                "https://youtu.be/approved"),
+            owner,
+            com.blockout.backend.contributions.domain.ContributionVersion.State.ACTIVE,
+            java.time.Instant.parse("2026-10-24T12:00:00Z"),
+            true,
+            null,
+            null,
+            new com.blockout.backend.contributions.domain.ContributionVersion.Decision(
+                com.blockout.backend.contributions.domain.ContributionVersion.DecisionKind.APPROVAL,
+                java.time.Instant.parse("2026-10-24T12:01:00Z"),
+                moderator),
+            null);
+    ContributionApiMapper mapper = Mappers.getMapper(ContributionApiMapper.class);
+
+    // When
+    com.blockout.backend.generated.mobile.model.ModeratedStreamContributionDetailResponse response =
+        mapper.toDto(
+            new com.blockout.backend.contributions.application.SubmitContribution.Outcome(
+                version, "2", false),
+            java.util.Map.of(owner, "Owner", moderator, "Moderator"),
+            3L);
+
+    // Then
+    assertThat(response.getContribution().getAuthorName()).isEqualTo("Owner");
+    assertThat(response.getContribution().getDecisions())
+        .singleElement()
+        .satisfies(
+            decision -> {
+              assertThat(decision.getKind())
+                  .isEqualTo(
+                      com.blockout.backend.generated.mobile.model.StreamDecisionEnum.APPROVE);
+              assertThat(decision.getActorName()).isEqualTo("Moderator");
+            });
+  }
 }

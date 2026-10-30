@@ -562,6 +562,11 @@ StreamModerationResponse:
   description: One page of distinct matches satisfying the requested moderation selection.
   additionalProperties: true
   properties:
+    seasons:
+      type: array
+      description: Known seasons with retained contribution activity, including hidden matches; newest first. Omitted by older servers.
+      items:
+        $ref: ../consultation/schemas.yaml#/SportingSeasonResponse
     items:
       type: array
       description: Last contribution activity descending, then match UUID ascending.

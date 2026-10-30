@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
@@ -72,24 +73,41 @@ public class JpaSportingReadStore
         if (visiblePoolIds(Set.of(id)).isEmpty()) reasons.add(Reason.NO_VISIBLE_PARTICIPATION);
       }
       case MATCH -> {
-        MatchVisibilityRow match = matches.findVisibility(id).orElse(null);
-        if (match == null) return Optional.empty();
-        reasons.addAll(
-            poolReasons(
-                match.catalogEligible(),
-                match.calendarEmpty(),
-                match.divisionId(),
-                match.divisionActive()));
-        if (!match.present()) reasons.add(Reason.ITEM_ABSENT);
-        if (match.localDate() == null) reasons.add(Reason.DATE_UNKNOWN);
-        Map<UUID, List<UUID>> memberships =
-            visiblePoolIds(Set.of(match.homeTeamId(), match.awayTeamId()));
-        if (!memberships.getOrDefault(match.homeTeamId(), List.of()).contains(match.poolId())
-            || !memberships.getOrDefault(match.awayTeamId(), List.of()).contains(match.poolId()))
-          reasons.add(Reason.NO_VISIBLE_PARTICIPATION);
+        return Optional.ofNullable(matchVisibilities(Set.of(id)).get(id));
       }
     }
     return Optional.of(new SportingVisibility(id, kind, reasons));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Map<UUID, SportingVisibility> matchVisibilities(Set<UUID> ids) {
+    if (ids.isEmpty()) return Map.of();
+    List<MatchVisibilityRow> rows = matches.findVisibilities(ids);
+    Set<UUID> teams =
+        rows.stream()
+            .flatMap(row -> java.util.stream.Stream.of(row.homeTeamId(), row.awayTeamId()))
+            .collect(Collectors.toSet());
+    Map<UUID, List<UUID>> memberships = visiblePoolIds(teams);
+    return rows.stream()
+        .collect(
+            Collectors.toUnmodifiableMap(
+                MatchVisibilityRow::id,
+                row -> {
+                  Set<Reason> reasons =
+                      poolReasons(
+                          row.catalogEligible(),
+                          row.calendarEmpty(),
+                          row.divisionId(),
+                          row.divisionActive());
+                  if (!row.present()) reasons.add(Reason.ITEM_ABSENT);
+                  if (row.localDate() == null) reasons.add(Reason.DATE_UNKNOWN);
+                  if (!memberships.getOrDefault(row.homeTeamId(), List.of()).contains(row.poolId())
+                      || !memberships
+                          .getOrDefault(row.awayTeamId(), List.of())
+                          .contains(row.poolId())) reasons.add(Reason.NO_VISIBLE_PARTICIPATION);
+                  return new SportingVisibility(row.id(), Kind.MATCH, reasons);
+                }));
   }
 
   /**

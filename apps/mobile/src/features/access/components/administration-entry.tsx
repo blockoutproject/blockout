@@ -14,7 +14,7 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
 import { canReadDivisions } from "../division-catalog-access";
 
-/** Profile links directly to each currently granted destination; planned rows remain disabled and never grant an operation. */
+/** Profile links directly to each currently granted destination; each destination still requires its owning current capability. */
 export function AdministrationEntry() {
   const { permissions, hasCommands } = useAdministrationCapabilities();
   const { colors } = useTheme();
@@ -61,19 +61,19 @@ export function AdministrationEntry() {
           />
         )}
         {canModerate && (
-          <EntryRow
-            label="Liens vidéo"
-            accessibilityRole="link"
-            icon={
-              <Play
-                accessible={false}
-                size={tokens.size.icon.md}
-                color={colors.icon}
-              />
-            }
-            disclosure
-            disabled
-          />
+          <Link href="/administration/stream-links" asChild>
+            <EntryRow
+              label="Liens vidéo"
+              icon={
+                <Play
+                  accessible={false}
+                  size={tokens.size.icon.md}
+                  color={colors.icon}
+                />
+              }
+              disclosure
+            />
+          </Link>
         )}
         {permissions?.manageCollection === true && (
           <Link href="/collection" asChild>

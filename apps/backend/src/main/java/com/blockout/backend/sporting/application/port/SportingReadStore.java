@@ -23,6 +23,14 @@ public interface SportingReadStore {
   Optional<SportingVisibility> visibility(Kind kind, UUID id);
 
   /**
+   * Resolves a bounded private match selection without one visibility lookup per row.
+   *
+   * @param ids retained match identities
+   * @return current owner restrictions keyed by existing match identity
+   */
+  java.util.Map<UUID, SportingVisibility> matchVisibilities(Set<UUID> ids);
+
+  /**
    * Resolves current public team links within one pool without hydrating search presentation.
    *
    * @param poolId retained official-table scope

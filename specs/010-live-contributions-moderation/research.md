@@ -30,7 +30,7 @@ The private owner collection also projects its exact active member independently
 
 ## Search, attention and mobile freshness
 
-**Decision:** Use parameterized PostgreSQL substring queries over effective team names and recorded addresses, escaping LIKE metacharacters. Filter by season, platform and state. “To review” is a query over pending proposals, unresolved hiding waits and reported active versions. Use native Spring Data paging/Slice and TanStack Query's existing explicit fetching/invalidation, with no polling.
+**Decision:** Use parameterized PostgreSQL substring queries over effective team names and recorded addresses, escaping LIKE metacharacters. Filter by season, platform and state. “To review” is a query over pending proposals, unresolved hiding waits and reported active versions. Use native Spring Data paging/Slice and TanStack Query's existing explicit fetching/invalidation, with no polling. The queue includes optional canonical season labels from retained contribution roots; deriving choices from only the loaded page would omit valid hidden or off-page seasons, while a new filter endpoint is unnecessary.
 
 **Rationale:** [PostgreSQL pattern matching](https://www.postgresql.org/docs/18/functions-matching.html) provides ILIKE; [Spring Data query methods](https://docs.spring.io/spring-data/jpa/reference/jpa/query-methods.html) provide the ordinary query boundary. [TanStack Query invalidation](https://tanstack.com/query/v5/docs/framework/react/guides/query-invalidation) and [query cancellation](https://tanstack.com/query/v5/docs/framework/react/guides/query-cancellation) support the selected memory-only lifecycle. Current counts come from database aggregates, not downloaded pages.
 

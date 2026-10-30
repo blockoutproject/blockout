@@ -105,7 +105,7 @@ public class ContributionsController implements StreamSubmissionApi {
     return response(
         outcome.created(),
         "/administration/matches/" + matchId + "/stream-contributions/" + version.id(),
-        mapper.toDto(outcome, result.displayName()));
+        mapper.toDto(outcome, result.names(), result.reportCount()));
   }
 
   /**

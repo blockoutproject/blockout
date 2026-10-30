@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class SubmitModeratedContribution {
   private final SubmitContribution submissions;
   private final AccountAccess accounts;
+  private final ModerationStore reads;
 
   /**
    * Publishes through the locked command, then resolves current attribution independently. A later
@@ -34,7 +35,14 @@ public class SubmitModeratedContribution {
   public Result submit(UUID accountId, UUID matchId, String revision, URI address) {
     SubmitContribution.Outcome contribution =
         submissions.submit(accountId, matchId, revision, address, true);
-    return new Result(contribution, accounts.displayName(accountId));
+    return new Result(
+        contribution,
+        accounts.displayNames(contribution.version().attributionAccounts()),
+        contribution.created()
+            ? 0
+            : reads
+                .reportCounts(java.util.Set.of(contribution.version().id()))
+                .getOrDefault(contribution.version().id(), 0L));
   }
 
   /**
@@ -42,7 +50,11 @@ public class SubmitModeratedContribution {
    * presentation.
    *
    * @param contribution accepted local command outcome, never a historical command receipt
-   * @param displayName current original-account name, or null after erasure
+   * @param names current original-owner/decision names, with erased lifecycles omitted
+   * @param reportCount current exact-version total; newly created versions start at zero
    */
-  public record Result(SubmitContribution.Outcome contribution, String displayName) {}
+  public record Result(
+      SubmitContribution.Outcome contribution,
+      java.util.Map<UUID, String> names,
+      long reportCount) {}
 }

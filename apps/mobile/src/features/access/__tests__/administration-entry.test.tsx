@@ -623,7 +623,7 @@ it.each([
   },
 );
 
-it("shows planned administration destinations as disabled rows only under their current grants", async () => {
+it("enables the current video-moderation destination while keeping planned mapping disabled", async () => {
   // Given
   mockFetch.mockImplementation(async () =>
     json({
@@ -643,11 +643,10 @@ it("shows planned administration destinations as disabled rows only under their 
   });
   const video = screen.getByRole("link", { name: "Liens vidéo" });
   await user.press(mapping);
-  await user.press(video);
 
   // Then
   expect(mapping).toBeDisabled();
-  expect(video).toBeDisabled();
+  expect(video).toBeEnabled();
   expect(screen.getByRole("link", { name: "Divisions" })).toBeEnabled();
   expect(
     mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),

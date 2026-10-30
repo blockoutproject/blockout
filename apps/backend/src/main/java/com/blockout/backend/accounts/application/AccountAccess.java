@@ -67,6 +67,17 @@ public class AccountAccess {
   }
 
   /**
+   * Supplies current names for an authorized private page without per-version lookups.
+   *
+   * @param ids original owner/decision identities from a bounded version selection
+   * @return present lifecycle names; erased attribution is omitted
+   */
+  @Transactional(readOnly = true)
+  public java.util.Map<UUID, String> displayNames(java.util.Set<UUID> ids) {
+    return accounts.displayNames(ids);
+  }
+
+  /**
    * Checks only original lifecycle presence; never establishes or resolves a replacement account.
    *
    * @param id original UUID

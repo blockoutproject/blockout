@@ -246,3 +246,53 @@ captured version. The peer records only write metadata, never the private reason
 establish neither full protected-root/deep-link startup, minimum-OS coverage, reader speech, actual
 moderation/erasure, provider/production operation nor global design/native approval. T033 and the
 remaining full-story/session/accessibility qualification remain open.
+
+### Private moderation construction — T034–T044
+
+`ModerateContributionIntegrationTest` exercises production approval, rejection, withdrawal and
+new-version reactivation over migrated PostgreSQL, retaining source ownership, useful decisions,
+independent holds and immutable quota participation. Actual F05 account locks coordinate controlled
+owner deletion and grant withdrawal; concurrent decisions preserve the first accepted revision.
+Real F07 inbox constraint failures roll back approval/reactivation, version changes, revision and
+announcement allowance. These controlled account deletions do not qualify F05's complete erasure
+or reason-clearing orchestration, which remains with T050/T055 and F05's owning qualification.
+
+`ModerationReadIntegrationTest` qualifies PostgreSQL literal escaped ILIKE, combined version
+criteria, hidden/dateless and unclassified context, distinct tied-activity match pages, version/report
+pages beyond twenty, SQL totals, independent active members and historical reports after hold
+resolution. Bounded query-count evidence checks sporting hydration without N+1. A controlled
+concurrent report between page selection and aggregate reads proves the actual short repeatable-read
+snapshot; subsequent requests may observe newer facts. Canonical private season choices do not
+require collection-management permission.
+
+`ContributionModerationWebMvcTest` checks generated command grammar, original actor, current
+complete grant, ordinary admission, no-store/Accept-Patch, the new-member reactivation Location,
+useful decision lineage and required null erased reasons without reporter identity.
+`moderation.test.tsx` uses real screens, RHF, generated transport, private Query/session/admission
+owners and controlled HTTP/native I/O for exact confirmations, cancellation, literal filtered
+pagination/first-page refresh, failed versus empty queues, private hidden context, historical reports,
+retained drafts/editing revision and acknowledged success despite a later read failure. Administrative
+queries use generated resource keys within the existing principal-owned private QueryClient;
+obsolete unused account-prefixed moderation key scaffolding is removed.
+
+Local native construction checks ran on the reused `com.blockout.local` development clients:
+iPhone 18 Pro A / iOS 27.0 (`2C22FCF3-D4A7-4F84-BAB1-F358C71C7649`, 402 × 874 points)
+and Android `Pixel_9` (`emulator-5554`, 1080 × 2424 pixels). Production routes/components,
+F05 private Query/session and the Auth0 JavaScript SDK were retained; an ignored qualification
+entry controlled only the native credential boundary and a fictional HTTP peer. This does not
+qualify the full product root/onboarding or actual identity/provider operations. Temporary entry,
+Metro resolver and package-main changes were restored; no qualification mechanism is shipped.
+
+Observed iOS cases: queue/detail tabs, cancelled confirmation with no request, explicit approval,
+new-member reactivation, retained historical reports and erased reason, hidden/dateless private
+context without publication, and light/dark rendering. Observed Android cases: season filter
+selection/apply, detail, real keyboard and reachable publication controls, cancelled confirmation
+retaining the draft, and confirmed explicit replacement. iOS integral text replacement could not
+be confirmed: the automation opened the Expo development menu during entry. It is unavailable
+keyboard evidence, not a passed product check. Screen-reader speech, enlarged-text/minimum-OS
+coverage and full session/erasure scenarios remain with T056. Representative captures belong in
+the delivery PR Conversation with its tested source revision; no screenshot is committed.
+Visual comparison used approved Figma nodes `1293:3968`, `4730:31181`, `1310:6016`,
+`4736:32107` and `4736:32744` in the owning [Product Design](plan.md#design-reconciliation-and-evidence). T045's integrated current-owner
+qualification, T050/T055 erasure and T056's complete platform/accessibility matrix remain separate;
+controlled SQL, JavaScript or native fixtures establish no provider/production or global design approval.

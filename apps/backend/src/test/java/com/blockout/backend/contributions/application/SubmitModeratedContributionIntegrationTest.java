@@ -46,7 +46,7 @@ class SubmitModeratedContributionIntegrationTest extends ContributionScenario {
 
     // Then
     assertThat(result.contribution().created()).isTrue();
-    assertThat(result.displayName()).isEqualTo(erased ? null : "ChangedAfterCommit");
+    assertThat(result.names().get(AUTHOR)).isEqualTo(erased ? null : "ChangedAfterCommit");
     assertThat(count("contribution_version")).isEqualTo(1);
   }
 

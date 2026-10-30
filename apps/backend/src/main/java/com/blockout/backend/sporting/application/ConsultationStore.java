@@ -112,12 +112,13 @@ public interface ConsultationStore {
   Map<UUID, SeasonView> seasons(Set<UUID> ids);
 
   /**
-   * Loads already admitted dated match facts with their current pool presentation and
+   * Loads already admitted retained match facts with their current pool presentation and
    * season/classification context. Participant names and artwork presence are composed separately
    * through the sporting presentation port.
    *
    * @param ids current match identities selected under the caller's consistent read transaction
-   * @return detached sporting inputs; this operation does not authorize the selection
+   * @return detached sporting inputs; this operation does not authorize the selection or require
+   *     public viewability
    */
   Map<UUID, MatchInput> matches(Set<UUID> ids);
 

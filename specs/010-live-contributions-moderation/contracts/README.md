@@ -29,3 +29,10 @@ unchanged. The PATCH retains its exact target and required viewed revision; canc
 withdrawal return the current private member with `Accept-Patch: application/json` and `no-store`.
 
 The executable reporting operations use the `StreamReports` generation tag without changing routes, operation IDs or DTOs. Requests contain only `reason`; whitespace-only reasons receive 422 after normalization. Ordinary admitted usable accounts retain the current reporting right independently of publication age or quota. Existing reports return unchanged 200 before activity/threshold evaluation; own-state GET exposes only `reported`. A later explicit retry remains on that account/version, with no automatic replay or special mobile recovery state.
+
+The executable `StreamContributions` interface supplies the private queue, filtered version
+collection, exact member, PATCH decisions, reactivation creation and exact-version report pages.
+The queue additionally supplies optional `seasons`: current canonical labels for all retained
+contribution seasons, including hidden matches, independently of the queue filters. This additive
+projection makes the existing season filter usable with only `stream-links.moderate`; it grants
+neither collection management nor public sporting access. Older responses may omit it.
