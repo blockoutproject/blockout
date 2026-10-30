@@ -56,3 +56,15 @@ export function restoreErrorOutcome(error: unknown): ProOperation {
     ? "cancelled"
     : "restore-uncertain";
 }
+
+/** Restoration cannot erase unresolved payment evidence or encourage a second payment. */
+export function restoredProOperation(
+  previous: ProOperation,
+  outcome: ProOperation,
+): ProOperation {
+  return ["purchased", "pending", "uncertain", "already-owned"].includes(
+    previous,
+  )
+    ? previous
+    : outcome;
+}

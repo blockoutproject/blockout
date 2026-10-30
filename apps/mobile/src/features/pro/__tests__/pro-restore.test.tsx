@@ -369,3 +369,109 @@ it.each([accountA, "00000000-0000-4000-8000-000000000319"])(
     expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
   },
 );
+it.each(["empty", "cancelled"])(
+  "preserves confirmed payment across an %s restoration and reopening",
+  async (result) => {
+    // Given
+    const user = userEvent.setup();
+    await mount();
+    await screen.findByText("Native paywall");
+    await act(() => pro.completeOperation("purchased"));
+    await screen.findByText(/Paiement confirmé/);
+    if (result === "empty")
+      mockPurchases.restorePurchases.mockResolvedValueOnce(
+        customerInfo({
+          active: {},
+          all: {},
+          verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+        }),
+      );
+    else
+      mockPurchases.restorePurchases.mockRejectedValueOnce({
+        code: mockPurchases.PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR,
+      });
+
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Restaurer mes achats" }),
+    );
+    await waitFor(() =>
+      expect(mockPurchases.restorePurchases).toHaveBeenCalledTimes(1),
+    );
+    await waitFor(() =>
+      expect(pro.state).not.toEqual(
+        expect.objectContaining({ operation: "restoring" }),
+      ),
+    );
+    await user.press(screen.getByRole("button", { name: "Retour" }));
+    await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
+
+    // Then
+    expect(await screen.findByText(/Paiement confirmé/)).toBeOnTheScreen();
+    expect(screen.queryByText("Native paywall")).not.toBeOnTheScreen();
+  },
+);
+it("consumes current native restore evidence while preserving a pending payment", async () => {
+  // Given
+  const user = userEvent.setup();
+  await mount();
+  await screen.findByText("Native paywall");
+  await act(() => pro.completeOperation("pending"));
+  await user.press(
+    screen.getByRole("button", { name: "Gérer ou restaurer mes achats" }),
+  );
+  await screen.findByText("Native management");
+  const active = { "Blockout Pro": entitlement() };
+  const info = customerInfo({
+    active,
+    all: active,
+    verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+  });
+  mockPurchases.getCustomerInfo.mockRejectedValue(new Error("unavailable"));
+
+  // When
+  await act(() => mockCenter.onRestoreStarted!());
+  await act(() => mockCenter.onRestoreCompleted!({ customerInfo: info }));
+
+  // Then
+  expect(pro.state).toEqual(
+    expect.objectContaining({ status: "active", operation: "pending" }),
+  );
+  expect(
+    await screen.findByText(/Le paiement est en attente/),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Native paywall")).not.toBeOnTheScreen();
+});
+it("keeps confirmed payment visible when a restore is still unfinished after route removal", async () => {
+  // Given
+  const user = userEvent.setup();
+  await mount();
+  await screen.findByText("Native paywall");
+  await act(() => pro.completeOperation("purchased"));
+  const result = Promise.withResolvers<CustomerInfo>();
+  mockPurchases.restorePurchases.mockReturnValueOnce(result.promise);
+  await user.press(
+    screen.getByRole("button", { name: "Restaurer mes achats" }),
+  );
+  await waitFor(() =>
+    expect(mockPurchases.restorePurchases).toHaveBeenCalledTimes(1),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Retour" }));
+  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
+
+  // Then
+  expect(await screen.findByText(/Paiement confirmé/)).toBeOnTheScreen();
+  expect(screen.queryByText("Native paywall")).not.toBeOnTheScreen();
+  await act(() =>
+    result.resolve(
+      customerInfo({
+        active: {},
+        all: {},
+        verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+      }),
+    ),
+  );
+  expect(screen.getByText(/Paiement confirmé/)).toBeOnTheScreen();
+});

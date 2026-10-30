@@ -1,3 +1,4 @@
+import { useMutation } from "@tanstack/react-query";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import {
@@ -13,9 +14,14 @@ import { useAccountSession } from "../../accounts/current-account";
 import type { CustomerInfo } from "react-native-purchases";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
+import type { ProOperation } from "../pro-state";
 import { usePro } from "../pro-provider";
 import { canPurchasePro } from "../pro-offering";
-import { purchaseErrorOutcome, restoreErrorOutcome } from "../pro-operations";
+import {
+  purchaseErrorOutcome,
+  restoredProOperation,
+  restoreErrorOutcome,
+} from "../pro-operations";
 import { useProOffering } from "../api/use-pro-offering";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
@@ -56,6 +62,11 @@ export function ProPresentationScreen({
     completeOperation,
     dismissPresentation,
   } = usePro();
+  const restoration = useMutation({
+    mutationFn: restore,
+    retry: false,
+    networkMode: "always",
+  });
   const [openedFor] = useState(() => ({
     subject: account.subject,
     accountId: account.accountId,
@@ -69,7 +80,7 @@ export function ProPresentationScreen({
     liveAccount.current = account;
   }, [account]);
   const closed = useRef(false);
-  const restoreStarted = useRef(false);
+  const restoreStarted = useRef<ProOperation | false>(false);
   const paywallFinished = useRef(false);
   const offeringAttempt = useRef<symbol | null>(null);
   /** Reads the live F05 snapshot, including business UUID establishment for the native principal. */
@@ -126,14 +137,20 @@ export function ProPresentationScreen({
   }
   /** Accepts one attributed native result without equating operation completion with active rights. */
   function finishRestore(customerInfo?: CustomerInfo, error?: unknown) {
-    if (!restoreStarted.current || !isCurrentPresentation()) return;
+    const previous = restoreStarted.current;
+    if (previous === false || !isCurrentPresentation()) return;
     restoreStarted.current = false;
     void completeOperation(
-      customerInfo ? "restored" : restoreErrorOutcome(error),
+      restoredProOperation(
+        previous,
+        customerInfo ? "restored" : restoreErrorOutcome(error),
+      ),
       customerInfo,
     );
     if (closed.current) return;
-    if (customerInfo?.entitlements.active["Blockout Pro"]) close();
+    const completed = getState();
+    if (completed.status === "active" && !hasUnsettledProOperation(completed))
+      close();
     else setView("outcome");
   }
   /** The fallback remains independent of offers; the existing owner gates native execution. */
@@ -141,7 +158,7 @@ export function ProPresentationScreen({
     if (closed.current || !isCurrentPresentation()) return;
     offeringAttempt.current = null;
     setView("outcome");
-    void restore();
+    restoration.mutate();
   }
   /** Removes the route once, even when native dismissal follows a completion callback. */
   const close = useCallback(() => {
@@ -319,10 +336,9 @@ export function ProPresentationScreen({
             label="Restaurer mes achats"
             onPress={restoreExplicitly}
             disabled={
-              !associated ||
-              ["restoring", "purchasing", "pending"].includes(operation)
+              !associated || ["restoring", "purchasing"].includes(operation)
             }
-            loading={operation === "restoring"}
+            loading={restoration.isPending || operation === "restoring"}
           />
           {associated && (
             <Button

@@ -10,7 +10,11 @@ import {
   type ProSessionState,
 } from "./pro-state";
 import { canPurchasePro } from "./pro-offering";
-import { restoreErrorOutcome, verifiedProOperation } from "./pro-operations";
+import {
+  restoredProOperation,
+  restoreErrorOutcome,
+  verifiedProOperation,
+} from "./pro-operations";
 
 /** Current native evidence and verification lifecycle; rights remain SDK-owned. */
 export interface ProSessionSnapshot {
@@ -199,21 +203,22 @@ export function createProSession() {
     await refresh(session);
   }
 
-  /** Records native provider restoration without starting a second store call. */
-  function beginRestore(session: SessionSnapshot): boolean {
+  /** Records native restoration and captures its preceding outcome without starting a second store call. */
+  function beginRestore(session: SessionSnapshot): ProOperation | false {
     if (
       !isAssociated(session) ||
       !snapshot.evidence ||
-      ["purchasing", "restoring", "pending"].includes(
-        snapshot.evidence.operation,
-      )
+      ["purchasing", "restoring"].includes(snapshot.evidence.operation)
     )
       return false;
-    publish({
-      ...snapshot,
-      evidence: { ...snapshot.evidence, operation: "restoring" },
-    });
-    return true;
+    const previous = snapshot.evidence.operation;
+    // Keep unresolved payment visible even if restoration is interrupted or its callback never arrives.
+    if (restoredProOperation(previous, "restoring") === "restoring")
+      publish({
+        ...snapshot,
+        evidence: { ...snapshot.evidence, operation: "restoring" },
+      });
+    return previous;
   }
 
   return {
@@ -296,15 +301,23 @@ export function createProSession() {
 
     /** Explicit fallback for a missing offer/unknown rights; no retry or restoration on account entry. */
     async restore(session: SessionSnapshot) {
-      if (!beginRestore(session)) return;
+      const previous = beginRestore(session);
+      if (previous === false) return;
       const association = snapshot.evidence?.session;
       try {
         const customerInfo = await Purchases.restorePurchases();
         if (snapshot.evidence?.session !== association) return;
-        await completeOperation(session, "restored", customerInfo);
+        await completeOperation(
+          session,
+          restoredProOperation(previous, "restored"),
+          customerInfo,
+        );
       } catch (error) {
         if (snapshot.evidence?.session !== association) return;
-        await completeOperation(session, restoreErrorOutcome(error));
+        await completeOperation(
+          session,
+          restoredProOperation(previous, restoreErrorOutcome(error)),
+        );
       }
     },
 

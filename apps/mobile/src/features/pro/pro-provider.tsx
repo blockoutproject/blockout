@@ -34,8 +34,8 @@ export interface ProContext {
   ): Promise<void>;
   /** Reserves one eligible native purchase synchronously; false must resume(false) at the SDK boundary. */
   beginPurchase(): boolean;
-  /** Records explicit provider restoration, leaving its native execution with the provider. */
-  beginRestore(): boolean;
+  /** Captures the preceding payment outcome for explicit provider restoration; false rejects obsolete/busy starts. */
+  beginRestore(): ProOperation | false;
   /** Explicitly invokes native restoration only after current-account association. */
   restore(): Promise<void>;
   /** Records an interrupted purchase/restoration as uncertain without cancelling the store transaction. */
