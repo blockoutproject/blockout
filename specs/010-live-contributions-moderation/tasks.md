@@ -106,11 +106,11 @@ description: "Implementation tasks for F08 live contributions and moderation"
 
 ### Tests for User Story 3
 
-- [ ] T024 [P] [US3] Write failing quota presentation cases in `apps/mobile/src/features/contributions/__tests__/contribution-quota.test.tsx` using generated versionsUsed/dailyMatchesUsed/matchCountedToday/dayEndsAt and eligibility. Cover reached limits, same address, yesterday's match, Paris DST/local display, refused attempts and cancelled/rejected versions retaining usage. Moderator exemption grants no ordinary free/Pro privilege. Backend quota tests already precede implementation in T008.
+- [x] T024 [P] [US3] Write failing quota presentation cases in `apps/mobile/src/features/contributions/__tests__/contribution-quota.test.tsx` using generated versionsUsed/dailyMatchesUsed/matchCountedToday/dayEndsAt and eligibility. Cover reached limits, same address, yesterday's match, Paris DST/local display, refused attempts and cancelled/rejected versions retaining usage. Moderator exemption grants no ordinary free/Pro privilege. Backend quota tests already precede implementation in T008.
 
 ### Implementation and qualification for User Story 3
 
-- [ ] T025 [US3] Add `apps/mobile/src/features/contributions/components/contribution-quota.tsx` and compose it in `own-contributions-screen.tsx`/`contribution-form.tsx`, making T024 pass. Display authoritative usage/local retry deadlines through F03 formatting; no phone-time eligibility, local midnight reset, countdown polling or mirrored quota.
+- [x] T025 [US3] Add `apps/mobile/src/features/contributions/components/contribution-quota.tsx` and compose it in `own-contributions-screen.tsx`/`contribution-form.tsx`, making T024 pass. Display authoritative usage/local retry deadlines through F03 formatting; no phone-time eligibility, local midnight reset, countdown polling or mirrored quota.
 - [ ] T026 [US3] Execute A17–A21 through `specs/010-live-contributions-moderation/quickstart.md#versions-quotas-and-concurrency` using T008 races plus actual US2/US5 lifecycle/grant changes when available. Verify immutable flagged use, equality before quota refusal and no refunds; approval/reactivation charge neither author quota. Delayed-response proof depends on T051, not a replay or receipt guarantee.
 
 ---

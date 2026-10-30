@@ -27,6 +27,7 @@ import {
 } from "../schemas/contribution-schema";
 import { contributionEditor } from "./contribution-editor";
 import { contributionValues } from "./contribution-values";
+import { ContributionQuota } from "../components/contribution-quota";
 
 /** One original-match address draft; current context disables dispatch while RHF retains values across admission detours. */
 export interface ContributionFormProps {
@@ -237,6 +238,13 @@ export function ContributionForm({
         )}
       </View>
       <View style={styles.form}>
+        <ContributionQuota
+          quota={current.quota}
+          eligibility={current.eligibility}
+          moderator={
+            editing.profile.data?.permissions.moderateStreamLinks === true
+          }
+        />
         <Controller
           control={control}
           name="url"
