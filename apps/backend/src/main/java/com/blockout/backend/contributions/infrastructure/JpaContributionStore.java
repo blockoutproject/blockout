@@ -53,6 +53,14 @@ public class JpaContributionStore implements ContributionStore {
 
   /** {@inheritDoc} */
   @Override
+  public Optional<ContributionVersion> ownActive(UUID matchId, UUID ownerId) {
+    return versions
+        .findByMatchIdAndOwnerIdAndState(matchId, ownerId, State.ACTIVE)
+        .map(mapper::toDomain);
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public Optional<ContributionVersion> pending(UUID matchId, UUID ownerId) {
     return versions
         .findByMatchIdAndOwnerIdAndState(matchId, ownerId, State.PENDING)

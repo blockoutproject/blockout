@@ -157,7 +157,7 @@ it.each([
   { name: "terminal proposal", state: "rejected", canSubmit: false },
   { name: "published proposal", state: "active", canSubmit: false },
 ] as const)(
-  "opens personal proposals directly from the Stream link header for $name",
+  "opens the dedicated form or management screen from the match card for $name",
   async ({ state, canSubmit }) => {
     // Given
     jest.replaceProperty(
@@ -189,6 +189,19 @@ it.each([
             ownContributions({
               proposalCount: state ? 1 : 0,
               eligibility: { canSubmit, requiresApproval: false },
+              ...(state === "active"
+                ? {
+                    activeContribution: {
+                      id: versionId,
+                      url: "https://youtu.be/personal",
+                      platform: "youtube",
+                      state: "active",
+                      submittedAt: "2026-10-28T09:00:00Z",
+                      canCancel: false,
+                      canWithdraw: true,
+                    },
+                  }
+                : {}),
               items: state
                 ? [
                     {
@@ -225,8 +238,13 @@ it.each([
       },
       { initialUrl: "/" },
     );
-    const manage = await screen.findByRole("button", {
-      name: "Gérer mes propositions",
+    const entry = await screen.findByRole("button", {
+      name:
+        state === "active"
+          ? "Modifier le lien"
+          : state
+            ? "Gérer mes propositions"
+            : "Proposer un lien",
     });
     expect(
       screen.getByRole("header", { name: "Stream link" }),
@@ -242,26 +260,26 @@ it.each([
       ).toBeOnTheScreen();
 
     // When
-    await user.press(manage);
+    expect(
+      screen.queryByRole("link", { name: "Ouvrir le lien" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByText("Signaler")).not.toBeOnTheScreen();
+    await user.press(entry);
 
     // Then
-    expect(
-      await screen.findByRole("header", {
-        name: `Mes propositions (${state ? 1 : 0})`,
-      }),
-    ).toBeOnTheScreen();
-    expect(screen.queryByLabelText("Adresse du lien")).not.toBeOnTheScreen();
-    expect(Alert.alert).not.toHaveBeenCalled();
-
-    if (!state) {
-      // When: adding the first version remains an explicit action from the personal screen.
-      await user.press(
-        screen.getByRole("button", { name: "Proposer un nouveau lien" }),
-      );
-
-      // Then
-      expect(await screen.findByLabelText("Adresse du lien")).toBeOnTheScreen();
+    if (state) {
+      expect(
+        await screen.findByRole("header", { name: "Mes propositions (1)" }),
+      ).toBeOnTheScreen();
+    } else {
+      expect(
+        await screen.findByLabelText("Adresse du lien"),
+      ).toHaveDisplayValue("");
+      expect(
+        screen.queryByRole("header", { name: "Mes propositions (0)" }),
+      ).not.toBeOnTheScreen();
     }
+    expect(Alert.alert).not.toHaveBeenCalled();
     expect(
       mockFetch.mock.calls.some(
         ([, init]) => init?.method === "POST" || init?.method === "PATCH",
@@ -293,7 +311,7 @@ it("opens the existing guest invitation from an empty Stream link card without r
     { initialUrl: "/" },
   );
   const manage = await screen.findByRole("button", {
-    name: "Gérer mes propositions",
+    name: "Proposer un lien",
   });
   expect(
     screen.getByText("Aucun lien disponible pour ce match."),
@@ -425,8 +443,11 @@ it("keeps history revoked when a refused match opens it before technical mount r
 
   // Then
   expect(
-    await screen.findAllByText("https://youtu.be/private-history"),
-  ).toHaveLength(2);
+    await screen.findByText("https://youtu.be/private-history"),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Adresse du lien")).toHaveDisplayValue(
+    "https://youtu.be/private-history",
+  );
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled(),
   );
@@ -437,7 +458,8 @@ it("leaves an acknowledged clean form without asking to discard the saved addres
   await renderRouter(
     {
       _layout: Layout,
-      index: () => <Text>Match origin</Text>,
+      index: () => <Text>Unrelated origin</Text>,
+      "matches/[matchId]": () => <Text>Match origin</Text>,
       "matches/[matchId]/contribution": () => (
         <ContributionScreen matchId={match.match.id} />
       ),
@@ -455,13 +477,25 @@ it("leaves an acknowledged clean form without asking to discard the saved addres
     await screen.findByLabelText("Adresse du lien"),
     "https://youtu.be/example",
   );
+
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)?.[2]
+      ?.find((button) => button.text === "Soumettre le lien")
+      ?.onPress?.(),
+  );
+
   // Then
   await waitFor(() =>
     expect(screen.getByText("Match origin")).toBeOnTheScreen(),
   );
-  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(Alert.alert).toHaveBeenCalledTimes(1);
+  expect(jest.mocked(Alert.alert).mock.calls[0]?.[0]).toBe(
+    "Soumettre ce lien ?",
+  );
 });
 
 /** Applies the production F12 guard, so a business dependency failure removes ordinary route owners. */
@@ -549,8 +583,16 @@ it("retains the original draft and unresolved command across F12 protected-route
     await screen.findByLabelText("Adresse du lien"),
     "https://youtu.be/example",
   );
+
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)?.[2]
+      ?.find((button) => button.text === "Soumettre le lien")
+      ?.onPress?.(),
+  );
   await screen.findByRole("button", { name: "Vérifier accès" });
   failRead = false;
   await user.press(screen.getByRole("button", { name: "Vérifier accès" }));
@@ -561,6 +603,7 @@ it("retains the original draft and unresolved command across F12 protected-route
       params: { matchId: match.match.id },
     }),
   );
+
   // Then
   expect(
     await screen.findByDisplayValue("https://youtu.be/example"),
@@ -618,6 +661,13 @@ it("keeps a reopened draft retained when the original detached submission acknow
     "https://youtu.be/example",
   );
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)?.[2]
+      ?.find((button) => button.text === "Soumettre le lien")
+      ?.onPress?.(),
+  );
 
   // When: a separate current match read closes admission during the pending command.
   refuseMatch = true;
@@ -693,34 +743,47 @@ it("keeps a reopened draft retained when the original detached submission acknow
   ).toBeOnTheScreen();
 });
 
-it("keeps a confirmed new version distinct from the last known history after its refresh fails", async () => {
+it("keeps a confirmed replacement distinct from retained proposals after returning to the match", async () => {
   // Given
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
+  prepareProNativeIO();
   const boundary = mockFetch.getMockImplementation();
   if (!boundary) throw new Error("Missing test HTTP boundary");
   let acknowledged = false;
   let submissions = 0;
+  const previous = {
+    id: "00000000-0000-4000-8000-000000000004",
+    url: "https://youtu.be/previous",
+    platform: "youtube" as const,
+    state: "active" as const,
+    submittedAt: "2026-10-28T09:00:00Z",
+    canCancel: false,
+    canWithdraw: true,
+  };
   mockFetch.mockImplementation(async (url, init) => {
-    if (String(url).includes("/stream-contributions")) {
+    const path = new URL(String(url)).pathname;
+    if (path === `/matches/${match.match.id}`)
+      return Response.json({
+        ...match,
+        streamUrl: previous.url,
+        streamContributionId: previous.id,
+      });
+    if (path.includes("/stream-contributions")) {
       if (init?.method === "POST") {
         submissions++;
         acknowledged = true;
         return boundary(url, init);
       }
-      if (acknowledged) throw new TypeError("Controlled history read failure");
+      if (acknowledged) throw new TypeError("Controlled owner read failure");
       return Response.json(
         ownContributions({
           proposalCount: 1,
-          items: [
-            {
-              id: "00000000-0000-4000-8000-000000000004",
-              url: "https://youtu.be/previous",
-              platform: "youtube",
-              state: "active",
-              submittedAt: "2026-10-28T09:00:00Z",
-              canCancel: false,
-              canWithdraw: true,
-            },
-          ],
+          activeContribution: previous,
+          items: [previous],
         }),
       );
     }
@@ -730,21 +793,48 @@ it("keeps a confirmed new version distinct from the last known history after its
   await renderRouter(
     {
       _layout: Layout,
-      index: () => <OwnContributionsScreen matchId={match.match.id} />,
-      "matches/[matchId]/contribution": () => (
-        <ContributionScreen matchId={match.match.id} />
+      "matches/[matchId]": () => (
+        <AdvertisingProviders>
+          <MatchScreen matchId={match.match.id} />
+        </AdvertisingProviders>
+      ),
+      "matches/[matchId]/contributions": () => (
+        <OwnContributionsScreen matchId={match.match.id} />
       ),
     },
-    { initialUrl: "/" },
+    { initialUrl: `/matches/${match.match.id}` },
   );
-  await user.press(await screen.findByRole("button", { name: "Remplacer" }));
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  await user.clear(await screen.findByLabelText("Adresse du lien"));
   await user.type(
-    await screen.findByLabelText("Adresse du lien"),
+    screen.getByLabelText("Adresse du lien"),
     "https://youtu.be/example",
   );
 
   // When
-  await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)?.[2]
+      ?.find((button) => button.text === "Remplacer le lien")
+      ?.onPress?.(),
+  );
+  await waitFor(() =>
+    expect(screen).toHavePathname(`/matches/${match.match.id}`),
+  );
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(
+    screen.queryByRole("link", { name: "Ouvrir le lien" }),
+  ).not.toBeOnTheScreen();
+  await act(() =>
+    router.push({
+      pathname: "/matches/[matchId]/contributions",
+      params: { matchId: match.match.id },
+    }),
+  );
 
   // Then
   expect(
@@ -756,5 +846,104 @@ it("keeps a confirmed new version distinct from the last known history after its
   ).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Retirer" })).toBeDisabled();
   expect(submissions).toBe(1);
-  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(Alert.alert).toHaveBeenCalledTimes(1);
+});
+
+it("returns from the owned editor to the exact match after withdrawing its active projection", async () => {
+  // Given: the acknowledgement removes the public editor while the retained draft is dirty.
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
+  prepareProNativeIO();
+  const boundary = mockFetch.getMockImplementation();
+  if (!boundary) throw new Error("Missing test HTTP boundary");
+  const active = {
+    id: "00000000-0000-4000-8000-000000000004",
+    url: "https://youtu.be/public",
+    platform: "youtube" as const,
+    state: "active" as const,
+    submittedAt: "2026-10-28T09:00:00Z",
+    canCancel: false,
+    canWithdraw: true,
+  };
+  let withdrawn = false;
+  mockFetch.mockImplementation(async (url, init) => {
+    const path = new URL(String(url)).pathname;
+    if (path === `/matches/${match.match.id}`)
+      return Response.json({
+        ...match,
+        ...(withdrawn
+          ? {}
+          : { streamUrl: active.url, streamContributionId: active.id }),
+      });
+    if (path.includes("/stream-contributions")) {
+      if (init?.method === "PATCH") {
+        withdrawn = true;
+        return Response.json({
+          revision: "withdrawn",
+          contribution: { ...active, state: "withdrawn", canWithdraw: false },
+        });
+      }
+      return Response.json(
+        ownContributions({
+          proposalCount: 1,
+          activeContribution: withdrawn ? undefined : active,
+          items: [
+            {
+              ...active,
+              ...(withdrawn ? { state: "withdrawn", canWithdraw: false } : {}),
+            },
+          ],
+        }),
+      );
+    }
+    return boundary(url, init);
+  });
+  const user = userEvent.setup();
+  await renderRouter(
+    {
+      _layout: Layout,
+      "matches/[matchId]": () => (
+        <AdvertisingProviders>
+          <MatchScreen matchId={match.match.id} />
+        </AdvertisingProviders>
+      ),
+      "matches/[matchId]/contributions": () => (
+        <OwnContributionsScreen matchId={match.match.id} />
+      ),
+    },
+    { initialUrl: `/matches/${match.match.id}` },
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  await user.clear(await screen.findByLabelText("Adresse du lien"));
+  await user.type(
+    screen.getByLabelText("Adresse du lien"),
+    "https://youtu.be/unsaved",
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Retirer" }));
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls[0]?.[2]?.find((button) => button.text === "Retirer le lien")
+      ?.onPress?.(),
+  );
+
+  // Then
+  await waitFor(() =>
+    expect(screen).toHavePathname(`/matches/${match.match.id}`),
+  );
+  expect(
+    await screen.findByRole("button", { name: "Proposer un lien" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Adresse du lien")).not.toBeOnTheScreen();
+  expect(Alert.alert).toHaveBeenCalledTimes(1);
+  expect(
+    mockFetch.mock.calls.filter(([, init]) => init?.method === "PATCH"),
+  ).toHaveLength(1);
 });

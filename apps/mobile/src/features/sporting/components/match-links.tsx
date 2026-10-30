@@ -17,13 +17,15 @@ export interface MatchLinksProps {
   detail: MatchDetailResponse;
   /** Supply only an available action; it keeps the empty Stream link card reachable without inventing a destination. */
   action?: ReactNode;
+  /** F08 supplies the sole primary action when adding a link or managing the exact public owner version. */
+  primaryAction?: ReactNode;
 }
 
 /** Offers an available HTTP(S) destination or an explicit empty card with the supplied action, without inferring live status or replay. */
-export function MatchLinks({ detail, action }: MatchLinksProps) {
+export function MatchLinks({ detail, action, primaryAction }: MatchLinksProps) {
   const { colors } = useTheme();
   const url = safeWebsite(detail.streamUrl);
-  if (!url && !action) return null;
+  if (!url && !action && !primaryAction) return null;
   const target = `${detail.match.id}:${detail.streamContributionId ?? "professional"}:${url}`;
   return (
     <MatchSurface division={detail.match.pool.classification.division}>
@@ -38,13 +40,22 @@ export function MatchLinks({ detail, action }: MatchLinksProps) {
           {action}
         </View>
         {url ? (
-          <StreamLink key={target} url={url} target={target} detail={detail} />
+          <StreamLink
+            key={target}
+            url={url}
+            target={target}
+            detail={detail}
+            action={primaryAction}
+          />
         ) : (
-          <Text
-            style={[tokens.typography.body, { color: colors.secondaryText }]}
-          >
-            Aucun lien disponible pour ce match.
-          </Text>
+          <>
+            <Text
+              style={[tokens.typography.body, { color: colors.secondaryText }]}
+            >
+              Aucun lien disponible pour ce match.
+            </Text>
+            {primaryAction}
+          </>
         )}
       </View>
     </MatchSurface>
@@ -59,10 +70,12 @@ function StreamLink({
   url,
   target,
   detail,
+  action,
 }: {
   url: string;
   target: string;
   detail: MatchDetailResponse;
+  action?: ReactNode;
 }) {
   const transition = useSportingTransition();
   const navigation = useNavigation();
@@ -94,20 +107,22 @@ function StreamLink({
           {new URL(url).hostname}
         </Text>
       </View>
-      <Button
-        label="Ouvrir le lien"
-        accessibilityRole="link"
-        accessibilityHint="Ouvrir le Stream link de ce match"
-        leadingIcon={Play}
-        fullWidth
-        contextColor={division?.color}
-        contextGradient={division?.gradient}
-        contextForeground={
-          division ? divisionTextColor(division.color) : undefined
-        }
-        loading={transition.pending}
-        onPress={open}
-      />
+      {action ?? (
+        <Button
+          label="Ouvrir le lien"
+          accessibilityRole="link"
+          accessibilityHint="Ouvrir le Stream link de ce match"
+          leadingIcon={Play}
+          fullWidth
+          contextColor={division?.color}
+          contextGradient={division?.gradient}
+          contextForeground={
+            division ? divisionTextColor(division.color) : undefined
+          }
+          loading={transition.pending}
+          onPress={open}
+        />
+      )}
     </View>
   );
 }

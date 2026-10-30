@@ -215,7 +215,7 @@ export function useOwnContributions(matchId: string) {
   } = useOwnContributionsRead(matchId);
   const client = useQueryClient();
   const matchKey = useConsultationQueries().match(matchId).queryKey;
-  /** Retains the exact acknowledgement and optionally updates its existing row; only a full read advances context revision or eligibility. */
+  /** Retains the exact acknowledgement and updates its known member/active projection; only a full read advances context revision or eligibility. */
   async function accept(
     accepted: OwnStreamContributionDetailResponse,
     updateMember = false,
@@ -233,6 +233,15 @@ export function useOwnContributions(matchId: string) {
           ? {
               pages: data.pages.map((page) => ({
                 ...page,
+                ...(updateMember &&
+                page.activeContribution?.id === accepted.contribution.id
+                  ? {
+                      activeContribution:
+                        accepted.contribution.state === "active"
+                          ? accepted.contribution
+                          : undefined,
+                    }
+                  : {}),
                 items: page.items.map((item) =>
                   updateMember && item.id === accepted.contribution.id
                     ? accepted.contribution

@@ -72,11 +72,11 @@ const mockFetch = jest.fn<
 >();
 const previous = { ...process.env };
 /** Uses the actual public action and its read owner, as the match refresh composition does. */
-function Entry() {
+function Entry({ header = false }: { header?: boolean }) {
   const entry = useMatchContributionAction(
     "00000000-0000-4000-8000-000000000002",
   );
-  return <MatchContributionAction entry={entry} />;
+  return <MatchContributionAction entry={entry} header={header} />;
 }
 let client = createQueryClient();
 let context = ownContributions();
@@ -160,15 +160,17 @@ it.each(["refused", "owner outage", "profile outage"])(
     );
     await waitFor(() => expect(client.isFetching()).toBe(0));
     expect(
-      screen.queryByRole("button", { name: "Gérer mes propositions" }),
+      screen.queryByRole("button", { name: "Proposer un lien" }),
     ).not.toBeOnTheScreen();
+
     // When: time-dependent eligibility changes and the user refreshes the match itself.
     recovering = true;
     context = ownContributions();
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
     // Then: the same entry becomes usable without remount, polling or a separate permission flow.
     expect(
-      await screen.findByRole("button", { name: "Gérer mes propositions" }),
+      await screen.findByRole("button", { name: "Proposer un lien" }),
     ).toBeOnTheScreen();
   },
 );
@@ -233,7 +235,7 @@ it.each([false, true])(
       published,
     );
     expect(
-      screen.queryByRole("button", { name: "Gérer mes propositions" }),
+      screen.queryByRole("button", { name: "Proposer un lien" }),
     ).not.toBeOnTheScreen();
     expect(
       screen.queryByText("Aucun lien disponible pour ce match."),
@@ -242,7 +244,7 @@ it.each([false, true])(
 );
 
 it.each([true, false])(
-  "opens only a neutral native entry for authenticated=%s",
+  "opens the proposal form or existing invitation for authenticated=%s",
   async (authenticated) => {
     // Given: the real session and eligibility owners; neither Pro nor support controls the entry.
     mockAuth0.hasValidCredentials.mockResolvedValue(authenticated);
@@ -258,15 +260,17 @@ it.each([true, false])(
         </ThemeProvider>
       </QueryClientProvider>,
     );
+
     // When
     await user.press(
-      await screen.findByRole("button", { name: "Gérer mes propositions" }),
+      await screen.findByRole("button", { name: "Proposer un lien" }),
     );
+
     // Then
     expect(mockPush).toHaveBeenCalledWith(
       authenticated
         ? {
-            pathname: "/matches/[matchId]/contributions",
+            pathname: "/matches/[matchId]/contribution",
             params: { matchId: "00000000-0000-4000-8000-000000000002" },
           }
         : {
@@ -306,6 +310,7 @@ it.each([
       </ThemeProvider>
     </QueryClientProvider>,
   );
+
   // When: the real Query and generated transport finish the eligibility read.
   await waitFor(() =>
     expect(mockFetch).toHaveBeenCalledWith(
@@ -317,15 +322,16 @@ it.each([
     response.resolve(Response.json(context));
   });
   await waitFor(() => expect(client.isFetching()).toBe(0));
+
   // Then: there is no disabled action, refusal copy, or navigation to an unusable form.
   expect(
-    screen.queryByRole("button", { name: "Gérer mes propositions" }),
+    screen.queryByRole("button", { name: "Proposer un lien" }),
   ).not.toBeOnTheScreen();
   expect(screen.queryByText(reason)).not.toBeOnTheScreen();
   expect(mockPush).not.toHaveBeenCalled();
 });
 
-it("keeps personal history reachable when new submissions are unavailable", async () => {
+it("keeps personal proposals reachable when new submissions are unavailable", async () => {
   // Given
   context = ownContributions({
     eligibility: { canSubmit: false, requiresApproval: false },
@@ -348,7 +354,7 @@ it("keeps personal history reachable when new submissions are unavailable", asyn
       <ThemeProvider>
         <ApplicationAccessProvider>
           <AccountSessionProvider>
-            <Entry />
+            <Entry header />
           </AccountSessionProvider>
         </ApplicationAccessProvider>
       </ThemeProvider>
@@ -369,3 +375,351 @@ it("keeps personal history reachable when new submissions are unavailable", asyn
     screen.queryByRole("button", { name: "Stream link" }),
   ).not.toBeOnTheScreen();
 });
+
+it.each(["exact owner", "different owner", "missing projection"] as const)(
+  "selects the public action from the independent active identity: %s",
+  async (ownership) => {
+    // Given: twenty newer personal versions do not contain the currently published version.
+    const publicId = "00000000-0000-4000-8000-000000000099";
+    const active = {
+      id:
+        ownership === "different owner"
+          ? "00000000-0000-4000-8000-000000000098"
+          : publicId,
+      url: "https://youtu.be/published",
+      platform: "youtube" as const,
+      state: "active" as const,
+      submittedAt: "2026-10-01T10:00:00Z",
+      canCancel: false,
+      canWithdraw: true,
+    };
+    context = ownContributions({
+      proposalCount: 21,
+      nextPage: 1,
+      eligibility: { canSubmit: false, requiresApproval: false },
+      activeContribution:
+        ownership === "missing projection" ? undefined : active,
+      items: Array.from({ length: 20 }, (_, index) =>
+        ownership === "missing projection" && index === 0
+          ? active
+          : {
+              ...active,
+              id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+              state: "withdrawn" as const,
+              canWithdraw: false,
+            },
+      ),
+    });
+    const detail = matchDetail();
+    const boundary = mockFetch.getMockImplementation();
+    mockFetch.mockImplementation((url, init) => {
+      if (new URL(String(url)).pathname === `/matches/${detail.match.id}`)
+        return Promise.resolve(
+          Response.json({
+            ...detail,
+            streamUrl: active.url,
+            streamContributionId: publicId,
+          }),
+        );
+      if (!boundary) throw new Error("Missing test HTTP boundary");
+      return boundary(url, init);
+    });
+    const user = userEvent.setup();
+    await render(
+      <QueryClientProvider client={client}>
+        <ThemeProvider>
+          <ApplicationAccessProvider>
+            <AccountSessionProvider>
+              <AccountFeedbackProvider>
+                <AdvertisingProviders>
+                  <MatchScreen matchId={detail.match.id} />
+                </AdvertisingProviders>
+              </AccountFeedbackProvider>
+            </AccountSessionProvider>
+          </ApplicationAccessProvider>
+        </ThemeProvider>
+      </QueryClientProvider>,
+    );
+    await screen.findByText("Home");
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+
+    const entry = await screen.findByRole("button", {
+      name:
+        ownership === "exact owner"
+          ? "Modifier le lien"
+          : "Gérer mes propositions",
+    });
+
+    // Then
+    expect(!!screen.queryByRole("button", { name: "Modifier le lien" })).toBe(
+      ownership === "exact owner",
+    );
+    expect(!!screen.queryByRole("link", { name: "Ouvrir le lien" })).toBe(
+      ownership !== "exact owner",
+    );
+    expect(
+      screen.queryByRole("button", { name: "Proposer un lien" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByText("Signaler")).not.toBeOnTheScreen();
+
+    // When
+    await user.press(entry);
+
+    // Then
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/matches/[matchId]/contributions",
+      params: { matchId: detail.match.id },
+    });
+    expect(
+      mockFetch.mock.calls.some(
+        ([, init]) => init?.method === "POST" || init?.method === "PATCH",
+      ),
+    ).toBe(false);
+  },
+);
+
+it.each(["own", "other", "failure"] as const)(
+  "waits for private ownership before exposing a contributed public action: %s",
+  async (outcome) => {
+    // Given: F03 already has the public URL while the original-account read remains in flight.
+    const detail = matchDetail();
+    const publicId = "00000000-0000-4000-8000-000000000099";
+    const active = {
+      id: publicId,
+      url: "https://youtu.be/public-before-private",
+      platform: "youtube" as const,
+      state: "active" as const,
+      submittedAt: "2026-10-01T10:00:00Z",
+      canCancel: false,
+      canWithdraw: true,
+    };
+    context = ownContributions(
+      outcome === "other"
+        ? {}
+        : { proposalCount: 1, activeContribution: active },
+    );
+    const delayed = Promise.withResolvers<Response>();
+    const boundary = mockFetch.getMockImplementation();
+    let firstRead = true;
+    mockFetch.mockImplementation((url, init) => {
+      const path = new URL(String(url)).pathname;
+      if (path === `/matches/${detail.match.id}`)
+        return Promise.resolve(
+          Response.json({
+            ...detail,
+            streamUrl: active.url,
+            streamContributionId: publicId,
+          }),
+        );
+      if (path.includes("/stream-contributions") && firstRead) {
+        firstRead = false;
+        return delayed.promise;
+      }
+      if (!boundary) throw new Error("Missing test HTTP boundary");
+      return boundary(url, init);
+    });
+    const user = userEvent.setup();
+    await render(
+      <QueryClientProvider client={client}>
+        <ThemeProvider>
+          <ApplicationAccessProvider>
+            <AccountSessionProvider>
+              <AccountFeedbackProvider>
+                <AdvertisingProviders>
+                  <MatchScreen matchId={detail.match.id} />
+                </AdvertisingProviders>
+              </AccountFeedbackProvider>
+            </AccountSessionProvider>
+          </ApplicationAccessProvider>
+        </ThemeProvider>
+      </QueryClientProvider>,
+    );
+    await screen.findByRole("header", { name: "Stream link" });
+    await waitFor(() => expect(firstRead).toBe(false));
+
+    // Then: the published URL alone cannot expose the foreign-owner F11 action.
+    expect(
+      screen.queryByRole("link", { name: "Ouvrir le lien" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Modifier le lien" }),
+    ).not.toBeOnTheScreen();
+
+    // When
+    await act(async () =>
+      delayed.resolve(
+        outcome === "failure"
+          ? Response.json({ status: 500 }, { status: 500 })
+          : Response.json(context),
+      ),
+    );
+
+    // Then
+    if (outcome === "failure") {
+      expect(
+        await screen.findByRole("button", { name: "Réessayer" }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.queryByRole("progressbar", { name: "Chargement en cours" }),
+      ).not.toBeOnTheScreen();
+      expect(
+        screen.queryByRole("link", { name: "Ouvrir le lien" }),
+      ).not.toBeOnTheScreen();
+      expect(
+        screen.queryByRole("button", { name: "Modifier le lien" }),
+      ).not.toBeOnTheScreen();
+
+      // When: the existing read-only retry establishes current ownership.
+      await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    }
+
+    // Then
+    expect(
+      await screen.findByRole(outcome === "other" ? "link" : "button", {
+        name: outcome === "other" ? "Ouvrir le lien" : "Modifier le lien",
+      }),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.some(
+        ([, init]) => init?.method === "POST" || init?.method === "PATCH",
+      ),
+    ).toBe(false);
+  },
+);
+
+it.each(["guest", "professional"] as const)(
+  "keeps the public opening independent of private ownership for %s",
+  async (source) => {
+    // Given
+    mockAuth0.hasValidCredentials.mockResolvedValue(source !== "guest");
+    const detail = matchDetail();
+    const delayed = Promise.withResolvers<Response>();
+    const boundary = mockFetch.getMockImplementation();
+    let privateReads = 0;
+    mockFetch.mockImplementation((url, init) => {
+      const path = new URL(String(url)).pathname;
+      if (path === `/matches/${detail.match.id}`)
+        return Promise.resolve(
+          Response.json({
+            ...detail,
+            streamUrl: "https://youtu.be/public",
+            ...(source === "guest"
+              ? { streamContributionId: "00000000-0000-4000-8000-000000000099" }
+              : {}),
+          }),
+        );
+      if (path.includes("/stream-contributions")) {
+        privateReads++;
+        return delayed.promise;
+      }
+      if (!boundary) throw new Error("Missing test HTTP boundary");
+      return boundary(url, init);
+    });
+
+    // When
+    await render(
+      <QueryClientProvider client={client}>
+        <ThemeProvider>
+          <ApplicationAccessProvider>
+            <AccountSessionProvider>
+              <AccountFeedbackProvider>
+                <AdvertisingProviders>
+                  <MatchScreen matchId={detail.match.id} />
+                </AdvertisingProviders>
+              </AccountFeedbackProvider>
+            </AccountSessionProvider>
+          </ApplicationAccessProvider>
+        </ThemeProvider>
+      </QueryClientProvider>,
+    );
+
+    // Then
+    try {
+      expect(
+        await screen.findByRole("link", { name: "Ouvrir le lien" }),
+      ).toBeOnTheScreen();
+      if (source === "professional")
+        await waitFor(() => expect(privateReads).toBe(1));
+      else expect(privateReads).toBe(0);
+      expect(
+        screen.getByRole("link", { name: "Ouvrir le lien" }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.queryByRole("button", { name: "Modifier le lien" }),
+      ).not.toBeOnTheScreen();
+    } finally {
+      await act(async () => delayed.resolve(Response.json(context)));
+    }
+  },
+);
+
+it.each([
+  {
+    condition: "failed native restoration",
+    failure: new Error("Synthetic restoration unavailable"),
+  },
+  {
+    condition: "expired credentials",
+    failure: {
+      code: "invalid_grant",
+      message: "Synthetic expired credentials",
+    },
+  },
+])(
+  "preserves public contributed-link consultation after $condition",
+  async ({ failure }) => {
+    // Given: the real F05 SDK boundary cannot establish an authenticated private context.
+    mockAuth0.getCredentials.mockRejectedValue(failure);
+    const detail = matchDetail();
+    const boundary = mockFetch.getMockImplementation();
+    mockFetch.mockImplementation((url, init) => {
+      if (new URL(String(url)).pathname === `/matches/${detail.match.id}`)
+        return Promise.resolve(
+          Response.json({
+            ...detail,
+            streamUrl: "https://youtu.be/public",
+            streamContributionId: "00000000-0000-4000-8000-000000000099",
+          }),
+        );
+      if (!boundary) throw new Error("Missing test HTTP boundary");
+      return boundary(url, init);
+    });
+
+    // When
+    await render(
+      <QueryClientProvider client={client}>
+        <ThemeProvider>
+          <ApplicationAccessProvider>
+            <AccountSessionProvider>
+              <AccountFeedbackProvider>
+                <AdvertisingProviders>
+                  <MatchScreen matchId={detail.match.id} />
+                </AdvertisingProviders>
+              </AccountFeedbackProvider>
+            </AccountSessionProvider>
+          </ApplicationAccessProvider>
+        </ThemeProvider>
+      </QueryClientProvider>,
+    );
+
+    // Then
+    expect(
+      await screen.findByRole("link", { name: "Ouvrir le lien" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Modifier le lien" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Proposer un lien" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Gérer mes propositions" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.some(([url]) =>
+        String(url).includes("/stream-contributions"),
+      ),
+    ).toBe(false);
+    expect(mockPush).not.toHaveBeenCalled();
+  },
+);

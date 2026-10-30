@@ -12,6 +12,8 @@ The backend supplies the existing [mobile OpenAPI root](../../../contracts/http/
 | Account erasure       | F05 → F08 persistence                     | Clear version/decision attribution and report author/reason in the local deletion transaction; retain counted facts and decisions. No extra HTTP operation.                                                      |
 | Notification facts    | F08/F02 → F07 in-process                  | Accepted match/version/public-availability transition and current composition under the match transaction. Required internal effects are atomic; post-commit push remains best effort. No new message transport. |
 
+The optional `activeContribution` is the current exact caller-owned active member, independent of the loaded page and absent for another owner or no active member. It shares the existing read snapshot with context, total and page. The current native history exposes no cancellation command; the existing exact-member PATCH contract is retained.
+
 The own collection requires `proposalCount`, a nonnegative safe integer counting all original-account/match versions, including active and terminal states. The count is an SQL aggregate independent of pagination, read coherently with the page/context; an empty collection returns zero.
 
 Read lists in pages of twenty with optional nextPage; preserve filters and reset on refresh. Searches are literal case-insensitive fragments, not wildcard syntax. Private representations and errors use no-store. Body revision conflicts reuse the existing 409 problem; no conditional HTTP precondition or 412 contract is introduced. PATCH uses atomic application/json change documents; omitted fields are not invented updates and null is rejected in these required command inputs.

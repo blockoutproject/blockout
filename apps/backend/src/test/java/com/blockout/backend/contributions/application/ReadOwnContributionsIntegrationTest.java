@@ -18,6 +18,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -186,6 +187,86 @@ class ReadOwnContributionsIntegrationTest extends ContributionScenario {
     assertThat(page.versions().items())
         .extracting(ContributionVersion::state)
         .containsExactlyInAnyOrder(ContributionVersion.State.values());
+  }
+
+  @Test
+  @DisplayName("The caller's active version remains actionable beyond the first twenty items")
+  void exposesActiveVersionOutsidePage() throws Exception {
+    // Given: historical moderator-exempt versions leave the active version older than one page.
+    TransactionTemplate tx = new TransactionTemplate(transactions);
+    ContributionVersion active =
+        tx.execute(
+            transaction -> {
+              for (int n = 0; n < 21; n++)
+                contributions.record(
+                    matchId,
+                    AUTHOR,
+                    new StreamAddress("https://youtu.be/history-" + n),
+                    true,
+                    true,
+                    NOW.minusSeconds(n));
+              return contributions.record(
+                  matchId,
+                  AUTHOR,
+                  new StreamAddress("https://youtu.be/older-active"),
+                  true,
+                  true,
+                  NOW.minusSeconds(60));
+            });
+
+    // When
+    ReadOwnContributions.Page first = reads.read(AUTHOR, matchId, 0);
+    ResultActions firstResponse = readPage(AUTHOR, 0);
+    ResultActions secondResponse = readPage(AUTHOR, 1);
+
+    // Then
+    assertThat(first.versions().items()).hasSize(20).doesNotContain(active);
+    assertThat(first.usage().versionsUsed()).isZero();
+    firstResponse
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.proposalCount").value(22))
+        .andExpect(jsonPath("$.activeContribution.id").value(active.id().toString()))
+        .andExpect(jsonPath("$.activeContribution.url").value("https://youtu.be/older-active"))
+        .andExpect(jsonPath("$.activeContribution.state").value("active"))
+        .andExpect(jsonPath("$.activeContribution.canWithdraw").value(true))
+        .andExpect(jsonPath("$.activeContribution.canCancel").value(false))
+        .andExpect(jsonPath("$.activeContribution.ownerId").doesNotExist());
+    secondResponse
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.activeContribution.id").value(active.id().toString()));
+  }
+
+  @ParameterizedTest
+  @EnumSource(ActiveAbsence.class)
+  @DisplayName("The private active projection is omitted without an exact current owner match")
+  void omitsNonOwnedActiveVersion(ActiveAbsence absence) throws Exception {
+    // Given
+    if (absence != ActiveAbsence.NO_VERSION) {
+      UUID owner = absence == ActiveAbsence.OTHER_OWNER ? OTHER : AUTHOR;
+      SubmitContribution.Outcome created = submit(owner, "0", "https://youtu.be/active", false);
+      if (absence == ActiveAbsence.ERASED_OWNER)
+        sql.update(
+            "UPDATE contribution_version SET owner_id=NULL WHERE id=?", created.version().id());
+      if (absence == ActiveAbsence.WITHDRAWN)
+        sql.update(
+            "UPDATE contribution_version SET state='WITHDRAWN' WHERE id=?", created.version().id());
+    }
+
+    // When
+    ResultActions response = readPage(AUTHOR, 0);
+
+    // Then
+    response
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.activeContribution").doesNotHaveJsonPath());
+  }
+
+  /** Distinct absence cases prevent foreign, erased or historical versions from gaining actions. */
+  private enum ActiveAbsence {
+    NO_VERSION,
+    OTHER_OWNER,
+    ERASED_OWNER,
+    WITHDRAWN
   }
 
   /**

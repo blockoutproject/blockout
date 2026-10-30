@@ -108,112 +108,82 @@ Full moderation/lifecycle and extended uncertain-response recovery retain their 
 
 ### Personal contribution lifecycle — T018–T022
 
-`OwnContributionLifecycleWebMvcTest` exercises the generated PATCH binding, strict commands,
-original-account scope, ordinary admission, conflicts and private response headers.
-`OwnContributionLifecycleIntegrationTest` executes the production command through HTTP with
-the migrated PostgreSQL mappings and actual F02/F05 owners. It covers active/pending coexistence,
-current-condition replacements after correction, refusals preserving both versions, exact-target
-terminal repetition, stale revisions before no-op, immutable address/quota participation and
-independent proposals/holds. A PostgreSQL-observed account-lock race verifies that withdrawal
-cannot rewrite a publication actor erased while the command waits. Private-read tests
-also traverse more than twenty moderator-created versions without consuming ordinary quota,
-and verify the exact all-state `proposalCount`, true-empty zero, active-only one and isolation
-from other owners/matches. Contract validation rejects a missing, negative or unsafe total.
-Historical decision and account-removal fixtures establish these boundaries only; they do not
-qualify actual US5 commands or F05's complete erasure orchestration.
+`OwnContributionLifecycleWebMvcTest` exercises generated PATCH binding, strict commands,
+original-account scope, ordinary admission, conflicts and private headers.
+`OwnContributionLifecycleIntegrationTest` executes production commands over HTTP with migrated
+PostgreSQL mappings and real F02/F05 owners. It covers independent active/pending versions,
+current-condition replacement, exact terminal repetition, stale revision before no-op,
+immutable addresses/quota participation and report holds. An account-lock race verifies that
+withdrawal cannot restore a publication actor erased while the command waits. The retained
+backend cancellation command is separately qualified; the current native history exposes no
+such action. Historical decision/erasure fixtures do not qualify actual US5/F05 orchestration.
 
-`own-contribution-lifecycle.test.tsx` mounts the production screen and generated HTTP/Query
-boundary with controlled native credentials and responses. It covers the always-visible “Mes propositions (number)” total, including zero and totals beyond
-the loaded page, all-state textual badges, compact exact-target cancellation and French accessible state explanations,
-exact confirmations, session departure, command exclusion, retained acknowledgements, current
-access refusal and native continuation beyond twenty historical moderator-created versions.
-The shared F13 continuation stops after error or outside active focus and exposes an explicit
-read retry. Native confirmations use the common single-dialog, single-settlement owner. A
-first-page refresh or reconciliation replaces the traversal only after success; failure retains
-all authorized pages. Refresh also rereads the displayed match context. Technical profile
-failure preserves the same account's history with commands unavailable; a current GET/PATCH
-401/403/404 removes refused data, including if the next read fails technically.
-The existing F08 read observer propagates an observed F03 match refusal before navigation or
-disabled-read remounting can erase that observation. The actual match-to-history route test
-keeps private pages revoked through later technical failures, then restores them only after
-successful authorized reads. Retry observes both owners, including delayed match recovery.
-A session requiring reauthentication offers the existing
-sign-in path rather than waiting on its disabled profile query. The native list enables forced
-vertical bounce only when authorized content has been accepted.
-`contribution-navigation.test.tsx` also exercises the actual form-to-history routes:
-an acknowledged submission followed by a failed read keeps its success and labels retained
-public information as last known, without claiming a new aggregate revision or inferring another
-version's decision. These tests do not execute native networking or assistive technologies.
+`ReadOwnContributionsIntegrationTest` qualifies all-state totals independently of twenty-item
+pages and ordinary quotas, true-empty zero, isolation and the exact owned active projection
+outside the first page. Other owners' active versions are omitted. Contract/generated-client
+checks qualify the optional member and safe integer total.
 
-The current match entry uses a rightmost ellipsis in the Stream link card header. Check the
-authorized card with a public URL, pending-only versions and an eligible empty collection;
-the latter two retain the concise absent-link text. Authenticated entry opens personal
-management, including zero, while guests retain the F05 invitation and no deferred command.
-No standalone personal-management button is present.
+The contribution suites exercise the real screens, RHF, generated transport, Query and session
+owners with controlled native I/O and HTTP. The current match card opens an initial proposal
+form directly, or a distinct prefilled editor for the exact owned public version. Replacement,
+withdrawal and initial submission require one native confirmation and return to the exact
+match only after acknowledgement. Cancelled dialogs preserve drafts and send nothing. Tests
+cover captured revisions/addresses, pristine active-version refresh, dirty refetch retention, duplicate suppression and late
+callbacks after session change or departure. The exhaustive history has no row commands;
+textual badges, addresses, separators and “Mes propositions (number)” remain visible, including
+zero and totals beyond loaded pages.
 
-Prepare the following scoped native scenarios on compatible iOS/Android development clients,
-using the production personal screen, generated client and Query owner. Supply more than twenty
-personal versions with historical moderator-created versions whose quota participation is false;
-keep ordinary active/pending submissions counted. Do not raise or bypass ordinary quotas to
-construct the history. Use fictional addresses and match/account identities.
+Current 401/403/404 refuses and removes private data, including an F03 refusal observed before
+navigation; a later technical failure cannot restore it. Ordinary outages preserve authorized
+pages and explicit retry. A successful refresh replaces traversal from page zero; failed
+refresh retains all accepted pages. Continuation stops on error or outside active focus. An
+acknowledged withdrawal clears its exact active projection even if the derivative read fails,
+without advancing old aggregate revision/eligibility or undoing acknowledgement. These tests do
+not establish native networking, keyboard behavior or assistive-technology execution.
 
-- Open personal proposals from the match with a retained active link and pending replacement.
-  Verify the total includes every state, remains visible at zero and is independent of pagination.
-  Review compact badge/link rows, thin separators and the small transparent red trash icon
-  centered at the right of an authorized pending row. Distinguish public-link withdrawal from
-  proposal cancellation and replacement. Keep French state explanations accessible without
-  exposing another author's proposals or moderation details.
-- Dismiss each native confirmation and verify no command. Confirm cancellation of the pending
-  version, then withdrawal of the active version, checking the exact version and viewed revision
-  in each request. Confirmed changes leave consumed quota unchanged and do not promote a
-  proposal or remove an independent report hold.
-- Traverse beyond twenty versions, then refresh from page zero. Retain authorized content on
-  ordinary read failure, display the failed read separately, and preserve an acknowledged action
-  when its follow-up read fails. Observe a revision conflict and require a current read before a
-  further explicit command; do not replay the rejected write.
-- Open the existing replacement form, preserve its draft on refusal and cancel/back, and check
-  that the server's current eligibility determines the new version. An ownerless active version
-  grants no replacement or withdrawal ownership to the current account.
-- Inspect light/dark appearance, enlarged text, reachable final actions, native back/confirmation
-  behavior and accessible French labels/reasons. Record actual screen-reader observations
-  separately from semantics exposed in the native accessibility tree.
+Use fictional accounts/addresses on compatible iOS and Android development clients. More than
+twenty historical versions must be moderator-created and quota-exempt; ordinary active/pending
+versions retain their real consumption. Check the following construction boundaries:
 
-These scenarios cover personal construction only. Actual moderation decisions and F05 erasure
-sequences remain with T023 and their owning US5/US6 tasks; complete cross-story native
-qualification remains T049/T056. A controlled HTTP peer proves rendering, generated transport
-and interaction, not backend SQL policy, provider behavior or new design approval.
+- A card without a public URL opens the blank proposal form directly. Cancel its confirmation,
+  then accept one valid proposal and observe one POST and return to the match.
+- An exactly owned public link offers “Modifier le lien” rather than external opening or
+  self-reporting. Its editor starts with the previous address, retains edits on refresh and
+  confirms replacement before returning to the match. Cancellation preserves the draft.
+- The compact withdrawal action confirms the exact active URL/version, then returns to the
+  match while preserving independent pending versions and consumed quota.
+- The personal history is exhaustive and read-only across pending, active and terminal states.
+  Traverse beyond twenty versions, refresh from page zero and retain authorized information
+  on technical read failure. An ownerless or other-owner link grants no ownership.
+- Inspect the real keyboard, native back/discard behavior, safe areas, both themes and enlarged
+  text on both platforms. Record actual reader speech/focus separately from accessibility
+  semantics in an inspection tree.
 
-Scoped personal-list observations on production source `eced0699` are recorded with attached
-[representative native captures](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6510562999).
-Existing iOS 27.0 and Android 17/API 37 development clients execute the production screens,
-generated transport and Query/session/admission owners against fictional credentials and HTTP.
-Both platforms show the compact rows, textual semantic badges, independent public controls,
-exact cancellation confirmation and an all-state total of 25. iOS also shows the true-empty zero.
-Light/dark and enlarged-text observations use iOS accessibility-medium and Android 124%;
-Android explicitly reopens the route after Activity recreation. Confirmed cancellation targets
-only the pending version and retains the active version, total and consumed usage. Android
-withdrawal separately targets only the active version and retains its pending replacement,
-total and consumed usage. The Android
-public match entry opens the personal route for an ordinary contributor. That captured entry
-placement predates the header-ellipsis direction in the [current plan](plan.md#design-reconciliation-and-evidence)
-and does not qualify its revised placement. The public navigation
-fixture has an inert F11 context; no provider initialization or external handoff is qualified.
-Development tools remain visible, and an existing Android linking warning after recreation was
-dismissed before interaction. No screen-reader, minimum-OS/narrow-device matrix, provider or
-global native/design acceptance follows from these observations.
+Earlier [row/lifecycle captures](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6510562999)
+and [ellipsis-entry captures](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6510989325)
+retain their exact source revisions and narrow execution proofs. Their entry placement,
+row-cancellation controls and empty-management detour are superseded by the current
+[owner direction](plan.md#design-reconciliation-and-evidence); those captures do not establish
+this revised interaction. Current implementation evidence belongs in the same delivery's PR
+Conversation. Figma and prototype synchronization await the owner's explicit native validation.
 
-The subsequent header-entry observations in the [current PR evidence](https://github.com/blockoutproject/blockout/pull/575)
-qualify the revised placement on both existing clients. The Stream link card has a rightmost
-three-dot action and no standalone personal-management button. Android opens the personal
-collection from a published link and from a pending-only collection with no public URL and
-new submission refused. iOS opens the published collection and reaches “Mes propositions (0)”
-through the same header entry with an eligible empty collection. These navigations produce no
-POST/PATCH. The earlier rows/themes/text-size proofs remain version-scoped; these normal-text
-entry observations add no screen-reader or expanded runtime-matrix qualification.
+The current [native captures and observations](https://github.com/blockoutproject/blockout/pull/575)
+use production screens on compatible iOS 27.0 and Android 17/API 37 development clients with
+fictional Auth0/storage and a controlled HTTP peer. Both platforms exercise direct first
+proposal, prefilled own-link editing, native replacement and withdrawal confirmations, and
+return to the exact match after one acknowledged write. Android replacement cancellation and
+iOS initial-submission cancellation preserve the draft and send nothing. Pending replacements
+retain the public version until its independent confirmed withdrawal; the peer records the
+pending row and consumed quota afterward. iOS also verifies the non-owned public opening
+action and readable dark presentation at extra-extra-extra-large text, then restores light/large.
+Android traverses twenty-five read-only versions through pages zero/one, then refreshes to
+an empty collection with “Mes propositions (0)” still visible. Its real software keyboard
+leaves the editor and submission action reachable. This run does not establish iOS
+software-keyboard presentation, real provider behavior or reader speech.
 
-T018–T022 construction is complete with the targeted PostgreSQL/HTTP proofs, generated-client
-mobile tests and scoped native observations above. T023, T049/T056 and US5/US6 retain the actual
-moderation/erasure journeys and complete cross-story qualification.
+T023, US4 reporting, actual US5/US6 moderation/erasure, T049/T056 and the minimum-OS/narrow-device
+and screen-reader matrix retain their own qualification. A synthetic peer establishes only its
+rendering, transport and interaction boundaries; it is not provider or global design approval.
 
 Scoped iOS/Android observations at `e9a6ece6`, including builds and controlled fixtures, are recorded in the [native contribution evidence](https://github.com/blockoutproject/blockout/pull/557#issuecomment-6475614201). Available-entry/form composition, keyboard/back, retained drafts, real refusal/explicit retry, acknowledgement and exact active public projection were observed. That run also reported cropped labels after live Android text enlargement and development navigation warnings; its missing screen-reader and minimum-OS evidence remains explicitly unqualified.
 

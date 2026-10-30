@@ -47,7 +47,7 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
   }
   return (
     <Page edges={["left", "right", "bottom"]}>
-      <ScrollChrome header={<PageHeader title="Stream link" />}>
+      <ScrollChrome header={<PageHeader title="Lien de diffusion" />}>
         {({ onScroll, headerHeight }) => (
           <FormScrollView
             onScroll={onScroll}

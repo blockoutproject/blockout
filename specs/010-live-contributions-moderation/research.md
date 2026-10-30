@@ -26,6 +26,8 @@
 
 **Alternatives:** A request registry, durable job or replay queue adds retention and reconciliation work. Cursor snapshots are unnecessary. The personal proposal list requires an exact `proposalCount` across all owner/match versions, including active and terminal states, to satisfy the always-visible total; compute it with a SQL aggregate beside the page in the same repeatable-read transaction. No stored counter or downloaded-page count is needed. Other list envelopes are unchanged. No generic bulk endpoint or hypermedia framework is needed by the current callers; resource-shaped routes alone are not a claim of full REST conformance.
 
+The private owner collection also projects its exact active member independently of pagination. An old active version may be outside the first twenty rows after moderator-created exempt versions; searching those rows cannot establish ownership or prefill the editor reliably. Reuse the existing owner/match/ACTIVE query in the same read snapshot rather than downloading history, exposing public attribution or interpreting a foreign-member 404 as global access refusal.
+
 ## Search, attention and mobile freshness
 
 **Decision:** Use parameterized PostgreSQL substring queries over effective team names and recorded addresses, escaping LIKE metacharacters. Filter by season, platform and state. “To review” is a query over pending proposals, unresolved hiding waits and reported active versions. Use native Spring Data paging/Slice and TanStack Query's existing explicit fetching/invalidation, with no polling.

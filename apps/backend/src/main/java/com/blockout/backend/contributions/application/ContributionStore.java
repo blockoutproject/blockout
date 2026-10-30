@@ -37,6 +37,15 @@ public interface ContributionStore {
   Optional<ContributionVersion> active(UUID matchId);
 
   /**
+   * Reads the caller-owned active version independently of the personal page.
+   *
+   * @param matchId current match
+   * @param ownerId usable original account identity
+   * @return the owner's current active version, or empty for absent, foreign or erased ownership
+   */
+  Optional<ContributionVersion> ownActive(UUID matchId, UUID ownerId);
+
+  /**
    * Reads only the original account's current proposal, never an anonymous proposal.
    *
    * @param matchId existing F02 match

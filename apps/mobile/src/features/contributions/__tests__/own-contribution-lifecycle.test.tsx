@@ -39,6 +39,9 @@ import { OwnContributionsScreen } from "../screens/own-contributions-screen";
 import { ownContributions } from "../test-support/contribution-data";
 import { matchDetail } from "../../sporting/test-support/consultation-data";
 
+jest.mock("react-native-keyboard-controller", () =>
+  jest.requireActual("react-native-keyboard-controller/jest"),
+);
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
@@ -51,7 +54,13 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useNavigation: () => ({ isFocused: () => mockFocused }),
-  useRouter: () => ({ push: mockPush, back: jest.fn(), canGoBack: () => true }),
+  usePreventRemove: jest.fn(),
+  useRouter: () => ({
+    push: mockPush,
+    back: jest.fn(),
+    dismissTo: mockDismissTo,
+    canGoBack: () => true,
+  }),
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, init?: RequestInit) => mockFetch(url, init),
@@ -73,6 +82,7 @@ afterAll(() => {
 });
 let mockFocused = true;
 const mockPush = jest.fn();
+const mockDismissTo = jest.fn();
 const mockFetch = jest.fn<
   Promise<Response>,
   [RequestInfo | URL, RequestInit?]
@@ -121,6 +131,7 @@ beforeEach(() => {
   failRead = false;
   alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
   mockPush.mockReset();
+  mockDismissTo.mockReset();
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
@@ -170,6 +181,9 @@ beforeEach(() => {
       return Response.json({
         ...context,
         proposalCount: rows.length,
+        activeContribution: Object.hasOwn(context, "activeContribution")
+          ? context.activeContribution
+          : rows.find((item) => item.state === "active"),
         items: rows.slice(page * 20, (page + 1) * 20),
         ...(rows.length > (page + 1) * 20 ? { nextPage: page + 1 } : {}),
       });
@@ -229,9 +243,9 @@ function SessionExit() {
   );
 }
 
-it("presents a named status and address with an accessible icon cancellation and no permanent explanation", async () => {
+it("keeps every proposal row read-only while preserving status, address and the exact total", async () => {
   // Given
-  const user = userEvent.setup();
+  rows = [version(1, "pending"), version(2, "active")];
 
   // When
   await mount();
@@ -243,41 +257,78 @@ it("presents a named status and address with an accessible icon cancellation and
   expect(
     screen.getByHintText(/Cette proposition attend une décision/),
   ).toBeOnTheScreen();
-  expect(
-    screen.queryByText(/Cette proposition attend une décision/),
-  ).not.toBeOnTheScreen();
-  expect(screen.queryByText("Annuler la proposition")).not.toBeOnTheScreen();
-  expect(screen.queryByText(/28\/10\/2026/)).not.toBeOnTheScreen();
-  expect(screen.queryByText(/historique/i)).not.toBeOnTheScreen();
-  expect(screen.getByText("Votre lien public")).toBeOnTheScreen();
   expect(screen.getByText("Publié")).toBeOnTheScreen();
-  expect(screen.getAllByText("https://youtu.be/history-2")).toHaveLength(2);
-
-  // When
-  await user.press(
-    screen.getByRole("button", { name: "Annuler la proposition" }),
-  );
-  await act(async () => {
-    alert.mock.calls
-      .at(-1)?.[2]
-      ?.find((button: { style?: string }) => button.style === "destructive")
-      ?.onPress?.();
-  });
-
-  // Then
-  expect(await screen.findByText("Proposition annulée")).toBeOnTheScreen();
-  expect(
-    screen.getByRole("header", { name: "Mes propositions (2)" }),
-  ).toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Annuler la proposition" }),
   ).not.toBeOnTheScreen();
-  expect(patches).toEqual([
-    {
-      id: version(1, "pending").id,
-      body: { action: "cancel", revision: "initial" },
-    },
-  ]);
+  expect(screen.queryByText(/28\/10\/2026/)).not.toBeOnTheScreen();
+  expect(
+    screen.queryByText(/Cette proposition attend une décision/),
+  ).not.toBeOnTheScreen();
+  expect(patches).toEqual([]);
+});
+
+it("prefills the private active version even when it is outside the first twenty history rows", async () => {
+  // Given
+  const active = version(22, "active");
+  rows = [
+    ...Array.from({ length: 21 }, (_, index) => version(index + 1, "replaced")),
+    active,
+  ];
+  context = { ...context, activeContribution: active };
+
+  // When
+  await mount();
+
+  // Then
+  expect(await screen.findByDisplayValue(active.url)).toBeOnTheScreen();
+  expect(screen.getByText("Votre lien public")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Retirer" })).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "Mes propositions (22)" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText(active.url)).not.toBeOnTheScreen();
+  expect(pages).toEqual([0]);
+});
+
+it("retains the edited replacement address when refreshed ownership context changes", async () => {
+  // Given
+  const user = userEvent.setup();
+  await mount();
+  const field = await screen.findByDisplayValue(version(2, "active").url);
+  await user.clear(field);
+  await user.type(field, "https://youtu.be/retained-draft");
+  rows = [version(1, "pending"), version(3, "active"), version(2, "replaced")];
+  context = { ...context, revision: "changed" };
+
+  // When
+  await user.pullToRefresh(screen.getByLabelText("Liste de mes propositions"));
+
+  // Then
+  expect(
+    await screen.findByDisplayValue("https://youtu.be/retained-draft"),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("https://youtu.be/history-3")).toBeOnTheScreen();
+  expect(patches).toEqual([]);
+});
+
+it("does not infer an editable active version from a history row without its current private projection", async () => {
+  // Given
+  context = { ...context, activeContribution: undefined };
+
+  // When
+  await mount();
+  await screen.findByRole("header", { name: "Mes propositions (2)" });
+
+  // Then
+  expect(screen.queryByLabelText("Adresse du lien")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Retirer" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByText("Publié")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Proposer un nouveau lien" }),
+  ).not.toBeOnTheScreen();
 });
 
 it.each([false, true])(
@@ -298,6 +349,15 @@ it.each([false, true])(
     ).not.toBeOnTheScreen();
     expect(!!screen.queryByText("Votre lien public")).toBe(hasActive);
     expect(!!screen.queryByText("Publié")).toBe(hasActive);
+    expect(
+      screen.queryByRole("button", { name: "Proposer un nouveau lien" }),
+    ).not.toBeOnTheScreen();
+    if (hasActive)
+      expect(
+        screen.getByDisplayValue(version(2, "active").url),
+      ).toBeOnTheScreen();
+    else
+      expect(screen.queryByLabelText("Adresse du lien")).not.toBeOnTheScreen();
   },
 );
 
@@ -337,40 +397,6 @@ it("keeps the proposals heading without inventing zero during initial loading or
   expect(screen.queryByText("Mes propositions (0)")).not.toBeOnTheScreen();
 });
 
-it("explains active and pending coexistence and confirms exact cancellation with its quota consequence", async () => {
-  // Given
-  const user = userEvent.setup();
-  await mount();
-
-  // When
-  await user.press(
-    await screen.findByRole("button", { name: "Annuler la proposition" }),
-  );
-
-  await act(async () => {
-    alert.mock.calls
-      .at(-1)?.[2]
-      ?.find((button: { style?: string }) => button.style === "destructive")
-      ?.onPress?.();
-  });
-
-  // Then
-  expect(alert).toHaveBeenCalledWith(
-    "Annuler cette proposition ?",
-    expect.stringContaining("aucun quota"),
-    expect.any(Array),
-    expect.any(Object),
-  );
-  expect(await screen.findByText("Proposition annulée")).toBeOnTheScreen();
-  expect(screen.getByText("Votre lien public")).toBeOnTheScreen();
-  expect(patches).toEqual([
-    {
-      id: version(1, "pending").id,
-      body: { action: "cancel", revision: "initial" },
-    },
-  ]);
-});
-
 it("withdraws only the active version when publication is unavailable and leaves the proposal pending", async () => {
   // Given
   context = {
@@ -403,7 +429,7 @@ it("withdraws only the active version when publication is unavailable and leaves
     },
   ]);
   expect(
-    screen.queryByRole("button", { name: "Remplacer" }),
+    screen.queryByRole("button", { name: "Remplacer le lien" }),
   ).not.toBeOnTheScreen();
   expect(
     screen.getByText("Le quota de versions est atteint."),
@@ -511,29 +537,11 @@ it("does not acquire an ownerless public contribution or offer actions for an em
   expect(patches).toHaveLength(0);
 });
 
-it("opens the existing new-version form without sending or editing the old address", async () => {
+it("does not restore the acknowledged withdrawn editor when its following read fails", async () => {
   // Given
   const user = userEvent.setup();
   await mount();
-
-  // When
-  await user.press(await screen.findByRole("button", { name: "Remplacer" }));
-
-  // Then
-  expect(mockPush).toHaveBeenCalledWith({
-    pathname: "/matches/[matchId]/contribution",
-    params: { matchId: match.match.id },
-  });
-  expect(patches).toHaveLength(0);
-});
-
-it("keeps acknowledged cancellation visible when the following read fails", async () => {
-  // Given
-  const user = userEvent.setup();
-  await mount();
-  await user.press(
-    await screen.findByRole("button", { name: "Annuler la proposition" }),
-  );
+  await user.press(await screen.findByRole("button", { name: "Retirer" }));
   failRead = true;
 
   // When
@@ -543,20 +551,32 @@ it("keeps acknowledged cancellation visible when the following read fails", asyn
       ?.find((button: { style?: string }) => button.style === "destructive")
       ?.onPress?.();
   });
+  await waitFor(() => expect(client.isFetching()).toBe(0));
 
   // Then
-  expect(await screen.findByText("Proposition annulée")).toBeOnTheScreen();
-  expect(screen.getByText("L’annulation est confirmée.")).toBeOnTheScreen();
-  expect(patches).toHaveLength(1);
+  expect(screen.queryByLabelText("Adresse du lien")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Retirer" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByText("Lien retiré")).toBeOnTheScreen();
+  expect(screen.getByText("En attente de validation")).toBeOnTheScreen();
+  expect(mockDismissTo).toHaveBeenCalledWith({
+    pathname: "/matches/[matchId]",
+    params: { matchId: match.match.id },
+  });
+  expect(patches).toEqual([
+    {
+      id: version(2, "active").id,
+      body: { action: "withdraw", revision: "initial" },
+    },
+  ]);
 });
 
 it("does not dispatch an old confirmation after the original session changes", async () => {
   // Given
   const user = userEvent.setup();
   await mount();
-  await user.press(
-    await screen.findByRole("button", { name: "Annuler la proposition" }),
-  );
+  await user.press(await screen.findByRole("button", { name: "Retirer" }));
 
   // When
   await user.press(screen.getByRole("button", { name: "Quitter la session" }));
@@ -577,9 +597,7 @@ it("abandons the native confirmation without changing either version", async () 
   await mount();
 
   // When
-  await user.press(
-    await screen.findByRole("button", { name: "Annuler la proposition" }),
-  );
+  await user.press(await screen.findByRole("button", { name: "Retirer" }));
   const buttons = alert.mock.calls.at(-1)?.[2];
   await act(async () => {
     buttons
@@ -604,9 +622,9 @@ it("requires a fresh read after conflict and never transfers the old confirmatio
       );
       patches.push({ id: String(url).split("/").at(-1) ?? "", body });
       rows = [
-        version(3, "pending"),
-        version(2, "active"),
-        version(1, "superseded"),
+        version(1, "pending"),
+        version(3, "active"),
+        version(2, "replaced"),
       ];
       context = { ...context, revision: "concurrent" };
       return Response.json(
@@ -622,9 +640,7 @@ it("requires a fresh read after conflict and never transfers the old confirmatio
   });
   const user = userEvent.setup();
   await mount();
-  await user.press(
-    await screen.findByRole("button", { name: "Annuler la proposition" }),
-  );
+  await user.press(await screen.findByRole("button", { name: "Retirer" }));
 
   // When
   await act(async () => {
@@ -641,11 +657,11 @@ it("requires a fresh read after conflict and never transfers the old confirmatio
   expect(pages).toEqual([0, 0]);
   expect(patches).toEqual([
     {
-      id: version(1, "pending").id,
-      body: { action: "cancel", revision: "initial" },
+      id: version(2, "active").id,
+      body: { action: "withdraw", revision: "initial" },
     },
   ]);
-  expect(screen.getByText("Proposition remplacée")).toBeOnTheScreen();
+  expect(screen.getByText("Ancien lien remplacé")).toBeOnTheScreen();
   expect(screen.getByText("En attente de validation")).toBeOnTheScreen();
 });
 
@@ -667,9 +683,7 @@ it("excludes duplicate confirmations and the other owner action while one PATCH 
   });
   const user = userEvent.setup();
   await mount();
-  await user.press(
-    await screen.findByRole("button", { name: "Annuler la proposition" }),
-  );
+  await user.press(await screen.findByRole("button", { name: "Retirer" }));
 
   // When
   await act(async () => {
@@ -688,12 +702,14 @@ it("excludes duplicate confirmations and the other owner action while one PATCH 
   // Then
   expect(attempts).toBe(1);
   await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Retirer" })).toBeDisabled(),
+    expect(
+      screen.getByRole("button", { name: "Remplacer le lien" }),
+    ).toBeDisabled(),
   );
   await act(async () => {
     release?.();
   });
-  expect(await screen.findByText("Proposition annulée")).toBeOnTheScreen();
+  expect(await screen.findByText("Lien retiré")).toBeOnTheScreen();
 });
 
 it("removes private versions after a current read refuses access", async () => {
@@ -826,9 +842,7 @@ it("opens only one native confirmation and settles its saved callback once", asy
   await mount();
 
   // When
-  await user.press(
-    await screen.findByRole("button", { name: "Annuler la proposition" }),
-  );
+  await user.press(await screen.findByRole("button", { name: "Retirer" }));
   await user.press(screen.getByRole("button", { name: "Retirer" }));
 
   // Then
@@ -841,14 +855,14 @@ it("opens only one native confirmation and settles its saved callback once", asy
   await act(async () => {
     accept?.();
   });
-  await screen.findByText("Proposition annulée");
+  await screen.findByText("Lien retiré");
   await act(async () => {
     accept?.();
   });
 
   // Then
   expect(patches).toHaveLength(1);
-  expect(screen.getByText("Votre lien public")).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Adresse du lien")).not.toBeOnTheScreen();
 });
 
 it.each(["refresh", "reconcile", "acknowledgement"])(
@@ -856,7 +870,7 @@ it.each(["refresh", "reconcile", "acknowledgement"])(
   async (operation) => {
     // Given: extra historical versions were moderator-created and ordinary usage stays unchanged.
     rows = Array.from({ length: 21 }, (_, index) =>
-      version(index + 1, index === 0 ? "pending" : "replaced"),
+      version(index + 1, index === 0 ? "active" : "replaced"),
     );
     const boundary = mockFetch.getMockImplementation();
     if (!boundary) throw new Error("Missing test HTTP boundary");
@@ -881,9 +895,7 @@ it.each(["refresh", "reconcile", "acknowledgement"])(
         screen.getByLabelText("Liste de mes propositions"),
       );
     else {
-      await user.press(
-        screen.getByRole("button", { name: "Annuler la proposition" }),
-      );
+      await user.press(screen.getByRole("button", { name: "Retirer" }));
       await act(async () => {
         alert.mock.calls
           .at(-1)?.[2]

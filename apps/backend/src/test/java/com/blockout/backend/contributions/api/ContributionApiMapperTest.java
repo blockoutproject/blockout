@@ -33,6 +33,7 @@ class ContributionApiMapperTest {
             new ContributionQuota.Usage(versions, matches, false),
             Instant.parse("2026-10-26T23:00:00Z"),
             0,
+            null,
             new ContributionStore.VersionPage(List.of(), false),
             0);
 
@@ -58,6 +59,7 @@ class ContributionApiMapperTest {
             new ContributionQuota.Usage(0, 0, false),
             Instant.parse("2026-10-26T23:00:00Z"),
             count,
+            null,
             new ContributionStore.VersionPage(List.of(), false),
             0);
 
@@ -68,6 +70,7 @@ class ContributionApiMapperTest {
     // Then
     assertThat(response.getProposalCount()).isEqualTo(count);
     assertThat(response.getItems()).isEmpty();
+    assertThat(response.getActiveContribution()).isNull();
     assertThat(response.getQuota().getVersionsUsed()).isZero();
   }
 }

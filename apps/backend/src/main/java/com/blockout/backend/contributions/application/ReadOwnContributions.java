@@ -33,8 +33,8 @@ public class ReadOwnContributions {
   private final AssessContribution eligibility;
 
   /**
-   * Reads current eligibility, quota usage, exact proposal count and one twenty-item personal page
-   * in one snapshot.
+   * Reads current eligibility, quota usage, exact proposal count, owned active version and one
+   * twenty-item personal page in one snapshot.
    *
    * @param owner original admitted account
    * @param matchId currently viewable match
@@ -69,6 +69,7 @@ public class ReadOwnContributions {
         assessment.usage(),
         assessment.day().endsAt(),
         store.ownProposalCount(matchId, owner),
+        store.ownActive(matchId, owner).orElse(null),
         store.own(matchId, owner, (int) page),
         page);
   }
@@ -110,7 +111,8 @@ public class ReadOwnContributions {
   }
 
   /**
-   * Current private context, proposal total and page; no cross-request snapshot is promised.
+   * Current private context, owned active version, proposal total and page; no cross-request
+   * snapshot is promised.
    *
    * @param revision opaque match editing revision
    * @param eligibility current submission outcome before any address-specific duplicate check
@@ -120,6 +122,8 @@ public class ReadOwnContributions {
    * @param dayEndsAt next Paris midnight
    * @param proposalCount all caller-owned versions in every state, independent of quota and
    *     pagination
+   * @param activeContribution current caller-owned active version independent of pagination, or
+   *     null when absent
    * @param versions caller-only native Slice
    * @param page requested zero-based index
    */
@@ -131,6 +135,7 @@ public class ReadOwnContributions {
       ContributionQuota.Usage usage,
       Instant dayEndsAt,
       long proposalCount,
+      ContributionVersion activeContribution,
       ContributionStore.VersionPage versions,
       long page) {}
 

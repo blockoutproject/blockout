@@ -2,18 +2,25 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useFormState } from "react-hook-form";
-import { StyleSheet, Text, View } from "react-native";
-import type { OwnStreamContributionsResponse } from "../../../../.generated/schemas/index.zod";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import type {
+  OwnStreamContributionResponse,
+  OwnStreamContributionsResponse,
+} from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { Surface } from "../../../shared/components/surface";
 import { TextField } from "../../../shared/components/text-field";
+import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
-import type { useOwnContributions } from "../api/own-contributions";
+import {
+  isOwnContributionAccessDenied,
+  type useOwnContributions,
+} from "../api/own-contributions";
 import {
   contributionSchema,
   type ContributionValues,
@@ -26,17 +33,23 @@ export interface ContributionFormProps {
   matchId: string;
   current: OwnStreamContributionsResponse;
   editing: ReturnType<typeof useOwnContributions>;
+  /** Current private active projection; pristine fields follow accepted version changes without replacing dirty drafts. */
+  replacement?: OwnStreamContributionResponse;
 }
-/** Retains typed addresses through refusals/refetches and leaves only after a current acknowledged submission. */
+/** Shares the ordinary address editor for new proposals and the current public version, with native intent confirmation before each write. */
 export function ContributionForm({
   matchId,
   current,
   editing,
+  replacement,
 }: ContributionFormProps) {
   const { colors } = useTheme();
   const router = useRouter();
   const feedback = useActionFeedback();
-  const [editor] = useState(() => contributionEditor(editing.session, matchId));
+  const confirmAction = useActionConfirmation();
+  const [editor] = useState(() =>
+    contributionEditor(editing.session, matchId, replacement?.url),
+  );
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -51,12 +64,18 @@ export function ContributionForm({
       formControl: editor.form.formControl,
     });
   const { isDirty } = useFormState({ control });
+  useEffect(() => {
+    // RHF owns dirtiness even across route removal; only a pristine field follows a newly accepted active version.
+    if (replacement && !editor.form.getFieldState("url").isDirty)
+      reset(contributionValues(replacement.url));
+  }, [editor, replacement, reset]);
   useDiscardChanges(isDirty, () => {
     reset(contributionValues());
     editor.release();
   });
-  const { session, submit, query } = editing;
+  const { session, submit, change, query } = editing;
   const busy = submit.pending || query.isFetching;
+  const recoveryError = submit.error ?? change.error;
   const disabled =
     !editing.usable || query.isError || !current.eligibility.canSubmit;
 
@@ -86,7 +105,16 @@ export function ContributionForm({
         feedback.error();
     }
   }
-  /** Sends the validated literal once; failures preserve the draft and acknowledged writes alone clear dirty state. */
+  /** Acknowledges the saved address before leaving for the exact match, without abandoning a dirty form. */
+  function finish(url: string) {
+    if (!session.isCurrent(session.generation)) return;
+    reset(contributionValues(url));
+    if (mounted.current) {
+      editor.release();
+      router.dismissTo({ pathname: "/matches/[matchId]", params: { matchId } });
+    }
+  }
+  /** Confirms the validated literal and viewed revision once; failures preserve the draft. */
   async function send(values: ContributionValues) {
     if (
       busy ||
@@ -95,21 +123,28 @@ export function ContributionForm({
       !session.isCurrent(session.generation)
     )
       return;
-    feedback.clear();
-    const attempt = submit.start({
-      revision: current.revision,
-      url: values.url,
+    const body = { revision: current.revision, url: values.url };
+    const confirmed = await confirmAction({
+      title: replacement ? "Remplacer ce lien ?" : "Soumettre ce lien ?",
+      message: replacement
+        ? `${replacement.url}\n\nNouveau lien : ${body.url}`
+        : body.url,
+      confirmLabel: replacement ? "Remplacer le lien" : "Soumettre le lien",
+      cancelLabel: "Continuer la saisie",
     });
+    if (
+      !confirmed ||
+      !mounted.current ||
+      !session.isCurrent(session.generation)
+    )
+      return;
+    feedback.clear();
+    const attempt = submit.start(body);
     if (!attempt) return;
     try {
       const accepted = await attempt;
-      if (!session.isCurrent(session.generation)) return;
-      reset(contributionValues(accepted.contribution.url));
       // A reopened route may already own this control while the original callback is detached.
-      if (mounted.current) {
-        editor.release();
-        router.back();
-      }
+      finish(accepted.contribution.url);
     } catch (error) {
       if (!mounted.current || !session.isCurrent(session.generation)) return;
       if (error instanceof ApiError && error.status === 422) {
@@ -124,14 +159,87 @@ export function ContributionForm({
         );
     }
   }
+  /** Withdraws the exact displayed published version independently of eligibility for a new proposal. */
+  async function withdraw() {
+    if (
+      !replacement?.canWithdraw ||
+      !editing.usable ||
+      query.isError ||
+      busy ||
+      submit.needsRead
+    )
+      return;
+    const target = {
+      versionId: replacement.id,
+      body: { action: "withdraw" as const, revision: current.revision },
+    };
+    const confirmed = await confirmAction({
+      title: "Retirer ce lien ?",
+      message: `${replacement.url}\n\nSeule cette version est retirée. Votre proposition éventuelle reste en attente. Cette action ne restitue aucun quota consommé.`,
+      confirmLabel: "Retirer le lien",
+      cancelLabel: "Conserver",
+      destructive: true,
+    });
+    if (
+      !confirmed ||
+      !mounted.current ||
+      !session.isCurrent(session.generation)
+    )
+      return;
+    feedback.clear();
+    const attempt = change.start(target);
+    if (!attempt) return;
+    try {
+      const accepted = await attempt;
+      finish(accepted.contribution.url);
+    } catch (error) {
+      if (!mounted.current || !session.isCurrent(session.generation)) return;
+      if (requiresRevisionRead(error) || isOwnContributionAccessDenied(error))
+        await reread();
+      else
+        feedback.error(
+          "La modification est indisponible. Relisez votre contribution avant de réessayer.",
+        );
+    }
+  }
   return (
     <Surface>
-      <Text
-        accessibilityRole="header"
-        style={[tokens.typography.title, { color: colors.text }]}
-      >
-        Proposer un lien
-      </Text>
+      <View style={styles.header}>
+        <Text
+          accessibilityRole="header"
+          style={[styles.title, { color: colors.text }]}
+        >
+          {replacement
+            ? query.isError
+              ? "Dernier lien public connu"
+              : "Votre lien public"
+            : "Proposer un lien"}
+        </Text>
+        {replacement?.canWithdraw && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Retirer"
+            accessibilityState={{
+              disabled:
+                !editing.usable || query.isError || busy || submit.needsRead,
+            }}
+            disabled={
+              !editing.usable || query.isError || busy || submit.needsRead
+            }
+            onPress={() => void withdraw()}
+            style={styles.withdraw}
+          >
+            <Text
+              style={[
+                tokens.typography.body,
+                { color: colors.error, textDecorationLine: "underline" },
+              ]}
+            >
+              Retirer
+            </Text>
+          </Pressable>
+        )}
+      </View>
       <View style={styles.form}>
         <Controller
           control={control}
@@ -182,18 +290,18 @@ export function ContributionForm({
             />
           </>
         )}
-        {!submit.needsRead && requiresRevisionRead(submit.error) && (
+        {!submit.needsRead && requiresRevisionRead(recoveryError) && (
           <Text
             accessibilityLiveRegion="polite"
             style={[tokens.typography.body, { color: colors.text }]}
           >
-            {submit.error instanceof ApiError && submit.error.status === 409
-              ? "La contribution a changé. L’état courant a été relu. Vérifiez votre saisie avant une nouvelle soumission."
-              : "Le résultat de la demande reste incertain. L’état courant a été relu ; vérifiez-le avant une nouvelle soumission."}
+            {recoveryError instanceof ApiError && recoveryError.status === 409
+              ? "La contribution a changé. L’état courant a été relu. Vérifiez votre saisie avant une nouvelle action."
+              : "Le résultat de la demande reste incertain. L’état courant a été relu ; vérifiez-le avant une nouvelle action."}
           </Text>
         )}
         <Button
-          label="Soumettre le lien"
+          label={replacement ? "Remplacer le lien" : "Soumettre le lien"}
           fullWidth
           onPress={() => void handleSubmit(send)()}
           disabled={disabled || busy || submit.needsRead}
@@ -203,4 +311,18 @@ export function ContributionForm({
     </Surface>
   );
 }
-const styles = StyleSheet.create({ form: { gap: tokens.layout.form.gap } });
+const styles = StyleSheet.create({
+  form: { gap: tokens.layout.form.gap },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.md,
+  },
+  title: { ...tokens.typography.title, flex: 1 },
+  withdraw: {
+    minHeight: tokens.touch.minimum,
+    minWidth: tokens.touch.minimum,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});

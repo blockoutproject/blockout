@@ -256,6 +256,35 @@ class ContributionContractJsonTest {
     assertThat(json.path("proposalCount").asLong()).isEqualTo(count);
   }
 
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  @DisplayName("Preserves an optional active member independently of the empty loaded page")
+  void preservesActiveMemberPresence(boolean present) {
+    // Given
+    String active =
+        """
+        ,"activeContribution":{"id":"%s","url":"https://youtu.be/active","platform":"youtube",
+        "state":"active","submittedAt":"2026-10-24T12:00:00Z","canCancel":false,"canWithdraw":true}
+        """
+            .formatted(ID);
+    String body = OWN_COLLECTION.formatted(",\"proposalCount\":1" + (present ? active : ""));
+
+    // When
+    OwnStreamContributionsResponse response =
+        mapper.readValue(body, OwnStreamContributionsResponse.class);
+    JsonNode json = mapper.readTree(mapper.writeValueAsString(response));
+
+    // Then
+    assertThat(validator.validate(response)).isEmpty();
+    assertThat(json.has("activeContribution")).isEqualTo(present);
+    assertThat(response.getItems()).isEmpty();
+    if (present) {
+      assertThat(response.getActiveContribution().getId()).isEqualTo(UUID.fromString(ID));
+      assertThat(response.getActiveContribution().getCanWithdraw()).isTrue();
+      assertThat(response.getActiveContribution().getCanCancel()).isFalse();
+    }
+  }
+
   @Test
   @DisplayName("Rejects an absent proposal count through required generated constructor binding")
   void rejectsAbsentProposalCount() {
