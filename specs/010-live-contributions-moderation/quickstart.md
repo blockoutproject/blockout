@@ -164,10 +164,24 @@ and [ellipsis-entry captures](https://github.com/blockoutproject/blockout/pull/5
 retain their exact source revisions and narrow execution proofs. Their entry placement,
 row-cancellation controls and empty-management detour are superseded by the current
 [owner direction](plan.md#design-reconciliation-and-evidence); those captures do not establish
-this revised interaction. Current implementation evidence belongs in the same delivery's PR
-Conversation. Figma and prototype synchronization await the owner's explicit native validation.
+this revised interaction. The [current native evidence](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6511946128)
+identifies source `aa4d229e5138d1429e6bea76987c3e7b6296c622`. After reviewing that result,
+the owner explicitly authorized synchronization and removal of obsolete Figma/prototype states.
 
-The current [native captures and observations](https://github.com/blockoutproject/blockout/pull/575)
+The [current Figma journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5511-51086)
+contains fourteen representative editable screens and fifteen used private composition masters;
+twenty-four obsolete screens and nineteen unused masters were removed. Final inspection finds
+live library references without broken instances and Outfit product text. The
+[prototype captures and delivery](https://github.com/blockoutproject/product-prototype/pull/15#issuecomment-6512645456) at
+`db183a56f9b70d828d87623254a2eb8d3ab2b317` passes 223 model tests, 29 Chromium cases,
+TypeScript and build. Browser checks cover the three card entries, prefilled replacement,
+cancelled confirmation, acknowledged returns, withdrawal, read-only/zero history, report
+cancellation, narrow/dark layouts and the header inset regression. This prototype uses only
+fictional local services; its dialogs represent native confirmations and do not qualify native
+platform execution. The existing build chunk-size advisory remains. US4 native reporting and
+the wider qualification matrix retain their own scope.
+
+The current [native captures and observations](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6511946128)
 use production screens on compatible iOS 27.0 and Android 17/API 37 development clients with
 fictional Auth0/storage and a controlled HTTP peer. Both platforms exercise direct first
 proposal, prefilled own-link editing, native replacement and withdrawal confirmations, and
