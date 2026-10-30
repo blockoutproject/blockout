@@ -24,6 +24,7 @@ import {
   consultationPublicClient,
 } from "../test-support/consultation-providers";
 import {
+  consultationResponse,
   clubDetail,
   matchDetail,
   sportingId,
@@ -71,54 +72,8 @@ let detail = matchDetail();
 const season = detail.match.pool.season;
 const otherId = "00000000-0000-4000-8000-000000000008";
 
-/** Defaults are fictional generated HTTP responses; each test exposes its decisive failure or delay. */
-async function reads(url: string): Promise<Response> {
-  const parsed = new URL(url);
-  const path = parsed.pathname;
-  if (path.endsWith("/application-access"))
-    return Response.json(applicationAccessResponse());
-  if (path === `/clubs/${sportingId}`)
-    return Response.json({
-      ...clubDetail("Club des Rives"),
-      seasons: [season],
-      contacts: { email: "club@example.invalid" },
-    });
-  if (path.endsWith("/teams") && path.startsWith("/clubs/"))
-    return Response.json({
-      seasonId: parsed.searchParams.get("seasonId"),
-      items: [],
-    });
-  if (path === `/teams/${sportingId}`)
-    return Response.json({
-      team: {
-        team: { id: sportingId, name: "Équipe des Rives" },
-        season,
-        classification: {},
-        professional: true,
-      },
-      participations: [detail.match.pool],
-    });
-  if (path === `/pools/${sportingId}`)
-    return Response.json({ pool: detail.match.pool });
-  if (path.endsWith("/standings"))
-    return Response.json({
-      poolId: sportingId,
-      availability: "not-published",
-      lastAttemptFailed: false,
-      columns: [],
-      rows: [],
-    });
-  if (path.endsWith("/participants"))
-    return Response.json({ poolId: sportingId, items: [] });
-  if (path.startsWith("/matches/")) return Response.json(detail);
-  if (path === "/matches")
-    return Response.json({
-      category: parsed.searchParams.get("category"),
-      timeZone: parsed.searchParams.get("timeZone"),
-      evaluatedAt: "2026-10-25T12:00:00Z",
-      days: [],
-    });
-  throw new Error(`Unexpected controlled request ${path}`);
+function reads(url: string) {
+  return consultationResponse(url, detail);
 }
 
 /** Captures the real principal-owned QueryClient without replacing session or query behavior. */
