@@ -1,3 +1,4 @@
+import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import {
   useLayoutEffect,
   useState as useQueryFixtureState,
@@ -31,6 +32,16 @@ import { initializeV2Installation } from "../../onboarding/initialize-v2-install
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("../../pro/test-support/native-purchases")
+    .mockPurchases,
+}));
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
@@ -186,7 +197,7 @@ async function renderSearch() {
                   <AccountSessionProvider>
                     <PrivateQueries>
                       <AccountFeedbackProvider>
-                        {children}
+                        <AdvertisingProviders>{children}</AdvertisingProviders>
                       </AccountFeedbackProvider>
                     </PrivateQueries>
                   </AccountSessionProvider>
