@@ -15,6 +15,20 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class ContributionExceptionHandler {
 
   /**
+   * Refuses an empty normalized report reason without logging its private input.
+   *
+   * @param failure safe bounded validation failure
+   * @return canonical non-cacheable business refusal
+   */
+  @ExceptionHandler(
+      com.blockout.backend.contributions.application.ReportContribution.InvalidReason.class)
+  ResponseEntity<Object> invalidReportReason(
+      com.blockout.backend.contributions.application.ReportContribution.InvalidReason failure) {
+    return HttpProblems.response(
+        HttpStatus.UNPROCESSABLE_CONTENT, "urn:blockout:problem:unprocessable-content");
+  }
+
+  /**
    * Refuses an incompatible exact-version action without exposing another contribution's state.
    *
    * @param failure bounded lifecycle conflict

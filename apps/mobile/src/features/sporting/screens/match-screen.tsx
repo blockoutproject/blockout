@@ -1,3 +1,4 @@
+import { ContributionReportEntry } from "../../contributions/entry";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
@@ -134,6 +135,9 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
                     <MatchSetScores match={data.match} sets={data.sets} />
                     <MatchLinks
                       detail={data}
+                      reportAction={
+                        <ContributionReportEntry entry={contribution} />
+                      }
                       action={
                         contribution.hasProposals &&
                         !contribution.ownsPublic ? (

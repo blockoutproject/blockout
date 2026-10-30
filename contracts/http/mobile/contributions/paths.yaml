@@ -183,7 +183,7 @@ OwnReport:
   get:
     operationId: getOwnStreamReport
     tags:
-      - StreamContributions
+      - StreamReports
     summary: Read my report state
     description:
       Returns this account’s reporting state, without its reason. An existing report remains readable
@@ -212,7 +212,7 @@ OwnReport:
   post:
     operationId: createStreamReport
     tags:
-      - StreamContributions
+      - StreamReports
     summary: Report a stream version
     description:
       Requires the original usable account and current reporting permission. Reports another owner’s currently public version, including an ownerless link. No age or publication
