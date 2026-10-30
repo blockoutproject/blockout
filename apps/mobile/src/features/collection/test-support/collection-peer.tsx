@@ -201,13 +201,16 @@ export function AccountActions() {
   );
 }
 
-/** Single-error scenarios configure native recovery before mounting readers; production defaults have their own tests. */
+/** Configures single-error reads and timer-free mutation retention before test interactions; production defaults stay unchanged. */
 function PrivateQueries({
   children,
   onClient,
 }: PropsWithChildren<{ onClient?: (client: QueryClient) => void }>) {
   const client = useQueryClient();
-  useState(() => client.setDefaultOptions({ queries: { retry: false } }));
+  useState(() => {
+    client.setQueryDefaults([], { retry: false });
+    client.setMutationDefaults([], { gcTime: Infinity });
+  });
   useLayoutEffect(() => onClient?.(client), [client, onClient]);
   return children;
 }

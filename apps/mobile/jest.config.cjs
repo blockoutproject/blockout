@@ -10,6 +10,8 @@ module.exports = {
   ),
   testMatch: ["**/__tests__/**/*.test.[jt]s?(x)"],
   clearMocks: true,
+  // Bound ordinary CI workers while allowing focused runs to opt into --runInBand.
+  maxWorkers: 2,
   setupFilesAfterEnv: ["<rootDir>/jest.setup.cjs"],
   // Use Lucide's public CommonJS export in Jest; Metro selects its native ESM export.
   moduleNameMapper: {

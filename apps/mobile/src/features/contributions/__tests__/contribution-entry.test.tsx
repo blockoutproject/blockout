@@ -87,6 +87,7 @@ let client = createQueryClient();
 let privateClient: ReturnType<typeof createQueryClient>;
 let context = ownContributions();
 beforeEach(() => {
+  jest.useFakeTimers();
   jest.replaceProperty(
     proSessionModule,
     "proSession",
@@ -174,7 +175,10 @@ it.each(["refused", "owner outage", "profile outage"])(
     // When: time-dependent eligibility changes and the user refreshes the match itself.
     recovering = true;
     context = ownContributions();
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await fireEvent(
+      await screen.findByLabelText("Actualiser les données"),
+      "refresh",
+    );
 
     // Then: the same entry becomes usable without remount, polling or a separate permission flow.
     expect(
@@ -190,6 +194,9 @@ afterEach(async () => {
   await cleanup();
   client.clear();
   privateClient?.clear();
+  // Await pending native/Query batches before restoring the test's real timer environment.
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
   process.env = { ...previous };
   jest.restoreAllMocks();
 });

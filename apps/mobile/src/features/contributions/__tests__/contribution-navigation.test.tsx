@@ -849,10 +849,13 @@ it("returns from the owned editor to the exact match after withdrawing its activ
   ).toHaveLength(1);
 });
 
-/** Uses the real private cache, with one-shot failures instead of retry backoff in journey fixtures. */
+/** Uses one-shot read failures and keeps unused mutation GC timers out of the Jest process. */
 function PrivateQueries({ children }: PropsWithChildren) {
   const cache = useQueryClient();
-  useState(() => cache.setDefaultOptions({ queries: { retry: false } }));
+  useState(() => {
+    cache.setQueryDefaults([], { retry: false });
+    cache.setMutationDefaults([], { gcTime: Infinity });
+  });
   useLayoutEffect(() => {
     privateClient = cache;
   }, [cache]);

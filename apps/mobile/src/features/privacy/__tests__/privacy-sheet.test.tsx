@@ -151,16 +151,20 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Real root/session/age/native-privacy owners and Router; only SDK/storage/HTTP I/O is controlled. */
+/** Mounts real root/ordinary layouts and privacy owners, with null probes for unrelated declared routes. */
 async function mountJourney(initialUrl = "/", caller = ProfileCaller) {
   await renderRouter(
     {
       _layout: () => <RootLayout />,
+      onboarding: () => null,
+      "age-declaration": () => null,
       "(operations)/_layout": () => <Stack />,
       "(ordinary)/_layout": OrdinaryLayout,
       "(ordinary)/(tabs)/_layout": () => <Stack />,
       "(ordinary)/(tabs)/index": caller,
       "(ordinary)/privacy": PrivacyRoute,
+      "(ordinary)/pro": () => null,
+      "(ordinary)/sign-in-invitation": () => null,
       "(ordinary)/privacy-age": CorrectionRoute,
       access: () => <Text>Blocked admission</Text>,
     },

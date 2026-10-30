@@ -215,12 +215,13 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Selects the real private lifetime client and disables read retries only for these failure scenarios. */
+/** Selects the real private client with one-shot reads and no detached mutation GC timers in these scenarios. */
 function PrivateQueries({ children }: PropsWithChildren) {
   const current = useQueryClient();
   useLayoutEffect(() => {
     client = current;
     current.setQueryDefaults([], { retry: false });
+    current.setMutationDefaults([], { gcTime: Infinity });
   }, [current]);
   return children;
 }
@@ -940,12 +941,13 @@ it("ignores a held native selection after the session is invalidated", async () 
   );
 });
 
-/** Mounts the real root/protected route; other destinations are explicit unrelated route probes. */
+/** Mounts real root/operational layouts with every declared route; unrelated destinations remain probes. */
 async function openRoutes(initialUrl = "/") {
   return renderRouter(
     {
       _layout: () => <RootLayout />,
       onboarding: OnboardingRoute,
+      "age-declaration": () => null,
       access: AccessProbe,
       "(ordinary)/_layout": () => (
         <Stack screenOptions={{ headerShown: false }} />
@@ -1037,8 +1039,12 @@ it("keeps a presentation-only original-target editor admitted during maintenance
   await screen.findByDisplayValue("Current name");
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
 });
-/** Starts an ordinary current-account refresh through its real owner. */
+/** Exposes real account refresh and keeps protected-route fixture mutations free of detached GC timers. */
 function PermissionRefresh() {
+  const cache = useQueryClient();
+  useLayoutEffect(() => {
+    cache.setMutationDefaults([], { gcTime: Infinity });
+  }, [cache]);
   const account = useCurrentAccount();
   return (
     <Pressable

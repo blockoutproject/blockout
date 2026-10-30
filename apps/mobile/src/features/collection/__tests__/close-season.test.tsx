@@ -54,6 +54,7 @@ let peer: ReturnType<typeof collectionPeer>;
 let client = createQueryClient();
 let privateClient: ReturnType<typeof createQueryClient>;
 beforeEach(() => {
+  jest.useFakeTimers();
   peer = collectionPeer();
   client = createQueryClient();
   Object.assign(process.env, {
@@ -75,6 +76,9 @@ afterEach(async () => {
   await cleanup();
   client.clear();
   privateClient?.clear();
+  // Await pending native/Query batches before restoring the test's real timer environment.
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });

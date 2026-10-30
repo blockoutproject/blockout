@@ -169,7 +169,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Mounts the existing visit, query, access, session and navigation owners; HTTP and native layout are controlled. */
+/** Mounts real query/session/navigation owners and all declared support routes; HTTP and native layout are controlled. */
 async function renderSearch() {
   const result = await renderRouter(
     {
@@ -183,6 +183,7 @@ async function renderSearch() {
       "clubs/[clubId]": ClubRoute,
       "support/_layout": SupportLayout,
       "support/index": SupportScreen,
+      "support/choice": () => null,
       "pool-refusal": PoolChildRead,
     },
     {

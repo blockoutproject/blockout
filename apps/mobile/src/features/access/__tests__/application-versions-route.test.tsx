@@ -1,3 +1,5 @@
+import { useLayoutEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
 import {
   cleanup,
@@ -107,12 +109,13 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Mounts the production root around route probes; Expo owns deep-link fallback and history. */
+/** Mounts real root/operational layouts with every declared route; unrelated destinations are null probes. */
 async function openRoute(path: string) {
   return renderRouter(
     {
       _layout: () => <RootLayout />,
       onboarding: OnboardingRoute,
+      "age-declaration": () => null,
       "(ordinary)/_layout": () => <Stack />,
       "(operations)/_layout": () => (
         <>
@@ -126,6 +129,13 @@ async function openRoute(path: string) {
       "(ordinary)/support": () => <Text>Support route</Text>,
       "(ordinary)/legal": () => <Text>Legal route</Text>,
 
+      "(operations)/collection": () => null,
+      "(operations)/administration/classification/[kind]/[id]": () => null,
+      "(operations)/administration/classification-selection": () => null,
+      "(operations)/administration/divisions/index": () => null,
+      "(operations)/administration/divisions/[id]": () => null,
+      "(operations)/administration/divisions/new": () => null,
+      "(operations)/administration/presentation/[kind]/[id]": () => null,
       "(operations)/administration/index": AdministrationRoute,
       "(operations)/administration/application-versions":
         ApplicationVersionsRoute,
@@ -137,8 +147,12 @@ async function openRoute(path: string) {
   );
 }
 
-/** Allows a current account read while the real protected editor is mounted. */
+/** Refreshes the real account while the editor is mounted and keeps fixture mutations free of detached GC timers. */
 function PermissionRefresh() {
+  const cache = useQueryClient();
+  useLayoutEffect(() => {
+    cache.setMutationDefaults([], { gcTime: Infinity });
+  }, [cache]);
   const account = useCurrentAccount();
   return (
     <Pressable

@@ -116,6 +116,7 @@ function version(
 }
 
 beforeEach(() => {
+  jest.useFakeTimers();
   client = createQueryClient();
   mockFocused = true;
   mockAppState = "active";
@@ -201,6 +202,9 @@ afterEach(async () => {
   await cleanup();
   client.clear();
   privateClient?.clear();
+  // Jest owns pending native/Query batching; restore real time only after unmounted work is drained.
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
   jest.restoreAllMocks();
   process.env = { ...previous };
 });
@@ -224,10 +228,13 @@ async function mount() {
     </QueryClientProvider>,
   );
 }
-/** Configures one-shot failure fixtures on the actual identity-owned cache before mounting feature readers. */
+/** Configures one-shot reads and timer-free mutation retention on the actual identity-owned test cache. */
 function PrivateQueries({ children }: PropsWithChildren) {
   const cache = useQueryClient();
-  useState(() => cache.setDefaultOptions({ queries: { retry: false } }));
+  useState(() => {
+    cache.setQueryDefaults([], { retry: false });
+    cache.setMutationDefaults([], { gcTime: Infinity });
+  });
   useLayoutEffect(() => {
     privateClient = cache;
   }, [cache]);

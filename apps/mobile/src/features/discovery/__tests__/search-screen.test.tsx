@@ -142,6 +142,7 @@ function PrivateQueries({ children }: QueryFixtureProps) {
 }
 
 beforeEach(() => {
+  jest.useFakeTimers();
   mockIsFocused.mockReset().mockReturnValue(true);
   publicClient = createQueryClient();
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
@@ -158,6 +159,9 @@ afterEach(async () => {
   await cleanup();
   client?.clear();
   publicClient.clear();
+  // Await pending native/Query batches before restoring the test's real timer environment.
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
   process.env = { ...environment };
   focusManager.setFocused(undefined);
   onlineManager.setOnline(true);

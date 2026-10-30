@@ -79,6 +79,7 @@ const account = accountResponse({
 let stored: import("../../../../.generated/schemas/index.zod").MaintenanceSettingsResponse =
   { ...initial };
 beforeEach(() => {
+  jest.useFakeTimers();
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
   publicClient = createQueryClient();
   mockAccessResponse = mockApplicationAccessResponse();
@@ -104,16 +105,20 @@ afterEach(async () => {
   await cleanup();
   client?.clear();
   publicClient.clear();
+  // Await pending Query batches before restoring the test's real timer environment.
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
 
-/** Selects the real private lifetime client and disables read retries only for these failure scenarios. */
+/** Selects the real private client, disables read retries and avoids detached mutation GC timers in these scenarios. */
 function PrivateQueries({ children }: PropsWithChildren) {
   const current = useQueryClient();
   useLayoutEffect(() => {
     client = current;
     current.setQueryDefaults([], { retry: false });
+    current.setMutationDefaults([], { gcTime: Infinity });
   }, [current]);
   return children;
 }
@@ -278,7 +283,7 @@ it("separates content preparation from explicit activation", async () => {
     ).not.toBeOnTheScreen(),
   );
   expect(
-    screen.getByRole("button", {
+    await screen.findByRole("button", {
       name: "Enregistrer",
       busy: false,
     }),

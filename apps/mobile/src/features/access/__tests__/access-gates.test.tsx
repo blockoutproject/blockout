@@ -115,7 +115,7 @@ afterEach(async () => {
   jest.useRealTimers();
 });
 
-/** Mounts the production root around route probes; Expo owns deep-link fallback and history. */
+/** Mounts real root/operational layouts with every declared route; unrelated destinations are null probes. */
 async function openRoute(path: string) {
   const view = await renderRouter(
     {
@@ -132,6 +132,14 @@ async function openRoute(path: string) {
       "(ordinary)/support/choice": SupportChoiceRoute,
       "(ordinary)/legal": () => <Text>Legal route</Text>,
       "(ordinary)/sign-in": SignInProbe,
+      "(operations)/collection": () => null,
+      "(operations)/administration/application-versions": () => null,
+      "(operations)/administration/classification/[kind]/[id]": () => null,
+      "(operations)/administration/classification-selection": () => null,
+      "(operations)/administration/divisions/index": () => null,
+      "(operations)/administration/divisions/[id]": () => null,
+      "(operations)/administration/divisions/new": () => null,
+      "(operations)/administration/presentation/[kind]/[id]": () => null,
       "(operations)/administration/index": AdministrationRoute,
       "(operations)/administration/maintenance": () => (
         <Text>Maintenance editor</Text>

@@ -93,16 +93,19 @@ const accepted = {
     canWithdraw: true,
   },
 } as const;
-let client = createQueryClient();
+let publicClient = createQueryClient();
+let client = publicClient;
 // Failure presentation is isolated here; native retry defaults have their own Query suite.
-client.setQueryDefaults([], { retry: false });
+publicClient.setQueryDefaults([], { retry: false });
 let context = ownContributions();
 let failRefresh = false;
 let posts: RequestInit[] = [];
 beforeEach(() => {
-  client = createQueryClient();
+  jest.useFakeTimers();
+  publicClient = createQueryClient();
+  client = publicClient;
   // Failure presentation is isolated here; native retry defaults have their own Query suite.
-  client.setQueryDefaults([], { retry: false });
+  publicClient.setQueryDefaults([], { retry: false });
   mockMaintenance = false;
   context = ownContributions();
   failRefresh = false;
@@ -154,6 +157,10 @@ afterEach(async () => {
   });
   await cleanup();
   client.clear();
+  publicClient.clear();
+  // Await pending native/Query batches before restoring the test's real timer environment.
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
   process.env = { ...previous };
   jest.restoreAllMocks();
 });
@@ -163,7 +170,7 @@ async function mount(
   content: ReactNode = <ContributionScreen matchId={match.match.id} />,
 ) {
   await render(
-    <QueryClientProvider client={client}>
+    <QueryClientProvider client={publicClient}>
       <ThemeProvider>
         <ApplicationAccessProvider>
           <AccountSessionProvider>
@@ -619,9 +626,11 @@ it("retains the address after a new time restriction without adding availability
   ).toBeOnTheScreen();
   expect(screen.queryByText(/Disponible à partir du/)).not.toBeOnTheScreen();
   expect(screen.getByDisplayValue(accepted.contribution.url)).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Soumettre le lien" }),
-  ).toBeDisabled();
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Soumettre le lien" }),
+    ).toBeDisabled(),
+  );
   expect(posts).toHaveLength(1);
 });
 
@@ -1037,7 +1046,7 @@ it.each(["cancel", "session", "unmount"])(
   },
 );
 
-/** Observes the actual private client installed by the native principal provider. */
+/** Captures the identity-owned private cache while retaining the public cache for fixture cleanup. */
 function PrivateQueries({ children }: PropsWithChildren) {
   const privateClient = useQueryClient();
   // Configure deterministic failure presentation before child Query observers mount.

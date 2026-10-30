@@ -58,6 +58,7 @@ function PrivateProfile() {
 }
 
 beforeEach(() => {
+  jest.useFakeTimers();
   fixture = followingFixture();
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
@@ -75,9 +76,11 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   fixture.dispose();
+  // Await pending Query batches before restoring the test's real timer environment.
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
   process.env = { ...environment };
   jest.restoreAllMocks();
-  jest.useRealTimers();
 });
 
 it.each([team, pool])(

@@ -39,6 +39,7 @@ const env = { ...process.env };
 const account = accountResponse();
 
 beforeEach(() => {
+  jest.useFakeTimers();
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
@@ -57,6 +58,9 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await cleanup();
+  // Await pending Query batches before restoring the test's real timer environment.
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
   process.env = { ...env };
   jest.restoreAllMocks();
 });

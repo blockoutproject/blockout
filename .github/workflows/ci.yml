@@ -10,11 +10,19 @@ on:
 permissions:
   contents: read
 
+# Only superseded PR revisions cancel one another; pushes and release calls remain independent.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CI: "true"
+  NX_DAEMON: "false"
+
 jobs:
-  verify:
-    name: verify
+  quality:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 5
     steps:
       - name: Require develop as the main promotion source
         if: github.event_name == 'pull_request' && github.base_ref == 'main' && (github.head_ref != 'develop' || github.event.pull_request.head.repo.full_name != github.repository)
@@ -34,7 +42,45 @@ jobs:
       - name: Use the workspace npm version
         run: npm install --global npm@12.0.1
 
+      - name: Install locked workspace dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Check repository formatting
+        run: npm run format:check
+
+      - name: Validate native telemetry configuration
+        run: |
+          telemetry_image=$(docker compose --env-file infra/observability/.env.example -f infra/observability/compose.yaml config --images)
+          docker run --rm --env-file infra/observability/.env.example \
+            -v "$PWD/infra/observability/config.alloy:/etc/alloy/config.alloy:ro" \
+            "$telemetry_image" validate /etc/alloy/config.alloy
+
+  applications:
+    name: ${{ matrix.project }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [backend, collector, mobile]
+    steps:
+      - name: Check out the exact revision and its comparison history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Use the workspace npm version
+        run: npm install --global npm@12.0.1
+
       - name: Use Temurin Java 25
+        if: matrix.project != 'mobile'
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
@@ -44,15 +90,32 @@ jobs:
       - name: Install locked workspace dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Verify contracts, generated consumers, HTTP boundaries and database roles
+      - name: Verify the affected application and its contract dependencies
+        if: github.event_name == 'pull_request'
         env:
-          CI: "true"
-          NX_DAEMON: "false"
-        run: npm run verify
+          PROJECT: ${{ matrix.project }}
+          NX_BASE: ${{ github.event.pull_request.base.sha }}
+          NX_HEAD: ${{ github.sha }}
+        # Nx's documented project patterns intersect affected projects with this matrix entry.
+        run: npx nx affected -t verify --exclude="*,!$PROJECT" --output-style=static
 
-      - name: Validate native telemetry configuration
+      - name: Verify the complete application on integration pushes and release calls
+        if: github.event_name != 'pull_request'
+        env:
+          PROJECT: ${{ matrix.project }}
+        run: npx nx run "$PROJECT:verify" --output-style=static
+
+  verify:
+    name: verify
+    if: ${{ always() }}
+    needs: [quality, applications]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require every verification job to succeed
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          APPLICATIONS_RESULT: ${{ needs.applications.result }}
         run: |
-          telemetry_image=$(docker compose --env-file infra/observability/.env.example -f infra/observability/compose.yaml config --images)
-          docker run --rm --env-file infra/observability/.env.example \
-            -v "$PWD/infra/observability/config.alloy:/etc/alloy/config.alloy:ro" \
-            "$telemetry_image" validate /etc/alloy/config.alloy
+          test "$QUALITY_RESULT" = success
+          test "$APPLICATIONS_RESULT" = success

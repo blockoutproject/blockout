@@ -67,17 +67,19 @@ const original = {
   streamContributionId: versionId,
 };
 let detail = original;
-let client = createQueryClient();
+let publicClient = createQueryClient();
+let client = publicClient;
 // Failure presentation is isolated here; native retry defaults have their own Query suite.
-client.setQueryDefaults([], { retry: false });
+publicClient.setQueryDefaults([], { retry: false });
 let posts: { url: string; body: unknown }[] = [];
 let ownState = false;
 let responseStatus = 201;
 
 beforeEach(() => {
-  client = createQueryClient();
+  publicClient = createQueryClient();
+  client = publicClient;
   // Failure presentation is isolated here; native retry defaults have their own Query suite.
-  client.setQueryDefaults([], { retry: false });
+  publicClient.setQueryDefaults([], { retry: false });
   detail = original;
   posts = [];
   ownState = false;
@@ -130,6 +132,7 @@ afterEach(async () => {
   });
   await cleanup();
   client.clear();
+  publicClient.clear();
   process.env = { ...previous };
   jest.restoreAllMocks();
 });
@@ -137,7 +140,7 @@ afterEach(async () => {
 /** Real form, generated transport, Query and F05/F12 providers; HTTP and native SDK/navigation are controlled. */
 async function mount() {
   await render(
-    <QueryClientProvider client={client}>
+    <QueryClientProvider client={publicClient}>
       <ThemeProvider>
         <ApplicationAccessProvider>
           <AccountSessionProvider>
@@ -496,7 +499,7 @@ it("keeps the viewed address when current public context already contains a repl
   expect(posts[0].url).toContain(versionId);
 });
 
-/** Observes the actual private client installed by the native principal provider. */
+/** Captures the identity-owned private cache while retaining the public cache for fixture cleanup. */
 function PrivateQueries({ children }: PropsWithChildren) {
   const privateClient = useQueryClient();
   // Configure deterministic failure presentation before child Query observers mount.

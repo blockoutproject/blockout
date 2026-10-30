@@ -39,18 +39,8 @@
       "command": "npm run doctor --workspace=@blockout/mobile"
     },
     "verify": {
-      "executor": "nx:run-commands",
-      "options": {
-        "parallel": false,
-        "commands": [
-          "npm run lint --workspace=@blockout/mobile",
-          "npm run typecheck --workspace=@blockout/mobile",
-          "npm run test --workspace=@blockout/mobile",
-          "npm run build --workspace=@blockout/mobile",
-          "npm run doctor --workspace=@blockout/mobile"
-        ]
-      },
-      "dependsOn": ["generate"]
+      "executor": "nx:noop",
+      "dependsOn": ["lint", "typecheck", "test", "build", "doctor"]
     },
     "generate": {
       "command": "npm run generate --workspace=@blockout/mobile",
