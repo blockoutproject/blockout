@@ -20,7 +20,7 @@ import { FollowButton } from "../components/follow-button";
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { SportingActions } from "../../sporting/components/sporting-actions";
 import type { InfiniteData } from "@tanstack/react-query";
-import type { FollowListPage } from "../api/personal-queries";
+import type { ListTeamFollows200 } from "../../../../.generated/schemas/index.zod";
 import {
   followStateKey,
   followerCountKey,
@@ -543,7 +543,7 @@ it("applies public absence to an account established while the first counter is 
   ).not.toBeOnTheScreen();
   expect(
     fixture.client
-      .getQueryData<InfiniteData<FollowListPage>>(listKey)
+      .getQueryData<InfiniteData<ListTeamFollows200>>(listKey)
       ?.pages.flatMap((page) => page.items),
   ).toEqual([]);
 });
