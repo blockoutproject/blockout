@@ -10,11 +10,12 @@ Use F13's selected backend/mobile environment and the authored [contracts](contr
 
 The foundation is exercised by `FollowingContractWebMvcTest`, `FollowAccessWebMvcTest` and the mobile
 `following-contract.test.ts` / `following-context.test.ts` suites through the actual generated
-Java interfaces/DTOs and Orval consumers. Java MVC uses a test-only following adapter; F05 identity
-and F12 admission run with controlled account/settings/transaction collaborators. Mobile uses the
+Java interfaces/DTOs and Orval consumers. Java MVC uses the production `FollowingController` with controlled application ports and actual
+generated argument conversion; F05 identity and F12 admission run with controlled
+account/settings/transaction collaborators. Mobile uses the
 real F05 generation, Query cleanup and F13 transport with controlled HTTP. These checks establish
 binding, original-owner rejection and late-response isolation, including returning to the same
-account; they establish no production following endpoint, persisted relation, account-erasure race,
+account; they establish the real HTTP binding, but no persisted relation, account-erasure race,
 native networking, screen or provider behavior. Generated response Bean Validation in the Java
 suite is explicit qualification of the DTO bounds, not automatic outbound MVC validation.
 
@@ -25,11 +26,13 @@ Verify unauthenticated requests, another account, erased original account, hidde
 ## Durable relationship boundary
 
 `FollowStateWebMvcTest` exercises the production generated member controller with controlled
-application state, real F05 identity and F12 admission: confirmed booleans, strict bodies/queries,
+application state, real F05 identity and F12 admission: confirmed booleans, body validation, native query conversion/ignored undeclared fields,
 media refusal, original-owner isolation, explicit maintenance bypass and opaque no-store failures.
 `FollowRelationsIntegrationTest` uses migrated PostgreSQL 18.6 and the restricted application role
 for UUID lifecycle, FK/uniqueness, independent typed targets, current F02 visibility, retained hidden
-relations, identity corrections, rollback and competing original-account writes. Its deletion
+relations, identity corrections, rollback and competing original-account writes. A member read
+finishes against its ordinary snapshot while another transaction still holds the account write lock;
+write/erasure cases retain their actual serialization. Its deletion
 fixtures remove the account row under F05's lock; they do not invoke the future F05 erasure
 orchestrator or F06 participant. Those integrated races remain T011/T016 and F05 T035.
 
@@ -102,7 +105,7 @@ live Dynamic Type [F13 native qualification](../003-shared-quality/quickstart.md
 disposable PostgreSQL with the restricted application role: direct counts through repeated true,
 repeated false and re-follow, multiple owners, distinct typed identities and seasons, retained
 hidden relations and current restored visibility. `FollowerCountWebMvcTest` exercises the production
-generated routes, exact safe-integer serialization, strict query shapes, no-store, current F12
+generated routes, exact safe-integer serialization, native query binding, no-store, current F12
 bypass and opaque missing/storage failures. Ordinary public counts invoke no account or permission
 lookup. `ReadFollowerCountTest` covers safe-integer bounds through a controlled persistence port;
 it does not manufacture that number of database rows.
@@ -212,7 +215,7 @@ hidden/reappearing relations. The maximum supported offset executes against Post
 unrepresentable continuation is exercised with a controlled full-page application port instead of
 manufacturing billions of rows. One-item and twenty-item summary reads have the same bounded SQL
 statement count. `FollowListsWebMvcTest` exercises the production generated controller/mapper,
-strict query bounds, no-store, original-owner/F12 admission and safe failures.
+generated query bounds, no-store, original-owner/F12 admission and safe failures.
 
 `followed-lists.test.tsx` and `personal-screen.test.tsx` use actual Query, generated list calls,
 session/admission/season owners and native component composition with controlled HTTP/native I/O.

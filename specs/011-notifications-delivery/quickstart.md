@@ -2,6 +2,8 @@
 
 Follow the [local development setup](../../README.md#local-development) and run the [repository verification commands](../../README.md#verification). The scenarios below require the notification implementation and native provider setup; shared checks alone do not qualify inbox or push behavior.
 
+The current [mobile state plan](plan.md#inbox-retention-and-mobile-state) uses native mutation invalidation and active Query observers, with ordinary eventual read-flag/count freshness. Recheck an uncertain PATCH acknowledgement, inactive/focused refetch and a subject change while reads finish. Existing dated qualifications retain the behavior of their named revision; former read-true overlay/member-reconciliation assertions do not certify this replacement. Active original-createdAt expiry and private ownership remain required.
+
 ## Prerequisites
 
 Use the [generated HTTP boundary](../003-shared-quality/contracts/README.md) and actual PostgreSQL schema, fixtures for usable/deleted accounts and overlapping follows, accepted sporting transitions, and controlled Expo send/receipt doubles. Native checks require development/release builds on physical iOS and Android devices, separate nonproduction credentials and destinations, and known test accounts. Do not use real user payloads or Expo Go as delivery evidence.
@@ -261,8 +263,8 @@ native text resizing or VoiceOver/TalkBack behavior; T060 retains those qualific
 
 T028/T034/T035 use the actual `AfterCommitAnnouncements.Ready` boundary: the mandatory
 producer transaction captures current private association row identities/revisions/addresses
-alongside original F06 relation incarnations, and rollback emits nothing. The bounded native
-Spring worker consumes only successful commits. It reuses the current inbox/F03/F08 projection,
+alongside original F06 relation incarnations, and rollback emits nothing. The actual `DeliverPush` listener consumes the single immutable event only after commit through
+Spring’s native transaction-bound event facility, then submits bounded native worker batches. It reuses the current inbox/F03/F08 projection,
 original F05 account and exact F06 relation reads, then checks F12 maintenance immediately before
 each provider batch. Current association replacement, owner/entry removal, age 29, sporting hiding,
 missing reliable H, before-H or final-result live state suppress remaining work. Result-family
@@ -273,7 +275,7 @@ and [PostgreSQL cases](../../apps/backend/src/test/java/com/blockout/backend/not
 cover this transport construction with controlled external I/O; [SDK mapping cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/infrastructure/ExpoPushClientTest.java)
 exercise real mapping into the SDK’s native request model and partial/refused/uncertain/missing SDK evidence.
 [Native transport cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/infrastructure/ExpoPushTransportIntegrationTest.java)
-exercise the actual Java SDK and Apache client against a disposable loopback server, proving native serialization/decoding and one POST for send/receipt 429/503 responses with enhanced-security headers and no underlying automatic retry. A mixed `MismatchSenderId`/`DeviceNotRegistered` receipt response uses the SDK’s native UNKNOWN fallback and preserves the exact invalidation signal.
+exercise the actual Java SDK and Apache client against a disposable loopback server, proving native serialization/decoding, ordinary unknown evidence for empty error bodies, and one POST for send/receipt 429/503 responses with enhanced-security headers and no underlying automatic retry. A mixed `MismatchSenderId`/`DeviceNotRegistered` receipt response uses the SDK’s native UNKNOWN fallback and preserves the exact invalidation signal.
 [Configuration cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/infrastructure/PushDeliveryConfigurationTest.java)
 exercise native binding, activation validation and queue rejection. Run
 `./mvnw -B -ntp -pl apps/backend verify -Dtest='PushDeliveryTest,ExpoPushClientTest,PushDeliveryConfigurationTest' -Dit.test=PushDeliveryIntegrationTest,ExpoPushTransportIntegrationTest`.

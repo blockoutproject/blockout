@@ -19,7 +19,10 @@ approved single attempt and single delayed receipt observation. Support for some
 does not supersede the accepted physical iOS/Android qualification.
 
 `AfterCommitAnnouncements` captures association row incarnations inside the existing producer
-transaction, preventing a later registration from receiving historical work. `ReadPushEligibility`
+transaction, preventing a later registration from receiving historical work. It publishes one immutable
+event; the actual `DeliverPush` consumer uses Spring’s `@TransactionalEventListener(AFTER_COMMIT)`
+with highest precedence and its safe handoff failure boundary. No wrapper event or republication
+stage is needed. Java 25 `Gatherers.windowFixed` owns ordered send/projection batching. `ReadPushEligibility`
 uses the existing current inbox/F03/F08 projection and F06 identity API in a short read-only
 transaction. A normal unavailable member uses `ReadInbox.availableMember` instead of catching a
 transactional exception that has already marked its enclosing read transaction rollback-only.
@@ -28,15 +31,15 @@ No owner repository/entity is imported across feature boundaries.
 The [SDK listed by Expo](https://docs.expo.dev/push-notifications/sending-notifications/#send-push-notifications-using-a-server)
 is [published on Maven Central](https://github.com/hlspablo/expo-server-sdk-java#installation). Version 3.1.6
 accepts a `CloseableHttpClient`, base URI and access token through its public builder. Its native
-optional badge/TTL/expiration values remain null and are omitted by its own serializer. F07 measures
-the SDK-serialized request for the 4 KiB bound, using the public serializer helper rather than a
-second JSON shape. The SDK performs synchronous calls with no application retry machinery.
+optional badge/TTL/expiration values remain null and are omitted by its own serializer. Expo owns
+payload-size admission; no second application serialization pass measures the 4 KiB provider bound.
+The SDK performs synchronous calls with no application retry machinery.
 
 Use Spring Boot’s native `HttpComponentsHttpClientBuilder` with the configured HTTP settings and
 Apache’s `disableAutomaticRetries()`: native 429/503 recovery would otherwise replay a JSON POST.
-A standard Apache response interceptor raises a typed `HttpResponseException` on HTTP refusal,
-even with an empty/non-JSON body, before SDK decoding. F07 maps the numeric status and never parses
-private SDK exception messages. SDK/transport decoding failures remain unknown evidence; they do
+The SDK owns HTTP status/JSON decoding. Its parsed `ErrorResponseException` means refusal; an
+empty or non-JSON error body may remain unknown, including a 401/403 without a dedicated
+configuration alert. F07 never parses private SDK exception messages. Decoding failures do
 not cause resend, reconstructed responses or a replacement parser. Spring owns and closes the
 HTTP pool. The SDK declares an annotated `UNKNOWN` receipt-error value but does not enable its
 native Jackson fallback; a documented `MismatchSenderId` otherwise rejects an entire mixed response,
@@ -105,11 +108,13 @@ Read commands reuse the existing season → division → match → account locks
 current owner/age/visibility. After the conditional update confirms success, the response reuses
 that authorized projection with read=true; rehydrating the same sporting/link facts adds no
 freshness guarantee under these locks. Already-read entries return unchanged; the update never
-merges or inserts. Cursor validation uses the JDK Base64/Instant/UUID parsers, microsecond precision
-and the encoder's canonical representation rather than a second date/UUID grammar. All emitted
-cursors remain valid; alternate spellings never emitted by the server are rejected. Controlled
+merges or inserts. Cursor validation uses the JDK Base64/Instant/UUID parsers with a small input-size bound. There is no canonical re-encoding or duplicate timestamp/UUID grammar; native supported spellings are accepted, while emitted positions remain valid. Controlled
 personal-row removal is qualified here; actual scheduled purge, F05 erasure and restoration remain
 with [T052 and T051](tasks.md).
+
+### Ordinary mobile read state
+
+A native true-only mutation invalidates the current inbox and whole-summary queries from mutation options, so completion survives removal of its initiating screen. Active observers consume invalidation; inactive screens recover on focus. No local monotone true overlay or uncertain-write GET acknowledgement is retained. Current server reads may briefly show an older read flag/count; a lost response permits later explicit safe true repetition. The private QueryClient follows F05's actual native identity lifetime, while active original-createdAt expiry, known owner/access refusal and exact-count invalidation retain their narrow privacy responsibilities. Cache staleTime/gcTime does not enforce retention. These ordinary freshness decisions supersede earlier coupled/monotone test expectations, without changing persisted true-only intent or dated native evidence.
 
 ## Association identity and native lifecycle
 
