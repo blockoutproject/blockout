@@ -4,7 +4,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Text } from "react-native";
 import { router, Stack } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { useConsultationQueries } from "../../sporting/match-consultation";
+import { useQuery, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, screen, userEvent } from "@testing-library/react-native";
 import SearchLayout from "../../../app/(ordinary)/(tabs)/search/_layout";
 import { SearchScreen } from "../screens/search-screen";
@@ -136,6 +137,7 @@ async function renderSearch(proAccent = false) {
       "search/(sheets)/choice": SearchFilterChoice,
       "clubs/[clubId]": ClubRoute,
       home: () => <Text>Accueil de test</Text>,
+      "pool-refusal": PoolChildRead,
     },
     {
       initialUrl: "/search",
@@ -164,6 +166,18 @@ async function renderSearch(proAccent = false) {
     },
   );
   await layoutNativeTabs();
+}
+
+/** Executes the real F03 child read while retaining its ordinary parent cache identity. */
+function PoolChildRead() {
+  const queries = useConsultationQueries();
+  useQuery({ ...queries.pool(firstId), enabled: false });
+  const child = useQuery(queries.standings(firstId));
+  return (
+    <Text>
+      {child.isError ? "Poule indisponible" : "Lecture du classement"}
+    </Text>
+  );
 }
 
 /** Counts collection requests without conflating options, media or admission reads. */
@@ -576,4 +590,30 @@ it("rejects an in-flight retained response that predates a current detail refusa
   expect(requestSignal?.aborted).toBe(true);
   expect(screen.getByText("Lyon")).toBeOnTheScreen();
   expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
+});
+
+it("removes a pool after a current refusal propagated by its real F03 standings read", async () => {
+  // Given: only HTTP is controlled; F03 propagates the child refusal to the existing parent key.
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.press(screen.getByRole("tab", { name: "Poules" }));
+  await screen.findByText("Poule A");
+  const reads = collectionCalls("pools").length;
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith(`/pools/${firstId}/standings`)
+      ? Promise.resolve(Response.json({ status: 404 }, { status: 404 }))
+      : publicReads(url),
+  );
+
+  // When
+  await act(async () => router.push("/pool-refusal"));
+  await screen.findByText("Poule indisponible");
+  await act(async () => router.back());
+
+  // Then
+  expect(
+    await screen.findByText("Aucun résultat pour ces critères"),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Poule A")).not.toBeOnTheScreen();
+  expect(collectionCalls("pools")).toHaveLength(reads);
 });
