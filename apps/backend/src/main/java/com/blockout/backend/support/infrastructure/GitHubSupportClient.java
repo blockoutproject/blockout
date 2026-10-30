@@ -6,6 +6,7 @@ import com.blockout.backend.support.application.SupportUnavailableException;
 import com.blockout.backend.support.application.SupportUnavailableException.Reason;
 import com.blockout.backend.support.application.SupportUnavailableException.Stage;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.micrometer.observation.ObservationRegistry;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpHeaders;
@@ -23,6 +24,8 @@ public final class GitHubSupportClient implements SupportCases {
 
   /**
    * Adds server credentials and a native refusal handler without reading error response bodies.
+   * Native HTTP observations are disabled because their URI tags can contain the private
+   * repository.
    *
    * @param http bounded transport with a server-selected GitHub origin
    * @param destination fixed private destination, or null while support remains unconfigured
@@ -32,6 +35,7 @@ public final class GitHubSupportClient implements SupportCases {
     this.repositoryPath = destination == null ? "" : "/repos/" + destination.repository();
     RestClient.Builder builder =
         http.mutate()
+            .observationRegistry(ObservationRegistry.NOOP)
             .defaultHeader(HttpHeaders.ACCEPT, "application/vnd.github+json")
             .defaultHeader("X-GitHub-Api-Version", "2026-03-10")
             .defaultStatusHandler(
@@ -155,7 +159,9 @@ public final class GitHubSupportClient implements SupportCases {
   /** Private REST creation payload, not a mobile transport model. */
   private record CreateIssue(String title, String body, List<String> labels) {}
 
-  /** Initial number and intake labels establish creation; provider URLs and content remain unused. */
+  /**
+   * Initial number and intake labels establish creation; provider URLs and content remain unused.
+   */
   @JsonIgnoreProperties(ignoreUnknown = true)
   private record IssueCreated(long number, List<Label> labels) {}
 
