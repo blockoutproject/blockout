@@ -1,17 +1,16 @@
-import { Image } from "expo-image";
-import { ChevronDown, ChevronUp, Play } from "lucide-react-native";
+import { ChevronDown, ChevronUp } from "lucide-react-native";
 import { useState } from "react";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { useNativeHandoff } from "../../../shared/native/use-native-handoff";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import type {
   ModeratedStreamContributionResponse,
   StreamModerationActionEnum,
 } from "../../../../.generated/schemas/index.zod";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
+import { EntryGroup } from "../../../shared/components/entry-group";
 import { EntryRow } from "../../../shared/components/entry-row";
-import { Surface } from "../../../shared/components/surface";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { useNativeHandoff } from "../../../shared/native/use-native-handoff";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useModerationReports } from "../api/moderation";
@@ -21,27 +20,30 @@ import {
   streamPlatformLabels,
   moderationTime,
 } from "../model/moderation-presentation";
+import { ContributionStateBadge } from "./contribution-state-badge";
 
-/** One exact-version card; parent owns captured revisions, confirmation and command settlement. */
+/** One exact-version list item; the parent owns original actor/revision confirmation and command settlement. */
 export interface ContributionHistoryProps {
   matchId: string;
   contribution: ModeratedStreamContributionResponse;
   historical?: boolean;
+  /** The active address editor already supplies its state and withdrawal action. */
+  detailsOnly?: boolean;
   busy: boolean;
   onAction: (
     version: ModeratedStreamContributionResponse,
     action: StreamModerationActionEnum | "reactivate",
   ) => void;
-  onReplace?: () => void;
 }
-/** Shows useful lineage/decisions and bounded exact-version report pages without reporter identity. */
+
+/** Uses the existing basic-list rows, personal state badge and grouped report rows for private history. */
 export function ContributionHistory({
   matchId,
   contribution: version,
   historical = false,
+  detailsOnly = false,
   busy,
   onAction,
-  onReplace,
 }: ContributionHistoryProps) {
   const { colors } = useTheme();
   const handoff = useNativeHandoff(version.url);
@@ -57,16 +59,7 @@ export function ContributionHistory({
   const reportContent = reports.data?.pages[reportPage];
   const platform = streamPlatformLabels[version.platform];
   const state = contributionStateLabels[version.state];
-  const artwork =
-    version.platform === "twitch"
-      ? require("../../../../assets/contributions/twitch.svg")
-      : require("../../../../assets/contributions/youtube.svg");
-  const providerColor = {
-    youtube: "#D92737",
-    twitch: "#7454B7",
-    facebook: "#2868C9",
-  }[version.platform];
-  /** Reads one next native page; only twenty report rows are rendered within this disclosure. */
+  /** Reads one native next page; a failed continuation keeps the current twenty-row disclosure. */
   async function nextReports() {
     if (reports.isFetching) return;
     if (reportPage + 1 < (reports.data?.pages.length ?? 0)) {
@@ -78,7 +71,7 @@ export function ContributionHistory({
     else setReportPage(reportPage + 1);
   }
   return (
-    <Surface>
+    <View>
       {historical && (
         <EntryRow
           label={`${platform} · ${state}`}
@@ -94,48 +87,10 @@ export function ContributionHistory({
         />
       )}
       {expanded && (
-        <>
-          <View style={styles.identity}>
-            <View style={[styles.provider, { backgroundColor: providerColor }]}>
-              {version.platform === "facebook" ? (
-                <Text
-                  style={[
-                    tokens.typography.heading,
-                    { color: colors.onDarkAccent },
-                  ]}
-                >
-                  f
-                </Text>
-              ) : (
-                <Image
-                  source={artwork}
-                  style={styles.mark}
-                  contentFit="contain"
-                  accessible={false}
-                />
-              )}
-            </View>
-            <Text
-              style={[
-                tokens.typography.strong,
-                { color: colors.text, flex: 1 },
-              ]}
-            >
-              {platform}
-            </Text>
-            <Text
-              style={[
-                styles.badge,
-                {
-                  color: colors.secondaryText,
-                  backgroundColor: colors.subtle,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              {state}
-            </Text>
-          </View>
+        <View style={styles.content}>
+          {!detailsOnly && (
+            <ContributionStateBadge state={version.state} label={state} />
+          )}
           <Text
             style={[
               tokens.typography.metadata,
@@ -145,68 +100,43 @@ export function ContributionHistory({
             {version.authorName ?? "Auteur effacé"} ·{" "}
             {moderationTime(version.submittedAt)}
           </Text>
-          <Pressable
+          <EntryRow
+            label={detailsOnly ? "Ouvrir le lien publié" : version.url}
             accessibilityRole="link"
             accessibilityLabel={`Ouvrir ${version.url}`}
             disabled={handoff.pending}
             onPress={() => void handoff.open()}
-            style={[
-              styles.address,
-              { backgroundColor: colors.subtle, borderColor: colors.border },
-            ]}
-          >
-            <Text
-              style={[tokens.typography.body, { color: colors.text, flex: 1 }]}
-            >
-              {version.url}
-            </Text>
-            <Play
-              accessible={false}
-              color={colors.icon}
-              size={tokens.size.icon.sm}
-            />
-          </Pressable>
-          <View style={styles.actions}>
-            {version.canApprove && (
-              <Button
-                label="Approuver"
-                disabled={busy}
-                onPress={() => onAction(version, "approve")}
-              />
-            )}
-            {version.canReject && (
-              <Button
-                label="Refuser"
-                variant="secondary"
-                disabled={busy}
-                onPress={() => onAction(version, "reject")}
-              />
-            )}
-            {version.canWithdraw && (
-              <Button
-                label="Retirer"
-                variant="secondary"
-                disabled={busy}
-                onPress={() => onAction(version, "withdraw")}
-              />
-            )}
-            {version.canReactivate && (
-              <Button
-                label="Réactiver"
-                variant="secondary"
-                disabled={busy}
-                onPress={() => onAction(version, "reactivate")}
-              />
-            )}
-            {onReplace && (
-              <Button
-                label="Remplacer"
-                variant="secondary"
-                disabled={busy}
-                onPress={onReplace}
-              />
-            )}
-          </View>
+          />
+          {!detailsOnly && (
+            <View style={styles.actions}>
+              {version.canApprove && (
+                <Button
+                  label="Approuver"
+                  fullWidth
+                  disabled={busy}
+                  onPress={() => onAction(version, "approve")}
+                />
+              )}
+              {version.canReject && (
+                <Button
+                  label="Refuser"
+                  fullWidth
+                  variant="secondary"
+                  disabled={busy}
+                  onPress={() => onAction(version, "reject")}
+                />
+              )}
+              {version.canReactivate && (
+                <Button
+                  label="Réactiver"
+                  fullWidth
+                  variant="secondary"
+                  disabled={busy}
+                  onPress={() => onAction(version, "reactivate")}
+                />
+              )}
+            </View>
+          )}
           {version.sourceVersionId && (
             <Text
               selectable
@@ -215,7 +145,8 @@ export function ContributionHistory({
                 { color: colors.secondaryText },
               ]}
             >
-              Réactivation de la version {version.sourceVersionId}
+              Réactivé depuis une version conservée dans l’historique. Les
+              signalements d’origine restent sur cette version d’origine.
             </Text>
           )}
           {version.replacedByVersionId && (
@@ -226,7 +157,8 @@ export function ContributionHistory({
                 { color: colors.secondaryText },
               ]}
             >
-              Remplacé par la version {version.replacedByVersionId}
+              Remplacé par une autre version ; les signalements de cette version
+              sont conservés.
             </Text>
           )}
           {version.decisions.map((decision, index) => (
@@ -244,8 +176,8 @@ export function ContributionHistory({
           ))}
           <EntryRow
             label={`Signalements (${version.reportCount})`}
-            onPress={() => setReportsOpen(!reportsOpen)}
             accessibilityState={{ expanded: reportsOpen }}
+            onPress={() => setReportsOpen(!reportsOpen)}
             trailing={
               reportsOpen ? (
                 <ChevronUp color={colors.icon} />
@@ -254,37 +186,47 @@ export function ContributionHistory({
               )
             }
           />
-          {reportsOpen && (
-            <>
-              {!reportContent ? (
-                <ReadFeedback query={reports} />
-              ) : (
-                <>
-                  <Text
-                    style={[tokens.typography.strong, { color: colors.text }]}
-                  >
-                    {reportContent.count} signalements sur cette version
-                  </Text>
-                  {reportContent.items.map((report) => (
-                    <View key={report.id} style={styles.report}>
-                      <Text
-                        style={[
-                          tokens.typography.metadata,
-                          { color: colors.secondaryText },
-                        ]}
-                      >
-                        {moderationTime(report.reportedAt)}
-                      </Text>
-                      <Text
-                        style={[tokens.typography.body, { color: colors.text }]}
-                      >
-                        {report.reason ?? "Motif indisponible"}
-                      </Text>
-                    </View>
-                  ))}
+          {reportsOpen &&
+            (!reportContent ? (
+              <ReadFeedback query={reports} />
+            ) : (
+              <>
+                <Text
+                  style={[tokens.typography.strong, { color: colors.text }]}
+                >
+                  {reportContent.count}{" "}
+                  {reportContent.count === 1 ? "signalement" : "signalements"}{" "}
+                  sur cette version
+                </Text>
+                {reportContent.items.length > 0 && (
+                  <EntryGroup>
+                    {reportContent.items.map((report) => (
+                      <View key={report.id} style={styles.report}>
+                        <Text
+                          style={[
+                            tokens.typography.metadata,
+                            { color: colors.secondaryText },
+                          ]}
+                        >
+                          {moderationTime(report.reportedAt)}
+                        </Text>
+                        <Text
+                          style={[
+                            tokens.typography.body,
+                            { color: colors.text },
+                          ]}
+                        >
+                          {report.reason ?? "Motif indisponible"}
+                        </Text>
+                      </View>
+                    ))}
+                  </EntryGroup>
+                )}
+                <View style={styles.actions}>
                   {reportPage > 0 && (
                     <Button
                       label="Signalements précédents"
+                      fullWidth
                       variant="secondary"
                       onPress={() => setReportPage(reportPage - 1)}
                     />
@@ -292,51 +234,31 @@ export function ContributionHistory({
                   {reportContent.nextPage !== undefined && (
                     <Button
                       label="Signalements suivants"
+                      fullWidth
                       variant="secondary"
                       loading={reports.isFetchingNextPage}
                       onPress={() => void nextReports()}
                     />
                   )}
-                </>
-              )}
-            </>
-          )}
-        </>
+                </View>
+              </>
+            ))}
+        </View>
       )}
-    </Surface>
+    </View>
   );
 }
 const styles = StyleSheet.create({
-  identity: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-  },
-  provider: {
-    width: 32,
-    height: 32,
-    borderRadius: tokens.radius.sm,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  mark: { width: 20, height: 20 },
-  badge: {
-    ...tokens.typography.metadata,
-    borderWidth: tokens.border.thin,
-    borderRadius: tokens.radius.sm,
+  content: {
     paddingHorizontal: tokens.spacing.sm,
-    paddingVertical: tokens.spacing.xs,
-    flexShrink: 1,
+    paddingVertical: tokens.spacing.md,
+    gap: tokens.layout.form.gap,
   },
-  address: {
-    minHeight: tokens.touch.minimum,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-    padding: tokens.spacing.sm,
-    borderWidth: tokens.border.thin,
-    borderRadius: tokens.radius.control,
+  actions: { gap: tokens.layout.form.gap },
+  report: {
+    minHeight: tokens.size.control.default,
+    paddingHorizontal: tokens.spacing.sm,
+    paddingVertical: tokens.spacing.md,
+    gap: tokens.spacing.tight,
   },
-  actions: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },
-  report: { gap: tokens.spacing.xs },
 });

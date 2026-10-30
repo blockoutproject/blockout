@@ -272,7 +272,9 @@ useful decision lineage and required null erased reasons without reporter identi
 owners and controlled HTTP/native I/O for exact confirmations, cancellation, literal filtered
 pagination/first-page refresh, failed versus empty queues, private hidden context, historical reports,
 retained drafts/editing revision across tab changes, acknowledged success despite a later read failure,
-visible continuation failures with retained pages, refusal cancellation of concurrent reads, and no polling. Administrative
+visible continuation failures with retained pages, refusal cancellation of concurrent reads, and no polling.
+Background reads never animate the native refresh indicator; only the explicit refresh gesture owns
+that indicator, following the existing sporting-calendar composition. Administrative
 queries use generated resource keys within the existing principal-owned private QueryClient;
 obsolete unused account-prefixed moderation key scaffolding is removed.
 
@@ -284,18 +286,25 @@ entry controlled only the native credential boundary and a fictional HTTP peer. 
 qualify the full product root/onboarding or actual identity/provider operations. Temporary entry,
 Metro resolver and package-main changes were restored; no qualification mechanism is shipped.
 
-Observed iOS cases: queue/detail tabs, cancelled confirmation with no request, explicit approval,
-new-member reactivation, retained historical reports and erased reason, hidden/dateless private
-context without publication, and light/dark rendering. Observed Android cases: season filter
-selection/apply, detail, real keyboard and reachable publication controls, cancelled confirmation
-retaining the draft, and confirmed explicit replacement. iOS integral text replacement could not
-be confirmed: the automation opened the Expo development menu during entry. It is unavailable
-keyboard evidence, not a passed product check. Screen-reader speech, enlarged-text/minimum-OS
-coverage and full session/erasure scenarios remain with T056. Final iOS/Android filter captures also
-verify the search filter composition: full-width apply/reset controls, identical spacing tokens and
-grouped season choices; choosing and applying a season returns to the queue on both platforms. Representative captures belong in
-the delivery PR Conversation with its tested source revision; no screenshot is committed.
-Visual comparison used approved Figma nodes `1293:3968`, `4730:31181`, `1310:6016`,
-`4736:32107` and `4736:32744` in the owning [Product Design](plan.md#design-reconciliation-and-evidence). T045's integrated current-owner
+The final composition follows the owner's existing-application priority in the
+[design reconciliation](plan.md#design-reconciliation-and-evidence): the shared native `PagedTabs`
+and `TabLegendList`, search filter/season controls, personal contribution editor and ordinary
+grouped rows/buttons. Final iOS and Android observations exercise horizontal swipes, returning to
+the active page with the exact dirty address retained, and tab entry without an automatic native
+refresh animation. iOS complete address replacement and cancellation of the native replacement
+dialog preserve the original/new address pair and send no write. Its historical report disclosure
+retains three exact-version reports, including the unavailable erased reason. Android's real
+software keyboard leaves the field and final action reachable; cancelling withdrawal sends no
+command, and one explicitly confirmed replacement sends one command and shows acknowledgement.
+Android season selection/apply returns to the queue; final filter/season captures verify full-width
+apply/reset buttons and the same grouped choices and spacing tokens as search.
+
+The iOS run used a hardware keyboard and does not establish software-keyboard occlusion behavior.
+Screen-reader speech, enlarged-text/minimum-OS coverage and full session/erasure scenarios remain
+with T056. Representative captures belong in the delivery PR Conversation with their tested source
+revision; no screenshot is committed. The initial Figma comparison used nodes `1293:3968`,
+`4730:31181`, `1310:6016`, `4736:32107` and `4736:32744` in the owning
+[Product Design](plan.md#design-reconciliation-and-evidence); the owner's later application baseline
+governs the final composition. T045's integrated current-owner
 qualification, T050/T055 erasure and T056's complete platform/accessibility matrix remain separate;
 controlled SQL, JavaScript or native fixtures establish no provider/production or global design approval.

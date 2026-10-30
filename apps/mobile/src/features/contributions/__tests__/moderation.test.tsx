@@ -1,9 +1,17 @@
 import { useLayoutEffect, type PropsWithChildren } from "react";
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
   getListModeratedStreamContributionsQueryKey,
   getListStreamModerationQueryKey,
+  getGetMyAccountQueryKey,
 } from "../../../../.generated/mobile";
-import { useModerationQueue, useModerationMatch } from "../api/moderation";
+import {
+  useModerationQueue,
+  useModerationMatch,
+  useModerationReports,
+} from "../api/moderation";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   act,
@@ -54,6 +62,7 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({
     push: mockPush,
     dismissTo: mockDismissTo,
+    setParams: jest.fn(),
     back: jest.fn(),
     canGoBack: () => true,
   }),
@@ -84,6 +93,8 @@ let failAfterWrite = false;
 let historyPaged = false;
 let reportsPaged = false;
 let continuationFails = false;
+let profileFails = false;
+let reportReason: string | null = null;
 let detail: ModeratedStreamContributionsResponse;
 
 /** Canonical fictional version; each scenario supplies its decisive lifecycle/capabilities. */
@@ -121,6 +132,8 @@ beforeEach(() => {
   historyPaged = false;
   reportsPaged = false;
   continuationFails = false;
+  profileFails = false;
+  reportReason = null;
   mockPush.mockReset();
   mockDismissTo.mockReset();
   detail = {
@@ -162,9 +175,13 @@ beforeEach(() => {
     if (path.endsWith("/application-access"))
       return Response.json(applicationAccessResponse());
     if (path.endsWith("/me"))
-      return Response.json(
-        accountResponse({ permissions: { moderateStreamLinks: permission } }),
-      );
+      return profileFails
+        ? Response.json({ title: "Unavailable", status: 503 }, { status: 503 })
+        : Response.json(
+            accountResponse({
+              permissions: { moderateStreamLinks: permission },
+            }),
+          );
     const page = new URL(String(url)).searchParams.get("page");
     if (page === "1" && continuationFails)
       return Response.json(
@@ -232,7 +249,7 @@ beforeEach(() => {
             reason:
               reportsPaged && page === "1"
                 ? "Historique de la seconde page"
-                : null,
+                : reportReason,
           },
         ],
         ...(reportsPaged && page !== "1" ? { nextPage: 1 } : {}),
@@ -285,18 +302,23 @@ function PrivateQueries({ children }: PropsWithChildren) {
 /** Mounts the chosen real feature screen inside its required providers. */
 async function mount(children: React.ReactNode) {
   await render(
-    <QueryClientProvider client={publicClient}>
-      <ThemeProvider>
-        <ApplicationAccessProvider>
-          <AccountSessionProvider>
-            <PrivateQueries>
-              <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
-            </PrivateQueries>
-          </AccountSessionProvider>
-        </ApplicationAccessProvider>
-      </ThemeProvider>
-    </QueryClientProvider>,
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <QueryClientProvider client={publicClient}>
+          <ThemeProvider>
+            <ApplicationAccessProvider>
+              <AccountSessionProvider>
+                <PrivateQueries>
+                  <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+                </PrivateQueries>
+              </AccountSessionProvider>
+            </ApplicationAccessProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>,
   );
+  await layoutNativeTabs();
 }
 
 it("requires the literal current moderation capability before private reads", async () => {
@@ -324,7 +346,9 @@ it("shows private dateless context and the active member independently of pendin
   // Then
   await screen.findByText("Match non consultable publiquement");
   expect(screen.getByText("Date indisponible")).toBeOnTheScreen();
-  expect(screen.getByText("https://youtu.be/retained")).toBeOnTheScreen();
+  expect(
+    screen.getByDisplayValue("https://youtu.be/retained"),
+  ).toBeOnTheScreen();
   await userEvent.press(screen.getByRole("tab", { name: "Propositions (1)" }));
   expect(
     await screen.findByText("https://twitch.tv/review_link"),
@@ -336,7 +360,7 @@ it("confirms the exact actor revision and version before rejecting", async () =>
   // Given
   const alert = jest.spyOn(Alert, "alert");
   await mount(<ModerationMatchScreen matchId={sporting.id} />);
-  await screen.findByText("https://youtu.be/retained");
+  await screen.findByDisplayValue("https://youtu.be/retained");
   const user = userEvent.setup();
   await user.press(screen.getByRole("tab", { name: "Propositions (1)" }));
 
@@ -383,7 +407,7 @@ it("retains historical reports and distinguishes erased reasons", async () => {
 
   // When
   await mount(<ModerationMatchScreen matchId={sporting.id} />);
-  await screen.findByText("https://youtu.be/retained");
+  await screen.findByDisplayValue("https://youtu.be/retained");
   const user = userEvent.setup();
   await user.press(screen.getByRole("tab", { name: "Historique" }));
   await user.press(
@@ -432,13 +456,15 @@ it("retains literal filters on continuation and restarts native refresh at page 
     state: "all",
   } as const;
   await mount(<ModerationScreen filters={filters} />);
-  const user = userEvent.setup();
   await screen.findByRole("link", {
     name: `${detail.match.home.name} – ${detail.match.away.name}`,
   });
 
   // When
-  await user.press(screen.getByRole("button", { name: "Matchs suivants" }));
+  fireEvent(
+    screen.getByLabelText("File de modération des liens"),
+    "endReached",
+  );
   await screen.findByText("Second match");
   // userEvent does not synthesize the native pull-to-refresh gesture.
   fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
@@ -471,10 +497,10 @@ it("preserves a dirty moderator draft and its original revision across refetch a
   const alert = jest.spyOn(Alert, "alert");
   await mount(<ModerationMatchScreen matchId={sporting.id} />);
   const user = userEvent.setup();
-  await user.press(await screen.findByRole("button", { name: "Remplacer" }));
-  await user.clear(screen.getByLabelText("Adresse du lien vidéo"));
+  await screen.findByLabelText("Adresse du lien");
+  await user.clear(screen.getByLabelText("Adresse du lien"));
   await user.type(
-    screen.getByLabelText("Adresse du lien vidéo"),
+    screen.getByLabelText("Adresse du lien"),
     "https://youtu.be/dirty",
   );
   detail = { ...detail, revision: "newer:2" };
@@ -483,11 +509,11 @@ it("preserves a dirty moderator draft and its original revision across refetch a
   writeStatus = 409;
 
   // When
-  await user.press(screen.getByRole("button", { name: "Publier" }));
+  await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
   await act(async () => {
     alert.mock.calls
       .at(-1)?.[2]
-      ?.find((button) => button.text === "Publier")
+      ?.find((button) => button.text === "Remplacer le lien")
       ?.onPress?.();
   });
 
@@ -511,7 +537,7 @@ it("keeps acknowledged success when the dependent history read fails", async () 
   failAfterWrite = true;
   const alert = jest.spyOn(Alert, "alert");
   await mount(<ModerationMatchScreen matchId={sporting.id} />);
-  await screen.findByText("https://youtu.be/retained");
+  await screen.findByDisplayValue("https://youtu.be/retained");
   const user = userEvent.setup();
 
   // When
@@ -534,7 +560,7 @@ it("does not dispatch a cancelled exact-version confirmation", async () => {
   // Given
   const alert = jest.spyOn(Alert, "alert");
   await mount(<ModerationMatchScreen matchId={sporting.id} />);
-  await screen.findByText("https://youtu.be/retained");
+  await screen.findByDisplayValue("https://youtu.be/retained");
   const user = userEvent.setup();
 
   // When
@@ -548,7 +574,9 @@ it("does not dispatch a cancelled exact-version confirmation", async () => {
 
   // Then
   expect(writes).toHaveLength(0);
-  expect(screen.getByText("https://youtu.be/retained")).toBeOnTheScreen();
+  expect(
+    screen.getByDisplayValue("https://youtu.be/retained"),
+  ).toBeOnTheScreen();
 });
 
 it("does not restore private content from a late concurrent response after refusal", async () => {
@@ -618,16 +646,18 @@ it("keeps the mounted dirty publication editor across an uncached tab read", asy
   };
   await mount(<ModerationMatchScreen matchId={sporting.id} />);
   const user = userEvent.setup();
-  await user.press(await screen.findByRole("button", { name: "Remplacer" }));
-  await user.clear(screen.getByLabelText("Adresse du lien vidéo"));
+  await screen.findByLabelText("Adresse du lien");
+  await user.clear(screen.getByLabelText("Adresse du lien"));
   await user.type(
-    screen.getByLabelText("Adresse du lien vidéo"),
+    screen.getByLabelText("Adresse du lien"),
     "https://youtu.be/tab-draft",
   );
 
   // When
   await user.press(screen.getByRole("tab", { name: "Propositions (1)" }));
   await screen.findByText("https://twitch.tv/review_link");
+
+  await user.press(screen.getByRole("tab", { name: "Actif" }));
 
   // Then
   expect(
@@ -672,18 +702,28 @@ it.each(["queue", "versions", "reports"] as const)(
         await screen.findByText("Motif indisponible");
       }
     }
-    const label = {
-      queue: "Matchs suivants",
-      versions: "Versions suivantes",
-      reports: "Signalements suivants",
-    }[kind];
-
     // When
-    await user.press(await screen.findByRole("button", { name: label }));
+    if (kind === "reports")
+      await user.press(
+        screen.getByRole("button", { name: "Signalements suivants" }),
+      );
+    else
+      fireEvent(
+        await screen.findByLabelText(
+          kind === "queue"
+            ? "File de modération des liens"
+            : "Historique des liens",
+        ),
+        "endReached",
+      );
 
     // Then
     expect(await screen.findByRole("alert")).toBeOnTheScreen();
-    expect(screen.getByRole("button", { name: label })).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", {
+        name: kind === "reports" ? "Signalements suivants" : "Réessayer",
+      }),
+    ).toBeOnTheScreen();
     if (kind === "queue")
       expect(
         screen.getByRole("link", {
@@ -814,9 +854,7 @@ it("continues historical versions without losing the loaded source page", async 
   await user.press(await screen.findByRole("tab", { name: "Historique" }));
 
   // When
-  await user.press(
-    await screen.findByRole("button", { name: "Versions suivantes" }),
-  );
+  fireEvent(screen.getByLabelText("Historique des liens"), "endReached");
 
   // Then
   expect(
@@ -899,4 +937,282 @@ it("does not poll the mounted private queue", async () => {
     jest.clearAllTimers();
     jest.useRealTimers();
   }
+});
+
+it("retains an editable draft and authorized context through an ordinary F05 outage", async () => {
+  // Given
+  detail = { ...detail, canPublish: true };
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  const user = userEvent.setup();
+  await user.clear(await screen.findByLabelText("Adresse du lien"));
+  await user.type(
+    screen.getByLabelText("Adresse du lien"),
+    "https://youtu.be/profile-outage",
+  );
+
+  // When
+  profileFails = true;
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: getGetMyAccountQueryKey() });
+  });
+  await screen.findByRole("button", { name: "Réessayer le profil" });
+
+  // Then
+  expect(
+    screen.getByDisplayValue("https://youtu.be/profile-outage"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Remplacer le lien" }),
+  ).toBeDisabled();
+  profileFails = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer le profil" }));
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("button", { name: "Réessayer le profil" }),
+    ).toBeNull(),
+  );
+  expect(
+    screen.getByDisplayValue("https://youtu.be/profile-outage"),
+  ).toBeOnTheScreen();
+});
+
+it("presents an explicit refusal on another already loaded moderation screen", async () => {
+  // Given: the report reader and visible queue share only the existing native private cache.
+  const ordinary = mockFetch.getMockImplementation()!;
+  let finish!: (response: Response) => void;
+  const held = new Promise<Response>((resolve) => {
+    finish = resolve;
+  });
+  mockFetch.mockImplementation((url, init) =>
+    String(url).endsWith("/reports?page=0") ? held : ordinary(url, init),
+  );
+  /** Keeps the refusing HTTP resource observed without inventing a second presentation store. */
+  function ReportReader() {
+    useModerationReports(sporting.id, versionId, true);
+    return null;
+  }
+  await mount(
+    <>
+      <ModerationScreen filters={{}} />
+      <ReportReader />
+    </>,
+  );
+  await screen.findByRole("link", {
+    name: `${detail.match.home.name} – ${detail.match.away.name}`,
+  });
+
+  // When
+  await act(async () => {
+    finish(Response.json({ title: "Forbidden", status: 403 }, { status: 403 }));
+  });
+
+  // Then
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+  expect(screen.queryByText("Aucun lien à traiter")).toBeNull();
+});
+
+it("rereads open report reasons during the ordinary match refresh even when their total is unchanged", async () => {
+  // Given: the fictional HTTP erasure changes only the nullable reason, not its counted fact.
+  reportReason = "Avant effacement";
+  detail.activeContribution = version({
+    state: "active",
+    reportCount: 1,
+    canApprove: false,
+    canReject: false,
+    canWithdraw: true,
+  });
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  const user = userEvent.setup();
+  await user.press(
+    await screen.findByRole("button", { name: "Signalements (1)" }),
+  );
+  await screen.findByText("Avant effacement");
+
+  // When
+  reportReason = null;
+  fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(await screen.findByText("Motif indisponible")).toBeOnTheScreen();
+  expect(screen.queryByText("Avant effacement")).toBeNull();
+  expect(screen.getByText("1 signalement sur cette version")).toBeOnTheScreen();
+});
+
+it("accepts the same native pager settlement used by a swipe and retains the inactive editor", async () => {
+  // Given
+  detail = { ...detail, canPublish: true };
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  const user = userEvent.setup();
+  await user.clear(await screen.findByLabelText("Adresse du lien"));
+  await user.type(
+    screen.getByLabelText("Adresse du lien"),
+    "https://youtu.be/swipe-draft",
+  );
+
+  // When: the native pager settles the third page; gesture recognition itself remains native evidence.
+  fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
+    nativeEvent: { position: 2 },
+  });
+  await screen.findByRole("tab", { name: "Historique", selected: true });
+  await user.press(screen.getByRole("tab", { name: "Actif" }));
+
+  // Then
+  expect(
+    await screen.findByDisplayValue("https://youtu.be/swipe-draft"),
+  ).toBeOnTheScreen();
+});
+
+it("starts a replacement member's report disclosure on its own first page", async () => {
+  // Given: the outgoing active member has an open second report page.
+  reportsPaged = true;
+  detail.activeContribution = version({
+    state: "active",
+    reportCount: 21,
+    canApprove: false,
+    canReject: false,
+    canWithdraw: true,
+  });
+  const ordinary = mockFetch.getMockImplementation()!;
+  const replacementId = "00000000-0000-4000-8000-000000000601";
+  mockFetch.mockImplementation((url, init) =>
+    String(url).includes(`/${replacementId}/reports`)
+      ? Promise.resolve(Response.json({ count: 0, items: [] }))
+      : ordinary(url, init),
+  );
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  const user = userEvent.setup();
+  await user.press(
+    await screen.findByRole("button", { name: "Signalements (21)" }),
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Signalements suivants" }),
+  );
+  await screen.findByText("Historique de la seconde page");
+
+  // When: a subsequent authorized read selects a different exact active member.
+  detail = {
+    ...detail,
+    revision: "new:2",
+    activeContribution: version({
+      id: replacementId,
+      state: "active",
+      reportCount: 0,
+      canApprove: false,
+      canReject: false,
+      canWithdraw: true,
+    }),
+  };
+  fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await user.press(
+    await screen.findByRole("button", { name: "Signalements (0)" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByText("0 signalements sur cette version"),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Historique de la seconde page")).toBeNull();
+});
+
+it.each(["queue", "active", "pending"] as const)(
+  "does not animate a pull-to-refresh for a background %s read",
+  async (kind) => {
+    // Given: a loaded native scene stays visible while its ordinary Query data is reread.
+    if (kind === "active")
+      detail = {
+        ...detail,
+        canPublish: true,
+        match: { ...detail.match, publiclyViewable: true },
+      };
+    await mount(
+      kind === "queue" ? (
+        <ModerationScreen filters={{}} />
+      ) : (
+        <ModerationMatchScreen matchId={sporting.id} />
+      ),
+    );
+    const user = userEvent.setup();
+    if (kind === "pending")
+      await user.press(
+        await screen.findByRole("tab", { name: "Propositions (1)" }),
+      );
+    await screen.findByLabelText("Actualiser les données");
+    if (kind === "active")
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "Remplacer le lien" }),
+        ).toBeEnabled(),
+      );
+    const key =
+      kind === "queue"
+        ? getListStreamModerationQueryKey({ state: "to-review" })
+        : getListModeratedStreamContributionsQueryKey(sporting.id, {
+            state: kind,
+          });
+    const ordinary = mockFetch.getMockImplementation()!;
+    const response = await ordinary(
+      `https://api.example.invalid${key[0]}`,
+      undefined,
+    );
+    let finish!: (response: Response) => void;
+    const held = new Promise<Response>((resolve) => {
+      finish = resolve;
+    });
+    mockFetch.mockImplementation((url, init) =>
+      new URL(String(url)).pathname === key[0] ? held : ordinary(url, init),
+    );
+    let reading: Promise<void> | undefined;
+    try {
+      // When: this is a read lifecycle event, not the user's native refresh gesture.
+      await act(async () => {
+        reading = client.invalidateQueries({ queryKey: key, exact: true });
+      });
+      await waitFor(() =>
+        expect(client.getQueryState(key)?.fetchStatus).toBe("fetching"),
+      );
+      if (kind === "active")
+        await waitFor(() =>
+          expect(
+            screen.getByRole("button", { name: "Remplacer le lien" }),
+          ).toBeDisabled(),
+        );
+
+      // Then
+      expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+    } finally {
+      await act(async () => {
+        finish(response);
+        await reading;
+      });
+    }
+  },
+);
+
+it("animates native pull-to-refresh only for the explicit gesture and releases it after the read", async () => {
+  // Given
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  await screen.findByLabelText("Actualiser les données");
+  const ordinary = mockFetch.getMockImplementation()!;
+  let finish!: (response: Response) => void;
+  const held = new Promise<Response>((resolve) => {
+    finish = resolve;
+  });
+  mockFetch.mockImplementation((url, init) =>
+    String(url).includes("/stream-contributions") ? held : ordinary(url, init),
+  );
+
+  // When
+  fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByLabelText("Actualiser les données")).toBeBusy(),
+  );
+  await act(async () => {
+    finish(Response.json(detail));
+  });
+  await waitFor(() =>
+    expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
+  );
 });

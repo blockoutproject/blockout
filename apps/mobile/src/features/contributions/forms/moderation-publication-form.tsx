@@ -1,7 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useRef } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { StyleSheet, Text, View } from "react-native";
+import { Controller, useForm, useFormState } from "react-hook-form";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import type { ModeratedStreamContributionsResponse } from "../../../../.generated/schemas/index.zod";
 import { Button } from "../../../shared/components/button";
 import { TextField } from "../../../shared/components/text-field";
 import { Surface } from "../../../shared/components/surface";
@@ -15,25 +16,28 @@ import {
   contributionSchema,
   type ContributionValues,
 } from "../schemas/contribution-schema";
+import { contributionValues } from "./contribution-values";
 
-/** One route-local moderator draft; its initial revision remains coherent across background reads. */
+/** The active pager scene retains one ordinary RHF address editor and its original dirty baseline. */
 export interface ModerationPublicationFormProps {
-  initial: { revision: string; activeUrl?: string };
-  canPublish: boolean;
+  current: ModeratedStreamContributionsResponse;
   editing: ReturnType<typeof useModerationMatch>;
-  onClose: () => void;
+  onWithdraw: () => void;
   onSuccess: () => void;
 }
-/** Publishes/replaces through the canonical moderator endpoint with exact native confirmation. */
+/** Reuses ContributionForm's header withdrawal, address field and full-width replacement composition. */
 export function ModerationPublicationForm({
-  initial,
-  canPublish,
+  current,
   editing,
-  onClose,
+  onWithdraw,
   onSuccess,
 }: ModerationPublicationFormProps) {
   const { colors } = useTheme();
-  const revision = initial.revision;
+  const active = current.activeContribution;
+  const baseline = useRef({
+    revision: current.revision,
+    activeUrl: active?.url,
+  });
   const confirm = useActionConfirmation();
   const feedback = useActionFeedback();
   const mounted = useRef(true);
@@ -43,40 +47,55 @@ export function ModerationPublicationForm({
       mounted.current = false;
     };
   }, []);
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { isDirty },
-  } = useForm<ContributionValues>({
-    resolver: zodResolver(contributionSchema),
-    defaultValues: { url: initial.activeUrl ?? "" },
-  });
-  const confirmDiscard = useDiscardChanges(isDirty, () => reset());
-  /** Captures actor/address/revision before presenting one native dialog; no failure replays a write. */
+  const { control, handleSubmit, reset, getFieldState } =
+    useForm<ContributionValues>({
+      resolver: zodResolver(contributionSchema),
+      defaultValues: contributionValues(active?.url),
+    });
+  const { isDirty } = useFormState({ control });
+  useEffect(() => {
+    // As in the personal editor, accepted changes update only pristine fields; a dirty draft keeps its baseline.
+    if (!getFieldState("url").isDirty) {
+      baseline.current = { revision: current.revision, activeUrl: active?.url };
+      reset(contributionValues(active?.url));
+    }
+  }, [current.revision, active?.url, getFieldState, reset]);
+  useDiscardChanges(isDirty, () => reset(contributionValues()));
+  const busy =
+    editing.publish.isPending ||
+    editing.change.isPending ||
+    editing.reactivate.isPending ||
+    editing.query.isFetching;
+  const disabled =
+    !editing.allowed || !current.canPublish || editing.query.isError;
+  /** Captures the coherent draft baseline and original actor before one native confirmation, without retrying writes. */
   async function send(values: ContributionValues) {
     const actorAccountId = editing.session.accountId;
-    if (
-      !actorAccountId ||
-      !editing.allowed ||
-      !canPublish ||
-      editing.publish.isPending
-    )
-      return;
-    const body = { actorAccountId, revision, url: values.url };
+    if (!actorAccountId || busy || disabled) return;
+    const body = {
+      actorAccountId,
+      revision: baseline.current.revision,
+      url: values.url,
+    };
+    const label = active ? "Remplacer le lien" : "Publier le lien";
     const accepted = await confirm({
-      title: initial.activeUrl ? "Remplacer ce lien ?" : "Publier ce lien ?",
-      message: initial.activeUrl
-        ? `${initial.activeUrl}\n\nNouveau lien : ${values.url}`
+      title: active ? "Remplacer ce lien ?" : "Publier ce lien ?",
+      message: baseline.current.activeUrl
+        ? `${baseline.current.activeUrl}\n\nNouveau lien : ${values.url}`
         : values.url,
-      confirmLabel: "Publier",
+      confirmLabel: label,
+      cancelLabel: "Continuer la saisie",
     });
     if (!accepted || !mounted.current) return;
     feedback.clear();
     try {
-      await editing.publish.mutateAsync(body);
+      const result = await editing.publish.mutateAsync(body);
       if (mounted.current) {
-        reset({ url: values.url });
+        baseline.current = {
+          revision: result.revision,
+          activeUrl: result.contribution.url,
+        };
+        reset(contributionValues(result.contribution.url));
         onSuccess();
       }
     } catch {
@@ -86,50 +105,85 @@ export function ModerationPublicationForm({
         );
     }
   }
-  /** Uses F13's existing discard owner before explicitly removing this mounted editor. */
-  async function cancel() {
-    if ((await confirmDiscard()) && mounted.current) onClose();
-  }
   return (
     <Surface>
-      <Text
-        accessibilityRole="header"
-        style={[tokens.typography.heading, { color: colors.text }]}
-      >
-        {initial.activeUrl ? "Remplacer le lien" : "Publier un lien"}
-      </Text>
-      <Controller
-        control={control}
-        name="url"
-        render={({ field, fieldState }) => (
-          <TextField
-            label="Adresse du lien vidéo"
-            value={field.value}
-            onChangeText={field.onChange}
-            onBlur={field.onBlur}
-            error={fieldState.error?.message}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-            editable={!editing.publish.isPending}
-          />
+      <View style={styles.header}>
+        <Text
+          accessibilityRole="header"
+          style={[styles.title, { color: colors.text }]}
+        >
+          {active ? "Lien public" : "Publier un lien"}
+        </Text>
+        {active?.canWithdraw && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Retirer"
+            accessibilityState={{ disabled: !editing.allowed || busy }}
+            disabled={!editing.allowed || busy || editing.query.isError}
+            onPress={onWithdraw}
+            style={styles.withdraw}
+          >
+            <Text
+              style={[
+                tokens.typography.body,
+                { color: colors.error, textDecorationLine: "underline" },
+              ]}
+            >
+              Retirer
+            </Text>
+          </Pressable>
         )}
-      />
-      <View style={styles.actions}>
-        <Button
-          label="Publier"
-          loading={editing.publish.isPending}
-          disabled={!editing.allowed || !canPublish}
-          onPress={() => void handleSubmit(send)()}
+      </View>
+      <View style={styles.form}>
+        <Controller
+          control={control}
+          name="url"
+          render={({ field, fieldState }) => (
+            <TextField
+              ref={field.ref}
+              label="Adresse du lien"
+              value={field.value}
+              onChangeText={field.onChange}
+              onBlur={field.onBlur}
+              error={fieldState.error?.message}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+              editable={!busy && current.canPublish}
+              helper="YouTube, Twitch ou Facebook"
+            />
+          )}
         />
+        {!current.canPublish && (
+          <Text
+            style={[tokens.typography.body, { color: colors.secondaryText }]}
+          >
+            La publication n’est pas autorisée pour ce match.
+          </Text>
+        )}
         <Button
-          label="Annuler"
-          variant="secondary"
-          disabled={editing.publish.isPending}
-          onPress={() => void cancel()}
+          label={active ? "Remplacer le lien" : "Publier le lien"}
+          fullWidth
+          loading={editing.publish.isPending}
+          disabled={disabled || busy}
+          onPress={() => void handleSubmit(send)()}
         />
       </View>
     </Surface>
   );
 }
-const styles = StyleSheet.create({ actions: { gap: tokens.spacing.sm } });
+const styles = StyleSheet.create({
+  form: { gap: tokens.layout.form.gap },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.md,
+  },
+  title: { ...tokens.typography.title, flex: 1 },
+  withdraw: {
+    minHeight: tokens.touch.minimum,
+    minWidth: tokens.touch.minimum,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});

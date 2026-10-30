@@ -57,12 +57,13 @@ function useModerationAuthority() {
   const session = useAccountSession();
   const profile = useCurrentAccount();
   const admission = useOrdinaryRequest();
-  const allowed =
+  const canRetain =
     admission.admitted &&
     session.status === "authenticated" &&
     profile.data?.accountId === session.accountId &&
-    !profile.isError &&
+    !isAccessDenied(profile.error) &&
     profile.data.permissions?.moderateStreamLinks === true;
+  const allowed = canRetain && profile.isSuccess;
   const client = useQueryClient();
   // These are this feature's generated HTTP resources, not a cross-cache propagation registry.
   useEffect(() => {
@@ -84,7 +85,7 @@ function useModerationAuthority() {
       headers: { Authorization: `Bearer ${credentials.accessToken}` },
     });
   }
-  return { allowed, session, profile, request };
+  return { allowed, canRetain, session, profile, request };
 }
 
 /** Identifies only generated private video-moderation resources for known grant withdrawal. */
@@ -103,7 +104,11 @@ async function refuse(
   error: unknown,
   context: QueryFunctionContext,
 ): Promise<never> {
-  if (!context.signal.aborted && isAccessDenied(error)) {
+  if (
+    !context.signal.aborted &&
+    error instanceof ApiError &&
+    isAccessDenied(error)
+  ) {
     const refused = context.client
       .getQueryCache()
       .find({ queryKey: context.queryKey, exact: true });
@@ -114,19 +119,26 @@ async function refuse(
     for (const query of context.client.getQueryCache().findAll({
       predicate: (query) => isModerationResource(query.queryKey[0]),
     })) {
-      query.setState({ data: undefined, dataUpdatedAt: 0 });
+      query.setState({
+        data: undefined,
+        dataUpdatedAt: 0,
+        error,
+        errorUpdatedAt: Date.now(),
+        status: "error",
+        fetchStatus: "idle",
+      });
     }
   }
   throw error;
 }
 
 /** Reads the private queue at entry and on explicit refresh with native Query paging/default recovery. */
-export function useModerationQueue(filters: ModerationFilters) {
+export function useModerationQueue(filters: ModerationFilters, enabled = true) {
   const authority = useModerationAuthority();
   const client = useQueryClient();
   const options = infiniteQueryOptions({
     queryKey: getListStreamModerationQueryKey(filters),
-    enabled: authority.allowed,
+    enabled: authority.allowed && enabled,
     gcTime: 0,
     refetchOnMount: "always" as const,
     refetchOnReconnect: false,
@@ -152,20 +164,20 @@ export function useModerationQueue(filters: ModerationFilters) {
   return { ...authority, query, refresh };
 }
 
-/** Reads current match context/history and owns explicit non-retrying moderator mutations. */
-export function useModerationMatch(
+/** One native pager scene reads its own filtered traversal; inactive scenes retain pages without fetching. */
+export function useModerationVersions(
   matchId: string,
   state?: StreamVersionFilterEnum,
+  enabled = true,
 ) {
   const authority = useModerationAuthority();
   const client = useQueryClient();
-  const matchKey = useConsultationQueries().match(matchId).queryKey;
   const options = infiniteQueryOptions({
     queryKey: getListModeratedStreamContributionsQueryKey(
       matchId,
       state ? { state } : undefined,
     ),
-    enabled: authority.allowed,
+    enabled: authority.allowed && enabled,
     gcTime: 0,
     refetchOnMount: "always" as const,
     refetchOnReconnect: false,
@@ -184,6 +196,24 @@ export function useModerationMatch(
     getNextPageParam: (page) => page.nextPage,
   });
   const query = useInfiniteQuery(options);
+  /** Restarts this traversal at page zero without discarding an accepted page on read failure. */
+  async function refresh() {
+    await client.cancelQueries({ queryKey: options.queryKey, exact: true });
+    return client.fetchInfiniteQuery({ ...options, staleTime: 0, pages: 1 });
+  }
+  return { ...authority, query, refresh };
+}
+
+/** Current private match commands share their stable active-context reader and ordinary native mutations. */
+export function useModerationMatch(
+  matchId: string,
+  state?: StreamVersionFilterEnum,
+  enabled = true,
+) {
+  const reading = useModerationVersions(matchId, state, enabled);
+  const authority = reading;
+  const client = useQueryClient();
+  const matchKey = useConsultationQueries().match(matchId).queryKey;
   /** Invalidates original private traversals and public F03 composition without rejecting an acknowledged mutation. */
   function settled(data: unknown, error: unknown) {
     if (isAccessDenied(error))
@@ -251,12 +281,23 @@ export function useModerationMatch(
       ),
     onSettled: settled,
   });
-  /** Refreshes the selected traversal from its first page; ordinary failure preserves its accepted data. */
+  /** Explicit match refresh also rereads open exact-version reports, including unchanged totals after erasure. */
   async function refresh() {
-    await client.cancelQueries({ queryKey: options.queryKey, exact: true });
-    return client.fetchInfiniteQuery({ ...options, staleTime: 0, pages: 1 });
+    const resource = getListModeratedStreamContributionsQueryKey(matchId)[0];
+    return Promise.all([
+      reading.refresh(),
+      client.invalidateQueries(
+        {
+          predicate: (query) =>
+            typeof query.queryKey[0] === "string" &&
+            query.queryKey[0].startsWith(`${resource}/`) &&
+            query.queryKey[0].endsWith("/reports"),
+        },
+        { throwOnError: true },
+      ),
+    ]);
   }
-  return { ...authority, query, publish, change, reactivate, refresh };
+  return { ...reading, publish, change, reactivate, refresh };
 }
 
 /** Paged reports remain bound to one exact version, including a historical reactivation source. */

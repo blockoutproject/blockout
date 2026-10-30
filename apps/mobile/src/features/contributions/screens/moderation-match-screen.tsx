@@ -12,55 +12,73 @@ import {
   KeyboardProvider,
   KeyboardAwareScrollView,
 } from "react-native-keyboard-controller";
-import Animated from "react-native-reanimated";
+import { useCollapsingTabsContext } from "react-native-collapsible-tab";
+import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 import type {
+  ModeratedStreamContributionsResponse,
   ModeratedStreamContributionResponse,
   StreamModerationActionEnum,
-  StreamVersionFilterEnum,
 } from "../../../../.generated/schemas/index.zod";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { Button } from "../../../shared/components/button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
+import { EntryGroupSeparator } from "../../../shared/components/entry-group";
+import { ListContinuation } from "../../../shared/components/list-continuation";
 import { Page, pageContentStyle } from "../../../shared/components/page";
+import {
+  PagedTabs,
+  PagedStateScrollView,
+  pagedListDefaults,
+} from "../../../shared/components/paged-tabs";
 import { PageHeader } from "../../../shared/components/page-header";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
-import { Tabs } from "../../../shared/components/tabs";
+import { ScreenState } from "../../../shared/components/screen-state";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
-import { useModerationMatch } from "../api/moderation";
+import { useModerationMatch, useModerationVersions } from "../api/moderation";
 import { ContributionHistory } from "../components/contribution-history";
 import { ModerationMatchContext } from "../components/moderation-match-context";
 import { ModerationPublicationForm } from "../forms/moderation-publication-form";
 
-/** Exact retained match identity; no public F03 wrapper authorizes this private route. */
+/** Exact retained match identity; no public dated F03 wrapper authorizes this private route. */
 export interface ModerationMatchScreenProps {
   matchId: string;
 }
-/** Current active link, native paged proposals/history and explicit exact-version moderator decisions. */
+type Action = StreamModerationActionEnum | "reactivate";
+/** A decision takes its editing revision from the same native page that displayed its exact version. */
+type Decide = (
+  version: ModeratedStreamContributionResponse,
+  action: Action,
+  revision: string,
+  activeUrl?: string,
+) => void;
+
+/** Reuses the application's native pager; its retained active scene owns the ordinary address editor. */
 export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
   const [tab, setTab] = useState("active");
-  const [publication, setPublication] = useState<{
-    revision: string;
-    activeUrl?: string;
-  }>();
   const [confirmed, setConfirmed] = useState(false);
-  const filter: StreamVersionFilterEnum | undefined =
-    tab === "pending"
-      ? "pending"
-      : tab === "historical"
-        ? "historical"
-        : "active";
-  const editing = useModerationMatch(matchId, filter);
-  const { query } = editing;
-  const { colors } = useTheme();
+  const editing = useModerationMatch(matchId, "active", tab === "active");
+  const pending = useModerationVersions(matchId, "pending", tab === "pending");
+  const historical = useModerationVersions(
+    matchId,
+    "historical",
+    tab === "historical",
+  );
+  const selected =
+    tab === "pending" ? pending : tab === "historical" ? historical : editing;
+  const current =
+    selected.canRetain && !isAccessDenied(selected.query.error)
+      ? (selected.query.data?.pages[0] ?? editing.query.data?.pages[0])
+      : undefined;
+  const activeCurrent =
+    editing.canRetain && !isAccessDenied(editing.query.error)
+      ? editing.query.data?.pages[0]
+      : undefined;
   const feedback = useActionFeedback();
   const confirmation = useActionConfirmation();
-  const navigation = useNavigation();
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -68,58 +86,20 @@ export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
       mounted.current = false;
     };
   }, []);
-  const current = editing.allowed ? query.data?.pages[0] : undefined;
   const busy =
+    !editing.allowed ||
     editing.change.isPending ||
     editing.reactivate.isPending ||
     editing.publish.isPending;
-  const rows =
-    tab === "active"
-      ? []
-      : [
-          ...new Map(
-            (query.data?.pages ?? [])
-              .flatMap((page) => page.items)
-              .map((item) => [item.id, item]),
-          ).values(),
-        ];
-  /** A normal refresh starts at page zero and keeps the mounted publication draft on failure. */
-  async function refresh() {
-    try {
-      await editing.refresh();
-    } catch {
-      if (mounted.current) feedback.error();
-    }
-  }
-  /** Continues only the visible native page traversal; an ordinary error remains retryable. */
-  async function more() {
-    if (
-      !navigation.isFocused() ||
-      AppState.currentState !== "active" ||
-      !query.hasNextPage ||
-      query.isFetching ||
-      busy
-    )
-      return;
-    const next = await query.fetchNextPage({ cancelRefetch: false });
-    if (next.isFetchNextPageError && mounted.current) feedback.error();
-  }
-  /** Captures only the explicit editor's initial values; paged remote context stays in Query. */
-  function openPublication() {
-    if (current?.canPublish)
-      setPublication({
-        revision: current.revision,
-        activeUrl: current.activeContribution?.url,
-      });
-  }
-  /** Captures the exact target, original actor and viewed revision before native confirmation. */
+  /** Captures exact target, original actor and the displayed page revision before native confirmation. */
   async function decide(
     version: ModeratedStreamContributionResponse,
-    action: StreamModerationActionEnum | "reactivate",
+    action: Action,
+    revision: string,
+    activeUrl?: string,
   ) {
     const actorAccountId = editing.session.accountId;
-    if (!current || !actorAccountId || !editing.allowed || busy) return;
-    const revision = current.revision;
+    if (!actorAccountId || busy) return;
     const label = {
       approve: "Approuver",
       reject: "Refuser",
@@ -128,7 +108,7 @@ export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
     }[action];
     const selected = await confirmation({
       title: `${label} ce lien ?`,
-      message: `${version.url}${(action === "approve" || action === "reactivate") && current.activeContribution ? `\n\nLien remplacé : ${current.activeContribution.url}` : ""}`,
+      message: `${version.url}${(action === "approve" || action === "reactivate") && activeUrl ? `\n\nLien remplacé : ${activeUrl}` : ""}`,
       confirmLabel: label,
       destructive: action === "reject" || action === "withdraw",
     });
@@ -154,173 +134,64 @@ export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
     }
   }
   const content = (
-    <Page edges={["left", "right"]}>
-      <ScrollChrome header={<PageHeader title="Liens du match" />}>
-        {({ onScroll, headerHeight }) => (
-          <Animated.FlatList
-            {...hiddenScrollIndicators}
-            automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
-            keyboardShouldPersistTaps="handled"
-            renderScrollComponent={
-              Platform.OS === "android"
-                ? renderModerationKeyboardScroll
-                : undefined
-            }
-            data={current ? rows : []}
-            keyExtractor={(item) => item.id}
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            contentContainerStyle={[
-              pageContentStyle,
-              {
-                paddingTop: headerHeight + tokens.layout.content.start,
-                gap: tokens.spacing.md,
-              },
-            ]}
-            refreshControl={
-              <DataRefreshControl
-                refreshing={query.isRefetching}
-                onRefresh={() => void refresh()}
-              />
-            }
-            ListHeaderComponent={
-              <View style={styles.header}>
-                {confirmed && (
-                  <Text
-                    accessibilityLiveRegion="polite"
-                    style={[tokens.typography.strong, { color: colors.text }]}
-                  >
-                    Décision confirmée
-                  </Text>
-                )}
-                {!editing.allowed &&
-                (editing.profile.isSuccess ||
-                  editing.session.status === "guest") ? (
-                  <Text
-                    style={[tokens.typography.body, { color: colors.text }]}
-                  >
-                    La modération des liens vidéo n’est pas autorisée.
-                  </Text>
-                ) : !current ? (
-                  <ReadFeedback
-                    query={
-                      editing.profile.isError || editing.profile.isPending
-                        ? editing.profile
-                        : query
-                    }
-                  />
-                ) : (
-                  <>
-                    <ModerationMatchContext match={current.match} />
-                    <Tabs
-                      items={[
-                        { id: "active", label: "Actif" },
-                        {
-                          id: "pending",
-                          label: `Propositions (${current.counts.pending})`,
-                        },
-                        { id: "historical", label: "Historique" },
-                      ]}
-                      selected={tab}
-                      onSelect={setTab}
-                    />
-                    {current.approvalRequiredAfterReports && (
-                      <Text
-                        style={[
-                          tokens.typography.body,
-                          { color: colors.secondaryText },
-                        ]}
-                      >
-                        Une validation reste nécessaire après les signalements.
-                      </Text>
-                    )}
-                    {tab === "active" &&
-                      (current.activeContribution ? (
-                        <ContributionHistory
-                          matchId={matchId}
-                          contribution={current.activeContribution}
-                          busy={busy}
-                          onAction={(version, action) =>
-                            void decide(version, action)
-                          }
-                          onReplace={
-                            current.canPublish ? openPublication : undefined
-                          }
-                        />
-                      ) : (
-                        <Text
-                          style={[
-                            tokens.typography.body,
-                            { color: colors.secondaryText },
-                          ]}
-                        >
-                          Aucun lien actif
-                        </Text>
-                      ))}
-                    {tab === "active" &&
-                      !current.activeContribution &&
-                      current.canPublish &&
-                      !publication && (
-                        <Button
-                          label="Publier un lien"
-                          onPress={openPublication}
-                        />
-                      )}
-                  </>
-                )}
-                {publication &&
-                  editing.allowed &&
-                  !isAccessDenied(query.error) && (
-                    <ModerationPublicationForm
-                      initial={publication}
-                      canPublish={current?.canPublish === true}
-                      editing={editing}
-                      onClose={() => setPublication(undefined)}
-                      onSuccess={() => {
-                        setConfirmed(true);
-                        setPublication(undefined);
-                      }}
-                    />
-                  )}
-              </View>
-            }
-            renderItem={({ item }) => (
-              <ContributionHistory
+    <Page edges={["left", "right", "bottom"]}>
+      <PagedTabs
+        selected={tab}
+        onSelect={setTab}
+        header={<PageHeader title="Liens du match" />}
+        tabs={[
+          {
+            id: "active",
+            label: "Actif",
+            content: (
+              <ActiveScene
                 matchId={matchId}
-                contribution={item}
-                historical={tab === "historical"}
+                editing={editing}
+                active={tab === "active"}
+                current={activeCurrent}
                 busy={busy}
-                onAction={(version, action) => void decide(version, action)}
+                onAction={decide}
+                confirmed={confirmed}
+                onSuccess={() => setConfirmed(true)}
               />
-            )}
-            ListEmptyComponent={
-              current && tab !== "active" ? (
-                <Text
-                  style={[
-                    tokens.typography.body,
-                    { color: colors.secondaryText },
-                  ]}
-                >
-                  Aucune version dans cette sélection
-                </Text>
-              ) : undefined
-            }
-            ListFooterComponent={
-              <View style={styles.header}>
-                {query.hasNextPage && tab !== "active" && (
-                  <Button
-                    label="Versions suivantes"
-                    variant="secondary"
-                    loading={query.isFetchingNextPage}
-                    onPress={() => void more()}
-                  />
-                )}
-                <BottomContentSpacer />
-              </View>
-            }
-          />
-        )}
-      </ScrollChrome>
+            ),
+          },
+          {
+            id: "pending",
+            label: current
+              ? `Propositions (${current.counts.pending})`
+              : "Propositions",
+            content: (
+              <VersionScene
+                matchId={matchId}
+                state="pending"
+                reading={pending}
+                confirmed={confirmed}
+                active={tab === "pending"}
+                busy={busy}
+                onAction={decide}
+                refreshContext={editing.refresh}
+              />
+            ),
+          },
+          {
+            id: "historical",
+            label: "Historique",
+            content: (
+              <VersionScene
+                matchId={matchId}
+                state="historical"
+                reading={historical}
+                confirmed={confirmed}
+                active={tab === "historical"}
+                busy={busy}
+                onAction={decide}
+                refreshContext={editing.refresh}
+              />
+            ),
+          },
+        ]}
+      />
     </Page>
   );
   return Platform.OS === "android" ? (
@@ -329,8 +200,321 @@ export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
     content
   );
 }
-/** Integrates the installed native keyboard owner with the one virtualized moderation list. */
+
+/** The stable active tab retains RHF input across native tab switches and ordinary read outages. */
+function ActiveScene({
+  matchId,
+  active,
+  editing,
+  current,
+  busy,
+  onAction,
+  onSuccess,
+  confirmed,
+}: {
+  matchId: string;
+  active: boolean;
+  editing: ReturnType<typeof useModerationMatch>;
+  current: ModeratedStreamContributionsResponse | undefined;
+  busy: boolean;
+  onAction: Decide;
+  onSuccess: () => void;
+  confirmed: boolean;
+}) {
+  const [refreshing, setRefreshing] = useState(false);
+  const { colors } = useTheme();
+  const feedback = useActionFeedback();
+  /** Refreshes published context and any open reports while retaining the mounted editor on outages. */
+  async function refresh() {
+    if (refreshing || !active || busy) return;
+    feedback.clear();
+    setRefreshing(true);
+    try {
+      await editing.refresh();
+    } catch {
+      feedback.error();
+    } finally {
+      setRefreshing(false);
+    }
+  }
+  if (!current)
+    return (
+      <PagedStateScrollView>
+        <ScreenState>
+          {!editing.canRetain && editing.profile.isSuccess ? (
+            <Text style={[tokens.typography.body, { color: colors.text }]}>
+              La modération des liens vidéo n’est pas autorisée.
+            </Text>
+          ) : (
+            <ReadFeedback
+              query={
+                editing.profile.isError || editing.profile.isPending
+                  ? editing.profile
+                  : editing.query
+              }
+            />
+          )}
+        </ScreenState>
+      </PagedStateScrollView>
+    );
+  const published = current.activeContribution;
+  return (
+    <TabLegendList<never>
+      {...pagedListDefaults}
+      recycleItems={false}
+      accessibilityLabel="Lien actif et signalements"
+      data={[]}
+      renderItem={() => null}
+      automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+      keyboardShouldPersistTaps="handled"
+      renderScrollComponent={
+        Platform.OS === "android" ? renderModerationKeyboardScroll : undefined
+      }
+      contentContainerStyle={[pageContentStyle, styles.list]}
+      refreshControl={
+        <DataRefreshControl
+          enabled={active && !busy}
+          refreshing={refreshing}
+          onRefresh={() => void refresh()}
+        />
+      }
+      ListHeaderComponent={
+        <View style={styles.header}>
+          {confirmed && (
+            <Text
+              accessibilityLiveRegion="polite"
+              style={[tokens.typography.strong, { color: colors.text }]}
+            >
+              Décision confirmée
+            </Text>
+          )}
+          {editing.profile.isError && (
+            <Button
+              label="Réessayer le profil"
+              loading={editing.profile.isFetching}
+              onPress={() => void editing.profile.refetch()}
+            />
+          )}
+          <ModerationMatchContext match={current.match} />
+
+          {!published && (
+            <Text
+              style={[tokens.typography.body, { color: colors.secondaryText }]}
+            >
+              Aucun lien actif
+            </Text>
+          )}
+          {(published || current.canPublish) && (
+            <ModerationPublicationForm
+              current={current}
+              editing={editing}
+              onWithdraw={() => {
+                if (published)
+                  onAction(published, "withdraw", current.revision);
+              }}
+              onSuccess={onSuccess}
+            />
+          )}
+          {published && (
+            <ContributionHistory
+              key={published.id}
+              matchId={matchId}
+              contribution={published}
+              detailsOnly
+              busy={busy}
+              onAction={(version, action) =>
+                onAction(version, action, current.revision, published.url)
+              }
+            />
+          )}
+        </View>
+      }
+      ListFooterComponent={<BottomContentSpacer />}
+    />
+  );
+}
+
+/** Each proposal/history scene uses the same native list adapter and continuation footer as existing application lists. */
+function VersionScene({
+  matchId,
+  state,
+  reading,
+  confirmed,
+  active,
+  busy,
+  onAction,
+  refreshContext,
+}: {
+  matchId: string;
+  state: "pending" | "historical";
+  reading: ReturnType<typeof useModerationVersions>;
+  confirmed: boolean;
+  active: boolean;
+  busy: boolean;
+  onAction: Decide;
+  refreshContext: () => Promise<unknown>;
+}) {
+  const [refreshing, setRefreshing] = useState(false);
+  const { query } = reading;
+  const current =
+    reading.canRetain && !isAccessDenied(query.error)
+      ? query.data?.pages[0]
+      : undefined;
+  const rows = current
+    ? [
+        ...new Map(
+          (query.data?.pages ?? [])
+            .flatMap((page) => page.items)
+            .map((item) => [item.id, item]),
+        ).values(),
+      ]
+    : [];
+  const navigation = useNavigation();
+  const { focusedTab } = useCollapsingTabsContext();
+  const feedback = useActionFeedback();
+  const { colors } = useTheme();
+  /** Rereads this traversal and shared active context; independent read failures never discard authorized rows. */
+  async function refresh() {
+    if (refreshing || !active || busy) return;
+    feedback.clear();
+    setRefreshing(true);
+    try {
+      const results = await Promise.allSettled([
+        reading.refresh(),
+        refreshContext(),
+      ]);
+      if (results.some((result) => result.status === "rejected"))
+        feedback.error();
+    } finally {
+      setRefreshing(false);
+    }
+  }
+  /** RNCT focus and the existing native end event own continuation, with an explicit footer retry after failure. */
+  async function more() {
+    if (
+      !active ||
+      refreshing ||
+      !navigation.isFocused() ||
+      AppState.currentState !== "active" ||
+      busy ||
+      !reading.allowed ||
+      !query.hasNextPage ||
+      query.isFetching ||
+      (query.isError && !query.isFetchNextPageError)
+    )
+      return;
+    feedback.clear();
+    const result = await query.fetchNextPage({ cancelRefetch: false });
+    if (
+      result.isFetchNextPageError &&
+      navigation.isFocused() &&
+      focusedTab.value === state
+    )
+      feedback.error();
+  }
+  if (!current)
+    return (
+      <PagedStateScrollView>
+        <ScreenState>
+          <ReadFeedback
+            query={
+              reading.profile.isError || reading.profile.isPending
+                ? reading.profile
+                : query
+            }
+          />
+        </ScreenState>
+      </PagedStateScrollView>
+    );
+  return (
+    <TabLegendList
+      {...pagedListDefaults}
+      recycleItems={false}
+      accessibilityLabel={
+        state === "pending" ? "Propositions de liens" : "Historique des liens"
+      }
+      data={rows}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={[pageContentStyle, styles.list]}
+      ItemSeparatorComponent={EntryGroupSeparator}
+      onEndReached={() => {
+        if (!query.isError) void more();
+      }}
+      refreshControl={
+        <DataRefreshControl
+          enabled={active && !busy}
+          refreshing={refreshing}
+          onRefresh={() => void refresh()}
+        />
+      }
+      ListHeaderComponent={
+        <View style={styles.header}>
+          {confirmed && (
+            <Text
+              accessibilityLiveRegion="polite"
+              style={[tokens.typography.strong, { color: colors.text }]}
+            >
+              Décision confirmée
+            </Text>
+          )}
+          {reading.profile.isError && (
+            <Button
+              label="Réessayer le profil"
+              loading={reading.profile.isFetching}
+              onPress={() => void reading.profile.refetch()}
+            />
+          )}
+          <ModerationMatchContext match={current.match} />
+        </View>
+      }
+      renderItem={({ item }) => (
+        <ContributionHistory
+          key={item.id}
+          matchId={matchId}
+          contribution={item}
+          historical={state === "historical"}
+          busy={busy}
+          onAction={(version, action) =>
+            onAction(
+              version,
+              action,
+              current.revision,
+              current.activeContribution?.url,
+            )
+          }
+        />
+      )}
+      ListEmptyComponent={
+        <ScreenState>
+          <Text
+            style={[tokens.typography.body, { color: colors.secondaryText }]}
+          >
+            Aucune version dans cette sélection
+          </Text>
+        </ScreenState>
+      }
+      ListFooterComponent={
+        <>
+          <ListContinuation
+            loading={query.isFetchingNextPage}
+            failed={query.isFetchNextPageError}
+            disabled={!active || query.isFetching || busy}
+            onRetry={() => void more()}
+          />
+          <BottomContentSpacer />
+        </>
+      }
+    />
+  );
+}
+/** Keeps the existing Android keyboard owner on the pager list's own supported scroll component. */
 function renderModerationKeyboardScroll(props: ScrollViewProps) {
   return <KeyboardAwareScrollView {...props} />;
 }
-const styles = StyleSheet.create({ header: { gap: tokens.spacing.md } });
+const styles = StyleSheet.create({
+  header: {
+    gap: tokens.layout.list.gap,
+    paddingBottom: tokens.layout.list.gap,
+  },
+  list: { paddingTop: tokens.layout.content.start },
+});
