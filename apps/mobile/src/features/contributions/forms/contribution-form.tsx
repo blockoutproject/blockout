@@ -36,7 +36,7 @@ export interface ContributionFormProps {
   /** Current private active projection; pristine fields follow accepted version changes without replacing dirty drafts. */
   replacement?: OwnStreamContributionResponse;
 }
-/** Shares the ordinary address editor for new proposals and the current public version, with native intent confirmation before each write. */
+/** Retains the ordinary address editor through page-owned refresh failures and confirms native intent before each write. */
 export function ContributionForm({
   matchId,
   current,
@@ -209,11 +209,7 @@ export function ContributionForm({
           accessibilityRole="header"
           style={[styles.title, { color: colors.text }]}
         >
-          {replacement
-            ? query.isError
-              ? "Dernier lien public connu"
-              : "Votre lien public"
-            : "Proposer un lien"}
+          {replacement ? "Votre lien public" : "Proposer un lien"}
         </Text>
         {replacement?.canWithdraw && (
           <Pressable
@@ -266,13 +262,6 @@ export function ContributionForm({
           >
             Ce lien sera soumis à validation.
           </Text>
-        )}
-        {query.isError && !submit.needsRead && (
-          <Button
-            label="Réessayer la lecture"
-            loading={query.isFetching}
-            onPress={() => void refresh()}
-          />
         )}
         {submit.needsRead && (
           <>
