@@ -20,6 +20,8 @@ export interface SearchResultsProps {
   emptyComponent?: ReactElement | null;
   continuation?: ReactNode;
   onEndReached?: () => void;
+  /** Routes a selected identity through the scene's existing sporting-opening owner. */
+  onOpen(item: SearchResult): void;
 }
 
 /** Usable rows keep the virtualized list; content-free feedback adds no artificial collapse range. */
@@ -29,6 +31,7 @@ export function SearchResults({
   emptyComponent,
   continuation,
   onEndReached,
+  onOpen,
 }: SearchResultsProps) {
   if (items.length === 0)
     return <PagedStateScrollView>{emptyComponent}</PagedStateScrollView>;
@@ -55,7 +58,9 @@ export function SearchResults({
       keyboardDismissMode="on-drag"
       contentContainerStyle={[pageContentStyle, styles.cards]}
       ItemSeparatorComponent={ListSeparator}
-      renderItem={({ item }) => <SearchResultCard {...item} />}
+      renderItem={({ item }) => (
+        <SearchResultCard {...item} onPress={() => onOpen(item)} />
+      )}
     />
   );
 }

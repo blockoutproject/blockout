@@ -3,6 +3,7 @@ import { useNavigation, useRouter } from "expo-router";
 import { Flag } from "lucide-react-native";
 import { IconButton } from "../../../shared/components/icon-button";
 import { supportHref } from "../../support";
+import { useSportingNavigation } from "../../sporting/navigation";
 import { Image } from "expo-image";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
@@ -62,6 +63,7 @@ const searchTabs = [
  * cannot establish current absence. There is no refresh gesture or automatic replay.
  * Generated Unicode validation rejects over-limit text without truncating the user's draft.
  * The existing F10 route receives only Search provenance; RHF text and visit criteria stay local.
+ * Voluntary card selection uses F03's UUID navigation and the single F11 transition owner.
  */
 export function SearchScreen() {
   const visit = useSearchVisit();
@@ -338,6 +340,7 @@ function SearchScene({
     ? uniqueSearchResults(exampleQuery.data ? [exampleQuery.data] : undefined)
     : textItems;
   const navigation = useNavigation();
+  const sportingNavigation = useSportingNavigation(active);
   const feedback = useActionFeedback();
   const { focusedTab } = useCollapsingTabsContext();
   const sporting = resource === "club" ? undefined : visit[resource];
@@ -379,6 +382,10 @@ function SearchScene({
     ) : undefined;
   return (
     <SearchResults
+      onOpen={({ kind, identity }) => {
+        Keyboard.dismiss();
+        void sportingNavigation.navigate(kind, identity.id);
+      }}
       examples={examples}
       items={resultsReady ? items : []}
       onEndReached={() => {
