@@ -364,10 +364,16 @@ function SearchScene({
     )
       feedback.error();
   }
+  // Refusals can empty an unfinished textual traversal; only an explicit continuation may resume it.
+  const continueEmpty =
+    !examples &&
+    items.length === 0 &&
+    textQuery.hasNextPage &&
+    (!query.isError || textQuery.isFetchNextPageError);
   const error =
-    query.isError && items.length === 0 ? (
+    (query.isError || continueEmpty) && items.length === 0 ? (
       <ErrorState
-        onRetry={() => void query.refetch()}
+        onRetry={continueEmpty ? loadMore : () => void query.refetch()}
         retrying={query.isFetching}
       />
     ) : undefined;

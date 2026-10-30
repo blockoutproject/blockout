@@ -1073,6 +1073,40 @@ it("cancels an older append when F03 refuses a retained target and never restore
   expect(screen.getByText("Lyon")).toBeOnTheScreen();
   expect(screen.queryByText(/Niort|Retour interdit/)).not.toBeOnTheScreen();
   expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
+  const current = client
+    .getQueryCache()
+    .findAll({ queryKey: ["discovery"], type: "active" })[0]!;
+  await waitFor(() => expect(current.state.fetchStatus).toBe("idle"));
+  expect(current.state.status).toBe("success");
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).searchParams.has("cursor")
+      ? Promise.resolve(
+          Response.json({
+            clubs: [
+              {
+                club: {
+                  id: "cccccccc-0000-4000-8000-000000000003",
+                  name: "Suite actuelle",
+                },
+              },
+            ],
+          }),
+        )
+      : publicReads(url),
+  );
+
+  // When: ordinary continuation is still available after cancellation of the older append.
+  await fireEvent(
+    screen.getByLabelText("Résultats de recherche"),
+    "endReached",
+  );
+
+  // Then
+  expect(await screen.findByText("Suite actuelle")).toBeOnTheScreen();
+  expect(screen.queryByText(/Niort|Retour interdit/)).not.toBeOnTheScreen();
 });
 
 it("accepts a new authoritative text read after an older detail refusal", async () => {
@@ -1099,4 +1133,63 @@ it("accepts a new authoritative text read after an older detail refusal", async 
   // Then
   expect(await screen.findByText("Niort")).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Volley actuel")).toBeOnTheScreen();
+});
+
+it("keeps manual continuation reachable when every loaded textual result is refused but a cursor remains", async () => {
+  // Given: current F03 refusals empty the loaded page, not the remaining traversal.
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+  await screen.findByText("Niort");
+  mockFetch.mockImplementation((url: string) =>
+    /\/clubs\/[a-f0-9-]+$/.test(new URL(url).pathname)
+      ? Promise.resolve(Response.json({ status: 404 }, { status: 404 }))
+      : publicReads(url),
+  );
+  const reads = mockFetch.mock.calls.filter(([url]) =>
+    new URL(url).pathname.endsWith("/clubs"),
+  ).length;
+
+  // When
+  for (const id of [firstId, secondId]) {
+    await act(async () => router.push(`/clubs/${id}`));
+    await screen.findByRole("alert");
+    await act(async () => router.back());
+  }
+
+  // Then: no replacement is fetched automatically and incomplete traversal does not prove absence.
+  expect(screen.queryByText(/Niort|Lyon|Aucun résultat/)).not.toBeOnTheScreen();
+  expect(screen.getByRole("alert")).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).pathname.endsWith("/clubs"),
+    ),
+  ).toHaveLength(reads);
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).searchParams.has("cursor")
+      ? Promise.resolve(
+          Response.json({
+            clubs: [
+              {
+                club: {
+                  id: "cccccccc-0000-4000-8000-000000000003",
+                  name: "Poursuite autorisée",
+                },
+              },
+            ],
+          }),
+        )
+      : publicReads(url),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText("Poursuite autorisée")).toBeOnTheScreen();
+  expect(
+    new URL(mockFetch.mock.calls.at(-1)![0]).searchParams.get("cursor"),
+  ).toBe("next");
+  expect(screen.queryByText(/Niort|Lyon|Aucun résultat/)).not.toBeOnTheScreen();
 });

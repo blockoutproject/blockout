@@ -55,7 +55,7 @@ export function useDiscoveryQuery(
   const detail = consultation[resource];
   useEffect(
     () =>
-      client.getQueryCache().subscribe((event) => {
+      client.getQueryCache().subscribe(async (event) => {
         if (event.type !== "updated") return;
         const state = client.getQueryState<InfiniteData<DiscoveryTextRead>>(
           options.queryKey,
@@ -74,21 +74,23 @@ export function useDiscoveryQuery(
           withoutRefusedResults(client, page, detail),
         );
         if (permitted.every((page, index) => page === pages[index])) return;
-        // Cancel before pruning: an older append/reread must not restore the refused representation.
-        void client.cancelQueries(
-          { queryKey: options.queryKey, exact: true },
-          { revert: false },
+        // Await native reversion before pruning so cancellation cannot replace success with a false append error.
+        await client.cancelQueries({ queryKey: options.queryKey, exact: true });
+        const current = client
+          .getQueryCache()
+          .find<InfiniteData<DiscoveryTextRead>>({
+            queryKey: options.queryKey,
+            exact: true,
+          });
+        const data = current?.state.data;
+        if (!current || !data) return;
+        const currentPages = data.pages.map((page) =>
+          withoutRefusedResults(client, page, detail),
         );
-        client.setQueryData(
-          options.queryKey,
-          { ...state.data, pages: permitted },
-          { updatedAt: state.dataUpdatedAt },
-        );
-        if (state.status === "error")
-          client
-            .getQueryCache()
-            .find({ queryKey: options.queryKey, exact: true })
-            ?.setState({ status: "error", error: state.error });
+        if (currentPages.every((page, index) => page === data.pages[index]))
+          return;
+        // This same-key update preserves native status, prior ordinary errors, cursor state and freshness.
+        current.setState({ data: { ...data, pages: currentPages } });
       }),
     [client, options.queryKey, detail],
   );
