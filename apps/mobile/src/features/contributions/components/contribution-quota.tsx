@@ -38,12 +38,15 @@ export function ContributionQuota({
         /3 matchs aujourd’hui (Paris)
       </Text>
       <Text style={textStyle}>
-        {moderator
-          ? "Les publications de modération sont exemptées de ces quotas."
-          : quota.matchCountedToday
-            ? "Ce match est déjà compté aujourd’hui."
-            : "Ce match n’est pas encore compté aujourd’hui."}
+        {quota.matchCountedToday
+          ? "Ce match est déjà compté aujourd’hui."
+          : "Ce match n’est pas encore compté aujourd’hui."}
       </Text>
+      {moderator && (
+        <Text style={textStyle}>
+          Les publications de modération sont exemptées de ces quotas.
+        </Text>
+      )}
       <Text style={textStyle}>
         Journée de Paris jusqu’au {formatDeadline(quota.dayEndsAt)}.
       </Text>

@@ -405,29 +405,42 @@ it.each([false, true])(
   },
 );
 
-it("explains the actual moderation grant without overriding a server refusal", async () => {
-  // Given
-  account = accountResponse({
-    permissions: { ...account.permissions, moderateStreamLinks: true },
-  });
-  context.quota.versionsUsed = 3;
-  context.eligibility = {
-    canSubmit: false,
-    requiresApproval: false,
-    reason: "Le match n’est pas accessible.",
-  };
+it.each([false, true])(
+  "preserves the counted-match fact %s and explains moderation without overriding a server refusal",
+  async (matchCountedToday) => {
+    // Given
+    account = accountResponse({
+      permissions: { ...account.permissions, moderateStreamLinks: true },
+    });
+    context.quota.versionsUsed = 3;
+    context.quota.matchCountedToday = matchCountedToday;
+    context.eligibility = {
+      canSubmit: false,
+      requiresApproval: false,
+      reason: "Le match n’est pas accessible.",
+    };
 
-  // When
-  await mount();
+    // When
+    await mount();
 
-  // Then
-  expect(
-    await screen.findByText(
-      "Les publications de modération sont exemptées de ces quotas.",
-    ),
-  ).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Soumettre le lien" }),
-  ).toBeDisabled();
-  expect(screen.getByText("Le match n’est pas accessible.")).toBeOnTheScreen();
-});
+    // Then
+    expect(
+      await screen.findByText(
+        "Les publications de modération sont exemptées de ces quotas.",
+      ),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Soumettre le lien" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText("Le match n’est pas accessible."),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        matchCountedToday
+          ? "Ce match est déjà compté aujourd’hui."
+          : "Ce match n’est pas encore compté aujourd’hui.",
+      ),
+    ).toBeOnTheScreen();
+  },
+);
