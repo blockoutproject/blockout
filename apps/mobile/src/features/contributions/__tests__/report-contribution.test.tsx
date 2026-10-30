@@ -240,7 +240,7 @@ it("retains the reason after a confirmed refusal", async () => {
   expect(screen.getByDisplayValue("Mon motif")).toBeOnTheScreen();
 });
 
-it("refreshes a stale target explicitly without transferring its draft to a new version", async () => {
+it("keeps an obsolete report as an ordinary error without a refresh state or retargeting", async () => {
   // Given
   responseStatus = 409;
   const user = userEvent.setup();
@@ -259,22 +259,37 @@ it("refreshes a stale target explicitly without transferring its draft to a new 
   await user.press(
     screen.getByRole("button", { name: "Envoyer le signalement" }),
   );
-  await user.press(
-    await screen.findByRole("button", { name: "Actualiser le match" }),
-  );
 
   // Then
   expect(
     await screen.findByText(
-      "Ce lien n’est plus public. Revenez au match avant une nouvelle action.",
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
     ),
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Version vue")).toBeOnTheScreen();
   expect(
+    screen.queryByRole("button", { name: "Actualiser le match" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByText(/Le lien a changé/)).not.toBeOnTheScreen();
+  expect(
     screen.getByRole("button", { name: "Envoyer le signalement" }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   expect(posts).toHaveLength(1);
-  expect(posts[0].url).toContain(versionId);
+
+  // When: a later explicit retry retains the original version and never reports the replacement.
+  await user.press(
+    screen.getByRole("button", { name: "Envoyer le signalement" }),
+  );
+
+  // Then
+  expect(posts).toHaveLength(2);
+  expect(posts.every((post) => post.url.includes(versionId))).toBe(true);
+  expect(
+    posts.every(
+      (post) =>
+        JSON.stringify(post.body) === JSON.stringify({ reason: "Version vue" }),
+    ),
+  ).toBe(true);
 });
 
 it("suppresses duplicate presses while the report is pending", async () => {
@@ -410,7 +425,7 @@ it.each(["session", "departure"])(
   },
 );
 
-it("keeps an invalid successful response uncertain without a second write", async () => {
+it("uses ordinary error feedback for an invalid acknowledgement without automatic replay", async () => {
   // Given
   const peer = mockFetch.getMockImplementation();
   mockFetch.mockImplementation(async (url, init) => {
@@ -435,11 +450,13 @@ it("keeps an invalid successful response uncertain without a second write", asyn
 
   // Then
   expect(
-    await screen.findByText(/Le résultat reste incertain/),
+    await screen.findByText(
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
+    ),
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Motif")).toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Envoyer le signalement" }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   expect(posts).toHaveLength(1);
 });

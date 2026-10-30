@@ -9,10 +9,7 @@ import type {
   CreateStreamReportRequest,
   MatchDetailResponse,
 } from "../../../../.generated/schemas/index.zod";
-import {
-  ApiError,
-  isUncertainMutationFailure,
-} from "../../../shared/api/api-fetch";
+import { ApiError } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { Page, PageContent } from "../../../shared/components/page";
@@ -33,7 +30,7 @@ import {
 import { useContributionReport } from "../api/contribution-reports";
 import { reportEditor } from "../forms/report-editor";
 
-/** Captured F03 identity; refreshing may reveal a replacement but never retargets this form. */
+/** Captured F03 identity; every explicit attempt keeps this exact version. */
 export interface ReportContributionScreenProps {
   matchId: string;
   contributionId: string;
@@ -138,15 +135,12 @@ function ReportForm({
     reset({ reason: "" });
     editor.release();
   });
-  const currentTarget =
-    match.isSuccess &&
-    match.data?.streamContributionId === contributionId &&
-    !!match.data.streamUrl;
+  const targetUrl =
+    match.data?.streamContributionId === contributionId
+      ? match.data.streamUrl
+      : undefined;
   const reported = query.data?.reported === true;
-  const conflict =
-    command.error instanceof ApiError && command.error.status === 409;
-  const uncertain = isUncertainMutationFailure(command.error);
-  const busy = command.pending || match.isFetching;
+  const busy = command.pending;
 
   /** Explicit cancellation abandons this draft and returns without invoking a write. */
   function cancel() {
@@ -154,27 +148,9 @@ function ReportForm({
     editor.release();
     router.dismissTo({ pathname: "/matches/[matchId]", params: { matchId } });
   }
-  /** Refreshes only public context after an obsolete target; the captured version and draft stay fixed. */
-  async function refreshMatch() {
-    const result = await match.refetch({ cancelRefetch: false });
-    if (
-      result.isError &&
-      mounted.current &&
-      session.isCurrent(session.generation)
-    )
-      feedback.error();
-  }
   /** Sends one validated private reason, preserving refusals and ignoring obsolete session/route callbacks. */
   async function send(body: CreateStreamReportRequest) {
-    if (
-      !currentTarget ||
-      !reporting.usable ||
-      query.isError ||
-      busy ||
-      reported ||
-      command.needsRead
-    )
-      return;
+    if (!reporting.usable || query.isError || busy || reported) return;
     const attempt = command.start(body);
     if (!attempt) return;
     try {
@@ -188,13 +164,7 @@ function ReportForm({
         setError("reason", {
           message: "Le signalement a été refusé. Votre saisie est conservée.",
         });
-      else if (
-        !(error instanceof ApiError && error.status === 409) &&
-        !isUncertainMutationFailure(error)
-      )
-        feedback.error(
-          "Le signalement est indisponible. Votre saisie est conservée.",
-        );
+      else feedback.error();
     }
   }
   return (
@@ -205,9 +175,9 @@ function ReportForm({
       >
         Signaler ce lien
       </Text>
-      {currentTarget && (
+      {targetUrl && (
         <Text style={[tokens.typography.body, { color: colors.text }]}>
-          {match.data?.streamUrl}
+          {targetUrl}
         </Text>
       )}
       {reported ? (
@@ -243,52 +213,11 @@ function ReportForm({
               />
             )}
           />
-          {!currentTarget && match.isSuccess && (
-            <Text
-              accessibilityLiveRegion="polite"
-              style={[tokens.typography.body, { color: colors.text }]}
-            >
-              Ce lien n’est plus public. Revenez au match avant une nouvelle
-              action.
-            </Text>
-          )}
-          {conflict && (
-            <>
-              <Text
-                accessibilityLiveRegion="polite"
-                style={[tokens.typography.body, { color: colors.text }]}
-              >
-                Le lien a changé. Actualisez le match avant une nouvelle action.
-                Votre saisie est conservée.
-              </Text>
-              <Button
-                label="Actualiser le match"
-                loading={match.isFetching}
-                onPress={() => void refreshMatch()}
-              />
-            </>
-          )}
-          {uncertain && (
-            <Text
-              accessibilityLiveRegion="polite"
-              style={[tokens.typography.body, { color: colors.text }]}
-            >
-              Le résultat reste incertain. Revenez au match pour vérifier l’état
-              courant avant une nouvelle action. Votre saisie est conservée.
-            </Text>
-          )}
-          {match.isError && <ReadFeedback query={match} />}
           <Button
             label="Envoyer le signalement"
             fullWidth
             loading={command.executing}
-            disabled={
-              !reporting.usable ||
-              query.isError ||
-              !currentTarget ||
-              busy ||
-              command.needsRead
-            }
+            disabled={!reporting.usable || query.isError || busy}
             onPress={() => void handleSubmit(send)()}
           />
           <Button

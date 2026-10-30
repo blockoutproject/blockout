@@ -11,7 +11,6 @@ import {
   type CreateStreamReportRequest,
 } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
-import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useCommand } from "../../../shared/query/use-command";
 import {
@@ -22,7 +21,7 @@ import { useOrdinaryRequest } from "../../access/ordinary-request";
 import { useConsultationQueries } from "../../sporting/match-consultation";
 import { contributionKeys } from "./contribution-keys";
 
-/** Original-account report state and explicit reason-only writes on one captured version. */
+/** Original-account report state and explicit reason-only writes; exact-version deduplication makes a later manual retry safe without a recovery state. */
 export function useContributionReport(matchId: string, contributionId: string) {
   const session = useAccountSession();
   const profile = useCurrentAccount();
@@ -107,7 +106,7 @@ export function useContributionReport(matchId: string, contributionId: string) {
         });
       },
     },
-    { groupKey, requiresRead: requiresRevisionRead },
+    { groupKey, requiresRead: () => false },
   );
   return { session, profile, usable, query, command };
 }

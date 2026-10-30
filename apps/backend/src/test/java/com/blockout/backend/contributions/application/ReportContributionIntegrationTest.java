@@ -419,6 +419,7 @@ class ReportContributionIntegrationTest extends ContributionScenario {
 
   /**
    * Sends the reason-only request to its exact original account/version resource.
+   *
    * @param actor original usable account
    * @param version exact viewed contribution
    * @param reason scenario-owned literal private reason
@@ -440,6 +441,7 @@ class ReportContributionIntegrationTest extends ContributionScenario {
 
   /**
    * Builds the canonical resource URI; no match lookup can retarget this report.
+   *
    * @param actor original usable account
    * @param version exact viewed contribution
    * @return the canonical account/version report path
@@ -450,6 +452,7 @@ class ReportContributionIntegrationTest extends ContributionScenario {
 
   /**
    * Creates an explicit synthetic current account without age evidence.
+   *
    * @param n stable scenario-owned distinguishing suffix
    * @return newly inserted original account
    */
@@ -465,6 +468,7 @@ class ReportContributionIntegrationTest extends ContributionScenario {
 
   /**
    * Supplies a stable original identity for report-count and duplicate scenarios.
+   *
    * @param n stable scenario-owned distinguishing suffix
    * @return distinct synthetic account identity
    */
