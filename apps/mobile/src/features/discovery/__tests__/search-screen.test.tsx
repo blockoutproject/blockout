@@ -401,7 +401,7 @@ it("reads changed text only for the selected resource and resets all cached nati
   expect(new Set(scroll.mock.contexts).size).toBe(3);
 });
 
-it("clears the shared query through the approved search action without fetching empty text", async () => {
+it("clears the shared query and opens examples for the selected tab", async () => {
   // Given
   const user = userEvent.setup();
   await renderSearch();
@@ -420,7 +420,10 @@ it("clears the shared query through the approved search action without fetching 
   expect(
     screen.queryByRole("button", { name: "Effacer la recherche" }),
   ).not.toBeOnTheScreen();
-  expect(mockFetch).not.toHaveBeenCalled();
+  expect(await screen.findByText("Niort")).toBeOnTheScreen();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(new URL(mockFetch.mock.calls[0][0]).searchParams.has("q")).toBe(false);
+  expect(screen.getByRole("header", { name: "Exemples" })).toBeOnTheScreen();
   expect(screen.queryByText("Volley professionnel")).not.toBeOnTheScreen();
 });
 
@@ -566,6 +569,7 @@ it("keeps clearing available without pull-to-refresh through replacement reads a
   expect(
     screen.getByRole("tab", { name: "Clubs", selected: true }),
   ).toBeOnTheScreen();
+  expect(screen.getByRole("header", { name: "Exemples" })).toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Effacer" }),
   ).not.toBeOnTheScreen();
@@ -655,7 +659,7 @@ it("does not replay a failed read on focus, reconnect or a visited-tab return", 
   ).toHaveLength(0);
 });
 
-it("leaves empty and whitespace-only text unqueried until the examples owner is delivered", async () => {
+it("treats empty and whitespace-only text as the same retained example selection", async () => {
   // Given
   const user = userEvent.setup();
   await renderSearch();
@@ -669,8 +673,8 @@ it("leaves empty and whitespace-only text unqueried until the examples owner is 
     mockFetch.mock.calls.some(([url]) =>
       /\/(clubs|teams|pools)(\?|$)/.test(String(url)),
     ),
-  ).toBe(false);
-  expect(screen.queryByText("Exemples")).not.toBeOnTheScreen();
+  ).toBe(true);
+  expect(screen.getByRole("header", { name: "Exemples" })).toBeOnTheScreen();
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 });
 

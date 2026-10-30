@@ -136,3 +136,81 @@ export function createSearchOptionsQueryOptions(
     },
   });
 }
+
+/**
+ * One bounded example read, isolated by visit, exact context and ordered retained selection.
+ * An empty retained selection is resolved locally; omission is reserved for a genuinely new selection.
+ * Ordinary failures keep Query's accepted data while current admission refusals clear it.
+ */
+export function createSearchExamplesQueryOptions(
+  resource: DiscoveryResource,
+  input: Omit<ListTeamsParams, "cursor" | "exampleIds">,
+  retained: readonly string[] | undefined,
+  visit: string,
+  session: DiscoverySession,
+  admission: DiscoveryAdmission,
+  getCredentials: () => Promise<{ accessToken: string } | undefined>,
+) {
+  const context = createDiscoveryContext(resource, {
+    ...input,
+    ...(retained?.length ? { exampleIds: [...retained] } : {}),
+  });
+  const intent = admission.bypass;
+  return queryOptions({
+    // Retained identity keys are populated from the accepted selection; only explicit owners reread them.
+    staleTime: Infinity,
+    queryKey: intent
+      ? getSessionQueryKey(session.generation, [
+          "discovery-examples-bypass",
+          intent.accountId,
+          intent.intentId,
+          visit,
+          ...context.queryKey,
+          retained,
+        ])
+      : [
+          "discovery-examples",
+          session.generation,
+          visit,
+          ...context.queryKey,
+          retained,
+        ],
+    queryFn: async ({ signal, client, queryKey }): Promise<DiscoveryPage> => {
+      if (retained?.length === 0) return emptyExamples(resource);
+      try {
+        let headers: Record<string, string> | undefined;
+        if (intent) {
+          const credentials = await getCredentials();
+          if (!credentials?.accessToken) throw new ApiError("http", 401);
+          headers = { Authorization: `Bearer ${credentials.accessToken}` };
+        }
+        const options = admission.request({ session, signal, headers });
+        if (resource === "club")
+          return await listClubs(context.params, options);
+        if (resource === "team")
+          return await listTeams(context.params, options);
+        return await listPools(context.params, options);
+      } catch (error) {
+        if (
+          !signal.aborted &&
+          error instanceof ApiError &&
+          error.kind === "http" &&
+          [401, 403, 404].includes(error.status ?? 0)
+        ) {
+          client
+            .getQueryCache()
+            .find({ queryKey, exact: true })
+            ?.setState({ data: undefined, dataUpdatedAt: 0 });
+        }
+        throw error;
+      }
+    },
+  });
+}
+
+/** A locally exhausted retained selection has the same generated shape as a successful empty read. */
+function emptyExamples(resource: DiscoveryResource): DiscoveryPage {
+  if (resource === "club") return { clubs: [] };
+  if (resource === "team") return { teams: [] };
+  return { pools: [] };
+}

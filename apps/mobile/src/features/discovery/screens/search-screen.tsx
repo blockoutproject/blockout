@@ -32,7 +32,10 @@ import {
   createDiscoveryContext,
   type DiscoveryResource,
 } from "../api/discovery-context";
-import { useDiscoveryQuery } from "../api/use-discovery-query";
+import {
+  useDiscoveryQuery,
+  useSearchExamplesQuery,
+} from "../api/use-discovery-query";
 import { SearchHeading, SearchResults } from "../components/search-results";
 import { SearchLoading } from "../components/search-loading";
 import {
@@ -48,8 +51,8 @@ const searchTabs = [
 ] as const;
 
 /**
- * Public text-search entry with internal tabs and a single shared editable value. Empty-text
- * examples and sporting activation remain with their owning tasks. Filters retain one selection per sporting tab.
+ * Public discovery with shared text and retained examples per tab/filter visit context.
+ * Filters retain one selection per sporting tab; empty/whitespace reads explicitly present examples.
  * Native end events continue the selected focused context. Initial errors use the shared card;
  * failed continuation reports a toast, retains accepted pages and offers retry at the list edge.
  * Owner-authorized reread failures retain usable rows with explicit retry; an old empty response
@@ -129,6 +132,27 @@ export function SearchScreen() {
     { q: queryText },
     resource === "club" && searchable,
   );
+  const examples = text.replace(/\p{White_Space}/gu, "") === "";
+  const teamExamples = useSearchExamplesQuery(
+    "team",
+    { ...visit.team.filters },
+    resource === "team" && examples && !!visit.team.filters,
+  );
+  const poolExamples = useSearchExamplesQuery(
+    "pool",
+    { ...visit.pool.filters },
+    resource === "pool" && examples && !!visit.pool.filters,
+  );
+  const clubExamples = useSearchExamplesQuery(
+    "club",
+    {},
+    resource === "club" && examples,
+  );
+  const exampleQueries = {
+    team: teamExamples,
+    pool: poolExamples,
+    club: clubExamples,
+  };
   const queries = { team: teamQuery, pool: poolQuery, club: clubQuery };
   const items = {
     team: uniqueSearchResults(teamQuery.data?.pages),
@@ -163,6 +187,8 @@ export function SearchScreen() {
               active={resource === id}
               searchable={searchable}
               query={queries[id]}
+              exampleQuery={exampleQueries[id]}
+              examples={examples}
               items={items[id]}
             />
           ),
@@ -246,12 +272,17 @@ export function SearchScreen() {
                   </Pressable>
                 )}
               </View>
-              {searchable && (!sporting || filters) && (
+              {(searchable || examples) && (!sporting || filters) && (
                 <SearchHeading
+                  examples={examples}
                   count={
                     queries[resource].data ? items[resource].length : undefined
                   }
-                  onClear={() => clearCriteria(resource)}
+                  onClear={
+                    examples && !changed
+                      ? undefined
+                      : () => clearCriteria(resource)
+                  }
                 />
               )}
             </View>
@@ -267,34 +298,43 @@ function SearchScene({
   resource,
   active,
   searchable,
-  query,
-  items,
+  query: textQuery,
+  exampleQuery,
+  examples,
+  items: textItems,
 }: {
   resource: DiscoveryResource;
   active: boolean;
   searchable: boolean;
   query: ReturnType<typeof useDiscoveryQuery>;
+  exampleQuery: ReturnType<typeof useSearchExamplesQuery>;
+  examples: boolean;
   items: readonly SearchResult[];
 }) {
   const visit = useSearchVisit();
+  const query = examples ? exampleQuery : textQuery;
+  const items = examples
+    ? uniqueSearchResults(exampleQuery.data ? [exampleQuery.data] : undefined)
+    : textItems;
   const navigation = useNavigation();
   const feedback = useActionFeedback();
   const { focusedTab } = useCollapsingTabsContext();
   const sporting = resource === "club" ? undefined : visit[resource];
   const filters = sporting?.filters;
-  const resultsReady = searchable && (!sporting || !!filters);
+  const resultsReady = (searchable || examples) && (!sporting || !!filters);
   /** The visible valid context owns continuation; explicit retry may resume its failed cursor. */
   async function loadMore() {
     if (
       !active ||
       !navigation.isFocused() ||
       !resultsReady ||
-      !query.hasNextPage ||
+      examples ||
+      !textQuery.hasNextPage ||
       query.isFetching
     )
       return;
     feedback.clear();
-    const result = await query.fetchNextPage({ cancelRefetch: false });
+    const result = await textQuery.fetchNextPage({ cancelRefetch: false });
     if (
       result.isFetchNextPageError &&
       result.data &&
@@ -312,12 +352,13 @@ function SearchScene({
     ) : undefined;
   return (
     <SearchResults
+      examples={examples}
       items={resultsReady ? items : []}
       onEndReached={() => {
         if (!query.isError) loadMore();
       }}
       emptyComponent={
-        !searchable ? null : sporting && !filters ? (
+        !searchable && !examples ? null : sporting && !filters ? (
           <ScreenState>
             <ReadFeedback
               query={{
@@ -345,13 +386,15 @@ function SearchScene({
       continuation={
         resultsReady &&
         query.data &&
-        (query.isFetchingNextPage || query.isError) ? (
+        ((!examples && textQuery.isFetchingNextPage) || query.isError) ? (
           <ListContinuation
             loading={query.isFetching}
             failed={query.isError}
             disabled={!active || query.isFetching}
             onRetry={
-              query.isFetchNextPageError ? loadMore : () => void query.refetch()
+              !examples && textQuery.isFetchNextPageError
+                ? loadMore
+                : () => void query.refetch()
             }
           />
         ) : undefined

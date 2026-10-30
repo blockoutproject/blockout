@@ -12,7 +12,9 @@ import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Textual traversal orchestration; engine calls occur outside the SQL hydration transaction. */
+/**
+ * Textual traversal and bounded examples; engine calls occur outside the SQL hydration transaction.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -23,18 +25,55 @@ public class ReadSearch {
   /**
    * Reads current results after a consumed position without retaining a result set.
    *
-   * @param context nonempty text and exact restrictions
+   * @param context normalized text and exact restrictions; empty text selects initial examples
    * @param after exclusive consumed boundary, or null for the first page
-   * @return up to twenty current summaries with a continuation only before an eligible candidate
+   * @return up to twenty textual results with continuation, or five examples without pagination
    * @throws SearchUnavailableException when bounded evaluation cannot establish a useful page or
    *     end
    */
   @Transactional(propagation = Propagation.NEVER)
   public SearchPage read(SearchContext context, SearchEngine.Position after) {
-    if (context.examples())
-      throw new IllegalArgumentException("Text search requires nonempty text");
+    return read(context, after, null);
+  }
+
+  /**
+   * Rereads only the retained identities in supplied order through current hydration.
+   *
+   * @param context empty text and exact filters
+   * @param examples detached visit selection; empty stays empty without an engine request
+   * @return currently eligible retained summaries without pagination or replacements
+   */
+  @Transactional(propagation = Propagation.NEVER)
+  public SearchPage examples(SearchContext context, SearchExamples examples) {
+    if (!context.examples())
+      throw new IllegalArgumentException("Retained examples require empty text");
+    return read(context, null, examples);
+  }
+
+  /**
+   * Translates SQL acquisition/completion failures for both ordinary and retained current reads.
+   *
+   * @param context normalized text and exact current filters
+   * @param after exclusive textual position, absent for examples
+   * @param examples retained selection or null for an initial collection read
+   * @return current summaries without replacements or manufactured exhaustion
+   * @throws SearchUnavailableException when the engine or current SQL hydration cannot complete
+   */
+  private SearchPage read(
+      SearchContext context, SearchEngine.Position after, SearchExamples examples) {
+    if (context.examples() && after != null)
+      throw new IllegalArgumentException("Examples forbid continuation");
     try {
-      return traverse(context, after);
+      if (examples == null) return traverse(context, after);
+      if (examples.identities().isEmpty()) return new SearchPage(List.of(), null);
+      SearchEngine.Batch batch = engine.examples(context, examples.identities());
+      Map<UUID, SearchPage.Summary> current = hydration.current(context, batch.candidates());
+      return new SearchPage(
+          examples.identities().stream()
+              .map(current::get)
+              .filter(java.util.Objects::nonNull)
+              .toList(),
+          null);
     } catch (DataAccessException | TransactionException failure) {
       log.atError()
           .addKeyValue("operation", "search_hydration")
@@ -51,7 +90,8 @@ public class ReadSearch {
 
   /**
    * Consumes bounded batches, reserving one eligible lookahead before promising continuation. A
-   * bound with several results returns a partial page before its last eligible candidate.
+   * bound with several results returns a partial textual page before its last eligible candidate.
+   * Examples stop at five eligible UUIDs and return no continuation or completeness claim.
    *
    * @param context current exact selection
    * @param after exclusive initial boundary
@@ -71,6 +111,10 @@ public class ReadSearch {
         for (SearchEngine.Candidate candidate : slice) {
           SearchPage.Summary summary = current.get(candidate.position().id());
           if (summary != null) {
+            if (context.examples() && results.size() == 4) {
+              results.add(summary);
+              return new SearchPage(results, null);
+            }
             if (results.size() == 20) return new SearchPage(results, consumed);
             beforeLastEligible = consumed;
             results.add(summary);
@@ -81,6 +125,7 @@ public class ReadSearch {
       }
       if (batch.exhausted()) return new SearchPage(results, null);
     }
+    if (context.examples() && !results.isEmpty()) return new SearchPage(results, null);
     if (results.size() < 2) {
       log.atWarn()
           .addKeyValue("operation", "search_traversal")

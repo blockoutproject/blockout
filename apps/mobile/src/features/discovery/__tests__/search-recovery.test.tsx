@@ -323,8 +323,10 @@ it("retries a failed initial read only on the error-card action", async () => {
   await user.paste(screen.getByLabelText("Rechercher"), "Volley");
   await screen.findByRole("alert");
   const clubAttempts = () =>
-    mockFetch.mock.calls.filter(([url]) =>
-      new URL(url).pathname.endsWith("/clubs"),
+    mockFetch.mock.calls.filter(
+      ([url]) =>
+        new URL(url).pathname.endsWith("/clubs") &&
+        new URL(url).searchParams.get("q") === "Volley",
     );
   expect(clubAttempts()).toHaveLength(1);
 

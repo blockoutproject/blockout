@@ -43,8 +43,29 @@ public class OpenSearchEngine implements SearchEngine {
   /** {@inheritDoc} */
   @Override
   public Batch search(SearchContext context, Position after, int size) {
-    if (context.examples() || size < 1 || size > 200)
-      throw new IllegalArgumentException("Invalid textual batch");
+    return execute(context, after, size, null);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Batch examples(SearchContext context, List<UUID> identities) {
+    if (!context.examples() || identities.isEmpty() || identities.size() > 5)
+      throw new IllegalArgumentException("Invalid retained examples");
+    return execute(context, null, 5, identities);
+  }
+
+  /**
+   * Executes one complete native response; empty text gives every exact-filter candidate the same
+   * score.
+   *
+   * @param context current selection with exact filters
+   * @param after exclusive native boundary or null
+   * @param size bounded candidate count
+   * @param identities retained UUID restriction, or null for ordinary initial candidate traversal
+   * @return fully evaluated native candidates; no total is requested
+   */
+  private Batch execute(SearchContext context, Position after, int size, List<UUID> identities) {
+    if (size < 1 || size > 200) throw new IllegalArgumentException("Invalid candidate batch");
     if (client == null) throw new SearchUnavailableException();
     try {
       SearchRequest.Builder request =
@@ -54,7 +75,7 @@ public class OpenSearchEngine implements SearchEngine {
               .allowPartialSearchResults(false)
               .trackTotalHits(track -> track.enabled(false))
               .source(source -> source.filter(filter -> filter.includes("city")))
-              .query(query(context))
+              .query(query(context, identities))
               .sort(sort -> sort.score(score -> score.order(SortOrder.Desc)))
               .sort(sort -> sort.field(field -> field.field("id").order(SortOrder.Asc)));
       if (after != null)
@@ -98,60 +119,66 @@ public class OpenSearchEngine implements SearchEngine {
    * Requires either a complete prefix branch or a complete whole-word fuzzy branch. Native optional
    * boosts cannot admit a document that fails both required branches.
    *
-   * @param context exact current textual selection
+   * @param context exact current selection; empty text uses only exact filters
+   * @param identities retained example restriction or null
    * @return ordinary typed OpenSearch query with strict filters outside the alternatives
    */
-  private Query query(SearchContext context) {
-    BoolQuery.Builder query =
-        new BoolQuery.Builder()
-            .must(
-                required ->
-                    required.bool(
-                        branches ->
-                            branches
-                                .should(
-                                    prefix ->
-                                        prefix.match(
-                                            match ->
-                                                match
-                                                    .field("prefixes")
-                                                    .query(FieldValue.of(context.text()))
-                                                    .operator(Operator.And)))
-                                .should(
-                                    fuzzy ->
-                                        fuzzy.match(
-                                            match ->
-                                                match
-                                                    .field("words")
-                                                    .query(FieldValue.of(context.text()))
-                                                    .operator(Operator.And)
-                                                    .fuzziness("AUTO")))
-                                .minimumShouldMatch("1")))
-            .should(
-                direct ->
-                    direct.match(
-                        match ->
-                            match
-                                .field("words")
-                                .query(FieldValue.of(context.text()))
-                                .operator(Operator.And)
-                                .boost(2.0F)))
-            .should(
-                name ->
-                    name.match(
-                        match ->
-                            match
-                                .field("names")
-                                .query(FieldValue.of(context.text()))
-                                .operator(Operator.And)
-                                .boost(3.0F)))
-            .should(
-                exact ->
-                    exact.term(
-                        term ->
-                            term.field("names.exact")
-                                .value(FieldValue.of(context.text()))
-                                .boost(4.0F)));
+  private Query query(SearchContext context, List<UUID> identities) {
+    BoolQuery.Builder query = new BoolQuery.Builder();
+    if (!context.examples())
+      query
+          .must(
+              required ->
+                  required.bool(
+                      branches ->
+                          branches
+                              .should(
+                                  prefix ->
+                                      prefix.match(
+                                          match ->
+                                              match
+                                                  .field("prefixes")
+                                                  .query(FieldValue.of(context.text()))
+                                                  .operator(Operator.And)))
+                              .should(
+                                  fuzzy ->
+                                      fuzzy.match(
+                                          match ->
+                                              match
+                                                  .field("words")
+                                                  .query(FieldValue.of(context.text()))
+                                                  .operator(Operator.And)
+                                                  .fuzziness("AUTO")))
+                              .minimumShouldMatch("1")))
+          .should(
+              direct ->
+                  direct.match(
+                      match ->
+                          match
+                              .field("words")
+                              .query(FieldValue.of(context.text()))
+                              .operator(Operator.And)
+                              .boost(2.0F)))
+          .should(
+              name ->
+                  name.match(
+                      match ->
+                          match
+                              .field("names")
+                              .query(FieldValue.of(context.text()))
+                              .operator(Operator.And)
+                              .boost(3.0F)))
+          .should(
+              exact ->
+                  exact.term(
+                      term ->
+                          term.field("names.exact")
+                              .value(FieldValue.of(context.text()))
+                              .boost(4.0F)));
+    if (identities != null)
+      query.filter(
+          filter ->
+              filter.ids(ids -> ids.values(identities.stream().map(UUID::toString).toList())));
     if (context.seasonId() != null) filter(query, "seasonId", context.seasonId().toString());
     if (context.divisionId() != null) filter(query, "divisionId", context.divisionId().toString());
     if (context.format() != null) filter(query, "format", context.format().getValue());

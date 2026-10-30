@@ -16,6 +16,7 @@ import type { SearchResult } from "../model/search-result";
 /** The parent derives accepted cards and the fixed heading from the same Query pages. */
 export interface SearchResultsProps {
   items: readonly SearchResult[];
+  examples?: boolean;
   emptyComponent?: ReactElement | null;
   continuation?: ReactNode;
   onEndReached?: () => void;
@@ -24,6 +25,7 @@ export interface SearchResultsProps {
 /** Usable rows keep the virtualized list; content-free feedback adds no artificial collapse range. */
 export function SearchResults({
   items,
+  examples = false,
   emptyComponent,
   continuation,
   onEndReached,
@@ -34,7 +36,7 @@ export function SearchResults({
     <TabLegendList
       {...pagedListDefaults}
       accessibilityRole="list"
-      accessibilityLabel="Résultats de recherche"
+      accessibilityLabel={examples ? "Exemples" : "Résultats de recherche"}
       alwaysBounceVertical
       onEndReached={onEndReached}
       ListFooterComponent={
@@ -61,17 +63,23 @@ export function SearchResults({
 /** The search heading labels loaded results; an absent count represents a pending or failed first read. */
 export interface SearchHeadingProps {
   count?: number;
-  onClear: () => void;
+  examples?: boolean;
+  onClear?: () => void;
 }
 
 /**
  * Product Design Search Heading 7130:19183; clearing preserves the selected resource tab.
  * The title and clear label stay vertically centered while wrapping preserves the action's native target.
  */
-export function SearchHeading({ count, onClear }: SearchHeadingProps) {
+export function SearchHeading({
+  count,
+  examples = false,
+  onClear,
+}: SearchHeadingProps) {
   const { colors } = useTheme();
-  const title =
-    count === undefined
+  const title = examples
+    ? "Exemples"
+    : count === undefined
       ? "Résultats"
       : `${count} résultat${count === 1 ? "" : "s"} chargé${count === 1 ? "" : "s"}`;
   return (
@@ -84,19 +92,21 @@ export function SearchHeading({ count, onClear }: SearchHeadingProps) {
       >
         {title}
       </Text>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Effacer"
-        onPress={onClear}
-        style={({ pressed }) => [
-          styles.clear,
-          { opacity: pressed ? tokens.opacity.pressed : 1 },
-        ]}
-      >
-        <Text style={[tokens.typography.strong, { color: colors.text }]}>
-          Effacer
-        </Text>
-      </Pressable>
+      {onClear && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Effacer"
+          onPress={onClear}
+          style={({ pressed }) => [
+            styles.clear,
+            { opacity: pressed ? tokens.opacity.pressed : 1 },
+          ]}
+        >
+          <Text style={[tokens.typography.strong, { color: colors.text }]}>
+            Effacer
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }
