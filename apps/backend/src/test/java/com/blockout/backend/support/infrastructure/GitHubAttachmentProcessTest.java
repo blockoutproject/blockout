@@ -178,7 +178,12 @@ class GitHubAttachmentProcessTest {
     }
   }
 
-  /** Replaces only the executable with this JVM's local controlled child. */
+  /**
+   * Replaces only the executable with this JVM's local controlled child.
+   *
+   * @param mode explicit success, partial, timeout or forced-termination scenario
+   * @return real process adapter using the controlled child
+   */
   private GitHubAttachmentProcess process(String mode) {
     return new GitHubAttachmentProcess(
         List.of(
@@ -192,13 +197,24 @@ class GitHubAttachmentProcessTest {
         Duration.ofSeconds(2));
   }
 
-  /** Keeps the production whole-input and cleanup owners around the real process adapter. */
+  /**
+   * Keeps the production whole-input and cleanup owners around the real process adapter.
+   *
+   * @param files this test's transient original directory
+   * @param process actual executable adapter
+   * @return application owner with only issue creation and signaling replaced
+   */
   private CreateSupportRequest useCase(Path files, GitHubAttachmentProcess process) {
     return useCase(files, process, mock(SupportSignal.class));
   }
 
   /**
    * Supplies controlled external issue creation without hiding any validation or file ownership.
+   *
+   * @param files this test's transient original directory
+   * @param process actual executable adapter
+   * @param signal scenario-owned secondary boundary
+   * @return real complete-send owner
    */
   private CreateSupportRequest useCase(
       Path files, GitHubAttachmentProcess process, SupportSignal signal) {

@@ -55,20 +55,16 @@ public final class GitHubSupportClient implements SupportCases {
   public long create(SupportCaseDraft draft) {
     requireDestination();
     try {
+      String expectedLabel =
+          draft.complete() ? destination.completeLabel() : destination.incompleteLabel();
       IssueCreated issue =
           http.post()
               .uri(repositoryPath + "/issues")
-              .body(
-                  new CreateIssue(
-                      draft.title(),
-                      draft.body(),
-                      List.of(
-                          draft.complete()
-                              ? destination.completeLabel()
-                              : destination.incompleteLabel())))
+              .body(new CreateIssue(draft.title(), draft.body(), List.of(expectedLabel)))
               .retrieve()
               .body(IssueCreated.class);
-      if (issue == null || issue.number() <= 0)
+      // GitHub may create the issue while silently dropping labels when push rights are absent.
+      if (issue == null || issue.number() <= 0 || !hasLabel(issue.labels(), expectedLabel))
         throw new SupportUnavailableException(Stage.CREATE, Reason.UNCONFIRMED);
       return issue.number();
     } catch (RestClientException failure) {
@@ -114,14 +110,24 @@ public final class GitHubSupportClient implements SupportCases {
               .retrieve()
               .body(IssueLabels.class);
       return issue != null
-          && issue.labels() != null
-          && issue.labels().stream()
-              .anyMatch(label -> destination.completeLabel().equalsIgnoreCase(label.name()))
-          && issue.labels().stream()
-              .noneMatch(label -> destination.incompleteLabel().equalsIgnoreCase(label.name()));
+          && hasLabel(issue.labels(), destination.completeLabel())
+          && !hasLabel(issue.labels(), destination.incompleteLabel());
     } catch (RestClientException failure) {
       return false;
     }
+  }
+
+  /**
+   * Matches provider label identity without trusting unrelated or absent label entries.
+   *
+   * @param labels labels returned by this operation, possibly absent in an invalid response
+   * @param expected fixed configured intake label
+   * @return whether the returned state contains that label, case insensitively
+   */
+  private static boolean hasLabel(List<Label> labels, String expected) {
+    return labels != null
+        && labels.stream()
+            .anyMatch(label -> label != null && expected.equalsIgnoreCase(label.name()));
   }
 
   /**
@@ -149,9 +155,9 @@ public final class GitHubSupportClient implements SupportCases {
   /** Private REST creation payload, not a mobile transport model. */
   private record CreateIssue(String title, String body, List<String> labels) {}
 
-  /** Only the newly created issue number is needed; provider URLs and content remain unused. */
+  /** Initial number and intake labels establish creation; provider URLs and content remain unused. */
   @JsonIgnoreProperties(ignoreUnknown = true)
-  private record IssueCreated(long number) {}
+  private record IssueCreated(long number, List<Label> labels) {}
 
   /** Narrow current marking observation, used only during this same request. */
   @JsonIgnoreProperties(ignoreUnknown = true)

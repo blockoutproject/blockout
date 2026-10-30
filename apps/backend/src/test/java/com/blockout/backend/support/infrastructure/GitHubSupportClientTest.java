@@ -2,14 +2,23 @@ package com.blockout.backend.support.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 
+import com.blockout.backend.generated.mobile.model.SupportRequestKindEnum;
+import com.blockout.backend.support.application.CreateSupportRequest;
+import com.blockout.backend.support.application.SupportAttachments;
 import com.blockout.backend.support.application.SupportCaseDraft;
+import com.blockout.backend.support.application.SupportSignal;
+import com.blockout.backend.support.application.SupportSubmission;
 import com.blockout.backend.support.application.SupportUnavailableException;
+import com.blockout.backend.support.application.SupportValidation;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -19,8 +28,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.json.JsonMapper;
@@ -28,11 +39,49 @@ import tools.jackson.databind.json.JsonMapper;
 /** Real RestClient and native timeout/redirect configuration against a dynamic loopback peer. */
 @DisplayName("Bounded private GitHub intake transport")
 class GitHubSupportClientTest {
+  @TempDir Path temporaryDirectory;
   private HttpServer server;
   private ExecutorService executor;
   private HttpComponentsClientHttpRequestFactory requests;
   private final List<Call> calls = new CopyOnWriteArrayList<>();
   private final JsonMapper json = JsonMapper.builder().build();
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  @DisplayName("Refuses an issue whose initial intake label was silently dropped")
+  void refusesUnmarkedCreation(boolean withImages) throws Exception {
+    // Given
+    server.createContext(
+        "/",
+        exchange -> {
+          record(exchange);
+          respond(exchange, 201, "{\"number\":17,\"labels\":[]}");
+        });
+    SupportAttachments attachments = mock(SupportAttachments.class);
+    SupportSignal signal = mock(SupportSignal.class);
+    CreateSupportRequest create =
+        new CreateSupportRequest(
+            new SupportValidation(temporaryDirectory), client(), attachments, signal);
+    SupportSubmission.Metadata metadata =
+        new SupportSubmission.Metadata(
+            SupportRequestKindEnum.PROBLEM,
+            null,
+            "Fiction",
+            "Description",
+            "fiction@example.invalid",
+            new SupportSubmission.Context(null, null, null, null, null, null, null, null, null));
+    List<byte[]> images =
+        withImages
+            ? List.of(new ClassPathResource("support/synthetic.png").getContentAsByteArray())
+            : List.of();
+
+    // When / Then
+    assertThatThrownBy(() -> create.create(metadata, images))
+        .isInstanceOf(SupportUnavailableException.class);
+    assertThat(calls).hasSize(1);
+    verifyNoInteractions(attachments, signal);
+    assertThat(temporaryDirectory).isEmptyDirectory();
+  }
 
   /** Owns only this test's peer and HTTP connection factory. */
   @BeforeEach
@@ -52,19 +101,26 @@ class GitHubSupportClientTest {
     executor.shutdownNow();
   }
 
-  @Test
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
   @DisplayName(
       "Creates in the fixed repository with the selected intake label and complete private content")
-  void createsPrivateCase() throws Exception {
+  void createsPrivateCase(boolean complete) throws Exception {
     // Given
+    String expectedLabel = complete ? "intake complete" : "intake incomplete";
     server.createContext(
         "/",
         exchange -> {
           record(exchange);
-          respond(exchange, 201, "{\"number\":17,\"html_url\":\"https://private.invalid/17\"}");
+          respond(
+              exchange,
+              201,
+              "{\"number\":17,\"labels\":[{\"name\":\""
+                  + expectedLabel
+                  + "\"}],\"html_url\":\"https://private.invalid/17\"}");
         });
     SupportCaseDraft draft =
-        new SupportCaseDraft("Private title 🏐", "Private body\nreply@example.invalid", false);
+        new SupportCaseDraft("Private title 🏐", "Private body\nreply@example.invalid", complete);
 
     // When
     long issue = client().create(draft);
@@ -77,7 +133,7 @@ class GitHubSupportClientTest {
     assertThat(calls.getFirst().authorization()).isEqualTo("Bearer synthetic-token");
     assertThat(json.readTree(calls.getFirst().body()).get("body").asText()).isEqualTo(draft.body());
     assertThat(json.readTree(calls.getFirst().body()).get("labels").get(0).asText())
-        .isEqualTo("intake incomplete");
+        .isEqualTo(expectedLabel);
   }
 
   @Test
@@ -238,7 +294,11 @@ class GitHubSupportClientTest {
         Duration.ofSeconds(3));
   }
 
-  /** Captures the request received by the controlled peer, never a production provider. */
+  /**
+   * Captures the request received by the controlled peer, never a production provider.
+   *
+   * @param exchange this scenario's native HTTP request
+   */
   private void record(HttpExchange exchange) throws IOException {
     calls.add(
         new Call(
@@ -248,7 +308,13 @@ class GitHubSupportClientTest {
             exchange.getRequestHeaders().getFirst("Authorization")));
   }
 
-  /** Sends a scenario-owned synthetic provider response through ordinary HTTP. */
+  /**
+   * Sends a scenario-owned synthetic provider response through ordinary HTTP.
+   *
+   * @param exchange native peer request to answer and close
+   * @param status scenario-owned HTTP outcome
+   * @param body fictional provider content
+   */
   private static void respond(HttpExchange exchange, int status, String body) throws IOException {
     byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
     exchange.getResponseHeaders().set("Content-Type", "application/json");
