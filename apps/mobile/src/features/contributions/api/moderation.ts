@@ -3,6 +3,7 @@ import {
   useInfiniteQuery,
   useMutation,
   useQueryClient,
+  useQuery,
   type QueryFunctionContext,
   type InfiniteData,
 } from "@tanstack/react-query";
@@ -16,6 +17,8 @@ import {
   getListModeratedStreamContributionsQueryKey,
   getListStreamModerationQueryKey,
   getListStreamReportsQueryKey,
+  getGetModeratedStreamContributionQueryKey,
+  getModeratedStreamContribution,
   listModeratedStreamContributions,
   listStreamModeration,
   listStreamReports,
@@ -202,6 +205,30 @@ export function useModerationVersions(
     return client.fetchInfiniteQuery({ ...options, staleTime: 0, pages: 1 });
   }
   return { ...authority, query, refresh };
+}
+
+/** Reads one exact related member on explicit sheet entry, independently of loaded history pages. */
+export function useModerationVersion(matchId: string, versionId: string) {
+  const authority = useModerationAuthority();
+  const query = useQuery({
+    queryKey: getGetModeratedStreamContributionQueryKey(matchId, versionId),
+    enabled: authority.allowed,
+    gcTime: 0,
+    refetchOnMount: "always",
+    refetchOnReconnect: false,
+    queryFn: async (context) => {
+      try {
+        return await getModeratedStreamContribution(
+          matchId,
+          versionId,
+          await authority.request(context.signal),
+        );
+      } catch (error) {
+        return refuse(error, context);
+      }
+    },
+  });
+  return { ...authority, query };
 }
 
 /** Current private match commands share their stable active-context reader and ordinary native mutations. */

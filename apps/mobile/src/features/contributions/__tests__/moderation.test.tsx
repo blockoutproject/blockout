@@ -39,6 +39,7 @@ import { matchDetail } from "../../sporting/test-support/consultation-data";
 import { ModerationScreen } from "../screens/moderation-screen";
 import { ModerationMatchScreen } from "../screens/moderation-match-screen";
 import { ModerationFilters } from "../components/moderation-filters";
+import { ModerationVersionSheet } from "../components/moderation-version-sheet";
 import type {
   ModeratedStreamContributionsResponse,
   ModeratedStreamContributionResponse,
@@ -411,7 +412,7 @@ it("retains historical reports and distinguishes erased reasons", async () => {
   const user = userEvent.setup();
   await user.press(screen.getByRole("tab", { name: "Historique" }));
   await user.press(
-    await screen.findByRole("button", { name: /Twitch · Masqué/ }),
+    await screen.findByRole("button", { name: /Twitch, Masqué/ }),
   );
   await user.press(
     await screen.findByRole("button", { name: "Signalements (1)" }),
@@ -504,7 +505,14 @@ it("preserves a dirty moderator draft and its original revision across refetch a
     "https://youtu.be/dirty",
   );
   detail = { ...detail, revision: "newer:2" };
-  fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await act(async () => {
+    await client.invalidateQueries({
+      queryKey: getListModeratedStreamContributionsQueryKey(sporting.id, {
+        state: "active",
+      }),
+      exact: true,
+    });
+  });
   await waitFor(() => expect(client.isFetching()).toBe(0));
   writeStatus = 409;
 
@@ -694,7 +702,7 @@ it.each(["queue", "versions", "reports"] as const)(
       await user.press(await screen.findByRole("tab", { name: "Historique" }));
       if (kind === "reports") {
         await user.press(
-          await screen.findByRole("button", { name: /Twitch · Masqué/ }),
+          await screen.findByRole("button", { name: /Twitch, Masqué/ }),
         );
         await user.press(
           await screen.findByRole("button", { name: "Signalements (21)" }),
@@ -734,7 +742,7 @@ it.each(["queue", "versions", "reports"] as const)(
       expect(screen.getByText("Motif indisponible")).toBeOnTheScreen();
     else
       expect(
-        screen.getByRole("button", { name: /Twitch · Masqué/ }),
+        screen.getByRole("button", { name: /Twitch, Masqué/ }),
       ).toBeOnTheScreen();
   },
 );
@@ -805,7 +813,7 @@ it.each([
     await user.press(await screen.findByRole("tab", { name: tab }));
     if (action === "reactivate")
       await user.press(
-        await screen.findByRole("button", { name: "Twitch · Refusé" }),
+        await screen.findByRole("button", { name: "Twitch, Refusé" }),
       );
 
     // When
@@ -859,11 +867,11 @@ it("continues historical versions without losing the loaded source page", async 
   // Then
   expect(
     await screen.findByRole("button", {
-      name: "YouTube · Proposition remplacée",
+      name: "YouTube, Proposition remplacée",
     }),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole("button", { name: "Twitch · Refusé" }),
+    screen.getByRole("button", { name: "Twitch, Refusé" }),
   ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.some(([url]) => {
@@ -1036,7 +1044,9 @@ it("rereads open report reasons during the ordinary match refresh even when thei
   // Then
   expect(await screen.findByText("Motif indisponible")).toBeOnTheScreen();
   expect(screen.queryByText("Avant effacement")).toBeNull();
-  expect(screen.getByText("1 signalement sur cette version")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Signalements (1)" }),
+  ).toBeOnTheScreen();
 });
 
 it("accepts the same native pager settlement used by a swipe and retains the inactive editor", async () => {
@@ -1109,9 +1119,7 @@ it("starts a replacement member's report disclosure on its own first page", asyn
   );
 
   // Then
-  expect(
-    await screen.findByText("0 signalements sur cette version"),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText("Aucun signalement")).toBeOnTheScreen();
   expect(screen.queryByText("Historique de la seconde page")).toBeNull();
 });
 
@@ -1215,4 +1223,179 @@ it("animates native pull-to-refresh only for the explicit gesture and releases i
   await waitFor(() =>
     expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
   );
+});
+
+it("keeps a conflicted draft but adopts the current viewed address/revision after explicit refresh", async () => {
+  // Given: background reads must not silently rebase a dirty command.
+  detail = { ...detail, canPublish: true };
+  const alert = jest.spyOn(Alert, "alert");
+  const draft = "https://youtu.be/intentional-new-decision";
+  const ordinary = mockFetch.getMockImplementation()!;
+  mockFetch.mockImplementation(async (url, init) => {
+    const response = await ordinary(url, init);
+    return init?.method === "POST" && response.ok
+      ? Response.json({
+          revision: "accepted:3",
+          contribution: version({
+            url: draft,
+            state: "active",
+            canApprove: false,
+            canReject: false,
+            canWithdraw: true,
+          }),
+        })
+      : response;
+  });
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  const user = userEvent.setup();
+  await user.clear(await screen.findByLabelText("Adresse du lien"));
+  await user.type(screen.getByLabelText("Adresse du lien"), draft);
+  detail = {
+    ...detail,
+    revision: "current:2",
+    activeContribution: version({
+      id: "00000000-0000-4000-8000-000000000777",
+      url: "https://twitch.tv/newly-viewed",
+      state: "active",
+      canApprove: false,
+      canReject: false,
+      canWithdraw: true,
+    }),
+  };
+  writeStatus = 409;
+  await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
+  await act(async () => {
+    alert.mock.calls
+      .at(-1)?.[2]
+      ?.find((button) => button.text === "Remplacer le lien")
+      ?.onPress?.();
+  });
+  await waitFor(() => expect(writes).toHaveLength(1));
+  await waitFor(() =>
+    expect(client.isFetching() + client.isMutating()).toBe(0),
+  );
+
+  // When: the user explicitly reads the current context before a new intentional confirmation.
+  fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Remplacer le lien" }),
+    ).toBeEnabled(),
+  );
+  expect(screen.getByDisplayValue(draft)).toBeOnTheScreen();
+  writeStatus = 200;
+  await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
+  expect(alert.mock.calls.at(-1)?.[1]).toBe(
+    `https://twitch.tv/newly-viewed\n\nNouveau lien : ${draft}`,
+  );
+  await act(async () => {
+    alert.mock.calls
+      .at(-1)?.[2]
+      ?.find((button) => button.text === "Remplacer le lien")
+      ?.onPress?.();
+  });
+
+  // Then: the old attempt stays old, while the deliberate new action uses its newly viewed baseline.
+  expect(await screen.findByText("Décision confirmée")).toBeOnTheScreen();
+  expect(writes).toEqual([
+    {
+      actorAccountId: accountResponse().accountId,
+      revision: "viewed:1",
+      url: draft,
+    },
+    {
+      actorAccountId: accountResponse().accountId,
+      revision: "current:2",
+      url: draft,
+    },
+  ]);
+});
+
+it("opens each exact lineage member when retained versions share the same address", async () => {
+  // Given
+  const sourceId = "00000000-0000-4000-8000-000000000771";
+  const replacementId = "00000000-0000-4000-8000-000000000772";
+  detail.items = [
+    version({
+      state: "replaced",
+      sourceVersionId: sourceId,
+      replacedByVersionId: replacementId,
+      canApprove: false,
+      canReject: false,
+    }),
+  ];
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  const user = userEvent.setup();
+  await user.press(await screen.findByRole("tab", { name: "Historique" }));
+  await user.press(
+    await screen.findByRole("button", { name: "Twitch, Lien remplacé" }),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Version d’origine" }));
+  await user.press(
+    screen.getByRole("button", { name: "Version de remplacement" }),
+  );
+
+  // Then
+  expect(mockPush.mock.calls.map(([destination]) => destination)).toEqual([
+    {
+      pathname: "/administration/stream-links/version",
+      params: { matchId: sporting.id, versionId: sourceId, relation: "source" },
+    },
+    {
+      pathname: "/administration/stream-links/version",
+      params: {
+        matchId: sporting.id,
+        versionId: replacementId,
+        relation: "replacement",
+      },
+    },
+  ]);
+});
+
+it("reads the exact off-page source and its reports in the read-only related-version sheet", async () => {
+  // Given: equal addresses do not identify a retained version.
+  const sourceId = "00000000-0000-4000-8000-000000000771";
+  const ordinary = mockFetch.getMockImplementation()!;
+  mockFetch.mockImplementation((url, init) =>
+    new URL(String(url)).pathname.endsWith(`/stream-contributions/${sourceId}`)
+      ? Promise.resolve(
+          Response.json({
+            revision: "current:2",
+            contribution: version({
+              id: sourceId,
+              state: "hidden",
+              authorName: "Source historique exacte",
+              reportCount: 1,
+              canApprove: false,
+              canReject: false,
+              canReactivate: true,
+            }),
+          }),
+        )
+      : ordinary(url, init),
+  );
+
+  // When
+  await mount(
+    <ModerationVersionSheet
+      matchId={sporting.id}
+      versionId={sourceId}
+      relation="source"
+    />,
+  );
+  await userEvent.press(
+    await screen.findByRole("button", { name: "Signalements (1)" }),
+  );
+
+  // Then
+  expect(await screen.findByText("Motif indisponible")).toBeOnTheScreen();
+  expect(screen.getByText("Source historique exacte")).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Réactiver" })).toBeNull();
+  expect(
+    mockFetch.mock.calls.some(([url]) =>
+      String(url).endsWith(`/${sourceId}/reports?page=0`),
+    ),
+  ).toBe(true);
 });

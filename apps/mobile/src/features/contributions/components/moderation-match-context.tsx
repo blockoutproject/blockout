@@ -1,6 +1,7 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ArrowUpRight } from "lucide-react-native";
+import { Link } from "expo-router";
 import type { StreamModerationMatchResponse } from "../../../../.generated/schemas/index.zod";
-import { NavigationLink } from "../../../shared/components/navigation-link";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import {
@@ -43,6 +44,26 @@ export function ModerationMatchContext({ match }: ModerationMatchContextProps) {
         >
           {match.pool.pool.name}
         </Text>
+        {match.publiclyViewable && (
+          <Link
+            href={{
+              pathname: "/matches/[matchId]",
+              params: { matchId: match.id },
+            }}
+            asChild
+          >
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Voir le match"
+              style={styles.open}
+            >
+              <ArrowUpRight
+                size={tokens.size.icon.md}
+                color={colors.onDarkAccent}
+              />
+            </Pressable>
+          </Link>
+        )}
       </View>
       <View style={styles.body}>
         <Text
@@ -71,15 +92,7 @@ export function ModerationMatchContext({ match }: ModerationMatchContextProps) {
             )}
           </View>
         ))}
-        {match.publiclyViewable ? (
-          <NavigationLink
-            href={{
-              pathname: "/matches/[matchId]",
-              params: { matchId: match.id },
-            }}
-            label="Voir le match"
-          />
-        ) : (
+        {!match.publiclyViewable && (
           <Text
             style={[
               tokens.typography.metadata,
@@ -102,4 +115,10 @@ const styles = StyleSheet.create({
   },
   body: { padding: tokens.spacing.lg, gap: tokens.spacing.sm },
   team: { flexDirection: "row", alignItems: "center", gap: tokens.spacing.sm },
+  open: {
+    minWidth: tokens.touch.minimum,
+    minHeight: tokens.touch.minimum,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

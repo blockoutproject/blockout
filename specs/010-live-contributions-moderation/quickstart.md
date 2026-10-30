@@ -274,7 +274,10 @@ pagination/first-page refresh, failed versus empty queues, private hidden contex
 retained drafts/editing revision across tab changes, acknowledged success despite a later read failure,
 visible continuation failures with retained pages, refusal cancellation of concurrent reads, and no polling.
 Background reads never animate the native refresh indicator; only the explicit refresh gesture owns
-that indicator, following the existing sporting-calendar composition. Administrative
+that indicator, following the existing sporting-calendar composition. A successful explicit active-page
+refresh preserves the address while adopting the current revision/address for a new intentional
+confirmation after conflict. Exact lineage navigation and its read-only sheet distinguish same-address
+versions even when the related source is outside loaded history pages. Administrative
 queries use generated resource keys within the existing principal-owned private QueryClient;
 obsolete unused account-prefixed moderation key scaffolding is removed.
 

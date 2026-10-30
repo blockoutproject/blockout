@@ -5,7 +5,8 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { ChevronDown, ChevronUp, Search } from "lucide-react-native";
+import { Search } from "lucide-react-native";
+import { DisclosureChevron } from "../../../shared/components/disclosure-chevron";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
@@ -226,7 +227,6 @@ export function FollowedLists(props: FollowedListsProps) {
       renderItem={({ item: row }) => {
         const list = lists[row.resource];
         if (row.kind === "heading") {
-          const Icon = expanded[row.resource] ? ChevronUp : ChevronDown;
           return (
             <Pressable
               accessibilityRole="button"
@@ -251,11 +251,7 @@ export function FollowedLists(props: FollowedListsProps) {
               >
                 {row.resource === "team" ? "Équipes suivies" : "Poules suivies"}
               </Text>
-              <Icon
-                accessible={false}
-                size={tokens.size.icon.sm}
-                color={colors.icon}
-              />
+              <DisclosureChevron expanded={expanded[row.resource]} />
             </Pressable>
           );
         }

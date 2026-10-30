@@ -23,7 +23,7 @@ import { isAccessDenied } from "../../../shared/api/access-denied";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { Button } from "../../../shared/components/button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { EntryGroupSeparator } from "../../../shared/components/entry-group";
+import { ListSeparator } from "../../../shared/components/list-separator";
 import { ListContinuation } from "../../../shared/components/list-continuation";
 import { Page, pageContentStyle } from "../../../shared/components/page";
 import {
@@ -41,7 +41,10 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useModerationMatch, useModerationVersions } from "../api/moderation";
 import { ContributionHistory } from "../components/contribution-history";
 import { ModerationMatchContext } from "../components/moderation-match-context";
-import { ModerationPublicationForm } from "../forms/moderation-publication-form";
+import {
+  ModerationPublicationForm,
+  type ModerationPublicationFormHandle,
+} from "../forms/moderation-publication-form";
 
 /** Exact retained match identity; no public dated F03 wrapper authorizes this private route. */
 export interface ModerationMatchScreenProps {
@@ -222,6 +225,7 @@ function ActiveScene({
   confirmed: boolean;
 }) {
   const [refreshing, setRefreshing] = useState(false);
+  const form = useRef<ModerationPublicationFormHandle>(null);
   const { colors } = useTheme();
   const feedback = useActionFeedback();
   /** Refreshes published context and any open reports while retaining the mounted editor on outages. */
@@ -230,7 +234,7 @@ function ActiveScene({
     feedback.clear();
     setRefreshing(true);
     try {
-      await editing.refresh();
+      await (form.current ? form.current.refresh() : editing.refresh());
     } catch {
       feedback.error();
     } finally {
@@ -306,6 +310,7 @@ function ActiveScene({
           )}
           {(published || current.canPublish) && (
             <ModerationPublicationForm
+              ref={form}
               current={current}
               editing={editing}
               onWithdraw={() => {
@@ -313,19 +318,17 @@ function ActiveScene({
                   onAction(published, "withdraw", current.revision);
               }}
               onSuccess={onSuccess}
-            />
-          )}
-          {published && (
-            <ContributionHistory
-              key={published.id}
-              matchId={matchId}
-              contribution={published}
-              detailsOnly
-              busy={busy}
-              onAction={(version, action) =>
-                onAction(version, action, current.revision, published.url)
-              }
-            />
+            >
+              {published && (
+                <ContributionHistory
+                  key={published.id}
+                  matchId={matchId}
+                  contribution={published}
+                  detailsOnly
+                  busy={busy}
+                />
+              )}
+            </ModerationPublicationForm>
           )}
         </View>
       }
@@ -436,7 +439,7 @@ function VersionScene({
       data={rows}
       keyExtractor={(item) => item.id}
       contentContainerStyle={[pageContentStyle, styles.list]}
-      ItemSeparatorComponent={EntryGroupSeparator}
+      ItemSeparatorComponent={ListSeparator}
       onEndReached={() => {
         if (!query.isError) void more();
       }}

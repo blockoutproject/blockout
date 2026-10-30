@@ -1,13 +1,13 @@
-import { ChevronDown, ChevronUp } from "lucide-react-native";
+import { ArrowUpRight } from "lucide-react-native";
+import { useRouter } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import type {
   ModeratedStreamContributionResponse,
   StreamModerationActionEnum,
 } from "../../../../.generated/schemas/index.zod";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
-import { EntryGroup } from "../../../shared/components/entry-group";
 import { EntryRow } from "../../../shared/components/entry-row";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { useNativeHandoff } from "../../../shared/native/use-native-handoff";
@@ -22,21 +22,21 @@ import {
 } from "../model/moderation-presentation";
 import { ContributionStateBadge } from "./contribution-state-badge";
 
-/** One exact-version list item; the parent owns original actor/revision confirmation and command settlement. */
+/** One exact version; command owners supply original actor/revision confirmation, while linked-version sheets stay read-only. */
 export interface ContributionHistoryProps {
   matchId: string;
   contribution: ModeratedStreamContributionResponse;
   historical?: boolean;
-  /** The active address editor already supplies its state and withdrawal action. */
+  /** The active editor already supplies the provider/state heading and external opening. */
   detailsOnly?: boolean;
   busy: boolean;
-  onAction: (
+  onAction?: (
     version: ModeratedStreamContributionResponse,
     action: StreamModerationActionEnum | "reactivate",
   ) => void;
 }
 
-/** Uses the existing basic-list rows, personal state badge and grouped report rows for private history. */
+/** Groups each version in a soft surface; report headings/reasons share one inset on the base surface. */
 export function ContributionHistory({
   matchId,
   contribution: version,
@@ -46,6 +46,7 @@ export function ContributionHistory({
   onAction,
 }: ContributionHistoryProps) {
   const { colors } = useTheme();
+  const router = useRouter();
   const handoff = useNativeHandoff(version.url);
   const feedback = useActionFeedback();
   const [expanded, setExpanded] = useState(!historical);
@@ -59,7 +60,7 @@ export function ContributionHistory({
   const reportContent = reports.data?.pages[reportPage];
   const platform = streamPlatformLabels[version.platform];
   const state = contributionStateLabels[version.state];
-  /** Reads one native next page; a failed continuation keeps the current twenty-row disclosure. */
+  /** Failed continuation retains the current twenty-row page; only a later explicit action retries it. */
   async function nextReports() {
     if (reports.isFetching) return;
     if (reportPage + 1 < (reports.data?.pages.length ?? 0)) {
@@ -70,136 +71,169 @@ export function ContributionHistory({
     if (next.isFetchNextPageError) feedback.error();
     else setReportPage(reportPage + 1);
   }
+  /** Opens the exact related HTTP member, including a source outside the loaded history page. */
+  function openRelated(versionId: string, relation: "source" | "replacement") {
+    router.push({
+      pathname: "/administration/stream-links/version",
+      params: { matchId, versionId, relation },
+    });
+  }
   return (
-    <View>
-      {historical && (
+    <View
+      style={
+        !detailsOnly && [styles.card, { backgroundColor: colors.insetSurface }]
+      }
+    >
+      {!detailsOnly && (
         <EntryRow
-          label={`${platform} · ${state}`}
+          label={platform}
+          labelAccessory={
+            <ContributionStateBadge state={version.state} label={state} />
+          }
+          accessibilityLabel={`${platform}, ${state}`}
           accessibilityState={{ expanded }}
           onPress={() => setExpanded(!expanded)}
-          trailing={
-            expanded ? (
-              <ChevronUp color={colors.icon} />
-            ) : (
-              <ChevronDown color={colors.icon} />
-            )
-          }
+          style={styles.heading}
         />
       )}
       {expanded && (
-        <View style={styles.content}>
+        <View style={[styles.content, !detailsOnly && styles.inset]}>
+          <View style={styles.metadata}>
+            <Text style={[tokens.typography.metadata, { color: colors.text }]}>
+              {version.authorName ?? "Auteur effacé"}
+            </Text>
+            <Text
+              style={[
+                tokens.typography.metadata,
+                { color: colors.secondaryText },
+              ]}
+            >
+              {moderationTime(version.submittedAt)}
+            </Text>
+          </View>
           {!detailsOnly && (
-            <ContributionStateBadge state={version.state} label={state} />
+            <View>
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel={`Ouvrir ${version.url}`}
+                disabled={handoff.pending}
+                onPress={() => void handoff.open()}
+                style={styles.address}
+              >
+                <Text
+                  style={[
+                    tokens.typography.body,
+                    styles.addressText,
+                    { color: colors.text },
+                  ]}
+                >
+                  {version.url}
+                </Text>
+                <ArrowUpRight
+                  accessible={false}
+                  size={tokens.size.icon.md}
+                  color={colors.icon}
+                />
+              </Pressable>
+              {onAction &&
+                (version.canApprove ||
+                  version.canReject ||
+                  version.canReactivate) && (
+                  <View style={styles.actions}>
+                    {version.canApprove && (
+                      <View style={styles.action}>
+                        <Button
+                          label="Approuver"
+                          fullWidth
+                          disabled={busy}
+                          onPress={() => onAction(version, "approve")}
+                        />
+                      </View>
+                    )}
+                    {version.canReject && (
+                      <View style={styles.action}>
+                        <Button
+                          label="Refuser"
+                          fullWidth
+                          variant="secondary"
+                          disabled={busy}
+                          onPress={() => onAction(version, "reject")}
+                        />
+                      </View>
+                    )}
+                    {version.canReactivate && (
+                      <View style={styles.action}>
+                        <Button
+                          label="Réactiver"
+                          fullWidth
+                          variant="secondary"
+                          disabled={busy}
+                          onPress={() => onAction(version, "reactivate")}
+                        />
+                      </View>
+                    )}
+                  </View>
+                )}
+            </View>
           )}
-          <Text
-            style={[
-              tokens.typography.metadata,
-              { color: colors.secondaryText },
-            ]}
-          >
-            {version.authorName ?? "Auteur effacé"} ·{" "}
-            {moderationTime(version.submittedAt)}
-          </Text>
-          <EntryRow
-            label={detailsOnly ? "Ouvrir le lien publié" : version.url}
-            accessibilityRole="link"
-            accessibilityLabel={`Ouvrir ${version.url}`}
-            disabled={handoff.pending}
-            onPress={() => void handoff.open()}
-          />
-          {!detailsOnly && (
-            <View style={styles.actions}>
-              {version.canApprove && (
-                <Button
-                  label="Approuver"
-                  fullWidth
-                  disabled={busy}
-                  onPress={() => onAction(version, "approve")}
-                />
-              )}
-              {version.canReject && (
-                <Button
-                  label="Refuser"
-                  fullWidth
-                  variant="secondary"
-                  disabled={busy}
-                  onPress={() => onAction(version, "reject")}
-                />
-              )}
-              {version.canReactivate && (
-                <Button
-                  label="Réactiver"
-                  fullWidth
-                  variant="secondary"
-                  disabled={busy}
-                  onPress={() => onAction(version, "reactivate")}
-                />
-              )}
+          {version.decisions.length > 0 && (
+            <View style={styles.decisions}>
+              {version.decisions.map((decision, index) => (
+                <Text
+                  key={`${decision.kind}:${decision.at}:${index}`}
+                  style={[
+                    tokens.typography.metadata,
+                    { color: colors.secondaryText },
+                  ]}
+                >
+                  {contributionDecisionLabels[decision.kind]} ·{" "}
+                  {moderationTime(decision.at)}
+                  {decision.actorName ? ` · ${decision.actorName}` : ""}
+                </Text>
+              ))}
             </View>
           )}
           {version.sourceVersionId && (
-            <Text
-              selectable
-              style={[
-                tokens.typography.metadata,
-                { color: colors.secondaryText },
-              ]}
-            >
-              Réactivé depuis une version conservée dans l’historique. Les
-              signalements d’origine restent sur cette version d’origine.
-            </Text>
+            <EntryRow
+              label="Version d’origine"
+              disclosure
+              style={styles.related}
+              onPress={() => openRelated(version.sourceVersionId!, "source")}
+            />
           )}
           {version.replacedByVersionId && (
-            <Text
-              selectable
-              style={[
-                tokens.typography.metadata,
-                { color: colors.secondaryText },
-              ]}
-            >
-              Remplacé par une autre version ; les signalements de cette version
-              sont conservés.
-            </Text>
+            <EntryRow
+              label="Version de remplacement"
+              disclosure
+              style={styles.related}
+              onPress={() =>
+                openRelated(version.replacedByVersionId!, "replacement")
+              }
+            />
           )}
-          {version.decisions.map((decision, index) => (
-            <Text
-              key={`${decision.kind}:${decision.at}:${index}`}
-              style={[
-                tokens.typography.metadata,
-                { color: colors.secondaryText },
-              ]}
-            >
-              {contributionDecisionLabels[decision.kind]} ·{" "}
-              {moderationTime(decision.at)}
-              {decision.actorName ? ` · ${decision.actorName}` : ""}
-            </Text>
-          ))}
-          <EntryRow
-            label={`Signalements (${version.reportCount})`}
-            accessibilityState={{ expanded: reportsOpen }}
-            onPress={() => setReportsOpen(!reportsOpen)}
-            trailing={
-              reportsOpen ? (
-                <ChevronUp color={colors.icon} />
-              ) : (
-                <ChevronDown color={colors.icon} />
-              )
-            }
-          />
-          {reportsOpen &&
-            (!reportContent ? (
-              <ReadFeedback query={reports} />
-            ) : (
-              <>
-                <Text
-                  style={[tokens.typography.strong, { color: colors.text }]}
-                >
-                  {reportContent.count}{" "}
-                  {reportContent.count === 1 ? "signalement" : "signalements"}{" "}
-                  sur cette version
-                </Text>
-                {reportContent.items.length > 0 && (
-                  <EntryGroup>
+          <View style={[styles.reports, { backgroundColor: colors.surface }]}>
+            <EntryRow
+              label={`Signalements (${reportContent?.count ?? version.reportCount})`}
+              accessibilityState={{ expanded: reportsOpen }}
+              onPress={() => setReportsOpen(!reportsOpen)}
+              style={styles.reportHeading}
+            />
+            {reportsOpen && (
+              <View style={styles.reportContent}>
+                {!reportContent ? (
+                  <ReadFeedback query={reports} />
+                ) : (
+                  <>
+                    {reportContent.items.length === 0 && (
+                      <Text
+                        style={[
+                          tokens.typography.body,
+                          { color: colors.secondaryText },
+                        ]}
+                      >
+                        Aucun signalement
+                      </Text>
+                    )}
                     {reportContent.items.map((report) => (
                       <View key={report.id} style={styles.report}>
                         <Text
@@ -220,45 +254,63 @@ export function ContributionHistory({
                         </Text>
                       </View>
                     ))}
-                  </EntryGroup>
+                    {reportPage > 0 && (
+                      <Button
+                        label="Signalements précédents"
+                        variant="secondary"
+                        fullWidth
+                        onPress={() => setReportPage(reportPage - 1)}
+                      />
+                    )}
+                    {reportContent.nextPage !== undefined && (
+                      <Button
+                        label="Signalements suivants"
+                        variant="secondary"
+                        fullWidth
+                        loading={reports.isFetchingNextPage}
+                        onPress={() => void nextReports()}
+                      />
+                    )}
+                  </>
                 )}
-                <View style={styles.actions}>
-                  {reportPage > 0 && (
-                    <Button
-                      label="Signalements précédents"
-                      fullWidth
-                      variant="secondary"
-                      onPress={() => setReportPage(reportPage - 1)}
-                    />
-                  )}
-                  {reportContent.nextPage !== undefined && (
-                    <Button
-                      label="Signalements suivants"
-                      fullWidth
-                      variant="secondary"
-                      loading={reports.isFetchingNextPage}
-                      onPress={() => void nextReports()}
-                    />
-                  )}
-                </View>
-              </>
-            ))}
+              </View>
+            )}
+          </View>
         </View>
       )}
     </View>
   );
 }
 const styles = StyleSheet.create({
-  content: {
-    paddingHorizontal: tokens.spacing.sm,
-    paddingVertical: tokens.spacing.md,
-    gap: tokens.layout.form.gap,
+  card: { borderRadius: tokens.radius.control, overflow: "hidden" },
+  heading: { paddingHorizontal: tokens.spacing.md },
+  content: { gap: tokens.spacing.md },
+  inset: {
+    paddingHorizontal: tokens.spacing.md,
+    paddingBottom: tokens.spacing.md,
   },
-  actions: { gap: tokens.layout.form.gap },
-  report: {
-    minHeight: tokens.size.control.default,
-    paddingHorizontal: tokens.spacing.sm,
-    paddingVertical: tokens.spacing.md,
-    gap: tokens.spacing.tight,
+  metadata: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: tokens.spacing.xs,
   },
+  address: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+    minHeight: tokens.touch.minimum,
+  },
+  addressText: { flex: 1 },
+  actions: { flexDirection: "row", gap: tokens.spacing.sm },
+  action: { flex: 1 },
+  decisions: { gap: tokens.spacing.xs },
+  related: { paddingHorizontal: 0, paddingVertical: tokens.spacing.sm },
+  reports: {
+    borderRadius: tokens.radius.control,
+    paddingHorizontal: tokens.spacing.md,
+  },
+  reportHeading: { paddingHorizontal: 0, paddingVertical: tokens.spacing.sm },
+  reportContent: { paddingBottom: tokens.spacing.sm, gap: tokens.spacing.sm },
+  report: { gap: tokens.spacing.xs, paddingVertical: tokens.spacing.xs },
 });
