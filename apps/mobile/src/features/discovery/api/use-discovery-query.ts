@@ -115,16 +115,13 @@ export function useSearchExamplesQuery(
           !detailKeys.includes(event.query.queryHash)
         )
           return;
-        const removed = currentIds.filter((id) => {
-          const key = consultation[resource](id).queryKey;
-          // F03 propagates a partial error update; native cancellation restores the full historical state.
-          const propagated =
-            event.query.queryHash === hashKey(key) &&
-            event.action.type === "setState" &&
-            event.action.state.error != null &&
-            !("errorUpdatedAt" in event.action.state);
-          return exampleRefused(client, key, propagated ? 0 : read.startedAt);
-        });
+        const removed = currentIds.filter((id) =>
+          exampleRefused(
+            client,
+            consultation[resource](id).queryKey,
+            read.startedAt,
+          ),
+        );
         if (state.status !== "success" && !removed.length) return;
         const ids = currentIds.filter((id) => !removed.includes(id));
         if (JSON.stringify(selection.ids) === JSON.stringify(ids)) return;

@@ -646,3 +646,37 @@ it("removes a pool after a current refusal propagated by its real F03 standings 
   expect(screen.queryByText("Poule A")).not.toBeOnTheScreen();
   expect(collectionCalls("pools")).toHaveLength(reads);
 });
+
+it("rejects an initial pool response delivered after a current F03 child refusal", async () => {
+  // Given: an initial examples request is waiting before any pool selection has been accepted.
+  const pending = Promise.withResolvers<Response>();
+  const started = Promise.withResolvers<void>();
+  mockFetch.mockImplementation((url: string) => {
+    if (new URL(url).pathname.endsWith("/pools")) {
+      started.resolve();
+      return pending.promise;
+    }
+    if (new URL(url).pathname.endsWith(`/pools/${firstId}/standings`))
+      return Promise.resolve(Response.json({ status: 404 }, { status: 404 }));
+    return publicReads(url);
+  });
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.press(screen.getByRole("tab", { name: "Poules" }));
+  await started.promise;
+
+  // When: F03 establishes hiding before the initial collection read can complete.
+  await act(async () => router.push("/pool-refusal"));
+  await screen.findByText("Poule indisponible");
+  await act(async () => router.back());
+  await act(async () =>
+    pending.resolve(await publicReads("https://api.example.invalid/pools")),
+  );
+
+  // Then
+  expect(
+    await screen.findByText("Aucun résultat pour ces critères"),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Poule A")).not.toBeOnTheScreen();
+  expect(collectionCalls("pools")).toHaveLength(1);
+});

@@ -191,6 +191,7 @@ export function createConsultationQueries(
         data: undefined,
         dataUpdatedAt: 0,
         error,
+        errorUpdatedAt: Date.now(),
         status: "error",
       });
     }
