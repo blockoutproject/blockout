@@ -14,8 +14,11 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { Alert } from "react-native";
-import { getGetModeratedStreamContributionQueryKey } from "../../../../.generated/mobile";
+import { Alert, Text } from "react-native";
+import {
+  getGetMatchQueryKey,
+  getGetModeratedStreamContributionQueryKey,
+} from "../../../../.generated/mobile";
 import type { ModeratedStreamContributionsResponse } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { createQueryClient } from "../../../shared/query/query-client";
@@ -100,6 +103,7 @@ let publicClient = createQueryClient();
 let client = publicClient;
 
 beforeEach(() => {
+  jest.useFakeTimers();
   publicClient = createQueryClient();
   client = publicClient;
   publicClient.setQueryDefaults([], { retry: false });
@@ -169,6 +173,8 @@ afterEach(async () => {
   await cleanup();
   client.clear();
   publicClient.clear();
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
   process.env = { ...previous };
   jest.restoreAllMocks();
 });
@@ -760,7 +766,7 @@ it.each(["success", "failure"] as const)(
     await waitFor(() => expect(writes).toHaveLength(1));
 
     // When
-    await view.unmount();
+    await view.rerender(<Text>Another page</Text>);
     await act(async () => {
       if (outcome === "success")
         pending.resolve(
@@ -771,6 +777,8 @@ it.each(["success", "failure"] as const)(
 
     // Then
     expect(mockDismissTo).not.toHaveBeenCalled();
+    expect(screen.getByText("Another page")).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
     expect(writes).toHaveLength(1);
   },
 );
@@ -804,7 +812,7 @@ it("does not restore refused owner data when submission refusal is followed by a
 
   // Then
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(result.current.query.data).toBeUndefined();
+  await waitFor(() => expect(result.current.query.data).toBeUndefined());
   expect(writes).toHaveLength(1);
 });
 
@@ -850,10 +858,25 @@ it("retains the report draft when a current read observes a report after lost ac
   expect(writes).toHaveLength(1);
 
   // When
-  write = async () => Response.json({ reported: true });
+  const retry = Promise.withResolvers<Response>();
+  write = () => retry.promise;
   await user.press(
     screen.getByRole("button", { name: "Envoyer le signalement" }),
   );
+
+  // Then
+  expect(
+    screen.getByDisplayValue("Fictional private reason"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Envoyer le signalement" }),
+  ).toBeDisabled();
+  expect(
+    screen.queryByText("Vous avez déjà signalé ce lien."),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await act(async () => retry.resolve(Response.json({ reported: true })));
 
   // Then
   expect(
@@ -861,4 +884,123 @@ it("retains the report draft when a current read observes a report after lost ac
   ).toBeOnTheScreen();
   expect(writes).toHaveLength(2);
   expect(writes[1]).toEqual(writes[0]);
+});
+
+it.each([401, 403, 404])(
+  "withdraws the captured report address after the match refuses with %s, including a later outage",
+  async (status) => {
+    // Given
+    const peer = mockFetch.getMockImplementation();
+    let denied = false;
+    mockFetch.mockImplementation(async (url, init) => {
+      const path = new URL(String(url)).pathname;
+      if (
+        denied &&
+        init?.method !== "POST" &&
+        (path === `/matches/${match.match.id}` || path.endsWith("/report"))
+      )
+        return Response.json({ status, title: "Unavailable" }, { status });
+      if (!peer) throw new Error("Missing HTTP boundary");
+      return peer(url, init);
+    });
+    const user = userEvent.setup();
+    await render(
+      <ReportContributionScreen
+        matchId={match.match.id}
+        contributionId={version.id}
+        contributionUrl={version.url}
+      />,
+      { wrapper: Wrapper },
+    );
+    await user.type(
+      await screen.findByLabelText("Motif du signalement"),
+      "Fictional private reason",
+    );
+    expect(await screen.findByText(version.url)).toBeOnTheScreen();
+    write = async () => {
+      denied = true;
+      throw new TypeError("Lost acknowledgement");
+    };
+
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Envoyer le signalement" }),
+    );
+
+    // Then
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Envoyer le signalement" }),
+      ).toBeDisabled(),
+    );
+    expect(screen.queryByText(version.url)).not.toBeOnTheScreen();
+    expect(screen.queryByText("Home")).not.toBeOnTheScreen();
+    expect(
+      screen.getByDisplayValue("Fictional private reason"),
+    ).toBeOnTheScreen();
+
+    // When
+    denied = false;
+    failRead = true;
+    await act(async () => {
+      await client.invalidateQueries({
+        queryKey: getGetMatchQueryKey(match.match.id),
+      });
+    });
+
+    // Then
+    expect(screen.queryByText(version.url)).not.toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Envoyer le signalement" }),
+    ).toBeDisabled();
+    expect(writes).toHaveLength(1);
+  },
+);
+
+it("keeps the exact-version draft retryable when only the report member is unavailable", async () => {
+  // Given
+  const peer = mockFetch.getMockImplementation();
+  let missing = false;
+  mockFetch.mockImplementation(async (url, init) => {
+    if (missing && String(url).endsWith("/report") && init?.method !== "POST")
+      return Response.json(
+        { status: 404, title: "Not Found" },
+        { status: 404 },
+      );
+    if (!peer) throw new Error("Missing HTTP boundary");
+    return peer(url, init);
+  });
+  const user = userEvent.setup();
+  await render(
+    <ReportContributionScreen
+      matchId={match.match.id}
+      contributionId={version.id}
+      contributionUrl={version.url}
+    />,
+    { wrapper: Wrapper },
+  );
+  await user.type(
+    await screen.findByLabelText("Motif du signalement"),
+    "Fictional private reason",
+  );
+  write = async () => {
+    missing = true;
+    return Response.json({ status: 404, title: "Not Found" }, { status: 404 });
+  };
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Envoyer le signalement" }),
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // Then
+  expect(screen.getByText(version.url)).toBeOnTheScreen();
+  expect(
+    screen.getByDisplayValue("Fictional private reason"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Envoyer le signalement" }),
+  ).toBeEnabled();
+  expect(writes).toHaveLength(1);
 });

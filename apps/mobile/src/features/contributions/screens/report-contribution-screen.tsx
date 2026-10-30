@@ -29,6 +29,7 @@ import {
   useConsultationQueries,
 } from "../../sporting/match-consultation";
 import { useContributionReport } from "../api/contribution-reports";
+import { isOwnContributionAccessDenied } from "../api/own-contributions";
 
 /** Captured F03 identity; every explicit attempt keeps this exact version. */
 export interface ReportContributionScreenProps {
@@ -135,15 +136,20 @@ function ReportForm({
   useDiscardChanges(isDirty, () => {
     reset({ reason: "" });
   });
-  const targetUrl =
-    contributionUrl ??
-    (match.data?.streamContributionId === contributionId
-      ? match.data.streamUrl
-      : undefined);
+  const matchAvailable =
+    match.data !== undefined && !isOwnContributionAccessDenied(match.error);
+  const targetUrl = matchAvailable
+    ? (contributionUrl ??
+      (match.data?.streamContributionId === contributionId
+        ? match.data.streamUrl
+        : undefined))
+    : undefined;
   const reported =
     command.data?.reported === true ||
-    (!command.isError && query.data?.reported === true);
+    (command.isIdle && query.data?.reported === true);
   const busy = command.isPending;
+  const disabled =
+    !reporting.usable || !matchAvailable || isAccessDenied(query.error) || busy;
   /** Explicit cancellation abandons this draft and returns without invoking a write. */
   function cancel() {
     reset({ reason: "" });
@@ -151,8 +157,7 @@ function ReportForm({
   }
   /** Sends one validated private reason, preserving refusals and ignoring obsolete session/route callbacks. */
   async function send(body: CreateStreamReportRequest) {
-    if (!reporting.usable || isAccessDenied(query.error) || busy || reported)
-      return;
+    if (disabled || reported) return;
     const attempt = command.mutateAsync(body);
     try {
       await attempt;
@@ -216,7 +221,7 @@ function ReportForm({
             label="Envoyer le signalement"
             fullWidth
             loading={command.isPending}
-            disabled={!reporting.usable || isAccessDenied(query.error) || busy}
+            disabled={disabled}
             onPress={() => void handleSubmit(send)()}
           />
           <Button

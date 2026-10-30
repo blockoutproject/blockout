@@ -120,7 +120,7 @@ invalidation, including exact private moderation members and public F03 reads; a
 proves rollback nor overturns acknowledged success. Report acknowledgement is displayed directly
 from the mutation when its dependent read fails; a transport outage permits another deliberate
 same-target submission without adding a recovery control. A current read observing an existing report after response loss does not discard the failed attempt’s draft or replace its ordinary feedback. Known authorization refusals remove
-private owner data before a subsequent outage can retain it.
+private owner data before a subsequent outage can retain it. A refused F03 match removes the captured report address and disables sending while preserving the local reason; a refusal of only the old report member keeps its exact-target retry. The confirmed report result remains distinct from a pending explicit retry.
 
 [Mobile diagnostics](../../apps/mobile/src/features/contributions/__tests__/contribution-diagnostics.test.ts)
 check the generated F13 transport classification, safe local feedback and F13 Sentry privacy filter
