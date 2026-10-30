@@ -24,8 +24,7 @@ export function useFollowerCountQuery(target: FollowingTarget) {
   const session = useAccountSession();
   const admission = useOrdinaryRequest();
   const { getCredentials } = useAuth0();
-  const original = captureFollowingOwner(session);
-  const owner = admission.bypass ? original : null;
+  const owner = admission.bypass ? captureFollowingOwner(session) : null;
   const rejectTarget = useSportingTargetAvailability();
   return useQuery({
     queryKey: followerCountKey(target, owner ?? undefined),
@@ -57,6 +56,12 @@ export function useFollowerCountQuery(target: FollowingTarget) {
           (isAccessDenied(error) || isFollowRestriction(error))
         ) {
           if (error instanceof ApiError && error.status === 404) {
+            const original = session.isCurrent(session.generation)
+              ? captureFollowingOwner({
+                  ...session.getSnapshot(),
+                  isCurrent: session.isCurrent,
+                })
+              : null;
             if (original)
               await restrictFollowTarget(client, original, target, error);
             await rejectTarget(context, target.type, target.id, error);

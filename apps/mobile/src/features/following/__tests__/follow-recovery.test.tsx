@@ -19,7 +19,13 @@ import { PoolScreen } from "../../sporting/screens/pool-screen";
 import { FollowButton } from "../components/follow-button";
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { SportingActions } from "../../sporting/components/sporting-actions";
-import { followStateKey, followerCountKey } from "../api/following-keys";
+import type { InfiniteData } from "@tanstack/react-query";
+import type { FollowListPage } from "../api/personal-queries";
+import {
+  followStateKey,
+  followerCountKey,
+  followListKey,
+} from "../api/following-keys";
 import { bindSessionQueries } from "../../../shared/query/query-client";
 
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
@@ -447,4 +453,97 @@ it("keeps public sporting content when the private opaque member read returns 40
   await screen.findAllByRole("button", { name: "Réessayer" });
   expect(await screen.findByLabelText("2 abonnés")).toBeOnTheScreen();
   expect(screen.getByText("Public team remains viewable")).toBeOnTheScreen();
+});
+
+it("applies public absence to an account established while the first counter is pending", async () => {
+  // Given
+  const profile = Promise.withResolvers<Response>();
+  const count = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, request) => {
+    if (url.endsWith("/accounts/me")) return profile.promise;
+    if (url.endsWith("/follower-count")) return count.promise;
+    if (url.endsWith(`/teams/${team.id}`))
+      return Promise.resolve(
+        Response.json({
+          team: {
+            team: {
+              id: team.id,
+              name: "Profile resolves after public read starts",
+            },
+            season,
+            classification: {},
+            professional: true,
+          },
+          participations: [],
+        }),
+      );
+    if (url.includes("/team-follows/"))
+      return Promise.resolve(Response.json({ following: true }));
+    if (url.includes("/matches?"))
+      return Promise.resolve(Response.json({ days: [] }));
+    return transport(url, request);
+  });
+  await fixture.render(
+    <>
+      <TeamScreen
+        teamId={team.id}
+        renderFollow={() => <SportingActions target={team} season={season} />}
+      />
+      <FollowButton target={team} season={season} />
+    </>,
+  );
+  await screen.findByText("Profile resolves after public read starts");
+  await layoutNativeTabs();
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(([url]) => url.endsWith("/follower-count")),
+    ).toHaveLength(1),
+  );
+  const generation = fixture.session.generation;
+  await act(async () => {
+    profile.resolve(Response.json(accountResponse()));
+  });
+  await waitFor(() =>
+    expect(
+      screen.getAllByRole("button", { name: "Suivi", disabled: false }),
+    ).toHaveLength(2),
+  );
+  const owner = { ...fixture.session, accountId: accountResponse().accountId };
+  const listKey = followListKey(owner, "team");
+  fixture.client.setQueryData(listKey, {
+    pages: [
+      {
+        items: [
+          {
+            team: { id: team.id, name: "Retained identity" },
+            season,
+            classification: {},
+            professional: true,
+          },
+        ],
+      },
+    ],
+    pageParams: [0],
+  });
+
+  // When
+  await act(async () => {
+    count.resolve(new Response(null, { status: 404 }));
+  });
+
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Profile resolves after public read starts"),
+    ).not.toBeOnTheScreen(),
+  );
+  expect(fixture.session.generation).toBe(generation);
+  expect(
+    screen.queryByRole("button", { name: "Suivi", disabled: false }),
+  ).not.toBeOnTheScreen();
+  expect(
+    fixture.client
+      .getQueryData<InfiniteData<FollowListPage>>(listKey)
+      ?.pages.flatMap((page) => page.items),
+  ).toEqual([]);
 });
