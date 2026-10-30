@@ -807,3 +807,58 @@ it("does not restore refused owner data when submission refusal is followed by a
   expect(result.current.query.data).toBeUndefined();
   expect(writes).toHaveLength(1);
 });
+
+it("retains the report draft when a current read observes a report after lost acknowledgement", async () => {
+  // Given
+  const user = userEvent.setup();
+  await render(
+    <ReportContributionScreen
+      matchId={match.match.id}
+      contributionId={version.id}
+      contributionUrl={version.url}
+    />,
+    { wrapper: Wrapper },
+  );
+  await user.type(
+    await screen.findByLabelText("Motif du signalement"),
+    "Fictional private reason",
+  );
+  write = async () => {
+    reported = true;
+    throw new TypeError("Lost report acknowledgement");
+  };
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Envoyer le signalement" }),
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // Then
+  expect(
+    screen.getByDisplayValue("Fictional private reason"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Envoyer le signalement" }),
+  ).toBeEnabled();
+  expect(
+    screen.queryByText("Votre signalement a été envoyé."),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByText("Vous avez déjà signalé ce lien."),
+  ).not.toBeOnTheScreen();
+  expect(writes).toHaveLength(1);
+
+  // When
+  write = async () => Response.json({ reported: true });
+  await user.press(
+    screen.getByRole("button", { name: "Envoyer le signalement" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByText("Votre signalement a été envoyé."),
+  ).toBeOnTheScreen();
+  expect(writes).toHaveLength(2);
+  expect(writes[1]).toEqual(writes[0]);
+});

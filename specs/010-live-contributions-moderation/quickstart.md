@@ -119,7 +119,7 @@ native credential I/O and navigation controlled. Version mutations keep ordinary
 invalidation, including exact private moderation members and public F03 reads; a failed read neither
 proves rollback nor overturns acknowledged success. Report acknowledgement is displayed directly
 from the mutation when its dependent read fails; a transport outage permits another deliberate
-same-target submission without adding a recovery control. Known authorization refusals remove
+same-target submission without adding a recovery control. A current read observing an existing report after response loss does not discard the failed attempt’s draft or replace its ordinary feedback. Known authorization refusals remove
 private owner data before a subsequent outage can retain it.
 
 [Mobile diagnostics](../../apps/mobile/src/features/contributions/__tests__/contribution-diagnostics.test.ts)

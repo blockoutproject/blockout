@@ -141,7 +141,8 @@ function ReportForm({
       ? match.data.streamUrl
       : undefined);
   const reported =
-    command.data?.reported === true || query.data?.reported === true;
+    command.data?.reported === true ||
+    (!command.isError && query.data?.reported === true);
   const busy = command.isPending;
   /** Explicit cancellation abandons this draft and returns without invoking a write. */
   function cancel() {
