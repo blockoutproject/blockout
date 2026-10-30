@@ -272,9 +272,12 @@ wording can reflect a withdrawn link without exposing its former URL.
 and [PostgreSQL cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/PushDeliveryIntegrationTest.java)
 cover this transport construction with controlled external I/O; [HTTP cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/infrastructure/ExpoPushClientTest.java)
 exercise actual RestClient serialization and partial/refused/uncertain/missing evidence.
+[Native transport cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/infrastructure/ExpoPushTransportIntegrationTest.java)
+exercise the actual Apache request factory against a disposable loopback server, proving one POST
+for send/receipt 429/503 responses with enhanced-security headers and no underlying automatic retry.
 [Configuration cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/infrastructure/PushDeliveryConfigurationTest.java)
 exercise native binding, activation validation and queue rejection. Run
-`./mvnw -B -ntp -pl apps/backend verify -Dtest='PushDeliveryTest,ExpoPushClientTest,PushDeliveryConfigurationTest' -Dit.test=PushDeliveryIntegrationTest`.
+`./mvnw -B -ntp -pl apps/backend verify -Dtest='PushDeliveryTest,ExpoPushClientTest,PushDeliveryConfigurationTest' -Dit.test=PushDeliveryIntegrationTest,ExpoPushTransportIntegrationTest`.
 
 The [operations input guide](../../infra/operations/README.md#sporting-push-inputs-and-failure-limits)
 owns exact activation names, one enabled sender per project, credentials/channels, bounds and safe

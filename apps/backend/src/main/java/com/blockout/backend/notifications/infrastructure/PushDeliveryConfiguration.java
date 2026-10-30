@@ -7,10 +7,15 @@ import com.blockout.backend.notifications.application.ReadPushEligibility;
 import com.blockout.backend.notifications.application.SportingPushAdmission;
 import java.time.Clock;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
+import org.springframework.boot.http.client.HttpClientSettings;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.web.client.RestClient;
@@ -53,17 +58,35 @@ public class PushDeliveryConfiguration {
   }
 
   /**
+   * Owns the Expo transport pool with configured deadlines/redirects and no native replay.
+   *
+   * @param settings native Boot HTTP settings from application.yaml
+   * @return request factory closed by Spring with this context
+   */
+  @Bean(defaultCandidate = false)
+  HttpComponentsClientHttpRequestFactory pushRequestFactory(HttpClientSettings settings) {
+    return ClientHttpRequestFactoryBuilder.httpComponents()
+        .withHttpClientCustomizer(HttpClientBuilder::disableAutomaticRetries)
+        .build(settings);
+  }
+
+  /**
    * Uses Boot's ordinary configured connect/read bounds (3/5 seconds), with no redirects/resends.
    *
    * @param builder Boot-configured bounded HTTP client builder
    * @param properties environment input; no provider operation is performed at startup
    * @param json native application JSON mapper
+   * @param factory dedicated native Expo transport
    * @return focused official Expo send/receipt adapter
    */
   @Bean
   PushProvider expoPushClient(
-      RestClient.Builder builder, PushProperties properties, JsonMapper json) {
-    RestClient.Builder configured = builder.baseUrl("https://exp.host/--/api/v2/push");
+      RestClient.Builder builder,
+      PushProperties properties,
+      JsonMapper json,
+      @Qualifier("pushRequestFactory") ClientHttpRequestFactory factory) {
+    RestClient.Builder configured =
+        builder.requestFactory(factory).baseUrl("https://exp.host/--/api/v2/push");
     if (properties.enabled())
       configured.defaultHeaders(headers -> headers.setBearerAuth(properties.accessToken()));
     log.atInfo()

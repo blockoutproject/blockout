@@ -25,6 +25,14 @@ transaction. A normal unavailable member uses `ReadInbox.availableMember` instea
 transactional exception that has already marked its enclosing read transaction rollback-only.
 No owner repository/entity is imported across feature boundaries.
 
+Boot 4.1.1 selects the installed Apache HttpClient 5.6.4 transport. Its native 429/503 recovery
+can repeat a JSON POST even without application retries. The dedicated Expo request factory
+therefore uses Boot's [native client customizer](https://docs.spring.io/spring-boot/api/java/org/springframework/boot/http/client/HttpComponentsClientHttpRequestFactoryBuilder.html)
+and Apache's [automatic-retry switch](https://hc.apache.org/httpcomponents-client-5.6.x/current/httpclient5/apidocs/org/apache/hc/client5/http/impl/classic/HttpClientBuilder.html)
+to disable that recovery while retaining configured deadlines and redirect policy. Spring owns
+and closes this factory's pool. Loopback HTTP cases exercise the actual native transport rather
+than replacing it with `MockRestServiceServer`.
+
 One ordinary `ThreadPoolTaskExecutor` worker, 100 queued batches of up to 100 targets and a 200 ms
 minimum interval keep a single project's rate at or below 500 messages/second. This conservative
 pacing satisfies the 600 limit without a custom token bucket. The environment must have only one
