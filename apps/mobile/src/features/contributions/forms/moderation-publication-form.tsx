@@ -2,7 +2,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
-import type { ModeratedStreamContributionsResponse } from "../../../../.generated/schemas/index.zod";
 import { Button } from "../../../shared/components/button";
 import { TextField } from "../../../shared/components/text-field";
 import { Surface } from "../../../shared/components/surface";
@@ -19,20 +18,22 @@ import {
 
 /** One route-local moderator draft; its initial revision remains coherent across background reads. */
 export interface ModerationPublicationFormProps {
-  current: ModeratedStreamContributionsResponse;
+  initial: { revision: string; activeUrl?: string };
+  canPublish: boolean;
   editing: ReturnType<typeof useModerationMatch>;
   onClose: () => void;
   onSuccess: () => void;
 }
 /** Publishes/replaces through the canonical moderator endpoint with exact native confirmation. */
 export function ModerationPublicationForm({
-  current,
+  initial,
+  canPublish,
   editing,
   onClose,
   onSuccess,
 }: ModerationPublicationFormProps) {
   const { colors } = useTheme();
-  const revision = useRef(current.revision).current;
+  const revision = initial.revision;
   const confirm = useActionConfirmation();
   const feedback = useActionFeedback();
   const mounted = useRef(true);
@@ -49,7 +50,7 @@ export function ModerationPublicationForm({
     formState: { isDirty },
   } = useForm<ContributionValues>({
     resolver: zodResolver(contributionSchema),
-    defaultValues: { url: current.activeContribution?.url ?? "" },
+    defaultValues: { url: initial.activeUrl ?? "" },
   });
   const confirmDiscard = useDiscardChanges(isDirty, () => reset());
   /** Captures actor/address/revision before presenting one native dialog; no failure replays a write. */
@@ -58,17 +59,15 @@ export function ModerationPublicationForm({
     if (
       !actorAccountId ||
       !editing.allowed ||
-      !current.canPublish ||
+      !canPublish ||
       editing.publish.isPending
     )
       return;
     const body = { actorAccountId, revision, url: values.url };
     const accepted = await confirm({
-      title: current.activeContribution
-        ? "Remplacer ce lien ?"
-        : "Publier ce lien ?",
-      message: current.activeContribution
-        ? `${current.activeContribution.url}\n\nNouveau lien : ${values.url}`
+      title: initial.activeUrl ? "Remplacer ce lien ?" : "Publier ce lien ?",
+      message: initial.activeUrl
+        ? `${initial.activeUrl}\n\nNouveau lien : ${values.url}`
         : values.url,
       confirmLabel: "Publier",
     });
@@ -97,7 +96,7 @@ export function ModerationPublicationForm({
         accessibilityRole="header"
         style={[tokens.typography.heading, { color: colors.text }]}
       >
-        {current.activeContribution ? "Remplacer le lien" : "Publier un lien"}
+        {initial.activeUrl ? "Remplacer le lien" : "Publier un lien"}
       </Text>
       <Controller
         control={control}
@@ -120,7 +119,7 @@ export function ModerationPublicationForm({
         <Button
           label="Publier"
           loading={editing.publish.isPending}
-          disabled={!editing.allowed || !current.canPublish}
+          disabled={!editing.allowed || !canPublish}
           onPress={() => void handleSubmit(send)()}
         />
         <Button

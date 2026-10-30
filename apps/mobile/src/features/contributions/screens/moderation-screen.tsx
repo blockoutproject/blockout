@@ -75,7 +75,8 @@ export function ModerationScreen({ filters }: ModerationScreenProps) {
       query.isFetching
     )
       return;
-    await query.fetchNextPage({ cancelRefetch: false });
+    const next = await query.fetchNextPage({ cancelRefetch: false });
+    if (next.isFetchNextPageError && mounted.current) feedback.error();
   }
   return (
     <Page edges={["left", "right"]}>

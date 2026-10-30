@@ -129,6 +129,8 @@ Approved Product Design references:
 
 Existing library instances and product patterns cover the previously approved content; the presentation revision adds no business requirement or library primitive. Published-instance synchronization for the changed presentation is verified by [F13’s scoped receipt evidence](../003-shared-quality/quickstart.md#native-mobile-and-approved-design). Existing approvals remain authoritative elsewhere. The 206 prototype tests, TypeScript and build passed; browser inspection included narrow/dark report display and uncertain-response reactivation. Figma captures establish the inspected layouts only, not native accessibility or provider behavior.
 
+The moderation filter and season-choice sheets reuse the existing [search filter](../../apps/mobile/src/features/discovery/components/search-filters.tsx) and [season-choice](../../apps/mobile/src/features/discovery/components/search-filter-choice.tsx) composition: F13 Sheet/SheetContent, SelectField, grouped SelectionRow, identical spacing tokens and full-width apply/reset actions.
+
 ## Verification and delivery
 
 Use [quickstart.md](quickstart.md) for implementation qualification and the [README checks](../../README.md#verification) for affected boundaries. Owning specifications and interfaces remain consistent throughout implementation; [tasks](tasks.md) track the work.

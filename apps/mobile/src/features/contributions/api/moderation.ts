@@ -99,8 +99,18 @@ function isModerationResource(key: unknown) {
 }
 
 /** Removes refused private content; ordinary transport outages retain authorized pages. */
-function refuse(error: unknown, context: QueryFunctionContext): never {
+async function refuse(
+  error: unknown,
+  context: QueryFunctionContext,
+): Promise<never> {
   if (!context.signal.aborted && isAccessDenied(error)) {
+    const refused = context.client
+      .getQueryCache()
+      .find({ queryKey: context.queryKey, exact: true });
+    await context.client.cancelQueries({
+      predicate: (query) =>
+        query !== refused && isModerationResource(query.queryKey[0]),
+    });
     for (const query of context.client.getQueryCache().findAll({
       predicate: (query) => isModerationResource(query.queryKey[0]),
     })) {

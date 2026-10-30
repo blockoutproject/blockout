@@ -244,6 +244,131 @@ class ContributionModerationWebMvcTest {
     verifyNoInteractions(reads, commands);
   }
 
+  @Test
+  @DisplayName("Collection reads preserve hidden dateless context and private headers")
+  void readsCollection() throws Exception {
+    // Given
+    com.blockout.backend.sporting.application.ConsultationViews.Identity home =
+        new com.blockout.backend.sporting.application.ConsultationViews.Identity(
+            ACTOR, "Home", null, null);
+    com.blockout.backend.sporting.application.ConsultationViews.PoolSummary pool =
+        new com.blockout.backend.sporting.application.ConsultationViews.PoolSummary(
+            home,
+            new com.blockout.backend.sporting.application.model.SportingViews.SeasonView(
+                ACTOR, 2026, "2026/2027"),
+            new com.blockout.backend.sporting.application.ConsultationViews.Classification(
+                null, null, null),
+            null,
+            null);
+    ReadModeration.Match match =
+        new ReadModeration.Match(
+            "2",
+            new com.blockout.backend.sporting.application.ReadPrivateMatches.Context(
+                MATCH,
+                ACTOR,
+                home,
+                new com.blockout.backend.sporting.application.ConsultationViews.Identity(
+                    VERSION, "Away", null, null),
+                pool,
+                null,
+                null,
+                false),
+            new com.blockout.backend.contributions.application.ModerationStore.Activity(
+                MATCH,
+                new com.blockout.backend.contributions.application.ModerationStore.Counts(
+                    0, 0, 0, 0, 0),
+                false,
+                null),
+            false,
+            null,
+            List.of(detail().contribution()),
+            null);
+    when(reads.read(ACTOR, MATCH, null, 0)).thenReturn(match);
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            get("/administration/matches/" + MATCH + "/stream-contributions").with(mobile()));
+
+    // Then
+    response
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.match.publiclyViewable").value(false))
+        .andExpect(jsonPath("$.match.schedule").doesNotExist())
+        .andExpect(jsonPath("$.canPublish").value(false))
+        .andExpect(jsonPath("$.items[0].id").value(VERSION.toString()));
+  }
+
+  @Test
+  @DisplayName("An exact acknowledged terminal decision returns 200 without changing its revision")
+  void acknowledgesExactTerminalDecision() throws Exception {
+    // Given
+    ReadModeration.Detail detail = detail();
+    com.blockout.backend.contributions.application.SubmitContribution.Outcome outcome =
+        new com.blockout.backend.contributions.application.SubmitContribution.Outcome(
+            detail.contribution().version(), "2", false);
+    when(commands.change(
+            ACTOR,
+            MATCH,
+            VERSION,
+            "2",
+            com.blockout.backend.generated.mobile.model.StreamModerationActionEnum.WITHDRAW))
+        .thenReturn(outcome);
+    when(reads.result(ACTOR, outcome)).thenReturn(detail);
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            patch(MEMBER)
+                .with(mobile())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"actorAccountId\":\""
+                        + ACTOR
+                        + "\",\"revision\":\"2\",\"action\":\"withdraw\"}"));
+
+    // Then
+    response
+        .andExpect(status().isOk())
+        .andExpect(header().string("Accept-Patch", "application/json"))
+        .andExpect(header().string("Cache-Control", "no-store"));
+  }
+
+  @Test
+  @DisplayName(
+      "A stale exact decision returns the safe canonical 409 instead of a success projection")
+  void refusesStaleDecision() throws Exception {
+    // Given
+    when(commands.change(
+            ACTOR,
+            MATCH,
+            VERSION,
+            "old",
+            com.blockout.backend.generated.mobile.model.StreamModerationActionEnum.WITHDRAW))
+        .thenThrow(
+            new com.blockout.backend.contributions.application.ContributionRejectedException(
+                com.blockout.backend.contributions.domain.ContributionEligibility.Status
+                    .STALE_REVISION));
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            patch(MEMBER)
+                .with(mobile())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"actorAccountId\":\""
+                        + ACTOR
+                        + "\",\"revision\":\"old\",\"action\":\"withdraw\"}"));
+
+    // Then
+    response
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:stale-revision"));
+    verifyNoInteractions(reads);
+  }
+
   /** Two retained useful decisions and erased attribution form a real immutable mapper input. */
   private ReadModeration.Detail detail() {
     java.time.Instant now = java.time.Instant.parse("2026-10-24T12:00:00Z");

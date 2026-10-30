@@ -1,6 +1,7 @@
 import { Image } from "expo-image";
 import { ChevronDown, ChevronUp, Play } from "lucide-react-native";
 import { useState } from "react";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useNativeHandoff } from "../../../shared/native/use-native-handoff";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type {
@@ -44,6 +45,7 @@ export function ContributionHistory({
 }: ContributionHistoryProps) {
   const { colors } = useTheme();
   const handoff = useNativeHandoff(version.url);
+  const feedback = useActionFeedback();
   const [expanded, setExpanded] = useState(!historical);
   const [reportsOpen, setReportsOpen] = useState(false);
   const [reportPage, setReportPage] = useState(0);
@@ -72,7 +74,8 @@ export function ContributionHistory({
       return;
     }
     const next = await reports.fetchNextPage({ cancelRefetch: false });
-    if (!next.isFetchNextPageError) setReportPage(reportPage + 1);
+    if (next.isFetchNextPageError) feedback.error();
+    else setReportPage(reportPage + 1);
   }
   return (
     <Surface>

@@ -271,7 +271,8 @@ useful decision lineage and required null erased reasons without reporter identi
 `moderation.test.tsx` uses real screens, RHF, generated transport, private Query/session/admission
 owners and controlled HTTP/native I/O for exact confirmations, cancellation, literal filtered
 pagination/first-page refresh, failed versus empty queues, private hidden context, historical reports,
-retained drafts/editing revision and acknowledged success despite a later read failure. Administrative
+retained drafts/editing revision across tab changes, acknowledged success despite a later read failure,
+visible continuation failures with retained pages, refusal cancellation of concurrent reads, and no polling. Administrative
 queries use generated resource keys within the existing principal-owned private QueryClient;
 obsolete unused account-prefixed moderation key scaffolding is removed.
 
@@ -290,7 +291,9 @@ selection/apply, detail, real keyboard and reachable publication controls, cance
 retaining the draft, and confirmed explicit replacement. iOS integral text replacement could not
 be confirmed: the automation opened the Expo development menu during entry. It is unavailable
 keyboard evidence, not a passed product check. Screen-reader speech, enlarged-text/minimum-OS
-coverage and full session/erasure scenarios remain with T056. Representative captures belong in
+coverage and full session/erasure scenarios remain with T056. Final iOS/Android filter captures also
+verify the search filter composition: full-width apply/reset controls, identical spacing tokens and
+grouped season choices; choosing and applying a season returns to the queue on both platforms. Representative captures belong in
 the delivery PR Conversation with its tested source revision; no screenshot is committed.
 Visual comparison used approved Figma nodes `1293:3968`, `4730:31181`, `1310:6016`,
 `4736:32107` and `4736:32744` in the owning [Product Design](plan.md#design-reconciliation-and-evidence). T045's integrated current-owner

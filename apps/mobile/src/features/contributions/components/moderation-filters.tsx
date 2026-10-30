@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useRouter } from "expo-router";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   StreamModerationFilterEnum,
   StreamPlatformEnum,
@@ -9,8 +9,10 @@ import {
 import { Button } from "../../../shared/components/button";
 import { SelectField } from "../../../shared/components/select-field";
 import { SelectionRow } from "../../../shared/components/selection-row";
+import { EntryGroup } from "../../../shared/components/entry-group";
 import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { tokens } from "../../../shared/theme/tokens";
 import {
   useModerationQueue,
   type ModerationFilters as Filters,
@@ -29,10 +31,19 @@ export function ModerationFilters({ initial }: ModerationFiltersProps) {
   const router = useRouter();
   const reading = useModerationQueue({ state: "all" });
   const seasons = reading.query.data?.pages[0]?.seasons ?? [];
-  const { control, setValue, reset, handleSubmit } = useForm<Filters>({
-    defaultValues: initial,
-  });
+  const { control, setValue, reset, handleSubmit, getValues } =
+    useForm<Filters>({
+      defaultValues: initial,
+    });
   const values = useWatch({ control });
+  // Like search, reconcile only a disappeared canonical season; other draft criteria survive rereads.
+  useEffect(() => {
+    if (!reading.query.data) return;
+    const available = reading.query.data.pages[0]?.seasons ?? [];
+    const seasonId = getValues("seasonId");
+    if (seasonId && !available.some((season) => season.id === seasonId))
+      setValue("seasonId", undefined, { shouldDirty: true });
+  }, [reading.query.data, getValues, setValue]);
   const [choice, setChoice] = useState<"seasonId" | "platform" | "state">();
   const stateOptions: [StreamModerationFilterEnum, string][] = [
     ["to-review", "À traiter"],
@@ -87,13 +98,15 @@ export function ModerationFilters({ initial }: ModerationFiltersProps) {
             }[choice]
           : "Filtres"
       }
-      onClose={() => router.back()}
+      onClose={() => (choice ? setChoice(undefined) : router.back())}
     >
       <SheetContent>
-        {!reading.allowed ? (
-          <ReadFeedback query={reading.profile} />
+        {!reading.allowed || !reading.query.data ? (
+          <ReadFeedback
+            query={!reading.allowed ? reading.profile : reading.query}
+          />
         ) : choice ? (
-          <>
+          <EntryGroup>
             {options.map((option) => (
               <SelectionRow
                 key={option.value}
@@ -117,14 +130,9 @@ export function ModerationFilters({ initial }: ModerationFiltersProps) {
                 }}
               />
             ))}
-            <Button
-              label="Retour aux filtres"
-              variant="secondary"
-              onPress={() => setChoice(undefined)}
-            />
-          </>
+          </EntryGroup>
         ) : (
-          <>
+          <View style={styles.form}>
             <SelectField
               label="Saison"
               value={
@@ -153,22 +161,29 @@ export function ModerationFilters({ initial }: ModerationFiltersProps) {
               }
               onPress={() => setChoice("state")}
             />
-            <View>
+            <View style={styles.actions}>
               <Button
-                label="Appliquer"
+                label="Appliquer les filtres"
+                fullWidth
                 onPress={() => void handleSubmit(apply)()}
               />
+              <Button
+                label="Réinitialiser les filtres"
+                fullWidth
+                variant="secondary"
+                onPress={() =>
+                  reset({ query: initial.query, state: "to-review" })
+                }
+              />
             </View>
-            <Button
-              label="Effacer les filtres"
-              variant="secondary"
-              onPress={() =>
-                reset({ query: initial.query, state: "to-review" })
-              }
-            />
-          </>
+          </View>
         )}
       </SheetContent>
     </Sheet>
   );
 }
+// SearchFilters and SearchFilterChoice own the existing F13 composition reproduced here.
+const styles = StyleSheet.create({
+  form: { gap: tokens.spacing.lg },
+  actions: { gap: tokens.spacing.sm },
+});

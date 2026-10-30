@@ -30,6 +30,7 @@ import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { useModerationMatch } from "../api/moderation";
 import { ContributionHistory } from "../components/contribution-history";
@@ -43,7 +44,10 @@ export interface ModerationMatchScreenProps {
 /** Current active link, native paged proposals/history and explicit exact-version moderator decisions. */
 export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
   const [tab, setTab] = useState("active");
-  const [publication, setPublication] = useState(false);
+  const [publication, setPublication] = useState<{
+    revision: string;
+    activeUrl?: string;
+  }>();
   const [confirmed, setConfirmed] = useState(false);
   const filter: StreamVersionFilterEnum | undefined =
     tab === "pending"
@@ -97,7 +101,16 @@ export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
       busy
     )
       return;
-    await query.fetchNextPage({ cancelRefetch: false });
+    const next = await query.fetchNextPage({ cancelRefetch: false });
+    if (next.isFetchNextPageError && mounted.current) feedback.error();
+  }
+  /** Captures only the explicit editor's initial values; paged remote context stays in Query. */
+  function openPublication() {
+    if (current?.canPublish)
+      setPublication({
+        revision: current.revision,
+        activeUrl: current.activeContribution?.url,
+      });
   }
   /** Captures the exact target, original actor and viewed revision before native confirmation. */
   async function decide(
@@ -231,9 +244,7 @@ export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
                             void decide(version, action)
                           }
                           onReplace={
-                            current.canPublish
-                              ? () => setPublication(true)
-                              : undefined
+                            current.canPublish ? openPublication : undefined
                           }
                         />
                       ) : (
@@ -252,22 +263,25 @@ export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
                       !publication && (
                         <Button
                           label="Publier un lien"
-                          onPress={() => setPublication(true)}
+                          onPress={openPublication}
                         />
                       )}
-                    {publication && (
-                      <ModerationPublicationForm
-                        current={current}
-                        editing={editing}
-                        onClose={() => setPublication(false)}
-                        onSuccess={() => {
-                          setConfirmed(true);
-                          setPublication(false);
-                        }}
-                      />
-                    )}
                   </>
                 )}
+                {publication &&
+                  editing.allowed &&
+                  !isAccessDenied(query.error) && (
+                    <ModerationPublicationForm
+                      initial={publication}
+                      canPublish={current?.canPublish === true}
+                      editing={editing}
+                      onClose={() => setPublication(undefined)}
+                      onSuccess={() => {
+                        setConfirmed(true);
+                        setPublication(undefined);
+                      }}
+                    />
+                  )}
               </View>
             }
             renderItem={({ item }) => (

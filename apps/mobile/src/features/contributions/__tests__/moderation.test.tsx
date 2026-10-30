@@ -1,4 +1,9 @@
 import { useLayoutEffect, type PropsWithChildren } from "react";
+import {
+  getListModeratedStreamContributionsQueryKey,
+  getListStreamModerationQueryKey,
+} from "../../../../.generated/mobile";
+import { useModerationQueue, useModerationMatch } from "../api/moderation";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   act,
@@ -25,6 +30,7 @@ import { initializeV2Installation } from "../../onboarding/initialize-v2-install
 import { matchDetail } from "../../sporting/test-support/consultation-data";
 import { ModerationScreen } from "../screens/moderation-screen";
 import { ModerationMatchScreen } from "../screens/moderation-match-screen";
+import { ModerationFilters } from "../components/moderation-filters";
 import type {
   ModeratedStreamContributionsResponse,
   ModeratedStreamContributionResponse,
@@ -45,7 +51,12 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   usePreventRemove: jest.fn(),
-  useRouter: () => ({ push: mockPush, back: jest.fn(), canGoBack: () => true }),
+  useRouter: () => ({
+    push: mockPush,
+    dismissTo: mockDismissTo,
+    back: jest.fn(),
+    canGoBack: () => true,
+  }),
   useNavigation: () => ({ isFocused: () => true }),
 }));
 jest.mock("expo/fetch", () => ({
@@ -56,6 +67,7 @@ const mockFetch = jest.fn<
   [RequestInfo | URL, RequestInit?]
 >();
 const mockPush = jest.fn();
+const mockDismissTo = jest.fn();
 const previous = { ...process.env };
 const previousAppState = AppState.currentState;
 const sporting = matchDetail().match;
@@ -69,6 +81,9 @@ let queuePaged = false;
 let queueEmpty = false;
 let writeStatus = 200;
 let failAfterWrite = false;
+let historyPaged = false;
+let reportsPaged = false;
+let continuationFails = false;
 let detail: ModeratedStreamContributionsResponse;
 
 /** Canonical fictional version; each scenario supplies its decisive lifecycle/capabilities. */
@@ -103,7 +118,11 @@ beforeEach(() => {
   queueEmpty = false;
   writeStatus = 200;
   failAfterWrite = false;
+  historyPaged = false;
+  reportsPaged = false;
+  continuationFails = false;
   mockPush.mockReset();
+  mockDismissTo.mockReset();
   detail = {
     revision: "viewed:1",
     match: {
@@ -146,6 +165,12 @@ beforeEach(() => {
       return Response.json(
         accountResponse({ permissions: { moderateStreamLinks: permission } }),
       );
+    const page = new URL(String(url)).searchParams.get("page");
+    if (page === "1" && continuationFails)
+      return Response.json(
+        { title: "Unavailable", status: 503 },
+        { status: 503 },
+      );
     if (init?.method === "PATCH" || init?.method === "POST") {
       writes.push(JSON.parse(String(init.body)));
       if (writeStatus >= 400)
@@ -175,6 +200,7 @@ beforeEach(() => {
     if (path.endsWith("/stream-moderation")) {
       const page = new URL(String(url)).searchParams.get("page");
       return Response.json({
+        seasons: [sporting.pool.season],
         items: queueEmpty
           ? []
           : [
@@ -198,23 +224,45 @@ beforeEach(() => {
     }
     if (path.endsWith("/reports"))
       return Response.json({
-        count: 1,
+        count: reportsPaged ? 21 : 1,
         items: [
           {
             id: "00000000-0000-4000-8000-000000000010",
             reportedAt: "2026-10-24T12:00:00Z",
-            reason: null,
+            reason:
+              reportsPaged && page === "1"
+                ? "Historique de la seconde page"
+                : null,
           },
         ],
+        ...(reportsPaged && page !== "1" ? { nextPage: 1 } : {}),
       });
-    return Response.json(detail);
+    return Response.json({
+      ...detail,
+      ...(historyPaged && page === "1"
+        ? {
+            items: [
+              version({
+                id: "00000000-0000-4000-8000-000000000600",
+                url: "https://youtu.be/second-history",
+                platform: "youtube",
+                state: "superseded",
+                canApprove: false,
+                canReject: false,
+                canReactivate: true,
+              }),
+            ],
+          }
+        : {}),
+      ...(historyPaged && page !== "1" ? { nextPage: 1 } : {}),
+    });
   });
 });
 afterEach(async () => {
   await act(async () => {
     await client.cancelQueries();
+    await cleanup();
   });
-  await cleanup();
   client.clear();
   publicClient.clear();
   process.env = { ...previous };
@@ -501,4 +549,354 @@ it("does not dispatch a cancelled exact-version confirmation", async () => {
   // Then
   expect(writes).toHaveLength(0);
   expect(screen.getByText("https://youtu.be/retained")).toBeOnTheScreen();
+});
+
+it("does not restore private content from a late concurrent response after refusal", async () => {
+  // Given: two real moderation observers have independent in-flight HTTP reads.
+  const ordinary = mockFetch.getMockImplementation()!;
+  let finishQueue!: (response: Response) => void;
+  let finishDetail!: (response: Response) => void;
+  const queue = new Promise<Response>((resolve) => {
+    finishQueue = resolve;
+  });
+  const heldDetail = new Promise<Response>((resolve) => {
+    finishDetail = resolve;
+  });
+  mockFetch.mockImplementation((url, init) => {
+    const path = new URL(String(url)).pathname;
+    if (path.endsWith("/stream-moderation")) return queue;
+    if (path.includes("/stream-contributions")) return heldDetail;
+    return ordinary(url, init);
+  });
+  /** Real feature observers share only the existing private QueryClient; both transports are held. */
+  function ConcurrentReads() {
+    useModerationQueue({});
+    useModerationMatch(sporting.id, "active");
+    return null;
+  }
+  await mount(<ConcurrentReads />);
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        String(url).includes("/administration/"),
+      ).length,
+    ).toBe(2),
+  );
+
+  // When: refusal settles before a different read's transport delivers its old success.
+  await act(async () => {
+    finishQueue(
+      Response.json({ title: "Forbidden", status: 403 }, { status: 403 }),
+    );
+  });
+  await waitFor(() =>
+    expect(
+      client.getQueryState(getListStreamModerationQueryKey({}))?.status,
+    ).toBe("error"),
+  );
+  await act(async () => {
+    finishDetail(Response.json(detail));
+  });
+
+  // Then
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(
+    client.getQueryData(
+      getListModeratedStreamContributionsQueryKey(sporting.id, {
+        state: "active",
+      }),
+    ),
+  ).toBeUndefined();
+});
+
+it("keeps the mounted dirty publication editor across an uncached tab read", async () => {
+  // Given
+  detail = {
+    ...detail,
+    canPublish: true,
+    match: { ...detail.match, publiclyViewable: true },
+  };
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  const user = userEvent.setup();
+  await user.press(await screen.findByRole("button", { name: "Remplacer" }));
+  await user.clear(screen.getByLabelText("Adresse du lien vidéo"));
+  await user.type(
+    screen.getByLabelText("Adresse du lien vidéo"),
+    "https://youtu.be/tab-draft",
+  );
+
+  // When
+  await user.press(screen.getByRole("tab", { name: "Propositions (1)" }));
+  await screen.findByText("https://twitch.tv/review_link");
+
+  // Then
+  expect(
+    screen.getByDisplayValue("https://youtu.be/tab-draft"),
+  ).toBeOnTheScreen();
+});
+
+it.each(["queue", "versions", "reports"] as const)(
+  "keeps loaded %s content and presents a failed continuation",
+  async (kind) => {
+    // Given
+    queuePaged = kind === "queue";
+    historyPaged = kind === "versions";
+    reportsPaged = kind === "reports";
+    continuationFails = true;
+    if (kind !== "queue")
+      detail.items = [
+        version({
+          state: "hidden",
+          reportCount: 21,
+          canApprove: false,
+          canReject: false,
+        }),
+      ];
+    await mount(
+      kind === "queue" ? (
+        <ModerationScreen filters={{}} />
+      ) : (
+        <ModerationMatchScreen matchId={sporting.id} />
+      ),
+    );
+    const user = userEvent.setup();
+    if (kind !== "queue") {
+      await user.press(await screen.findByRole("tab", { name: "Historique" }));
+      if (kind === "reports") {
+        await user.press(
+          await screen.findByRole("button", { name: /Twitch · Masqué/ }),
+        );
+        await user.press(
+          await screen.findByRole("button", { name: "Signalements (21)" }),
+        );
+        await screen.findByText("Motif indisponible");
+      }
+    }
+    const label = {
+      queue: "Matchs suivants",
+      versions: "Versions suivantes",
+      reports: "Signalements suivants",
+    }[kind];
+
+    // When
+    await user.press(await screen.findByRole("button", { name: label }));
+
+    // Then
+    expect(await screen.findByRole("alert")).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: label })).toBeOnTheScreen();
+    if (kind === "queue")
+      expect(
+        screen.getByRole("link", {
+          name: `${detail.match.home.name} – ${detail.match.away.name}`,
+        }),
+      ).toBeOnTheScreen();
+    else if (kind === "reports")
+      expect(screen.getByText("Motif indisponible")).toBeOnTheScreen();
+    else
+      expect(
+        screen.getByRole("button", { name: /Twitch · Masqué/ }),
+      ).toBeOnTheScreen();
+  },
+);
+
+it("applies the native filter draft only explicitly and retains literal search", async () => {
+  // Given
+  await mount(
+    <ModerationFilters initial={{ query: "Club %_", state: "all" }} />,
+  );
+  const user = userEvent.setup();
+  await user.press(await screen.findByRole("button", { name: "Saison" }));
+
+  // When
+  await user.press(
+    await screen.findByRole("radio", { name: sporting.pool.season.label }),
+  );
+  expect(mockDismissTo).not.toHaveBeenCalled();
+  await user.press(
+    screen.getByRole("button", { name: "Appliquer les filtres" }),
+  );
+
+  // Then
+  expect(mockDismissTo).toHaveBeenCalledWith({
+    pathname: "/administration/stream-links",
+    params: {
+      query: "Club %_",
+      seasonId: sporting.pool.season.id,
+      platform: "",
+      state: "all",
+    },
+  });
+});
+
+it.each([
+  {
+    label: "Approuver",
+    action: "approve",
+    state: "pending",
+    tab: "Propositions (1)",
+  },
+  { label: "Retirer", action: "withdraw", state: "active", tab: "Actif" },
+  {
+    label: "Réactiver",
+    action: "reactivate",
+    state: "rejected",
+    tab: "Historique",
+  },
+] as const)(
+  "dispatches one exact explicitly confirmed $action command",
+  async ({ label, action, state, tab }) => {
+    // Given
+    const target = version({
+      state,
+      canApprove: action === "approve",
+      canReject: action === "approve",
+      canWithdraw: action === "withdraw",
+      canReactivate: action === "reactivate",
+    });
+    detail = {
+      ...detail,
+      canPublish: true,
+      items: [target],
+      ...(state === "active" ? { activeContribution: target } : {}),
+    };
+    const alert = jest.spyOn(Alert, "alert");
+    await mount(<ModerationMatchScreen matchId={sporting.id} />);
+    const user = userEvent.setup();
+    await user.press(await screen.findByRole("tab", { name: tab }));
+    if (action === "reactivate")
+      await user.press(
+        await screen.findByRole("button", { name: "Twitch · Refusé" }),
+      );
+
+    // When
+    await user.press(await screen.findByRole("button", { name: label }));
+    expect(writes).toHaveLength(0);
+    await act(async () => {
+      alert.mock.calls
+        .at(-1)?.[2]
+        ?.find((button) => button.text === label)
+        ?.onPress?.();
+    });
+
+    // Then
+    await screen.findByText("Décision confirmée");
+    expect(writes).toEqual([
+      {
+        actorAccountId: accountResponse().accountId,
+        revision: "viewed:1",
+        ...(action === "reactivate" ? {} : { action }),
+      },
+    ]);
+    expect(
+      mockFetch.mock.calls.some(
+        ([url, init]) =>
+          String(url).endsWith(
+            `/stream-contributions/${versionId}${action === "reactivate" ? "/reactivations" : ""}`,
+          ) && init?.method === (action === "reactivate" ? "POST" : "PATCH"),
+      ),
+    ).toBe(true);
+  },
+);
+
+it("continues historical versions without losing the loaded source page", async () => {
+  // Given
+  historyPaged = true;
+  detail.items = [
+    version({
+      state: "rejected",
+      canApprove: false,
+      canReject: false,
+      canReactivate: true,
+    }),
+  ];
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  const user = userEvent.setup();
+  await user.press(await screen.findByRole("tab", { name: "Historique" }));
+
+  // When
+  await user.press(
+    await screen.findByRole("button", { name: "Versions suivantes" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("button", {
+      name: "YouTube · Proposition remplacée",
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Twitch · Refusé" }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([url]) => {
+      const request = new URL(String(url));
+      return (
+        request.searchParams.get("state") === "historical" &&
+        request.searchParams.get("page") === "1"
+      );
+    }),
+  ).toBe(true);
+});
+
+it("pages exact-version reports while rendering only the selected page", async () => {
+  // Given
+  reportsPaged = true;
+  detail.activeContribution = version({
+    state: "active",
+    reportCount: 21,
+    canApprove: false,
+    canReject: false,
+    canWithdraw: true,
+  });
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  const user = userEvent.setup();
+  await user.press(
+    await screen.findByRole("button", { name: "Signalements (21)" }),
+  );
+  await screen.findByText("Motif indisponible");
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Signalements suivants" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByText("Historique de la seconde page"),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Motif indisponible")).toBeNull();
+  await user.press(
+    screen.getByRole("button", { name: "Signalements précédents" }),
+  );
+  expect(await screen.findByText("Motif indisponible")).toBeOnTheScreen();
+});
+
+it("does not poll the mounted private queue", async () => {
+  jest.useFakeTimers();
+  try {
+    // Given
+    await mount(<ModerationScreen filters={{}} />);
+    await screen.findByRole("link", {
+      name: `${detail.match.home.name} – ${detail.match.away.name}`,
+    });
+    const initialReads = mockFetch.mock.calls.filter(([url]) =>
+      String(url).includes("/stream-moderation"),
+    ).length;
+
+    // When
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(300_000);
+    });
+
+    // Then
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        String(url).includes("/stream-moderation"),
+      ),
+    ).toHaveLength(initialReads);
+  } finally {
+    await cleanup();
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  }
 });
