@@ -10,7 +10,6 @@ import {
 import { ApiError } from "../../../shared/api/api-fetch";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { binaryImagePreview } from "../../../shared/api/binary-image-preview";
-import { getSessionQueryKey } from "../../../shared/query/query-client";
 import type { PresentationTarget } from "./presentation";
 import type { SportingQueryAuthority } from "./sporting-administration-queries";
 
@@ -35,10 +34,7 @@ export function createPresentationLogoQueryOptions(
           ? getGetDivisionLogoQueryKey(target.id)
           : ["presentation-logo-unavailable", target.kind];
   return queryOptions<string | null>({
-    queryKey: getSessionQueryKey(authority.session.generation, [
-      ...generatedKey,
-      revision,
-    ]),
+    queryKey: [...generatedKey, revision],
     enabled:
       authority.enabled &&
       target.kind !== "pool" &&
@@ -58,18 +54,10 @@ export function createPresentationLogoQueryOptions(
                 : undefined;
         if (!blob) throw new ApiError("configuration");
         const uri = await binaryImagePreview(blob, signal);
-        if (
-          !authority.session.isCurrent(authority.session.generation) ||
-          signal.aborted
-        )
-          throw new ApiError("cancelled");
+        if (signal.aborted) throw new ApiError("cancelled");
         return uri;
       } catch (error) {
-        if (
-          signal.aborted ||
-          !authority.session.isCurrent(authority.session.generation)
-        )
-          throw new ApiError("cancelled");
+        if (signal.aborted) throw new ApiError("cancelled");
         if (isAccessDenied(error))
           client.getQueryCache().find({ queryKey, exact: true })?.setState({
             data: null,

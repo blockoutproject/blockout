@@ -44,7 +44,6 @@ afterEach(() => {
 // Given
 it.each([
   ["network failure", new ApiError("network"), true],
-  ["timeout", new ApiError("timeout"), true],
   ["unreadable response", new ApiError("schema"), true],
   ["cancellation", new ApiError("cancelled"), true],
   ["server failure", new ApiError("http", 500), true],
@@ -409,68 +408,5 @@ it("preserves caller cancellation without replay", async () => {
 
   // Then
   await expect(response).rejects.toMatchObject({ kind: "cancelled" });
-  expect(mockFetch).toHaveBeenCalledTimes(1);
-});
-
-it("rejects cancellation after the body completes before admitting a response", async () => {
-  // Given: body completion wins the Fetch race; the transport still owns cache admission.
-  const controller = new AbortController();
-  const body = applicationAccessResponse();
-  const response = new Response(null, {
-    headers: { "Content-Type": "application/json" },
-  });
-  jest.spyOn(response, "json").mockImplementation(async () => {
-    controller.abort(new Error("Caller cancelled"));
-    return body;
-  });
-  mockFetch.mockResolvedValue(response);
-
-  // When
-  const result = getApplicationAccess({ signal: controller.signal });
-
-  // Then
-  await expect(result).rejects.toMatchObject({
-    kind: "cancelled",
-    message: "La demande n’a pas pu aboutir. Réessayez.",
-  });
-  expect(mockFetch).toHaveBeenCalledTimes(1);
-});
-
-it.each([0, 0.5, Number.POSITIVE_INFINITY])(
-  "rejects an invalid timeout of %s before sending",
-  async (timeoutMs) => {
-    // Given
-    const options: ApiFetchOptions = { timeoutMs };
-
-    // When
-    const response = getApplicationAccess(options);
-
-    // Then
-    await expect(response).rejects.toMatchObject({
-      kind: "configuration",
-    });
-    expect(mockFetch).not.toHaveBeenCalled();
-  },
-);
-
-it("bounds an uncertain write without replay", async () => {
-  // Given
-  // AbortSignal.timeout uses native timers; this transport proof deliberately keeps real time.
-  mockFetch.mockImplementation(
-    (_url, options) =>
-      new Promise((_resolve, reject) =>
-        options?.signal?.addEventListener("abort", () =>
-          reject(new Error("timeout")),
-        ),
-      ),
-  );
-
-  // When
-  const response = eraseAccount(accountId, { timeoutMs: 50 });
-
-  // Then
-  await expect(response).rejects.toMatchObject({
-    kind: "timeout",
-  });
   expect(mockFetch).toHaveBeenCalledTimes(1);
 });

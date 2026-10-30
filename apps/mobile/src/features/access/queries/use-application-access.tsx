@@ -1,76 +1,67 @@
 import {
   createContext,
+  useCallback,
   useContext,
-  useLayoutEffect,
   useState,
-  useSyncExternalStore,
   type PropsWithChildren,
 } from "react";
-import { queryOptions, useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getApplicationAccess,
   getGetApplicationAccessQueryKey,
 } from "../../../../.generated/mobile";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { createAccessObservations } from "../state/access-observations";
-import { createMaintenanceBypass } from "../state/maintenance-bypass";
+import type { SessionSnapshot } from "../../accounts/session/account-session-provider";
 
+/** Explicit maintenance choice; the server checks the current principal's grant. */
+export type MaintenanceBypass = Pick<SessionSnapshot, "subject" | "accountId">;
 const AccessContext = createContext<ReturnType<typeof useProcessAccess> | null>(
   null,
 );
 
-/** Starts the sole generated public check independently of F14/Auth0; Query owns its request lifecycle. */
+/** Reads the latest complete configuration through Query, independently of native identity restoration. */
 function useProcessAccess() {
-  const [observations] = useState(createAccessObservations);
-  const [bypass] = useState(createMaintenanceBypass);
-  useLayoutEffect(() => () => bypass.clear(), [bypass]);
-  const observed = useSyncExternalStore(
-    observations.subscribe,
-    observations.getSnapshot,
+  const client = useQueryClient();
+  const invalidate = useCallback(
+    () =>
+      client.invalidateQueries({ queryKey: getGetApplicationAccessQueryKey() }),
+    [client],
   );
-  const query = useQuery(
-    queryOptions({
-      queryKey: getGetApplicationAccessQueryKey(),
-      staleTime: Infinity,
-      gcTime: Infinity,
-      retry: false,
-      refetchOnMount: false,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      queryFn: async ({ signal }) => {
-        const value = await getApplicationAccess({ signal });
-        if (signal.aborted) throw new ApiError("cancelled");
-        if (!observations.complete(value)) throw new ApiError("schema");
-        if (!value.maintenance.active) bypass.clear();
-        return value;
-      },
-    }),
-  );
-  const complete =
-    query.isSuccess &&
-    !query.isFetching &&
-    !observed.refused &&
-    query.data.maintenance.revision >= (observed.maintenance?.revision ?? 0) &&
-    query.data.versions.revision >= (observed.versions?.revision ?? 0) &&
-    query.data.maintenance.active === observed.maintenance?.active
-      ? query.data
-      : undefined;
+  const [bypass, setBypass] = useState<MaintenanceBypass>();
+  const clearBypass = useCallback(() => setBypass(undefined), []);
+  const query = useQuery({
+    queryKey: getGetApplicationAccessQueryKey(),
+    queryFn: ({ signal }) => getApplicationAccess({ signal }),
+  });
   return {
-    observations,
     bypass,
-    snapshot: { ...observed, complete, checking: query.isFetching },
+    clearBypass,
+    invalidate,
+    requestBypass(session: SessionSnapshot, eligible: boolean) {
+      if (!eligible || !session.accountId) return false;
+      setBypass({
+        subject: session.subject,
+        accountId: session.accountId,
+      });
+      return true;
+    },
+    snapshot: {
+      maintenance: query.data?.maintenance,
+      versions: query.data?.versions,
+      complete: query.data,
+      checking: query.isFetching,
+    },
     checking: query.isFetching,
     retry: () => query.refetch(),
   };
 }
 
-/** Owns only process admission observations and explicit bypass, above credential initialization. */
+/** Supplies current configuration and one ordinary React-owned maintenance choice. */
 export function ApplicationAccessProvider({ children }: PropsWithChildren) {
   const access = useProcessAccess();
   return <AccessContext value={access}>{children}</AccessContext>;
 }
 
-/** Reads the public complete-check owner; identity restoration never remounts it. */
+/** Returns the public access query and explicit maintenance choice. */
 export function useApplicationAccess() {
   const access = useContext(AccessContext);
   if (!access)

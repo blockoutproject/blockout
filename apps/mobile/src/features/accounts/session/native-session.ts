@@ -1,7 +1,6 @@
 import {
   CredentialsManagerError,
   CredentialsManagerErrorCodes,
-  type useAuth0,
 } from "react-native-auth0";
 
 /**
@@ -23,20 +22,5 @@ export function requiresReauthentication(error: unknown): boolean {
       return (
         error.code === "invalid_grant" || error.code === "invalid_refresh_token"
       );
-  }
-}
-
-/**
- * Closes the ordinary Auth0 browser/local session, falling back to local clearing on failure.
- * The caller invalidates business work first. Native storage failures propagate without retry.
- */
-export async function signOutNativeSession(
-  auth: Pick<ReturnType<typeof useAuth0>, "clearSession" | "clearCredentials">,
-): Promise<void> {
-  try {
-    await auth.clearSession();
-  } catch (error) {
-    if (error instanceof CredentialsManagerError) throw error;
-    await auth.clearCredentials();
   }
 }

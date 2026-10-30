@@ -1,3 +1,9 @@
+import {
+  useLayoutEffect,
+  useState as useQueryFixtureState,
+  type PropsWithChildren as QueryFixtureProps,
+} from "react";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -47,7 +53,8 @@ const environment = { ...process.env };
 const firstId = "aaaaaaaa-0000-4000-8000-000000000001";
 const secondId = "bbbbbbbb-0000-4000-8000-000000000002";
 const season = { id: firstId, label: "2026/2027", startYear: 2026 };
-let client = createQueryClient();
+let client: QueryClient;
+let publicClient = createQueryClient();
 
 /** Controls HTTP only; the generated client, Query, navigation and feature owners stay real. */
 function publicReads(url: string): Promise<Response> {
@@ -111,8 +118,22 @@ function publicReads(url: string): Promise<Response> {
     );
   throw new Error(`Unexpected controlled path ${parsed.pathname}`);
 }
+/** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
+function PrivateQueries({ children }: QueryFixtureProps) {
+  const current = useQueryClient();
+  // Configure this fresh real client before descendant public observers start their first request.
+  useQueryFixtureState(() => {
+    current.setQueryDefaults([], { retry: false });
+    return true;
+  });
+  useLayoutEffect(() => {
+    client = current;
+  }, [current]);
+  return children;
+}
+
 beforeEach(() => {
-  client = createQueryClient();
+  publicClient = createQueryClient();
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "test-client";
@@ -125,7 +146,8 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await cleanup();
-  client.clear();
+  client?.clear();
+  publicClient.clear();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
@@ -155,13 +177,15 @@ async function renderSearch(proAccent = false) {
               insets: { top: 0, right: 0, bottom: 0, left: 0 },
             }}
           >
-            <QueryClientProvider client={client}>
+            <QueryClientProvider client={publicClient}>
               <ThemeProvider proAccent={proAccent}>
                 <ApplicationAccessProvider>
                   <AccountSessionProvider>
-                    <AccountFeedbackProvider>
-                      {children}
-                    </AccountFeedbackProvider>
+                    <PrivateQueries>
+                      <AccountFeedbackProvider>
+                        {children}
+                      </AccountFeedbackProvider>
+                    </PrivateQueries>
                   </AccountSessionProvider>
                 </ApplicationAccessProvider>
               </ThemeProvider>
@@ -364,24 +388,15 @@ it("selects again for changed filters and resets to the current default season",
   expect(reset.searchParams.has("exampleIds")).toBe(false);
 });
 
-it("removes an example immediately after the real detail owner establishes a refusal", async () => {
-  // Given: no polling or Search refetch supplies this restriction.
+it("retains benign example cards after a detail refusal until their own refresh", async () => {
+  // Given
   const user = userEvent.setup();
   await renderSearch();
   await user.press(screen.getByRole("tab", { name: "Clubs" }));
   await screen.findByText("Niort");
   mockFetch.mockImplementation((url: string) =>
-    new URL(url).pathname.endsWith("/clubs")
-      ? Promise.reject(new TypeError("offline"))
-      : publicReads(url),
-  );
-  await act(async () =>
-    client.refetchQueries({ queryKey: ["discovery-examples"], type: "active" }),
-  );
-  const reads = collectionCalls("clubs").length;
-  mockFetch.mockImplementation((url: string) =>
     new URL(url).pathname.endsWith(`/clubs/${secondId}`)
-      ? Promise.resolve(Response.json({ status: 404 }, { status: 404 }))
+      ? Promise.resolve(Response.json({}, { status: 404 }))
       : publicReads(url),
   );
 
@@ -391,18 +406,12 @@ it("removes an example immediately after the real detail owner establishes a ref
   await act(async () => router.back());
 
   // Then
-  expect(screen.getByText("Lyon")).toBeOnTheScreen();
-  expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
-  expect(collectionCalls("clubs")).toHaveLength(reads);
+  expect(await screen.findByText("Niort")).toBeOnTheScreen();
 
-  // When: the next authorized read can only request the surviving identity.
+  // When
   mockFetch.mockImplementation((url: string) =>
     new URL(url).pathname.endsWith("/clubs")
-      ? Promise.resolve(
-          Response.json({
-            clubs: [{ club: { id: firstId, name: "Volley" }, city: "Lyon" }],
-          }),
-        )
+      ? Promise.resolve(Response.json({ clubs: [] }))
       : publicReads(url),
   );
   await act(async () =>
@@ -410,11 +419,7 @@ it("removes an example immediately after the real detail owner establishes a ref
   );
 
   // Then
-  expect(
-    new URL(collectionCalls("clubs").at(-1)![0]).searchParams.getAll(
-      "exampleIds",
-    ),
-  ).toEqual([firstId]);
+  await screen.findByText("Aucun résultat pour ces critères");
   expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
 });
 
@@ -498,7 +503,7 @@ it("allows a new visit to select an identity whose previous detail refusal is st
   await act(async () => router.push(`/clubs/${secondId}`));
   await screen.findByRole("alert");
   await act(async () => router.back());
-  expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
+  expect(screen.getByText("Niort")).toBeOnTheScreen();
   await act(async () => router.replace("/home"));
   await screen.findByText("Accueil de test");
   mockFetch.mockImplementation(publicReads);
@@ -536,147 +541,4 @@ it("allows a new visit to select an identity whose previous detail refusal is st
   // Then: native cancellation restores the historical error, which must not remove current examples.
   expect(signal?.aborted).toBe(true);
   expect(screen.getByText("Niort")).toBeOnTheScreen();
-});
-
-it("resolves zero retained examples locally after a failed reread and subsequent detail refusals", async () => {
-  // Given
-  const user = userEvent.setup();
-  await renderSearch();
-  await user.press(screen.getByRole("tab", { name: "Clubs" }));
-  await screen.findByText("Niort");
-  mockFetch.mockImplementation((url: string) =>
-    new URL(url).pathname.endsWith("/clubs")
-      ? Promise.reject(new TypeError("offline"))
-      : publicReads(url),
-  );
-  await act(async () =>
-    client.refetchQueries({ queryKey: ["discovery-examples"], type: "active" }),
-  );
-  await screen.findByRole("button", { name: "Réessayer" });
-  const reads = collectionCalls("clubs").length;
-  mockFetch.mockImplementation((url: string) =>
-    /\/clubs\/[^/]+$/.test(new URL(url).pathname)
-      ? Promise.resolve(Response.json({ status: 404 }, { status: 404 }))
-      : publicReads(url),
-  );
-
-  // When: both exact detail owners establish current hiding without a collection reread.
-  await act(async () => router.push(`/clubs/${secondId}`));
-  await screen.findByRole("alert");
-  await act(async () => router.back());
-  await act(async () => router.push(`/clubs/${firstId}`));
-  await screen.findByRole("alert");
-  await act(async () => router.back());
-
-  // Then
-  expect(
-    await screen.findByText("Aucun résultat pour ces critères"),
-  ).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("button", { name: "Réessayer" }),
-  ).not.toBeOnTheScreen();
-  expect(collectionCalls("clubs")).toHaveLength(reads);
-});
-
-it("rejects an in-flight retained response that predates a current detail refusal", async () => {
-  // Given: HTTP deliberately completes after the request has been cancelled.
-  const user = userEvent.setup();
-  await renderSearch();
-  await user.press(screen.getByRole("tab", { name: "Clubs" }));
-  await screen.findByText("Niort");
-  const pending = Promise.withResolvers<Response>();
-  const started = Promise.withResolvers<void>();
-  let requestSignal: AbortSignal | undefined;
-  mockFetch.mockImplementation((url: string, options: RequestInit) => {
-    if (new URL(url).pathname.endsWith("/clubs")) {
-      requestSignal = options.signal ?? undefined;
-      started.resolve();
-      return pending.promise;
-    }
-    if (new URL(url).pathname.endsWith(`/clubs/${secondId}`))
-      return Promise.resolve(Response.json({ status: 404 }, { status: 404 }));
-    return publicReads(url);
-  });
-  let reread: Promise<void> | undefined;
-  await act(async () => {
-    reread = client.refetchQueries({
-      queryKey: ["discovery-examples"],
-      type: "active",
-    });
-    await started.promise;
-  });
-
-  // When
-  await act(async () => router.push(`/clubs/${secondId}`));
-  await screen.findByRole("alert");
-  await act(async () => router.back());
-  await act(async () => {
-    pending.resolve(await publicReads("https://api.example.invalid/clubs"));
-    await reread;
-  });
-
-  // Then
-  expect(requestSignal?.aborted).toBe(true);
-  expect(screen.getByText("Lyon")).toBeOnTheScreen();
-  expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
-});
-
-it("removes a pool after a current refusal propagated by its real F03 standings read", async () => {
-  // Given: only HTTP is controlled; F03 propagates the child refusal to the existing parent key.
-  const user = userEvent.setup();
-  await renderSearch();
-  await user.press(screen.getByRole("tab", { name: "Poules" }));
-  await screen.findByText("Poule A");
-  const reads = collectionCalls("pools").length;
-  mockFetch.mockImplementation((url: string) =>
-    new URL(url).pathname.endsWith(`/pools/${firstId}/standings`)
-      ? Promise.resolve(Response.json({ status: 404 }, { status: 404 }))
-      : publicReads(url),
-  );
-
-  // When
-  await act(async () => router.push("/pool-refusal"));
-  await screen.findByText("Poule indisponible");
-  await act(async () => router.back());
-
-  // Then
-  expect(
-    await screen.findByText("Aucun résultat pour ces critères"),
-  ).toBeOnTheScreen();
-  expect(screen.queryByText("Poule A")).not.toBeOnTheScreen();
-  expect(collectionCalls("pools")).toHaveLength(reads);
-});
-
-it("rejects an initial pool response delivered after a current F03 child refusal", async () => {
-  // Given: an initial examples request is waiting before any pool selection has been accepted.
-  const pending = Promise.withResolvers<Response>();
-  const started = Promise.withResolvers<void>();
-  mockFetch.mockImplementation((url: string) => {
-    if (new URL(url).pathname.endsWith("/pools")) {
-      started.resolve();
-      return pending.promise;
-    }
-    if (new URL(url).pathname.endsWith(`/pools/${firstId}/standings`))
-      return Promise.resolve(Response.json({ status: 404 }, { status: 404 }));
-    return publicReads(url);
-  });
-  const user = userEvent.setup();
-  await renderSearch();
-  await user.press(screen.getByRole("tab", { name: "Poules" }));
-  await started.promise;
-
-  // When: F03 establishes hiding before the initial collection read can complete.
-  await act(async () => router.push("/pool-refusal"));
-  await screen.findByText("Poule indisponible");
-  await act(async () => router.back());
-  await act(async () =>
-    pending.resolve(await publicReads("https://api.example.invalid/pools")),
-  );
-
-  // Then
-  expect(
-    await screen.findByText("Aucun résultat pour ces critères"),
-  ).toBeOnTheScreen();
-  expect(screen.queryByText("Poule A")).not.toBeOnTheScreen();
-  expect(collectionCalls("pools")).toHaveLength(1);
 });

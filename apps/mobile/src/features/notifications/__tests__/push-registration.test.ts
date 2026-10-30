@@ -4,7 +4,6 @@ import { PermissionStatus } from "expo";
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import { AndroidImportance } from "expo-notifications";
-import { createSessionGeneration } from "../../accounts/session/session-generation";
 import { createPushRegistration } from "../native/push-registration";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
@@ -27,13 +26,10 @@ const mockFetch = jest.fn();
 const env = { ...process.env };
 const accountId = "00000000-0000-4000-8000-000000000001";
 
-/** Real generation and generated HTTP consumer; only native SDK/storage/network I/O is controlled. */
+/** Real connection ownership and generated HTTP consumer; only native SDK/storage/network I/O is controlled. */
 function registrationContext() {
-  const session = createSessionGeneration();
-  session.setAccount(session.getSnapshot().generation, accountId);
   return {
-    session,
-    owner: { ...session.getSnapshot(), isCurrent: session.isCurrent },
+    owner: { subject: "auth0|owner", accountId },
     request: jest.fn(async () => ({})),
     credentials: jest.fn(async () => ({ accessToken: "synthetic-token" })),
   };
@@ -83,13 +79,9 @@ it("clears memory and attempts badge reset even when the exact HTTP removal fail
     .mocked(Notifications.setBadgeCountAsync)
     .mockRejectedValueOnce(new Error("Badge unavailable"));
   const remove = push.prepareRemoval();
-  context.session.invalidate();
 
   // When
-  await remove?.({
-    ...context.session.getSnapshot(),
-    isCurrent: context.session.isCurrent,
-  });
+  await remove?.();
 
   // Then
   expect(
@@ -127,17 +119,9 @@ it("keeps installation and connection through rotation, with a fresh connection 
     context.credentials,
   );
   const remove = push.prepareRemoval();
-  context.session.invalidate();
-  await remove?.({
-    ...context.session.getSnapshot(),
-    isCurrent: context.session.isCurrent,
-  });
-  context.session.setAccount(
-    context.session.getSnapshot().generation,
-    accountId,
-  );
+  await remove?.();
   await push.register(
-    { ...context.session.getSnapshot(), isCurrent: context.session.isCurrent },
+    context.owner,
     "synthetic-project",
     context.request,
     context.credentials,
@@ -161,7 +145,7 @@ it("keeps installation and connection through rotation, with a fresh connection 
   });
 });
 
-it("discards token acquisition captured before A → guest → A", async () => {
+it("discards token acquisition after its connection is removed", async () => {
   // Given
   const context = registrationContext();
   const push = createPushRegistration();
@@ -180,16 +164,14 @@ it("discards token acquisition captured before A → guest → A", async () => {
   );
 
   // When
-  context.session.invalidate();
-  context.session.setAccount(
-    context.session.getSnapshot().generation,
-    accountId,
-  );
+  await push.prepareRemoval()?.();
   token.resolve({ type: "expo", data: "ExponentPushToken[obsolete]" });
   await pending;
 
   // Then
-  expect(mockFetch).not.toHaveBeenCalled();
+  expect(
+    mockFetch.mock.calls.filter(([, init]) => init.method === "PUT"),
+  ).toHaveLength(0);
 });
 
 it("does not register when permission is refused", async () => {
@@ -272,14 +254,10 @@ it("bounds the whole removal even when credential retrieval never completes", as
     context.credentials,
   );
   const removal = push.prepareRemoval();
-  context.session.invalidate();
 
   // When
   const completed = jest.fn();
-  const pending = removal?.({
-    ...context.session.getSnapshot(),
-    isCurrent: context.session.isCurrent,
-  }).then(completed);
+  const pending = removal?.().then(completed);
   await jest.advanceTimersByTimeAsync(3_000);
   await pending;
 
@@ -309,11 +287,7 @@ it("cancels controllable PUT but preserves the explicit already-transmitted limi
 
   // When
   const remove = push.prepareRemoval();
-  context.session.invalidate();
-  await remove?.({
-    ...context.session.getSnapshot(),
-    isCurrent: context.session.isCurrent,
-  });
+  await remove?.();
   response.resolve(
     Response.json({
       id: url.split("/").at(-1),

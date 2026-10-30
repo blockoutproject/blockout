@@ -17,7 +17,7 @@ interface SupportVisit {
 }
 const SupportVisitContext = createContext<SupportVisit | undefined>(undefined);
 
-/** Reliable optional facts and known contact; the parent replaces the visit on F05 generation changes. */
+/** Reliable optional facts and known contact; the parent replaces the visit on native principal changes. */
 export interface SupportVisitProviderProps extends PropsWithChildren {
   context: SupportContextRequest;
   replyEmail: string;

@@ -24,7 +24,7 @@ export async function removeUnavailableFollowTarget(
   bypass: boolean,
   target: FollowingTarget,
 ) {
-  const queryKey = followListKey(owner, target.type, {}, bypass).slice(0, -1);
+  const queryKey = followListKey(owner, target.type, {}, bypass);
   await cancelFollowReads(client, { queryKey });
   for (const query of client.getQueryCache().findAll({ queryKey })) {
     const data = client.getQueryData<InfiniteData<FollowListPage>>(
@@ -63,7 +63,7 @@ export async function withdrawUnavailableFollowLists(
   currentKey?: QueryKey,
 ) {
   for (const resource of ["team", "pool"] as const) {
-    const queryKey = followListKey(owner, resource, {}, bypass).slice(0, -1);
+    const queryKey = followListKey(owner, resource, {}, bypass);
     /** The canonical generated trailing selection scopes each retained traversal. */
     const selectedSeason = (key: readonly unknown[]) =>
       (key.at(-1) as { seasonId?: string }).seasonId;

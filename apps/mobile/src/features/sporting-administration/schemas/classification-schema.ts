@@ -1,12 +1,16 @@
 import { z } from "zod";
+import {
+  SportFormatEnum,
+  SportGenderEnum,
+} from "../../../../.generated/schemas/index.zod";
 
 /** Complete editing intent; null is represented by the explicit inherit/remove choice. */
 export const classificationSchema = z
   .object({
     custom: z.boolean(),
     divisionId: z.string(),
-    format: z.enum(["6x6", "4x4", "2x2"]),
-    gender: z.enum(["female", "male", "mixed"]),
+    format: SportFormatEnum,
+    gender: SportGenderEnum,
   })
   .superRefine((value, context) => {
     if (value.custom && !z.string().uuid().safeParse(value.divisionId).success)

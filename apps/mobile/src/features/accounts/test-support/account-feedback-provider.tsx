@@ -6,7 +6,7 @@ import { useAccountSession } from "../session/account-session-provider";
 export function AccountFeedbackProvider({ children }: PropsWithChildren) {
   const session = useAccountSession();
   return (
-    <ActionFeedbackProvider scopeKey={session.generation}>
+    <ActionFeedbackProvider scopeKey={session.subject ?? "guest"}>
       {children}
     </ActionFeedbackProvider>
   );

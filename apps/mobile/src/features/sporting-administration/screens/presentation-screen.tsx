@@ -1,21 +1,20 @@
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { FormScrollView } from "../../../shared/components/form-scroll-view";
-import { PageHeader } from "../../../shared/components/page-header";
-import { Page, PageContent } from "../../../shared/components/page";
-import { ErrorState } from "../../../shared/components/state-card";
 import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 import {
   getGetClubLogoQueryKey,
-  getGetTeamLogoQueryKey,
   getGetDivisionLogoQueryKey,
+  getGetTeamLogoQueryKey,
 } from "../../../../.generated/mobile";
-import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { RequestLoading } from "../../../shared/components/request-feedback";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { useAccountSession } from "../../accounts/current-account";
+import { FormScrollView } from "../../../shared/components/form-scroll-view";
+import { Page, PageContent } from "../../../shared/components/page";
+import { PageHeader } from "../../../shared/components/page-header";
+import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ScreenState } from "../../../shared/components/screen-state";
+import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+import { ErrorState } from "../../../shared/components/state-card";
 import { useAdministrationCapabilities } from "../../access/api/use-administration-capabilities";
+import { useAccountSession } from "../../accounts/current-account";
 import { usePresentation, type PresentationTarget } from "../api/presentation";
 import { PresentationForm } from "../forms/presentation-form";
 
@@ -29,16 +28,14 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
     useAdministrationCapabilities();
   const session = useAccountSession();
   const client = useQueryClient();
-  const logoKey = getSessionQueryKey(
-    session.generation,
+  const logoKey =
     target.kind === "team"
       ? getGetTeamLogoQueryKey(target.id)
       : target.kind === "club"
         ? getGetClubLogoQueryKey(target.id)
         : target.kind === "division"
           ? getGetDivisionLogoQueryKey(target.id)
-          : ["presentation-logo-unavailable", target.kind],
-  );
+          : ["presentation-logo-unavailable", target.kind];
   const logoRefreshing =
     useIsFetching({
       queryKey: logoKey,
@@ -71,7 +68,7 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
   const feedback = useActionFeedback();
   /** Native refresh rereads current presentation and only its mounted remote logo; a prepared local replacement stays untouched. */
   async function refresh() {
-    if (editing.save.isPending()) return;
+    if (editing.save.isPending) return;
     feedback.clear();
     if (!canRead) {
       const result = await account.refetch();
@@ -79,17 +76,15 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
       return;
     }
     const result = await editing.query.refetch();
-    if (!session.isCurrent(session.generation)) return;
     if (result.isError) {
       if (result.data) feedback.error();
       return;
     }
-    if (editing.save.isPending()) return;
+    if (editing.save.isPending) return;
     await client.refetchQueries(
       { queryKey: logoKey, type: "active" },
       { cancelRefetch: false },
     );
-    if (!session.isCurrent(session.generation)) return;
     const retainedFailure = client
       .getQueryCache()
       .findAll({ queryKey: logoKey, type: "active" })
@@ -140,7 +135,7 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
               target.kind !== "division-creation" ? (
                 <DataRefreshControl
                   progressViewOffset={headerHeight}
-                  enabled={!editing.save.pending}
+                  enabled={!editing.save.isPending}
                   refreshing={
                     editing.query.isRefetching ||
                     account.isRefetching ||
@@ -157,7 +152,7 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
               <PageContent>
                 {presentation && (
                   <PresentationForm
-                    key={`${session.generation}:${target.kind}:${target.id}`}
+                    key={`${session.subject}:${target.kind}:${target.id}`}
                     presentation={presentation}
                     target={target}
                     editing={editing}

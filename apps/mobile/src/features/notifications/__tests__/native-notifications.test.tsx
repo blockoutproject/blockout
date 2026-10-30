@@ -5,10 +5,11 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { useLayoutEffect } from "react";
 import * as Notifications from "expo-notifications";
 import { PermissionStatus } from "expo";
+import { useAccessAdmission } from "../../access/queries/use-access-admission";
 import { NotificationLifecycle } from "../native/notification-lifecycle";
 import { createPushRegistration } from "../native/push-registration";
 import { NotificationState } from "../state/notification-state";
@@ -25,10 +26,7 @@ import { initializeV2Installation } from "../../onboarding/initialize-v2-install
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { accountResponse } from "../../accounts/test-support/account-response";
-import {
-  bindSessionQueries,
-  createQueryClient,
-} from "../../../shared/query/query-client";
+import { createQueryClient } from "../../../shared/query/query-client";
 import { notificationResponse } from "../test-support/notification-data";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
@@ -95,6 +93,7 @@ const env = { ...process.env };
 const row = notificationResponse();
 const ownerId = "00000000-0000-4000-8000-000000000001";
 let client = createQueryClient();
+let privateClient: ReturnType<typeof createQueryClient>;
 let session: AccountSession;
 let push = createPushRegistration();
 
@@ -133,17 +132,18 @@ function response(
 /** Real session, Query transport, inbox and badge consumers; native events and navigation are boundary doubles. */
 function Capture() {
   const current = useAccountSession();
+  const access = useAccessAdmission();
+  const cache = useQueryClient();
+  useLayoutEffect(() => {
+    privateClient = cache;
+  }, [cache]);
   useLayoutEffect(() => {
     session = current;
   });
-  useLayoutEffect(
-    () => bindSessionQueries(client, current.subscribe, current.isCurrent),
-    [current.subscribe, current.isCurrent],
-  );
   return (
     <AccountFeedbackProvider>
       <NotificationState>
-        <NotificationLifecycle registration={push} enabled />
+        <NotificationLifecycle registration={push} enabled={access.ordinary} />
       </NotificationState>
     </AccountFeedbackProvider>
   );
@@ -259,8 +259,9 @@ it("uses a native token change only to reacquire the Expo address for the same c
 });
 afterEach(async () => {
   await cleanup();
-  await client.cancelQueries();
+  await privateClient?.cancelQueries();
   client.clear();
+  privateClient?.clear();
   await jest.runOnlyPendingTimersAsync();
   jest.useRealTimers();
   process.env = { ...env };
@@ -462,6 +463,11 @@ it.each(["guest", "other-account"])(
     await waitFor(() =>
       expect(session.status).toBe(kind === "guest" ? "guest" : "authenticated"),
     );
+    await waitFor(() =>
+      expect(
+        Notifications.addNotificationResponseReceivedListener,
+      ).toHaveBeenCalled(),
+    );
     const tap = jest
       .mocked(Notifications.addNotificationResponseReceivedListener)
       .mock.calls.at(-1)?.[0];
@@ -473,7 +479,7 @@ it.each(["guest", "other-account"])(
     );
 
     // Then
-    expect(mockOpen).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mockOpen).toHaveBeenCalledTimes(1));
     expect(
       mockFetch.mock.calls.some(([url]) =>
         url.includes(`/accounts/00000000-0000-4000-8000-000000000099/`),
@@ -485,21 +491,20 @@ it.each(["guest", "other-account"])(
   },
 );
 
-it("discards the old receive callback after sign-out", async () => {
+it("removes native subscriptions and clears the badge after sign-out", async () => {
   // Given
   await render(<Root />);
   await waitFor(() => expect(session.accountId).toBe(ownerId));
-  const receive = jest
+  await waitFor(() =>
+    expect(Notifications.addNotificationReceivedListener).toHaveBeenCalled(),
+  );
+  const subscription = jest
     .mocked(Notifications.addNotificationReceivedListener)
-    .mock.calls.at(-1)?.[0];
-  if (!receive) throw new Error("Receive listener must be registered");
-  await act(async () => session.signOut());
-  const before = mockFetch.mock.calls.length;
-
+    .mock.results.at(-1)?.value;
   // When
-  await act(async () => receive(response().notification));
-
+  await act(async () => session.signOut());
+  await waitFor(() => expect(session.status).toBe("guest"));
   // Then
-  expect(mockFetch).toHaveBeenCalledTimes(before);
+  expect(subscription?.remove).toHaveBeenCalledTimes(1);
   expect(Notifications.setBadgeCountAsync).toHaveBeenCalledWith(0);
 });

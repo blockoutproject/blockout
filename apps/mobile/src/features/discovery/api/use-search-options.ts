@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAuth0 } from "react-native-auth0";
 import type { SearchResourceTypeEnum } from "../../../../.generated/schemas/index.zod";
 import { useAccountSession } from "../../accounts/current-account";
 import { useOrdinaryRequest } from "../../access/ordinary-request";
@@ -9,7 +8,7 @@ import { createSearchOptionsQueryOptions } from "./discovery-queries";
 export function useSearchOptions(resource: SearchResourceTypeEnum) {
   const session = useAccountSession();
   const admission = useOrdinaryRequest();
-  const { getCredentials } = useAuth0();
+  const { getCredentials } = session;
   return useQuery(
     createSearchOptionsQueryOptions(
       resource,

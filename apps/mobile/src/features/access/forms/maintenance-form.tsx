@@ -1,8 +1,8 @@
+import { ApiError } from "../../../shared/api/api-fetch";
 import { ErrorState } from "../../../shared/components/state-card";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
-import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
 import { FileText, Wrench } from "lucide-react-native";
@@ -18,12 +18,10 @@ import {
 import { maintenanceValues } from "./maintenance-values";
 import { toMaintenanceRequest } from "../api/maintenance-request";
 import { Button } from "../../../shared/components/button";
-
 import { TextField } from "../../../shared/components/text-field";
 import { Surface } from "../../../shared/components/surface";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
-import { useAccountSession } from "../../accounts/current-account";
 import { useMaintenanceSettings } from "../api/use-maintenance-settings";
 
 /** One editable snapshot; newer remote data cannot silently replace dirty input or its revision. */
@@ -32,14 +30,12 @@ export interface MaintenanceFormProps {
   editing: ReturnType<typeof useMaintenanceSettings>;
   disabled?: boolean;
 }
-
 /** Owns one route-local draft, separating content and activation with explicit conflict/uncertainty reconciliation. */
 export function MaintenanceForm({
   settings,
   editing,
   disabled = false,
 }: MaintenanceFormProps) {
-  const session = useAccountSession();
   const { colors } = useTheme();
   const confirmAction = useActionConfirmation();
   const actionFeedback = useActionFeedback();
@@ -48,9 +44,8 @@ export function MaintenanceForm({
     feedback?: string;
   }>({ baseline: settings });
   const { baseline } = state;
-  const feedback = editing.content.needsRead
-    ? "Le résultat doit être vérifié. Relisez les réglages avant une nouvelle soumission."
-    : Math.max(settings.revision, editing.observedRevision) > baseline.revision
+  const feedback =
+    Math.max(settings.revision, 0) > baseline.revision
       ? "Les réglages ont changé. Relisez-les avant une nouvelle soumission."
       : state.feedback;
   const mounted = useRef(false);
@@ -67,39 +62,35 @@ export function MaintenanceForm({
     };
   }, []);
   const imageUrl = useWatch({ control, name: "imageUrl" });
-  const busy = disabled || editing.content.pending || editing.query.isFetching;
-  const rereadRequired =
-    editing.content.needsRead ||
-    Math.max(settings.revision, editing.observedRevision) > baseline.revision;
+  const busy =
+    disabled || editing.content.isPending || editing.query.isFetching;
+  const rereadRequired = Math.max(settings.revision, 0) > baseline.revision;
   const validPreview =
     imageUrl !== "" && maintenanceImageSchema.safeParse(imageUrl).success;
-
   /** Keeps a failed draft intact; only ambiguous outcomes and conflicts block further writes. */
   function failed(error: unknown) {
-    if (!mounted.current || !session.isCurrent(session.generation)) return;
-    if (!requiresRevisionRead(error)) actionFeedback.error();
+    if (!mounted.current) return;
+    if (!(error instanceof ApiError && error.status === 409))
+      actionFeedback.error();
   }
   /** Submits supplied dirty content against its accepted editing revision, without activation. */
   async function submit(draft: MaintenanceValues) {
-    if (!session.isCurrent(session.generation) || rereadRequired || busy)
-      return;
+    if (rereadRequired || busy) return;
     if (
       !(await confirmAction({
         title: "Enregistrer le contenu ?",
         message: "L’activation reste inchangée.",
         confirmLabel: "Enregistrer",
-      })) ||
-      !session.isCurrent(session.generation)
+      }))
     )
       return;
     actionFeedback.clear();
     try {
-      const command = editing.content.start(
+      const command = editing.content.mutateAsync(
         toMaintenanceRequest(baseline.revision, draft, dirtyFields),
       );
-      if (!command) return;
       const accepted = await command;
-      if (!mounted.current || !session.isCurrent(session.generation)) return;
+      if (!mounted.current) return;
       setState({
         baseline: accepted,
       });
@@ -110,8 +101,7 @@ export function MaintenanceForm({
   }
   /** Changes only the desired global state and leaves the content draft in RHF untouched. */
   async function activate() {
-    if (!session.isCurrent(session.generation) || rereadRequired || busy)
-      return;
+    if (rereadRequired || busy) return;
     if (
       !(await confirmAction({
         title: baseline.active
@@ -120,19 +110,17 @@ export function MaintenanceForm({
         message:
           "Cette action utilise le contenu enregistré. Votre brouillon est conservé.",
         confirmLabel: baseline.active ? "Désactiver" : "Activer",
-      })) ||
-      !session.isCurrent(session.generation)
+      }))
     )
       return;
     actionFeedback.clear();
     try {
-      const command = editing.activation.start({
+      const command = editing.activation.mutateAsync({
         revision: baseline.revision,
         active: !baseline.active,
       });
-      if (!command) return;
       const accepted = await command;
-      if (!mounted.current || !session.isCurrent(session.generation)) return;
+      if (!mounted.current) return;
       setState({
         baseline: accepted,
       });
@@ -143,17 +131,9 @@ export function MaintenanceForm({
   /** Rereads the actual outcome without replay; dirty fields remain until an explicit new submit. */
   async function reread() {
     actionFeedback.clear();
-    const { result, reconciled } = await editing.content.reconcile(
-      [editing.queryKey],
-      () => editing.query.refetch(),
-      (result) =>
-        !result.isError &&
-        !!result.data &&
-        result.data.revision >= baseline.revision,
-    );
-    if (!mounted.current || !session.isCurrent(session.generation)) return;
+    const result = await (() => editing.query.refetch())();
+    if (!mounted.current) return;
     if (
-      !reconciled ||
       !result.data ||
       result.isError ||
       result.data.revision < baseline.revision
@@ -228,7 +208,7 @@ export function MaintenanceForm({
             }
             onPress={() => void activate()}
             disabled={busy || rereadRequired}
-            loading={editing.activation.executing}
+            loading={editing.activation.isPending}
           />
         </View>
       </Surface>
@@ -297,7 +277,7 @@ export function MaintenanceForm({
             label="Enregistrer"
             onPress={() => void handleSubmit(submit)()}
             disabled={busy || rereadRequired}
-            loading={editing.content.executing}
+            loading={editing.content.isPending}
           />
         </View>
       </Surface>
@@ -320,7 +300,6 @@ export function MaintenanceForm({
     </View>
   );
 }
-
 /** A validated draft image owns feedback only for its current mounted decode attempt. */
 function MaintenanceImagePreview({ uri }: { uri: string }) {
   const [failed, setFailed] = useState(false);
@@ -337,7 +316,6 @@ function MaintenanceImagePreview({ uri }: { uri: string }) {
     />
   );
 }
-
 const styles = StyleSheet.create({
   heading: {
     flexDirection: "row",

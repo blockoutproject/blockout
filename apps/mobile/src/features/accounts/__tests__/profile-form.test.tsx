@@ -1,9 +1,10 @@
+import { useLayoutEffect, type PropsWithChildren } from "react";
+import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { accountResponse } from "../test-support/account-response";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -95,6 +96,8 @@ const mockFetch = jest.fn<
   [RequestInfo | URL, RequestInit?]
 >();
 let client = createQueryClient();
+// Failure presentation is isolated here; native retry defaults have their own Query suite.
+client.setQueryDefaults([], { retry: false });
 const account = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000173",
   username: "Original",
@@ -116,6 +119,8 @@ beforeEach(() => {
           : mockFile) as unknown as File,
     );
   client = createQueryClient();
+  // Failure presentation is isolated here; native retry defaults have their own Query suite.
+  client.setQueryDefaults([], { retry: false });
   mockNavigate.mockReset();
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
@@ -154,10 +159,12 @@ async function mountProfile() {
       <ThemeProvider>
         <ApplicationAccessProvider>
           <AccountSessionProvider>
-            <AccountFeedbackProvider>
-              <ProfileEditScreen admitted />
-              <SessionActions />
-            </AccountFeedbackProvider>
+            <PrivateQueries>
+              <AccountFeedbackProvider>
+                <ProfileEditScreen admitted />
+                <SessionActions />
+              </AccountFeedbackProvider>
+            </PrivateQueries>
           </AccountSessionProvider>
         </ApplicationAccessProvider>
       </ThemeProvider>
@@ -398,88 +405,32 @@ it.each([401, 403])(
   },
 );
 
-it("keeps a refused profile draft read-only through a failed recheck until a successful account read", async () => {
+it("removes a refused profile form and reopens it from current server data", async () => {
   // Given
   const user = userEvent.setup();
   await mountProfile();
   await screen.findByDisplayValue("Original");
   await user.clear(screen.getByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
-  mockFetch
-    .mockClear()
-    .mockResolvedValue(json({ title: "Denied", status: 403 }, 403));
+  mockFetch.mockResolvedValue(json({ title: "Denied", status: 403 }, 403));
 
   // When
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(screen.queryByDisplayValue("Unsaved")).not.toBeOnTheScreen();
   expect(
-    await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
-  ).toBeOnTheScreen();
-  expect(screen.getByDisplayValue("Unsaved")).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Annuler" })).toBeEnabled();
-  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
-  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
-
-  // When
-  mockFetch.mockResolvedValue(json({ title: "Unavailable", status: 503 }, 503));
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  await waitFor(() =>
-    expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
-  );
-
-  // Then
-  expect(
-    screen.getByRole("alert", { name: TECHNICAL_ERROR }),
-  ).toBeOnTheScreen();
-  expect(screen.getByDisplayValue("Unsaved")).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
 
   // When
   mockFetch.mockResolvedValue(json({ ...account, username: "Remote_name" }));
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
-  );
-  expect(screen.getByDisplayValue("Unsaved")).toBeEnabled();
-  expect(screen.queryByRole("alert", { name: TECHNICAL_ERROR })).toBeNull();
-  expect(
-    mockFetch.mock.calls.filter(([, options]) => options?.method !== "GET"),
-  ).toHaveLength(0);
-});
-
-it("refuses an unsent profile save when its account read is denied during credential retrieval", async () => {
-  // Given
-  const credentials =
-    Promise.withResolvers<ReturnType<typeof credentialsFor>>();
-  const user = userEvent.setup();
-  await mountProfile();
-  await screen.findByDisplayValue("Original");
-  await user.clear(screen.getByLabelText("Pseudo"));
-  await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
-  mockAuth0.getCredentials.mockReturnValueOnce(credentials.promise);
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await screen.findByRole("button", { name: "Enregistrer", busy: true });
-  mockFetch
-    .mockClear()
-    .mockResolvedValue(json({ title: "Denied", status: 403 }, 403));
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Relire le compte" }));
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  await act(async () => credentials.resolve(credentialsFor("auth0|one")));
-
-  // Then
-  await screen.findByRole("alert", { name: TECHNICAL_ERROR });
-  expect(screen.getByDisplayValue("Unsaved")).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-  expect(
-    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
-  ).toHaveLength(0);
+  await screen.findByDisplayValue("Remote_name");
+  expect(screen.queryByDisplayValue("Unsaved")).not.toBeOnTheScreen();
 });
 
 it("announces the initial profile read without exposing profile commands", async () => {
@@ -908,7 +859,7 @@ it("preserves the draft when native crop is cancelled or permission is refused",
   ).toBe(false);
 });
 
-it("rereads only the original account after an uncertain save and requires explicit resubmission", async () => {
+it("keeps dirty input and ordinary failure feedback after a lost save response", async () => {
   // Given
   const user = userEvent.setup();
   await mountProfile();
@@ -917,9 +868,6 @@ it("rereads only the original account after an uncertain save and requires expli
   await user.type(screen.getByLabelText("Pseudo"), "My_draft");
   mockFetch.mockImplementation(async (url, request) => {
     if (request?.method === "PATCH") throw new TypeError("Lost response");
-    expect(String(url)).toBe(
-      `https://api.example.invalid/accounts/${account.accountId}`,
-    );
     return json({ ...account, username: "Saved_remotely" });
   });
 
@@ -927,42 +875,13 @@ it("rereads only the original account after an uncertain save and requires expli
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
-  await screen.findByText(
-    "Le profil a été relu. Vérifiez votre brouillon avant de l’enregistrer à nouveau.",
-  );
+  await screen.findByText(TECHNICAL_ERROR);
   expect(screen.getByDisplayValue("My_draft")).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([, request]) => request?.method === "PATCH"),
   ).toHaveLength(1);
   expect(screen.queryByText("Profil enregistré.")).not.toBeOnTheScreen();
   expect(mockNavigate).not.toHaveBeenCalled();
-});
-
-it("does not replay while the original account reread is unavailable", async () => {
-  // Given
-  const user = userEvent.setup();
-  await mountProfile();
-  await screen.findByDisplayValue("Original");
-  await user.clear(screen.getByLabelText("Pseudo"));
-  await user.type(screen.getByLabelText("Pseudo"), "My_draft");
-  mockFetch.mockRejectedValue(new TypeError("Offline"));
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-
-  // Then
-  await screen.findByRole("button", { name: "Vérifier mon profil" });
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Vérifier mon profil" }));
-
-  // Then
-  await waitFor(() =>
-    expect(
-      mockFetch.mock.calls.filter(([, request]) => request?.method === "PATCH"),
-    ).toHaveLength(1),
-  );
 });
 
 it("submits prepared replacement then explicit removal without a username edit", async () => {
@@ -1163,109 +1082,6 @@ it.each(["preparation", "save"])(
   },
 );
 
-it("cancels a background photo read before refreshing the accepted replacement", async () => {
-  // Given
-  const reads: {
-    signal?: AbortSignal | null;
-    resolve: (response: Response) => void;
-  }[] = [];
-  mockFetch.mockImplementation(async (url, request) => {
-    if (String(url).endsWith("/photo"))
-      return new Promise((resolve) =>
-        reads.push({ signal: request?.signal, resolve }),
-      );
-    return json({ ...account, hasPhoto: true });
-  });
-  // FileReader is native I/O; the real generated binary call and Query lifecycle remain under test.
-  const previousReader = Object.getOwnPropertyDescriptor(
-    globalThis,
-    "FileReader",
-  );
-  const nativeRead = jest.fn<void, [Blob]>();
-  /** Controlled native reader: one successful decode completes the preview boundary. */
-  class PhotoReader {
-    result = "data:image/png;base64,accepted";
-    onload?: () => void;
-    onerror?: () => void;
-    /** Completes this test's native preview conversion without changing query behavior. */
-    readAsDataURL(blob: Blob) {
-      nativeRead(blob);
-      this.onload?.();
-    }
-  }
-  Object.defineProperty(globalThis, "FileReader", {
-    configurable: true,
-    value: PhotoReader,
-  });
-  try {
-    const user = userEvent.setup();
-    await mountProfile();
-    await waitFor(() => expect(reads).toHaveLength(1));
-    await act(() =>
-      reads[0].resolve(
-        new Response(png, { headers: { "Content-Type": "image/png" } }),
-      ),
-    );
-    await screen.findByDisplayValue("Original");
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-    await waitFor(() => expect(reads).toHaveLength(2));
-    jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
-      canceled: false,
-      assets: [
-        { uri: "file:///cache/ImagePicker/source.heic", width: 64, height: 64 },
-      ],
-    });
-    await user.press(
-      screen.getByRole("button", { name: "Changer l’image : Photo de profil" }),
-    );
-    await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
-
-    // When
-    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: "Enregistrer", busy: false }),
-      ).toBeDisabled(),
-    );
-
-    // Then
-    await waitFor(() => expect(reads).toHaveLength(3));
-    expect(reads[1].signal?.aborted).toBe(true);
-
-    // When
-    await act(async () =>
-      reads[2].resolve(
-        new Response(png, { headers: { "Content-Type": "image/png" } }),
-      ),
-    );
-    await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
-    await act(async () =>
-      reads[1].resolve(
-        new Response(png, { headers: { "Content-Type": "image/png" } }),
-      ),
-    );
-
-    // Then
-    expect(
-      screen.getByRole("button", { name: "Aperçu : Photo de profil" }),
-    ).toBeOnTheScreen();
-    expect(nativeRead).toHaveBeenCalledTimes(2);
-  } finally {
-    // Settle this test's controlled transport even if its regression assertion fails.
-    await act(async () =>
-      reads.forEach(({ resolve }) =>
-        resolve(
-          new Response(png, { headers: { "Content-Type": "image/png" } }),
-        ),
-      ),
-    );
-    await cleanup();
-    if (previousReader)
-      Object.defineProperty(globalThis, "FileReader", previousReader);
-    else Reflect.deleteProperty(globalThis, "FileReader");
-  }
-});
-
 it.each(["unmount", "session"])(
   "deletes a prepared profile draft on %s",
   async (exit) => {
@@ -1387,3 +1203,15 @@ it("keeps a sent profile file until its upload settles after sign-out", async ()
   expect(screen.queryByText("Profil enregistré.")).not.toBeOnTheScreen();
   expect(mockNavigate).not.toHaveBeenCalled();
 });
+
+/** Observes the actual private client installed by the native principal provider. */
+function PrivateQueries({ children }: PropsWithChildren) {
+  const privateClient = useQueryClient();
+  // Configure deterministic failure presentation before child Query observers mount.
+  privateClient.setQueryDefaults([], { retry: false, gcTime: Infinity });
+  privateClient.setMutationDefaults([], { gcTime: Infinity });
+  useLayoutEffect(() => {
+    client = privateClient;
+  }, [privateClient]);
+  return children;
+}

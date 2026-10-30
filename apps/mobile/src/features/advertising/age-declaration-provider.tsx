@@ -7,8 +7,6 @@ import {
   type PropsWithChildren,
 } from "react";
 import { usePro } from "../pro";
-import Constants from "expo-constants";
-import { Platform } from "react-native";
 import { useAccountSession } from "../accounts/current-account";
 import { useAccessAdmission } from "../access/queries/use-access-admission";
 import { createAdvertisingPrivacy } from "./advertising-privacy";
@@ -30,7 +28,11 @@ type DeclarationState =
 export function AgeDeclarationProvider({
   children,
   enabled,
-}: PropsWithChildren<{ enabled: boolean }>) {
+  privacy,
+}: PropsWithChildren<{
+  enabled: boolean;
+  privacy: ReturnType<typeof createAdvertisingPrivacy>;
+}>) {
   const proOwner = usePro();
   const pro = proOwner.state;
   const account = useAccountSession();
@@ -40,32 +42,10 @@ export function AgeDeclarationProvider({
     evaluatedAt: new Date(),
   }));
   const mounted = useRef(false);
-  const submission = useRef<Promise<boolean> | undefined>(undefined);
-  const committed = useRef<
-    | {
-        declaration: AgeDeclaration;
-        complete(ready: boolean): void;
-      }
-    | undefined
-  >(undefined);
   const [pending, setPending] = useState(false);
   const category = getAdvertisingAgeCategory(
     state.status === "ready" ? state.declaration : null,
     state.evaluatedAt,
-  );
-  const [privacy] = useState(() =>
-    createAdvertisingPrivacy({
-      getContext: () => ({
-        account,
-        pro: proOwner.getState(),
-        admission,
-        category,
-      }),
-      adUnitId:
-        Platform.OS === "ios"
-          ? Constants.expoConfig?.extra?.advertising?.iosInterstitialUnitId
-          : Constants.expoConfig?.extra?.advertising?.androidInterstitialUnitId,
-    }),
   );
   useLayoutEffect(() => {
     privacy.setContext(() => ({
@@ -90,7 +70,7 @@ export function AgeDeclarationProvider({
     privacy.suspend();
   }, [
     privacy,
-    account.generation,
+    account.subject,
     account.accountId,
     account.status,
     pro.status,
@@ -98,12 +78,11 @@ export function AgeDeclarationProvider({
     ready,
   ]);
   useEffect(() => {
-    if (ready && !submission.current)
-      void privacy.synchronize()?.catch(() => undefined);
+    if (ready) void privacy.synchronize()?.catch(() => undefined);
   }, [
     privacy,
     ready,
-    account.generation,
+    account.subject,
     account.accountId,
     account.status,
     pro.status,
@@ -112,32 +91,12 @@ export function AgeDeclarationProvider({
     pending,
     state,
   ]);
-  useLayoutEffect(() => {
-    const confirmation = committed.current;
-    if (
-      !confirmation ||
-      state.status !== "ready" ||
-      state.declaration !== confirmation.declaration
-    )
-      return;
-    committed.current = undefined;
-    const preparation = privacy.synchronize();
-    if (!preparation) confirmation.complete(false);
-    else
-      void preparation.then(confirmation.complete, () =>
-        confirmation.complete(false),
-      );
-  }, [privacy, state]);
-  const { subscribe } = account;
-  useLayoutEffect(() => subscribe(privacy.suspend), [subscribe, privacy]);
-  useEffect(() => () => privacy.dispose(), [privacy]);
+  useEffect(() => () => privacy.suspend(), [privacy]);
 
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
-      committed.current?.complete(false);
-      committed.current = undefined;
     };
   }, []);
 
@@ -174,30 +133,21 @@ export function AgeDeclarationProvider({
       setState({ status: "loading", evaluatedAt: state.evaluatedAt });
   }
 
-  /** One installation operation owns admission and busy state across form mounts; F05 neither cancels nor replays it. */
+  /** Completes after persisted category acknowledgement; the effect prepares consent independently. */
   function confirm(age: number): Promise<boolean> | undefined {
-    if (!mounted.current || submission.current || privacy.getSnapshot().pending)
-      return;
+    if (!mounted.current || pending || privacy.getSnapshot().pending) return;
     privacy.suspend();
     setPending(true);
     const now = new Date();
-    const operation = submitAgeDeclaration(age, now)
-      .then((saved) => {
+    return submitAgeDeclaration(age, now)
+      .then((declaration) => {
         if (!mounted.current) return false;
-        return new Promise<boolean>((complete) => {
-          // The next committed context supplies the acknowledged category to the single SDK owner.
-          committed.current = { declaration: saved, complete };
-          setState({ status: "ready", evaluatedAt: now, declaration: saved });
-        });
+        setState({ status: "ready", evaluatedAt: now, declaration });
+        return true;
       })
       .finally(() => {
-        if (submission.current === operation) {
-          submission.current = undefined;
-          if (mounted.current) setPending(false);
-        }
+        if (mounted.current) setPending(false);
       });
-    submission.current = operation;
-    return operation;
   }
 
   const declaration = state.status === "ready" ? state.declaration : null;

@@ -19,7 +19,7 @@ jest.mock("react-native-purchases", () => ({
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
 const session = {
-  generation: "purchase-A",
+  subject: "purchase-A",
   accountId: "00000000-0000-4000-8000-000000000251",
 };
 const inactive = customerInfo({
@@ -169,10 +169,10 @@ it("rejects old starts and completions across A → guest → A and restarts fro
   owner.beginPurchase(session);
 
   // When
-  owner.setTarget({ generation: "guest", accountId: null });
+  owner.setTarget({ subject: "guest", accountId: null });
   await owner.completeOperation(session, "purchased", inactive);
   const restarted = createProSession();
-  restarted.setTarget({ ...session, generation: "restart-A" });
+  restarted.setTarget({ ...session, subject: "restart-A" });
   await waitFor(() =>
     expect(restarted.getSnapshot().evidence?.association).toBe("associated"),
   );

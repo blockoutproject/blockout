@@ -1,8 +1,9 @@
+import { useLayoutEffect, type PropsWithChildren } from "react";
+import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { accountResponse } from "../test-support/account-response";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -155,7 +156,9 @@ async function renderProfile(admitted = true) {
           <ThemeProvider>
             <ApplicationAccessProvider>
               <AccountSessionProvider>
-                <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+                <PrivateQueries>
+                  <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+                </PrivateQueries>
               </AccountSessionProvider>
             </ApplicationAccessProvider>
           </ThemeProvider>
@@ -254,8 +257,8 @@ it("retries establishment with current credentials and refreshes provider eviden
 
   // Then
   expect(await screen.findByText("updated@example.invalid")).toBeOnTheScreen();
-  expect(screen.getByText("Original")).toBeOnTheScreen();
-  expect(screen.queryByText("Other_device")).not.toBeOnTheScreen();
+  expect(screen.getByText("Other_device")).toBeOnTheScreen();
+  expect(screen.queryByText("Original")).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: retryLabel }),
   ).not.toBeOnTheScreen();
@@ -327,7 +330,7 @@ it.each(["network", "missing", "invalid"])(
 );
 
 it.each(["success", "failure"])(
-  "discards late %s from an old generation after A returns to the same account",
+  "discards late %s from an removed native principal after A returns to the same account",
   async (outcome) => {
     // Given
     const user = userEvent.setup();
@@ -390,116 +393,13 @@ it("does not expose targeted retry through refused profile admission", async () 
   ).toBe(true);
 });
 
-it.each(["age", "profile"])(
-  "preserves confirmed photo and provider evidence when the %s response arrives last across overview and editing",
-  async (lateReply) => {
-    // Given
-    const previousReader = Object.getOwnPropertyDescriptor(
-      globalThis,
-      "FileReader",
-    );
-    /** Controls native preview conversion while real account mutation ordering and Query admission remain intact. */
-    class PhotoReader {
-      result = "data:image/png;base64,accepted";
-      onload?: () => void;
-      /** Completes each accepted native image conversion without changing transport/cache behavior. */
-      readAsDataURL() {
-        this.onload?.();
-      }
-    }
-    Object.defineProperty(globalThis, "FileReader", {
-      configurable: true,
-      value: PhotoReader,
-    });
-    const age = Promise.withResolvers<Response>();
-    const profile = Promise.withResolvers<Response>();
-    try {
-      const user = userEvent.setup();
-      await renderProfile();
-      await screen.findByText("Original");
-      mockFetch.mockImplementation(async (url, request) => {
-        if (request?.method === "POST") return age.promise;
-        if (request?.method === "PATCH") return profile.promise;
-        if (String(url).endsWith("/photo"))
-          return new Response(new Uint8Array([137, 80, 78, 71]), {
-            headers: { "Content-Type": "image/png" },
-          });
-        return json(account);
-      });
-      // The age command starts on the overview and may settle after the user opens editing.
-      await user.press(screen.getByRole("button", { name: retryLabel }));
-      await user.press(
-        screen.getByRole("button", { name: "Modifier mon profil" }),
-      );
-      await screen.findByDisplayValue("Original");
-      await user.clear(screen.getByLabelText("Pseudo"));
-      await user.type(screen.getByLabelText("Pseudo"), "My_draft");
-      await user.press(
-        screen.getByRole("button", { name: "Choisir une photo de profil" }),
-      );
-      await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
-      await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-      const ageResponse = {
-        ...account,
-        username: lateReply === "profile" ? "My_draft" : "Original",
-        hasPhoto: lateReply === "profile",
-        email: "updated@example.invalid",
-        principalCreatedAt: "2020-01-02T03:04:05Z",
-      };
-      const profileResponse = {
-        ...account,
-        username: "My_draft",
-        hasPhoto: true,
-        principalCreatedAt: lateReply === "age" ? "2020-01-02T03:04:05Z" : null,
-      };
-
-      // When: the earlier server snapshot arrives after the later committed mutation.
-      if (lateReply === "age") {
-        await act(async () => profile.resolve(json(profileResponse)));
-        await waitFor(() => expect(screen).toHavePathname("/profile"));
-        await act(async () => age.resolve(json(ageResponse)));
-      } else {
-        await act(async () => age.resolve(json(ageResponse)));
-        await screen.findByDisplayValue("updated@example.invalid");
-        await act(async () => profile.resolve(json(profileResponse)));
-      }
-
-      // Then
-      await waitFor(() => expect(screen).toHavePathname("/profile"));
-      expect(await screen.findByText("My_draft")).toBeOnTheScreen();
-      expect(screen.getByText("updated@example.invalid")).toBeOnTheScreen();
-      expect(
-        screen.queryByRole("button", { name: retryLabel }),
-      ).not.toBeOnTheScreen();
-      await user.press(
-        screen.getByRole("button", { name: "Modifier mon profil" }),
-      );
-      expect(
-        await screen.findByRole("button", { name: "Aperçu : Photo de profil" }),
-      ).toBeOnTheScreen();
-      expect(screen.getByDisplayValue("My_draft")).toBeOnTheScreen();
-      expect(
-        mockFetch.mock.calls.filter(
-          ([, request]) => request?.method === "POST",
-        ),
-      ).toHaveLength(1);
-      expect(
-        mockFetch.mock.calls.filter(
-          ([, request]) => request?.method === "PATCH",
-        ),
-      ).toHaveLength(1);
-    } finally {
-      try {
-        await act(async () => {
-          age.resolve(json(account));
-          profile.resolve(json(account));
-        });
-      } finally {
-        await cleanup();
-        if (previousReader)
-          Object.defineProperty(globalThis, "FileReader", previousReader);
-        else Reflect.deleteProperty(globalThis, "FileReader");
-      }
-    }
-  },
-);
+/** Uses the real native private client with deterministic failure presentation in this route suite. */
+function PrivateQueries({ children }: PropsWithChildren) {
+  const privateClient = useQueryClient();
+  privateClient.setQueryDefaults([], { retry: false, gcTime: Infinity });
+  privateClient.setMutationDefaults([], { gcTime: Infinity });
+  useLayoutEffect(() => {
+    client = privateClient;
+  }, [privateClient]);
+  return children;
+}

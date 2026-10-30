@@ -7,7 +7,7 @@ import { LoadingIndicator } from "../../../shared/components/loading-indicator";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
-/** Shared native sports media; query owners supply admitted bytes and their current loading/error state. */
+/** Native sports media accepts public backend URIs or admitted authenticated previews and their fallback state. */
 export interface SportingMediaProps {
   identity: Pick<SportingIdentityResponse, "name" | "shortName">;
   uri?: string;
@@ -86,6 +86,7 @@ export function SportingMedia({
             accessibilityLabel={`${label} : ${identity.name}`}
             source={{ uri }}
             cachePolicy="none"
+            recyclingKey={uri}
             contentFit="contain"
             onError={() => setFailedUri(uri)}
             style={{
@@ -137,6 +138,7 @@ export function SportingMedia({
             pointerEvents="none"
             source={{ uri }}
             cachePolicy="none"
+            recyclingKey={uri}
             contentFit="contain"
             blurRadius={tokens.sporting.coverBlur}
             onError={() => setFailedUri(uri)}
@@ -166,6 +168,7 @@ export function SportingCover({
         testID="sporting-decorative-cover"
         source={{ uri }}
         cachePolicy="none"
+        recyclingKey={uri}
         contentFit="contain"
         blurRadius={tokens.sporting.coverBlur}
         onError={() => setFailedUri(uri)}

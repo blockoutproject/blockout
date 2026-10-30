@@ -1,57 +1,30 @@
 import {
-  hashKey,
   useMutation,
-  useMutationState,
   useQueryClient,
   type QueryClient,
 } from "@tanstack/react-query";
 import {
-  replaceTeamFollowState,
   replacePoolFollowState,
+  replaceTeamFollowState,
   getListTeamFollowsQueryKey,
   getListPoolFollowsQueryKey,
   getListPersonalMatchesQueryKey,
+  getGetFollowOptionsQueryKey,
 } from "../../../../.generated/mobile";
-import { useLayoutEffect, useRef } from "react";
-import type { FollowStateResponse } from "../../../../.generated/schemas/index.zod";
+import { ApiError } from "../../../shared/api/api-fetch";
 import {
-  ApiError,
-  isUncertainMutationFailure,
-} from "../../../shared/api/api-fetch";
-import {
-  startCommand,
-  retireSettledCommands,
-} from "../../../shared/query/use-command";
-import {
-  followStateKey,
   followMutationKey,
-  followOptionsKey,
+  followStateKey,
   followerCountKey,
-  type FollowingTarget,
   type FollowingOwner,
+  type FollowingTarget,
 } from "./following-keys";
 import type { useFollowStateQuery } from "./use-follow-state-query";
-
-/** Distinguishes a saved response from a current-state observation after response loss. */
-interface FollowResult {
-  state: FollowStateResponse;
-  observed: boolean;
-}
 
 /** A current permission/visibility refusal suspends the personal control until a successful member read. */
 export function isFollowRestriction(error: unknown): error is ApiError {
   return error instanceof ApiError && [403, 404].includes(error.status ?? 0);
 }
-
-/** Drops superseded feedback after a fresh read or new command, preserving any pending target action. */
-export function retireSettledFollowAttempts(
-  client: QueryClient,
-  owner: FollowingOwner,
-  target: FollowingTarget,
-) {
-  retireSettledCommands(client, followMutationKey(owner, target), () => false);
-}
-
 /**
  * Applies a known current restriction to the shared member Query after cancelling older reads.
  * Public target absence and member refusals reuse this guard; neither deletes the persisted relation.
@@ -62,196 +35,61 @@ export async function restrictFollowTarget(
   target: FollowingTarget,
   error: ApiError,
 ) {
-  if (!owner.isCurrent(owner.generation)) return;
   const queryKey = followStateKey(owner, target);
   await client.cancelQueries({ queryKey, exact: true });
-  if (!owner.isCurrent(owner.generation)) return;
   client.getQueryCache().find({ queryKey, exact: true })?.setState({
     status: "error",
     error,
     errorUpdatedAt: Date.now(),
   });
 }
-
-/**
- * Owns the shared target lifecycle after initiating-control unmount, using Query's mutation cache
- * for provisional state and a synchronous no-queue guard. Dependent reads cannot undo a saved response.
- */
+/** Uses an ordinary replacement mutation and refreshes its current projections after settlement. */
 export function useFollowMutation(
   target: FollowingTarget,
   context: ReturnType<typeof useFollowStateQuery>,
 ) {
   const client = useQueryClient();
-  const { owner, bypass, request, options } = context;
-  const mutationKey = owner
-    ? followMutationKey(owner, target)
-    : ["following-unavailable"];
-  const identity = hashKey(mutationKey);
-  const currentIdentity = useRef<string | undefined>(identity);
-  useLayoutEffect(() => {
-    currentIdentity.current = identity;
-    return () => {
-      currentIdentity.current = undefined;
-    };
-  }, [identity]);
+  const { owner, request } = context;
   const stateKey = owner
     ? followStateKey(owner, target)
     : ["following-unavailable"];
-  const mutation = useMutation({
-    mutationKey,
-    // Fresh observation, the next explicit replacement or session disposal retires this target record.
-    gcTime: Infinity,
+  return useMutation({
+    mutationKey: owner
+      ? followMutationKey(owner, target)
+      : ["following-unavailable"],
     retry: false,
     networkMode: "always",
-    onMutate: async () => {
-      await client.cancelQueries({ queryKey: stateKey, exact: true });
-    },
-    mutationFn: async (following: boolean): Promise<FollowResult> => {
-      if (!owner || !owner.isCurrent(owner.generation))
-        throw new ApiError("cancelled");
-      // Credential preparation cannot have saved a write; only transport failures need reconciliation.
-      const requestOptions = await request();
-      try {
-        const state = await (target.type === "team"
-          ? replaceTeamFollowState(
-              owner.accountId,
-              target.id,
-              { following },
-              requestOptions,
-            )
-          : replacePoolFollowState(
-              owner.accountId,
-              target.id,
-              { following },
-              requestOptions,
-            ));
-        return { state, observed: false };
-      } catch (error) {
-        if (
-          !owner.isCurrent(owner.generation) ||
-          !isUncertainMutationFailure(error)
-        )
-          throw error;
-        // One bounded observation cannot prove that the original request has stopped.
-        try {
-          const previousUpdates =
-            client.getQueryState(stateKey)?.dataUpdateCount ?? 0;
-          const state = await client.query({
-            ...options,
-            staleTime: 0,
-            retry: false,
-            networkMode: "always",
-          });
-          // Native cancellation can resolve with reverted data; only a newly accepted read is evidence.
-          if (
-            !owner.isCurrent(owner.generation) ||
-            (client.getQueryState(stateKey)?.dataUpdateCount ?? 0) <=
-              previousUpdates
+    mutationFn: async (following: boolean) => {
+      if (!owner || !context.usable) throw new ApiError("cancelled");
+      const options = await request();
+      return target.type === "team"
+        ? replaceTeamFollowState(
+            owner.accountId,
+            target.id,
+            { following },
+            options,
           )
-            throw new ApiError("cancelled");
-          return { state, observed: true };
-        } catch (readError) {
-          // A failed observation cannot establish refusal of the original write.
-          if (isFollowRestriction(readError)) throw readError;
-          throw error;
-        }
+        : replacePoolFollowState(
+            owner.accountId,
+            target.id,
+            { following },
+            options,
+          );
+    },
+    onSettled: () => {
+      if (!owner) return;
+      void client.invalidateQueries({ queryKey: stateKey, exact: true });
+      void client.invalidateQueries({
+        queryKey: getGetFollowOptionsQueryKey(owner.accountId),
+      });
+      void client.invalidateQueries({ queryKey: followerCountKey(target) });
+      for (const queryKey of [
+        getListTeamFollowsQueryKey(owner.accountId),
+        getListPoolFollowsQueryKey(owner.accountId),
+        getListPersonalMatchesQueryKey(owner.accountId),
+      ]) {
+        void client.invalidateQueries({ queryKey });
       }
     },
-    /** Accepts the acknowledged/observed target and invalidates dependent personal/public reads. */
-    onSuccess: async function acceptFollowState(result) {
-      if (!owner?.isCurrent(owner.generation)) return;
-      await client.cancelQueries({ queryKey: stateKey, exact: true });
-      if (!owner.isCurrent(owner.generation)) return;
-      const current = client.getQueryState(stateKey);
-      if (isFollowRestriction(current?.error) && !result.observed) {
-        // The write may have been recorded before a newer visibility refusal arrived.
-        client
-          .getQueryCache()
-          .find({ queryKey: stateKey, exact: true })
-          ?.setState({
-            data: result.state,
-            dataUpdatedAt: Date.now(),
-            status: "error",
-            error: current.error,
-            errorUpdatedAt: current.errorUpdatedAt,
-          });
-      } else client.setQueryData(stateKey, result.state);
-      // Consumers own visible-tab enablement and must not supply former initial/placeholder data.
-      void Promise.allSettled([
-        client.resetQueries({
-          predicate: ({ queryKey }) =>
-            queryKey[0] === "session" &&
-            queryKey[1] === owner.generation &&
-            queryKey[2] === owner.accountId &&
-            typeof queryKey[4] === "string" &&
-            [
-              getListTeamFollowsQueryKey(owner.accountId)[0],
-              getListPoolFollowsQueryKey(owner.accountId)[0],
-              getListPersonalMatchesQueryKey(owner.accountId)[0],
-            ].some((path) => path === queryKey[4]),
-        }),
-        client.invalidateQueries({
-          queryKey: followOptionsKey(owner, bypass),
-          exact: true,
-        }),
-        client.invalidateQueries({
-          queryKey: followOptionsKey(owner, !bypass),
-          exact: true,
-        }),
-        client.invalidateQueries({
-          queryKey: followerCountKey(target),
-          exact: true,
-        }),
-        client.invalidateQueries({
-          queryKey: followerCountKey(target, owner),
-          exact: true,
-        }),
-      ]);
-    },
-    /** A confirmed restriction suspends the shared target until a later successful member read. */
-    onError: async function acceptFollowRestriction(error) {
-      if (!owner?.isCurrent(owner.generation) || !isFollowRestriction(error))
-        return;
-      await restrictFollowTarget(client, owner, target, error);
-    },
   });
-  const states = useMutationState({
-    filters: { mutationKey, exact: true },
-    select: ({ state }) => ({
-      status: state.status,
-      variables: state.variables,
-      error: state.error,
-    }),
-  });
-  const latest = states.at(-1);
-  return {
-    latest,
-    pending: latest?.status === "pending",
-    /** Ignores additional taps before awaiting cancellation or native credentials. */
-    start(following: boolean) {
-      if (
-        currentIdentity.current !== identity ||
-        !context.usable ||
-        !owner?.isCurrent(owner.generation)
-      )
-        return;
-      return startCommand(
-        client,
-        // F06 permits an explicit retry of the same replacement after its one bounded observation.
-        { groupKey: mutationKey, requiresRead: () => false },
-        () => {
-          retireSettledFollowAttempts(client, owner, target);
-          return mutation
-            .mutateAsync(following)
-            .finally(() =>
-              retireSettledCommands(
-                client,
-                mutationKey,
-                isUncertainMutationFailure,
-              ),
-            );
-        },
-      );
-    },
-  };
 }

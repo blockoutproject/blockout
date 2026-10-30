@@ -1,158 +1,104 @@
-import { useSyncExternalStore } from "react";
-import { publishCollectionRevision } from "./publish-collection-revision";
-import {
-  invalidateSeasonPreparation,
-  invalidateCollectionSeasons,
-} from "./invalidate-collection-reads";
-import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
-import { useCommand } from "../../../shared/query/use-command";
 import {
   useInfiniteQuery,
+  useMutation,
   useQuery,
   useQueryClient,
-  type QueryKey,
 } from "@tanstack/react-query";
-import { createCollectionQueries } from "./collection-queries";
-import { useAuth0 } from "react-native-auth0";
 import {
   confirmCollectionSourceSeason,
   createCollectionSource,
-  getGetMyAccountQueryKey,
+  getConfirmCollectionSourceSeasonMutationKey,
+  getCreateCollectionSourceMutationKey,
+  getLaunchCollectionSourcesMutationKey,
+  getRequestCollectionSourceValidationMutationKey,
+  getSetCollectionSourceCandidateMutationKey,
   launchCollectionSources,
   requestCollectionSourceValidation,
   setCollectionSourceCandidate,
-  getCreateCollectionSourceMutationKey,
-  getLaunchCollectionSourcesMutationKey,
-  getSetCollectionSourceCandidateMutationKey,
-  getRequestCollectionSourceValidationMutationKey,
-  getConfirmCollectionSourceSeasonMutationKey,
 } from "../../../../.generated/mobile";
 import type {
-  AccountResponse,
-  CollectionSeasonResponse,
   ConfirmSourceSeasonRequest,
   CreateSourceBindingRequest,
   LaunchCollectionSourcesRequest,
   RequestSourceValidationRequest,
   SetSourceCandidateRequest,
-  SourceBindingResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
-import { getSessionQueryKey } from "../../../shared/query/query-client";
-import { useAccountSession } from "../../accounts/current-account";
 import { useAdministrationCapabilities } from "../../access/api/use-administration-capabilities";
 import { useOperationalVersionAdmission } from "../../access/operational-version-admission";
+import { useAccountSession } from "../../accounts/current-account";
+import { createCollectionQueries } from "./collection-queries";
+import {
+  invalidateCollectionSeasons,
+  invalidateSeasonPreparation,
+} from "./invalidate-collection-reads";
 
 /** Current F05 identity and F12 grant for collection requests; server authorization remains authoritative. */
 export function useCollectionAuthority() {
   const session = useAccountSession();
   const capabilities = useAdministrationCapabilities();
   const version = useOperationalVersionAdmission();
-  const auth = useAuth0();
-  const client = useQueryClient();
   const enabled =
     capabilities.permissions?.manageCollection === true && version.satisfied;
-  /** Rechecks the live grant and required reads, including held confirmations and delayed credential retrieval. */
-  function assertAuthority(readKeys: readonly QueryKey[]) {
-    if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
-    version.assertCurrent();
-    const account = client.getQueryState<AccountResponse>(
-      getSessionQueryKey(session.generation, getGetMyAccountQueryKey()),
-    );
-    if (
-      account?.status !== "success" ||
-      account.data?.accountId !== session.accountId ||
-      account.data.permissions.manageCollection !== true
-    )
-      throw new ApiError("http", 403);
-    if (readKeys.some((key) => client.getQueryState(key)?.status !== "success"))
-      throw new ApiError("http", 403);
-  }
-  /** Reads need the grant; commands also require their current representations before and after credential retrieval. */
-  async function request(readKeys: readonly QueryKey[] = []) {
-    assertAuthority(readKeys);
-    const credentials = await auth.getCredentials();
-    assertAuthority(readKeys);
+  /** Supplies original-principal credentials; the server validates the action grant and revision. */
+  async function request() {
+    const credentials = await session.getCredentials();
     if (!credentials) throw new ApiError("http", 401);
     return {
-      session,
       headers: { Authorization: `Bearer ${credentials.accessToken}` },
     };
   }
   return { ...capabilities, session, enabled, request };
 }
-
 /** Lists canonical seasons only; reads never create seasons or contact a provider. */
 export function useCollectionSeasons() {
   const authority = useCollectionAuthority();
   const query = useQuery(createCollectionQueries(authority).seasons());
   return { authority, query };
 }
-
 /** Reads only the season needed by provider navigation, sharing its session-scoped cache with editors. */
 export function useCollectionSeason(seasonId: string) {
   const authority = useCollectionAuthority();
   const options = createCollectionQueries(authority).season(seasonId);
   const season = useQuery(options);
-  const client = useQueryClient();
-  const seasonInvalidated = useSyncExternalStore(
-    client.getQueryCache().subscribe,
-    () => client.getQueryState(options.queryKey)?.isInvalidated ?? false,
-  );
-  return { authority, season, seasonInvalidated, seasonKey: options.queryKey };
+  return { authority, season, seasonKey: options.queryKey };
 }
-
 /** Complete configuration reads and atomic selected-source launch; selection and drafts belong to the forms. */
 export function useSeasonPreparation(seasonId: string) {
-  const { authority, season, seasonInvalidated, seasonKey } =
-    useCollectionSeason(seasonId);
+  const { authority, season, seasonKey } = useCollectionSeason(seasonId);
   const client = useQueryClient();
   const sourcesOptions = createCollectionQueries(authority).sources(seasonId);
   const sourcesKey = sourcesOptions.queryKey;
   const sources = useQuery(sourcesOptions);
   /** A confirmed creation has no complete season projection; invalidate its two owning reads. */
   function acceptCreatedSource() {
-    if (!authority.session.isCurrent(authority.session.generation)) return;
-    invalidateSeasonPreparation(client, authority.session.generation, seasonId);
+    invalidateSeasonPreparation(client, seasonId);
   }
-  /** Publishes the accepted launch without replacing a newer season already read. */
-  async function acceptLaunchedSources(accepted: CollectionSeasonResponse) {
-    await client.cancelQueries({ queryKey: seasonKey, exact: true });
-    if (!authority.session.isCurrent(authority.session.generation)) return;
-    publishCollectionRevision(client, seasonKey, accepted);
+  /** Refreshes the season and sources after the launch attempt settles. */
+  function acceptLaunchedSources() {
+    void client.invalidateQueries({ queryKey: seasonKey, exact: true });
     void client.invalidateQueries({ queryKey: sourcesKey, exact: true });
-    invalidateCollectionSeasons(client, authority.session.generation);
+    invalidateCollectionSeasons(client);
   }
-  const create = useCommand(
-    {
-      mutationKey: [...seasonKey, ...getCreateCollectionSourceMutationKey()],
-      mutationFn: async (body: CreateSourceBindingRequest) =>
-        createCollectionSource(
-          seasonId,
-          body,
-          await authority.request([seasonKey, sourcesKey]),
-        ),
-      onSuccess: acceptCreatedSource,
-    },
-    { groupKey: seasonKey, requiresRead: requiresRevisionRead },
-  );
-  const launch = useCommand(
-    {
-      mutationKey: [...seasonKey, ...getLaunchCollectionSourcesMutationKey()],
-      mutationFn: async (body: LaunchCollectionSourcesRequest) =>
-        launchCollectionSources(
-          seasonId,
-          body,
-          await authority.request([seasonKey, sourcesKey]),
-        ),
-      onSuccess: acceptLaunchedSources,
-    },
-    { groupKey: seasonKey, requiresRead: requiresRevisionRead },
-  );
+  const create = useMutation({
+    retry: false,
+    networkMode: "always",
+    mutationKey: [...seasonKey, ...getCreateCollectionSourceMutationKey()],
+    mutationFn: async (body: CreateSourceBindingRequest) =>
+      createCollectionSource(seasonId, body, await authority.request()),
+    onSettled: acceptCreatedSource,
+  });
+  const launch = useMutation({
+    retry: false,
+    networkMode: "always",
+    mutationKey: [...seasonKey, ...getLaunchCollectionSourcesMutationKey()],
+    mutationFn: async (body: LaunchCollectionSourcesRequest) =>
+      launchCollectionSources(seasonId, body, await authority.request()),
+    onSettled: acceptLaunchedSources,
+  });
   return {
     authority,
     season,
-    seasonInvalidated,
     sources,
     create,
     launch,
@@ -160,74 +106,55 @@ export function useSeasonPreparation(seasonId: string) {
     sourcesKey,
   };
 }
-
 /** Candidate commands use canonical generated decoders, with explicit status reads and no polling. */
 export function useSourcePreparation(seasonId: string, sourceId: string) {
-  const { authority, season, seasonInvalidated, seasonKey } =
-    useCollectionSeason(seasonId);
+  const { authority, season, seasonKey } = useCollectionSeason(seasonId);
   const client = useQueryClient();
   const sourceOptions = createCollectionQueries(authority).source(sourceId);
   const queryKey = sourceOptions.queryKey;
   const source = useQuery(sourceOptions);
-  /** Cancels older reads before publishing the validated response and invalidating its season projections. */
-  async function accept(value: SourceBindingResponse) {
-    await client.cancelQueries({ queryKey, exact: true });
-    if (!authority.session.isCurrent(authority.session.generation)) return;
-    publishCollectionRevision(client, queryKey, value);
-    invalidateSeasonPreparation(client, authority.session.generation, seasonId);
+  /** Refreshes the original source and owning season after any explicit attempt. */
+  function accept() {
+    void client.invalidateQueries({ queryKey, exact: true });
+    invalidateSeasonPreparation(client, seasonId);
   }
-  const candidate = useCommand(
-    {
-      mutationKey: [
-        ...queryKey,
-        ...getSetCollectionSourceCandidateMutationKey(),
-      ],
-      mutationFn: async (body: SetSourceCandidateRequest) =>
-        setCollectionSourceCandidate(
-          sourceId,
-          body,
-          await authority.request([seasonKey, queryKey]),
-        ),
-      onSuccess: accept,
-    },
-    { groupKey: queryKey, requiresRead: requiresRevisionRead },
-  );
-  const validation = useCommand(
-    {
-      mutationKey: [
-        ...queryKey,
-        ...getRequestCollectionSourceValidationMutationKey(),
-      ],
-      mutationFn: async (body: RequestSourceValidationRequest) =>
-        requestCollectionSourceValidation(
-          sourceId,
-          body,
-          await authority.request([seasonKey, queryKey]),
-        ),
-      onSuccess: accept,
-    },
-    { groupKey: queryKey, requiresRead: requiresRevisionRead },
-  );
-  const confirmation = useCommand(
-    {
-      mutationKey: [
-        ...queryKey,
-        ...getConfirmCollectionSourceSeasonMutationKey(),
-      ],
-      mutationFn: async (body: ConfirmSourceSeasonRequest) =>
-        confirmCollectionSourceSeason(
-          sourceId,
-          body,
-          await authority.request([seasonKey, queryKey]),
-        ),
-      onSuccess: accept,
-    },
-    { groupKey: queryKey, requiresRead: requiresRevisionRead },
-  );
+  const candidate = useMutation({
+    retry: false,
+    networkMode: "always",
+    mutationKey: [...queryKey, ...getSetCollectionSourceCandidateMutationKey()],
+    mutationFn: async (body: SetSourceCandidateRequest) =>
+      setCollectionSourceCandidate(sourceId, body, await authority.request()),
+    onSettled: accept,
+  });
+  const validation = useMutation({
+    retry: false,
+    networkMode: "always",
+    mutationKey: [
+      ...queryKey,
+      ...getRequestCollectionSourceValidationMutationKey(),
+    ],
+    mutationFn: async (body: RequestSourceValidationRequest) =>
+      requestCollectionSourceValidation(
+        sourceId,
+        body,
+        await authority.request(),
+      ),
+    onSettled: accept,
+  });
+  const confirmation = useMutation({
+    retry: false,
+    networkMode: "always",
+    mutationKey: [
+      ...queryKey,
+      ...getConfirmCollectionSourceSeasonMutationKey(),
+    ],
+    mutationFn: async (body: ConfirmSourceSeasonRequest) =>
+      confirmCollectionSourceSeason(sourceId, body, await authority.request()),
+    onSettled: accept,
+  });
   return {
     authority,
     season,
-    seasonInvalidated,
     source,
     candidate,
     validation,
@@ -236,7 +163,6 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
     seasonKey,
   };
 }
-
 /** Paginates discovered direct children without importing classification, totals or provider data. */
 export function useSourceChildren(sourceId: string, parentId?: string) {
   const authority = useCollectionAuthority();

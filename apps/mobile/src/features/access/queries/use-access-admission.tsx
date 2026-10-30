@@ -1,14 +1,9 @@
 import {
   createContext,
   useContext,
-  useLayoutEffect,
-  useSyncExternalStore,
+  useEffect,
   type PropsWithChildren,
 } from "react";
-import { hashKey, useQueryClient } from "@tanstack/react-query";
-import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
-import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
-import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useAccountSession } from "../../accounts/current-account";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
 import { accessPresentation } from "../state/access-presentation";
@@ -23,42 +18,32 @@ function useAdmission() {
   const access = useApplicationAccess();
   const { permissions, hasCommands, account } = useAdministrationCapabilities();
   const session = useAccountSession();
-  const { getSnapshot, subscribe } = session;
-  const client = useQueryClient();
-  useLayoutEffect(() => {
-    /** Invalidates personal intent synchronously at a session boundary, including a return to the same account. */
-    function reconcileSession() {
-      if (!access.bypass.active(getSnapshot())) access.bypass.clear();
-    }
-    reconcileSession();
-    const stopSession = subscribe(reconcileSession);
-    // Observe only successful current-account changes: failed refreshes suspend use without erasing intent.
-    const stopAccount = client.getQueryCache().subscribe((event) => {
-      if (event.type !== "updated" || event.action.type !== "success") return;
-      const current = getSnapshot();
-      const queryKey = getSessionQueryKey(
-        current.generation,
-        getGetMyAccountQueryKey(),
-      );
-      if (event.query.queryHash !== hashKey(queryKey)) return;
-      const value = client.getQueryData<AccountResponse>(queryKey);
-      if (
-        value?.accountId === current.accountId &&
-        value.permissions.bypassMaintenance !== true
-      )
-        access.bypass.clear();
-    });
-    return () => {
-      stopSession();
-      stopAccount();
-    };
-  }, [client, getSnapshot, subscribe, access.bypass]);
-  useSyncExternalStore(access.bypass.subscribe, access.bypass.getSnapshot);
+  const { bypass, clearBypass } = access;
+  useEffect(() => {
+    if (
+      bypass &&
+      (bypass.subject !== session.subject ||
+        bypass.accountId !== session.accountId ||
+        !permissions?.bypassMaintenance ||
+        access.snapshot.maintenance?.active === false)
+    )
+      clearBypass();
+  }, [
+    bypass,
+    clearBypass,
+    session.subject,
+    session.accountId,
+    permissions?.bypassMaintenance,
+    access.snapshot.maintenance?.active,
+  ]);
   const { snapshot } = access;
   const { version } = accessPresentation(snapshot);
   const canBypass =
     permissions?.bypassMaintenance === true && version === "satisfied";
-  const bypassing = canBypass && access.bypass.active(session);
+  const bypassing =
+    canBypass &&
+    bypass?.subject === session.subject &&
+    bypass.accountId === session.accountId;
   const presentation = accessPresentation(snapshot, bypassing);
   const operations = version === "satisfied" && (hasCommands || canBypass);
   return {
@@ -82,7 +67,7 @@ function useAdmission() {
     },
     /** Records personal intent only from current grants, a complete check and the satisfied minimum. */
     bypassMaintenance() {
-      return access.bypass.request(
+      return access.requestBypass(
         session,
         canBypass &&
           snapshot.complete !== undefined &&

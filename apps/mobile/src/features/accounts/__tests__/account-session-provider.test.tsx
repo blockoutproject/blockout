@@ -1,524 +1,238 @@
+import { useQueryClient } from "@tanstack/react-query";
 import {
   act,
   cleanup,
   render,
   renderHook,
   screen,
-  userEvent,
+  waitFor,
 } from "@testing-library/react-native";
-import { useState } from "react";
-import { Pressable, Text, TextInput } from "react-native";
-import { useAuth0, type Credentials } from "react-native-auth0";
+import { Text } from "react-native";
+import { changeAccountProfile } from "../../../../.generated/mobile";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import {
   AccountSessionProvider,
   useAccountSession,
 } from "../session/account-session-provider";
+import { useCurrentAccount } from "../api/use-current-account";
+import { accountResponse } from "../test-support/account-response";
 import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
 
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
-// Keep the SDK's React provider, reducer and hooks real; only native I/O is controlled.
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
     "../test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
-
-const originalConfiguration = {
-  EXPO_PUBLIC_AUTH0_DOMAIN: process.env.EXPO_PUBLIC_AUTH0_DOMAIN,
-  EXPO_PUBLIC_AUTH0_CLIENT_ID: process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID,
-};
+jest.mock("expo/fetch", () => ({
+  fetch: (url: RequestInfo | URL, options?: RequestInit) =>
+    mockFetch(url, options),
+}));
+const mockFetch = jest.fn<
+  Promise<Response>,
+  [RequestInfo | URL, RequestInit?]
+>();
+const env = { ...process.env };
+const account = accountResponse();
 
 beforeEach(() => {
-  process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
-  process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
+  Object.assign(process.env, {
+    EXPO_PUBLIC_API_URL: "https://api.example.invalid",
+    EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
+    EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
+  });
   jest.mocked(initializeV2Installation).mockReset().mockResolvedValue();
-  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(false);
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(true);
   mockAuth0.getCredentials
     .mockReset()
     .mockResolvedValue(credentialsFor("auth0|a"));
-  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockAuth0.webAuth.mockReset().mockResolvedValue(credentialsFor("auth0|b"));
+  mockAuth0.webAuthLogout.mockReset().mockResolvedValue();
   mockAuth0.saveCredentials.mockReset().mockResolvedValue();
-  mockAuth0.webAuth.mockReset().mockResolvedValue(credentialsFor("auth0|a"));
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockFetch.mockReset().mockImplementation(async () => Response.json(account));
 });
-
 afterEach(async () => {
   await cleanup();
+  process.env = { ...env };
   jest.restoreAllMocks();
-  for (const [key, value] of Object.entries(originalConfiguration)) {
-    if (value === undefined) delete process.env[key];
-    else process.env[key] = value;
-  }
 });
 
-/** Exercises native actions from an ordinary app descendant, invalidating old work before logout. */
-function NativeAuthenticationControls() {
-  const auth = useAuth0();
-  const session = useAccountSession();
-  return (
-    <>
-      <Text>Native identity: {auth.user?.sub ?? "guest"}</Text>
-      {auth.error && <Text>Native error: {auth.error.message}</Text>}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Native sign in"
-        onPress={() => void session.signIn("https://api.example.invalid")}
-      >
-        <Text>Sign in</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Clear native credentials"
-        onPress={() => void session.clearCredentials()}
-      >
-        <Text>Clear credentials</Text>
-      </Pressable>
-    </>
-  );
+/** Reads the actual native/business boundary together; only SDK I/O and HTTPS are controlled. */
+function useIdentity() {
+  return { session: useAccountSession(), account: useCurrentAccount() };
 }
 
-/** Exercises session availability alongside public local state that must survive authentication changes. */
-function SessionConsumer({ work }: { work?: Promise<string> }) {
-  const session = useAccountSession();
-  const [draft, setDraft] = useState("");
-  return (
-    <>
-      <NativeAuthenticationControls />
-      <Text>Public content</Text>
-      <TextInput
-        accessibilityLabel="Public draft"
-        value={draft}
-        onChangeText={setDraft}
-      />
-      <Text>Authentication: {session.status}</Text>
-      {session.error instanceof Error && (
-        <Text>Error: {session.error.message}</Text>
-      )}
-      <Text>Account: {session.accountId ?? "unavailable"}</Text>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Retry initialization"
-        onPress={session.retryInitialization}
-      >
-        <Text>Retry</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Establish account"
-        onPress={() => session.setAccount(session.generation, "account-a")}
-      >
-        <Text>Establish</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Start account read"
-        onPress={() => {
-          const captured = session.generation;
-          void work?.then((accountId) =>
-            session.setAccount(captured, accountId),
-          );
-        }}
-      >
-        <Text>Read</Text>
-      </Pressable>
-    </>
-  );
-}
-
-it("finishes local initialization before mounting application consumers or restoring credentials", async () => {
+it("keeps consumers behind F14 initialization before restoring native identity", async () => {
   // Given
   const initialization = Promise.withResolvers<void>();
-  jest.mocked(initializeV2Installation).mockReturnValue(initialization.promise);
+  jest
+    .mocked(initializeV2Installation)
+    .mockReturnValueOnce(initialization.promise);
   await render(
-    <AccountSessionProvider>
-      <SessionConsumer />
+    <AccountSessionProvider fallback={<Text>Preparing installation</Text>}>
+      <Text>Application</Text>
     </AccountSessionProvider>,
   );
-  expect(screen.queryByText("Public content")).not.toBeOnTheScreen();
+  // When / Then
+  expect(screen.getByText("Preparing installation")).toBeOnTheScreen();
+  expect(screen.queryByText("Application")).not.toBeOnTheScreen();
   expect(mockAuth0.hasValidCredentials).not.toHaveBeenCalled();
-
   // When
   await act(async () => initialization.resolve());
-
   // Then
-  expect(screen.getByText("Public content")).toBeOnTheScreen();
-  expect(screen.getByText("Authentication: guest")).toBeOnTheScreen();
-  expect(mockAuth0.hasValidCredentials).toHaveBeenCalledTimes(1);
+  expect(await screen.findByText("Application")).toBeOnTheScreen();
+  expect(mockAuth0.hasValidCredentials).toHaveBeenCalled();
 });
 
-it("retains guest access after initialization failures and replaces that navigation on successful retry", async () => {
+it("restores through Auth0 and derives the business UUID from the native account query", async () => {
+  // Given
+  const hook = await renderHook(useIdentity, {
+    wrapper: AccountSessionProvider,
+  });
+  // When / Then
+  await waitFor(() =>
+    expect(hook.result.current.account.data).toEqual(account),
+  );
+  expect(hook.result.current.session.subject).toBe("auth0|a");
+  expect(hook.result.current.session.accountId).toBe(account.accountId);
+  expect(hook.result.current.session.status).toBe("authenticated");
+  expect(
+    mockFetch.mock.calls.every(([, options]) => options?.method !== "POST"),
+  ).toBe(true);
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+});
+
+it("retains guest navigation after initialization failure and retries explicitly", async () => {
   // Given
   jest
     .mocked(initializeV2Installation)
-    .mockRejectedValueOnce(new Error("Storage unavailable"))
-    .mockRejectedValueOnce(new Error("Storage still unavailable"));
-  const user = userEvent.setup();
-  await render(
-    <AccountSessionProvider>
-      <SessionConsumer />
-    </AccountSessionProvider>,
-  );
-  expect(
-    screen.getByText("Authentication: initialization-error"),
-  ).toBeOnTheScreen();
-  expect(mockAuth0.hasValidCredentials).not.toHaveBeenCalled();
-  await user.type(screen.getByLabelText("Public draft"), "Paris");
-
-  // When
-  await user.press(
-    screen.getByRole("button", { name: "Retry initialization" }),
-  );
-
-  // Then
-  expect(
-    screen.getByText("Error: Storage still unavailable"),
-  ).toBeOnTheScreen();
-  expect(screen.getByDisplayValue("Paris")).toBeOnTheScreen();
-  expect(mockAuth0.hasValidCredentials).not.toHaveBeenCalled();
-
-  // When
-  await user.press(
-    screen.getByRole("button", { name: "Retry initialization" }),
-  );
-
-  // Then
-  expect(screen.getByText("Authentication: guest")).toBeOnTheScreen();
-  expect(screen.getByText("Public content")).toBeOnTheScreen();
-  expect(screen.getByLabelText("Public draft")).toHaveDisplayValue("");
-});
-
-it("distinguishes native restoration and authenticated identity from an unavailable business account", async () => {
-  // Given
-  const restoration = Promise.withResolvers<Credentials>();
-  mockAuth0.hasValidCredentials.mockResolvedValue(true);
-  mockAuth0.getCredentials.mockReturnValueOnce(restoration.promise);
-  await render(
-    <AccountSessionProvider>
-      <SessionConsumer />
-    </AccountSessionProvider>,
-  );
-  expect(screen.getByText("Authentication: restoring")).toBeOnTheScreen();
-
-  // When
-  await act(async () => restoration.resolve(credentialsFor("auth0|a")));
-
-  // Then
-  expect(screen.getByText("Authentication: authenticated")).toBeOnTheScreen();
-  expect(screen.getByText("Account: unavailable")).toBeOnTheScreen();
-});
-
-it.each(["auth0|a", "auth0|b"])(
-  "preserves public editing and discards an old account read across A to guest to %s",
-  async (nextSubject) => {
-    // Given
-    mockAuth0.hasValidCredentials.mockResolvedValue(true);
-    const work = Promise.withResolvers<string>();
-    const user = userEvent.setup();
-    await render(
-      <AccountSessionProvider>
-        <SessionConsumer work={work.promise} />
-      </AccountSessionProvider>,
-    );
-    await user.type(screen.getByLabelText("Public draft"), "Paris");
-    await user.press(screen.getByRole("button", { name: "Establish account" }));
-    await user.press(
-      screen.getByRole("button", { name: "Start account read" }),
-    );
-
-    // When
-    await user.press(
-      screen.getByRole("button", { name: "Clear native credentials" }),
-    );
-    expect(screen.getByText("Authentication: guest")).toBeOnTheScreen();
-    expect(screen.getByText("Account: unavailable")).toBeOnTheScreen();
-    mockAuth0.webAuth.mockResolvedValueOnce(credentialsFor(nextSubject));
-    await user.press(screen.getByRole("button", { name: "Native sign in" }));
-    await act(async () => work.resolve("account-a"));
-
-    // Then
-    expect(
-      screen.getByText(`Native identity: ${nextSubject}`),
-    ).toBeOnTheScreen();
-    expect(screen.getByText("Authentication: authenticated")).toBeOnTheScreen();
-    expect(screen.getByText("Account: unavailable")).toBeOnTheScreen();
-    expect(screen.getByDisplayValue("Paris")).toBeOnTheScreen();
-  },
-);
-
-it("preserves the account context when native credential retrieval fails transiently", async () => {
-  // Given
-  mockAuth0.hasValidCredentials.mockResolvedValue(true);
-  const hook = await renderHook(
-    () => ({ auth: useAuth0(), session: useAccountSession() }),
-    { wrapper: AccountSessionProvider },
-  );
-  const failure = new Error("Network unavailable");
-  mockAuth0.getCredentials.mockRejectedValueOnce(failure);
-  const captured = hook.result.current.session.generation;
-  await act(async () => {
-    hook.result.current.session.setAccount(captured, "account-a");
+    .mockRejectedValueOnce(new Error("Storage unavailable"));
+  const hook = await renderHook(useAccountSession, {
+    wrapper: AccountSessionProvider,
   });
-
-  // When
-  await act(async () => {
-    await expect(hook.result.current.auth.getCredentials()).rejects.toThrow(
-      failure.message,
-    );
-  });
-
-  // Then
-  expect(hook.result.current.session.status).toBe("authenticated");
-  expect(hook.result.current.session.accountId).toBe("account-a");
-  expect(hook.result.current.session.generation).toBe(captured);
-});
-
-it("returns native credentials without inferring a business account", async () => {
-  // Given
-  mockAuth0.hasValidCredentials.mockResolvedValue(true);
-  const hook = await renderHook(
-    () => ({ auth: useAuth0(), session: useAccountSession() }),
-    { wrapper: AccountSessionProvider },
+  await waitFor(() =>
+    expect(hook.result.current.status).toBe("initialization-error"),
   );
-  const credentials = credentialsFor("auth0|a");
-  mockAuth0.getCredentials.mockResolvedValueOnce(credentials);
-  const captured = hook.result.current.session.generation;
-
+  expect(mockFetch).not.toHaveBeenCalled();
   // When
-  let result: Credentials | undefined;
-  await act(async () => {
-    result = await hook.result.current.auth.getCredentials();
-  });
-
+  await act(() => hook.result.current.retryInitialization());
   // Then
-  expect(result).toBe(credentials);
-  expect(hook.result.current.session.generation).toBe(captured);
-  expect(hook.result.current.session.accountId).toBeNull();
-});
-
-it("leaves public access available when native authentication is not configured", async () => {
-  // Given
-  delete process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
-
-  // When
-  await render(
-    <AccountSessionProvider>
-      <SessionConsumer />
-    </AccountSessionProvider>,
-  );
-
-  // Then
-  expect(screen.getByText("Public content")).toBeOnTheScreen();
-  expect(
-    screen.getByText("Authentication: initialization-error"),
-  ).toBeOnTheScreen();
-  expect(mockAuth0.hasValidCredentials).not.toHaveBeenCalled();
-  expect(initializeV2Installation).not.toHaveBeenCalled();
-});
-
-it("exposes the SDK context to ordinary app descendants", async () => {
-  // Given
-  mockAuth0.hasValidCredentials.mockResolvedValue(true);
-
-  // When
-  const hook = await renderHook(
-    () => ({ auth: useAuth0(), session: useAccountSession() }),
-    {
-      wrapper: AccountSessionProvider,
-    },
-  );
-
-  // Then
-  expect(hook.result.current.auth.user?.sub).toBe("auth0|a");
-  expect(hook.result.current.session.status).toBe("authenticated");
-});
-
-it("retries SDK restoration explicitly after a network failure without clearing credentials or logging in", async () => {
-  // Given
-  mockAuth0.hasValidCredentials.mockResolvedValue(true);
-  mockAuth0.getCredentials.mockRejectedValueOnce(
-    new Error("Network unavailable"),
-  );
-  const hook = await renderHook(
-    () => ({ auth: useAuth0(), session: useAccountSession() }),
-    {
-      wrapper: AccountSessionProvider,
-    },
-  );
-  expect(hook.result.current.session.status).toBe("authentication-error");
-  const previousSession = hook.result.current.session;
-
-  // When
-  await act(async () => previousSession.retryAuthentication());
-
-  // Then
-  expect(hook.result.current.session.status).toBe("authenticated");
-  expect(hook.result.current.auth.user?.sub).toBe("auth0|a");
-  expect(hook.result.current.session.error).toBeNull();
-  expect(previousSession.isCurrent(previousSession.generation)).toBe(false);
+  await waitFor(() => expect(hook.result.current.status).toBe("authenticated"));
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
-  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
-  expect(initializeV2Installation).toHaveBeenCalledTimes(1);
 });
 
-it("leaves a second restoration failure visible until another explicit retry", async () => {
+it("does not dispatch an original account command with a different principal's credentials", async () => {
   // Given
-  mockAuth0.hasValidCredentials.mockResolvedValue(true);
-  mockAuth0.getCredentials.mockRejectedValue(new Error("Network unavailable"));
+  const hook = await renderHook(useIdentity, {
+    wrapper: AccountSessionProvider,
+  });
+  await waitFor(() =>
+    expect(hook.result.current.session.accountId).toBe(account.accountId),
+  );
+  const original = hook.result.current.session;
+  mockAuth0.getCredentials.mockResolvedValue(credentialsFor("auth0|b"));
+  // When
+  await act(async () => {
+    const write = original
+      .getCredentials()
+      .then((credentials) =>
+        changeAccountProfile(
+          account.accountId,
+          { metadata: { username: "Alice" } },
+          { headers: { Authorization: `Bearer ${credentials.accessToken}` } },
+        ),
+      );
+    await expect(write).rejects.toMatchObject({ kind: "cancelled" });
+  });
+  // Then
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+  ).toBe(false);
+});
+
+it("returns the SDK's explicit login principal without establishing on restoration", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(false);
   const hook = await renderHook(useAccountSession, {
     wrapper: AccountSessionProvider,
   });
-
-  // When
-  await act(async () => hook.result.current.retryAuthentication());
-
-  // Then
-  expect(hook.result.current.status).toBe("authentication-error");
-  expect(mockAuth0.getCredentials).toHaveBeenCalledTimes(2);
-  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
-  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
-});
-
-it("invalidates private work immediately even when native credential clearing is still pending", async () => {
-  // Given
-  mockAuth0.hasValidCredentials.mockResolvedValue(true);
-  const hook = await renderHook(useAccountSession, {
-    wrapper: AccountSessionProvider,
-  });
-  const captured = hook.result.current.generation;
-  await act(async () => {
-    hook.result.current.setAccount(captured, "account-a");
-  });
-  const clearing = Promise.withResolvers<void>();
-  mockAuth0.clearCredentials.mockReturnValueOnce(clearing.promise);
-
-  // When
-  let completion: Promise<void>;
-  await act(async () => {
-    completion = hook.result.current.clearCredentials();
-  });
-
-  // Then
-  expect(hook.result.current.isCurrent(captured)).toBe(false);
-  expect(hook.result.current.accountId).toBeNull();
-  expect(hook.result.current.setAccount(captured, "late-account")).toBe(false);
-
-  // When
-  await act(async () => {
-    clearing.resolve();
-    await completion;
-  });
-
-  // Then
   expect(hook.result.current.status).toBe("guest");
-});
-
-it("keeps a newer local sign-out pending when an older hosted login completes", async () => {
-  // Given: SDK session state remains real; only the two native completions are controlled.
-  const login = Promise.withResolvers<Credentials>();
-  const clearing = Promise.withResolvers<void>();
-  mockAuth0.webAuth.mockReturnValueOnce(login.promise);
-  mockAuth0.clearCredentials.mockReturnValueOnce(clearing.promise);
-  const hook = await renderHook(useAccountSession, {
-    wrapper: AccountSessionProvider,
-  });
-  let signingIn: ReturnType<ReturnType<typeof useAccountSession>["signIn"]>;
-  let signingOut: Promise<void>;
-  await act(async () => {
-    signingIn = hook.result.current.signIn("https://api.example.invalid");
-  });
-  await act(async () => {
-    signingOut = hook.result.current.clearCredentials();
-  });
-
+  mockAuth0.getCredentials.mockResolvedValue(credentialsFor("auth0|b"));
   // When
+  let login: Awaited<ReturnType<typeof hook.result.current.signIn>>;
   await act(async () => {
-    login.resolve(credentialsFor("auth0|a"));
-    await signingIn;
+    login = await hook.result.current.signIn("https://api.example.invalid");
   });
-
-  // Then: completing old native work cannot reopen business admission during the current command.
-  expect(hook.result.current.status).toBe("signing-out");
-  expect(hook.result.current.accountId).toBeNull();
-
-  // When
-  await act(async () => {
-    clearing.resolve();
-    await signingOut;
-  });
-
   // Then
-  expect(hook.result.current.status).toBe("guest");
-});
-
-it("suppresses same-turn native login duplicates and captures the successful business generation", async () => {
-  // Given
-  const login = Promise.withResolvers<Credentials>();
-  mockAuth0.webAuth.mockReturnValueOnce(login.promise);
-  const hook = await renderHook(useAccountSession, {
-    wrapper: AccountSessionProvider,
-  });
-  const original = hook.result.current.generation;
-  const action = hook.result.current.signIn;
-  let first: ReturnType<typeof action> | undefined;
-  let duplicate: ReturnType<typeof action> | undefined;
-
-  // When
-  await act(() => {
-    first = action("https://api.example.invalid");
-    duplicate = action("https://api.example.invalid");
-  });
-
-  // Then
+  expect(login?.subject).toBe("auth0|b");
+  await expect(login?.getCredentials()).resolves.toEqual(
+    credentialsFor("auth0|b"),
+  );
   expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
-  await expect(duplicate).resolves.toBeUndefined();
-  expect(hook.result.current.status).toBe("authenticating");
-  expect(hook.result.current.isCurrent(original)).toBe(false);
-
-  // When
-  await act(async () => {
-    login.resolve(credentialsFor("auth0|a"));
-    const established = await first;
-    if (!established)
-      throw new Error("Successful login must supply its captured generation");
-    established.setAccount(established.generation, "account-a");
-  });
-
-  // Then
-  expect(hook.result.current.status).toBe("authenticated");
-  expect(hook.result.current.accountId).toBe("account-a");
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
+  ).toBe(false);
 });
 
-it("suppresses same-turn local logout duplicates without releasing the pending operation", async () => {
+it("does not restore A's native identity after B has signed in while A credentials were pending", async () => {
   // Given
-  mockAuth0.hasValidCredentials.mockResolvedValue(true);
-  const clearing = Promise.withResolvers<void>();
-  mockAuth0.clearCredentials.mockReturnValueOnce(clearing.promise);
-  const hook = await renderHook(useAccountSession, {
-    wrapper: AccountSessionProvider,
+  const credentialsA = { ...credentialsFor("auth0|a"), accessToken: "token-a" };
+  const credentialsB = { ...credentialsFor("auth0|b"), accessToken: "token-b" };
+  const accountB = accountResponse({
+    accountId: "00000000-0000-4000-8000-000000000002",
+    username: "Bob",
   });
-  const action = hook.result.current.clearCredentials;
-  let first: Promise<void> | undefined;
-
-  // When
-  await act(() => {
-    first = action();
-    void action();
-  });
-
-  // Then
-  expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
-  expect(hook.result.current.status).toBe("signing-out");
-
-  // When
+  mockAuth0.getCredentials.mockResolvedValue(credentialsA);
+  mockAuth0.webAuth.mockResolvedValue(credentialsB);
+  mockFetch.mockImplementation(async (_url, options) =>
+    Response.json(
+      new Headers(options?.headers).get("Authorization") === "Bearer token-b"
+        ? accountB
+        : account,
+    ),
+  );
+  const hook = await renderHook(
+    () => ({ ...useIdentity(), client: useQueryClient() }),
+    { wrapper: AccountSessionProvider },
+  );
+  await waitFor(() =>
+    expect(hook.result.current.session.accountId).toBe(account.accountId),
+  );
+  const original = hook.result.current.session;
+  const delayed = Promise.withResolvers<typeof credentialsA>();
+  mockAuth0.getCredentials
+    .mockReturnValueOnce(delayed.promise)
+    .mockResolvedValue(credentialsB);
+  let oldRead: Promise<unknown> | undefined;
   await act(async () => {
-    clearing.resolve();
-    await first;
+    oldRead = original.getCredentials();
   });
-
-  // Then
-  expect(hook.result.current.status).toBe("guest");
-  expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    await hook.result.current.session.signIn("https://api.example.invalid");
+  });
+  await waitFor(() =>
+    expect(hook.result.current.session.accountId).toBe(accountB.accountId),
+  );
+  const currentClient = hook.result.current.client;
+  // Freeze any unintended new restoration so a transient wrong native identity cannot hide itself.
+  const nextCredentials = Promise.withResolvers<typeof credentialsB>();
+  mockAuth0.getCredentials.mockReturnValue(nextCredentials.promise);
+  try {
+    // When
+    await act(async () => {
+      delayed.resolve(credentialsA);
+      await oldRead;
+    });
+    // Then
+    expect(hook.result.current.session.subject).toBe("auth0|b");
+    expect(hook.result.current.session.accountId).toBe(accountB.accountId);
+    expect(hook.result.current.client).toBe(currentClient);
+    expect(hook.result.current.account.data).toEqual(accountB);
+  } finally {
+    await act(async () => nextCredentials.resolve(credentialsB));
+  }
 });

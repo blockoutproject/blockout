@@ -4,8 +4,6 @@ import {
   type ImageManipulatorContext,
 } from "expo-image-manipulator";
 import { File } from "expo-file-system";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { createSessionGeneration } from "../session/session-generation";
 import { prepareProfilePhoto } from "../profile/prepare-profile-photo";
 
 jest.mock("expo-image-manipulator", () => ({
@@ -28,7 +26,7 @@ const prepared = {
   exists: true,
   delete: jest.fn(),
 };
-const session = createSessionGeneration();
+
 const asset = {
   uri: "file:///original.heic",
   width: 2400,
@@ -53,10 +51,9 @@ beforeEach(() => {
 
 it("adapts a large cropped source once and checks the prepared PNG instead of the original size", async () => {
   // Given
-  const captured = { ...session, ...session.getSnapshot() };
 
   // When
-  const result = await prepareProfilePhoto(asset, captured);
+  const result = await prepareProfilePhoto(asset);
 
   // Then
   expect(ImageManipulator.manipulate).toHaveBeenCalledTimes(1);
@@ -79,10 +76,7 @@ it("does not enlarge small squares", async () => {
   });
 
   // When
-  await prepareProfilePhoto(
-    { ...asset, width: 64, height: 64 },
-    { ...session, ...session.getSnapshot() },
-  );
+  await prepareProfilePhoto({ ...asset, width: 64, height: 64 });
 
   // Then
   expect(context.resize).toHaveBeenCalledWith({ width: 64 });
@@ -97,28 +91,10 @@ it.each([0, 5 * 1024 * 1024 + 1])(
       .mockImplementation(() => ({ ...prepared, size }) as unknown as File);
 
     // When / Then
-    await expect(
-      prepareProfilePhoto(asset, { ...session, ...session.getSnapshot() }),
-    ).rejects.toThrow();
+    await expect(prepareProfilePhoto(asset)).rejects.toThrow();
     expect(prepared.delete).toHaveBeenCalledTimes(1);
   },
 );
-
-it("discards preparation completed after an A to guest to A transition", async () => {
-  // Given
-  const captured = { ...session, ...session.getSnapshot() };
-  image.saveAsync.mockImplementation(async () => {
-    session.invalidate();
-    session.setAccount(session.getSnapshot().generation, "same-account");
-    return { uri: "file:///prepared.png", width: 1024, height: 1024 };
-  });
-
-  // When / Then
-  await expect(
-    prepareProfilePhoto(asset, captured),
-  ).rejects.toMatchObject<ApiError>({ kind: "cancelled" } as ApiError);
-  expect(prepared.delete).toHaveBeenCalledTimes(1);
-});
 
 it.each([
   [1200, 900],
@@ -126,10 +102,7 @@ it.each([
 ])("refuses a non-square crop %i x %i", async (width, height) => {
   // Given / When / Then
   await expect(
-    prepareProfilePhoto(
-      { ...asset, width, height },
-      { ...session, ...session.getSnapshot() },
-    ),
+    prepareProfilePhoto({ ...asset, width, height }),
   ).rejects.toThrow();
   expect(ImageManipulator.manipulate).not.toHaveBeenCalled();
 });

@@ -44,9 +44,10 @@ export interface FollowedListsProps {
   active: boolean;
   bypass: boolean;
 }
-
 /** Render-only current identity slots; no follow state or loaded-count total is inferred from them. */
-type FollowedItem = SportingEntityCardProps & { kind: FollowingTarget["type"] };
+type FollowedItem = SportingEntityCardProps & {
+  kind: FollowingTarget["type"];
+};
 /** One virtualized native list holds headers, cards and independent read boundaries. */
 type FollowedRow =
   | {
@@ -60,7 +61,6 @@ type FollowedRow =
       resource: FollowingTarget["type"];
       item: FollowedItem;
     };
-
 /** UUIDs retain their first position and latest current summary after offset movement; homonyms stay distinct. */
 function followedItems(
   pages: readonly FollowListPage[] | undefined,
@@ -95,7 +95,6 @@ function followedItems(
     ).values(),
   ];
 }
-
 /** Native Query owns retained pages and reset semantics; explicit events alone publish read feedback. */
 function useFollowedList(
   props: FollowedListsProps,
@@ -136,12 +135,7 @@ function useFollowedList(
       return;
     feedback.clear();
     const result = await query.fetchNextPage();
-    if (
-      result.isError &&
-      current.current === identity &&
-      props.owner.isCurrent(props.owner.generation)
-    )
-      feedback.error();
+    if (result.isError && current.current === identity) feedback.error();
   }
   /** An unchanged-context pull replaces one page only on success and keeps authorized rows on failure. */
   async function refresh() {
@@ -151,17 +145,12 @@ function useFollowedList(
     try {
       await client.infiniteQuery({ ...options, staleTime: 0, pages: 1 });
     } catch {
-      if (
-        current.current === identity &&
-        props.owner.isCurrent(props.owner.generation) &&
-        client.getQueryData(options.queryKey)
-      )
+      if (current.current === identity && client.getQueryData(options.queryKey))
         feedback.error();
     }
   }
   return { query, items: followedItems(query.data?.pages), append, refresh };
 }
-
 /** Approved Home sections retain native scroll context and open exact F03 sheets through the existing F11 owner. */
 export function FollowedLists(props: FollowedListsProps) {
   const [expanded, setExpanded] = useState({ team: true, pool: true });
@@ -305,7 +294,6 @@ export function FollowedLists(props: FollowedListsProps) {
     />
   );
 }
-
 /** Empty current visibility offers manual discovery without claiming that retained relations were erased. */
 function NoAvailableFollows() {
   const router = useRouter();

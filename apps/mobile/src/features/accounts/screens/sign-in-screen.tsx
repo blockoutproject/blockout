@@ -41,7 +41,7 @@ export function SignInScreen({ admitted }: SignInScreenProps) {
   );
 }
 
-/** Owns one admitted login attempt; late native completion cannot restart a discarded journey. */
+/** Starts account establishment from the explicit login event, independently of its rendered lifetime. */
 function SignInJourney() {
   const router = useRouter();
   const session = useAccountSession();
@@ -58,7 +58,7 @@ function SignInJourney() {
   const busy =
     session.status === "authenticating" ||
     session.status === "signing-out" ||
-    establishment.pending ||
+    establishment.isPending ||
     session.status === "restoring";
 
   useEffect(() => {
@@ -70,7 +70,7 @@ function SignInJourney() {
 
   /** Starts either hosted authentication or a targeted retry using still-valid SDK credentials. */
   async function signIn() {
-    if (busy || session.getSnapshot().operation) return;
+    if (busy || session.operation) return;
     setSupportOrigin({ screen: "sign-in" });
     feedback.clear();
     const audience = process.env.EXPO_PUBLIC_AUTH0_AUDIENCE;
@@ -78,27 +78,28 @@ function SignInJourney() {
       feedback.error();
       return;
     }
-    let generation = session.generation;
     let authenticating = session.status !== "authenticated";
     try {
       let authenticated;
       if (session.status === "authenticated") authenticated = session;
       else {
         setLoginAttempted(true);
-        const login = session.signIn(audience ?? "");
-        generation = session.getSnapshot().generation;
-        authenticated = await login;
+        authenticated = await session.signIn(audience ?? "");
       }
-      if (!authenticated || !mounted.current || !session.isCurrent(generation))
-        return;
+      if (!authenticated?.subject) return;
       authenticating = false;
-      const attempt = establishment.start(authenticated);
-      if (!attempt) return;
+      const attempt = establishment.mutateAsync({
+        subject: authenticated.subject,
+        getCredentials: authenticated.getCredentials,
+      });
       await attempt;
-      if (mounted.current && session.isCurrent(generation))
-        router.replace("/profile");
+      router.replace("/profile");
     } catch (error) {
-      if (!mounted.current || !session.isCurrent(generation)) return;
+      if (!authenticating) {
+        router.replace("/profile");
+        return;
+      }
+      if (!mounted.current) return;
       setSupportOrigin({
         screen: "sign-in",
         failureStage: authenticating
@@ -110,16 +111,12 @@ function SignInJourney() {
             ? "cancelled"
             : "unavailable",
       });
-      if (!authenticating) {
-        feedback.error(undefined, generation);
-        return;
-      }
       let message: string | undefined;
       if (error instanceof WebAuthError) {
         if (error.type === WebAuthErrorCodes.USER_CANCELLED)
           message = "Connexion annulée.";
       }
-      feedback.error(message, generation);
+      feedback.error(message);
     }
   }
 
@@ -187,11 +184,12 @@ function SignInJourney() {
           ) : (
             <Button
               label={
-                establishment.status === "error" &&
-                !(
-                  establishment.error instanceof ApiError &&
-                  establishment.error.kind === "cancelled"
-                )
+                (session.status === "authenticated" && !session.accountId) ||
+                (establishment.status === "error" &&
+                  !(
+                    establishment.error instanceof ApiError &&
+                    establishment.error.kind === "cancelled"
+                  ))
                   ? "Réessayer"
                   : "Se connecter"
               }

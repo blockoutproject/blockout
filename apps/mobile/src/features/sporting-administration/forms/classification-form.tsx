@@ -1,36 +1,30 @@
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
-import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
-import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
-import {
-  genderLabel,
-  formatLabel,
-} from "../../sporting/classification-presentation";
-import {
-  classificationSchema,
-  type ClassificationValues,
-} from "../schemas/classification-schema";
-import { classificationValues } from "./classification-values";
-import { toClassificationRequest } from "../api/classification-request";
-import { SelectField } from "../../../shared/components/select-field";
 import { useRouter } from "expo-router";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { useForm, useFormState, useWatch, Controller } from "react-hook-form";
+import { useEffect, useRef } from "react";
+import { Controller, useFormState, useWatch } from "react-hook-form";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ClassificationDetailResponse } from "../../../../.generated/schemas/index.zod";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { ApiError } from "../../../shared/api/api-fetch";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
-
+import { SelectField } from "../../../shared/components/select-field";
+import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
+import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import {
+  formatLabel,
+  genderLabel,
+} from "../../sporting/classification-presentation";
 import type {
   ClassificationTarget,
   useClassification,
   useDivisions,
 } from "../api/classification";
-import { classificationEditor } from "./classification-editor";
+import { toClassificationRequest } from "../api/classification-request";
+import { type ClassificationValues } from "../schemas/classification-schema";
+import { classificationValues } from "./classification-values";
+import { useClassificationDraft } from "./use-classification-draft";
 
 /** One current resource, its generated operations and original-session draft. */
 export interface ClassificationFormProps {
@@ -47,26 +41,15 @@ export function ClassificationForm({
   divisions,
 }: ClassificationFormProps) {
   const router = useRouter();
-  const { session } = editing.authority;
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();
   const confirmAction = useActionConfirmation();
   const mounted = useRef(false);
-  const [editor] = useState(() =>
-    classificationEditor(session, target, current),
-  );
-  const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
+  const editor = useClassificationDraft(target, current);
+  const state = editor.state;
   const { baseline } = state;
-  const feedback =
-    state.feedback ??
-    (editing.save.needsRead
-      ? "Le résultat doit être vérifié. Relisez l’état courant avant de réessayer. Votre brouillon est conservé."
-      : undefined);
-  const { control, handleSubmit, reset, setError } =
-    useForm<ClassificationValues>({
-      resolver: zodResolver(classificationSchema),
-      formControl: editor.form.formControl,
-    });
+  const feedback = state.feedback ?? undefined;
+  const { control, handleSubmit, reset, setError } = editor.form;
   const { isDirty, dirtyFields } = useFormState({
     control,
   });
@@ -79,25 +62,21 @@ export function ClassificationForm({
   const busy =
     editing.query.isError ||
     !editing.authority.enabled ||
-    editing.save.pending ||
+    editing.save.isPending ||
     editing.query.isFetching ||
     divisions.query.isFetching;
-  const rereadRequired =
-    editing.save.needsRead || current.revision !== baseline.revision;
+  const rereadRequired = current.revision !== baseline.revision;
   const choices =
     divisions.query.data?.items.filter((item) => item.active) ?? [];
-
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
     };
   }, []);
-
   /** Validates active choices, awaits confirmation and sends the complete state against its original revision. */
   async function submit(values: ClassificationValues) {
-    if (busy || rereadRequired || !session.isCurrent(session.generation))
-      return;
+    if (busy || rereadRequired) return;
     if (
       values.custom &&
       (!divisions.query.isSuccess ||
@@ -114,28 +93,24 @@ export function ClassificationForm({
         message:
           "La correction est appliquée entièrement ou refusée. Retirer le réglage conserve les identités et la dernière classification publiée ; cela peut arrêter la collecte.",
         confirmLabel: "Enregistrer",
-      })) ||
-      !session.isCurrent(session.generation)
+      }))
     )
       return;
     try {
-      const attempt = editing.save.start(
+      const attempt = editing.save.mutateAsync(
         toClassificationRequest(baseline.revision, values),
       );
-      if (!attempt) return;
-      editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      editor.update({ ...editor.state, feedback: undefined });
       actionFeedback.clear();
       const accepted = await attempt;
-      if (!session.isCurrent(session.generation)) return;
       editor.update({
         baseline: accepted,
         feedback: undefined,
       });
       reset(classificationValues(accepted));
     } catch (error) {
-      if (!session.isCurrent(session.generation)) return;
-      if (!requiresRevisionRead(error)) {
-        editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      if (!(error instanceof ApiError && error.status === 409)) {
+        editor.update({ ...editor.state, feedback: undefined });
         actionFeedback.error();
         return;
       }
@@ -153,24 +128,17 @@ export function ClassificationForm({
             ? "La classification a changé depuis votre lecture. Relisez l’état courant avant de confirmer votre brouillon."
             : "Le résultat doit être vérifié. Relisez l’état courant avant de réessayer.";
       editor.update({
-        ...editor.getSnapshot(),
+        ...editor.state,
         feedback: `${reason}${Array.isArray(conflictIds) && conflictIds.length > 0 ? ` Périmètres en conflit : ${conflictIds.join(", ")}.` : ""} Votre brouillon est conservé.`,
       });
     }
   }
   /** Updates the revision and non-dirty values only after successful reads, without sending a write. */
   async function reread() {
-    const {
-      result: [result, available],
-      reconciled,
-    } = await editing.save.reconcile(
-      [editing.queryKey, divisions.queryKey],
-      () => Promise.all([editing.query.refetch(), divisions.query.refetch()]),
-      ([result, available]) =>
-        !result.isError && !!result.data && !available.isError,
-    );
-    if (!mounted.current || !session.isCurrent(session.generation)) return;
-    if (!reconciled || result.isError || !result.data || available.isError) {
+    const [result, available] = await (() =>
+      Promise.all([editing.query.refetch(), divisions.query.refetch()]))();
+    if (!mounted.current) return;
+    if (result.isError || !result.data || available.isError) {
       actionFeedback.error();
       return;
     }
@@ -315,7 +283,7 @@ export function ClassificationForm({
         label="Enregistrer"
         fullWidth
         disabled={busy || rereadRequired}
-        loading={editing.save.executing}
+        loading={editing.save.isPending}
         onPress={() => void handleSubmit(submit)()}
       />
     </View>

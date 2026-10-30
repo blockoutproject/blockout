@@ -1,7 +1,13 @@
+import {
+  useLayoutEffect,
+  useState as useQueryFixtureState,
+  type PropsWithChildren as QueryFixtureProps,
+  ReactElement,
+} from "react";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
-import type { ReactElement } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -80,7 +86,8 @@ const olderSeason = {
   startYear: 2026,
 };
 const secondPoolId = "00000000-0000-4000-8000-000000000012";
-let client = createQueryClient();
+let client: QueryClient;
+let publicClient = createQueryClient();
 let club: ClubDetailResponse;
 let team: TeamDetailResponse;
 let pool: PoolDetailResponse;
@@ -137,8 +144,22 @@ function reads(url: string): Promise<Response> {
   throw new Error(`Unexpected controlled request ${path}`);
 }
 
+/** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
+function PrivateQueries({ children }: QueryFixtureProps) {
+  const current = useQueryClient();
+  // Configure this fresh real client before descendant public observers start their first request.
+  useQueryFixtureState(() => {
+    current.setQueryDefaults([], { retry: false });
+    return true;
+  });
+  useLayoutEffect(() => {
+    client = current;
+  }, [current]);
+  return children;
+}
+
 beforeEach(() => {
-  client = createQueryClient();
+  publicClient = createQueryClient();
   match = matchDetail();
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
@@ -172,7 +193,8 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await cleanup();
-  client.clear();
+  client?.clear();
+  publicClient.clear();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
@@ -188,12 +210,14 @@ async function renderPage(content: ReactElement) {
             insets: { top: 0, right: 0, bottom: 0, left: 0 },
           }}
         >
-          <QueryClientProvider client={client}>
+          <QueryClientProvider client={publicClient}>
             <ThemeProvider>
               <ActionFeedbackProvider scopeKey="test">
                 <ApplicationAccessProvider>
                   <AccountSessionProvider>
-                    <AdvertisingProviders>{children}</AdvertisingProviders>
+                    <PrivateQueries>
+                      <AdvertisingProviders>{children}</AdvertisingProviders>
+                    </PrivateQueries>
                   </AccountSessionProvider>
                 </ApplicationAccessProvider>
               </ActionFeedbackProvider>
@@ -909,183 +933,101 @@ it("suppresses a retained team after a current visibility refusal", async () => 
   expect(mockBack).toHaveBeenCalledTimes(1);
 });
 
-it("keeps a team readable when its own logo fails", async () => {
+it("keeps a team readable when its native public logo fails", async () => {
   // Given
   team.team.team.logoUrl = `/teams/${sportingId}/logo`;
-  mockFetch.mockImplementation((url: string) =>
-    url.includes("/logo")
-      ? Promise.reject(new TypeError("offline"))
-      : reads(url),
-  );
   await renderPage(<TeamScreen teamId={sportingId} />);
+  const image = await screen.findByRole("image", {
+    name: `Logo : ${team.team.team.name}`,
+  });
 
   // When
-  await screen.findByText("Logo indisponible");
+  await fireEvent(image, "error", {
+    nativeEvent: { error: "Native decode failed" },
+  });
 
   // Then
+  await screen.findByText("Logo indisponible");
   expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
-  expect(screen.getByRole("tab", { name: "À venir" })).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/logo")),
-  ).toHaveLength(1);
+  ).toHaveLength(0);
 });
-
-it("retains a usable logo through a failed refresh and clears it after a current refusal", async () => {
-  // Given: only native binary conversion and HTTP are controlled; Query retains the representation.
-  const previousReader = Object.getOwnPropertyDescriptor(
-    globalThis,
-    "FileReader",
-  );
-  /** Completes native binary conversion synchronously; HTTP and Query remain real. */
-  class LogoReader {
-    static LOADING = 1;
-    readyState = 2;
-    result = "data:image/png;base64,c3ludGhldGlj";
-    onload?: () => void;
-    onerror?: () => void;
-    /** Supplies a successfully converted image without testing the platform decoder. */
-    readAsDataURL() {
-      this.onload?.();
-    }
-  }
-  Object.defineProperty(globalThis, "FileReader", {
-    configurable: true,
-    value: LogoReader,
-  });
-  try {
-    team.team.team.logoUrl = `/teams/${sportingId}/logo`;
-    team.team.team.shortName = "VDR";
-    mockFetch.mockImplementation((url: string) =>
-      new URL(url).pathname.endsWith("/logo")
-        ? Promise.resolve(
-            new Response("synthetic", {
-              headers: { "Content-Type": "image/png" },
-            }),
-          )
-        : reads(url),
-    );
-    await renderPage(<TeamScreen teamId={sportingId} />);
-    await screen.findByText(team.team.team.name);
-    await screen.findByRole("image", { name: `Logo : ${team.team.team.name}` });
-    mockFetch.mockImplementation((url: string) =>
-      new URL(url).pathname.endsWith("/logo")
-        ? Promise.reject(new TypeError("offline"))
-        : reads(url),
-    );
-
-    // When
-    await act(async () => {
-      await client.refetchQueries({
-        predicate: (query) =>
-          query.queryKey.includes(`/teams/${sportingId}/logo`),
-      });
-    });
-
-    // Then
-    expect(
-      await screen.findByRole("image", {
-        name: `Logo non actualisé : ${team.team.team.name}`,
-      }),
-    ).toBeOnTheScreen();
-    expect(screen.getByText("Logo non actualisé")).toBeOnTheScreen();
-    expect(screen.queryByText("VDR")).not.toBeOnTheScreen();
-    mockFetch.mockImplementation((url: string) =>
-      new URL(url).pathname.endsWith("/logo")
-        ? Promise.resolve(Response.json({ status: 404 }, { status: 404 }))
-        : reads(url),
-    );
-    await act(async () => {
-      await client.refetchQueries({
-        predicate: (query) =>
-          query.queryKey.includes(`/teams/${sportingId}/logo`),
-      });
-    });
-    expect(await screen.findByText("Logo indisponible")).toBeOnTheScreen();
-    expect(
-      screen.getByRole("image", {
-        name: `Logo indisponible : ${team.team.team.name}`,
-      }),
-    ).toBeOnTheScreen();
-    expect(screen.queryByText("VDR")).not.toBeOnTheScreen();
-    expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
-  } finally {
-    await cleanup();
-    if (previousReader)
-      Object.defineProperty(globalThis, "FileReader", previousReader);
-    else Reflect.deleteProperty(globalThis, "FileReader");
-  }
-});
-
-it("shows a new valid logo after decoding the previous blob failed", async () => {
+it("loads a public logo directly without native caching and unmounts it after its resource is refused", async () => {
   // Given
-  const previousReader = Object.getOwnPropertyDescriptor(
-    globalThis,
-    "FileReader",
-  );
-  let decodeFails = true;
-  /** Controls only native binary decoding; HTTP and Query still replace the actual Blob. */
-  class LogoReader {
-    static LOADING = 1;
-    readyState = 2;
-    result = "data:image/png;base64,cmVjb3ZlcmVk";
-    onload?: () => void;
-    onerror?: () => void;
-    /** Reports the scenario's current native decoding result. */
-    readAsDataURL() {
-      if (decodeFails) this.onerror?.();
-      else this.onload?.();
-    }
-  }
-  Object.defineProperty(globalThis, "FileReader", {
-    configurable: true,
-    value: LogoReader,
+  team.team.team.logoUrl = `/teams/${sportingId}/logo`;
+  await renderPage(<TeamScreen teamId={sportingId} />);
+  const image = await screen.findByRole("image", {
+    name: `Logo : ${team.team.team.name}`,
   });
-  try {
-    team.team.team.logoUrl = `/teams/${sportingId}/logo`;
-    team.team.team.shortName = "VDR";
-    mockFetch.mockImplementation((url: string) =>
-      new URL(url).pathname.endsWith("/logo")
-        ? Promise.resolve(
-            new Response("synthetic", {
-              headers: { "Content-Type": "image/png" },
-            }),
-          )
-        : reads(url),
-    );
-    await renderPage(<TeamScreen teamId={sportingId} />);
-    await screen.findByText("Logo indisponible");
+  expect(image).toHaveProp(
+    "source",
+    expect.arrayContaining([
+      { uri: `https://api.example.invalid/teams/${sportingId}/logo` },
+    ]),
+  );
+  expect(image).toHaveProp("cachePolicy", "none");
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith(`/teams/${sportingId}`)
+      ? Promise.resolve(Response.json({}, { status: 403 }))
+      : reads(url),
+  );
 
-    // When
-    decodeFails = false;
-    await act(async () => {
-      await client.refetchQueries({
-        predicate: (query) =>
-          query.queryKey.includes(`/teams/${sportingId}/logo`),
-      });
-    });
+  // When
+  await act(async () =>
+    client.refetchQueries({ queryKey: [`/teams/${sportingId}`], exact: true }),
+  );
 
-    // Then
+  // Then
+  await waitFor(() =>
     expect(
-      await screen.findByRole("image", {
-        name: `Logo : ${team.team.team.name}`,
-      }),
-    ).toBeOnTheScreen();
-    expect(screen.queryByText("Logo indisponible")).not.toBeOnTheScreen();
-    expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
-    expect(screen.queryByText("VDR")).not.toBeOnTheScreen();
-    expect(
-      mockFetch.mock.calls.filter(([url]) =>
-        new URL(url).pathname.endsWith("/logo"),
-      ),
-    ).toHaveLength(2);
-  } finally {
-    await cleanup();
-    if (previousReader)
-      Object.defineProperty(globalThis, "FileReader", previousReader);
-    else Reflect.deleteProperty(globalThis, "FileReader");
-  }
+      screen.queryByRole("image", { name: `Logo : ${team.team.team.name}` }),
+    ).not.toBeOnTheScreen(),
+  );
+  expect(
+    mockFetch.mock.calls.filter(([url]) => String(url).includes("/logo")),
+  ).toHaveLength(0);
 });
+it("shows a new native logo source after the previously published source failed", async () => {
+  // Given
+  team.team.team.logoUrl = `/teams/${sportingId}/logo?revision=1`;
+  await renderPage(<TeamScreen teamId={sportingId} />);
+  await fireEvent(
+    await screen.findByRole("image", { name: `Logo : ${team.team.team.name}` }),
+    "error",
+    { nativeEvent: { error: "Native decode failed" } },
+  );
+  await screen.findByText("Logo indisponible");
 
+  // When
+  team = {
+    ...team,
+    team: {
+      ...team.team,
+      team: {
+        ...team.team.team,
+        logoUrl: `/teams/${sportingId}/logo?revision=2`,
+      },
+    },
+  };
+  await act(async () =>
+    client.refetchQueries({ queryKey: [`/teams/${sportingId}`], exact: true }),
+  );
+
+  // Then
+  const image = await screen.findByRole("image", {
+    name: `Logo : ${team.team.team.name}`,
+  });
+  expect(image).toHaveProp(
+    "source",
+    expect.arrayContaining([
+      {
+        uri: `https://api.example.invalid/teams/${sportingId}/logo?revision=2`,
+      },
+    ]),
+  );
+  expect(screen.queryByText("Logo indisponible")).not.toBeOnTheScreen();
+});
 it("retains the club teams when returning to a visited tab without an implicit reread", async () => {
   // Given
   const user = userEvent.setup();
@@ -1269,4 +1211,27 @@ it("opens the generated club-season calendar with its own explicit refresh", asy
   expect(request?.searchParams.get("clubId")).toBe(sportingId);
   expect(request?.searchParams.get("seasonId")).toBe(season.id);
   expect(request?.searchParams.get("category")).toBe("upcoming");
+});
+
+it.each([
+  "https://foreign.example.invalid/logo.png",
+  "https://reader:secret@api.example.invalid/logo.png",
+  "javascript:alert(1)",
+])("keeps an unsafe public logo reference inert: %s", async (logoUrl) => {
+  // Given
+  team.team.team.logoUrl = logoUrl;
+
+  // When
+  await renderPage(<TeamScreen teamId={sportingId} />);
+
+  // Then
+  expect(
+    await screen.findByRole("image", {
+      name: `Logo indisponible : ${team.team.team.name}`,
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([url]) => String(url).includes("/logo")),
+  ).toBe(false);
 });

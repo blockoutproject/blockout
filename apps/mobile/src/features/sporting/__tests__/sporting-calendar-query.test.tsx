@@ -1,14 +1,12 @@
 import {
   InfiniteQueryObserver,
-  focusManager,
-  onlineManager,
   QueryClientProvider,
+  useInfiniteQuery,
 } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { PropsWithChildren } from "react";
 import type { MatchCalendarResponse } from "../../../../.generated/schemas/index.zod";
 import { createQueryClient } from "../../../shared/query/query-client";
-import { createSessionGeneration } from "../../accounts/session/session-generation";
 import { createConsultationQueries } from "../api/consultation-queries";
 import {
   calendarDays,
@@ -17,6 +15,7 @@ import {
 } from "../api/sporting-calendar";
 import { matchDetail, sportingId } from "../test-support/consultation-data";
 import { useCalendarGrouping } from "../api/use-calendar-grouping";
+import { currentSportingTimeZone } from "../model/sporting-time";
 
 jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),
@@ -29,10 +28,9 @@ const selection = {
   timeZone: "Europe/Paris",
 };
 let client = createQueryClient();
-const session = createSessionGeneration();
 const queries = createConsultationQueries(
-  { ...session.getSnapshot(), isCurrent: session.isCurrent },
-  { request: (options) => options },
+  { subject: null, accountId: null },
+  { request: (value) => value },
   jest.fn(),
 );
 
@@ -59,203 +57,120 @@ function page(
 }
 beforeEach(() => {
   client = createQueryClient();
+  client.setQueryDefaults([], { retry: false });
   mockFetch.mockReset();
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
 });
 afterEach(() => {
   client.clear();
-  onlineManager.setOnline(true);
-  focusManager.setFocused(undefined);
   if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
   else process.env.EXPO_PUBLIC_API_URL = originalUrl;
 });
 
-it("retains observed pages through focus reconnect and invalidation without a reread", async () => {
+it("uses native server cursors and refetches every retained page on explicit invalidation", async () => {
   // Given
   const options = createCalendarOptions(queries, selection);
-  mockFetch
-    .mockResolvedValueOnce(
-      Response.json(page("2026-09-20", sportingId, "2026-09-20")),
-    )
-    .mockResolvedValueOnce(
-      Response.json(page("2026-09-21", "00000000-0000-4000-8000-000000000003")),
-    );
-  await client.infiniteQuery(options);
-  const observer = new InfiniteQueryObserver(client, options);
-  const unsubscribe = observer.subscribe(() => {});
-  await observer.fetchNextPage();
-
-  // When
-  focusManager.setFocused(true);
-  onlineManager.setOnline(false);
-  onlineManager.setOnline(true);
-  await client.invalidateQueries({ queryKey: options.queryKey });
-
-  // Then
-  expect(observer.getCurrentResult().data?.pages).toHaveLength(2);
-  expect(mockFetch).toHaveBeenCalledTimes(2);
-  expect(new URL(mockFetch.mock.calls[1][0]).searchParams.get("nextDay")).toBe(
-    "2026-09-20",
+  mockFetch.mockImplementation(async (url: string) =>
+    Response.json(
+      new URL(url).searchParams.has("nextDay")
+        ? page("2026-09-21", "00000000-0000-4000-8000-000000000003")
+        : page("2026-09-20", sportingId, "2026-09-20"),
+    ),
   );
-  unsubscribe();
+  const observer = new InfiniteQueryObserver(client, options);
+  const close = observer.subscribe(() => {});
+  try {
+    await waitFor(() =>
+      expect(observer.getCurrentResult().isSuccess).toBe(true),
+    );
+    await observer.fetchNextPage();
+
+    // When
+    await refreshCalendar(client, options);
+
+    // Then
+    expect(observer.getCurrentResult().data?.pages).toHaveLength(2);
+    expect(
+      mockFetch.mock.calls.map(([url]) =>
+        new URL(url).searchParams.get("nextDay"),
+      ),
+    ).toEqual([null, "2026-09-20", null, "2026-09-20"]);
+  } finally {
+    close();
+  }
 });
 
-it("discards an unmounted calendar so a new page opening reads a fresh first page", async () => {
-  // Given: a retained page keeps its observer; closing it removes the last observer.
+it("retains an unobserved traversal under native cache lifetime and rereads it on entry", async () => {
+  // Given
   const options = createCalendarOptions(queries, selection);
-  mockFetch.mockResolvedValueOnce(Response.json(page("2026-09-20")));
-  const first = new InfiniteQueryObserver(client, options);
-  const close = first.subscribe(() => {});
-  await waitFor(() => expect(first.getCurrentResult().isSuccess).toBe(true));
+  mockFetch.mockImplementation(async () => Response.json(page("2026-09-20")));
+  const observer = new InfiniteQueryObserver(client, options);
+  const close = observer.subscribe(() => {});
+  await waitFor(() => expect(observer.getCurrentResult().isSuccess).toBe(true));
 
   // When
   close();
-  await waitFor(() =>
-    expect(client.getQueryData(options.queryKey)).toBeUndefined(),
-  );
-  mockFetch.mockResolvedValueOnce(Response.json(page("2026-09-22")));
+
+  // Then
+  expect(client.getQueryData(options.queryKey)).toBeDefined();
+
+  // When
   const reopened = new InfiniteQueryObserver(client, options);
-  const unsubscribe = reopened.subscribe(() => {});
-
-  // Then
-  await waitFor(() =>
-    expect(reopened.getCurrentResult().data?.pages).toEqual([
-      page("2026-09-22"),
-    ]),
-  );
-  expect(mockFetch).toHaveBeenCalledTimes(2);
-  unsubscribe();
+  const closeReopened = reopened.subscribe(() => {});
+  try {
+    // Then
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
+  } finally {
+    closeReopened();
+  }
 });
 
-it("suppresses every retained category of a refused selector and cancels its late append", async () => {
-  // Given: two visited categories and an unrelated resource in the same session.
-  const upcoming = createCalendarOptions(queries, selection);
-  const completed = createCalendarOptions(queries, {
-    ...selection,
-    category: "completed",
-  });
-  const other = createCalendarOptions(queries, {
-    ...selection,
-    teamId: "00000000-0000-4000-8000-000000000003",
-  });
-  mockFetch.mockImplementation((url: string) =>
-    Promise.resolve(
-      Response.json({
-        ...page("2026-09-20", sportingId, "2026-09-20"),
-        category: new URL(url).searchParams.get("category"),
-      }),
-    ),
-  );
-  const observers = [upcoming, completed, other].map(
-    (options) => new InfiniteQueryObserver(client, options),
-  );
-  const subscriptions = observers.map((observer) =>
-    observer.subscribe(() => {}),
-  );
-  await waitFor(() =>
-    observers.forEach((observer) =>
-      expect(observer.getCurrentResult().isSuccess).toBe(true),
-    ),
-  );
-  const late = Promise.withResolvers<Response>();
-  mockFetch.mockReturnValueOnce(late.promise);
-  const pending = observers[1].fetchNextPage();
-  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(4));
-  mockFetch.mockResolvedValueOnce(Response.json({}, { status: 404 }));
-
-  // When
-  await expect(refreshCalendar(client, upcoming)).rejects.toBeDefined();
-  late.resolve(Response.json(page("2026-09-21")));
-  await pending;
-
-  // Then
-  expect(client.getQueryData(upcoming.queryKey)).toBeUndefined();
-  expect(client.getQueryData(completed.queryKey)).toBeUndefined();
-  expect(client.getQueryData(other.queryKey)).toBeDefined();
-  subscriptions.forEach((unsubscribe) => unsubscribe());
-});
-
-it("replaces multiple pages with only the successful first-page refresh", async () => {
-  // Given
-  const options = createCalendarOptions(queries, selection);
-  mockFetch
-    .mockResolvedValueOnce(
-      Response.json(page("2026-09-20", sportingId, "2026-09-20")),
-    )
-    .mockResolvedValueOnce(
-      Response.json(page("2026-09-21", "00000000-0000-4000-8000-000000000003")),
-    );
-  const observer = new InfiniteQueryObserver(client, options);
-  const unsubscribe = observer.subscribe(() => {});
-  await waitFor(() => expect(observer.getCurrentResult().isSuccess).toBe(true));
-  await observer.fetchNextPage();
-  mockFetch.mockResolvedValueOnce(Response.json(page("2026-09-22")));
-
-  // When
-  await refreshCalendar(client, options);
-
-  // Then
-  expect(observer.getCurrentResult().data?.pages).toEqual([page("2026-09-22")]);
-  expect(mockFetch).toHaveBeenCalledTimes(3);
-  expect(new URL(mockFetch.mock.calls[2][0]).searchParams.has("nextDay")).toBe(
-    false,
-  );
-  unsubscribe();
-});
-
-it("retains authorized pages and continuation on failed append and offline refresh without replay", async () => {
+it("retains accepted days and the continuation after an append fails", async () => {
   // Given
   const options = createCalendarOptions(queries, selection);
   mockFetch.mockResolvedValueOnce(
     Response.json(page("2026-09-20", sportingId, "2026-09-20")),
   );
   const observer = new InfiniteQueryObserver(client, options);
-  const unsubscribe = observer.subscribe(() => {});
-  await waitFor(() => expect(observer.getCurrentResult().isSuccess).toBe(true));
-  const retained = observer.getCurrentResult().data;
-  mockFetch.mockRejectedValue(new TypeError("Controlled offline transport"));
+  const close = observer.subscribe(() => {});
+  try {
+    await waitFor(() =>
+      expect(observer.getCurrentResult().isSuccess).toBe(true),
+    );
+    mockFetch.mockRejectedValueOnce(new TypeError("Unavailable"));
 
-  // When
-  await observer.fetchNextPage();
-  onlineManager.setOnline(false);
-  await expect(refreshCalendar(client, options)).rejects.toBeDefined();
-  onlineManager.setOnline(true);
+    // When
+    await observer.fetchNextPage();
 
-  // Then
-  expect(observer.getCurrentResult().data).toEqual(retained);
-  expect(observer.getCurrentResult().hasNextPage).toBe(true);
-  expect(observer.getCurrentResult().fetchStatus).toBe("idle");
-  expect(mockFetch).toHaveBeenCalledTimes(3);
-  unsubscribe();
+    // Then
+    expect(observer.getCurrentResult().isFetchNextPageError).toBe(true);
+    expect(observer.getCurrentResult().data?.pages).toHaveLength(1);
+    expect(observer.getCurrentResult().hasNextPage).toBe(true);
+  } finally {
+    close();
+  }
 });
 
-it("cancels old pagination before a replacement and rejects its late completion", async () => {
+it("purges this calendar's refused content before a later technical failure", async () => {
   // Given
   const options = createCalendarOptions(queries, selection);
-  const old = Promise.withResolvers<Response>();
-  mockFetch
-    .mockResolvedValueOnce(
-      Response.json(page("2026-09-20", sportingId, "2026-09-20")),
-    )
-    .mockReturnValueOnce(old.promise);
-  const observer = new InfiniteQueryObserver(client, options);
-  const unsubscribe = observer.subscribe(() => {});
-  await waitFor(() => expect(observer.getCurrentResult().isSuccess).toBe(true));
-  const pending = observer.fetchNextPage();
-  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
-  mockFetch.mockResolvedValueOnce(Response.json(page("2026-09-22")));
+  mockFetch.mockResolvedValueOnce(Response.json(page("2026-09-20")));
+  await client.infiniteQuery(options);
+  mockFetch.mockResolvedValueOnce(Response.json({}, { status: 403 }));
+  await expect(client.infiniteQuery(options)).rejects.toMatchObject({
+    status: 403,
+  });
+  mockFetch.mockResolvedValueOnce(Response.json({}, { status: 503 }));
 
   // When
-  await refreshCalendar(client, options);
-  old.resolve(Response.json(page("2026-09-21")));
-  await pending;
+  const later = client.infiniteQuery(options);
 
   // Then
-  expect(observer.getCurrentResult().data?.pages).toEqual([page("2026-09-22")]);
-  unsubscribe();
+  await expect(later).rejects.toMatchObject({ status: 503 });
+  expect(client.getQueryData(options.queryKey)).toBeUndefined();
 });
 
-it("removes known forbidden data before a later transport failure can redisplay it", async () => {
+it("keeps benign calendar projections until their own refresh after a detail refusal", async () => {
   // Given
   const options = createCalendarOptions(queries, selection);
   mockFetch.mockResolvedValueOnce(Response.json(page("2026-09-20")));
@@ -263,48 +178,74 @@ it("removes known forbidden data before a later transport failure can redisplay 
   mockFetch.mockResolvedValueOnce(Response.json({}, { status: 404 }));
 
   // When
-  await expect(refreshCalendar(client, options)).rejects.toBeDefined();
-  mockFetch.mockRejectedValueOnce(new TypeError("offline"));
-  await expect(refreshCalendar(client, options)).rejects.toBeDefined();
+  await expect(client.query(queries.match(sportingId))).rejects.toMatchObject({
+    status: 404,
+  });
 
   // Then
-  expect(client.getQueryData(options.queryKey)).toBeUndefined();
+  expect(calendarDays(client.getQueryData(options.queryKey))).toHaveLength(1);
+
+  // When
+  mockFetch.mockResolvedValueOnce(
+    Response.json({ ...page("2026-09-20"), days: [] }),
+  );
+  await client.infiniteQuery(options);
+
+  // Then
+  expect(calendarDays(client.getQueryData(options.queryKey))).toEqual([]);
 });
 
-it("removes a refused match detail from retained calendars without reclassifying other rows", async () => {
-  // Given: actual generated detail/calendar requests share the current session and Query cache.
-  const options = createCalendarOptions(queries, selection);
-  const first = page("2026-09-20", sportingId, "2026-09-20");
-  const otherId = "00000000-0000-4000-8000-000000000003";
-  first.days[0].pools[0].matches.push({ ...matchDetail().match, id: otherId });
-  mockFetch.mockResolvedValueOnce(Response.json(first));
-  const observer = new InfiniteQueryObserver(client, options);
-  const unsubscribe = observer.subscribe(() => {});
-  await waitFor(() => expect(observer.getCurrentResult().isSuccess).toBe(true));
-  const late = Promise.withResolvers<Response>();
-  mockFetch.mockReturnValueOnce(late.promise);
-  const append = observer.fetchNextPage();
-  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
-  mockFetch.mockResolvedValueOnce(Response.json({}, { status: 404 }));
+it("shows ordinary new-zone loading and failure without adopting previous-zone groups", async () => {
+  // Given
+  const initialZone = currentSportingTimeZone();
+  const nextZone = initialZone === "UTC" ? "Europe/Paris" : "UTC";
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation(async (url: string) =>
+    new URL(url).searchParams.get("timeZone") === nextZone
+      ? response.promise
+      : Response.json({ ...page("2026-09-20"), timeZone: initialZone }),
+  );
+  const { result } = await renderHook(
+    () => {
+      const grouping = useCalendarGrouping((zone) =>
+        createCalendarOptions(queries, { ...selection, timeZone: zone }),
+      );
+      const calendar = useInfiniteQuery(
+        createCalendarOptions(queries, {
+          ...selection,
+          timeZone: grouping.timeZone,
+        }),
+      );
+      return { ...grouping, calendar };
+    },
+    {
+      wrapper: ({ children }: PropsWithChildren) => (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      ),
+    },
+  );
+  await waitFor(() => expect(result.current.calendar.isSuccess).toBe(true));
 
-  // When: a late calendar response deliberately ignores abort after current detail refuses the match.
-  await expect(client.query(queries.match(sportingId))).rejects.toBeDefined();
-  late.resolve(Response.json(page("2026-09-21")));
-  await append;
+  // When
+  await act(async () => result.current.refresh(nextZone));
 
   // Then
+  expect(result.current.timeZone).toBe(nextZone);
+  expect(result.current.calendar.isPending).toBe(true);
+  expect(result.current.calendar.data).toBeUndefined();
+
+  // When
+  await act(async () => response.resolve(Response.json({}, { status: 503 })));
+
+  // Then
+  await waitFor(() => expect(result.current.calendar.isError).toBe(true));
+  expect(result.current.calendar.data).toBeUndefined();
   expect(
-    calendarDays(observer.getCurrentResult().data).flatMap((day) =>
-      day.pools.flatMap((pool) => pool.matches.map((match) => match.id)),
+    client.getQueryData(
+      createCalendarOptions(queries, { ...selection, timeZone: initialZone })
+        .queryKey,
     ),
-  ).toEqual([otherId]);
-  expect(observer.getCurrentResult().data?.pages[0].evaluatedAt).toBe(
-    first.evaluatedAt,
-  );
-  expect(observer.getCurrentResult().data?.pages[0].nextDay).toBe(
-    first.nextDay,
-  );
-  unsubscribe();
+  ).toBeDefined();
 });
 
 it("deduplicates appended identities while preserving server day pool and category order", () => {
@@ -322,125 +263,3 @@ it("deduplicates appended identities while preserving server day pool and catego
   // Then
   expect(days.map((day) => day.date)).toEqual(["2026-09-20", "2026-09-22"]);
 });
-
-it("keeps a successful new-zone first page through native zero-delay collection until the calendar closes", async () => {
-  // Given: native Query timers control collection and Intl supplies a fixed initial device zone.
-  // Pin native Intl before the fake timer adapter wraps each formatter's methods.
-  const resolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
-  const deviceZone = jest
-    .spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions")
-    .mockImplementation(function (this: Intl.DateTimeFormat) {
-      return { ...resolvedOptions.call(this), timeZone: "Europe/Paris" };
-    });
-  jest.useFakeTimers();
-  try {
-    const accepted = { ...page("2026-09-20"), timeZone: "America/New_York" };
-    mockFetch.mockImplementation(async () => Response.json(accepted));
-    /** Supplies only the root Query context for the real grouping hook. */
-    function Provider({ children }: PropsWithChildren) {
-      return (
-        <QueryClientProvider client={client}>{children}</QueryClientProvider>
-      );
-    }
-    const { result, unmount } = await renderHook(
-      () =>
-        useCalendarGrouping((timeZone) =>
-          createCalendarOptions(queries, { ...selection, timeZone }),
-        ),
-      { wrapper: Provider },
-    );
-    expect(result.current.timeZone).toBe("Europe/Paris");
-
-    // When: native collection runs before React's next data observer adopts the new key.
-    await act(async () => {
-      await result.current.refresh("America/New_York");
-    });
-    await act(async () => {
-      await jest.advanceTimersByTimeAsync(0);
-    });
-
-    // Then
-    const options = createCalendarOptions(queries, {
-      ...selection,
-      timeZone: "America/New_York",
-    });
-    expect(client.getQueryData(options.queryKey)).toEqual({
-      pages: [accepted],
-      pageParams: [undefined],
-    });
-    const observer = new InfiniteQueryObserver(client, options);
-    const unsubscribe = observer.subscribe(() => {});
-    expect(observer.getCurrentResult().isSuccess).toBe(true);
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-
-    // When / Then: the closed calendar still releases its unobserved traversal immediately.
-    unsubscribe();
-    await unmount();
-    await act(async () => {
-      await jest.advanceTimersByTimeAsync(0);
-    });
-    expect(client.getQueryData(options.queryKey)).toBeUndefined();
-  } finally {
-    deviceZone.mockRestore();
-    jest.useRealTimers();
-  }
-});
-
-it.each(["resource", "season", "category", "session"] as const)(
-  "rejects an obsolete traversal after a %s context change",
-  async (change) => {
-    // Given: real observers/generated transport; the old network peer deliberately ignores abort.
-    const generation = createSessionGeneration();
-    const captured = createConsultationQueries(
-      { ...generation.getSnapshot(), isCurrent: generation.isCurrent },
-      { request: (options) => options },
-      jest.fn(),
-    );
-    const initial = {
-      clubId: sportingId,
-      seasonId: sportingId,
-      category: "upcoming" as const,
-      timeZone: "Europe/Paris",
-    };
-    const old = Promise.withResolvers<Response>();
-    mockFetch.mockReturnValueOnce(old.promise);
-    const first = createCalendarOptions(captured, initial);
-    const observer = new InfiniteQueryObserver(client, first);
-    const unsubscribe = observer.subscribe(() => {});
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
-    if (change === "session") generation.invalidate();
-    const current = createConsultationQueries(
-      { ...generation.getSnapshot(), isCurrent: generation.isCurrent },
-      { request: (options) => options },
-      jest.fn(),
-    );
-    const next = createCalendarOptions(current, {
-      ...initial,
-      ...(change === "resource"
-        ? { clubId: "00000000-0000-4000-8000-000000000003" }
-        : {}),
-      ...(change === "season"
-        ? { seasonId: "00000000-0000-4000-8000-000000000003" }
-        : {}),
-      ...(change === "category" ? { category: "completed" as const } : {}),
-    });
-    const replacement = {
-      ...page("2026-09-22"),
-      category:
-        change === "category" ? ("completed" as const) : ("upcoming" as const),
-    };
-    mockFetch.mockResolvedValueOnce(Response.json(replacement));
-
-    // When
-    observer.setOptions(next);
-    await client.infiniteQuery(next);
-    old.resolve(Response.json(page("2026-09-20")));
-
-    // Then
-    await waitFor(() =>
-      expect(observer.getCurrentResult().data?.pages).toEqual([replacement]),
-    );
-    expect(first.queryKey).not.toEqual(next.queryKey);
-    unsubscribe();
-  },
-);

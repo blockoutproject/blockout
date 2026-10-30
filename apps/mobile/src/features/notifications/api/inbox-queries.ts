@@ -23,39 +23,31 @@ import {
   notificationExpiry,
 } from "../state/inbox-expiry";
 import { getNotificationKeys } from "./notification-keys";
-
-/** Captured F05 session; private requests retain their original account and generation. */
-export type InboxOwner = SessionSnapshot &
-  NonNullable<ApiFetchOptions["session"]>;
+/** Captured F05 session; private requests retain their original account. */
+export type InboxOwner = SessionSnapshot;
 /** Prepares credentials and current ordinary admission immediately before each request. */
 export type InboxRequest = (signal?: AbortSignal) => Promise<ApiFetchOptions>;
 /** Native infinite-query data; there is no second inbox store or read journal. */
 export type InboxData = InfiniteData<NotificationsResponse, string | undefined>;
-
-/** Rejects cancelled/obsolete completions even when credential acquisition or native cancellation loses a race. */
-function assertCurrent(owner: InboxOwner, signal?: AbortSignal) {
-  if (!owner.isCurrent(owner.generation) || signal?.aborted)
-    throw new ApiError("cancelled");
+/** Honors native Query cancellation around credential acquisition and response handling. */
+function assertNotAborted(signal?: AbortSignal) {
+  if (signal?.aborted) throw new ApiError("cancelled");
 }
-
 /**
- * Defines current owner reads with generated validation and ordinary native first-page refresh.
- * Incoming rows retain a cached true state, and local age always applies before cache admission.
- * Cancelling older reads at confirmation/removal prevents them from restoring superseded decisions.
+ * Defines current owner reads with generated validation and native retained-page refresh.
+ * Local age applies before cache admission; read status follows the current server response.
  */
 export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
   const keys = getNotificationKeys(owner);
   const accountId = owner.accountId;
   if (!accountId) throw new ApiError("cancelled");
-
   /** Credentials/admission are prepared afresh; the captured business owner never changes. */
   async function currentRequest(signal?: AbortSignal) {
-    assertCurrent(owner, signal);
+    assertNotAborted(signal);
     const options = await request(signal);
-    assertCurrent(owner, signal);
-    return { ...options, session: owner, signal: options.signal ?? signal };
+    assertNotAborted(signal);
+    return { ...options, signal: options.signal ?? signal };
   }
-
   return {
     request: currentRequest,
     inbox: infiniteQueryOptions({
@@ -73,20 +65,12 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
             { cursor: pageParam },
             await currentRequest(signal),
           );
-          assertCurrent(owner, signal);
-          const retained =
-            client
-              .getQueryData<InboxData>(keys.inbox)
-              ?.pages.flatMap((p) => p.notifications) ?? [];
+          assertNotAborted(signal);
           return {
             ...page,
-            notifications: page.notifications
-              .filter((row) => notificationExpiry(row) > Date.now())
-              .map((row) =>
-                retained.some((known) => known.id === row.id && known.read)
-                  ? { ...row, read: true }
-                  : row,
-              ),
+            notifications: page.notifications.filter(
+              (row) => notificationExpiry(row) > Date.now(),
+            ),
           };
         } catch (error) {
           if (!signal.aborted)
@@ -105,7 +89,7 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
             accountId,
             await currentRequest(signal),
           );
-          assertCurrent(owner, signal);
+          assertNotAborted(signal);
           if (confirmedUnreadCount(summary) === undefined)
             throw new ApiError("cancelled");
           return summary;
@@ -116,7 +100,7 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
         }
       },
     }),
-    /** One bounded current member observation can resolve a lost true-only acknowledgement. */
+    /** Reads an original current entry for notification navigation; age and owner rules still apply. */
     detail: (id: string) =>
       queryOptions({
         queryKey: keys.detail(id),
@@ -128,7 +112,7 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
             id,
             await currentRequest(signal),
           );
-          assertCurrent(owner, signal);
+          assertNotAborted(signal);
           if (notificationExpiry(row) <= Date.now())
             throw new ApiError("http", 404);
           return row;
@@ -136,32 +120,26 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
       }),
   };
 }
-
-/** Restarts at newest with one native Query fetch; ordinary failure retains authorized pages for the view's refresh feedback. */
-export async function refreshInbox(
+/** Refetches retained pages natively; failures preserve authorized content and reach explicit refresh feedback. */
+export function refreshInbox(
   client: QueryClient,
   queries: ReturnType<typeof createInboxQueries>,
 ) {
-  await client.cancelQueries({ queryKey: queries.inbox.queryKey, exact: true });
-  return client.fetchInfiniteQuery({
-    ...queries.inbox,
-    staleTime: 0,
-    pages: 1,
-  });
+  return client.refetchQueries(
+    { queryKey: queries.inbox.queryKey, exact: true },
+    { throwOnError: true },
+  );
 }
-
-/** Cancels an older summary before a new ordinary synchronization can replace the exact count. */
-export async function refreshNotificationSummary(
+/** Refetches the native summary while preserving ordinary stale data on technical failure. */
+export function refreshNotificationSummary(
   client: QueryClient,
   queries: ReturnType<typeof createInboxQueries>,
 ) {
-  await client.cancelQueries({
-    queryKey: queries.summary.queryKey,
-    exact: true,
-  });
-  return client.fetchQuery({ ...queries.summary, staleTime: 0 });
+  return client.refetchQueries(
+    { queryKey: queries.summary.queryKey, exact: true },
+    { throwOnError: true },
+  );
 }
-
 /**
  * Applies a known current owner refusal or missing owner across private list/count observers. Older reads are
  * cancelled; both representations enter ordinary error state so an initial read can be retried.
@@ -174,7 +152,6 @@ export function refuseInboxAccess(
   failingKey?: QueryKey,
 ) {
   if (
-    !owner.isCurrent(owner.generation) ||
     !(error instanceof ApiError) ||
     !(isAccessDenied(error) || error.status === 404)
   )

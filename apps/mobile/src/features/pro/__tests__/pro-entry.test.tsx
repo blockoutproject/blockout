@@ -1,7 +1,8 @@
+import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { signInAccount } from "../test-support/sign-in-account";
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
 import {
   act,
@@ -66,7 +67,6 @@ jest.mock("react-native-auth0", () => {
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
-
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => mockRouter,
@@ -78,7 +78,6 @@ jest.mock("expo/fetch", () => ({
       ? Promise.resolve(Response.json(mockApplicationAccessResponse()))
       : Promise.reject(new Error("Unexpected HTTP request")),
 }));
-
 // Navigation commands are controlled; the actual F05 session, invitation, F13 controls and profile render.
 const mockRouter = {
   push: jest.fn(),
@@ -91,7 +90,6 @@ let account: AccountSession;
 let pro: ProContext;
 let client = createQueryClient();
 const message = "Connectez-vous pour utiliser Blockout Pro";
-
 beforeEach(() => {
   client = createQueryClient();
   Object.assign(process.env, {
@@ -115,16 +113,15 @@ afterEach(async () => {
   jest.restoreAllMocks();
   process.env = { ...previousEnvironment };
 });
-
 /** Captures the real session API without granting a usable business account. */
 function SessionProbe() {
+  useQueryClient().setQueryDefaults([], { retry: false, gcTime: Infinity });
   const session = useAccountSession();
   useEffect(() => {
     account = session;
   }, [session]);
   return <Text>Session: {session.status}</Text>;
 }
-
 /** Mounts focused real owners; routing remains an explicitly controlled command boundary. */
 async function mount(content: React.ReactNode) {
   await renderRouter(
@@ -148,7 +145,6 @@ async function mount(content: React.ReactNode) {
     },
   );
 }
-
 it("places a distinct Pro action before Privacy in the existing admitted profile", async () => {
   // Given
   await mount(
@@ -161,11 +157,9 @@ it("places a distinct Pro action before Privacy in the existing admitted profile
     </ProProvider>,
   );
   await screen.findByText("Session: guest");
-
   // When
   const user = userEvent.setup();
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-
   // Then
   expect(mockRouter.push).toHaveBeenCalledWith("/sign-in-invitation");
   expect(screen.getByText("Blockout Pro")).toBeOnTheScreen();
@@ -187,11 +181,9 @@ it("places a distinct Pro action before Privacy in the existing admitted profile
   expect(mockPurchases.getCustomerInfo).not.toHaveBeenCalled();
   expect(Purchases.getOfferings).not.toHaveBeenCalled();
 });
-
 it("keeps Pro and its direct invitation behind ordinary F12 admission", async () => {
   // Given
   const admitted = false;
-
   // When
   await mount(
     <>
@@ -206,7 +198,6 @@ it("keeps Pro and its direct invitation behind ordinary F12 admission", async ()
     </>,
   );
   await screen.findByText("Session: guest");
-
   // Then
   expect(
     screen.queryByRole("button", { name: "Blockout Pro" }),
@@ -216,7 +207,6 @@ it("keeps Pro and its direct invitation behind ordinary F12 admission", async ()
     screen.queryByRole("button", { name: "Se connecter" }),
   ).not.toBeOnTheScreen();
 });
-
 it("requests dismissal of the price-free invitation without consulting native offers", async () => {
   // Given
   await mount(
@@ -226,11 +216,9 @@ it("requests dismissal of the price-free invitation without consulting native of
     </>,
   );
   await screen.findByText("Session: guest");
-
   // When
   const user = userEvent.setup();
   await user.press(screen.getByRole("button", { name: "Fermer" }));
-
   // Then
   expect(mockRouter.back).toHaveBeenCalledTimes(1);
   expect(mockRouter.replace).not.toHaveBeenCalled();
@@ -240,16 +228,13 @@ it("requests dismissal of the price-free invitation without consulting native of
   expect(mockPurchases.getCustomerInfo).not.toHaveBeenCalled();
   expect(mockPurchases.logIn).not.toHaveBeenCalled();
 });
-
 it("replaces the invitation with ordinary sign-in, without any continuation parameter", async () => {
   // Given
   await mount(<SignInInvitationScreen admitted message={message} />);
   await screen.findByText("Session: guest");
-
   // When
   const user = userEvent.setup();
   await user.press(screen.getByRole("button", { name: "Se connecter" }));
-
   // Then
   expect(mockRouter.replace).toHaveBeenCalledWith("/sign-in");
   expect(mockRouter.push).not.toHaveBeenCalled();
@@ -257,23 +242,8 @@ it("replaces the invitation with ordinary sign-in, without any continuation para
   expect(mockPurchases.getCustomerInfo).not.toHaveBeenCalled();
 });
 
-it("removes the guest presentation immediately when its F05 generation changes", async () => {
-  // Given
-  await mount(<SignInInvitationScreen admitted message={message} />);
-  await screen.findByText("Session: guest");
-
-  // When
-  await act(() => account.invalidate());
-
-  // Then
-  await waitFor(() => expect(mockRouter.back).toHaveBeenCalledTimes(1));
-  expect(screen.queryByText(message)).not.toBeOnTheScreen();
-  expect(mockRouter.push).not.toHaveBeenCalled();
-  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
-});
-
 it("requires a new explicit press after ordinary sign-in before requesting presentation", async () => {
-  // Given: only the host navigation command is controlled; F05 sign-in and generation publication are real.
+  // Given: only the host navigation command is controlled; F05 sign-in and native account observation are real.
   const present = jest.fn();
   mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|entry-test"));
   mockAuth0.saveCredentials.mockResolvedValue();
@@ -281,28 +251,23 @@ it("requires a new explicit press after ordinary sign-in before requesting prese
   await screen.findByText("Session: guest");
   const user = userEvent.setup();
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-
   // When
   await act(() => account.signIn("urn:synthetic:mobile"));
   await waitFor(() => expect(account.status).toBe("authenticated"));
   await act(() =>
-    account.setAccount(
-      account.generation,
-      "00000000-0000-4000-8000-000000000246",
-    ),
+    signInAccount(account, "00000000-0000-4000-8000-000000000246"),
   );
-
+  await waitFor(() =>
+    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000246"),
+  );
   // Then
   expect(present).not.toHaveBeenCalled();
   expect(mockRouter.push).toHaveBeenCalledTimes(1);
-
   // When
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-
   // Then
   expect(present.mock.calls).toEqual([[]]);
 });
-
 /** Observes the real Pro context beside the badge so explicit verification keeps its provider-owned lifecycle. */
 function MembershipProbe() {
   const current = usePro();
@@ -311,8 +276,7 @@ function MembershipProbe() {
   }, [current]);
   return <ProProfileBadge />;
 }
-
-it("shows membership only from verified current-session rights and clears it when the generation changes", async () => {
+it("shows membership only from verified current-session rights and clears it when the native principal changes", async () => {
   // Given
   jest.replaceProperty(
     proSessionModule,
@@ -333,26 +297,22 @@ it("shows membership only from verified current-session rights and clears it whe
     );
     await screen.findByText("Session: authenticated");
     await act(() =>
-      account.setAccount(
-        account.generation,
-        "00000000-0000-4000-8000-000000000246",
-      ),
+      signInAccount(account, "00000000-0000-4000-8000-000000000246"),
+    );
+    await waitFor(() =>
+      expect(account.accountId).toBe("00000000-0000-4000-8000-000000000246"),
     );
     await waitFor(() =>
       expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(1),
     );
-
     // Then: pending or unavailable evidence must not be presented as free membership.
     expect(screen.queryByText("Compte gratuit")).not.toBeOnTheScreen();
     expect(screen.queryByText("Compte Pro")).not.toBeOnTheScreen();
-
     // When
     await act(() => read.resolve(inactive));
-
     // Then
     expect(await screen.findByText("Compte gratuit")).toBeOnTheScreen();
     expect(screen.queryByText("Compte Pro")).not.toBeOnTheScreen();
-
     // Given
     const right = entitlement();
     mockPurchases.getCustomerInfo.mockResolvedValue(
@@ -362,23 +322,69 @@ it("shows membership only from verified current-session rights and clears it whe
         verification: right.verification,
       }),
     );
-
     // When
     await act(async () => {
       await pro.refresh();
     });
-
     // Then
     expect(await screen.findByText("Compte Pro")).toBeOnTheScreen();
     expect(screen.queryByText("Compte gratuit")).not.toBeOnTheScreen();
-
     // When
-    await act(() => account.invalidate());
-
+    await act(() => account.clearCredentials());
     // Then
     expect(screen.queryByText("Compte Pro")).not.toBeOnTheScreen();
     expect(screen.queryByText("Compte gratuit")).not.toBeOnTheScreen();
   } finally {
     await act(() => read.resolve(inactive));
   }
+});
+
+it("keeps the signed-in profile after cancelled browser logout, then returns home after successful SDK logout", async () => {
+  // Given
+  await mount(
+    <ProProvider>
+      <ProfileScreen
+        privacyEntry={null}
+        admitted
+        proEntry={<ProProfileEntry />}
+      />
+    </ProProvider>,
+  );
+  await screen.findByText("Session: guest");
+  await act(() =>
+    signInAccount(account, "00000000-0000-4000-8000-000000000246"),
+  );
+  await waitFor(() =>
+    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000246"),
+  );
+  mockAuth0.webAuthLogout
+    .mockReset()
+    .mockRejectedValueOnce({
+      code: "a0.session.user_cancelled",
+      message: "Cancelled",
+    })
+    .mockResolvedValue();
+  const user = userEvent.setup();
+
+  // When
+  await user.press(
+    await screen.findByRole("button", { name: "Se déconnecter" }),
+  );
+
+  // Then
+  await screen.findByRole("alert", {
+    name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+  });
+  expect(account.status).toBe("authenticated");
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+  expect(mockRouter.replace).not.toHaveBeenCalledWith("/");
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Se déconnecter" }));
+
+  // Then
+  await waitFor(() => expect(account.status).toBe("guest"));
+  expect(mockAuth0.webAuthLogout).toHaveBeenCalledTimes(2);
+  expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
+  expect(mockRouter.replace).toHaveBeenCalledWith("/");
 });

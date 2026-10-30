@@ -1,6 +1,4 @@
-import { onlineManager } from "@tanstack/react-query";
 import { createDiscoveryQueryOptions } from "../api/discovery-queries";
-import { createSessionGeneration } from "../../accounts/session/session-generation";
 import { createQueryClient } from "../../../shared/query/query-client";
 
 const mockFetch = jest.fn();
@@ -15,7 +13,6 @@ beforeEach(() => {
   mockFetch.mockReset();
 });
 afterEach(() => {
-  onlineManager.setOnline(true);
   jest.restoreAllMocks();
   if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
   else process.env.EXPO_PUBLIC_API_URL = originalUrl;
@@ -24,12 +21,12 @@ afterEach(() => {
 it("uses the returned cursor as pageParam inside one native infinite-query entry", async () => {
   // Given: generated HTTP and Query are real; only HTTP responses/admission are controlled.
   const client = createQueryClient();
-  const session = createSessionGeneration();
+  const session = { subject: null, accountId: null };
   const credentials = jest.fn();
   const options = createDiscoveryQueryOptions(
     "club",
     { q: "Volley" },
-    { ...session.getSnapshot(), isCurrent: session.isCurrent },
+    session,
     { bypass: undefined, request: (value) => value },
     credentials,
   );
@@ -60,13 +57,10 @@ it("uses the returned cursor as pageParam inside one native infinite-query entry
   }
 });
 
-it("isolates type, normalized text, exact filters, session and deliberate bypass intent", () => {
+it("isolates type, normalized text, exact filters and deliberate bypass intent", () => {
   // Given
-  const generation = createSessionGeneration();
-  const session = {
-    ...generation.getSnapshot(),
-    isCurrent: generation.isCurrent,
-  };
+  const generation = { subject: null, accountId: null };
+  const session = generation;
   const admission = {
     bypass: undefined,
     request: (value: import("../../../shared/api/api-fetch").ApiFetchOptions) =>
@@ -116,20 +110,11 @@ it("isolates type, normalized text, exact filters, session and deliberate bypass
     createDiscoveryQueryOptions(
       "team",
       { q: "Volley", gender: "female" },
-      { ...session, generation: "next-session" },
-      admission,
-      credentials,
-    ),
-    createDiscoveryQueryOptions(
-      "team",
-      { q: "Volley", gender: "female" },
       session,
       {
         ...admission,
         bypass: {
-          ...generation.getSnapshot(),
-          intentId: "deliberate-choice",
-          signal: new AbortController().signal,
+          ...generation,
         },
       },
       credentials,
@@ -143,11 +128,11 @@ it.each(["club", "team", "pool"] as const)(
   async (resource) => {
     // Given
     const client = createQueryClient();
-    const generation = createSessionGeneration();
+    const generation = { subject: null, accountId: null };
     const options = createDiscoveryQueryOptions(
       resource,
       { q: "Volley" },
-      { ...generation.getSnapshot(), isCurrent: generation.isCurrent },
+      generation,
       { bypass: undefined, request: (value) => value },
       jest.fn(),
     );
@@ -166,38 +151,3 @@ it.each(["club", "team", "pool"] as const)(
     }
   },
 );
-
-it("attempts an offline read once and rejects an old-session completion", async () => {
-  // Given
-  const client = createQueryClient();
-  const generation = createSessionGeneration();
-  const options = createDiscoveryQueryOptions(
-    "club",
-    { q: "Volley" },
-    { ...generation.getSnapshot(), isCurrent: generation.isCurrent },
-    { bypass: undefined, request: (value) => value },
-    jest.fn(),
-  );
-  onlineManager.setOnline(false);
-  mockFetch.mockRejectedValueOnce(new TypeError("offline"));
-  try {
-    // When / Then
-    await expect(client.infiniteQuery(options)).rejects.toMatchObject({
-      kind: "network",
-    });
-    onlineManager.setOnline(true);
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-    const pending = Promise.withResolvers<Response>();
-    mockFetch.mockReturnValue(pending.promise);
-    const request = client.infiniteQuery(options);
-    const rejected = expect(request).rejects.toMatchObject({
-      kind: "cancelled",
-    });
-    generation.invalidate();
-    pending.resolve(Response.json({ clubs: [] }));
-    await rejected;
-    expect(client.getQueryData(options.queryKey)).toBeUndefined();
-  } finally {
-    client.clear();
-  }
-});

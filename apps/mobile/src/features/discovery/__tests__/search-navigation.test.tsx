@@ -1,10 +1,20 @@
+import {
+  useLayoutEffect,
+  useState as useQueryFixtureState,
+  type PropsWithChildren as QueryFixtureProps,
+} from "react";
+import {
+  useQueryClient,
+  type QueryClient,
+  QueryClientProvider,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { FlatList } from "react-native";
 import { router, Stack } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
-import { QueryClientProvider, type InfiniteData } from "@tanstack/react-query";
 import type { DiscoveryPage } from "../api/discovery-queries";
 import { uniqueSearchResults } from "../model/search-result";
 import {
@@ -47,7 +57,8 @@ const environment = { ...process.env };
 const firstId = "aaaaaaaa-0000-4000-8000-000000000001";
 const secondId = "bbbbbbbb-0000-4000-8000-000000000002";
 const season = { id: firstId, label: "2026/2027", startYear: 2026 };
-let client = createQueryClient();
+let client: QueryClient;
+let publicClient = createQueryClient();
 
 /** Only HTTP is controlled: generated transport, Query, admission, session, RNCT and Router stay real. */
 function publicReads(url: string): Promise<Response> {
@@ -113,8 +124,22 @@ function publicReads(url: string): Promise<Response> {
   throw new Error(`Unexpected controlled path ${parsed.pathname}`);
 }
 
+/** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
+function PrivateQueries({ children }: QueryFixtureProps) {
+  const current = useQueryClient();
+  // Configure this fresh real client before descendant public observers start their first request.
+  useQueryFixtureState(() => {
+    current.setQueryDefaults([], { retry: false });
+    return true;
+  });
+  useLayoutEffect(() => {
+    client = current;
+  }, [current]);
+  return children;
+}
+
 beforeEach(() => {
-  client = createQueryClient();
+  publicClient = createQueryClient();
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "test-client";
@@ -125,7 +150,8 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await cleanup();
-  client.clear();
+  client?.clear();
+  publicClient.clear();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
@@ -153,13 +179,15 @@ async function renderSearch() {
               insets: { top: 0, right: 0, bottom: 0, left: 0 },
             }}
           >
-            <QueryClientProvider client={client}>
+            <QueryClientProvider client={publicClient}>
               <ThemeProvider>
                 <ApplicationAccessProvider>
                   <AccountSessionProvider>
-                    <AccountFeedbackProvider>
-                      {children}
-                    </AccountFeedbackProvider>
+                    <PrivateQueries>
+                      <AccountFeedbackProvider>
+                        {children}
+                      </AccountFeedbackProvider>
+                    </PrivateQueries>
                   </AccountSessionProvider>
                 </ApplicationAccessProvider>
               </ThemeProvider>
@@ -313,8 +341,9 @@ it.each(["network", "schema", "http"])(
     ).toEqual(["next", "next"]);
     expect(
       client.getQueryCache().findAll({
-        queryKey: ["discovery"],
-        predicate: (query) => query.state.data !== undefined,
+        predicate: (query) =>
+          ["/clubs", "/teams", "/pools"].includes(String(query.queryKey[0])) &&
+          query.state.data !== undefined,
       }),
     ).toHaveLength(1);
     expect(
@@ -446,8 +475,9 @@ it("traverses all 47 stable identities through three pages in one context", asyn
 
   // Then: cache assertions protect the native paging contract, not the viewport's implementation.
   const accepted = client.getQueriesData<InfiniteData<DiscoveryPage>>({
-    queryKey: ["discovery"],
-    predicate: (query) => query.state.data !== undefined,
+    predicate: (query) =>
+      ["/clubs", "/teams", "/pools"].includes(String(query.queryKey[0])) &&
+      query.state.data !== undefined,
   });
   expect(accepted).toHaveLength(1);
   expect(accepted[0][1]?.pageParams).toEqual([undefined, "20", "40"]);
@@ -500,7 +530,11 @@ it("cancels an old append during an owner-authorized reread and never appends it
 
   // When: Query owns the controlled reread; Search exposes no refresh gesture or action.
   await act(async () =>
-    client.refetchQueries({ queryKey: ["discovery"], type: "active" }),
+    client.refetchQueries({
+      predicate: ({ queryKey }) =>
+        ["/clubs", "/teams", "/pools"].includes(String(queryKey[0])),
+      type: "active",
+    }),
   );
   await act(async () =>
     pending.resolve(
@@ -547,7 +581,6 @@ it.each(["hidden", "network"])(
     // When
     await act(async () =>
       client.refetchQueries({
-        queryKey: ["consultation"],
         predicate: (query) => query.queryKey.includes(`/clubs/${secondId}`),
       }),
     );

@@ -49,7 +49,7 @@ export function PersonalScreen() {
       </PageScrollView>
     </Page>
   ) : scope ? (
-    <PersonalSpace key={scope.owner.generation} scope={scope} />
+    <PersonalSpace key={scope.owner.subject} scope={scope} />
   ) : (
     <Page>
       <PersonalHeader />
@@ -61,7 +61,6 @@ export function PersonalScreen() {
     </Page>
   );
 }
-
 /** The branded heading retracts above the sticky personal controls through the native pager. */
 function PersonalHeader() {
   const { colors } = useTheme();
@@ -79,14 +78,12 @@ function PersonalHeader() {
     </View>
   );
 }
-
 /** Keeps the choice and selected tab mounted while ordinary sporting routes cover Home. */
 function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
   const { owner, profile, season, request, usable, blocked, bypass } = scope;
   const router = useRouter();
   const [tab, setTab] = useState("upcoming");
   const focused = useIsFocused();
-
   const ready = usable && !!season.options.data && !blocked;
   /** Composes the native pager bar or non-paged admission choices beside the same season owner. */
   function controls(tabBar: ReactNode) {
@@ -159,7 +156,6 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
     </Page>
   );
 }
-
 const tabs = [
   { id: "upcoming", label: "À venir" },
   { id: "completed", label: "Terminés" },

@@ -1,15 +1,14 @@
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
-import { AccessFeedback } from "../../access/components/access-feedback";
-import { ScreenState } from "../../../shared/components/screen-state";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
-import { PageHeader } from "../../../shared/components/page-header";
 import { Page, PageContent } from "../../../shared/components/page";
-import { ErrorState } from "../../../shared/components/state-card";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { PageHeader } from "../../../shared/components/page-header";
 import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ScreenState } from "../../../shared/components/screen-state";
+import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+import { ErrorState } from "../../../shared/components/state-card";
+import { AccessFeedback } from "../../access/components/access-feedback";
 import { useCloseCollectionSeason } from "../api/use-collection-controls";
-
 import { CloseSeasonForm } from "../forms/close-season-form";
 
 /** An ordinary route retains the exact typed season label through refusals and temporary admission removal. */
@@ -49,9 +48,9 @@ export function CloseSeasonScreen({ seasonId }: { seasonId: string }) {
                   refreshing={
                     season.isRefetching || authority.account.isRefetching
                   }
-                  enabled={!editing.close.pending}
+                  enabled={!editing.close.isPending}
                   onRefresh={() => {
-                    if (editing.close.isPending()) return;
+                    if (editing.close.isPending) return;
                     if (!authority.enabled)
                       void authority.account
                         .refetch({ cancelRefetch: false })
@@ -76,7 +75,7 @@ export function CloseSeasonScreen({ seasonId }: { seasonId: string }) {
               <PageContent>
                 {season.data && (
                   <CloseSeasonForm
-                    key={`${authority.session.generation}/${seasonId}`}
+                    key={`${authority.session.subject}/${seasonId}`}
                     season={season.data}
                     editing={editing}
                   />

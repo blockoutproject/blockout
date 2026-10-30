@@ -1,3 +1,6 @@
+import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useCurrentAccount } from "../../accounts/api/use-current-account";
 import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
 import {
   cleanup,
@@ -9,7 +12,7 @@ import {
 } from "@testing-library/react-native";
 import { Stack, router, usePathname } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
-import type { ComponentType } from "react";
+import { useState, useLayoutEffect, type ComponentType } from "react";
 import { Alert, Text } from "react-native";
 import RootLayout from "../../../app/_layout";
 import OnboardingRoute from "../../../app/onboarding";
@@ -80,6 +83,7 @@ const mockFetch = jest.fn<
   [RequestInfo | URL, RequestInit?]
 >();
 const environment = { ...process.env };
+let privateClient: QueryClient;
 const seasonId = "00000000-0000-4000-8000-000000000179";
 const season = {
   id: seasonId,
@@ -142,6 +146,22 @@ function RouteLocation() {
   return <Text accessibilityLabel="Route courante">{usePathname()}</Text>;
 }
 
+/** The route retains the real gate; scenario-level one-failure evidence disables unrelated retry backoff. */
+function AccessRoute() {
+  const client = useQueryClient();
+  useLayoutEffect(() => {
+    privateClient = client;
+  }, [client]);
+  useState(() => {
+    client.setDefaultOptions({
+      queries: { retry: false, gcTime: Infinity },
+      mutations: { retry: false, networkMode: "always", gcTime: Infinity },
+    });
+  });
+  useCurrentAccount();
+  return <AccessGateScreen />;
+}
+
 /** Real production root, operational groups and preparation routes; Expo owns protection and history. */
 async function openRoute(path: string) {
   return renderRouter(
@@ -173,7 +193,7 @@ async function openRoute(path: string) {
       "(operations)/collection/[seasonId]/closure": CloseSeasonRoute,
       "(operations)/collection/[seasonId]/sources/[sourceId]/index":
         SourceRoute,
-      access: AccessGateScreen,
+      access: AccessRoute,
       "+not-found": NotFoundRoute,
     },
     { initialUrl: path },
@@ -232,7 +252,7 @@ function responses(
 }
 
 it.each(["candidate", "addition"])(
-  "retains the same-session %s draft and required reread when a permission failure interrupts recovery",
+  "discards the route-local %s draft after current permission refusal and reads a fresh form on return",
   async (kind) => {
     // Given
     const serve = responses({ manageCollection: true });
@@ -240,94 +260,60 @@ it.each(["candidate", "addition"])(
     const user = userEvent.setup();
     await openRoute("/access");
     await screen.findByRole("link", { name: "Accès administrateur" });
-    const pending = Promise.withResolvers<Response>();
-    mockFetch.mockImplementation((url, options) =>
-      options?.method === "PUT" || options?.method === "POST"
-        ? Promise.resolve(
-            Response.json(
-              {
-                type: "urn:blockout:problem:stale-revision",
-                title: "Conflict",
-                status: 409,
-              },
-              { status: 409 },
-            ),
-          )
-        : String(url).endsWith("/accounts/me")
-          ? pending.promise
-          : serve(url),
-    );
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
     const path =
       kind === "candidate"
         ? `/collection/${seasonId}/sources/${sourceId}`
         : `/collection/${seasonId}/lnv`;
     await act(async () => router.push(path));
-    if (kind === "candidate") {
-      await user.press(
-        await screen.findByRole("button", { name: "Modifier le lien" }),
-      );
-      await user.clear(screen.getByLabelText("URL officielle"));
-    } else {
-      await user.press(
-        await screen.findByRole("button", { name: "Ajouter une source" }),
-      );
-      await user.type(
-        screen.getByLabelText("Référence de l’organisateur ou du championnat"),
-        "137",
-      );
-    }
-    const draft = `${candidateUrl}&PID=192`;
-    await user.type(screen.getByLabelText("URL officielle"), draft);
-    const save = "Enregistrer";
-    await user.press(screen.getByRole("button", { name: save }));
-    await screen.findByText(
-      "Le résultat doit être vérifié avant une nouvelle action.",
+    await user.press(
+      await screen.findByRole("button", {
+        name: kind === "candidate" ? "Modifier le lien" : "Ajouter une source",
+      }),
     );
-    const pendingRead = Promise.withResolvers<Response>();
-    const resource =
-      kind === "candidate"
-        ? `/source-bindings/${sourceId}`
-        : "/source-bindings";
+    if (kind === "candidate")
+      await user.clear(screen.getByLabelText("URL officielle"));
+    await user.type(
+      screen.getByLabelText("URL officielle"),
+      `${candidateUrl}&PID=192`,
+    );
     mockFetch.mockImplementation((url) =>
       String(url).endsWith("/accounts/me")
-        ? pending.promise
-        : String(url).endsWith(resource)
-          ? pendingRead.promise
-          : serve(url),
+        ? Promise.resolve(
+            Response.json(
+              { type: "about:blank", title: "Forbidden", status: 403 },
+              { status: 403 },
+            ),
+          )
+        : serve(url),
     );
-    await user.press(screen.getByRole("button", { name: "Relire l’état" }));
-    await screen.findByRole("button", { name: "Relire l’état", busy: true });
-
     // When
-    await act(async () =>
-      pending.resolve(
-        Response.json(
-          {
-            type: "urn:blockout:problem:unavailable",
-            title: "Unavailable",
-            status: 503,
-          },
-          { status: 503 },
-        ),
-      ),
-    );
+    await act(async () => {
+      await privateClient.invalidateQueries({
+        queryKey: getGetMyAccountQueryKey(),
+        exact: true,
+      });
+    });
     await screen.findByRole("header", { name: "Blockout est en maintenance" });
-    await act(async () =>
-      pendingRead.resolve(
-        Response.json(kind === "candidate" ? source : { items: [] }),
-      ),
-    );
+    expect(screen.queryByLabelText("URL officielle")).not.toBeOnTheScreen();
     mockFetch.mockImplementation(serve);
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
     await screen.findByRole("link", { name: "Accès administrateur" });
     await act(async () => router.push(path));
-
+    await user.press(
+      await screen.findByRole("button", {
+        name: kind === "candidate" ? "Modifier le lien" : "Ajouter une source",
+      }),
+    );
     // Then
     expect(await screen.findByLabelText("URL officielle")).toHaveDisplayValue(
-      draft,
+      kind === "candidate" ? candidateUrl : "",
     );
-    expect(screen.getByRole("button", { name: save })).toBeDisabled();
+    expect(
+      mockFetch.mock.calls.some(
+        ([, options]) =>
+          options?.method === "POST" || options?.method === "PUT",
+      ),
+    ).toBe(false);
   },
 );
 
@@ -353,91 +339,82 @@ it("opens preparation from the administration entry during maintenance with coll
   expect(screen.queryByText("Ordinary home")).not.toBeOnTheScreen();
 });
 
-it("keeps a resumed candidate locked while its original save remains pending", async () => {
+it("starts a fresh candidate form after route removal without replaying its detached pending save", async () => {
   // Given
   const serve = responses({ manageCollection: true });
-  mockFetch.mockImplementation(serve);
+  const pending = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PUT" ? pending.promise : serve(url),
+  );
   const user = userEvent.setup();
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });
-  const permissions = Promise.withResolvers<Response>();
-  const save = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "PUT"
-      ? save.promise
-      : String(url).endsWith("/accounts/me")
-        ? permissions.promise
-        : serve(url),
-  );
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   const path = `/collection/${seasonId}/sources/${sourceId}`;
   await act(async () => router.push(path));
   await user.press(
     await screen.findByRole("button", { name: "Modifier le lien" }),
   );
   await user.clear(screen.getByLabelText("URL officielle"));
-  const draft = `${candidateUrl}&PID=192`;
-  await user.type(screen.getByLabelText("URL officielle"), draft);
+  const submitted = `${candidateUrl}&PID=192`;
+  await user.type(screen.getByLabelText("URL officielle"), submitted);
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await screen.findByRole("button", {
-    name: "Enregistrer",
-    busy: true,
-  });
-  await act(async () =>
-    permissions.resolve(
-      Response.json(
-        {
-          type: "urn:blockout:problem:unavailable",
-          title: "Unavailable",
-          status: 503,
-        },
-        { status: 503 },
-      ),
-    ),
-  );
-  await screen.findByRole("header", { name: "Blockout est en maintenance" });
+  await screen.findByRole("button", { name: "Enregistrer", busy: true });
   mockFetch.mockImplementation((url, options) =>
-    options?.method === "PUT" ? save.promise : serve(url),
+    options?.method === "PUT"
+      ? pending.promise
+      : String(url).endsWith("/accounts/me")
+        ? Promise.resolve(
+            Response.json(
+              { type: "about:blank", title: "Forbidden", status: 403 },
+              { status: 403 },
+            ),
+          )
+        : serve(url),
   );
-
   // When
+  await act(async () => {
+    await privateClient.invalidateQueries({
+      queryKey: getGetMyAccountQueryKey(),
+      exact: true,
+    });
+  });
+  await screen.findByRole("header", { name: "Blockout est en maintenance" });
+  mockFetch.mockImplementation(serve);
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await screen.findByRole("link", { name: "Accès administrateur" });
   await act(async () => router.push(path));
-
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
   // Then
   expect(await screen.findByLabelText("URL officielle")).toHaveDisplayValue(
-    draft,
+    candidateUrl,
   );
   expect(
-    screen.getByRole("button", { name: "Enregistrer", busy: true }),
-  ).toBeDisabled();
-
-  // When
+    screen.getByRole("button", { name: "Enregistrer", busy: false }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+  ).toHaveLength(1);
+  // When: the sent command finishes in its original owner; it is never automatically replayed.
   await act(async () =>
-    save.resolve(
+    pending.resolve(
       Response.json({
         ...source,
         revision: 3,
-        candidateUrl: draft,
+        candidateUrl: submitted,
         validation: "unvalidated",
         seasonEvidence: null,
       }),
     ),
   );
-
   // Then
-  expect(
-    await screen.findByText(
-      "Lien enregistré. La source doit être validée à nouveau.",
-    ),
-  ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
   ).toHaveLength(1);
 });
 
-it("retains the exact failed launch selection when admission removes and later restores its provider route", async () => {
+it("uses the current ready launch selection after its prior route was removed", async () => {
   // Given
   const serve = responses({ manageCollection: true });
   mockFetch.mockImplementation(serve);
@@ -515,13 +492,7 @@ it("retains the exact failed launch selection when admission removes and later r
   await screen.findByRole("link", { name: "Accès administrateur" });
   await act(async () => router.push(path));
   await user.press(
-    await screen.findByRole("button", { name: "Relire l’état" }),
-  );
-  await screen.findByText(
-    "État relu. Vérifiez votre saisie avant une nouvelle action.",
-  );
-  await user.press(
-    screen.getByRole("button", { name: "Lancer les sources prêtes" }),
+    await screen.findByRole("button", { name: "Lancer les sources prêtes" }),
   );
   await act(async () => nativeAlertAction("Lancer")());
 
@@ -533,7 +504,7 @@ it("retains the exact failed launch selection when admission removes and later r
   expect(calls).toHaveLength(2);
   expect(JSON.parse(String(calls[1][1]?.body))).toEqual({
     revision: 6,
-    sourceBindingIds: [sourceId],
+    sourceBindingIds: [sourceId, "00000000-0000-4000-8000-000000000183"],
   });
 });
 
@@ -567,7 +538,7 @@ it("navigates through seasonal provider controls to separate source preparation"
   );
 });
 
-it("retains a typed closure draft across protected-route removal and cancels through native back without a write", async () => {
+it("discards a closure draft on protected-route removal and confirms discard only for new input", async () => {
   // Given
   const serve = responses({ manageCollection: true });
   mockFetch.mockImplementation(serve);
@@ -611,7 +582,10 @@ it("retains a typed closure draft across protected-route removal and cancels thr
   );
 
   // Then
-  expect(await screen.findByDisplayValue("2026/")).toBeOnTheScreen();
+  expect(
+    await screen.findByLabelText("Nom exact de la saison"),
+  ).toHaveDisplayValue("");
+  await user.type(screen.getByLabelText("Nom exact de la saison"), "2026/");
   // When
   await user.press(screen.getByRole("button", { name: "Annuler" }));
   const discard = jest
@@ -628,7 +602,7 @@ it("retains a typed closure draft across protected-route removal and cancels thr
   ).toBe(false);
 });
 
-it("preserves uncertain closure after discarding its text and reopening before acknowledgement", async () => {
+it("requires fresh confirmation after discarding a pending closure form without replaying it", async () => {
   // Given
   const serve = responses({ manageCollection: true });
   mockFetch.mockImplementation(serve);
@@ -667,8 +641,11 @@ it("preserves uncertain closure after discarding its text and reopening before a
   );
   await screen.findByRole("button", {
     name: "Clôturer définitivement",
-    busy: true,
+    busy: false,
   });
+  expect(screen.getByLabelText("Nom exact de la saison")).toHaveDisplayValue(
+    "",
+  );
   await act(async () => pending.reject(new TypeError("Lost acknowledgement")));
   await screen.findByRole("button", {
     name: "Clôturer définitivement",
@@ -682,12 +659,7 @@ it("preserves uncertain closure after discarding its text and reopening before a
   // Then
   expect(
     screen.getByRole("button", { name: "Clôturer définitivement" }),
-  ).toBeDisabled();
-  expect(
-    screen.getByText(
-      "Le résultat doit être vérifié avant une nouvelle action.",
-    ),
-  ).toBeOnTheScreen();
+  ).toBeEnabled();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
   ).toHaveLength(1);
@@ -740,7 +712,7 @@ it("keeps collection operations closed to an outdated client even with the colle
   ).toBe(false);
 });
 
-it("does not send a prepared command when a newer minimum blocks the client during credential retrieval", async () => {
+it("keeps an already prepared command outcome while a newer minimum changes route admission", async () => {
   // Given
   const serve = responses({ manageCollection: true });
   mockFetch.mockImplementation(serve);
@@ -803,6 +775,6 @@ it("does not send a prepared command when a newer minimum blocks the client duri
   // Then
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
-  ).toBe(false);
+  ).toBe(true);
   expect(screen.queryByLabelText("URL officielle")).not.toBeOnTheScreen();
 });

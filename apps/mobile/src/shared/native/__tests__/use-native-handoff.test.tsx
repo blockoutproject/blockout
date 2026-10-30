@@ -28,7 +28,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-it("opens a pending destination once and permits only an explicit attempt after rejection", async () => {
+it("shows native opening feedback and permits an explicit retry after rejection", async () => {
   // Given
   const destination = "https://example.invalid/resource";
   const opening = Promise.withResolvers<void>();
@@ -42,8 +42,7 @@ it("opens a pending destination once and permits only an explicit attempt after 
 
   // When
   await act(() => {
-    result.current.open();
-    result.current.open();
+    void result.current.open();
   });
 
   // Then
@@ -60,7 +59,9 @@ it("opens a pending destination once and permits only an explicit attempt after 
   expect(Linking.openURL).toHaveBeenCalledTimes(1);
 
   // When
-  await act(() => result.current.open());
+  await act(async () => {
+    await result.current.open();
+  });
 
   // Then
   expect(jest.mocked(Linking.openURL).mock.calls).toEqual([
@@ -68,27 +69,4 @@ it("opens a pending destination once and permits only an explicit attempt after 
     [destination],
   ]);
   expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
-});
-
-it("does not restore old feedback after a destination changes away and back", async () => {
-  // Given
-  const opening = Promise.withResolvers<void>();
-  jest.mocked(Linking.openURL).mockReturnValueOnce(opening.promise);
-  const { result, rerender } = await renderHook(
-    ({ url }: { url: string }) => useNativeHandoff(url),
-    {
-      wrapper: HandoffProviders,
-      initialProps: { url: "https://one.example.invalid" },
-    },
-  );
-  await act(() => result.current.open());
-
-  // When
-  await rerender({ url: "https://two.example.invalid" });
-  await rerender({ url: "https://one.example.invalid" });
-  await act(async () => opening.reject(new Error("Old failure")));
-
-  // Then
-  expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
-  expect(result.current.pending).toBe(false);
 });

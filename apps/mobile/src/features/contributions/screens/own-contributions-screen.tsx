@@ -18,19 +18,19 @@ import type {
   OwnStreamContributionResponse,
   StreamContributionStateEnum,
 } from "../../../../.generated/schemas/index.zod";
-import { Page, pageContentStyle } from "../../../shared/components/page";
-import { PageHeader } from "../../../shared/components/page-header";
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { Button } from "../../../shared/components/button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
+import { EntryGroupSeparator } from "../../../shared/components/entry-group";
+import { ListContinuation } from "../../../shared/components/list-continuation";
+import { Page, pageContentStyle } from "../../../shared/components/page";
+import { PageHeader } from "../../../shared/components/page-header";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
+import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import { ErrorState } from "../../../shared/components/state-card";
-import { ListContinuation } from "../../../shared/components/list-continuation";
-import { EntryGroupSeparator } from "../../../shared/components/entry-group";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -48,11 +48,13 @@ import { ContributionForm } from "../forms/contribution-form";
 export interface OwnContributionsScreenProps {
   matchId: string;
 }
-
 /** French lifecycle explanations reveal neither other proposals nor private moderation reasons. */
 const states: Record<
   StreamContributionStateEnum,
-  { title: string; explanation: string }
+  {
+    title: string;
+    explanation: string;
+  }
 > = {
   active: {
     title: "Publié",
@@ -94,7 +96,6 @@ const states: Record<
       "Une autre proposition a été retenue ou une nouvelle version a été soumise. Les détails des autres personnes restent privés.",
   },
 };
-
 /** Combines the exact current owner editor with a virtualized, read-only history under the existing Query/session owner. */
 export function OwnContributionsScreen({
   matchId,
@@ -128,10 +129,9 @@ export function OwnContributionsScreen({
       ]
     : [];
   const active = authorized ? current?.activeContribution : undefined;
-
   /** Rereads displayed context and personal history together; an ordinary failure preserves their authorized data. */
   async function refresh() {
-    if (change.isPending() || submit.isPending()) return;
+    if (change.isPending || submit.isPending) return;
     feedback.clear();
     const results = await Promise.allSettled([
       editing.refresh(),
@@ -139,7 +139,6 @@ export function OwnContributionsScreen({
     ]);
     if (
       mounted.current &&
-      session.isCurrent(session.generation) &&
       results.some((result) => result.status === "rejected")
     )
       feedback.error();
@@ -152,8 +151,8 @@ export function OwnContributionsScreen({
       !authorized ||
       !query.hasNextPage ||
       query.isFetching ||
-      change.pending ||
-      submit.pending ||
+      change.isPending ||
+      submit.isPending ||
       (query.isError && !query.isFetchNextPageError)
     )
       return;
@@ -161,14 +160,12 @@ export function OwnContributionsScreen({
     const result = await query.fetchNextPage({ cancelRefetch: false });
     if (
       mounted.current &&
-      session.isCurrent(session.generation) &&
       result.isError &&
       navigation.isFocused() &&
       AppState.currentState === "active"
     )
       feedback.error();
   }
-
   const content = (
     <Page edges={["left", "right"]}>
       <ScrollChrome header={<PageHeader title="Lien de diffusion" />}>
@@ -199,7 +196,7 @@ export function OwnContributionsScreen({
               authorized && current ? (
                 <DataRefreshControl
                   progressViewOffset={headerHeight}
-                  enabled={!change.pending && !submit.pending}
+                  enabled={!change.isPending && !submit.isPending}
                   refreshing={query.isRefetching || match.isRefetching}
                   onRefresh={() => void refresh()}
                 />
@@ -307,7 +304,7 @@ export function OwnContributionsScreen({
                     loading={query.isFetchingNextPage}
                     failed={query.isFetchNextPageError}
                     disabled={
-                      query.isFetching || change.pending || submit.pending
+                      query.isFetching || change.isPending || submit.isPending
                     }
                     onRetry={() => void loadMore()}
                   />
@@ -326,17 +323,14 @@ export function OwnContributionsScreen({
     content
   );
 }
-
 /** Keeps Android keyboard handling on the virtualized list's own supported scroll component. */
 function renderAndroidScroll(props: ScrollViewProps) {
   return <KeyboardAwareScrollView {...props} />;
 }
-
 /** One retained personal version; its state never grants a command in the read-only history. */
 interface ProposalRowProps {
   item: OwnStreamContributionResponse;
 }
-
 /** Shows the immutable address and textual semantic badge without exposing any row action. */
 function ProposalRow({ item }: ProposalRowProps) {
   const { colors } = useTheme();

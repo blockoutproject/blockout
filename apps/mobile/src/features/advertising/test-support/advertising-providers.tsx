@@ -1,4 +1,5 @@
-import type { PropsWithChildren } from "react";
+import { useEffect, useState, type PropsWithChildren } from "react";
+import { createInstallationAdvertisingPrivacy } from "../advertising-privacy";
 import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
 import { ProProvider } from "../../pro";
 import { AgeDeclarationProvider } from "../age-declaration-provider";
@@ -9,10 +10,12 @@ import { AgeDeclarationProvider } from "../age-declaration-provider";
  * counter/consent integration suites instead mount an enabled owner with explicit unit configuration.
  */
 export function AdvertisingProviders({ children }: PropsWithChildren) {
+  const [privacy] = useState(createInstallationAdvertisingPrivacy);
+  useEffect(() => () => privacy.dispose(), [privacy]);
   return (
     <AccessAdmissionProvider>
       <ProProvider>
-        <AgeDeclarationProvider enabled={false}>
+        <AgeDeclarationProvider enabled={false} privacy={privacy}>
           {children}
         </AgeDeclarationProvider>
       </ProProvider>

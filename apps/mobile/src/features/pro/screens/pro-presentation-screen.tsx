@@ -19,14 +19,12 @@ import {
   hasUnsettledProOperation,
   ProVerification,
 } from "../components/pro-verification";
-
 /** F12 admission and explicit management intent; F10 supplies the real destination only when implemented. */
 export interface ProPresentationScreenProps {
   admitted: boolean;
   management?: boolean;
   onSupport?: () => void;
 }
-
 /**
  * Owns Pro admission/recovery with unwrapped, session-scoped provider content.
  * Current native outcomes outlive route removal; its feedback and navigation do not.
@@ -47,19 +45,19 @@ export function ProPresentationScreen({
     completeOperation,
     dismissPresentation,
   } = usePro();
-  const [openedFor] = useState(account.getSnapshot);
+  const [openedFor] = useState(() => ({
+    subject: account.subject,
+    accountId: account.accountId,
+  }));
   const [view, setView] = useState<"automatic" | "management" | "outcome">(
     management ? "management" : "automatic",
   );
   const closed = useRef(false);
   const paywallFinished = useRef(false);
   const offeringAttempt = useRef<symbol | null>(null);
-  /** Reads the live F05 snapshot, including a UUID change within an establishment generation. */
+  /** Reads the live F05 snapshot, including business UUID establishment for the native principal. */
   function isCurrentPresentation() {
-    return (
-      account.isCurrent(openedFor.generation) &&
-      account.getSnapshot().accountId === openedFor.accountId
-    );
+    return account.accountId === openedFor.accountId;
   }
   const current =
     account.status === "authenticated" &&
@@ -76,7 +74,6 @@ export function ProPresentationScreen({
       (state.status !== "guest" && state.operation === "purchasing"));
   const offering = useProOffering(admitted && current && showPaywall);
   const { refetch: readOffering } = offering;
-
   /** Retains a known empty catalogue on failure, but abandons its feedback when another destination view takes over. */
   async function retryOffering() {
     feedback.clear();
@@ -98,7 +95,6 @@ export function ProPresentationScreen({
       if (offeringAttempt.current === attempt) offeringAttempt.current = null;
     }
   }
-
   /** Removes the route once, even when native dismissal follows a completion callback. */
   const close = useCallback(() => {
     if (closed.current) return false;
@@ -108,7 +104,6 @@ export function ProPresentationScreen({
     else router.replace("/profile");
     return true;
   }, [router]);
-
   useEffect(() => {
     closed.current = false;
     return () => {
@@ -116,20 +111,17 @@ export function ProPresentationScreen({
       closed.current = true;
     };
   }, []);
-
   useEffect(() => {
     if (admitted && current) void refresh();
     return () => {
       void dismissPresentation();
     };
   }, [admitted, current, refresh, dismissPresentation]);
-
   useEffect(() => {
     if (!admitted || !current) {
       close();
     }
   }, [admitted, current, close]);
-
   useEffect(() => {
     if (
       view === "outcome" &&
@@ -138,7 +130,6 @@ export function ProPresentationScreen({
     )
       close();
   }, [view, state, close]);
-
   if (!admitted || !current) return null;
   if (
     showPaywall &&
@@ -282,5 +273,4 @@ export function ProPresentationScreen({
     </Page>
   );
 }
-
 const styles = StyleSheet.create({ provider: { flex: 1 } });

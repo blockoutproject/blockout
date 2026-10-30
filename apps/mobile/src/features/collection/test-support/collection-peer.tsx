@@ -1,7 +1,16 @@
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
+import {
+  QueryClientProvider,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import { render } from "@testing-library/react-native";
-import type { ReactElement } from "react";
+import {
+  useLayoutEffect,
+  useState,
+  type PropsWithChildren,
+  type ReactElement,
+} from "react";
 import { Pressable, Text } from "react-native";
 import type {
   CollectionControlResponse,
@@ -145,14 +154,20 @@ export function collectionPeer(): CollectionPeer {
 }
 
 /** Mounts the actual session/query/theme/access boundaries with only native identity and HTTP doubled by the suite. */
-export function renderCollection(content: ReactElement, client: QueryClient) {
+export function renderCollection(
+  content: ReactElement,
+  client: QueryClient,
+  onPrivateClient?: (client: QueryClient) => void,
+) {
   return render(content, {
     wrapper: ({ children }) => (
       <QueryClientProvider client={client}>
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+              <PrivateQueries onClient={onPrivateClient}>
+                <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+              </PrivateQueries>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
@@ -184,4 +199,15 @@ export function AccountActions() {
       </Pressable>
     </>
   );
+}
+
+/** Single-error scenarios configure native recovery before mounting readers; production defaults have their own tests. */
+function PrivateQueries({
+  children,
+  onClient,
+}: PropsWithChildren<{ onClient?: (client: QueryClient) => void }>) {
+  const client = useQueryClient();
+  useState(() => client.setDefaultOptions({ queries: { retry: false } }));
+  useLayoutEffect(() => onClient?.(client), [client, onClient]);
+  return children;
 }

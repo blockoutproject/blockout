@@ -54,18 +54,16 @@ const newer = {
   startYear: 2026,
   label: "2026/2027",
 };
-let current = true;
 const owner: FollowingOwner = {
   accountId,
-  generation: "season-session",
-  isCurrent: () => current,
+  subject: "auth0|a",
 };
 let client = createQueryClient();
 const environment = { ...process.env };
 
 /** Controlled credential/inset I/O only; generated transport, validation, Query and scoped state are real. */
 async function request(signal?: AbortSignal) {
-  return { signal, session: owner };
+  return { signal };
 }
 
 /** Future tab/list consumers observe one scoped choice; no future list/calendar UI is simulated as production. */
@@ -164,8 +162,8 @@ function optionReads() {
 }
 
 beforeEach(() => {
-  current = true;
   client = createQueryClient();
+  client.setDefaultOptions({ queries: { retry: false } });
   client.setDefaultOptions({
     queries: { ...client.getDefaultOptions().queries, gcTime: Infinity },
   });
@@ -370,35 +368,6 @@ it("loads the new context only after the bounded reread proves omission", async 
   expect(optionReads()).toBe(2);
 });
 
-it("rejects a late options response after its original session retires", async () => {
-  // Given
-  const response = Promise.withResolvers<Response>();
-  const user = userEvent.setup();
-  await mount();
-  await screen.findByText("Loaded");
-  mockFetch.mockImplementation(() => response.promise);
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Reload options" }));
-  current = false;
-  await act(async () => {
-    response.resolve(
-      Response.json({ seasons: [], defaultSeasonId: undefined }),
-    );
-  });
-
-  // Then
-  await waitFor(() =>
-    expect(client.getQueryState(followOptionsKey(owner))?.fetchStatus).toBe(
-      "idle",
-    ),
-  );
-  expect(client.getQueryData(followOptionsKey(owner))).toEqual({
-    seasons: [newer, older],
-    defaultSeasonId: older.id,
-  });
-});
-
 it("does not reread options for an All-seasons NotFound", async () => {
   // Given
   const selectSeason = jest.fn();
@@ -408,7 +377,6 @@ it("does not reread options for an All-seasons NotFound", async () => {
     seasonId: undefined,
     signal: new AbortController().signal,
     options: createFollowOptionsQueryOptions(owner, request),
-    isCurrent: () => true,
     selectSeason,
   };
   const notFound = new ApiError("http", 404);
@@ -442,7 +410,6 @@ it("uses the same bounded reconciliation for the real generated calendar", async
         seasonId: older.id,
         signal,
         options: createFollowOptionsQueryOptions(owner, request),
-        isCurrent: () => true,
         selectSeason,
       },
       () =>
@@ -453,7 +420,7 @@ it("uses the same bounded reconciliation for the real generated calendar", async
             timeZone: "Europe/Paris",
             seasonId: older.id,
           },
-          { signal, session: owner },
+          { signal },
         ),
     ),
   ).rejects.toMatchObject({ kind: "cancelled" });

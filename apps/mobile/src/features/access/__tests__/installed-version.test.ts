@@ -1,7 +1,6 @@
 import { Platform } from "react-native";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { accessPresentation } from "../state/access-presentation";
-import { createAccessObservations } from "../state/access-observations";
 import {
   installedVersionStatus,
   parsePublishedVersion,
@@ -77,12 +76,11 @@ it.each(["ios", "android"] as const)(
       storeUrl:
         "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout",
     };
-    const observations = createAccessObservations();
-    observations.complete(full);
 
     // When
     const presentation = accessPresentation({
-      ...observations.getSnapshot(),
+      maintenance: full.maintenance,
+      versions: full.versions,
       complete: full,
     });
 

@@ -5,26 +5,16 @@ import { applicationAccessResponse as mockApplicationAccessResponse } from "../.
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
-  act,
   cleanup,
   render,
   screen,
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { Pressable, Text } from "react-native";
-import {
-  CredentialsManagerErrorCodes,
-  type Credentials,
-} from "react-native-auth0";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import {
-  AccountSessionProvider,
-  useAccountSession,
-} from "../session/account-session-provider";
-import { useCurrentAccount } from "../api/use-current-account";
+import { AccountSessionProvider } from "../session/account-session-provider";
 import { SignInScreen } from "../screens/sign-in-screen";
 import { ProfileScreen } from "../screens/profile-screen";
 import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
@@ -94,9 +84,7 @@ beforeEach(() => {
   mockFetch
     .mockReset()
     .mockImplementation(async (_url, request) =>
-      request?.method === "POST"
-        ? json(account, 201)
-        : problem(404, "not-found"),
+      json(account, request?.method === "POST" ? 201 : 200),
     );
 });
 afterEach(async () => {
@@ -127,611 +115,172 @@ async function renderJourney(content = <SignInScreen admitted />) {
   });
 }
 
-/** Local lifecycle action for delayed-response tests; the sole real session owner handles invalidation. */
-function EndSession({ invalidateOnly = false }: { invalidateOnly?: boolean }) {
-  const session = useAccountSession();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Quitter la session"
-      onPress={() => {
-        if (invalidateOnly) session.invalidate();
-        else void session.clearCredentials();
-      }}
-    >
-      <Text>Quitter</Text>
-    </Pressable>
-  );
-}
-
-it("allows guest continuation without opening Auth0 or establishing an account", async () => {
+it("continues as guest without opening hosted login or establishing an account", async () => {
   // Given
   const user = userEvent.setup();
   await renderJourney();
-
   // When
   await user.press(
     screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
   );
-
   // Then
   expect(mockNavigate).toHaveBeenCalledWith("/");
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
   expect(mockFetch).not.toHaveBeenCalled();
 });
 
-it("establishes explicitly after successful hosted login without replaying a protected action", async () => {
+it("dispatches explicit establishment through the subject remount and then opens Profile", async () => {
   // Given
   const user = userEvent.setup();
   await renderJourney();
-
   // When
   await user.press(screen.getByRole("button", { name: "Se connecter" }));
-
   // Then
-  await screen.findByRole("button", { name: "Continuer en tant qu’invité" });
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/profile"));
+  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
   expect(mockAuth0.webAuth.mock.calls[0].slice(4, 6)).toEqual([
     "mobile-test",
     "openid profile email offline_access",
   ]);
   expect(
-    mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
   ).toHaveLength(1);
-  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/profile"));
   expect(mockNavigate).not.toHaveBeenCalledWith("/protected-action");
-});
-
-/** Observes only F05 identity, so establishment cannot rely on a profile query observer's effect. */
-function EstablishedSessionProbe() {
-  const session = useAccountSession();
-  return <Text>Established account: {session.accountId ?? "unavailable"}</Text>;
-}
-
-it("publishes established identity without mounting a current-account reader", async () => {
-  // Given
-  const user = userEvent.setup();
-  await renderJourney(
-    <>
-      <SignInScreen admitted />
-      <EstablishedSessionProbe />
-    </>,
-  );
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Se connecter" }));
-
-  // Then
-  expect(
-    await screen.findByText(`Established account: ${account.accountId}`),
-  ).toBeOnTheScreen();
-  expect(mockFetch).toHaveBeenCalledTimes(1);
-  expect(mockFetch.mock.calls[0][1]?.method).toBe("POST");
-});
-
-it("offers explicit login when stored DPoP credentials cannot serve the Bearer configuration", async () => {
-  // Given
-  mockAuth0.hasValidCredentials.mockResolvedValue(true);
-  mockAuth0.getCredentials.mockRejectedValueOnce({
-    code: CredentialsManagerErrorCodes.DPOP_NOT_CONFIGURED,
-    message: "Stored credentials require DPoP",
-  });
-  const user = userEvent.setup();
-  await renderJourney();
-  expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled();
-  expect(
-    screen.queryByRole("button", { name: "Réessayer" }),
-  ).not.toBeOnTheScreen();
-  expect(mockAuth0.getCredentials).toHaveBeenCalledTimes(1);
-  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
-  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Se connecter" }));
-
-  // Then
-  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
-  expect(
-    mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
-  ).toHaveLength(1);
-  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/profile"));
 });
 
 it.each([
   ["a0.session.user_cancelled", "Connexion annulée."],
-  ["access_denied", "Une erreur est survenue. Veuillez réessayer plus tard."],
   ["a0.network_error", TECHNICAL_ERROR],
-])(
-  "keeps guest access after native login outcome %s",
-  async (code, message) => {
-    // Given
-    mockAuth0.webAuth.mockRejectedValue({
-      code,
-      message: "private native diagnostics",
-    });
-    const user = userEvent.setup();
-    await renderJourney();
-
-    // When
-    await user.press(screen.getByRole("button", { name: "Se connecter" }));
-
-    // Then
-    expect(await screen.findByText(message)).toBeOnTheScreen();
-    expect(
-      screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-    ).toBeEnabled();
-    expect(
-      screen.getByRole("link", { name: "Besoin d’aide ?" }),
-    ).toBeOnTheScreen();
-    expect(mockFetch).not.toHaveBeenCalled();
-    expect(mockNavigate).not.toHaveBeenCalled();
-  },
-);
-
-it("keeps an explicit login failure in the toast when native credential persistence fails", async () => {
+])("retains guest recovery after hosted login %s", async (code, message) => {
   // Given
-  mockAuth0.saveCredentials.mockRejectedValueOnce(
-    new Error("private native storage failure"),
-  );
+  mockAuth0.webAuth.mockRejectedValue({
+    code,
+    message: "Private provider detail",
+  });
   const user = userEvent.setup();
   await renderJourney();
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled(),
-  );
-
   // When
   await user.press(screen.getByRole("button", { name: "Se connecter" }));
-
   // Then
-  expect(
-    await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
-  ).toBeOnTheScreen();
-  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
-  expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled();
+  expect(await screen.findByText(message)).toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
   ).toBeEnabled();
   expect(
-    mockFetch.mock.calls.some(([, request]) => request?.method === "POST"),
+    screen.getByRole("link", { name: "Besoin d’aide ?" }),
+  ).toBeOnTheScreen();
+  expect(mockFetch).not.toHaveBeenCalled();
+});
+
+it("reports native persistence failure without submitting establishment", async () => {
+  // Given
+  mockAuth0.saveCredentials.mockRejectedValueOnce(
+    new Error("Private storage failure"),
+  );
+  const user = userEvent.setup();
+  await renderJourney();
+  // When
+  await user.press(screen.getByRole("button", { name: "Se connecter" }));
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
   ).toBe(false);
 });
 
-it("retries missing initial email explicitly without asking for another valid login", async () => {
+it.each(["rejected", "lost"] as const)(
+  "returns to the ordinary Profile owner after a %s establishment outcome",
+  async (outcome) => {
+    // Given
+    mockFetch.mockImplementation(async (_url, options) => {
+      if (options?.method === "POST") {
+        if (outcome === "lost") throw new TypeError("Response lost");
+        return problem(422, "provider-email-unavailable");
+      }
+      return json(account);
+    });
+    const user = userEvent.setup();
+    await renderJourney();
+    // When
+    await user.press(screen.getByRole("button", { name: "Se connecter" }));
+    // Then
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/profile"));
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+    ).toHaveLength(1);
+  },
+);
+
+it("retries establishment explicitly for an already authenticated principal without hosted login", async () => {
   // Given
-  mockFetch.mockImplementation(async (_url, request) =>
-    request?.method === "POST"
-      ? problem(422, "provider-email-unavailable")
-      : problem(404, "not-found"),
-  );
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
   const user = userEvent.setup();
   await renderJourney();
-  await user.press(screen.getByRole("button", { name: "Se connecter" }));
-  expect(
-    await screen.findByText(
-      "Une erreur est survenue. Veuillez réessayer plus tard.",
-    ),
-  ).toBeOnTheScreen();
-  expect(mockNavigate).not.toHaveBeenCalled();
-  expect(
-    screen.queryByRole("button", { name: "Se connecter" }),
-  ).not.toBeOnTheScreen();
-  mockFetch.mockImplementation(async () => json(account));
-
   // When
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-
+  await user.press(await screen.findByRole("button", { name: "Se connecter" }));
   // Then
-  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
-  expect(
-    mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
-  ).toHaveLength(2);
   await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/profile"));
-});
-
-it("never bootstraps an absent account during restoration or a profile read retry", async () => {
-  // Given
-  mockAuth0.hasValidCredentials.mockResolvedValue(true);
-  const user = userEvent.setup();
-  await renderJourney(
-    <ProfileScreen admitted proEntry={null} privacyEntry={null} />,
-  );
-  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-
-  // Then
-  expect(
-    mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
-  ).toHaveLength(0);
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+  ).toHaveLength(1);
 });
 
-it("renders the local profile overview after ordinary restoration", async () => {
+it("reads a restored account without implicitly establishing it", async () => {
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
-  mockFetch.mockImplementation(async () => json(account));
-
-  // When
   await renderJourney(
     <ProfileScreen admitted proEntry={null} privacyEntry={null} />,
   );
-
-  // Then
-  expect(await screen.findByText("Player_169")).toBeOnTheScreen();
-  expect(screen.getByText("shared@example.invalid")).toBeOnTheScreen();
+  // When / Then
+  expect(await screen.findByText(account.username)).toBeOnTheScreen();
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
   expect(
-    screen.getByRole("button", { name: "Modifier mon profil" }),
-  ).toBeOnTheScreen();
-  expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
-  expect(
-    mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
+    mockFetch.mock.calls.every(([, options]) => options?.method === "GET"),
   ).toBe(true);
 });
 
-it.each(["sign-in", "profile"])(
-  "enters guest mode from an authenticated %s screen without retaining private account state",
-  async (entry) => {
-    // Given
-    mockAuth0.hasValidCredentials.mockResolvedValue(true);
-    mockFetch.mockImplementation(async () => json(account));
-    const user = userEvent.setup();
-    await renderJourney(
-      <>
-        <AccountReadProbe />
-        {entry === "profile" ? (
-          <ProfileScreen admitted proEntry={null} privacyEntry={null} />
-        ) : (
-          <SignInScreen admitted />
-        )}
-      </>,
-    );
-    expect(
-      await screen.findByText(`Current account: ${account.accountId}`),
-    ).toBeOnTheScreen();
-    if (entry === "profile") await screen.findByText(account.username);
-
-    // When
-    await user.press(
-      screen.getByRole("button", {
-        name:
-          entry === "profile"
-            ? "Se déconnecter"
-            : "Continuer en tant qu’invité",
-      }),
-    );
-
-    // Then
-    await waitFor(() =>
-      expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1),
-    );
-    expect(
-      await screen.findByText("Current account: unavailable"),
-    ).toBeOnTheScreen();
-    expect(screen.queryByText(account.username)).not.toBeOnTheScreen();
-    expect(mockNavigate).toHaveBeenCalledWith("/");
-    await waitFor(() =>
-      expect(
-        queryClient.getQueriesData({}).map(([, data]) => data),
-      ).not.toContainEqual(account),
-    );
-  },
-);
-
-it.each(["sign-in", "profile"])(
-  "does not announce guest mode when native clearing fails on %s",
-  async (entry) => {
-    // Given
-    mockAuth0.hasValidCredentials.mockResolvedValue(true);
-    mockAuth0.clearCredentials.mockRejectedValue(
-      new Error("private storage failure"),
-    );
-    mockFetch.mockImplementation(async () => json(account));
-    const user = userEvent.setup();
-    await renderJourney(
-      <>
-        <AccountReadProbe />
-        {entry === "profile" ? (
-          <ProfileScreen admitted proEntry={null} privacyEntry={null} />
-        ) : (
-          <SignInScreen admitted />
-        )}
-      </>,
-    );
-    expect(
-      await screen.findByText(`Current account: ${account.accountId}`),
-    ).toBeOnTheScreen();
-    if (entry === "profile") await screen.findByText(account.username);
-
-    // When
-    await user.press(
-      screen.getByRole("button", {
-        name:
-          entry === "profile"
-            ? "Se déconnecter"
-            : "Continuer en tant qu’invité",
-      }),
-    );
-
-    // Then
-    expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
-    expect(mockNavigate).not.toHaveBeenCalled();
-  },
-);
-
-it.each(["sign-in", "profile"])(
-  "does not navigate from an obsolete guest handoff on %s",
-  async (entry) => {
-    // Given
-    mockAuth0.hasValidCredentials.mockResolvedValue(true);
-    mockFetch.mockImplementation(async () => json(account));
-    const firstClear = Promise.withResolvers<void>();
-    mockAuth0.clearCredentials
-      .mockReturnValueOnce(firstClear.promise)
-      .mockResolvedValueOnce();
-    const user = userEvent.setup();
-    await renderJourney(
-      <>
-        {entry === "profile" ? (
-          <ProfileScreen admitted proEntry={null} privacyEntry={null} />
-        ) : (
-          <SignInScreen admitted />
-        )}
-        <EndSession invalidateOnly />
-      </>,
-    );
-    await user.press(
-      await screen.findByRole("button", {
-        name:
-          entry === "profile"
-            ? "Se déconnecter"
-            : "Continuer en tant qu’invité",
-      }),
-    );
-
-    // When
-    await user.press(
-      screen.getByRole("button", { name: "Quitter la session" }),
-    );
-    await act(async () => firstClear.resolve());
-
-    // Then
-    expect(mockNavigate).not.toHaveBeenCalled();
-    expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
-  },
-);
-
-it("does not admit login or profile navigation through a controlled F12 refusal", async () => {
-  // Given
-  const admitted = false;
-
-  // When
-  await renderJourney(<SignInScreen admitted={admitted} />);
-
-  // Then
-  expect(
-    screen.queryByRole("button", { name: "Se connecter" }),
-  ).not.toBeOnTheScreen();
-  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
-  expect(mockFetch).not.toHaveBeenCalled();
-});
-
-it.each(["while blocked", "after readmission"])(
-  "requires an explicit retry when interrupted login finishes %s",
-  async (completion) => {
-    // Given
-    const login = Promise.withResolvers<Credentials>();
-    mockAuth0.webAuth.mockReturnValue(login.promise);
-    const user = userEvent.setup();
-    const journey = await renderJourney();
-    await user.press(screen.getByRole("button", { name: "Se connecter" }));
-
-    // When
-    await journey.rerender(<SignInScreen admitted={false} />);
-    if (completion === "after readmission")
-      await journey.rerender(<SignInScreen admitted />);
-    await act(async () => login.resolve(credentialsFor("auth0|one")));
-    if (completion === "while blocked")
-      await journey.rerender(<SignInScreen admitted />);
-
-    // Then
-    expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled();
-    expect(mockFetch).not.toHaveBeenCalled();
-    expect(mockNavigate).not.toHaveBeenCalled();
-
-    // When
-    await user.press(screen.getByRole("button", { name: "Se connecter" }));
-
-    // Then
-    expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
-    expect(
-      mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
-    ).toHaveLength(1);
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/profile"));
-  },
-);
-
-it("allows a new login after admission withdrawal and completed local sign-out", async () => {
-  // Given
-  const login = Promise.withResolvers<Credentials>();
-  mockAuth0.webAuth.mockReturnValueOnce(login.promise);
-  const user = userEvent.setup();
-  const journey = await renderJourney(
-    <>
-      <SignInScreen admitted />
-      <EndSession />
-    </>,
-  );
-  await user.press(screen.getByRole("button", { name: "Se connecter" }));
-  await journey.rerender(
-    <>
-      <SignInScreen admitted={false} />
-      <EndSession />
-    </>,
-  );
-  await act(async () => login.resolve(credentialsFor("auth0|one")));
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Quitter la session" }));
-  await journey.rerender(
-    <>
-      <SignInScreen admitted />
-      <EndSession />
-    </>,
-  );
-
-  // Then
-  expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
-  expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled();
-  expect(mockFetch).not.toHaveBeenCalled();
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Se connecter" }));
-
-  // Then
-  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(2);
-  expect(
-    mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
-  ).toHaveLength(1);
-  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/profile"));
-});
-
-it("preserves guest access when F14 initialization fails before restoration", async () => {
+it("keeps explicit guest recovery when F14 initialization fails", async () => {
   // Given
   jest
     .mocked(initializeV2Installation)
-    .mockRejectedValue(new Error("private storage failure"));
+    .mockRejectedValue(new Error("Private storage failure"));
   const user = userEvent.setup();
   await renderJourney();
-
   // When
   await user.press(
     screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
   );
-
   // Then
   expect(mockNavigate).toHaveBeenCalledWith("/");
   expect(mockAuth0.hasValidCredentials).not.toHaveBeenCalled();
-  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
-});
-
-it("rejects a late establishment response after local session invalidation", async () => {
-  // Given
-  const pending = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation(async (_url, request) =>
-    request?.method === "POST" ? pending.promise : problem(404, "not-found"),
-  );
-  const user = userEvent.setup();
-  await renderJourney(
-    <>
-      <SignInScreen admitted />
-      <EndSession />
-    </>,
-  );
-  await user.press(screen.getByRole("button", { name: "Se connecter" }));
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Quitter la session" }));
-  await act(async () => pending.resolve(json(account, 201)));
-
-  // Then
-  expect(mockNavigate).not.toHaveBeenCalledWith("/profile");
-  expect(screen.queryByText("Player_169")).not.toBeOnTheScreen();
-});
-
-/** Observes the real account/session integration without a navigation or provider double. */
-function AccountReadProbe() {
-  const query = useCurrentAccount();
-  const session = useAccountSession();
-  return (
-    <>
-      <Text>Current account: {session.accountId ?? "unavailable"}</Text>
-      <Text>Read: {query.fetchStatus}</Text>
-    </>
-  );
-}
-
-it("discards a credential failure from an obsolete establishment session", async () => {
-  // Given
-  mockAuth0.hasValidCredentials.mockResolvedValue(true);
-  const credentials = Promise.withResolvers<never>();
-  mockAuth0.getCredentials
-    .mockResolvedValueOnce(credentialsFor("auth0|one"))
-    .mockReturnValue(credentials.promise);
-  const user = userEvent.setup();
-  await renderJourney(
-    <>
-      <SignInScreen admitted />
-      <EndSession />
-    </>,
-  );
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled(),
-  );
-  await user.press(screen.getByRole("button", { name: "Se connecter" }));
-  await waitFor(() =>
-    expect(mockAuth0.getCredentials).toHaveBeenCalledTimes(2),
-  );
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Quitter la session" }));
-  await act(async () =>
-    credentials.reject(new Error("private old SDK failure")),
-  );
-
-  // Then
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled(),
-  );
-  expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
   expect(mockFetch).not.toHaveBeenCalled();
-  expect(mockNavigate).not.toHaveBeenCalledWith("/profile");
 });
 
-it("suspends account reads throughout native credential clearing", async () => {
+it("does not start hosted login or establishment behind F12 admission", async () => {
   // Given
-  mockAuth0.hasValidCredentials.mockResolvedValue(true);
-  mockFetch.mockImplementation(async () => json(account));
-  const clearing = Promise.withResolvers<void>();
-  mockAuth0.clearCredentials.mockReturnValue(clearing.promise);
-  const user = userEvent.setup();
-  await renderJourney(
-    <>
-      <AccountReadProbe />
-      <EndSession />
-    </>,
-  );
+  await renderJourney(<SignInScreen admitted={false} />);
+  // When / Then
   expect(
-    await screen.findByText(`Current account: ${account.accountId}`),
-  ).toBeOnTheScreen();
-  const before = mockFetch.mock.calls.length;
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Quitter la session" }));
-
-  // Then
-  expect(screen.getByText("Current account: unavailable")).toBeOnTheScreen();
-  expect(mockFetch).toHaveBeenCalledTimes(before);
-
-  // When
-  await act(async () => {
-    clearing.resolve();
-  });
+    screen.queryByRole("button", { name: "Se connecter" }),
+  ).not.toBeOnTheScreen();
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  expect(mockFetch).not.toHaveBeenCalled();
 });
 
-/** Synthetic canonical response for controlled transport, not native networking evidence. */
+/** Synthetic canonical response; no live provider is involved. */
 function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
+  return Response.json(body, { status });
 }
-/** Uses only canonical public classifications without private provider diagnostics. */
+/** Safe canonical Problem Details without provider diagnostics. */
 function problem(status: number, type: string) {
   return new Response(
     JSON.stringify({
-      type: `urn:blockout:problem:${type}`,
+      type: `https://blockout.app/problems/${type}`,
       status,
-      title: "Unavailable",
+      title: "Request refused",
     }),
     { status, headers: { "Content-Type": "application/problem+json" } },
   );

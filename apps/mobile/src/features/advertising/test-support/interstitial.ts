@@ -1,23 +1,22 @@
+import type { SessionSnapshot } from "../../accounts";
 import type { AdError, AdEventType } from "react-native-google-mobile-ads";
-import { createSessionGeneration } from "../../accounts";
 import type { AdvertisingEligibilityInput } from "../advertising-eligibility";
 
 /** Current owner inputs; tests change only the state relevant to their scenario. */
 export function advertisingContext() {
-  const session = createSessionGeneration();
+  let session: SessionSnapshot = { subject: null, accountId: null };
   const input: AdvertisingEligibilityInput = {
-    account: { status: "guest", getSnapshot: session.getSnapshot },
+    account: { status: "guest", ...session },
     pro: { status: "guest" },
     admission: { ordinary: true },
     choices: {
-      session: session.getSnapshot(),
+      session: { ...session },
       canRequestAds: true,
       authorizedMode: "limited",
     },
   };
   return { session, input };
 }
-
 /**
  * Controlled SDK I/O only. Retains callbacks deliberately to exercise already-queued events
  * after retirement; this does not model native presentation, mediation or consent.

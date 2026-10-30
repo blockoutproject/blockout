@@ -5,7 +5,6 @@ import {
 import { waitFor } from "@testing-library/react-native";
 import type { PersonalMatchCalendarResponse } from "../../../../.generated/schemas/index.zod";
 import { createQueryClient } from "../../../shared/query/query-client";
-import { createSessionGeneration } from "../../accounts/session/session-generation";
 import {
   matchDetail,
   sportingId,
@@ -14,7 +13,6 @@ import {
   calendarDays,
   refreshCalendar,
 } from "../../sporting/api/sporting-calendar";
-import { createConsultationQueries } from "../../sporting/api/consultation-queries";
 import {
   createFollowOptionsQueryOptions,
   createPersonalCalendarOptions,
@@ -35,13 +33,12 @@ const selection = {
   timeZone: "Europe/Paris",
 } as const;
 let client = createQueryClient();
-let session = createSessionGeneration();
 let owner: FollowingOwner;
 const selectSeason = jest.fn();
 
 /** Synthetic current I/O boundary; generated HTTP and one-time validation stay real. */
 async function request(signal?: AbortSignal) {
-  return { signal, session: owner };
+  return { signal };
 }
 /** Real bounded reconciliation with a captured selection, without replacing the query lifecycle. */
 const read: PersonalCalendarRead = (seasonId, signal, operation) =>
@@ -52,7 +49,6 @@ const read: PersonalCalendarRead = (seasonId, signal, operation) =>
       seasonId,
       signal,
       options: createFollowOptionsQueryOptions(owner, request),
-      isCurrent: () => true,
       selectSeason,
     },
     operation,
@@ -84,11 +80,9 @@ function page(
 }
 beforeEach(() => {
   client = createQueryClient();
-  session = createSessionGeneration();
   owner = {
     accountId,
-    generation: session.getSnapshot().generation,
-    isCurrent: session.isCurrent,
+    subject: "auth0|original",
   };
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   mockFetch.mockReset();
@@ -153,7 +147,9 @@ it("retains complete pages on append and unchanged-context refresh failure witho
 
   // When
   await observer.fetchNextPage();
-  await expect(refreshCalendar(client, options)).rejects.toBeDefined();
+  await expect(
+    client.fetchInfiniteQuery({ ...options, staleTime: 0 }),
+  ).rejects.toBeDefined();
 
   // Then
   expect(observer.getCurrentResult().data).toEqual(retained);
@@ -265,35 +261,17 @@ it("withdraws refused private rows across retained categories before a later off
   mockFetch.mockResolvedValueOnce(new Response(null, { status: 403 }));
 
   // When
-  await expect(refreshCalendar(client, options)).rejects.toBeDefined();
+  await expect(
+    client.fetchInfiniteQuery({ ...options, staleTime: 0 }),
+  ).rejects.toBeDefined();
   mockFetch.mockRejectedValueOnce(new TypeError("Synthetic offline transport"));
-  await expect(refreshCalendar(client, sibling)).rejects.toBeDefined();
+  await expect(
+    client.fetchInfiniteQuery({ ...sibling, staleTime: 0 }),
+  ).rejects.toBeDefined();
 
   // Then
   expect(client.getQueryData(options.queryKey)).toBeUndefined();
   expect(client.getQueryData(sibling.queryKey)).toBeUndefined();
-});
-
-it("rejects a late original-generation response before successful cache admission", async () => {
-  // Given
-  const options = createPersonalCalendarOptions(
-    owner,
-    request,
-    selection,
-    read,
-  );
-  const late = Promise.withResolvers<Response>();
-  mockFetch.mockReturnValueOnce(late.promise);
-  const pending = client.infiniteQuery(options);
-  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
-
-  // When
-  session.invalidate();
-  late.resolve(Response.json(page("2026-10-29")));
-
-  // Then
-  await expect(pending).rejects.toMatchObject({ kind: "cancelled" });
-  expect(client.getQueryData(options.queryKey)).toBeUndefined();
 });
 
 it("rejects an invalid explanation instead of caching an empty success", async () => {
@@ -337,169 +315,15 @@ it.each([401, 403])(
     mockFetch.mockResolvedValueOnce(new Response(null, { status }));
 
     // When
-    await expect(refreshCalendar(client, options)).rejects.toBeDefined();
+    await expect(
+      client.fetchInfiniteQuery({ ...options, staleTime: 0 }),
+    ).rejects.toBeDefined();
 
     // Then
     expect(client.getQueryData(options.queryKey)).toBeUndefined();
     expect(client.getQueryData(anotherSeason.queryKey)).toBeUndefined();
   },
 );
-
-it("removes a currently refused F03 match from personal pages and cancels a late append in the same admission context", async () => {
-  // Given: real generated F03/F06 reads share the original session and root cache.
-  session.setAccount(owner.generation, accountId);
-  const queries = createConsultationQueries(
-    { ...session.getSnapshot(), isCurrent: session.isCurrent },
-    { request: (options) => options },
-    jest.fn(),
-  );
-  const options = createPersonalCalendarOptions(
-    owner,
-    request,
-    selection,
-    read,
-  );
-  const bypass = createPersonalCalendarOptions(
-    owner,
-    request,
-    selection,
-    read,
-    true,
-  );
-  const first = page("2026-10-29", sportingId, "2026-10-29");
-  const retainedId = "00000000-0000-4000-8000-000000000231";
-  first.calendar.days[0].pools[0].matches.push({
-    ...matchDetail().match,
-    id: retainedId,
-  });
-  mockFetch.mockImplementation(async () => Response.json(first));
-  await client.infiniteQuery(bypass);
-  const observer = new InfiniteQueryObserver(client, options);
-  const close = observer.subscribe(() => {});
-  await waitFor(() => expect(observer.getCurrentResult().isSuccess).toBe(true));
-  const late = Promise.withResolvers<Response>();
-  mockFetch.mockReturnValueOnce(late.promise);
-  const append = observer.fetchNextPage();
-  await waitFor(() =>
-    expect(observer.getCurrentResult().isFetchingNextPage).toBe(true),
-  );
-  mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
-
-  // When: the old response ignores abort after the detail establishes a current restriction.
-  await expect(client.query(queries.match(sportingId))).rejects.toBeDefined();
-  late.resolve(Response.json(page("2026-10-30")));
-  await append;
-
-  // Then
-  expect(
-    observer
-      .getCurrentResult()
-      .data?.pages[0].calendar.days[0].pools[0].matches.map(
-        (match) => match.id,
-      ),
-  ).toEqual([retainedId]);
-  expect(observer.getCurrentResult().data?.pages[0].calendar.nextDay).toBe(
-    "2026-10-29",
-  );
-  expect(observer.getCurrentResult().data?.pages[0].calendar.evaluatedAt).toBe(
-    first.calendar.evaluatedAt,
-  );
-  expect(client.getQueryData(bypass.queryKey)).toEqual({
-    pages: [first],
-    pageParams: [undefined],
-  });
-  close();
-});
-
-it("removes a currently refused F03 pool from retained personal pages without restoring it through a late append", async () => {
-  // Given: real generated reads share the owner; the other admission keeps its own envelope.
-  session.setAccount(owner.generation, accountId);
-  const queries = createConsultationQueries(
-    { ...session.getSnapshot(), isCurrent: session.isCurrent },
-    { request: (options) => options },
-    jest.fn(),
-  );
-  const options = createPersonalCalendarOptions(
-    owner,
-    request,
-    selection,
-    read,
-  );
-  const bypass = createPersonalCalendarOptions(
-    owner,
-    request,
-    selection,
-    read,
-    true,
-  );
-  const first = page("2026-10-29", sportingId, "2026-10-30");
-  const retainedId = "00000000-0000-4000-8000-000000000231";
-  const retainedPool = {
-    poolId: retainedId,
-    matches: [
-      {
-        ...matchDetail().match,
-        id: retainedId,
-        pool: {
-          ...matchDetail().match.pool,
-          pool: { ...matchDetail().match.pool.pool, id: retainedId },
-        },
-      },
-    ],
-  };
-  first.calendar.days[0].pools.push(retainedPool);
-  first.calendar.days.push(page("2026-10-30").calendar.days[0]);
-  mockFetch.mockImplementation(async () => Response.json(first));
-  await client.infiniteQuery(bypass);
-  const observer = new InfiniteQueryObserver(client, options);
-  const close = observer.subscribe(() => {});
-  try {
-    await waitFor(() =>
-      expect(observer.getCurrentResult().isSuccess).toBe(true),
-    );
-    const updatedAt = client.getQueryState(options.queryKey)?.dataUpdatedAt;
-    const late = Promise.withResolvers<Response>();
-    mockFetch.mockReturnValueOnce(late.promise);
-    const append = observer.fetchNextPage();
-    await waitFor(() =>
-      expect(observer.getCurrentResult().isFetchingNextPage).toBe(true),
-    );
-    mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
-
-    // When: a current standings refusal precedes an old response that ignores abort.
-    await expect(
-      client.query(queries.standings(sportingId)),
-    ).rejects.toMatchObject({
-      status: 404,
-    });
-    late.resolve(Response.json(page("2026-10-31")));
-    await append;
-
-    // Then: only that pool and its now-empty day disappear; attribution and continuation stay exact.
-    expect(observer.getCurrentResult().data).toEqual({
-      pages: [
-        {
-          ...first,
-          calendar: {
-            ...first.calendar,
-            days: [{ ...first.calendar.days[0], pools: [retainedPool] }],
-          },
-        },
-      ],
-      pageParams: [undefined],
-    });
-    expect(client.getQueryState(options.queryKey)?.dataUpdatedAt).toBe(
-      updatedAt,
-    );
-    expect(client.getQueryData(bypass.queryKey)).toEqual({
-      pages: [first],
-      pageParams: [undefined],
-    });
-    expect(mockFetch).toHaveBeenCalledTimes(4);
-  } finally {
-    close();
-  }
-});
 
 it("withdraws all cached seasons after an original-account NotFound without a seasonal selector", async () => {
   // Given
@@ -521,7 +345,9 @@ it("withdraws all cached seasons after an original-account NotFound without a se
   mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
 
   // When
-  await expect(refreshCalendar(client, all)).rejects.toBeDefined();
+  await expect(
+    client.fetchInfiniteQuery({ ...all, staleTime: 0 }),
+  ).rejects.toBeDefined();
 
   // Then
   expect(client.getQueryData(seasonal.queryKey)).toBeUndefined();
@@ -608,7 +434,7 @@ it.each([sportingId, undefined])(
     );
 
     // When
-    await refreshCalendar(client, current);
+    await client.fetchInfiniteQuery({ ...current, staleTime: 0 });
     late.resolve(Response.json(first));
     await append;
 

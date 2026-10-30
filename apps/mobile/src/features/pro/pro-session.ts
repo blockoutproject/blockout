@@ -30,19 +30,18 @@ function diagnose(
   });
 }
 
-/** Compares F05 attribution, including re-entry into the same business UUID. */
+/** Compares F05 attribution, using the native principal and established business UUID. */
 function sameSession(
   left: SessionSnapshot | null,
   right: SessionSnapshot | null,
 ) {
   return (
-    left?.generation === right?.generation &&
-    left?.accountId === right?.accountId
+    left?.subject === right?.subject && left?.accountId === right?.accountId
   );
 }
 
 /**
- * Owns sequential native identity mutations and generation-scoped reads in memory.
+ * Owns sequential native identity mutations and principal-attributed reads in memory.
  * Target changes clear presentation synchronously. Failed current associations require retry;
  * obsolete mutations settle before the latest target runs. This never awaits F05 logout.
  */
@@ -56,7 +55,7 @@ export function createProSession() {
   };
   const listeners = new Set<() => void>();
 
-  /** Notifies React without storing a derived entitlement or a second session generation. */
+  /** Notifies React without storing a derived entitlement or a second account lifetime. */
   function publish(next: ProSessionSnapshot) {
     snapshot = next;
     listeners.forEach((listener) => listener());
@@ -259,7 +258,7 @@ export function createProSession() {
         !snapshot.evidence ||
         !canPurchasePro(
           getProState(
-            { status: "authenticated", getSnapshot: () => session },
+            { status: "authenticated", ...session },
             snapshot.evidence,
           ),
         )

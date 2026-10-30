@@ -1,3 +1,11 @@
+import { signInAccount } from "../../pro/test-support/sign-in-account";
+import {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  type PropsWithChildren,
+} from "react";
+import { createInstallationAdvertisingPrivacy } from "../advertising-privacy";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -9,7 +17,6 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { useLayoutEffect, type PropsWithChildren } from "react";
 import { Linking } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -101,6 +108,7 @@ jest.mock("expo/fetch", () => ({
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
+  useIsFocused: () => true,
   useRouter: () => ({ push: mockPush }),
   useNavigation: () => mockNavigation,
   useRootNavigationState: () => ({ key: "root" }),
@@ -117,7 +125,6 @@ jest.mock("expo-notifications", () => ({
     remove: jest.fn(),
   })),
 }));
-
 const mockFetch = jest.fn();
 const mockPush = jest.fn();
 const mockCreateAd = jest.fn(controlledInterstitial);
@@ -137,7 +144,6 @@ const nativeMatchId = "00000000-0000-4000-8000-000000000289";
 let failNativeRead = false;
 let table: PoolStandingsResponse;
 let participants: PoolParticipantsResponse;
-
 beforeEach(async () => {
   // Inbox retention and native-ad freshness use a fixed current instant; native Query timers stay controlled.
   jest.useFakeTimers({ now: new Date("2026-10-28T12:00:00Z") });
@@ -238,7 +244,6 @@ beforeEach(async () => {
     .mockImplementationOnce(() => ad)
     .mockImplementation(controlledInterstitial);
 });
-
 afterEach(async () => {
   await cleanup();
   client.clear();
@@ -246,7 +251,6 @@ afterEach(async () => {
   jest.restoreAllMocks();
   jest.useRealTimers();
 });
-
 /** Actual sporting rows and F05/F09/F11/F12 owners; only native and HTTP I/O and router handoff are controlled. */
 function Entries({
   detail = matchDetail(),
@@ -301,9 +305,10 @@ function Entries({
     </>
   );
 }
-
 /** Matches the production root ownership without mounting unrelated navigation screens. */
 function Owners({ children }: PropsWithChildren) {
+  const [privacy] = useState(createInstallationAdvertisingPrivacy);
+  useEffect(() => () => privacy.dispose(), [privacy]);
   return (
     <GestureHandlerRootView>
       <SafeAreaProvider
@@ -319,7 +324,7 @@ function Owners({ children }: PropsWithChildren) {
                 <AccountSessionProvider>
                   <AccessAdmissionProvider>
                     <ProProvider>
-                      <AgeDeclarationProvider enabled>
+                      <AgeDeclarationProvider enabled privacy={privacy}>
                         {children}
                       </AgeDeclarationProvider>
                     </ProProvider>
@@ -333,7 +338,6 @@ function Owners({ children }: PropsWithChildren) {
     </GestureHandlerRootView>
   );
 }
-
 /** Waits only for real installation/native readiness before supplying the native LOADED event. */
 async function mount(props: Parameters<typeof Entries>[0] = {}) {
   const result = await render(
@@ -350,7 +354,6 @@ async function mount(props: Parameters<typeof Entries>[0] = {}) {
   }
   return result;
 }
-
 it("shares nine real club/team/pool openings with the tenth calendar opening and deduplicates pending taps", async () => {
   // Given
   await mount();
@@ -364,12 +367,10 @@ it("shares nine real club/team/pool openings with the tenth calendar opening and
   expect(mockPush).toHaveBeenCalledTimes(9);
   expect(ad.show).not.toHaveBeenCalled();
   const match = screen.getByRole("link", { name: /Ouvrir le match/ });
-
   // When
   await user.press(match);
   await user.press(match);
   await user.press(screen.getByRole("link", { name: "Club" }));
-
   // Then
   expect(ad.show).toHaveBeenCalledTimes(1);
   expect(mockPush).toHaveBeenCalledTimes(9);
@@ -383,8 +384,7 @@ it("shares nine real club/team/pool openings with the tenth calendar opening and
     params: { matchId: matchDetail().match.id },
   });
 });
-
-it("abandons the pending calendar destination when the actual account generation changes", async () => {
+it("abandons the pending calendar destination when the native principal changes", async () => {
   // Given
   await mount();
   const user = userEvent.setup();
@@ -392,15 +392,13 @@ it("abandons the pending calendar destination when the actual account generation
     await user.press(screen.getByRole("link", { name: "Club" }));
   await user.press(screen.getByRole("link", { name: /Ouvrir le match/ }));
   expect(ad.show).toHaveBeenCalledTimes(1);
-
   // When
   await act(async () => {
-    session.invalidate();
+    await signInAccount(session, "00000000-0000-4000-8000-000000000001");
   });
   await act(async () => {
     ad.emit(AdEventType.CLOSED);
   });
-
   // Then
   expect(mockPush).toHaveBeenCalledTimes(9);
   expect(mockPush).not.toHaveBeenCalledWith({
@@ -408,7 +406,6 @@ it("abandons the pending calendar destination when the actual account generation
     params: { matchId: matchDetail().match.id },
   });
 });
-
 it.each(["screen focus", "calendar tab"])(
   "does not release a calendar destination after its still-mounted source loses %s",
   async (source) => {
@@ -419,7 +416,6 @@ it.each(["screen focus", "calendar tab"])(
       await user.press(screen.getByRole("link", { name: "Club" }));
     await user.press(screen.getByRole("link", { name: /Ouvrir le match/ }));
     expect(ad.show).toHaveBeenCalledTimes(1);
-
     // When
     if (source === "screen focus") mockFocused = false;
     else
@@ -432,12 +428,10 @@ it.each(["screen focus", "calendar tab"])(
       ad.emit(AdEventType.OPENED);
       ad.emit(AdEventType.CLOSED);
     });
-
     // Then
     expect(mockPush).toHaveBeenCalledTimes(9);
   },
 );
-
 it("shares calendar, inbox and native tap openings while keeping read failure independent of the pending ad", async () => {
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
@@ -505,13 +499,11 @@ it("shares calendar, inbox and native tap openings while keeping read failure in
     },
   };
   failNativeRead = true;
-
   // When
   await act(async () => {
     tap(response);
     tap(response);
   });
-
   // Then
   await waitFor(() =>
     expect(
@@ -536,7 +528,6 @@ it("shares calendar, inbox and native tap openings while keeping read failure in
     params: { matchId: nativeMatchId },
   });
 });
-
 it("releases the exact calendar destination once when the SDK rejects presentation", async () => {
   // Given
   await mount();
@@ -544,13 +535,11 @@ it("releases the exact calendar destination once when the SDK rejects presentati
   for (let index = 0; index < 9; index++)
     await user.press(screen.getByRole("link", { name: "Club" }));
   ad.show.mockRejectedValueOnce(new Error("Synthetic presentation failure"));
-
   // When
   await user.press(screen.getByRole("link", { name: /Ouvrir le match/ }));
   await act(async () => {
     ad.emit(AdEventType.CLOSED);
   });
-
   // Then
   expect(ad.show).toHaveBeenCalledTimes(1);
   expect(mockPush).toHaveBeenCalledTimes(10);
@@ -560,7 +549,6 @@ it("releases the exact calendar destination once when the SDK rejects presentati
   });
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 });
-
 it("abandons the exact old stream URL when its published version changes during an interstitial", async () => {
   // Given
   const original = {
@@ -575,7 +563,6 @@ it("abandons the exact old stream URL when its published version changes during 
     await user.press(screen.getByRole("link", { name: "Club" }));
   await user.press(screen.getByRole("link", { name: "Ouvrir le lien" }));
   expect(ad.show).toHaveBeenCalledTimes(1);
-
   // When
   await result.rerender(
     <Owners>
@@ -592,7 +579,6 @@ it("abandons the exact old stream URL when its published version changes during 
     ad.emit(AdEventType.OPENED);
     ad.emit(AdEventType.CLOSED);
   });
-
   // Then
   expect(openURL).not.toHaveBeenCalled();
   await user.press(screen.getByRole("link", { name: "Ouvrir le lien" }));
@@ -601,7 +587,6 @@ it("abandons the exact old stream URL when its published version changes during 
     "https://video.example.invalid/replacement",
   );
 });
-
 it("abandons a still-mounted stream handoff after the match route loses focus", async () => {
   // Given
   await mount({
@@ -616,18 +601,15 @@ it("abandons a still-mounted stream handoff after the match route loses focus", 
     await user.press(screen.getByRole("link", { name: "Club" }));
   await user.press(screen.getByRole("link", { name: "Ouvrir le lien" }));
   expect(ad.show).toHaveBeenCalledTimes(1);
-
   // When
   mockFocused = false;
   await act(async () => {
     ad.emit(AdEventType.OPENED);
     ad.emit(AdEventType.CLOSED);
   });
-
   // Then
   expect(openURL).not.toHaveBeenCalled();
 });
-
 it.each(["list", "cards", "podium"])(
   "abandons a pending %s standings team when refresh changes its association at the same slot",
   async (layout) => {
@@ -653,7 +635,6 @@ it.each(["list", "cards", "podium"])(
       screen.getByRole("link", { name: /Original standings team/ }),
     );
     expect(ad.show).toHaveBeenCalledTimes(1);
-
     // When
     table = {
       ...table,
@@ -676,7 +657,6 @@ it.each(["list", "cards", "podium"])(
       ad.emit(AdEventType.OPENED);
       ad.emit(AdEventType.CLOSED);
     });
-
     // Then
     expect(mockPush).toHaveBeenCalledTimes(9);
     await user.press(
@@ -688,7 +668,6 @@ it.each(["list", "cards", "podium"])(
     });
   },
 );
-
 it.each(["list", "cards"])(
   "abandons a pending %s standings opening when the actual pool tab changes",
   async (layout) => {
@@ -705,7 +684,6 @@ it.each(["list", "cards"])(
       screen.getByRole("link", { name: /Original standings team/ }),
     );
     expect(ad.show).toHaveBeenCalledTimes(1);
-
     // When
     await user.press(screen.getByRole("tab", { name: "À venir" }));
     await layoutNativeTabs();
@@ -713,12 +691,10 @@ it.each(["list", "cards"])(
       ad.emit(AdEventType.OPENED);
       ad.emit(AdEventType.CLOSED);
     });
-
     // Then
     expect(mockPush).toHaveBeenCalledTimes(9);
   },
 );
-
 it("abandons a participation pool link when the actual team page changes its tab", async () => {
   // Given
   await mount({ resourcePage: "team" });
@@ -727,7 +703,6 @@ it("abandons a participation pool link when the actual team page changes its tab
     await user.press(screen.getByRole("link", { name: "Club" }));
   await user.press(screen.getByRole("link", { name: "Pool" }));
   expect(ad.show).toHaveBeenCalledTimes(1);
-
   // When
   await user.press(screen.getByRole("tab", { name: "À venir" }));
   await layoutNativeTabs();
@@ -735,11 +710,9 @@ it("abandons a participation pool link when the actual team page changes its tab
     ad.emit(AdEventType.OPENED);
     ad.emit(AdEventType.CLOSED);
   });
-
   // Then
   expect(mockPush).toHaveBeenCalledTimes(9);
 });
-
 it("abandons a pending map team opening when a coincident team replaces the selection", async () => {
   // Given
   const pool = matchDetail().match.pool;
@@ -785,14 +758,12 @@ it("abandons a pending map team opening when a coincident team replaces the sele
   await user.press(screen.getByRole("link", { name: "Voir l’équipe" }));
   expect(ad.show).toHaveBeenCalledTimes(1);
   expect(mockPush).toHaveBeenCalledTimes(9);
-
   // When
   await user.press(screen.getByRole("radio", { name: "Marais" }));
   await act(async () => {
     ad.emit(AdEventType.OPENED);
     ad.emit(AdEventType.CLOSED);
   });
-
   // Then
   expect(mockPush).toHaveBeenCalledTimes(9);
   expect(mockPush).not.toHaveBeenCalledWith({

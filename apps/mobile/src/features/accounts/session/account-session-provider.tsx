@@ -1,26 +1,32 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
-  useLayoutEffect,
   useState,
-  useSyncExternalStore,
   type PropsWithChildren,
   type ReactNode,
 } from "react";
-import Auth0, { Auth0Provider, useAuth0 } from "react-native-auth0";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
+import Auth0, {
+  Auth0Provider,
+  parseIdToken,
+  useAuth0,
+  type Credentials,
+} from "react-native-auth0";
+import { ApiError } from "../../../shared/api/api-fetch";
+import { createQueryClient } from "../../../shared/query/query-client";
+import { currentAccountQuery } from "../api/current-account-query";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import {
-  createSessionGeneration,
-  type SessionGeneration,
-  type SessionSnapshot,
-} from "./session-generation";
-import {
-  requiresReauthentication,
-  signOutNativeSession,
-} from "./native-session";
+import { requiresReauthentication } from "./native-session";
 
-/** Authentication availability only: Query owns profiles and RevenueCat owns entitlements. */
+/** Native identity and the currently observed business account; neither carries a client epoch. */
+export interface SessionSnapshot {
+  readonly subject: string | null;
+  readonly accountId: string | null;
+}
+
+/** Authentication availability comes from Auth0; Query owns the business profile. */
 type AuthenticationStatus =
   | "initialization-error"
   | "restoring"
@@ -31,57 +37,52 @@ type AuthenticationStatus =
   | "guest"
   | "authenticated";
 
-/**
- * Transient business boundary; credentials and identity stay SDK-owned.
- * Lifecycle commands must invalidate synchronously before awaiting native login/logout or cleanup.
- */
-export interface AccountSession extends SessionSnapshot, SessionGeneration {
-  /** Suspends business reads and invalidates private work before the SDK's explicit hosted login. */
-  signIn(audience: string): Promise<AccountCommandSession | undefined>;
-  /** Invalidates private work immediately, then attempts bounded push removal before independent native logout/clearing. */
-  signOut(): Promise<void>;
-  /** Invalidates private work and attempts bounded push removal before local SDK clearing, without browser closure. */
-  clearCredentials(): Promise<void>;
+/** Captured native principal for an explicitly authorized account command. */
+export interface AccountCommandSession {
+  readonly subject: string;
+  /** Uses the native credentials manager and rejects credentials belonging to another subject. */
+  getCredentials(): Promise<Credentials>;
+}
+
+/** Auth0 presentation and ordinary lifecycle actions, without a second observable identity store. */
+export interface AccountSession extends SessionSnapshot {
   status: AuthenticationStatus;
+  operation?: "authenticating" | "signing-out";
   error: unknown;
-  /** Retries failed F14 initialization; success replaces the exceptional guest navigation. */
+  /** Captures the original principal before asynchronous credential preparation. */
+  getCredentials(): Promise<Credentials>;
+  /** Starts hosted login only from an explicit action and returns its native principal. */
+  signIn(audience: string): Promise<AccountCommandSession | undefined>;
+  /** Attempts exact push removal, then uses the native SDK's ordinary logout semantics. */
+  signOut(): Promise<void>;
+  /** Clears locally through the SDK without browser closure, after bounded push removal. */
+  clearCredentials(): Promise<void>;
   retryInitialization(): void;
-  /** Remounts the SDK after failed restoration, resetting navigation without clearing credentials. */
   retryAuthentication(): void;
 }
 
-/** Original authenticated generation supplied directly by a successful explicit native login. */
-export type AccountCommandSession = Pick<
-  SessionSnapshot,
-  "generation" | "accountId"
-> &
-  Pick<SessionGeneration, "isCurrent" | "setAccount">;
+/** F07 captures the exact original association and owns the bounded attempt before native logout. */
+export type AccountCredentialCleanup = () => Promise<void>;
 
-/** Captured F07 exact-removal operation; must settle within its bounded wait before SDK credentials are discarded. */
-export type AccountCredentialCleanup = (
-  session: Pick<SessionSnapshot, "generation"> &
-    Pick<SessionGeneration, "isCurrent">,
-) => Promise<void>;
-
-/** Root composition supplies the existing push owner without transferring session or subscription authority. */
+/** Root composition supplies the process-wide push owner without transferring its authority. */
 export interface AccountSessionProviderProps extends PropsWithChildren {
   fallback?: ReactNode;
-  /** Captures the old exact association before invalidation; F07 owns one bounded attempt and retains no cleanup credential. */
   preparePushRemoval?: () => AccountCredentialCleanup | undefined;
 }
 
 type Initialization =
   | { status: "initializing" }
   | { status: "initialization-error"; error: unknown }
-  | { status: "ready"; domain: string; clientId: string };
+  | {
+      status: "ready";
+      domain: string;
+      clientId: string;
+      credentialsManager: Auth0["credentialsManager"];
+    };
 
 const AccountSessionContext = createContext<AccountSession | null>(null);
 
-/**
- * Finishes local F14 initialization before mounting the standard SDK/application tree.
- * Failure leaves guest navigation available; ordinary identity changes never remount it.
- * An optional public fallback remains independent while first-install credentials are initialized.
- */
+/** Completes F14 installation initialization before mounting the SDK; the public parent stays alive. */
 export function AccountSessionProvider({
   children,
   fallback = null,
@@ -92,36 +93,35 @@ export function AccountSessionProvider({
   });
   const [initializationAttempt, setInitializationAttempt] = useState(0);
   const [restorationAttempt, setRestorationAttempt] = useState(0);
-
   useEffect(() => {
-    let cancelled = false;
-
-    /** Resolves the native client; F14 exclusively owns credential clearing and installation markers. */
+    let active = true;
+    /** F14 exclusively owns first-install credential clearing and its installation marker. */
     async function initialize() {
       try {
         const domain = process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
         const clientId = process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID;
         if (!domain || !clientId)
           throw new Error("Native authentication is not configured");
-        // The mobile API accepts Bearer tokens; DPoP requires a separate resource-server contract.
         const client = new Auth0({ domain, clientId, useDPoP: false });
         await initializeV2Installation(client);
-        if (!cancelled)
-          setInitialization({ status: "ready", domain, clientId });
+        if (active)
+          setInitialization({
+            status: "ready",
+            domain,
+            clientId,
+            credentialsManager: client.credentialsManager,
+          });
       } catch (error) {
-        if (!cancelled)
+        if (active)
           setInitialization({ status: "initialization-error", error });
       }
     }
-
     void initialize();
     return () => {
-      cancelled = true;
+      active = false;
     };
   }, [initializationAttempt]);
-
   if (initialization.status === "initializing") return fallback;
-
   const content = (
     <SessionScope
       initialization={initialization}
@@ -132,7 +132,6 @@ export function AccountSessionProvider({
       {children}
     </SessionScope>
   );
-
   return initialization.status === "ready" ? (
     <Auth0Provider
       key={restorationAttempt}
@@ -147,7 +146,7 @@ export function AccountSessionProvider({
   );
 }
 
-/** Derives availability directly from Auth0 and guards business work with one transient generation. */
+/** Uses SDK identity and its raw manager so an old credential read cannot publish another SET_USER. */
 function SessionScope({
   children,
   initialization,
@@ -156,122 +155,174 @@ function SessionScope({
   preparePushRemoval,
 }: PropsWithChildren<{
   initialization: Exclude<Initialization, { status: "initializing" }>;
-  retryInitialization: () => void;
-  retryAuthentication: () => void;
+  retryInitialization(): void;
+  retryAuthentication(): void;
   preparePushRemoval?: AccountSessionProviderProps["preparePushRemoval"];
 }>) {
   const auth = useAuth0();
-  const [session] = useState(createSessionGeneration);
-  const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot);
-  const reauthenticationRequired = requiresReauthentication(auth.error);
-
-  useLayoutEffect(() => () => session.invalidate(), [session]);
-  useLayoutEffect(() => {
-    // Departure already invalidated private work; an old SDK error must not release its synchronous reservation.
-    if (
-      reauthenticationRequired &&
-      session.getSnapshot().operation !== "signing-out"
-    )
-      session.invalidate();
-  }, [session, reauthenticationRequired]);
-
+  const manager =
+    initialization.status === "ready"
+      ? initialization.credentialsManager
+      : undefined;
+  const subject = auth.user?.sub ?? null;
+  const [operation, setOperation] = useState<AccountSession["operation"]>();
+  const credentialsFor = useCallback(
+    async (original: string | null) => {
+      if (!original) throw new ApiError("http", 401);
+      if (!manager) throw new ApiError("configuration");
+      const credentials = await manager.getCredentials();
+      if (!credentials || parseIdToken(credentials.idToken).sub !== original)
+        throw new ApiError("cancelled");
+      return credentials;
+    },
+    [manager],
+  );
+  const getCredentials = useCallback(
+    () => credentialsFor(subject),
+    [credentialsFor, subject],
+  );
   let status: AuthenticationStatus = "guest";
   if (initialization.status === "initialization-error")
     status = "initialization-error";
-  else if (snapshot.operation) status = snapshot.operation;
+  else if (operation) status = operation;
   else if (auth.isLoading) status = "restoring";
-  else if (reauthenticationRequired) status = "reauthentication-required";
-  else if (auth.user) status = "authenticated";
+  else if (requiresReauthentication(auth.error))
+    status = "reauthentication-required";
+  else if (subject) status = "authenticated";
   else if (auth.error) status = "authentication-error";
 
-  /** Captures the old exact destination before synchronous invalidation; cleanup failure never prevents departure. */
-  function beginDeparture(operation: "authenticating" | "signing-out") {
-    const active = session.getSnapshot().operation;
-    if (active === "signing-out" || active === operation) return;
-    const remove = preparePushRemoval?.();
-    const generation = session.beginOperation(operation);
-    if (!generation) return;
-    return {
-      generation,
-      removal: Promise.resolve()
-        .then(() => remove?.({ generation, isCurrent: session.isCurrent }))
-        .catch(() => undefined),
-    };
-  }
-  const value: AccountSession = {
-    ...session,
-    ...snapshot,
+  const session: Omit<AccountSession, "accountId"> = {
+    subject,
     status,
+    operation,
     error:
       initialization.status === "initialization-error"
         ? initialization.error
         : auth.error,
+    getCredentials,
     retryInitialization() {
       if (status === "initialization-error") retryInitialization();
     },
     retryAuthentication() {
-      if (status !== "authentication-error") return;
-      session.invalidate();
-      retryAuthentication();
+      if (status === "authentication-error") retryAuthentication();
     },
     async signIn(audience) {
       if (initialization.status !== "ready")
         throw new Error("Native authentication is unavailable");
-      const departure = beginDeparture("authenticating");
-      if (!departure) return;
-      const { generation } = departure;
+      if (operation) return;
+      const remove = preparePushRemoval?.();
+      setOperation("authenticating");
       try {
-        await departure.removal;
-        if (!session.isCurrent(generation)) return;
-        await auth.authorize({
+        await remove?.().catch(() => undefined);
+        const credentials = await auth.authorize({
           audience,
           scope: "openid profile email offline_access",
         });
-        if (!session.isCurrent(generation)) return;
+        const principal = parseIdToken(credentials.idToken).sub;
         return {
-          generation,
-          accountId: session.getSnapshot().accountId,
-          isCurrent: session.isCurrent,
-          setAccount: session.setAccount,
+          subject: principal,
+          getCredentials: () => credentialsFor(principal),
         };
       } finally {
-        session.finishOperation(generation);
-      }
-    },
-    async clearCredentials() {
-      const departure = beginDeparture("signing-out");
-      if (!departure) return;
-      const { generation } = departure;
-      try {
-        await departure.removal;
-        if (!session.isCurrent(generation)) return;
-        if (initialization.status === "ready") await auth.clearCredentials();
-      } finally {
-        session.finishOperation(generation);
+        setOperation(undefined);
       }
     },
     async signOut() {
-      const departure = beginDeparture("signing-out");
-      if (!departure) return;
-      const { generation } = departure;
+      if (operation) return;
+      const remove = preparePushRemoval?.();
+      setOperation("signing-out");
       try {
-        await departure.removal;
-        if (!session.isCurrent(generation)) return;
-        if (initialization.status === "ready") await signOutNativeSession(auth);
+        await remove?.().catch(() => undefined);
+        if (initialization.status === "ready") await auth.clearSession();
       } finally {
-        session.finishOperation(generation);
+        setOperation(undefined);
       }
     },
-    setAccount: (generation, accountId) =>
-      status === "authenticated" && session.setAccount(generation, accountId),
+    async clearCredentials() {
+      if (operation) return;
+      const remove = preparePushRemoval?.();
+      setOperation("signing-out");
+      try {
+        await remove?.().catch(() => undefined);
+        if (initialization.status === "ready") await auth.clearCredentials();
+      } finally {
+        setOperation(undefined);
+      }
+    },
   };
+  return (
+    <PrivateAccountLifetime key={subject ?? "guest"} session={session}>
+      {children}
+    </PrivateAccountLifetime>
+  );
+}
 
+/** Owns private reads, native credential-error presentation and cache within the subject's React lifetime. */
+function PrivateAccountLifetime({
+  children,
+  session,
+}: PropsWithChildren<{ session: Omit<AccountSession, "accountId"> }>) {
+  const [client] = useState(createQueryClient);
+  const [credentialError, setCredentialError] = useState<unknown>();
+  const nativeCredentials = session.getCredentials;
+  const getCredentials = useCallback(async () => {
+    try {
+      const credentials = await nativeCredentials();
+      setCredentialError(undefined);
+      return credentials;
+    } catch (error) {
+      setCredentialError(error);
+      throw error;
+    }
+  }, [nativeCredentials]);
+  const current = {
+    ...session,
+    getCredentials,
+    async signIn(audience: string) {
+      const login = await session.signIn(audience);
+      if (login) setCredentialError(undefined);
+      return login;
+    },
+    status:
+      !session.operation && requiresReauthentication(credentialError)
+        ? ("reauthentication-required" as const)
+        : session.status,
+    error: credentialError ?? session.error,
+  };
+  useEffect(
+    () => () => {
+      void client.cancelQueries().then(() => client.clear());
+    },
+    [client],
+  );
+  return (
+    <QueryClientProvider client={client}>
+      <CurrentAccountIdentity session={current}>
+        {children}
+      </CurrentAccountIdentity>
+    </QueryClientProvider>
+  );
+}
+
+/** Observes the business UUID in its native cache instead of publishing it into a session store. */
+function CurrentAccountIdentity({
+  children,
+  session,
+}: PropsWithChildren<{ session: Omit<AccountSession, "accountId"> }>) {
+  const account = useQuery(currentAccountQuery(session));
+  const unavailable =
+    account.error instanceof ApiError &&
+    [401, 403, 404].includes(account.error.status ?? 0);
+  const value = {
+    ...session,
+    accountId: unavailable ? null : (account.data?.accountId ?? null),
+  };
   return (
     <AccountSessionContext value={value}>{children}</AccountSessionContext>
   );
 }
 
-/** Reads the business boundary; SDK actions are also available below the initialized Auth0Provider. */
+/** Reads the SDK-derived session and current private account; callers obtain credentials through this owner. */
 export function useAccountSession(): AccountSession {
   const session = useContext(AccountSessionContext);
   if (!session)

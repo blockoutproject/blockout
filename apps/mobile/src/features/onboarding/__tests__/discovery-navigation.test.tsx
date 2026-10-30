@@ -1,9 +1,11 @@
+import AgeDeclarationRoute from "../../../app/age-declaration";
+import { ProfileScreen } from "../../accounts/screens/profile-screen";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import * as Application from "expo-application";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { focusManager } from "@tanstack/react-query";
 import { act, cleanup, screen, userEvent } from "@testing-library/react-native";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType } from "react";
 import { Linking, Pressable, Text } from "react-native";
@@ -83,6 +85,7 @@ afterEach(async () => {
   focusManager.setFocused(undefined);
   process.env = { ...environment };
   jest.restoreAllMocks();
+  jest.useRealTimers();
 });
 
 /** Real root/session/admission/discovery; the SDK and HTTP are controlled, ordinary routes are probes. */
@@ -92,8 +95,13 @@ async function openInstallation(initialUrl = "/", SignIn = OrdinarySession) {
       _layout: () => <RootLayout />,
       onboarding: OnboardingRoute,
       access: AccessGateScreen,
+      "age-declaration": AgeDeclarationRoute,
       "(ordinary)/_layout": () => <Stack />,
       "(ordinary)/index": () => <Text>Ordinary home</Text>,
+      "(ordinary)/(tabs)/(home)/index": () => <Text>Ordinary home</Text>,
+      "(ordinary)/profile": () => (
+        <ProfileScreen admitted proEntry={null} privacyEntry={null} />
+      ),
       "(ordinary)/sign-in": () => <SignIn />,
       "(ordinary)/legal": () => <Text>Legal route</Text>,
       "(ordinary)/support": () => <Text>Support route</Text>,
@@ -154,7 +162,11 @@ it.each([
     // Given
     const user = userEvent.setup();
     if (outcome === "profile unavailable") {
-      mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|discovery"));
+      jest.useFakeTimers();
+      mockAuth0.webAuth.mockImplementation(async () => {
+        mockAuth0.hasValidCredentials.mockResolvedValue(true);
+        return credentialsFor("auth0|discovery");
+      });
       mockFetch.mockImplementation(async (url) =>
         String(url).endsWith("/application-access")
           ? Response.json(applicationAccessResponse())
@@ -185,6 +197,20 @@ it.each([
     );
 
     // Then
+    if (outcome === "profile unavailable") {
+      await act(async () => jest.advanceTimersByTimeAsync(7500));
+      expect(screen).toHavePathname("/profile");
+      await screen.findByRole("header", { name: "Mon profil" });
+      expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+      await act(async () => jest.advanceTimersByTimeAsync(7500));
+      await screen.findByRole("alert", { name: "Une erreur est survenue" });
+      expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+      expect(await readDiscoveryCompletion()).toBe(true);
+      expect(Purchases.restorePurchases).not.toHaveBeenCalled();
+      await act(() => router.replace("/support"));
+      await screen.findByText("Support route");
+      return;
+    }
     expect(await screen.findByText(message)).toBeOnTheScreen();
     expect(
       screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
@@ -201,10 +227,12 @@ it.each(["/onboarding", "/sign-in", "/legal", "/support"])(
   "keeps %s behind current F12 blocking",
   async (path) => {
     // Given
+    jest.useFakeTimers();
     mockFetch.mockRejectedValue(new Error("Unavailable"));
 
     // When
     await openInstallation(path);
+    await act(async () => jest.advanceTimersByTimeAsync(7500));
 
     // Then
     expect(

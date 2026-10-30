@@ -6,7 +6,6 @@ import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-
 import { PageHeader } from "../../../shared/components/page-header";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useAccountSession } from "../../accounts/current-account";
@@ -14,7 +13,6 @@ import { useAdministrationCapabilities } from "../api/use-administration-capabil
 import { useMaintenanceSettings } from "../api/use-maintenance-settings";
 import { MaintenanceForm } from "../forms/maintenance-form";
 import { MaintenanceLoading } from "../components/settings-loading";
-
 /** Loads only with current grants and retains an existing draft read-only when they become unavailable. */
 export function MaintenanceSettingsScreen() {
   const { permissions, account, sessionStatus } =
@@ -27,10 +25,9 @@ export function MaintenanceSettingsScreen() {
     isAccessDenied(account.error) || isAccessDenied(editing.query.error);
   const settings =
     sessionStatus === "authenticated" ? editing.query.data : undefined;
-
   /** Explicit refresh reports retained-data failure once and never resets the mounted draft. */
   async function refresh() {
-    if (editing.content.isPending()) return;
+    if (editing.content.isPending) return;
     feedback.clear();
     if (!canManage) {
       const result = await account.refetch();
@@ -38,8 +35,7 @@ export function MaintenanceSettingsScreen() {
       return;
     }
     const result = await editing.query.refetch();
-    if (session.isCurrent(session.generation) && result.isError && result.data)
-      feedback.error();
+    if (result.isError && result.data) feedback.error();
   }
   let accessError = null;
   if (account.isError) {
@@ -56,7 +52,7 @@ export function MaintenanceSettingsScreen() {
   if (settings) {
     settingsContent = (
       <MaintenanceForm
-        key={`${session.generation}:${session.accountId}`}
+        key={`${session.subject}:${session.accountId}`}
         settings={settings}
         editing={editing}
         disabled={!canManage || denied}
@@ -91,7 +87,7 @@ export function MaintenanceSettingsScreen() {
               settings && sessionStatus === "authenticated" ? (
                 <DataRefreshControl
                   progressViewOffset={headerHeight}
-                  enabled={!editing.content.pending}
+                  enabled={!editing.content.isPending}
                   refreshing={
                     editing.query.isRefetching || account.isRefetching
                   }

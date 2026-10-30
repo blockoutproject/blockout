@@ -1,3 +1,6 @@
+import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { fetch } from "expo/fetch";
+import { signInAccount } from "../test-support/sign-in-account";
 import * as proSessionModule from "../pro-session";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -66,9 +69,7 @@ jest.mock("react-native-auth0", () => {
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
-
 jest.mock("expo/fetch", () => ({ fetch: jest.fn() }));
-
 const a = "00000000-0000-4000-8000-000000000001";
 const b = "00000000-0000-4000-8000-000000000002";
 let account: AccountSession;
@@ -76,7 +77,6 @@ let pro: ProContext;
 const originalDomain = process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
 const originalClient = process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID;
 const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;
-
 beforeEach(async () => {
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
@@ -89,11 +89,21 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   prepareProNativeIO();
   // Usable UUIDs are explicitly published through F05 below; no backend is contacted.
-  delete process.env.EXPO_PUBLIC_API_URL;
+  process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
+  jest
+    .mocked(fetch)
+    .mockImplementation(async (url) =>
+      String(url).endsWith("/application-access")
+        ? (Response.json(applicationAccessResponse()) as Awaited<
+            ReturnType<typeof fetch>
+          >)
+        : (new Response(null, { status: 404 }) as Awaited<
+            ReturnType<typeof fetch>
+          >),
+    );
   jest.spyOn(Appearance, "getColorScheme").mockReturnValue("light");
   jest.mocked(Stack).mockImplementation(AppearanceRoute);
 });
-
 afterEach(async () => {
   await cleanup();
   jest.restoreAllMocks();
@@ -105,7 +115,6 @@ afterEach(async () => {
   if (originalApiUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
   else process.env.EXPO_PUBLIC_API_URL = originalApiUrl;
 });
-
 /** Reads public presentation contracts; text exposes semantic values without style assertions. */
 function AppearanceValues() {
   const theme = useTheme();
@@ -123,7 +132,6 @@ function AppearanceValues() {
     </>
   );
 }
-
 /** Stateful route double; root Query, Auth0/session, Pro and theme owners stay real. */
 function AppearanceRoute() {
   const currentAccount = useAccountSession();
@@ -151,12 +159,10 @@ function AppearanceRoute() {
     </>
   );
 }
-
 /** Mounts only the real owners; each scenario publishes and awaits its account explicitly. */
 async function renderAccount() {
   await render(<RootLayout />);
 }
-
 /** Builds only synthetic SDK evidence; the provider's active map remains authoritative. */
 function activeInfo(store: "APP_STORE" | "PROMOTIONAL" = "APP_STORE") {
   const active = { "Blockout Pro": entitlement({ store }) };
@@ -166,7 +172,6 @@ function activeInfo(store: "APP_STORE" | "PROMOTIONAL" = "APP_STORE") {
     verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
   });
 }
-
 it.each(["light", "dark"] as const)(
   "projects current paid and gifted SDK-active rights without changing neutral context in %s",
   async (scheme) => {
@@ -174,17 +179,16 @@ it.each(["light", "dark"] as const)(
     jest.mocked(Appearance.getColorScheme).mockReturnValue(scheme);
     await renderAccount();
     await waitFor(() => expect(account.status).toBe("authenticated"));
-    await act(() => account.setAccount(account.generation, a));
+    await act(() => signInAccount(account, a));
+    await waitFor(() => expect(account.accountId).toBe(a));
     await screen.findByText("Pro: inactive");
     expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
       membershipColors[scheme].fill,
     );
-
     // When
     for (const store of ["APP_STORE", "PROMOTIONAL"] as const) {
       mockPurchases.getCustomerInfo.mockResolvedValueOnce(activeInfo(store));
       await act(() => pro.refresh());
-
       // Then
       expect(screen.getByText("Pro: active")).toBeOnTheScreen();
       expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
@@ -202,7 +206,6 @@ it.each(["light", "dark"] as const)(
     }
   },
 );
-
 it("keeps unknown account and unavailable SDK state neutral", async () => {
   // Given
   await render(<RootLayout />);
@@ -214,10 +217,9 @@ it("keeps unknown account and unavailable SDK state neutral", async () => {
   mockPurchases.getCustomerInfo.mockRejectedValueOnce(
     new Error("synthetic read failure"),
   );
-
   // When
-  await act(() => account.setAccount(account.generation, a));
-
+  await act(() => signInAccount(account, a));
+  await waitFor(() => expect(account.accountId).toBe(a));
   // Then
   await waitFor(() => expect(pro.verificationFailed).toBe(true));
   expect(screen.getByText("Pro: unavailable")).toBeOnTheScreen();
@@ -225,14 +227,14 @@ it("keeps unknown account and unavailable SDK state neutral", async () => {
     membershipColors.light.fill,
   );
 });
-
 it.each(["signOut", "clearCredentials"] as const)(
   "removes the previous accent at F05 %s before native logout settles",
   async (action) => {
     // Given: clearCredentials is F05's local invalidation seam after owner-accepted erasure.
     await renderAccount();
     await waitFor(() => expect(account.status).toBe("authenticated"));
-    await act(() => account.setAccount(account.generation, a));
+    await act(() => signInAccount(account, a));
+    await waitFor(() => expect(account.accountId).toBe(a));
     await screen.findByText("Pro: inactive");
     mockPurchases.getCustomerInfo.mockResolvedValueOnce(activeInfo());
     await act(() => pro.refresh());
@@ -241,10 +243,8 @@ it.each(["signOut", "clearCredentials"] as const)(
     );
     const logout = Promise.withResolvers<CustomerInfo>();
     mockPurchases.logOut.mockReturnValueOnce(logout.promise);
-
     // When
     await act(() => account[action]());
-
     // Then
     expect(screen.getByText("Pro: guest")).toBeOnTheScreen();
     expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
@@ -253,22 +253,20 @@ it.each(["signOut", "clearCredentials"] as const)(
     expect(
       screen.getByRole("button", { name: "Consulter le sport" }),
     ).toBeEnabled();
-
     // When
     await act(() => logout.resolve(activeInfo()));
-
     // Then
     expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
       membershipColors.light.fill,
     );
   },
 );
-
 it("clears gold during reassociation and keeps a failed current association neutral", async () => {
   // Given
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() => account.setAccount(account.generation, a));
+  await act(() => signInAccount(account, a));
+  await waitFor(() => expect(account.accountId).toBe(a));
   await screen.findByText("Pro: inactive");
   mockPurchases.getCustomerInfo.mockResolvedValueOnce(activeInfo());
   await act(() => pro.refresh());
@@ -278,19 +276,16 @@ it("clears gold during reassociation and keeps a failed current association neut
   const login =
     Promise.withResolvers<Awaited<ReturnType<typeof mockPurchases.logIn>>>();
   mockPurchases.logIn.mockReturnValueOnce(login.promise);
-
   // When
-  await act(() => account.setAccount(account.generation, b));
-
+  await act(() => signInAccount(account, b));
+  await waitFor(() => expect(account.accountId).toBe(b));
   // Then
   expect(screen.getByText("Pro: unavailable")).toBeOnTheScreen();
   expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
     membershipColors.light.fill,
   );
-
   // When
   await act(() => login.reject(new Error("synthetic association failure")));
-
   // Then
   expect(pro.state).toEqual(
     expect.objectContaining({ reason: "association-failed" }),
@@ -299,12 +294,12 @@ it("clears gold during reassociation and keeps a failed current association neut
     membershipColors.light.fill,
   );
 });
-
 it("rejects previous-session gold through A → guest → A, including a late active read", async () => {
   // Given
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() => account.setAccount(account.generation, a));
+  await act(() => signInAccount(account, a));
+  await waitFor(() => expect(account.accountId).toBe(a));
   await screen.findByText("Pro: inactive");
   const previous = activeInfo();
   mockPurchases.getCustomerInfo.mockResolvedValueOnce(previous);
@@ -318,7 +313,6 @@ it("rejects previous-session gold through A → guest → A, including a late ac
   await act(() => {
     refreshing = pro.refresh();
   });
-
   // When
   await act(() => account.clearCredentials());
   expect(screen.getByText("Pro: guest")).toBeOnTheScreen();
@@ -327,25 +321,25 @@ it("rejects previous-session gold through A → guest → A, including a late ac
   );
   mockAuth0.webAuth.mockResolvedValueOnce(credentialsFor("auth0|synthetic"));
   await act(() => account.signIn("https://api.example.invalid"));
-  await act(() => account.setAccount(account.generation, a));
+  await act(() => signInAccount(account, a));
+  await waitFor(() => expect(account.accountId).toBe(a));
   await screen.findByText("Pro: inactive");
   await act(async () => {
     oldRead.resolve(previous);
     await refreshing;
   });
-
   // Then
   expect(screen.getByText("Pro: inactive")).toBeOnTheScreen();
   expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
     membershipColors.light.fill,
   );
 });
-
 it("retains SDK-supplied cached active gold during failure, then removes it on reliable rights loss", async () => {
   // Given: historical dates do not override the SDK's active map or create an app expiry clock.
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() => account.setAccount(account.generation, a));
+  await act(() => signInAccount(account, a));
+  await waitFor(() => expect(account.accountId).toBe(a));
   await screen.findByText("Pro: inactive");
   const cached = activeInfo();
   mockPurchases.getCustomerInfo.mockResolvedValueOnce(cached);
@@ -356,16 +350,13 @@ it("retains SDK-supplied cached active gold during failure, then removes it on r
   mockPurchases.getCustomerInfo.mockRejectedValueOnce(
     new Error("synthetic outage"),
   );
-
   // When
   await act(() => pro.refresh());
-
   // Then
   expect(pro.verificationFailed).toBe(true);
   expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
     membershipColors.pro.light.fill,
   );
-
   // When: a native event signals a current read; its payload cannot override that read.
   mockPurchases.getCustomerInfo.mockResolvedValueOnce(
     customerInfo({
@@ -374,29 +365,28 @@ it("retains SDK-supplied cached active gold during failure, then removes it on r
       verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
     }),
   );
-  const listener = mockPurchases.addCustomerInfoUpdateListener.mock.calls[0][0];
+  const listener =
+    mockPurchases.addCustomerInfoUpdateListener.mock.calls.at(-1)![0];
   await act(() => listener(cached));
-
   // Then
   expect(screen.getByText("Pro: inactive")).toBeOnTheScreen();
   expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
     membershipColors.light.fill,
   );
 });
-
 it("follows live system appearance without resetting the mounted route or draft or restoring old gold", async () => {
   // Given
   const subscribe = jest.spyOn(Appearance, "addChangeListener");
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() => account.setAccount(account.generation, a));
+  await act(() => signInAccount(account, a));
+  await waitFor(() => expect(account.accountId).toBe(a));
   await screen.findByText("Pro: inactive");
   mockPurchases.getCustomerInfo.mockResolvedValueOnce(activeInfo());
   await act(() => pro.refresh());
   const user = userEvent.setup();
   await user.press(screen.getByRole("button", { name: "Consulter le sport" }));
   await user.type(screen.getByLabelText("Brouillon"), "Saisie conservée");
-
   // When
   for (const scheme of ["dark", "light"] as const) {
     jest.mocked(Appearance.getColorScheme).mockReturnValue(scheme);
@@ -404,7 +394,6 @@ it("follows live system appearance without resetting the mounted route or draft 
       for (const [listener] of subscribe.mock.calls)
         listener({ colorScheme: scheme });
     });
-
     // Then
     expect(screen.getByLabelText("Apparence")).toHaveTextContent(scheme);
     expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
@@ -418,7 +407,6 @@ it("follows live system appearance without resetting the mounted route or draft 
       screen.getByRole("button", { name: "Consulter le sport" }),
     ).toBeEnabled();
   }
-
   // When
   await act(() => pro.refresh());
   jest.mocked(Appearance.getColorScheme).mockReturnValue("dark");
@@ -426,7 +414,6 @@ it("follows live system appearance without resetting the mounted route or draft 
     for (const [listener] of subscribe.mock.calls)
       listener({ colorScheme: "dark" });
   });
-
   // Then
   expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
     membershipColors.dark.fill,

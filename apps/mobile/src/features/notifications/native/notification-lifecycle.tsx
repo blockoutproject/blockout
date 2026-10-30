@@ -4,7 +4,6 @@ import * as Notifications from "expo-notifications";
 import { useRootNavigationState, useRouter } from "expo-router";
 import { useEffect, useEffectEvent, useLayoutEffect, useRef } from "react";
 import { AppState } from "react-native";
-import { useAuth0 } from "react-native-auth0";
 import { z } from "zod";
 import { createReadNotificationOptions } from "../api/inbox-mutations";
 import { refreshInbox, refreshNotificationSummary } from "../api/inbox-queries";
@@ -12,7 +11,6 @@ import { useInboxQueries } from "../api/use-inbox-queries";
 import type { PushRegistration } from "./push-registration";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useSportingTransition } from "../../advertising/use-sporting-transition";
-
 // SDK 58 otherwise presents foreground messages while F14/native authentication is still initializing.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -22,28 +20,24 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
-
 const routing = z.object({
   ownerAccountId: z.string().uuid(),
   notificationId: z.string().uuid(),
   matchId: z.string().uuid(),
 });
-
 /** Root-owned SDK subscriptions; current ordinary navigation is supplied by the existing access/discovery owners. */
 export interface NotificationLifecycleProps {
   registration: PushRegistration;
   enabled: boolean;
 }
-
 /** Connects ordinary native occasions, silent receipt refresh and one-time taps to existing session/Query owners. */
 export function NotificationLifecycle({
   registration,
   enabled,
 }: NotificationLifecycleProps) {
   const { session, owner, queries, account } = useInboxQueries();
-  const { generation, accountId, isCurrent, getSnapshot, subscribe } = session;
+  const { subject, accountId } = session;
   const client = useQueryClient();
-  const auth = useAuth0();
   const transition = useSportingTransition();
   const router = useRouter();
   const navigation = useRootNavigationState();
@@ -57,18 +51,14 @@ export function NotificationLifecycle({
     enabled &&
     !!navigation?.key &&
     !["restoring", "authenticating", "signing-out"].includes(session.status) &&
-    !(session.status === "authenticated" && account.isPending);
-
+    !(
+      session.status === "authenticated" &&
+      (account.isPending || (accountId === null && !account.isError))
+    );
   useLayoutEffect(() => {
-    const reset = () => registration.reset(getSnapshot());
-    reset();
-    const unsubscribe = subscribe(reset);
-    return () => {
-      unsubscribe();
-      registration.reset({ generation: "unmounted", accountId: null });
-    };
-  }, [registration, subscribe, getSnapshot]);
-
+    registration.reset({ subject, accountId });
+    return () => registration.reset({ subject: null, accountId: null });
+  }, [registration, subject, accountId]);
   const register = useEffectEvent(
     (devicePushToken?: Notifications.DevicePushToken) => {
       if (!available || !queries || typeof projectId !== "string" || !projectId)
@@ -77,7 +67,7 @@ export function NotificationLifecycle({
         owner,
         projectId,
         queries.request,
-        auth.getCredentials,
+        session.getCredentials,
         devicePushToken,
       );
     },
@@ -104,11 +94,7 @@ export function NotificationLifecycle({
       // Consume remembered tap context without inspecting or dismissing presented notifications.
       Notifications.clearLastNotificationResponse();
       if (!data.success) return;
-      if (
-        queries &&
-        data.data.ownerAccountId === owner.accountId &&
-        owner.isCurrent(owner.generation)
-      ) {
+      if (queries && data.data.ownerAccountId === owner.accountId) {
         const observer = new MutationObserver(client, {
           ...createReadNotificationOptions(client, owner, queries),
           gcTime: 0,
@@ -116,7 +102,7 @@ export function NotificationLifecycle({
         void observer
           .mutate(data.data.notificationId)
           .catch(() => {
-            if (owner.isCurrent(owner.generation)) feedback.error();
+            feedback.error();
           })
           .finally(() => observer.reset());
       }
@@ -132,33 +118,31 @@ export function NotificationLifecycle({
       });
     },
   );
-
   useEffect(() => {
     if (!available) return;
-    const original = generation;
+
     register();
     const token = Notifications.addPushTokenListener((devicePushToken) => {
-      if (isCurrent(original)) register(devicePushToken);
+      register(devicePushToken);
     });
     const foreground = AppState.addEventListener("change", (state) => {
-      if (state === "active" && isCurrent(original)) register();
+      if (state === "active") register();
     });
     return () => {
       token.remove();
       foreground.remove();
       registration.cancel();
     };
-  }, [available, generation, accountId, isCurrent, registration]);
-
+  }, [available, subject, accountId, registration]);
   useEffect(() => {
     if (!ready) return;
-    const original = generation;
+
     const receive = Notifications.addNotificationReceivedListener(() => {
-      if (isCurrent(original)) refresh();
+      refresh();
     });
     const tap = Notifications.addNotificationResponseReceivedListener(
       (response) => {
-        if (isCurrent(original)) open(response);
+        open(response);
       },
     );
     const initial = Notifications.getLastNotificationResponse();
@@ -167,6 +151,6 @@ export function NotificationLifecycle({
       receive.remove();
       tap.remove();
     };
-  }, [ready, generation, isCurrent]);
+  }, [ready, subject]);
   return null;
 }

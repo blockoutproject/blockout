@@ -1,20 +1,20 @@
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
-import { AccessFeedback } from "../../access/components/access-feedback";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { FormScrollView } from "../../../shared/components/form-scroll-view";
-import { PageHeader } from "../../../shared/components/page-header";
-import { Page, PageContent } from "../../../shared/components/page";
-import { ErrorState } from "../../../shared/components/state-card";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { RequestLoading } from "../../../shared/components/request-feedback";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
+import { FormScrollView } from "../../../shared/components/form-scroll-view";
+import { Page, PageContent } from "../../../shared/components/page";
+import { PageHeader } from "../../../shared/components/page-header";
+import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ScreenState } from "../../../shared/components/screen-state";
+import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+import { ErrorState } from "../../../shared/components/state-card";
+import { AccessFeedback } from "../../access/components/access-feedback";
 import {
   useClassification,
   useDivisions,
   type ClassificationTarget,
 } from "../api/classification";
-
 import { ClassificationForm } from "../forms/classification-form";
+
 /** Original route scope; the form owns unsaved-change prevention. */
 export interface ClassificationScreenProps {
   target: ClassificationTarget;
@@ -68,14 +68,14 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
               !blockingState && authority.sessionStatus === "authenticated" ? (
                 <DataRefreshControl
                   progressViewOffset={headerHeight}
-                  enabled={!editing.save.pending}
+                  enabled={!editing.save.isPending}
                   refreshing={
                     editing.query.isRefetching ||
                     divisions.query.isRefetching ||
                     authority.account.isRefetching
                   }
                   onRefresh={() => {
-                    if (editing.save.isPending()) return;
+                    if (editing.save.isPending) return;
                     if (!authority.enabled) {
                       void authority.account.refetch().then((result) => {
                         if (result.isError && result.data) feedback.error();
@@ -99,7 +99,7 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
               <PageContent>
                 {current && (
                   <ClassificationForm
-                    key={`${authority.session.generation}:${target.kind}:${target.id}`}
+                    key={`${authority.session.subject}:${target.kind}:${target.id}`}
                     target={target}
                     current={current}
                     editing={editing}

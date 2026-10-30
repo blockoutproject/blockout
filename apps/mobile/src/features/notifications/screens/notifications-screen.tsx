@@ -4,7 +4,7 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useNavigation } from "expo-router";
+import { useNavigation, useIsFocused } from "expo-router";
 import { useEffect, useEffectEvent, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
@@ -34,7 +34,6 @@ import { createReadNotificationOptions } from "../api/inbox-mutations";
 import { notificationExpiry } from "../state/inbox-expiry";
 import { NotificationItem } from "../components/notification-item";
 import { useSportingNavigation } from "../../sporting/navigation";
-
 /** Current F05/F12 admission precedes private inbox observers, including direct guest entry. */
 export function NotificationsScreen() {
   const authority = useInboxQueries();
@@ -67,13 +66,12 @@ export function NotificationsScreen() {
     );
   return (
     <Inbox
-      key={`${authority.owner.generation}:${authority.owner.accountId}`}
+      key={`${authority.owner.subject}:${authority.owner.accountId}`}
       {...authority}
       queries={authority.queries}
     />
   );
 }
-
 /** Native growing list; read and match navigation settle independently in their existing owners. */
 function Inbox({
   owner,
@@ -83,8 +81,8 @@ function Inbox({
   queries: NonNullable<ReturnType<typeof useInboxQueries>["queries"]>;
 }) {
   const client = useQueryClient();
-  // Focus owns opening reads; the native observer still owns data, paging and fetch state.
-  const query = useInfiniteQuery({ ...queries.inbox, enabled: false });
+  const focused = useIsFocused();
+  const query = useInfiniteQuery({ ...queries.inbox, enabled: focused });
   const command = useMutation(
     createReadNotificationOptions(client, owner, queries),
   );
@@ -103,17 +101,14 @@ function Inbox({
         .map((row) => [row.id, row]),
     ).values(),
   ];
-
-  /** Opening/focus requests the first page and whole summary; Query owns the resulting read state. */
+  /** Focus refreshes the whole summary; the enabled infinite query owns list reads and invalidation. */
   const open = useEffectEvent(() => {
-    void refreshInbox(client, queries).catch(() => undefined);
     void refreshNotificationSummary(client, queries).catch(() => undefined);
   });
   useEffect(() => {
     if (navigation.isFocused()) open();
     return navigation.addListener("focus", () => open());
   }, [navigation]);
-
   /** Explicit refresh retains authorized rows on ordinary failure and reports it through the existing toast. */
   async function refresh() {
     feedback.clear();
@@ -122,7 +117,6 @@ function Inbox({
       refreshNotificationSummary(client, queries),
     ]);
     if (
-      owner.isCurrent(owner.generation) &&
       outcomes.some(
         (result) =>
           result.status === "rejected" && !isAccessDenied(result.reason),
@@ -143,7 +137,6 @@ function Inbox({
   async function loadMore() {
     if (
       !navigation.isFocused() ||
-      !owner.isCurrent(owner.generation) ||
       !query.hasNextPage ||
       query.isFetching ||
       (query.isError && !query.isFetchNextPageError)
@@ -155,7 +148,6 @@ function Inbox({
       result.isFetchNextPageError &&
       result.data &&
       !isAccessDenied(result.error) &&
-      owner.isCurrent(owner.generation) &&
       navigation.isFocused()
     )
       feedback.error();
@@ -239,11 +231,10 @@ function Inbox({
                 notification={item}
                 pending={command.isPending && command.variables === item.id}
                 onPress={() => {
-                  if (!owner.isCurrent(owner.generation)) return;
                   // Both intents start on tap; either can fail without reversing the other.
                   command.mutate(item.id, {
                     onError: () => {
-                      if (owner.isCurrent(owner.generation)) feedback.error();
+                      feedback.error();
                     },
                   });
                   void sporting.navigate("match", item.match.id);
@@ -256,7 +247,6 @@ function Inbox({
     </Page>
   );
 }
-
 /** Approved notification skeleton slots use shared reduced-motion-independent primitives. */
 function NotificationLoading() {
   return (

@@ -1,48 +1,47 @@
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
-import { ListSeparator } from "../../../shared/components/list-separator";
-import { SeasonIdentity, seasonStatus } from "../components/source-summary";
-import { PreparationLink } from "../components/preparation-link";
-import { AccessFeedback } from "../../access/components/access-feedback";
-import {
-  Page,
-  PageScrollView,
-  pageContentStyle,
-  PageContent,
-} from "../../../shared/components/page";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { ErrorState, EmptyState } from "../../../shared/components/state-card";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { PageHeader } from "../../../shared/components/page-header";
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
-import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { useNavigation, useRouter } from "expo-router";
 import { CalendarDays, MapPin, Users } from "lucide-react-native";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
-
 import type {
   CollectionFamilyEnum,
   CollectionSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
+import { isAccessDenied } from "../../../shared/api/access-denied";
+import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { Button } from "../../../shared/components/button";
-import { RequestLoading } from "../../../shared/components/request-feedback";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { ListContinuation } from "../../../shared/components/list-continuation";
+import { ListSeparator } from "../../../shared/components/list-separator";
+import {
+  Page,
+  PageContent,
+  PageScrollView,
+  pageContentStyle,
+} from "../../../shared/components/page";
+import { PageHeader } from "../../../shared/components/page-header";
+import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ScreenState } from "../../../shared/components/screen-state";
+import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+import { EmptyState, ErrorState } from "../../../shared/components/state-card";
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import { AccessFeedback } from "../../access/components/access-feedback";
 import {
-  useCollectionControls,
   useCollectionControl,
+  useCollectionControls,
 } from "../api/use-collection-controls";
 import {
   useCollectionSeason,
   useCollectionSeasons,
 } from "../api/use-source-preparation";
 import { CollectionControl } from "../components/collection-control";
-import { CollectionResult } from "../components/collection-result";
 import { CollectionLoading } from "../components/collection-loading";
+import { CollectionResult } from "../components/collection-result";
+import { PreparationLink } from "../components/preparation-link";
+import { SeasonIdentity, seasonStatus } from "../components/source-summary";
 
 /** Navigation labels correspond to F01's four independent control families. */
 const familyLabels: Record<CollectionFamilyEnum, string> = {
@@ -51,7 +50,6 @@ const familyLabels: Record<CollectionFamilyEnum, string> = {
   "club-sheets": "Fiches clubs",
   geocoding: "Géocodage",
 };
-
 /** Keeps authorized bounded seasons through technical rereads; independent club destinations have no pagination. */
 export function CollectionDashboardScreen() {
   const { authority, query } = useCollectionSeasons();
@@ -170,13 +168,11 @@ export function CollectionDashboardScreen() {
     </Page>
   );
 }
-
 /** Navigable control identity comes from the route; club families deliberately have no season setting. */
 export interface CollectionControlScreenProps {
   family: CollectionFamilyEnum;
   seasonId?: string;
 }
-
 /** Composes current-season lifecycle only for competition controls, retaining the separate preparation destination. */
 export function CollectionControlScreen({
   family,
@@ -188,7 +184,6 @@ export function CollectionControlScreen({
     <ControlScope family={family} />
   );
 }
-
 /** A competition command must have a current readable season as well as its control projection. */
 function SeasonControlScope({
   family,
@@ -248,7 +243,6 @@ function SeasonControlScope({
     />
   );
 }
-
 /** Selection is read from the complete scope list, never inferred from a provider code or another season. */
 function ControlScope({
   family,
@@ -311,7 +305,7 @@ function ControlScope({
     );
   return (
     <ControlDashboard
-      key={`${authority.session.generation}/${selected.id}`}
+      key={`${authority.session.subject}/${selected.id}`}
       controlId={selected.id}
       family={family}
       season={season}
@@ -321,7 +315,6 @@ function ControlScope({
     />
   );
 }
-
 /** Visible list edges append current evidence; technical failures retain authorized rows without changing command ownership. */
 function ControlDashboard({
   controlId,
@@ -359,10 +352,11 @@ function ControlDashboard({
     isAccessDenied(query.error) || isAccessDenied(results.error)
       ? []
       : (results.data?.pages.flatMap((page) => page.items) ?? []);
-  /** Refresh reads each projection only; command reconciliation is released by its separate explicit reread action. */
+  /** Refreshes the displayed projections without resubmitting a mutation. */
   async function refresh() {
     if (
-      editing.activity.isPending() ||
+      editing.activity.isPending ||
+      editing.request.isPending ||
       query.isFetching ||
       results.isFetching ||
       seasonFetching
@@ -387,7 +381,6 @@ function ControlDashboard({
   async function loadMore() {
     if (
       !authority.enabled ||
-      !authority.session.isCurrent(authority.session.generation) ||
       !matches ||
       !navigation.isFocused() ||
       !results.hasNextPage ||
@@ -396,8 +389,8 @@ function ControlDashboard({
       results.isFetching ||
       refreshing ||
       query.isFetching ||
-      editing.activity.isPending() ||
-      editing.request.isPending()
+      editing.activity.isPending ||
+      editing.request.isPending
     )
       return;
     feedback.clear();
@@ -406,7 +399,6 @@ function ControlDashboard({
       result.isFetchNextPageError &&
       result.data &&
       !isAccessDenied(result.error) &&
-      authority.session.isCurrent(authority.session.generation) &&
       navigation.isFocused()
     )
       feedback.error();
@@ -424,7 +416,6 @@ function ControlDashboard({
           control={current}
           editing={editing}
           season={season}
-          rereadSeason={rereadSeason}
           seasonFetching={seasonFetching}
           stateUnavailable={seasonUnavailable}
         />
@@ -499,7 +490,9 @@ function ControlDashboard({
                   <DataRefreshControl
                     progressViewOffset={headerHeight}
                     enabled={
-                      !editing.activity.pending && !results.isFetchingNextPage
+                      !editing.activity.isPending &&
+                      !editing.request.isPending &&
+                      !results.isFetchingNextPage
                     }
                     refreshing={refreshing}
                     onRefresh={() => void refresh()}
@@ -556,7 +549,8 @@ function ControlDashboard({
                           results.isFetching ||
                           refreshing ||
                           query.isFetching ||
-                          editing.activity.pending
+                          editing.activity.isPending ||
+                          editing.request.isPending
                         }
                         onRetry={loadMore}
                       />

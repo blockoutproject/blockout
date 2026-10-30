@@ -1,3 +1,9 @@
+import {
+  useLayoutEffect,
+  useState as useQueryFixtureState,
+  type PropsWithChildren as QueryFixtureProps,
+} from "react";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -64,12 +70,27 @@ const mockPush = jest.fn();
 const environment = { ...process.env };
 const pool = matchDetail().match.pool;
 const otherTeam = "00000000-0000-4000-8000-000000002092";
-let client = createQueryClient();
+let client: QueryClient;
+let publicClient = createQueryClient();
 let table: PoolStandingsResponse;
 let failed = false;
 
+/** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
+function PrivateQueries({ children }: QueryFixtureProps) {
+  const current = useQueryClient();
+  // Configure this fresh real client before descendant public observers start their first request.
+  useQueryFixtureState(() => {
+    current.setQueryDefaults([], { retry: false });
+    return true;
+  });
+  useLayoutEffect(() => {
+    client = current;
+  }, [current]);
+  return children;
+}
+
 beforeEach(() => {
-  client = createQueryClient();
+  publicClient = createQueryClient();
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "test-client";
@@ -137,7 +158,8 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await cleanup();
-  client.clear();
+  client?.clear();
+  publicClient.clear();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
@@ -155,12 +177,14 @@ async function open(
             insets: { top: 0, left: 0, right: 0, bottom: 0 },
           }}
         >
-          <QueryClientProvider client={client}>
+          <QueryClientProvider client={publicClient}>
             <ThemeProvider>
               <ActionFeedbackProvider scopeKey="standings-test">
                 <ApplicationAccessProvider>
                   <AccountSessionProvider>
-                    <AdvertisingProviders>{children}</AdvertisingProviders>
+                    <PrivateQueries>
+                      <AdvertisingProviders>{children}</AdvertisingProviders>
+                    </PrivateQueries>
                   </AccountSessionProvider>
                 </ApplicationAccessProvider>
               </ActionFeedbackProvider>
@@ -282,7 +306,7 @@ it("retains source metadata silently after a failed explicit refresh", async () 
     client
       .getQueryCache()
       .findAll()
-      .find((query) => query.meta?.consultationResource === "standings")?.state
+      .find((query) => String(query.queryKey[0]).endsWith("/standings"))?.state
       .data,
   ).toEqual(table);
 });
@@ -412,7 +436,7 @@ it("projects only official podium ranks as 2–1–3 and preserves the remaining
     client
       .getQueryCache()
       .findAll()
-      .find((query) => query.meta?.consultationResource === "standings")?.state
+      .find((query) => String(query.queryKey[0]).endsWith("/standings"))?.state
       .data,
   ).toMatchObject({ rows: sourceOrder.map((sourceName) => ({ sourceName })) });
   expect(screen.getByText("Unmatched")).toBeOnTheScreen();

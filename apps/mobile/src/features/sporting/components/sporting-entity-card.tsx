@@ -2,7 +2,6 @@ import { genderLabel, formatLabel } from "../classification-presentation";
 import { divisionTextColor } from "../presentation";
 import { DivisionPaint } from "./division-paint";
 import { SportingMedia, SportingCover } from "./sporting-media";
-import { hashKey, useQuery } from "@tanstack/react-query";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ChevronRight } from "lucide-react-native";
 import type {
@@ -10,7 +9,7 @@ import type {
   SportingClassificationResponse,
   SportingSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { useConsultationQueries } from "../api/use-consultation-queries";
+import { useSportingLogo } from "../api/use-sporting-logo";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
@@ -164,7 +163,7 @@ export function SportingEntityCard({
   );
 }
 
-/** Admitted artwork uses F03's generated queries and F13's no-replay defaults across card consumers. */
+/** Native public artwork and credentialed bypass share the same exact resource withdrawal guard. */
 function EntityArtwork({
   identity,
   kind,
@@ -174,32 +173,25 @@ function EntityArtwork({
   kind: "club" | "team" | "division";
   backgroundColor?: string;
 }) {
-  const queries = useConsultationQueries();
-  const options =
-    kind === "club"
-      ? queries.clubLogo(identity.id)
-      : kind === "team"
-        ? queries.teamLogo(identity.id)
-        : queries.divisionLogo(identity.id);
-  const query = useQuery({ ...options, enabled: !!identity.logoUrl });
+  const logo = useSportingLogo(identity, kind);
   if (backgroundColor)
-    return identity.logoUrl && query.data ? (
+    return logo.uri ? (
       <SportingCover
-        key={`${hashKey(options.queryKey)}:${query.dataUpdatedAt}`}
-        uri={query.data}
+        key={`${identity.id}:${identity.logoUrl ?? ""}`}
+        uri={logo.uri}
         primary={backgroundColor}
       />
     ) : null;
   return (
     <SportingMedia
-      key={`${hashKey(options.queryKey)}:${query.dataUpdatedAt}`}
+      key={`${identity.id}:${identity.logoUrl ?? ""}`}
       identity={identity}
       kind={kind}
       size={tokens.size.media.entity}
       presentation="entity"
-      uri={identity.logoUrl ? query.data : undefined}
-      loading={!!identity.logoUrl && query.isPending}
-      error={!!identity.logoUrl && query.isError}
+      uri={logo.uri}
+      loading={logo.loading}
+      error={logo.error}
     />
   );
 }

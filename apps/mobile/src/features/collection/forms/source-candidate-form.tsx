@@ -1,35 +1,31 @@
+import { ApiError } from "../../../shared/api/api-fetch";
 import { SeasonIdentity, SourceBadge } from "../components/source-summary";
 import { Surface } from "../../../shared/components/surface";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useNativeHandoff } from "../../../shared/native/use-native-handoff";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
-import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { formatCollectionTimestamp } from "../model/collection-time";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { ChevronRight, Globe } from "lucide-react-native";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Controller, useForm, useFormState } from "react-hook-form";
+import { useEffect, useRef } from "react";
+import { Controller, useFormState } from "react-hook-form";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type {
   CollectionSeasonResponse,
   SourceBindingResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { Button } from "../../../shared/components/button";
-
 import { TextField } from "../../../shared/components/text-field";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { type useSourcePreparation } from "../api/use-source-preparation";
-
 import {
   candidateUrlSchema,
-  sourceCandidateSchema,
   type SourceCandidateValues,
 } from "../schemas/source-candidate-schema";
 import { sourceCandidateValues } from "./source-candidate-values";
-import { sourcePreparationEditor } from "./source-candidate-editor";
+import { useSourceCandidateDraft } from "./use-source-candidate-draft";
 
 /** One source editor snapshot; failures and current-state reads preserve its dirty URL until explicit submission. */
 export interface SourceCandidateFormProps {
@@ -37,7 +33,6 @@ export interface SourceCandidateFormProps {
   season: CollectionSeasonResponse;
   editing: ReturnType<typeof useSourcePreparation>;
 }
-
 /** Inline supported-candidate editing and explicit qualification/confirmation, without post-launch repair. */
 export function SourceCandidateForm({
   source,
@@ -45,26 +40,16 @@ export function SourceCandidateForm({
   editing,
 }: SourceCandidateFormProps) {
   const { authority } = editing;
-  const { session } = authority;
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();
   const confirmAction = useActionConfirmation();
   const router = useRouter();
   const mounted = useRef(false);
-  const [editor] = useState(() => sourcePreparationEditor(session, source));
-  const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
+  const editor = useSourceCandidateDraft(source);
+  const state = editor.state;
   const { baseline, editingUrl } = state;
-  const feedback =
-    state.feedback ??
-    (editing.candidate.needsRead
-      ? "Le résultat doit être vérifié avant une nouvelle action."
-      : editing.seasonInvalidated
-        ? "L’état de la saison doit être relu avant une nouvelle action."
-        : undefined);
-  const { control, handleSubmit, reset } = useForm<SourceCandidateValues>({
-    resolver: zodResolver(sourceCandidateSchema),
-    formControl: editor.form.formControl,
-  });
+  const feedback = state.feedback ?? undefined;
+  const { control, handleSubmit, reset } = editor.form;
   const { isDirty, dirtyFields } = useFormState({
     control,
   });
@@ -85,13 +70,12 @@ export function SourceCandidateForm({
   const busy =
     editing.source.isError ||
     !authority.enabled ||
-    editing.candidate.pending ||
+    editing.candidate.isPending ||
+    editing.validation.isPending ||
+    editing.confirmation.isPending ||
     editing.source.isFetching ||
     editing.season.isFetching;
-  const reconciliationRequired =
-    editing.candidate.needsRead ||
-    editing.seasonInvalidated ||
-    current.revision > baseline.revision;
+  const reconciliationRequired = current.revision > baseline.revision;
   const rereadRequired = reconciliationRequired || editing.season.isError;
   useEffect(() => {
     mounted.current = true;
@@ -99,38 +83,25 @@ export function SourceCandidateForm({
       mounted.current = false;
     };
   }, []);
-
   /** Cancels the URL draft without releasing the owner needed by later edits and temporary route removal. */
   async function cancelEditing() {
-    if (editing.candidate.isPending()) return;
+    if (editing.candidate.isPending) return;
     const accepted = await confirmDiscard(() => {
-      if (
-        mounted.current &&
-        session.isCurrent(session.generation) &&
-        !editing.candidate.isPending()
-      )
-        reset(sourceCandidateValues(editor.getSnapshot().baseline));
+      if (mounted.current && !editing.candidate.isPending)
+        reset(sourceCandidateValues(editor.state.baseline));
     });
-    if (
-      !accepted ||
-      !mounted.current ||
-      !session.isCurrent(session.generation) ||
-      editing.candidate.isPending()
-    )
-      return;
-    editor.update({ ...editor.getSnapshot(), editingUrl: false });
+    if (!accepted || !mounted.current || editing.candidate.isPending) return;
+    editor.update({ ...editor.state, editingUrl: false });
   }
-
   /** A refusal retains input; ambiguous acknowledgements additionally prevent any new command until reread. */
   function failed(error: unknown) {
-    if (!session.isCurrent(session.generation)) return;
-    if (requiresRevisionRead(error)) {
+    if (error instanceof ApiError && error.status === 409) {
       editor.update({
-        ...editor.getSnapshot(),
+        ...editor.state,
         feedback: "Le résultat doit être vérifié avant une nouvelle action.",
       });
     } else {
-      editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      editor.update({ ...editor.state, feedback: undefined });
       actionFeedback.error();
     }
   }
@@ -138,15 +109,13 @@ export function SourceCandidateForm({
   async function save(values: SourceCandidateValues) {
     if (busy || readOnly || rereadRequired) return;
     try {
-      const attempt = editing.candidate.start({
+      const attempt = editing.candidate.mutateAsync({
         revision: baseline.revision,
         candidateUrl: values.candidateUrl,
       });
-      if (!attempt) return;
-      editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      editor.update({ ...editor.state, feedback: undefined });
       actionFeedback.clear();
       const accepted = await attempt;
-      if (!session.isCurrent(session.generation)) return;
       reset(sourceCandidateValues(accepted));
       editor.update({
         baseline: accepted,
@@ -164,16 +133,14 @@ export function SourceCandidateForm({
   async function validate() {
     if (busy || readOnly || rereadRequired || isDirty) return;
     try {
-      const attempt = editing.validation.start({
+      const attempt = editing.validation.mutateAsync({
         revision: baseline.revision,
       });
-      if (!attempt) return;
-      editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      editor.update({ ...editor.state, feedback: undefined });
       actionFeedback.clear();
       const accepted = await attempt;
-      if (!session.isCurrent(session.generation)) return;
       editor.update({
-        ...editor.getSnapshot(),
+        ...editor.state,
         baseline: accepted,
         feedback: undefined,
       });
@@ -204,26 +171,17 @@ export function SourceCandidateForm({
   }
   /** The request boundary rechecks live grants/session even when a native alert callback was held. */
   async function acceptSeason() {
-    if (
-      !session.isCurrent(session.generation) ||
-      busy ||
-      readOnly ||
-      rereadRequired ||
-      isDirty
-    )
-      return;
+    if (busy || readOnly || rereadRequired || isDirty) return;
     try {
-      const attempt = editing.confirmation.start({
+      const attempt = editing.confirmation.mutateAsync({
         revision: baseline.revision,
         seasonLabel: season.label,
       });
-      if (!attempt) return;
-      editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      editor.update({ ...editor.state, feedback: undefined });
       actionFeedback.clear();
       const accepted = await attempt;
-      if (!session.isCurrent(session.generation)) return;
       editor.update({
-        ...editor.getSnapshot(),
+        ...editor.state,
         baseline: accepted,
         feedback: undefined,
       });
@@ -233,22 +191,10 @@ export function SourceCandidateForm({
   }
   /** Reads source and season together; neither a failed read nor retained cache can unlock resubmission. */
   async function reread() {
-    const {
-      result: [sourceResult, seasonResult],
-      reconciled,
-    } = await editing.candidate.reconcile(
-      [editing.sourceKey, editing.seasonKey],
-      () => Promise.all([editing.source.refetch(), editing.season.refetch()]),
-      ([sourceRead, seasonRead]) =>
-        !sourceRead.isError &&
-        !!sourceRead.data &&
-        sourceRead.data.revision >= baseline.revision &&
-        !seasonRead.isError &&
-        !!seasonRead.data,
-    );
-    if (!mounted.current || !session.isCurrent(session.generation)) return;
+    const [sourceResult, seasonResult] = await (() =>
+      Promise.all([editing.source.refetch(), editing.season.refetch()]))();
+    if (!mounted.current) return;
     if (
-      !reconciled ||
       sourceResult.isError ||
       seasonResult.isError ||
       !sourceResult.data ||
@@ -263,7 +209,7 @@ export function SourceCandidateForm({
       keepDirty: true,
     });
     editor.update({
-      ...editor.getSnapshot(),
+      ...editor.state,
       baseline: sourceResult.data,
       feedback: "État relu. Vérifiez votre saisie avant une nouvelle action.",
     });
@@ -389,14 +335,14 @@ export function SourceCandidateForm({
                   fullWidth
                   onPress={() => void handleSubmit(save)()}
                   disabled={busy || readOnly || rereadRequired}
-                  loading={editing.candidate.executing}
+                  loading={editing.candidate.isPending}
                 />
                 <Button
                   label="Annuler"
                   variant="secondary"
                   fullWidth
                   onPress={() => void cancelEditing()}
-                  disabled={editing.candidate.pending}
+                  disabled={editing.candidate.isPending}
                 />
               </>
             ) : (
@@ -417,7 +363,7 @@ export function SourceCandidateForm({
                   fullWidth
                   onPress={() => void validate()}
                   disabled={busy || rereadRequired || isDirty}
-                  loading={editing.validation.executing}
+                  loading={editing.validation.isPending}
                 />
               )}
             {current.validation === "confirmation-required" && (
@@ -426,7 +372,7 @@ export function SourceCandidateForm({
                 fullWidth
                 onPress={confirmSeason}
                 disabled={busy || rereadRequired || isDirty}
-                loading={editing.confirmation.executing}
+                loading={editing.confirmation.isPending}
               />
             )}
           </>

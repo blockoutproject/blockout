@@ -7,25 +7,15 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import type { PropsWithChildren } from "react";
-import {
-  getAccountPhoto,
-  getGetMyAccountQueryKey,
-  getMyAccount,
-} from "../../../../.generated/mobile";
+import { getAccountPhoto, getMyAccount } from "../../../../.generated/mobile";
 import { apiFetch } from "../../../shared/api/api-fetch";
-import {
-  createQueryClient,
-  getSessionQueryKey,
-} from "../../../shared/query/query-client";
+import { createQueryClient } from "../../../shared/query/query-client";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import {
   AccountSessionProvider,
   useAccountSession,
 } from "../../accounts/session/account-session-provider";
-import {
-  useProfileEditing,
-  useProfilePhoto,
-} from "../../accounts/api/use-profile-editing";
+import { useProfileEditing } from "../../accounts/api/use-profile-editing";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import {
   credentialsFor,
@@ -37,7 +27,6 @@ import {
   useAccessAdmission,
 } from "../queries/use-access-admission";
 import { useOrdinaryRequest } from "../ordinary-request";
-import { createDiscoveryQueryOptions } from "../../discovery/api/discovery-queries";
 
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
@@ -130,7 +119,6 @@ it("requires explicit choice for binary requests while independent identificatio
   const { result } = await renderAccessHooks();
   await waitFor(() => expect(result.current.access.canBypass).toBe(true));
   const options = {
-    session: result.current.session,
     headers: { Authorization: "Bearer existing" },
   };
   await getAccountPhoto(
@@ -181,7 +169,6 @@ it.each([
     result.current.access.bypassMaintenance();
   });
   const options = result.current.ordinary.request({
-    session: result.current.session,
     headers: { Authorization: "Bearer existing" },
   });
   mockFetch.mockClear();
@@ -195,64 +182,6 @@ it.each([
   });
   expect(mockFetch).not.toHaveBeenCalled();
 });
-
-it("clears intent on observed grant loss even when the grant returns before React renders", async () => {
-  // Given
-  const { result } = await renderAccessHooks();
-  await waitFor(() => expect(result.current.access.canBypass).toBe(true));
-  await act(() => {
-    result.current.access.bypassMaintenance();
-  });
-  const intent = result.current.ordinary.bypass;
-  const key = getSessionQueryKey(
-    result.current.session.generation,
-    getGetMyAccountQueryKey(),
-  );
-
-  // When
-  await act(() => {
-    client.setQueryData(key, { ...account, permissions: {} });
-    client.setQueryData(key, account);
-  });
-
-  // Then
-  expect(result.current.ordinary.bypass).toBeUndefined();
-  expect(intent?.signal.aborted).toBe(true);
-  expect(result.current.access.ordinary).toBe(false);
-});
-
-it.each([account.accountId, "00000000-0000-4000-8000-000000000181"])(
-  "does not reuse intent after a session boundary returning to %s",
-  async (nextAccount) => {
-    // Given
-    const { result } = await renderAccessHooks();
-    await waitFor(() => expect(result.current.access.canBypass).toBe(true));
-    await act(() => {
-      result.current.access.bypassMaintenance();
-    });
-    const options = result.current.ordinary.request({
-      session: result.current.session,
-      headers: { Authorization: "Bearer existing" },
-    });
-
-    // When
-    await act(() => {
-      result.current.session.invalidate();
-      result.current.session.setAccount(
-        result.current.session.getSnapshot().generation,
-        nextAccount,
-      );
-    });
-    mockFetch.mockClear();
-
-    // Then
-    await expect(
-      getAccountPhoto(account.accountId, options),
-    ).rejects.toMatchObject({ kind: "cancelled" });
-    expect(mockFetch).not.toHaveBeenCalled();
-    expect(result.current.ordinary.bypass).toBeUndefined();
-  },
-);
 
 it("clears personal choice only after a successful complete inactive check", async () => {
   // Given
@@ -275,200 +204,6 @@ it("clears personal choice only after a successful complete inactive check", asy
   await waitFor(() => expect(result.current.ordinary.bypass).toBeUndefined());
 });
 
-it("rejects a profile command when bypass is cleared during native credential preparation", async () => {
-  // Given
-  const { result } = await renderAccessHooks();
-  await waitFor(() => expect(result.current.access.canBypass).toBe(true));
-  await act(() => {
-    result.current.access.bypassMaintenance();
-  });
-  const credentials =
-    Promise.withResolvers<ReturnType<typeof credentialsFor>>();
-  const credentialReads = mockAuth0.getCredentials.mock.calls.length;
-  mockAuth0.getCredentials.mockReturnValueOnce(credentials.promise);
-  let completion = Promise.resolve<unknown>(undefined);
-  await act(() => {
-    completion =
-      result.current.profile.save
-        .start({ metadata: { username: "Updated" } })
-        ?.catch((error: unknown) => error) ?? Promise.resolve(undefined);
-  });
-  await waitFor(() =>
-    expect(mockAuth0.getCredentials).toHaveBeenCalledTimes(credentialReads + 1),
-  );
-  const before = mockFetch.mock.calls.length;
-
-  // When
-  await act(async () => {
-    result.current.access.bypass.clear();
-    credentials.resolve(credentialsFor("auth0|operator180"));
-    expect(await completion).toMatchObject({ kind: "cancelled" });
-  });
-
-  // Then
-  expect(mockFetch).toHaveBeenCalledTimes(before);
-});
-
-it.each(["typed maintenance", "generic 503"])(
-  "observes an ordinary %s refusal through the caller's options",
-  async (kind) => {
-    // Given
-    const { result } = await renderAccessHooks();
-    await waitFor(() => expect(result.current.access.canBypass).toBe(true));
-    const options = result.current.ordinary.request({
-      session: result.current.session,
-    });
-    const problem = {
-      type: "urn:blockout:problem:unavailable",
-      title: "Unavailable",
-      status: 503,
-      ...(kind === "typed maintenance"
-        ? {
-            type: "urn:blockout:problem:maintenance",
-            maintenance: {
-              revision: 9,
-              active: true,
-              message: "Latest",
-              imageUrl: null,
-            },
-          }
-        : {}),
-    };
-    mockFetch.mockResolvedValueOnce(
-      Response.json(problem, {
-        status: 503,
-        headers: { "Content-Type": "application/problem+json" },
-      }),
-    );
-
-    // When
-    await act(async () => {
-      await expect(
-        getAccountPhoto(account.accountId, options),
-      ).rejects.toMatchObject({ status: 503 });
-    });
-
-    // Then
-    expect(result.current.access.snapshot.complete).toBeUndefined();
-    if (kind === "typed maintenance")
-      expect(result.current.access.snapshot.maintenance?.revision).toBe(9);
-    else expect(result.current.access.snapshot.maintenance?.revision).toBe(1);
-  },
-);
-
-it("never downgrades a captured public discovery bypass after its intent is cleared", async () => {
-  // Given
-  const { result } = await renderAccessHooks();
-  await waitFor(() => expect(result.current.access.canBypass).toBe(true));
-  await act(() => {
-    result.current.access.bypassMaintenance();
-  });
-  const intent = result.current.ordinary.bypass;
-  expect(intent).toBeDefined();
-  const options = createDiscoveryQueryOptions(
-    "club",
-    { q: "Volley" },
-    result.current.session,
-    result.current.ordinary,
-    async () => ({ accessToken: "existing" }),
-  );
-  expect(options.queryKey[0]).toBe("session");
-
-  // When
-  await act(() => {
-    result.current.access.bypass.clear();
-  });
-  mockFetch.mockClear();
-
-  // Then
-  await expect(client.infiniteQuery(options)).rejects.toMatchObject({
-    kind: "cancelled",
-  });
-  expect(mockFetch).not.toHaveBeenCalled();
-});
-
-it("rechecks the minimum version after native credential preparation", async () => {
-  // Given
-  const { result } = await renderAccessHooks();
-  await waitFor(() => expect(result.current.access.canBypass).toBe(true));
-  await act(() => {
-    result.current.access.bypassMaintenance();
-  });
-  const credentials =
-    Promise.withResolvers<ReturnType<typeof credentialsFor>>();
-  const credentialReads = mockAuth0.getCredentials.mock.calls.length;
-  mockAuth0.getCredentials.mockReturnValueOnce(credentials.promise);
-  let completion = Promise.resolve<unknown>(undefined);
-  await act(() => {
-    completion =
-      result.current.profile.save
-        .start({ metadata: { username: "Updated" } })
-        ?.catch((error: unknown) => error) ?? Promise.resolve(undefined);
-  });
-  await waitFor(() =>
-    expect(mockAuth0.getCredentials).toHaveBeenCalledTimes(credentialReads + 1),
-  );
-  const before = mockFetch.mock.calls.length;
-
-  // When
-  await act(async () => {
-    result.current.access.observations.versions({
-      ...full.versions,
-      revision: 2,
-      ios: { ...full.versions.ios, minimumVersion: "9000.0.0" },
-      android: { ...full.versions.android, minimumVersion: "9000.0.0" },
-    });
-    credentials.resolve(credentialsFor("auth0|operator180"));
-    expect(await completion).toMatchObject({ kind: "cancelled" });
-  });
-
-  // Then
-  expect(mockFetch).toHaveBeenCalledTimes(before);
-  expect(result.current.access.ordinary).toBe(false);
-});
-
-it("discards an old session's refusal before publishing access observations", async () => {
-  // Given
-  const { result } = await renderAccessHooks();
-  await waitFor(() => expect(result.current.access.canBypass).toBe(true));
-  const options = result.current.ordinary.request({
-    session: result.current.session,
-  });
-  const response = Promise.withResolvers<Response>();
-  mockFetch.mockReturnValueOnce(response.promise);
-  const pending = getAccountPhoto(account.accountId, options).catch(
-    (error: unknown) => error,
-  );
-
-  // When
-  await act(async () => {
-    result.current.session.invalidate();
-    response.resolve(
-      Response.json(
-        {
-          type: "urn:blockout:problem:maintenance",
-          title: "Maintenance",
-          status: 503,
-          maintenance: {
-            revision: 9,
-            active: true,
-            message: "Obsolete",
-            imageUrl: null,
-          },
-        },
-        {
-          status: 503,
-          headers: { "Content-Type": "application/problem+json" },
-        },
-      ),
-    );
-    expect(await pending).toMatchObject({ kind: "cancelled" });
-  });
-
-  // Then
-  expect(result.current.access.snapshot.maintenance?.revision).toBe(1);
-});
-
 it.each([401, 403])(
   "clears current personal intent after its HTTP %i refusal",
   async (status) => {
@@ -479,7 +214,6 @@ it.each([401, 403])(
       result.current.access.bypassMaintenance();
     });
     const options = result.current.ordinary.request({
-      session: result.current.session,
       headers: { Authorization: "Bearer existing" },
     });
     mockFetch.mockResolvedValueOnce(new Response(null, { status }));
@@ -496,85 +230,3 @@ it.each([401, 403])(
     expect(result.current.access.snapshot.maintenance?.revision).toBe(1);
   },
 );
-
-it("aborts the captured bypass intent when its provider is removed", async () => {
-  // Given
-  const hook = await renderAccessHooks();
-  await waitFor(() => expect(hook.result.current.access.canBypass).toBe(true));
-  await act(async () => {
-    hook.result.current.access.bypassMaintenance();
-  });
-  const captured = hook.result.current.ordinary.bypass;
-  expect(captured?.signal.aborted).toBe(false);
-
-  // When
-  await hook.unmount();
-
-  // Then: an intent retained by asynchronous work cannot outlive its provider.
-  expect(captured?.signal.aborted).toBe(true);
-});
-
-it("cancels a profile photo conversion when its captured bypass intent ends", async () => {
-  // Given: real Query/session/F12 owners and generated transport; only native FileReader is controlled.
-  const previousReader = Object.getOwnPropertyDescriptor(
-    globalThis,
-    "FileReader",
-  );
-  const readers: PhotoReader[] = [];
-  /** Retains one native conversion until this scenario delivers cancellation or a late completion. */
-  class PhotoReader {
-    static LOADING = 1;
-    readyState = PhotoReader.LOADING;
-    result = "data:image/png;base64,obsolete";
-    onload: (() => void) | null = null;
-    onerror: (() => void) | null = null;
-    abort = jest.fn();
-    /** Marks this conversion as started without completing native I/O. */
-    readAsDataURL() {
-      readers.push(this);
-    }
-  }
-  Object.defineProperty(globalThis, "FileReader", {
-    configurable: true,
-    value: PhotoReader,
-  });
-  try {
-    const { result } = await renderHook(
-      () => {
-        const access = useAccessAdmission();
-        const ordinary = useOrdinaryRequest();
-        const photo = useProfilePhoto(
-          account.accountId,
-          Boolean(ordinary.bypass),
-        );
-        return { access, photo };
-      },
-      { wrapper: Providers },
-    );
-    await waitFor(() => expect(result.current.access.canBypass).toBe(true));
-    await act(() => {
-      result.current.access.bypassMaintenance();
-    });
-    await waitFor(() => expect(readers).toHaveLength(1));
-    const lateCompletion = readers[0].onload;
-
-    // When
-    await act(() => {
-      result.current.access.bypass.clear();
-      lateCompletion?.();
-    });
-
-    // Then
-    await waitFor(() =>
-      expect(result.current.photo.error).toMatchObject({ kind: "cancelled" }),
-    );
-    expect(readers[0].abort).toHaveBeenCalledTimes(1);
-    expect(result.current.photo.data).toBeUndefined();
-    expect(readers[0].onload).toBeNull();
-  } finally {
-    await cleanup();
-    if (previousReader)
-      Object.defineProperty(globalThis, "FileReader", previousReader);
-    else Reflect.deleteProperty(globalThis, "FileReader");
-  }
-});

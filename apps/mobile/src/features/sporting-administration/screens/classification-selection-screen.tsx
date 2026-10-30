@@ -1,25 +1,25 @@
+import { useRouter } from "expo-router";
+import { type UseFormReturn, useWatch } from "react-hook-form";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { ErrorState, EmptyState } from "../../../shared/components/state-card";
+import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
+import { EntryGroup } from "../../../shared/components/entry-group";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { SelectionRow } from "../../../shared/components/selection-row";
+import { Sheet, SheetContent } from "../../../shared/components/sheet";
+import { EmptyState, ErrorState } from "../../../shared/components/state-card";
 import { AccessFeedback } from "../../access/components/access-feedback";
 import {
-  sportingGenderLabels,
   formatLabel,
+  sportingGenderLabels,
 } from "../../sporting/classification-presentation";
-import { useRouter } from "expo-router";
-import { useWatch } from "react-hook-form";
-import { Sheet, SheetContent } from "../../../shared/components/sheet";
-import { EntryGroup } from "../../../shared/components/entry-group";
-import { SelectionRow } from "../../../shared/components/selection-row";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { useAccountSession } from "../../accounts/current-account";
 import {
   useClassification,
   useDivisions,
   type ClassificationTarget,
 } from "../api/classification";
-import { findClassificationEditor } from "../forms/classification-editor";
+import { useClassificationVisit } from "../forms/classification-visit";
+import type { ClassificationValues } from "../schemas/classification-schema";
 
 /** A native short sheet edits the parent's existing RHF control; it adds no callback registry or second draft. */
 export function ClassificationSelectionScreen({
@@ -29,9 +29,12 @@ export function ClassificationSelectionScreen({
   target: ClassificationTarget;
   field: "divisionId" | "gender" | "format";
 }) {
-  const session = useAccountSession();
   const router = useRouter();
-  const editor = findClassificationEditor(session.generation, target);
+  const visit = useClassificationVisit()?.visit;
+  const editor =
+    visit?.target.kind === target.kind && visit.target.id === target.id
+      ? visit
+      : undefined;
   return editor ? (
     <Selection editor={editor} field={field} target={target} />
   ) : (
@@ -49,7 +52,9 @@ function Selection({
   target,
 }: {
   target: ClassificationTarget;
-  editor: NonNullable<ReturnType<typeof findClassificationEditor>>;
+  editor: {
+    form: UseFormReturn<ClassificationValues>;
+  };
   field: "divisionId" | "gender" | "format";
 }) {
   const feedback = useActionFeedback();

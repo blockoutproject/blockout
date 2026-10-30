@@ -1,5 +1,5 @@
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   act,
@@ -23,10 +23,7 @@ import {
   type ComponentType,
 } from "react";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import {
-  createQueryClient,
-  bindSessionQueries,
-} from "../../../shared/query/query-client";
+import { createQueryClient } from "../../../shared/query/query-client";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import {
@@ -155,20 +152,26 @@ const profile = {
   },
 };
 const environment = { ...process.env };
-let client = createQueryClient();
+let publicClient = createQueryClient();
+let client = publicClient;
+let clients = new Set([publicClient]);
 let session: AccountSession;
 let proposed = older;
+let following = false;
 
 /** Uses the root's real private-query cleanup; native identity/inset I/O and HTTP are controlled. */
 function SessionBinding({ children }: PropsWithChildren) {
   const current = useAccountSession();
+  const privateClient = useQueryClient();
+  privateClient.setDefaultOptions({
+    queries: { retry: false },
+    mutations: { networkMode: "always", retry: false, gcTime: Infinity },
+  });
   useEffect(() => {
+    clients.add(privateClient);
+    client = privateClient;
     session = current;
-  }, [current]);
-  useEffect(
-    () => bindSessionQueries(client, current.subscribe, current.isCurrent),
-    [current.subscribe, current.isCurrent],
-  );
+  }, [current, privateClient]);
   return children;
 }
 
@@ -201,7 +204,7 @@ async function mount(extra?: ReactNode) {
       initialUrl: "/",
       wrapper: ({ children }) => (
         <GestureHandlerRootView>
-          <QueryClientProvider client={client}>
+          <QueryClientProvider client={publicClient}>
             <ThemeProvider>
               <ApplicationAccessProvider>
                 <AccountSessionProvider>
@@ -268,9 +271,10 @@ async function transport(url: string, request?: RequestInit) {
     });
   if (request?.method === "PUT") {
     proposed = newer;
+    following = true;
     return Response.json({ following: true });
   }
-  return Response.json({ following: false });
+  return Response.json({ following });
 }
 
 beforeEach(() => {
@@ -280,7 +284,9 @@ beforeEach(() => {
     proSessionModule.createProSession(),
   );
   prepareProNativeIO();
-  client = createQueryClient();
+  publicClient = createQueryClient();
+  client = publicClient;
+  clients = new Set([publicClient]);
   client.setDefaultOptions({
     queries: { ...client.getDefaultOptions().queries, gcTime: Infinity },
     mutations: { ...client.getDefaultOptions().mutations, gcTime: Infinity },
@@ -301,6 +307,7 @@ beforeEach(() => {
   mockPush.mockReset();
   mockBack.mockReset();
   proposed = older;
+  following = false;
   mockFocus.focused = true;
 });
 
@@ -347,7 +354,8 @@ it("shows separate current teams and pools in Following and opens their exact sp
 });
 afterEach(async () => {
   await cleanup();
-  client.clear();
+  for (const cache of clients) cache.clear();
+  clients.clear();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
@@ -490,7 +498,7 @@ it("removes the personal selector when its actual session signs out and uses the
     ).toHaveAccessibilityValue({ text: older.label }),
   );
 
-  const originalGeneration = session.generation;
+  const originalClient = client;
 
   // When
   await act(async () => session.signOut());
@@ -504,16 +512,8 @@ it("removes the personal selector when its actual session signs out and uses the
     pathname: "/sign-in-invitation",
     params: { reason: "follow" },
   });
-  expect(
-    client
-      .getQueryCache()
-      .getAll()
-      .filter(
-        (query) =>
-          query.queryKey[0] === "session" &&
-          query.queryKey[1] === originalGeneration,
-      ),
-  ).toHaveLength(0);
+  expect(client).not.toBe(originalClient);
+  expect(originalClient.getQueryCache().getAll()).toHaveLength(0);
 });
 
 it("leaves the actual club-season and search-input owners unchanged", async () => {
@@ -550,6 +550,10 @@ it("leaves the actual club-season and search-input owners unchanged", async () =
       </SearchVisitProvider>
     </>,
   );
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
   const clubTeams = await within(
     screen.getByLabelText("Public club"),
   ).findByRole("tab", { name: "Équipes" });
@@ -760,7 +764,7 @@ it.each([false, true])(
   },
 );
 
-it("keeps authorized encounters after an ordinary failed pull and removes them after a failed changed-follow reload", async () => {
+it("keeps authorized encounters through a failed pull and ordinary invalidation read", async () => {
   // Given
   await mount(<FollowButton target={team} season={older} />);
   await screen.findByRole("button", {
@@ -791,10 +795,9 @@ it("keeps authorized encounters after an ordinary failed pull and removes them a
   await screen.findByRole("button", { name: "Suivi", busy: false });
 
   // Then
-  await screen.findByRole("button", { name: "Réessayer" });
   expect(
-    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
-  ).not.toBeOnTheScreen();
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Saison des suivis" }),
   ).toHaveAccessibilityValue({ text: older.label });
@@ -947,7 +950,7 @@ it("withdraws obsolete personal rows when a successful continuation establishes 
   ).not.toBeOnTheScreen();
 });
 
-it("returns from a refused actual match screen without exposing its retained personal card", async () => {
+it("retains its own calendar projection after an independent match-detail refusal", async () => {
   // Given: only native navigation/focus is controlled; both screen/query owners remain real.
   /** Models the native stack covering Home and returning without unmounting its retained owner. */
   function OpenedMatch() {
@@ -987,10 +990,9 @@ it("returns from a refused actual match screen without exposing its retained per
   await userEvent.press(screen.getByRole("button", { name: "Retour" }));
 
   // Then
-  await screen.findByText("Aucun match pour cette sélection");
   expect(
-    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
-  ).not.toBeOnTheScreen();
+    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(
       ([url]) => new URL(url).pathname === `/accounts/${accountId}/matches`,
@@ -1078,7 +1080,7 @@ it("captures the current loading zone when selecting a new personal season", asy
   ]);
 });
 
-it("captures the loading zone at first activation of an inactive new-season category", async () => {
+it("keeps the mounted category zone until its ordinary refresh", async () => {
   // Given
   let deviceZone = "Europe/Paris";
   // Install the zone double on native Intl before Router creates its fake-clock formatter wrapper.
@@ -1124,7 +1126,15 @@ it("captures the loading zone at first activation of an inactive new-season cate
       url.searchParams.get("category"),
       url.searchParams.get("timeZone"),
     ]),
-  ).toEqual([[newer.id, "completed", "America/New_York"]]);
+  ).toEqual([[newer.id, "completed", "Europe/Paris"]]);
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await waitFor(() =>
+    expect(
+      new URL(
+        mockFetch.mock.calls.at(-1)?.[0] ?? "https://example.invalid",
+      ).searchParams.get("timeZone"),
+    ).toBe("America/New_York"),
+  );
 });
 
 it("opens the native season route and returns to Home with the same owner's accepted choice", async () => {

@@ -5,86 +5,34 @@ import {
   getGetMaintenanceSettingsQueryKey,
   getMaintenanceSettings,
 } from "../../../../.generated/mobile";
-import type {
-  ApplicationVersionsResponse,
-  MaintenanceSettingsResponse,
-} from "../../../../.generated/schemas/index.zod";
 import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { getSessionQueryKey } from "../../../shared/query/query-client";
 
-/** Captured F12 settings context; request preparation guards current session and action availability. */
+/** The mounted settings reader supplies normal authenticated request options. */
 export interface AccessSettingsQueryContext {
-  generation: string;
   enabled: boolean;
   request(): Promise<ApiFetchOptions>;
 }
-
-/** Reads one maintenance group and publishes its restriction before admitting the validated DTO. */
+/** Reads the maintenance group through its generated key in the private native client. */
 export function createMaintenanceSettingsQueryOptions(
   context: AccessSettingsQueryContext,
-  observe: (
-    value: MaintenanceSettingsResponse,
-    signal: AbortSignal,
-  ) => MaintenanceSettingsResponse,
 ) {
   return queryOptions({
-    queryKey: getSessionQueryKey(
-      context.generation,
-      getGetMaintenanceSettingsQueryKey(),
-    ),
+    queryKey: getGetMaintenanceSettingsQueryKey(),
     enabled: context.enabled,
     gcTime: 0,
-    queryFn: async ({ signal, client, queryKey }) => {
-      const previousError = client.getQueryState(queryKey)?.error;
-      try {
-        return observe(
-          await getMaintenanceSettings({
-            ...(await context.request()),
-            signal,
-          }),
-          signal,
-        );
-      } catch (error) {
-        throw settingsReadError(error, previousError);
-      }
-    },
+    queryFn: async ({ signal }) =>
+      getMaintenanceSettings({ ...(await context.request()), signal }),
   });
 }
-
-/** Reads one versions group; partial restriction evidence never substitutes for the full admission check. */
+/** Reads the versions group through its generated key in the private native client. */
 export function createApplicationVersionsQueryOptions(
   context: AccessSettingsQueryContext,
-  observe: (
-    value: ApplicationVersionsResponse,
-    signal: AbortSignal,
-  ) => ApplicationVersionsResponse,
 ) {
   return queryOptions({
-    queryKey: getSessionQueryKey(
-      context.generation,
-      getGetApplicationVersionSettingsQueryKey(),
-    ),
+    queryKey: getGetApplicationVersionSettingsQueryKey(),
     enabled: context.enabled,
     gcTime: 0,
-    queryFn: async ({ signal, client, queryKey }) => {
-      const previousError = client.getQueryState(queryKey)?.error;
-      try {
-        return observe(
-          await getApplicationVersionSettings({
-            ...(await context.request()),
-            signal,
-          }),
-          signal,
-        );
-      } catch (error) {
-        throw settingsReadError(error, previousError);
-      }
-    },
+    queryFn: async ({ signal }) =>
+      getApplicationVersionSettings({ ...(await context.request()), signal }),
   });
-}
-
-/** A failed recheck cannot lift a known settings refusal; only a successful read restores command authority. */
-function settingsReadError(error: unknown, previousError: unknown) {
-  return isAccessDenied(previousError) ? previousError : error;
 }

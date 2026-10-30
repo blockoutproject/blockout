@@ -1,65 +1,45 @@
+import { ApiError } from "../../../shared/api/api-fetch";
 import { SeasonIdentity } from "../components/source-summary";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
+import { useEffect, useRef } from "react";
+import { Controller, useFormState, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
 import type { CollectionSeasonResponse } from "../../../../.generated/schemas/index.zod";
-import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
-
 import { Surface } from "../../../shared/components/surface";
 import { TextField } from "../../../shared/components/text-field";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import type { useCloseCollectionSeason } from "../api/use-collection-controls";
+import { type CloseSeasonValues } from "../schemas/close-season-schema";
+import { useCloseSeasonDraft } from "./use-close-season-draft";
 
-import {
-  closeSeasonSchema,
-  type CloseSeasonValues,
-} from "../schemas/close-season-schema";
-import { closeSeasonEditor } from "./close-season-editor";
-
-/** Exact typed input remains attached to the original season and survives temporary admission loss. */
+/** Exact typed input belongs to the mounted original-season visit. */
 export interface CloseSeasonFormProps {
   season: CollectionSeasonResponse;
   editing: ReturnType<typeof useCloseCollectionSeason>;
 }
-
 /** A closure decision owns its original revision; background results cannot replace the user's typed confirmation. */
 export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
   const { authority } = editing;
-  const { session } = authority;
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();
   const router = useRouter();
   const mounted = useRef(false);
-  const [editor] = useState(() => closeSeasonEditor(session, season));
-  const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
+  const editor = useCloseSeasonDraft(season);
+  const state = editor.state;
   const { baseline } = state;
-  const feedback =
-    state.feedback ??
-    (editing.close.needsRead
-      ? "Le résultat doit être vérifié avant une nouvelle action."
-      : editing.seasonInvalidated
-        ? "L’état de la saison doit être relu avant une nouvelle action."
-        : undefined);
-  const { control, handleSubmit } = useForm<CloseSeasonValues>({
-    resolver: zodResolver(closeSeasonSchema),
-    formControl: editor.form.formControl,
-  });
+  const feedback = state.feedback ?? undefined;
+  const { control, handleSubmit } = editor.form;
   const { isDirty } = useFormState({ control });
   const confirmation = useWatch({ control, name: "confirmation" });
   const current = editing.season.data ?? season;
   const closed = current.state === "closed";
   const busy =
-    !authority.enabled || editing.close.pending || editing.season.isFetching;
-  const needsRead =
-    editing.close.needsRead ||
-    editing.seasonInvalidated ||
-    current.revision !== baseline.revision;
+    !authority.enabled || editing.close.isPending || editing.season.isFetching;
+  const needsRead = current.revision !== baseline.revision;
   useDiscardChanges(isDirty && !closed, editor.discard);
   useEffect(() => {
     mounted.current = true;
@@ -67,7 +47,6 @@ export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
       mounted.current = false;
     };
   }, []);
-
   /** Exact equality and the original revision are checked before sending; the backend atomically rechecks both. */
   async function close(values: CloseSeasonValues) {
     if (
@@ -79,44 +58,30 @@ export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
       values.confirmation !== baseline.label
     )
       return;
-    editor.update({ ...editor.getSnapshot(), feedback: undefined });
+    editor.update({ ...editor.state, feedback: undefined });
     try {
-      const attempt = editing.close.start({
+      const attempt = editing.close.mutateAsync({
         revision: baseline.revision,
         confirmation: values.confirmation,
       });
-      if (!attempt) return;
       actionFeedback.clear();
       const accepted = await attempt;
-      if (!session.isCurrent(session.generation)) return;
       editor.update({ baseline: accepted });
     } catch (error) {
-      if (!session.isCurrent(session.generation)) return;
-      if (requiresRevisionRead(error))
+      if (error instanceof ApiError && error.status === 409)
         editor.update({
-          ...editor.getSnapshot(),
+          ...editor.state,
           feedback: "Le résultat doit être vérifié avant une nouvelle action.",
         });
       else actionFeedback.error();
     }
   }
-
   /** Reads the actual lifecycle before any explicit retry; entered text stays RHF-owned and unchanged. */
   async function reread() {
     if (busy) return;
-    const { result: read, reconciled } = await editing.close.reconcile(
-      [editing.seasonKey],
-      () => editing.season.refetch(),
-      (read) =>
-        !read.isError && !!read.data && read.data.revision >= baseline.revision,
-    );
-    if (!mounted.current || !session.isCurrent(session.generation)) return;
-    if (
-      !reconciled ||
-      read.isError ||
-      !read.data ||
-      read.data.revision < baseline.revision
-    ) {
+    const read = await (() => editing.season.refetch())();
+    if (!mounted.current) return;
+    if (read.isError || !read.data || read.data.revision < baseline.revision) {
       actionFeedback.error();
       return;
     }
@@ -126,7 +91,6 @@ export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
         "État relu. Vérifiez le nom de la saison avant une nouvelle action.",
     });
   }
-
   return (
     <View style={styles.form}>
       <SeasonIdentity season={current} />
@@ -182,7 +146,7 @@ export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
               confirmation !== current.label ||
               confirmation !== baseline.label
             }
-            loading={editing.close.executing}
+            loading={editing.close.isPending}
             onPress={() => void handleSubmit(close)()}
           />
           {isDirty && (
@@ -227,5 +191,4 @@ export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
     </View>
   );
 }
-
 const styles = StyleSheet.create({ form: { gap: tokens.layout.form.gap } });

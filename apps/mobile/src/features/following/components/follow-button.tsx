@@ -7,7 +7,6 @@ import type { SportingSeasonResponse } from "../../../../.generated/schemas/inde
 import { isUncertainMutationFailure } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
-
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { useFollowStateQuery } from "../api/use-follow-state-query";
@@ -22,7 +21,6 @@ export interface FollowButtonProps {
   target: FollowingTarget;
   season: SportingSeasonResponse;
 }
-
 /** Uses the borderless compact inverse action and F05 invitation without a Pro gate or extra success panel. */
 export function FollowButton({ target, season }: FollowButtonProps) {
   const context = useFollowStateQuery(target);
@@ -31,7 +29,7 @@ export function FollowButton({ target, season }: FollowButtonProps) {
   const feedback = useActionFeedback();
   const { colors } = useTheme();
   const { query, profile, usable, sessionStatus } = context;
-  const latest = action.latest;
+  const latest = action;
   const failed = latest?.status === "error";
   const restriction = [query.error, latest?.error].find(
     (error) => isAccessDenied(error) || isFollowRestriction(error),
@@ -41,25 +39,19 @@ export function FollowButton({ target, season }: FollowButtonProps) {
   async function reread() {
     feedback.clear();
     const result = await query.refetch();
-    if (
-      context.owner?.isCurrent(context.owner.generation) &&
-      result.isError &&
-      result.data
-    )
-      feedback.error();
+    if (result.isError && result.data) feedback.error();
   }
   if (query.isError && query.data === undefined)
     return (
       <ErrorState onRetry={() => void reread()} retrying={query.isFetching} />
     );
   const provisional =
-    action.pending && typeof latest?.variables === "boolean"
+    action.isPending && typeof latest?.variables === "boolean"
       ? latest.variables
       : undefined;
   const following = provisional ?? query.data?.following;
   const uncertain = failed && isUncertainMutationFailure(latest.error);
-  // A failed bounded observation preserves the original explicit same-command retry.
-  // Query still exposes the read failure; current permission/visibility refusals were handled above.
+  // An explicit retry uses the same desired boolean; the server owns replacement idempotence.
   const canRepeatUncertain = uncertain && query.data !== undefined;
   const guest = sessionStatus === "guest";
   return (
@@ -74,12 +66,12 @@ export function FollowButton({ target, season }: FollowButtonProps) {
         leadingIcon={following ? Check : Plus}
         selected={following ?? false}
         accessibilityHint={
-          following && !action.pending
+          following && !action.isPending
             ? `Saison ${season.label}. Retrouvez ce suivi dans cette saison ou Toutes les saisons.`
             : `Saison ${season.label}.`
         }
         loading={
-          action.pending ||
+          action.isPending ||
           (!guest && usable && query.isPending && !query.isError)
         }
         disabled={
@@ -98,17 +90,13 @@ export function FollowButton({ target, season }: FollowButtonProps) {
           else {
             feedback.clear();
             try {
-              await action.start(
+              await action.mutateAsync(
                 failed && typeof latest.variables === "boolean"
                   ? latest.variables
                   : !following,
               );
             } catch (error) {
-              if (
-                context.owner?.isCurrent(context.owner.generation) &&
-                !isUncertainMutationFailure(error)
-              )
-                feedback.error();
+              if (!isUncertainMutationFailure(error)) feedback.error();
             }
           }
         }}
@@ -136,5 +124,4 @@ export function FollowButton({ target, season }: FollowButtonProps) {
     </View>
   );
 }
-
 const styles = StyleSheet.create({ control: { gap: tokens.spacing.sm } });

@@ -1,4 +1,5 @@
 import type { PurchasesOffering } from "react-native-purchases";
+
 const { PACKAGE_TYPE, PRODUCT_CATEGORY, PRODUCT_TYPE } = jest.requireActual<
   typeof import("react-native-purchases")
 >("react-native-purchases");

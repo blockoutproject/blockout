@@ -1,32 +1,25 @@
+import { ApiError } from "../../../shared/api/api-fetch";
 import { tokens } from "../../../shared/theme/tokens";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useSyncExternalStore } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller } from "react-hook-form";
 import { StyleSheet, View } from "react-native";
 import type { CollectionProviderEnum } from "../../../../.generated/schemas/index.zod";
-import { requiresRevisionRead } from "../../../shared/api/mutation-recovery";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { TextField } from "../../../shared/components/text-field";
 import type { useSeasonPreparation } from "../api/use-source-preparation";
-
-import {
-  createSourceSchema,
-  type CreateSourceValues,
-} from "../schemas/create-source-schema";
-import type { ProviderPreparationEditor } from "./provider-preparation-editor";
+import { type CreateSourceValues } from "../schemas/create-source-schema";
+import type { useProviderPreparationDraft } from "./use-provider-preparation-draft";
 import { createSourceValues } from "./create-source-values";
 
 /** Shares the provider's original season revision and its explicit local cancellation owner. */
 export interface CreateSourceFormProps {
-  editor: ProviderPreparationEditor;
+  editor: ReturnType<typeof useProviderPreparationDraft>;
   provider: CollectionProviderEnum;
   editing: ReturnType<typeof useSeasonPreparation>;
   disabled: boolean;
-  /** Confirms disposal in the retained provider owner before closing the inline form. */
+  /** Confirms disposal of the mounted provider draft before closing the inline form. */
   onCancel(): void;
 }
-
 /** Validates and submits a supported candidate without qualifying it or launching collection implicitly. */
 export function CreateSourceForm({
   editor,
@@ -35,51 +28,39 @@ export function CreateSourceForm({
   disabled,
   onCancel,
 }: CreateSourceFormProps) {
-  const { session } = editing.authority;
   const actionFeedback = useActionFeedback();
-  const { baseline } = useSyncExternalStore(
-    editor.subscribe,
-    editor.getSnapshot,
-  );
-  const { control, handleSubmit, reset } = useForm<CreateSourceValues>({
-    formControl: editor.form.formControl,
-    resolver: zodResolver(createSourceSchema),
-  });
-
+  const { baseline } = editor.state;
+  const { control, handleSubmit, reset } = editor.form;
   /** Keeps the original scope and input after refusal; acceptance resets only this candidate's fields. */
   async function submit(values: CreateSourceValues) {
-    if (disabled || !session.isCurrent(session.generation)) return;
+    if (disabled) return;
     try {
-      const attempt = editing.create.start({
+      const attempt = editing.create.mutateAsync({
         seasonRevision: baseline.revision,
         provider,
         ...values,
       });
-      if (!attempt) return;
-      editor.update({ ...editor.getSnapshot(), feedback: undefined });
+      editor.update({ ...editor.state, feedback: undefined });
       actionFeedback.clear();
       await attempt;
-      if (!session.isCurrent(session.generation)) return;
       reset(createSourceValues());
       editor.update({
-        ...editor.getSnapshot(),
+        ...editor.state,
         adding: false,
         feedback: "Source ajoutée. Relisez l’état avant une nouvelle action.",
       });
     } catch (error) {
-      if (!session.isCurrent(session.generation)) return;
-      if (requiresRevisionRead(error)) {
+      if (error instanceof ApiError && error.status === 409) {
         editor.update({
-          ...editor.getSnapshot(),
+          ...editor.state,
           feedback: "Le résultat doit être vérifié avant une nouvelle action.",
         });
       } else {
-        editor.update({ ...editor.getSnapshot(), feedback: undefined });
+        editor.update({ ...editor.state, feedback: undefined });
         actionFeedback.error();
       }
     }
   }
-
   return (
     <View style={styles.form}>
       <Controller
@@ -124,17 +105,16 @@ export function CreateSourceForm({
         fullWidth
         onPress={() => void handleSubmit(submit)()}
         disabled={disabled}
-        loading={editing.create.executing}
+        loading={editing.create.isPending}
       />
       <Button
         label="Annuler"
         variant="secondary"
         fullWidth
         onPress={onCancel}
-        disabled={editing.create.pending}
+        disabled={editing.create.isPending}
       />
     </View>
   );
 }
-
 const styles = StyleSheet.create({ form: { gap: tokens.layout.form.gap } });

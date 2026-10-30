@@ -4,7 +4,7 @@ import { ApiError } from "../../../shared/api/api-fetch";
 /**
  * Reads a restriction only after transport validation and the maintenance-specific semantic check.
  * Undefined means unavailable data; it never establishes admission or a minimum-version decision.
- * Callers retain responsibility for session generations and previously observed revisions.
+ * Callers retain responsibility for the original principal and server editing revisions.
  */
 export function readMaintenanceProblem(
   error: unknown,

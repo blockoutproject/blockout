@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { useLayoutEffect, type PropsWithChildren, type ReactNode } from "react";
+import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -94,11 +94,15 @@ const accepted = {
   },
 } as const;
 let client = createQueryClient();
+// Failure presentation is isolated here; native retry defaults have their own Query suite.
+client.setQueryDefaults([], { retry: false });
 let context = ownContributions();
 let failRefresh = false;
 let posts: RequestInit[] = [];
 beforeEach(() => {
   client = createQueryClient();
+  // Failure presentation is isolated here; native retry defaults have their own Query suite.
+  client.setQueryDefaults([], { retry: false });
   mockMaintenance = false;
   context = ownContributions();
   failRefresh = false;
@@ -163,10 +167,12 @@ async function mount(
       <ThemeProvider>
         <ApplicationAccessProvider>
           <AccountSessionProvider>
-            <AccountFeedbackProvider>
-              {content}
-              <SessionExit />
-            </AccountFeedbackProvider>
+            <PrivateQueries>
+              <AccountFeedbackProvider>
+                {content}
+                <SessionExit />
+              </AccountFeedbackProvider>
+            </PrivateQueries>
           </AccountSessionProvider>
         </ApplicationAccessProvider>
       </ThemeProvider>
@@ -191,7 +197,7 @@ function SessionExit() {
         accessibilityLabel="Activer le contournement"
         accessibilityState={{ disabled: !session.accountId }}
         disabled={!session.accountId}
-        onPress={() => access.bypass.request(session.getSnapshot(), true)}
+        onPress={() => access.requestBypass(session, true)}
       >
         <Text>Contournement</Text>
       </Pressable>
@@ -317,7 +323,7 @@ it("retains dirty input through refresh and a refused submission", async () => {
   expect(mockDismissTo).not.toHaveBeenCalled();
 });
 
-it("keeps confirmed success when dependent reads fail and excludes duplicate actions", async () => {
+it("keeps confirmed success when dependent refresh fails and disables its pending submit", async () => {
   // Given
   const pending = Promise.withResolvers<Response>();
   const user = userEvent.setup();
@@ -360,12 +366,6 @@ it("keeps confirmed success when dependent reads fail and excludes duplicate act
     revision: "initial",
     url: accepted.contribution.url,
   });
-  expect(
-    client
-      .getQueryCache()
-      .getAll()
-      .some((q) => JSON.stringify(q.state.data) === JSON.stringify(accepted)),
-  ).toBe(true);
 });
 
 it("ignores a late accepted response after session departure", async () => {
@@ -553,47 +553,6 @@ it("keeps a draft after conflict and requires a fresh explicit submission", asyn
   await waitFor(() => expect(mockDismissTo).toHaveBeenCalledTimes(1));
   expect(posts).toHaveLength(2);
   expect(JSON.parse(String(posts[1].body)).revision).toBe("current");
-});
-
-it("keeps an uncertain failure guarded after a failed read without write replay", async () => {
-  // Given
-  const user = userEvent.setup();
-  await mount();
-  await user.type(
-    await screen.findByLabelText("Adresse du lien"),
-    accepted.contribution.url,
-  );
-  mockFetch.mockImplementationOnce(async (_url, init) => {
-    if (init) posts.push(init);
-    throw new TypeError("Response lost");
-  });
-
-  // When
-  failRefresh = true;
-  await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === "Soumettre le lien")
-      ?.onPress?.(),
-  );
-
-  // Then
-  expect(
-    await screen.findByRole("button", { name: "Vérifier la contribution" }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Soumettre le lien" }),
-  ).toBeDisabled();
-  expect(screen.getByDisplayValue(accepted.contribution.url)).toBeOnTheScreen();
-  await waitFor(() =>
-    expect(
-      screen.getByRole("button", { name: "Vérifier la contribution" }),
-    ).toBeEnabled(),
-  );
-  expect(posts).toHaveLength(1);
-  expect(mockDismissTo).not.toHaveBeenCalled();
 });
 
 it("does not replay a guest invitation after explicit sign-in", async () => {
@@ -1077,3 +1036,15 @@ it.each(["cancel", "session", "unmount"])(
     expect(mockDismissTo).not.toHaveBeenCalled();
   },
 );
+
+/** Observes the actual private client installed by the native principal provider. */
+function PrivateQueries({ children }: PropsWithChildren) {
+  const privateClient = useQueryClient();
+  // Configure deterministic failure presentation before child Query observers mount.
+  privateClient.setQueryDefaults([], { retry: false, gcTime: Infinity });
+  privateClient.setMutationDefaults([], { gcTime: Infinity });
+  useLayoutEffect(() => {
+    client = privateClient;
+  }, [privateClient]);
+  return children;
+}

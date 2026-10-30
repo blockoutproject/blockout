@@ -1,4 +1,5 @@
-import { QueryClientProvider } from "@tanstack/react-query";
+import { useLayoutEffect, type PropsWithChildren } from "react";
+import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -67,12 +68,16 @@ const original = {
 };
 let detail = original;
 let client = createQueryClient();
+// Failure presentation is isolated here; native retry defaults have their own Query suite.
+client.setQueryDefaults([], { retry: false });
 let posts: { url: string; body: unknown }[] = [];
 let ownState = false;
 let responseStatus = 201;
 
 beforeEach(() => {
   client = createQueryClient();
+  // Failure presentation is isolated here; native retry defaults have their own Query suite.
+  client.setQueryDefaults([], { retry: false });
   detail = original;
   posts = [];
   ownState = false;
@@ -136,14 +141,16 @@ async function mount() {
       <ThemeProvider>
         <ApplicationAccessProvider>
           <AccountSessionProvider>
-            <AccountFeedbackProvider>
-              <ReportContributionScreen
-                matchId={detail.match.id}
-                contributionId={versionId}
-                contributionUrl={original.streamUrl}
-              />
-              <SessionExit />
-            </AccountFeedbackProvider>
+            <PrivateQueries>
+              <AccountFeedbackProvider>
+                <ReportContributionScreen
+                  matchId={detail.match.id}
+                  contributionId={versionId}
+                  contributionUrl={original.streamUrl}
+                />
+                <SessionExit />
+              </AccountFeedbackProvider>
+            </PrivateQueries>
           </AccountSessionProvider>
         </ApplicationAccessProvider>
       </ThemeProvider>
@@ -488,3 +495,15 @@ it("keeps the viewed address when current public context already contains a repl
   expect(posts).toHaveLength(1);
   expect(posts[0].url).toContain(versionId);
 });
+
+/** Observes the actual private client installed by the native principal provider. */
+function PrivateQueries({ children }: PropsWithChildren) {
+  const privateClient = useQueryClient();
+  // Configure deterministic failure presentation before child Query observers mount.
+  privateClient.setQueryDefaults([], { retry: false, gcTime: Infinity });
+  privateClient.setMutationDefaults([], { gcTime: Infinity });
+  useLayoutEffect(() => {
+    client = privateClient;
+  }, [privateClient]);
+  return children;
+}

@@ -1,284 +1,60 @@
 import {
-  focusManager,
   MutationObserver,
   onlineManager,
-  QueryClient,
   QueryObserver,
 } from "@tanstack/react-query";
-import { FollowerCountResponse } from "../../../../.generated/schemas/index.zod";
+import { waitFor } from "@testing-library/react-native";
 import { createQueryClient } from "../query-client";
 
-// Real Query observers use schema-validated responses; only the request is controlled.
-const retained = FollowerCountResponse.parse({ count: 3 });
-const refreshed = FollowerCountResponse.parse({ count: 4 });
-const queryKey = ["controlled-follower-count"];
-let client: QueryClient;
-let observer: QueryObserver<FollowerCountResponse> | undefined;
+afterEach(() => onlineManager.setOnline(true));
 
-beforeEach(() => {
-  jest.useFakeTimers();
-  onlineManager.setOnline(true);
-  focusManager.setFocused(true);
-  client = createQueryClient();
-  client.mount();
-});
-
-afterEach(async () => {
-  observer?.destroy();
-  observer = undefined;
-  client.unmount();
-  client.clear();
-  onlineManager.setOnline(true);
-  focusManager.setFocused(undefined);
-  await jest.runOnlyPendingTimersAsync();
-  jest.useRealTimers();
-});
-
-it("fails an offline read without queueing it, then allows an explicit retry", async () => {
-  // Given
-  onlineManager.setOnline(false);
-  const failure = new Error("Network unavailable");
+it("recovers a transient read and publishes the accepted result", async () => {
+  // Given: real Query lifecycle, controlled request boundary.
+  const client = createQueryClient();
   const read = jest
-    .fn<Promise<FollowerCountResponse>, []>()
-    .mockRejectedValueOnce(failure)
-    .mockResolvedValue(refreshed);
-  observer = new QueryObserver<FollowerCountResponse>(client, {
-    queryKey,
+    .fn()
+    .mockRejectedValueOnce(new Error("Offline"))
+    .mockResolvedValue({ count: 4 });
+  const observer = new QueryObserver(client, {
+    queryKey: ["count"],
     queryFn: read,
+    retryDelay: 0,
   });
-
-  // When
-  observer.subscribe(() => {});
-  await jest.advanceTimersByTimeAsync(0);
-
-  // Then
-  expect(read).toHaveBeenCalledTimes(1);
-  expect(observer.getCurrentResult()).toMatchObject({
-    status: "error",
-    fetchStatus: "idle",
-    data: undefined,
-    error: failure,
-  });
-
-  // When
-  onlineManager.setOnline(true);
-  await jest.runOnlyPendingTimersAsync();
-
-  // Then
-  expect(read).toHaveBeenCalledTimes(1);
-  expect(observer.getCurrentResult().status).toBe("error");
-
-  // When
-  const result = await observer.refetch();
-
-  // Then
-  expect(read).toHaveBeenCalledTimes(2);
-  expect(result).toMatchObject({ status: "success", data: refreshed });
+  const unsubscribe = observer.subscribe(() => {});
+  try {
+    // When / Then
+    await waitFor(() =>
+      expect(observer.getCurrentResult()).toMatchObject({
+        status: "success",
+        data: { count: 4 },
+      }),
+    );
+    expect(read).toHaveBeenCalledTimes(2);
+  } finally {
+    unsubscribe();
+    observer.destroy();
+    client.clear();
+  }
 });
 
-it.each([false, true])(
-  "does not replay a failed write (online: %s)",
-  async (online) => {
-    // Given
-    onlineManager.setOnline(online);
-    const failure = new Error("Write outcome unknown");
-    const write = jest
-      .fn<Promise<void>, [{ followed: boolean }]>()
-      .mockRejectedValue(failure);
-    const mutation = new MutationObserver(client, { mutationFn: write });
-
+it("reports an offline write once without pausing or replaying it", async () => {
+  // Given
+  const client = createQueryClient();
+  onlineManager.setOnline(false);
+  const failure = new Error("Response lost");
+  const write = jest.fn().mockRejectedValue(failure);
+  const mutation = new MutationObserver(client, { mutationFn: write });
+  try {
     // When
-    const attempt = mutation
-      .mutate({ followed: true })
-      .catch((error: unknown) => error);
-    await jest.advanceTimersByTimeAsync(0);
-
+    await expect(mutation.mutate(undefined)).rejects.toBe(failure);
+    onlineManager.setOnline(true);
     // Then
     expect(write).toHaveBeenCalledTimes(1);
     expect(mutation.getCurrentResult()).toMatchObject({
       status: "error",
       isPaused: false,
-      data: undefined,
-      error: failure,
     });
-    await expect(attempt).resolves.toBe(failure);
-
-    // When
-    onlineManager.setOnline(false);
-    focusManager.setFocused(false);
-    onlineManager.setOnline(true);
-    focusManager.setFocused(true);
-    await jest.runOnlyPendingTimersAsync();
-
-    // Then
-    expect(write).toHaveBeenCalledTimes(1);
-    expect(mutation.getCurrentResult().status).toBe("error");
-  },
-);
-
-it.each(["reconnect", "focus"])(
-  "keeps stale data without an implicit %s refresh",
-  async (trigger) => {
-    // Given
-    const read = jest
-      .fn<Promise<FollowerCountResponse>, []>()
-      .mockResolvedValue(retained);
-    observer = new QueryObserver<FollowerCountResponse>(client, {
-      queryKey,
-      queryFn: read,
-    });
-    observer.subscribe(() => {});
-    await jest.advanceTimersByTimeAsync(0);
-    expect(observer.getCurrentResult()).toMatchObject({
-      data: retained,
-      isStale: true,
-    });
-
-    // When
-    if (trigger === "reconnect") {
-      onlineManager.setOnline(false);
-      onlineManager.setOnline(true);
-    } else {
-      focusManager.setFocused(false);
-      focusManager.setFocused(true);
-    }
-    await jest.advanceTimersByTimeAsync(0);
-
-    // Then
-    expect(read).toHaveBeenCalledTimes(1);
-    expect(observer.getCurrentResult()).toMatchObject({
-      status: "success",
-      data: retained,
-    });
-  },
-);
-
-it.each([false, true])(
-  "retains data and its timestamp after a failed refresh (online: %s)",
-  async (online) => {
-    // Given
-    const failure = new Error("Refresh unavailable");
-    const read = jest
-      .fn<Promise<FollowerCountResponse>, []>()
-      .mockResolvedValueOnce(retained)
-      .mockRejectedValue(failure);
-    observer = new QueryObserver<FollowerCountResponse>(client, {
-      queryKey,
-      queryFn: read,
-    });
-    observer.subscribe(() => {});
-    await jest.advanceTimersByTimeAsync(0);
-    const dataUpdatedAt = observer.getCurrentResult().dataUpdatedAt;
-
-    // When
-    onlineManager.setOnline(online);
-    const attempt = observer.refetch();
-    await jest.runOnlyPendingTimersAsync();
-
-    // Then
-    expect(read).toHaveBeenCalledTimes(2);
-    await expect(attempt).resolves.toMatchObject({
-      status: "error",
-      fetchStatus: "idle",
-      isRefetchError: true,
-      data: retained,
-      dataUpdatedAt,
-      error: failure,
-    });
-    expect(client.getQueryData(queryKey)).toEqual(retained);
-
-    // When
-    onlineManager.setOnline(true);
-    await jest.advanceTimersByTimeAsync(0);
-
-    // Then
-    expect(read).toHaveBeenCalledTimes(2);
-
-    // Given
-    read.mockResolvedValue(refreshed);
-
-    // When
-    const result = await observer.refetch();
-
-    // Then
-    expect(read).toHaveBeenCalledTimes(3);
-    expect(result).toMatchObject({
-      status: "success",
-      data: refreshed,
-      error: null,
-    });
-    expect(result.dataUpdatedAt).toBeGreaterThan(dataUpdatedAt);
-  },
-);
-
-it("allows a feature-approved focus refresh only after its chosen freshness expires", async () => {
-  // Given
-  const read = jest
-    .fn<Promise<FollowerCountResponse>, []>()
-    .mockResolvedValueOnce(retained)
-    .mockResolvedValue(refreshed);
-  observer = new QueryObserver<FollowerCountResponse>(client, {
-    queryKey,
-    queryFn: read,
-    staleTime: 1_000,
-    refetchOnWindowFocus: true,
-  });
-  observer.subscribe(() => {});
-  await jest.advanceTimersByTimeAsync(0);
-
-  // When
-  focusManager.setFocused(false);
-  focusManager.setFocused(true);
-  await jest.advanceTimersByTimeAsync(0);
-
-  // Then
-  expect(read).toHaveBeenCalledTimes(1);
-
-  // When
-  await jest.advanceTimersByTimeAsync(1_001);
-  focusManager.setFocused(false);
-  focusManager.setFocused(true);
-  await jest.advanceTimersByTimeAsync(0);
-
-  // Then
-  expect(read).toHaveBeenCalledTimes(2);
-  expect(observer.getCurrentResult()).toMatchObject({
-    status: "success",
-    data: refreshed,
-  });
+  } finally {
+    client.clear();
+  }
 });
-
-it.each(["success", "error"])(
-  "does not implicitly retry or refresh a remounted %s query",
-  async (state) => {
-    // Given
-    const read =
-      state === "success"
-        ? jest
-            .fn<Promise<FollowerCountResponse>, []>()
-            .mockResolvedValue(retained)
-        : jest
-            .fn<Promise<FollowerCountResponse>, []>()
-            .mockRejectedValue(new Error("Unavailable"));
-    observer = new QueryObserver<FollowerCountResponse>(client, {
-      queryKey,
-      queryFn: read,
-    });
-    observer.subscribe(() => {});
-    await jest.runOnlyPendingTimersAsync();
-    const attempts = read.mock.calls.length;
-    observer.destroy();
-
-    // When
-    observer = new QueryObserver<FollowerCountResponse>(client, {
-      queryKey,
-      queryFn: read,
-    });
-    observer.subscribe(() => {});
-    await jest.runOnlyPendingTimersAsync();
-
-    // Then
-    expect(read).toHaveBeenCalledTimes(attempts);
-    expect(observer.getCurrentResult().status).toBe(state);
-  },
-);

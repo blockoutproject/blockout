@@ -7,7 +7,6 @@ import {
 } from "../../../../.generated/mobile";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { createConsultationQueries } from "../api/consultation-queries";
-import { createSessionGeneration } from "../../accounts/session/session-generation";
 import {
   clubDetail,
   matchDetail,
@@ -61,9 +60,9 @@ it.each([
     // Given
     mockFetch.mockResolvedValue(Response.json(body));
     const client = createQueryClient();
-    const session = createSessionGeneration();
+    const session = { subject: null, accountId: null };
     const queries = createConsultationQueries(
-      { ...session.getSnapshot(), isCurrent: session.isCurrent },
+      session,
       { request: (options) => options },
       jest.fn(),
     );

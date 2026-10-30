@@ -2,7 +2,7 @@ import { accountResponse } from "../../accounts/test-support/account-response";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import { ApplicationAccessProvider } from "../queries/use-application-access";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   cleanup,
   act,
@@ -12,7 +12,7 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { Pressable, Text } from "react-native";
-import type { PropsWithChildren } from "react";
+import { useLayoutEffect, useState, type PropsWithChildren } from "react";
 import { renderRouter } from "expo-router/testing-library";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
@@ -67,7 +67,9 @@ const mockFetch = jest.fn<
   [RequestInfo | URL, RequestInit?]
 >();
 const mockBack = jest.fn();
-let client = createQueryClient();
+let publicClient = createQueryClient();
+let client = publicClient;
+let clients = new Set([publicClient]);
 const environment = { ...process.env };
 const account = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000174",
@@ -77,7 +79,15 @@ const account = accountResponse({
 });
 
 beforeEach(() => {
-  client = createQueryClient();
+  publicClient = createQueryClient();
+  client = publicClient;
+  clients = new Set([publicClient]);
+  publicClient.setDefaultOptions({
+    mutations: {
+      ...publicClient.getDefaultOptions().mutations,
+      gcTime: Infinity,
+    },
+  });
   Object.assign(process.env, {
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
     EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
@@ -96,7 +106,8 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await cleanup();
-  client.clear();
+  for (const cache of clients) cache.clear();
+  clients.clear();
   jest.restoreAllMocks();
   process.env = { ...environment };
 });
@@ -116,16 +127,34 @@ async function renderAdministration(
 /** Shared real providers for component and Router cases; each scenario controls only native/HTTP I/O. */
 function AdministrationProviders({ children }: PropsWithChildren) {
   return (
-    <QueryClientProvider client={client}>
+    <QueryClientProvider client={publicClient}>
       <ThemeProvider>
         <ApplicationAccessProvider>
           <AccountSessionProvider>
-            <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+            <PrivateQueries>
+              <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+            </PrivateQueries>
           </AccountSessionProvider>
         </ApplicationAccessProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
+}
+
+/** Observes the actual private cache; one-failure cases deliberately disable unrelated retry backoff. */
+function PrivateQueries({ children }: PropsWithChildren) {
+  const cache = useQueryClient();
+  useState(() => {
+    cache.setDefaultOptions({
+      queries: { retry: false },
+      mutations: { retry: false, networkMode: "always", gcTime: Infinity },
+    });
+  });
+  useLayoutEffect(() => {
+    clients.add(cache);
+    client = cache;
+  }, [cache]);
+  return children;
 }
 
 /** Exposes explicit refresh and sign-out through the existing owners, without a second session fixture. */
@@ -359,7 +388,7 @@ it("hides retained capabilities after a refused account refresh behind an opaque
   expect(screen.queryAllByRole("link", { name: "Collectes" })).toHaveLength(0);
 });
 
-it("discards an account response completed after the F05 generation ends", async () => {
+it("keeps a detached account response out of the native guest lifetime", async () => {
   // Given
   const response = Promise.withResolvers<Response>();
   mockFetch.mockReturnValue(response.promise);
@@ -406,7 +435,7 @@ it("offers no commands to a guest and performs no current-account read", async (
   expect(mockFetch).not.toHaveBeenCalled();
 });
 
-it("does not restore an old grant after returning to the same account in a new F05 generation", async () => {
+it("uses its fresh private account read after native guest departure and login", async () => {
   // Given
   const oldResponse = Promise.withResolvers<Response>();
   mockFetch

@@ -1,6 +1,6 @@
+import type { SessionSnapshot } from "../../accounts";
 import { waitFor } from "@testing-library/react-native";
 import Purchases from "react-native-purchases";
-import { createSessionGeneration } from "../../accounts";
 import { createProSession } from "../pro-session";
 import { customerInfo, entitlement } from "../test-support/customer-info";
 
@@ -15,7 +15,6 @@ jest.mock("react-native-purchases", () => ({
   default: jest.requireActual("../test-support/native-purchases").mockPurchases,
 }));
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-
 const a = "00000000-0000-4000-8000-000000000001";
 const b = "00000000-0000-4000-8000-000000000002";
 const info = customerInfo({
@@ -23,9 +22,8 @@ const info = customerInfo({
   all: {},
   verification: Purchases.VERIFICATION_RESULT.NOT_REQUESTED,
 });
-let session: ReturnType<typeof createSessionGeneration>;
+let session: SessionSnapshot;
 let owner: ReturnType<typeof createProSession>;
-
 beforeEach(() => {
   jest.clearAllMocks();
   let configured = false;
@@ -42,24 +40,22 @@ beforeEach(() => {
     .mockResolvedValue({ customerInfo: info, created: false });
   jest.mocked(Purchases.logOut).mockResolvedValue(info);
   jest.mocked(Purchases.getCustomerInfo).mockResolvedValue(info);
-  session = createSessionGeneration();
+  session = { subject: null, accountId: null };
   owner = createProSession();
   // Real F05 publication, with only RevenueCat I/O controlled.
-  session.subscribe(() => owner.setTarget(session.getSnapshot()));
 });
-
 it("waits for a usable UUID before configuring once and reading current information", async () => {
   // Given
-  owner.setTarget(session.getSnapshot());
+  owner.setTarget({ ...session });
   expect(Purchases.configure).not.toHaveBeenCalled();
-
   // When
-  session.setAccount(session.getSnapshot().generation, a);
+  session = { subject: `auth0|${a}`, accountId: a };
+  owner.setTarget(session);
   await waitFor(() =>
     expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
   );
-  session.setAccount(session.getSnapshot().generation, b);
-
+  session = { subject: `auth0|${b}`, accountId: b };
+  owner.setTarget(session);
   // Then
   await waitFor(() => expect(Purchases.logIn).toHaveBeenCalledWith(b));
   expect(Purchases.configure).toHaveBeenCalledTimes(1);
@@ -68,10 +64,10 @@ it("waits for a usable UUID before configuring once and reading current informat
     appUserID: a,
   });
 });
-
 it("preserves current login-supplied active rights if the following ordinary read fails", async () => {
   // Given
-  session.setAccount(session.getSnapshot().generation, a);
+  session = { subject: `auth0|${a}`, accountId: a };
+  owner.setTarget(session);
   await waitFor(() =>
     expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
   );
@@ -87,17 +83,15 @@ it("preserves current login-supplied active rights if the following ordinary rea
   jest
     .mocked(Purchases.getCustomerInfo)
     .mockRejectedValueOnce(new Error("private SDK data"));
-
   // When
-  session.setAccount(session.getSnapshot().generation, b);
-
+  session = { subject: `auth0|${b}`, accountId: b };
+  owner.setTarget(session);
   // Then
   await waitFor(() =>
     expect(owner.getSnapshot().verificationFailed).toBe(true),
   );
   expect(owner.getSnapshot().evidence?.customerInfo).toBe(loginInfo);
 });
-
 it("finishes configuration before logging out when its account is erased", async () => {
   // Given
   const configured = Promise.withResolvers<boolean>();
@@ -105,24 +99,21 @@ it("finishes configuration before logging out when its account is erased", async
     .mocked(Purchases.isConfigured)
     .mockResolvedValueOnce(false)
     .mockReturnValueOnce(configured.promise);
-  session.setAccount(session.getSnapshot().generation, a);
+  session = { subject: `auth0|${a}`, accountId: a };
+  owner.setTarget(session);
   await waitFor(() => expect(Purchases.configure).toHaveBeenCalledTimes(1));
-
   // When
-  session.invalidate();
-
+  session = { subject: null, accountId: null };
+  owner.setTarget(session);
   // Then
   expect(owner.getSnapshot().evidence).toBeNull();
   expect(Purchases.logOut).not.toHaveBeenCalled();
-
   // When
   configured.resolve(true);
-
   // Then
   await waitFor(() => expect(Purchases.logOut).toHaveBeenCalledTimes(1));
   expect(Purchases.getCustomerInfo).not.toHaveBeenCalled();
 });
-
 it.each([a, b])(
   "settles configuration before applying the latest target %s, skipping obsolete guests",
   async (target) => {
@@ -132,75 +123,73 @@ it.each([a, b])(
       .mocked(Purchases.isConfigured)
       .mockResolvedValueOnce(false)
       .mockReturnValueOnce(configured.promise);
-    session.setAccount(session.getSnapshot().generation, a);
+    session = { subject: `auth0|${a}`, accountId: a };
+    owner.setTarget(session);
     await waitFor(() => expect(Purchases.configure).toHaveBeenCalledTimes(1));
-
     // When
-    session.invalidate();
-    session.setAccount(session.getSnapshot().generation, target);
+    session = { subject: null, accountId: null };
+    owner.setTarget(session);
+    session = { subject: `auth0|${target}`, accountId: target };
+    owner.setTarget(session);
     expect(owner.getSnapshot().evidence?.customerInfo ?? null).toBeNull();
     expect(Purchases.logIn).not.toHaveBeenCalled();
     expect(Purchases.logOut).not.toHaveBeenCalled();
     configured.resolve(true);
-
     // Then
     await waitFor(() =>
-      expect(owner.getSnapshot().evidence?.session).toEqual(
-        session.getSnapshot(),
-      ),
+      expect(owner.getSnapshot().evidence?.session).toEqual({ ...session }),
     );
     await waitFor(() =>
       expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
     );
-    expect(Purchases.logIn).toHaveBeenCalledTimes(1);
-    expect(Purchases.logIn).toHaveBeenCalledWith(target);
+    expect(Purchases.logIn).toHaveBeenCalledTimes(target === a ? 0 : 1);
+    if (target !== a) expect(Purchases.logIn).toHaveBeenCalledWith(target);
     expect(Purchases.logOut).not.toHaveBeenCalled();
   },
 );
-
 it("clears immediately on accepted erasure and waits for login before native logout", async () => {
   // Given
-  session.setAccount(session.getSnapshot().generation, a);
+  session = { subject: `auth0|${a}`, accountId: a };
+  owner.setTarget(session);
   await waitFor(() =>
     expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
   );
   const login =
     Promise.withResolvers<Awaited<ReturnType<typeof Purchases.logIn>>>();
   jest.mocked(Purchases.logIn).mockReturnValueOnce(login.promise);
-  session.setAccount(session.getSnapshot().generation, b);
-
+  session = { subject: `auth0|${b}`, accountId: b };
+  owner.setTarget(session);
   // When
-  session.invalidate();
-
+  session = { subject: null, accountId: null };
+  owner.setTarget(session);
   // Then
   expect(owner.getSnapshot().evidence).toBeNull();
   expect(Purchases.logOut).not.toHaveBeenCalled();
-
   // When
   login.resolve({ customerInfo: info, created: false });
-
   // Then
   await waitFor(() => expect(Purchases.logOut).toHaveBeenCalledTimes(1));
   expect(owner.getSnapshot().evidence).toBeNull();
 });
-
 it("waits for logout before login and skips an intermediate known account", async () => {
   // Given
-  session.setAccount(session.getSnapshot().generation, a);
+  session = { subject: `auth0|${a}`, accountId: a };
+  owner.setTarget(session);
   await waitFor(() =>
     expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
   );
   const logout = Promise.withResolvers<typeof info>();
   jest.mocked(Purchases.logOut).mockReturnValueOnce(logout.promise);
-  session.invalidate();
+  session = { subject: null, accountId: null };
+  owner.setTarget(session);
   await waitFor(() => expect(Purchases.logOut).toHaveBeenCalledTimes(1));
-
   // When
-  session.setAccount(session.getSnapshot().generation, b);
-  session.setAccount(session.getSnapshot().generation, a);
+  session = { subject: `auth0|${b}`, accountId: b };
+  owner.setTarget(session);
+  session = { subject: `auth0|${a}`, accountId: a };
+  owner.setTarget(session);
   expect(Purchases.logIn).not.toHaveBeenCalled();
   logout.resolve(info);
-
   // Then
   await waitFor(() =>
     expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
@@ -208,47 +197,47 @@ it("waits for logout before login and skips an intermediate known account", asyn
   expect(Purchases.logIn).toHaveBeenCalledTimes(1);
   expect(Purchases.logIn).toHaveBeenCalledWith(a);
 });
-
 it("leaves a failed current association unavailable until explicit retry", async () => {
   // Given
-  session.setAccount(session.getSnapshot().generation, a);
+  session = { subject: `auth0|${a}`, accountId: a };
+  owner.setTarget(session);
   await waitFor(() =>
     expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
   );
   jest
     .mocked(Purchases.logIn)
     .mockRejectedValueOnce(new Error("private SDK payload"));
-  session.setAccount(session.getSnapshot().generation, b);
+  session = { subject: `auth0|${b}`, accountId: b };
+  owner.setTarget(session);
   await waitFor(() =>
     expect(owner.getSnapshot().evidence?.association).toBe("failed"),
   );
-
   // When
-  owner.setTarget(session.getSnapshot());
-  await owner.refresh(session.getSnapshot());
+  owner.setTarget({ ...session });
+  await owner.refresh({ ...session });
   expect(Purchases.logIn).toHaveBeenCalledTimes(1);
-  owner.retry(session.getSnapshot());
-
+  owner.retry({ ...session });
   // Then
   await waitFor(() =>
     expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
   );
   expect(Purchases.logIn).toHaveBeenCalledTimes(2);
 });
-
 it.each([a, b])("rejects an old read across A → guest → %s", async (target) => {
   // Given
   const read = Promise.withResolvers<typeof info>();
   jest.mocked(Purchases.getCustomerInfo).mockReturnValueOnce(read.promise);
-  session.setAccount(session.getSnapshot().generation, a);
+  session = { subject: `auth0|${a}`, accountId: a };
+  owner.setTarget(session);
   await waitFor(() =>
     expect(Purchases.getCustomerInfo).toHaveBeenCalledTimes(1),
   );
-  const old = session.getSnapshot();
-
+  const old = { ...session };
   // When
-  session.invalidate();
-  session.setAccount(session.getSnapshot().generation, target);
+  session = { subject: null, accountId: null };
+  owner.setTarget(session);
+  session = { subject: `auth0|${target}`, accountId: target };
+  owner.setTarget(session);
   await waitFor(() =>
     expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
   );
@@ -256,20 +245,17 @@ it.each([a, b])("rejects an old read across A → guest → %s", async (target) 
   await read.promise;
   await owner.refresh(old);
   owner.retry(old);
-
   // Then
-  expect(owner.getSnapshot().evidence?.session).toEqual(session.getSnapshot());
+  expect(owner.getSnapshot().evidence?.session).toEqual({ ...session });
   expect(owner.getSnapshot().evidence?.customerInfo).toBe(info);
   expect(Purchases.configure).toHaveBeenCalledTimes(1);
 });
-
 it("uses SDK configuration when a React owner is recreated", async () => {
   // Given: the native process already configured RevenueCat before this owner existed.
   jest.mocked(Purchases.isConfigured).mockResolvedValue(true);
-
   // When
-  session.setAccount(session.getSnapshot().generation, a);
-
+  session = { subject: `auth0|${a}`, accountId: a };
+  owner.setTarget(session);
   // Then
   await waitFor(() =>
     expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
@@ -277,17 +263,16 @@ it("uses SDK configuration when a React owner is recreated", async () => {
   expect(Purchases.configure).not.toHaveBeenCalled();
   expect(Purchases.logIn).toHaveBeenCalledWith(a);
 });
-
 it("abandons an obsolete account before mutating native identity after an SDK configuration read", async () => {
   // Given
   const configured = Promise.withResolvers<boolean>();
   jest.mocked(Purchases.isConfigured).mockReturnValueOnce(configured.promise);
-  session.setAccount(session.getSnapshot().generation, a);
-
+  session = { subject: `auth0|${a}`, accountId: a };
+  owner.setTarget(session);
   // When
-  session.setAccount(session.getSnapshot().generation, b);
+  session = { subject: `auth0|${b}`, accountId: b };
+  owner.setTarget(session);
   configured.resolve(false);
-
   // Then
   await waitFor(() =>
     expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),

@@ -1,5 +1,6 @@
+import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { signInAccount } from "../test-support/sign-in-account";
 import * as proSessionModule from "../pro-session";
-import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -26,6 +27,8 @@ import { ProProvider } from "../pro-provider";
 import { prepareProNativeIO } from "../test-support/pro-harness";
 import { mockPurchases } from "../test-support/native-purchases";
 import { v2Offering } from "../test-support/offering";
+
+jest.mock("expo/fetch", () => ({ fetch: jest.fn() }));
 
 jest.mock("expo-constants", () => ({
   __esModule: true,
@@ -61,11 +64,9 @@ jest.mock("react-native-auth0", () => {
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
-
 let account: AccountSession;
 let client = createQueryClient();
 const previousEnvironment = { ...process.env };
-
 beforeEach(() => {
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
@@ -84,20 +85,19 @@ afterEach(async () => {
   jest.restoreAllMocks();
   process.env = { ...previousEnvironment };
 });
-
 /** Keeps the real account and Pro owners alive while the Router changes focus. */
 function JourneyLayout() {
+  useQueryClient().setQueryDefaults([], { retry: false, gcTime: Infinity });
   const session = useAccountSession();
   useEffect(() => {
     account = session;
   }, [session]);
   return (
-    <ActionFeedbackProvider scopeKey={session.generation}>
+    <ActionFeedbackProvider scopeKey={session.subject ?? "guest"}>
       <Stack screenOptions={{ headerShown: false, animation: "none" }} />
     </ActionFeedbackProvider>
   );
 }
-
 /** The profile entry navigates before any offering lookup. */
 function ProfileRoute() {
   return (
@@ -107,7 +107,6 @@ function ProfileRoute() {
     </>
   );
 }
-
 it("opens Pro immediately and discards a late offer after the destination loses its owner", async () => {
   // Given: real Router and providers; only SDK I/O and native provider UI are controlled.
   const user = userEvent.setup();
@@ -136,27 +135,23 @@ it("opens Pro immediately and discards a late offer after the destination loses 
     );
     await waitFor(() => expect(account.status).toBe("authenticated"));
     await act(() =>
-      account.setAccount(
-        account.generation,
-        "00000000-0000-4000-8000-000000000251",
-      ),
+      signInAccount(account, "00000000-0000-4000-8000-000000000251"),
+    );
+    await waitFor(() =>
+      expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
     );
     expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
-
     // When
     await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-
     // Then
     expect(screen).toHavePathname("/pro");
     expect(await screen.findByRole("progressbar")).toBeOnTheScreen();
     expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(1);
-
     // When
     await user.press(screen.getByRole("button", { name: "Retour" }));
     await user.press(screen.getByRole("link", { name: "Quitter le profil" }));
     await act(() => read.resolve({ current: null, all: { v2: v2Offering } }));
     await waitFor(() => expect(client.isFetching()).toBe(0));
-
     // Then
     expect(screen).toHavePathname("/sporting");
     expect(screen.getByText("Sporting destination")).toBeOnTheScreen();

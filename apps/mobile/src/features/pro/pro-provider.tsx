@@ -5,6 +5,8 @@ import {
   useEffect,
   useLayoutEffect,
   useSyncExternalStore,
+  useEffectEvent,
+  useMemo,
   type PropsWithChildren,
 } from "react";
 import { AppState } from "react-native";
@@ -13,7 +15,6 @@ import type { CustomerInfo } from "react-native-purchases";
 import { useAccountSession } from "../accounts/current-account";
 import { getProState, type ProOperation, type ProState } from "./pro-state";
 import { proSession } from "./pro-session";
-
 /** Current-session presentation and explicit commands; callbacks retain their rendering session. */
 export interface ProContext {
   state: ProState;
@@ -35,53 +36,41 @@ export interface ProContext {
   /** Records an interrupted purchase as uncertain without cancelling the store transaction. */
   dismissPresentation(): Promise<void>;
 }
-
 const ProSessionContext = createContext<ProContext | null>(null);
-
 /**
  * Connects the process-wide native owner to F05 without gating navigation or local logout.
  * SDK listeners signal reads only; provider removal detaches subscriptions and clears presentation.
  */
 export function ProProvider({ children }: PropsWithChildren) {
   const account = useAccountSession();
-  const { status, subscribe, getSnapshot } = account;
+  const { status, subject, accountId } = account;
   const native = useSyncExternalStore(
     proSession.subscribe,
     proSession.getSnapshot,
   );
-  const session = account.getSnapshot();
-
+  const session = useMemo(() => ({ subject, accountId }), [subject, accountId]);
   useLayoutEffect(() => {
-    /** F05 publishes invalidation synchronously, before the React context rerenders. */
-    function updateTarget() {
-      const current = getSnapshot();
-      proSession.setTarget(
-        status === "authenticated" ? current : { ...current, accountId: null },
-      );
-    }
-    updateTarget();
-    return subscribe(updateTarget);
-  }, [status, subscribe, getSnapshot]);
-
+    proSession.setTarget(
+      status === "authenticated" ? session : { ...session, accountId: null },
+    );
+  }, [status, session]);
   useLayoutEffect(() => () => proSession.setTarget(null), []);
-
+  const readCurrent = useEffectEvent(() => {
+    void proSession.refresh(session);
+  });
   useEffect(() => {
-    /** Untagged SDK events and foreground entry trigger current reads under the SDK cache policy. */
-    function readCurrent() {
-      void proSession.refresh(getSnapshot());
-    }
-    Purchases.addCustomerInfoUpdateListener(readCurrent);
+    const listener = () => readCurrent();
+    Purchases.addCustomerInfoUpdateListener(listener);
     const foreground = AppState.addEventListener("change", (state) => {
       if (state === "active") readCurrent();
     });
     return () => {
-      Purchases.removeCustomerInfoUpdateListener(readCurrent);
+      Purchases.removeCustomerInfoUpdateListener(listener);
       foreground.remove();
     };
-  }, [getSnapshot]);
-
+  }, []);
   const current =
-    native.evidence?.session.generation === session.generation &&
+    native.evidence?.session.subject === session.subject &&
     native.evidence.session.accountId === session.accountId;
   const refresh = useCallback(() => proSession.refresh(session), [session]);
   const retry = useCallback(() => proSession.retry(session), [session]);
@@ -116,7 +105,6 @@ export function ProProvider({ children }: PropsWithChildren) {
     </ProSessionContext>
   );
 }
-
 /** Reads F09's narrow current-session API; consumers own navigation, ads and provider UI. */
 export function usePro(): ProContext {
   const value = useContext(ProSessionContext);

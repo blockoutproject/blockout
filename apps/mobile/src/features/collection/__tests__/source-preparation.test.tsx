@@ -1,6 +1,7 @@
+import { useLayoutEffect, type PropsWithChildren } from "react";
+import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { QueryClientProvider } from "@tanstack/react-query";
 import {
   cleanup,
   act,
@@ -81,6 +82,8 @@ const account = {
   permissions: { manageCollection: true },
 };
 let client = createQueryClient();
+// Failure presentation is isolated here; native retry defaults have their own Query suite.
+client.setQueryDefaults([], { retry: false });
 let season: CollectionSeasonResponse;
 let source: SourceBindingResponse;
 let sources: SourceBindingResponse[];
@@ -149,6 +152,8 @@ async function reads(url: RequestInfo | URL): Promise<Response> {
 beforeEach(() => {
   mockIsFocused.mockReset().mockReturnValue(true);
   client = createQueryClient();
+  // Failure presentation is isolated here; native retry defaults have their own Query suite.
+  client.setQueryDefaults([], { retry: false });
   permissions = { manageCollection: true };
   season = {
     id: seasonId,
@@ -191,7 +196,9 @@ async function renderPreparation(
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+              <PrivateQueries>
+                <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+              </PrivateQueries>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
@@ -534,91 +541,6 @@ it.each([400, 403, 422])(
   },
 );
 
-it.each(["conflict", "uncertain", "invalid-response"])(
-  "rereads before explicit candidate resubmission after %s",
-  async (outcome) => {
-    // Given
-    await renderPreparation();
-    const user = userEvent.setup();
-    await user.press(
-      await screen.findByRole("button", { name: "Modifier le lien" }),
-    );
-    await user.clear(screen.getByLabelText("URL officielle"));
-    await user.type(screen.getByLabelText("URL officielle"), draftUrl);
-    let writes = 0;
-    mockFetch.mockImplementation(async (url, options) => {
-      if (options?.method === "PUT") {
-        writes++;
-        if (writes === 1) {
-          if (outcome === "uncertain") throw new TypeError("Lost response");
-          return outcome === "conflict" ? refused(409) : json({ revision: 3 });
-        }
-        return json(
-          (source = binding({ revision: 4, candidateUrl: draftUrl })),
-        );
-      }
-      return reads(url);
-    });
-
-    // When
-    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await screen.findByText(
-      "Le résultat doit être vérifié avant une nouvelle action.",
-    );
-    source = binding({ revision: 3 });
-    await user.press(screen.getByRole("button", { name: "Relire l’état" }));
-
-    // Then
-    await screen.findByText(
-      "État relu. Vérifiez votre saisie avant une nouvelle action.",
-    );
-    expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
-    expect(writes).toBe(1);
-
-    // When
-    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-
-    // Then
-    await screen.findByText(
-      "Lien enregistré. La source doit être validée à nouveau.",
-    );
-    const calls = mockFetch.mock.calls.filter(
-      ([, options]) => options?.method === "PUT",
-    );
-    expect(JSON.parse(String(calls[1][1]?.body)).revision).toBe(3);
-  },
-);
-
-it("keeps an uncertain candidate blocked when reread fails", async () => {
-  // Given
-  await renderPreparation();
-  const user = userEvent.setup();
-  await user.press(
-    await screen.findByRole("button", { name: "Modifier le lien" }),
-  );
-  await user.clear(screen.getByLabelText("URL officielle"));
-  await user.type(screen.getByLabelText("URL officielle"), draftUrl);
-  mockFetch.mockImplementation(async (_url, options) =>
-    options?.method === "PUT" ? refused(409) : refused(503),
-  );
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await screen.findByText(
-    "Le résultat doit être vérifié avant une nouvelle action.",
-  );
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Relire l’état" }));
-
-  // Then
-  expect(
-    await screen.findByText(
-      "Une erreur est survenue. Veuillez réessayer plus tard.",
-    ),
-  ).toBeOnTheScreen();
-  expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-});
-
 it("keeps 202 pending distinct from qualification and only rereads on demand", async () => {
   // Given
   const user = userEvent.setup();
@@ -735,125 +657,6 @@ it.each(["locked", "closed"])("keeps %s sources read-only", async (state) => {
   ).not.toBeOnTheScreen();
 });
 
-it.each([409, 422, "lost"])(
-  "preserves the launch selection after %s without replay",
-  async (outcome) => {
-    // Given
-    source = binding({ validation: "qualified" });
-    sources = [
-      source,
-      binding({
-        id: "00000000-0000-4000-8000-000000000182",
-        label: "D1 féminine",
-        locked: true,
-        launched: true,
-      }),
-    ];
-    const user = userEvent.setup();
-    await renderPreparation(
-      <ProviderSourcesScreen seasonId={seasonId} provider="lnv" />,
-    );
-    await screen.findByRole("link", { name: "Préparer D1 masculine" });
-    mockFetch.mockImplementation(async (url, options) => {
-      if (options?.method === "POST") {
-        if (outcome === "lost") throw new TypeError("Lost response");
-        return refused(Number(outcome));
-      }
-      return reads(url);
-    });
-
-    // When
-    await user.press(
-      screen.getByRole("button", { name: "Lancer les sources prêtes" }),
-    );
-    await act(async () => nativeAlertAction("Lancer")());
-
-    // Then
-    await screen.findByText(
-      outcome === 422
-        ? "Une erreur est survenue. Veuillez réessayer plus tard."
-        : "Le résultat doit être vérifié avant une nouvelle action.",
-    );
-    expect(jest.mocked(Alert.alert).mock.lastCall?.[1]).toContain(
-      "D1 masculine",
-    );
-    expect(jest.mocked(Alert.alert).mock.lastCall?.[1]).not.toContain(
-      "D1 féminine",
-    );
-    const writes = mockFetch.mock.calls.filter(
-      ([, options]) => options?.method === "POST",
-    );
-    expect(writes).toHaveLength(1);
-    expect(JSON.parse(String(writes[0][1]?.body))).toEqual({
-      revision: 5,
-      sourceBindingIds: [sourceId],
-    });
-  },
-);
-
-it("rereads a failed launch without discarding selections before a new explicit launch", async () => {
-  // Given
-  source = binding({ validation: "qualified" });
-  sources = [source];
-  const user = userEvent.setup();
-  await renderPreparation(
-    <ProviderSourcesScreen seasonId={seasonId} provider="lnv" />,
-  );
-  await screen.findByRole("link", { name: "Préparer D1 masculine" });
-  let writes = 0;
-  mockFetch.mockImplementation(async (url, options) => {
-    if (options?.method === "POST") {
-      writes++;
-      return writes === 1 ? refused(409) : json({ ...season, revision: 7 });
-    }
-    return reads(url);
-  });
-  await user.press(
-    screen.getByRole("button", { name: "Lancer les sources prêtes" }),
-  );
-  await act(async () => nativeAlertAction("Lancer")());
-  await screen.findByText(
-    "Le résultat doit être vérifié avant une nouvelle action.",
-  );
-  season.revision = 6;
-  sources = [
-    ...sources,
-    binding({
-      id: "00000000-0000-4000-8000-000000000183",
-      label: "D2 masculine",
-      validation: "qualified",
-    }),
-  ];
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Relire l’état" }));
-  await screen.findByText(
-    "État relu. Vérifiez votre saisie avant une nouvelle action.",
-  );
-
-  // Then
-  expect(writes).toBe(1);
-  expect(
-    screen.getByRole("button", { name: "Lancer les sources prêtes" }),
-  ).toBeEnabled();
-
-  // When
-  await user.press(
-    screen.getByRole("button", { name: "Lancer les sources prêtes" }),
-  );
-  await act(async () => nativeAlertAction("Lancer")());
-
-  // Then
-  await screen.findByText("Sources sélectionnées lancées.");
-  const calls = mockFetch.mock.calls.filter(
-    ([, options]) => options?.method === "POST",
-  );
-  expect(JSON.parse(String(calls[1][1]?.body)).revision).toBe(6);
-  expect(JSON.parse(String(calls[1][1]?.body)).sourceBindingIds).toEqual([
-    sourceId,
-  ]);
-});
-
 it("rejects credential-bearing candidate input locally without losing it or sending a write", async () => {
   // Given
   await renderPreparation();
@@ -941,7 +744,7 @@ it("adds only an unqualified candidate for the explicit provider and current sea
   expect(screen.getByLabelText("URL officielle")).toHaveDisplayValue("");
 });
 
-it("keeps a manual draft read-only when the reread establishes terminal season closure", async () => {
+it("keeps a manual draft read-only when ordinary refresh establishes terminal season closure", async () => {
   // Given
   sources = [];
   const user = userEvent.setup();
@@ -966,7 +769,7 @@ it("keeps a manual draft read-only when the reread establishes terminal season c
   season = { ...season, revision: 6, state: "closed" };
 
   // When
-  await user.press(screen.getByRole("button", { name: "Relire l’état" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
   await screen.findByText("Saison clôturée");
@@ -1247,7 +1050,7 @@ it("retains the manual supported-source draft after a duplicate conflict", async
   expect(screen.getByDisplayValue(candidateUrl)).toBeOnTheScreen();
 });
 
-it("blocks a held confirmation after grant revocation while retaining a read-only draft", async () => {
+it("shows a server refusal after grant revocation while retaining a read-only draft", async () => {
   // Given
   source = binding({ validation: "confirmation-required" });
   await renderPreparation(
@@ -1261,6 +1064,9 @@ it("blocks a held confirmation after grant revocation while retaining a read-onl
     await screen.findByRole("button", { name: "Confirmer la saison" }),
   );
   permissions = {};
+  mockFetch.mockImplementation(async (url, options) =>
+    options?.method === "PUT" ? refused(403) : reads(url),
+  );
 
   // When
   await user.press(
@@ -1275,9 +1081,14 @@ it("blocks a held confirmation after grant revocation while retaining a read-onl
   await act(async () => nativeAlertAction("Confirmer la saison")());
 
   // Then
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+    ).toBe(true),
+  );
   expect(
-    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
-  ).toBe(false);
+    screen.getByRole("button", { name: "Confirmer la saison" }),
+  ).toBeDisabled();
 });
 
 it("rejects a source mutation arriving after the original F05 session ended", async () => {
@@ -1650,3 +1461,15 @@ it("keeps refused season navigation hidden through a failed reread until a succe
   ).toBeEnabled();
   expect(screen.queryByText("Une erreur est survenue")).toBeNull();
 });
+
+/** Observes the actual private client installed by the native principal provider. */
+function PrivateQueries({ children }: PropsWithChildren) {
+  const privateClient = useQueryClient();
+  // Configure deterministic failure presentation before child Query observers mount.
+  privateClient.setQueryDefaults([], { retry: false, gcTime: Infinity });
+  privateClient.setMutationDefaults([], { gcTime: Infinity });
+  useLayoutEffect(() => {
+    client = privateClient;
+  }, [privateClient]);
+  return children;
+}

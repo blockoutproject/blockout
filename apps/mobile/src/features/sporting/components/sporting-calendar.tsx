@@ -88,7 +88,7 @@ export function SportingCalendar({
   });
   const calendar = useInfiniteQuery({
     ...options,
-    enabled: (query) => active && query.state.status !== "error",
+    enabled: active,
   });
   return (
     <SportingCalendarView
@@ -156,7 +156,7 @@ export function SportingCalendarView({
     });
     return () => subscription.remove();
   }, []);
-  /** Only successful first-page refresh adopts a new loading zone; ordinary failure retains authorized groups and reports a toast. */
+  /** A zone change selects its native loading/error state; same-zone refresh may retain prior data and reports failure. */
   async function refresh() {
     if (refreshing || !active) return;
     feedback.clear();
