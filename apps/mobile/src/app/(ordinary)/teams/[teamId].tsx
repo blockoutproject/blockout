@@ -8,11 +8,10 @@ export default function TeamRoute() {
   return (
     <TeamScreen
       teamId={teamId}
-      renderFollow={(identity, season, contextColor) => (
+      renderFollow={(identity, season) => (
         <SportingActions
           target={{ type: "team", id: identity.id }}
           season={season}
-          contextColor={contextColor}
         />
       )}
     />

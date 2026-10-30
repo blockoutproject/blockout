@@ -38,11 +38,9 @@ export function FollowerCount({ target }: FollowerCountProps) {
           color={colors.icon}
         />
         {query.isPending ? (
-          <LoadingIndicator color={colors.secondaryText} />
+          <LoadingIndicator color={colors.icon} />
         ) : (
-          <Text
-            style={[tokens.typography.body, { color: colors.secondaryText }]}
-          >
+          <Text style={[tokens.typography.body, { color: colors.icon }]}>
             {count === undefined ? "—" : count.toLocaleString("fr-FR")}
           </Text>
         )}

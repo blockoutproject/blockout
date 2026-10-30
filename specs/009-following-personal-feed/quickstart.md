@@ -82,8 +82,9 @@ writing a personal season selection or adding a success panel. Compare the live
 [followed team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1023-5097)
 and [dark pool](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1755-14354)
 instances with the UI Library's [compact button](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=3386-697):
-36-point pill, 20-point leading Plus/Check, inverse surface/content, contextual border and a
-separate platform touch target. The F03 action region supplies its separator and 12-point inset.
+36-point pill, 20-point leading Plus/Check, inverse surface/content and a separate platform
+touch target. The owner's appearance correction removes the follow-button stroke and gives
+the counter number the same semantic foreground as its group icon in both themes. The F03 action region supplies its separator and 12-point inset.
 The generated boundary remains unchanged; the independent public counter is qualified below.
 
 ```sh

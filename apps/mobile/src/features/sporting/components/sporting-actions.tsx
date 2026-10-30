@@ -19,7 +19,6 @@ import {
 export interface SportingActionsProps {
   target: FollowingTarget;
   season: SportingSeasonResponse;
-  contextColor?: string;
 }
 
 /** F03's separated action region matches the entity profile; the private read stays with F06. */
