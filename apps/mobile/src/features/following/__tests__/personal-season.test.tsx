@@ -162,6 +162,7 @@ function optionReads() {
 }
 
 beforeEach(() => {
+  jest.useFakeTimers();
   client = createQueryClient();
   client.setDefaultOptions({ queries: { retry: false } });
   client.setDefaultOptions({
@@ -181,6 +182,9 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  // Await pending Query batches before restoring the test's real timer environment.
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });

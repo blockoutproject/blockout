@@ -70,6 +70,7 @@ async function transport(url: string, request?: RequestInit) {
   return Response.json({ following });
 }
 beforeEach(() => {
+  jest.useFakeTimers();
   fixture = followingFixture();
   following = false;
   Object.assign(process.env, {
@@ -88,9 +89,11 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   fixture.dispose();
+  // Await pending Query batches before restoring the test's real timer environment.
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
   process.env = { ...environment };
   jest.restoreAllMocks();
-  jest.useRealTimers();
 });
 
 it("reports an uncertain write and permits only a later explicit attempt", async () => {
