@@ -167,7 +167,12 @@ function ClubPage({ clubId }: ClubScreenProps) {
               />
             )
           }
-          collapsibleHeader={<PageContent>{identity}</PageContent>}
+          collapsibleHeader={
+            <PageContent>
+              {identity}
+              {club.isError && <ReadFeedback query={club} />}
+            </PageContent>
+          }
           renderTabBar={(props) => (
             <>
               <PagerTabBar {...props} />

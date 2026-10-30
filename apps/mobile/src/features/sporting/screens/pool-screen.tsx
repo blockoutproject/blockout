@@ -116,7 +116,12 @@ function PoolPage({
               />
             )
           }
-          collapsibleHeader={<PageContent>{identity}</PageContent>}
+          collapsibleHeader={
+            <PageContent>
+              {identity}
+              {pool.isError && <ReadFeedback query={pool} />}
+            </PageContent>
+          }
           tabs={tabs.map(({ id: value, label }) => ({
             id: value,
             label,

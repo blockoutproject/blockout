@@ -33,14 +33,22 @@ import { currentSportingTimeZone } from "../model/sporting-time";
 /** Exact dated public match identity; contextual actions remain with their feature owners. */
 export interface MatchScreenProps {
   matchId: string;
+  /** The route supplies native focus; standalone compositions are focused by default. */
+  focused?: boolean;
 }
 
-/** Presents independent accepted match facts; a missing secondary section never replaces another. */
-export function MatchScreen({ matchId }: MatchScreenProps) {
+/** Presents accepted facts and rereads only this match on route focus and foreground return. */
+export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
   const [teamsTop, setTeamsTop] = useState<number>();
   const [presentation, setPresentation] = useState(() => ({
     timeZone: currentSportingTimeZone(),
   }));
+  const queries = useConsultationQueries();
+  const match = useQuery(queries.match(matchId));
+  const { refetch } = match;
+  useEffect(() => {
+    if (focused) void refetch({ cancelRefetch: false });
+  }, [focused, matchId, refetch]);
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") {
@@ -48,12 +56,11 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
         setPresentation({
           timeZone: currentSportingTimeZone(),
         });
+        if (focused) void refetch({ cancelRefetch: false });
       }
     });
     return () => subscription.remove();
-  }, []);
-  const queries = useConsultationQueries();
-  const match = useQuery(queries.match(matchId));
+  }, [focused, matchId, refetch]);
   const data = match.data;
   const contribution = useMatchContributionAction(
     matchId,
@@ -122,6 +129,7 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
               <ScreenState>{blockingState}</ScreenState>
             ) : (
               <PageContent>
+                {match.isError && <ReadFeedback query={match} />}
                 {data && (
                   <>
                     <MatchSummary

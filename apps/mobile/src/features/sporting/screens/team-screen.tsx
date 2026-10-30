@@ -121,7 +121,12 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
               />
             )
           }
-          collapsibleHeader={<PageContent>{identity}</PageContent>}
+          collapsibleHeader={
+            <PageContent>
+              {identity}
+              {team.isError && <ReadFeedback query={team} />}
+            </PageContent>
+          }
           tabs={tabs.map((item) => {
             const participation = data?.participations.find(
               (pool) => pool.pool.id === item.id,
