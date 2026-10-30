@@ -34,16 +34,13 @@ import { PageHeader } from "../../../shared/components/page-header";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { SearchField } from "../../../shared/components/search-field";
-import { Surface } from "../../../shared/components/surface";
 import { EmptyState } from "../../../shared/components/state-card";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
-import {
-  SportingLogo,
-  formatSportingSchedule,
-} from "../../sporting/match-consultation";
+import { ModerationMatchContext } from "../components/moderation-match-context";
 import { useModerationQueue, type ModerationFilters } from "../api/moderation";
+import { ModerationQueueLoading } from "../components/moderation-loading";
 
 const queueTabs = [
   { id: "to-review", label: "À traiter" },
@@ -263,6 +260,17 @@ function QueueScene({
       onRefresh={() => void refresh()}
     />
   ) : undefined;
+  if (
+    !current &&
+    (editing.profile.isPending || (editing.allowed && query.isPending))
+  )
+    return (
+      <PagedStateScrollView>
+        <View style={[pageContentStyle, styles.list]}>
+          <ModerationQueueLoading />
+        </View>
+      </PagedStateScrollView>
+    );
   if (rows.length === 0)
     return (
       <PagedStateScrollView refreshControl={refreshControl}>
@@ -325,10 +333,6 @@ function QueueScene({
 function ModerationQueueRow({ item }: { item: StreamModerationItemResponse }) {
   const { colors } = useTheme();
   const match = item.match;
-  const schedule = match.schedule
-    ? formatSportingSchedule(match.schedule)
-    : undefined;
-  const division = match.pool.classification.division;
   return (
     <Link
       href={{
@@ -341,43 +345,7 @@ function ModerationQueueRow({ item }: { item: StreamModerationItemResponse }) {
         accessibilityRole="link"
         accessibilityLabel={`${match.home.name} – ${match.away.name}`}
       >
-        <Surface>
-          <View style={styles.context}>
-            {division && (
-              <SportingLogo kind="division" identity={division} size={20} />
-            )}
-            <Text
-              style={[
-                tokens.typography.metadata,
-                { color: colors.secondaryText, flex: 1 },
-              ]}
-            >
-              {match.pool.pool.name}
-            </Text>
-            <Text
-              style={[
-                tokens.typography.metadata,
-                { color: colors.secondaryText },
-              ]}
-            >
-              {schedule
-                ? `${schedule.date} ${schedule.time}`
-                : "Date indisponible"}
-            </Text>
-          </View>
-          {[match.home, match.away].map((team) => (
-            <View key={team.id} style={styles.context}>
-              <SportingLogo kind="team" identity={team} size={24} />
-              <Text
-                style={[
-                  tokens.typography.strong,
-                  { color: colors.text, flex: 1 },
-                ]}
-              >
-                {team.name}
-              </Text>
-            </View>
-          ))}
+        <ModerationMatchContext match={match} showMatchLink={false}>
           <View style={[styles.badges, { borderColor: colors.border }]}>
             {[
               [item.counts.active, "actif"],
@@ -403,7 +371,7 @@ function ModerationQueueRow({ item }: { item: StreamModerationItemResponse }) {
                 </Text>
               ))}
           </View>
-        </Surface>
+        </ModerationMatchContext>
       </Pressable>
     </Link>
   );
@@ -435,12 +403,6 @@ const styles = StyleSheet.create({
     borderWidth: tokens.spacing.optical,
   },
   searchInput: { flex: 1 },
-  context: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-    flexWrap: "wrap",
-  },
   badges: {
     borderTopWidth: tokens.border.thin,
     paddingTop: tokens.spacing.sm,

@@ -7,6 +7,7 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useModerationVersion } from "../api/moderation";
 import { ContributionHistory } from "./contribution-history";
+import { ModerationVersionLoading } from "./moderation-loading";
 
 /** A human-labelled lineage link retains its exact match/member identity even outside loaded pages. */
 export interface ModerationVersionSheetProps {
@@ -47,6 +48,9 @@ export function ModerationVersionSheet({
             contribution={current}
             busy={false}
           />
+        ) : reading.profile.isPending ||
+          (reading.allowed && reading.query.isPending) ? (
+          <ModerationVersionLoading />
         ) : !reading.canRetain && reading.profile.isSuccess ? (
           <Text style={[tokens.typography.body, { color: colors.text }]}>
             La modération des liens vidéo n’est pas autorisée.

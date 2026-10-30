@@ -41,6 +41,7 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useModerationMatch, useModerationVersions } from "../api/moderation";
 import { ContributionHistory } from "../components/contribution-history";
 import { ModerationMatchContext } from "../components/moderation-match-context";
+import { ModerationMatchLoading } from "../components/moderation-loading";
 import {
   ModerationPublicationForm,
   type ModerationPublicationFormHandle,
@@ -241,6 +242,17 @@ function ActiveScene({
       setRefreshing(false);
     }
   }
+  if (
+    !current &&
+    (editing.profile.isPending || (editing.allowed && editing.query.isPending))
+  )
+    return (
+      <PagedStateScrollView>
+        <View style={[pageContentStyle, styles.list]}>
+          <ModerationMatchLoading editor />
+        </View>
+      </PagedStateScrollView>
+    );
   if (!current)
     return (
       <PagedStateScrollView>
@@ -415,17 +427,34 @@ function VersionScene({
     )
       feedback.error();
   }
+  if (
+    !current &&
+    (reading.profile.isPending || (reading.allowed && query.isPending))
+  )
+    return (
+      <PagedStateScrollView>
+        <View style={[pageContentStyle, styles.list]}>
+          <ModerationMatchLoading />
+        </View>
+      </PagedStateScrollView>
+    );
   if (!current)
     return (
       <PagedStateScrollView>
         <ScreenState>
-          <ReadFeedback
-            query={
-              reading.profile.isError || reading.profile.isPending
-                ? reading.profile
-                : query
-            }
-          />
+          {!reading.canRetain && reading.profile.isSuccess ? (
+            <Text style={[tokens.typography.body, { color: colors.text }]}>
+              La modération des liens vidéo n’est pas autorisée.
+            </Text>
+          ) : (
+            <ReadFeedback
+              query={
+                reading.profile.isError || reading.profile.isPending
+                  ? reading.profile
+                  : query
+              }
+            />
+          )}
         </ScreenState>
       </PagedStateScrollView>
     );

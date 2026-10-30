@@ -1399,3 +1399,91 @@ it("reads the exact off-page source and its reports in the read-only related-ver
     ),
   ).toBe(true);
 });
+
+it.each([
+  "queue",
+  "active",
+  "pending",
+  "filters",
+  "version",
+  "reports",
+] as const)(
+  "shows a content skeleton rather than loading text for the initial %s read",
+  async (kind) => {
+    // Given: only HTTP completion is held; the real providers, Query and screen rendering stay in place.
+    const ordinary = mockFetch.getMockImplementation()!;
+    let finish!: (response: Response) => void;
+    let response: Response | undefined;
+    const held = new Promise<Response>((resolve) => {
+      finish = resolve;
+    });
+    let requested = false;
+    mockFetch.mockImplementation(async (url, init) => {
+      const address = new URL(String(url));
+      const target =
+        kind === "queue" || kind === "filters"
+          ? address.pathname.endsWith("/stream-moderation")
+          : kind === "reports"
+            ? address.pathname.endsWith("/reports")
+            : kind === "version"
+              ? address.pathname.endsWith(`/stream-contributions/${versionId}`)
+              : address.pathname.endsWith("/stream-contributions") &&
+                address.searchParams.get("state") === kind;
+      if (!target) return ordinary(url, init);
+      requested = true;
+      response =
+        kind === "version"
+          ? Response.json({ revision: "viewed:1", contribution: version() })
+          : await ordinary(url, init);
+      return held;
+    });
+    const label =
+      kind === "queue"
+        ? "Chargement de la file de modération"
+        : kind === "filters"
+          ? "Chargement des filtres des liens"
+          : kind === "version"
+            ? "Chargement de la version du lien"
+            : kind === "reports"
+              ? "Chargement des signalements"
+              : "Chargement des liens du match";
+    try {
+      // When
+      await mount(
+        kind === "queue" ? (
+          <ModerationScreen filters={{}} />
+        ) : kind === "filters" ? (
+          <ModerationFilters initial={{}} />
+        ) : kind === "version" ? (
+          <ModerationVersionSheet matchId={sporting.id} versionId={versionId} />
+        ) : (
+          <ModerationMatchScreen matchId={sporting.id} />
+        ),
+      );
+      const user = userEvent.setup();
+      if (kind === "pending")
+        await user.press(
+          await screen.findByRole("tab", { name: "Propositions (1)" }),
+        );
+      if (kind === "reports")
+        await user.press(
+          await screen.findByRole("button", { name: "Signalements (0)" }),
+        );
+      await waitFor(() => expect(requested).toBe(true));
+
+      // Then: the single accessible pending announcement surrounds decorative, noninteractive shapes.
+      expect(
+        await screen.findByRole("progressbar", { name: label }),
+      ).toBeBusy();
+      expect(screen.queryByText("Chargement en cours")).toBeNull();
+      expect(writes).toHaveLength(0);
+    } finally {
+      await act(async () => {
+        finish(response!);
+      });
+    }
+    await waitFor(() =>
+      expect(screen.queryByRole("progressbar", { name: label })).toBeNull(),
+    );
+  },
+);

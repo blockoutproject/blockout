@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ArrowUpRight } from "lucide-react-native";
 import { Link } from "expo-router";
+import type { ReactNode } from "react";
 import type { StreamModerationMatchResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -14,9 +15,16 @@ import {
 /** Retained private context preserves unknown date and independent public viewability. */
 export interface ModerationMatchContextProps {
   match: StreamModerationMatchResponse;
+  /** Queue cards already open their private detail through one enclosing link. */
+  showMatchLink?: boolean;
+  children?: ReactNode;
 }
 /** Uses F03 sporting identities/paint without constructing its public dated-match wrapper. */
-export function ModerationMatchContext({ match }: ModerationMatchContextProps) {
+export function ModerationMatchContext({
+  match,
+  showMatchLink = true,
+  children,
+}: ModerationMatchContextProps) {
   const { colors, context } = useTheme();
   const division = match.pool.classification.division;
   const schedule = match.schedule
@@ -44,7 +52,7 @@ export function ModerationMatchContext({ match }: ModerationMatchContextProps) {
         >
           {match.pool.pool.name}
         </Text>
-        {match.publiclyViewable && (
+        {showMatchLink && match.publiclyViewable && (
           <Link
             href={{
               pathname: "/matches/[matchId]",
@@ -102,6 +110,7 @@ export function ModerationMatchContext({ match }: ModerationMatchContextProps) {
             Match non consultable publiquement
           </Text>
         )}
+        {children}
       </View>
     </MatchSurface>
   );

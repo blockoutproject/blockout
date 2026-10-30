@@ -269,7 +269,7 @@ require collection-management permission.
 complete grant, ordinary admission, no-store/Accept-Patch, the new-member reactivation Location,
 useful decision lineage and required null erased reasons without reporter identity.
 `moderation.test.tsx` uses real screens, RHF, generated transport, private Query/session/admission
-owners and controlled HTTP/native I/O for exact confirmations, cancellation, literal filtered
+owners and controlled HTTP/native I/O for content-shaped initial skeletons, exact confirmations, cancellation, literal filtered
 pagination/first-page refresh, failed versus empty queues, private hidden context, historical reports,
 retained drafts/editing revision across tab changes, acknowledged success despite a later read failure,
 visible continuation failures with retained pages, refusal cancellation of concurrent reads, and no polling.

@@ -21,6 +21,7 @@ import {
   moderationTime,
 } from "../model/moderation-presentation";
 import { ContributionStateBadge } from "./contribution-state-badge";
+import { ModerationReportsLoading } from "./moderation-loading";
 
 /** One exact version; command owners supply original actor/revision confirmation, while linked-version sheets stay read-only. */
 export interface ContributionHistoryProps {
@@ -221,7 +222,11 @@ export function ContributionHistory({
             {reportsOpen && (
               <View style={styles.reportContent}>
                 {!reportContent ? (
-                  <ReadFeedback query={reports} />
+                  reports.isPending ? (
+                    <ModerationReportsLoading />
+                  ) : (
+                    <ReadFeedback query={reports} />
+                  )
                 ) : (
                   <>
                     {reportContent.items.length === 0 && (

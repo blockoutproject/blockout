@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useRouter } from "expo-router";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import {
   StreamModerationFilterEnum,
   StreamPlatformEnum,
@@ -12,7 +12,9 @@ import { SelectionRow } from "../../../shared/components/selection-row";
 import { EntryGroup } from "../../../shared/components/entry-group";
 import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { ModerationFiltersLoading } from "./moderation-loading";
 import { tokens } from "../../../shared/theme/tokens";
+import { useTheme } from "../../../shared/theme/theme-provider";
 import {
   useModerationQueue,
   type ModerationFilters as Filters,
@@ -29,6 +31,7 @@ export interface ModerationFiltersProps {
 /** Selects canonical private seasons, platform and exact state with existing F13 controls. */
 export function ModerationFilters({ initial }: ModerationFiltersProps) {
   const router = useRouter();
+  const { colors } = useTheme();
   const reading = useModerationQueue({ state: "all" });
   const seasons = reading.query.data?.pages[0]?.seasons ?? [];
   const { control, setValue, reset, handleSubmit, getValues } =
@@ -101,10 +104,19 @@ export function ModerationFilters({ initial }: ModerationFiltersProps) {
       onClose={() => (choice ? setChoice(undefined) : router.back())}
     >
       <SheetContent>
-        {!reading.allowed || !reading.query.data ? (
-          <ReadFeedback
-            query={!reading.allowed ? reading.profile : reading.query}
-          />
+        {!reading.canRetain && reading.profile.isSuccess ? (
+          <Text style={[tokens.typography.body, { color: colors.text }]}>
+            La modération des liens vidéo n’est pas autorisée.
+          </Text>
+        ) : !reading.allowed || !reading.query.data ? (
+          reading.profile.isPending ||
+          (reading.allowed && reading.query.isPending) ? (
+            <ModerationFiltersLoading />
+          ) : (
+            <ReadFeedback
+              query={!reading.allowed ? reading.profile : reading.query}
+            />
+          )
         ) : choice ? (
           <EntryGroup>
             {options.map((option) => (
