@@ -20,6 +20,7 @@ export function useContributionEntry(
   matchId: string,
   available = true,
   publicContributionId?: string,
+  publicContributionUrl?: string,
 ) {
   const router = useRouter();
   const { session, query, usable, profile } = useOwnContributionsRead(
@@ -72,7 +73,11 @@ export function useContributionEntry(
       else if (publicContributionId)
         router.push({
           pathname: "/matches/[matchId]/report-contribution",
-          params: { matchId, contributionId: publicContributionId },
+          params: {
+            matchId,
+            contributionId: publicContributionId,
+            contributionUrl: publicContributionUrl,
+          },
         });
     },
     refreshing: query.isRefetching || profile.isRefetching,

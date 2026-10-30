@@ -59,6 +59,7 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
     matchId,
     !!data,
     data?.streamUrl ? data.streamContributionId : undefined,
+    data?.streamUrl,
   );
   const feedback = useActionFeedback();
   /** A failed explicit refresh keeps authorized content and reports only the attempted read. */

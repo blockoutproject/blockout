@@ -34,6 +34,8 @@ import { reportEditor } from "../forms/report-editor";
 export interface ReportContributionScreenProps {
   matchId: string;
   contributionId: string;
+  /** The public address viewed beside this version; display only, never sent to the report API. */
+  contributionUrl?: string;
 }
 const reasonSchema = z.object({
   reason: z.string().trim().min(1, "Indiquez le motif du signalement."),
@@ -43,6 +45,7 @@ const reasonSchema = z.object({
 export function ReportContributionScreen({
   matchId,
   contributionId,
+  contributionUrl,
 }: ReportContributionScreenProps) {
   const reporting = useContributionReport(matchId, contributionId);
   const match = useQuery(useConsultationQueries().match(matchId));
@@ -90,6 +93,7 @@ export function ReportContributionScreen({
                   key={`${reporting.session.generation}:${contributionId}`}
                   matchId={matchId}
                   contributionId={contributionId}
+                  contributionUrl={contributionUrl}
                   reporting={reporting}
                   match={match}
                 />
@@ -106,6 +110,7 @@ export function ReportContributionScreen({
 function ReportForm({
   matchId,
   contributionId,
+  contributionUrl,
   reporting,
   match,
 }: ReportContributionScreenProps & {
@@ -136,9 +141,10 @@ function ReportForm({
     editor.release();
   });
   const targetUrl =
-    match.data?.streamContributionId === contributionId
+    contributionUrl ??
+    (match.data?.streamContributionId === contributionId
       ? match.data.streamUrl
-      : undefined;
+      : undefined);
   const reported = query.data?.reported === true;
   const busy = command.pending;
 

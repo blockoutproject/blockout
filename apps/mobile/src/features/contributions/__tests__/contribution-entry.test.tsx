@@ -766,6 +766,7 @@ it("routes the viewed contributed version to reporting independently of support"
     params: {
       matchId: detail.match.id,
       contributionId: detail.streamContributionId,
+      contributionUrl: detail.streamUrl,
     },
   });
 });

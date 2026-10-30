@@ -140,6 +140,7 @@ async function mount() {
               <ReportContributionScreen
                 matchId={detail.match.id}
                 contributionId={versionId}
+                contributionUrl={original.streamUrl}
               />
               <SessionExit />
             </AccountFeedbackProvider>
@@ -459,4 +460,31 @@ it("uses ordinary error feedback for an invalid acknowledgement without automati
     screen.getByRole("button", { name: "Envoyer le signalement" }),
   ).toBeEnabled();
   expect(posts).toHaveLength(1);
+});
+
+it("keeps the viewed address when current public context already contains a replacement", async () => {
+  // Given
+  detail = {
+    ...original,
+    streamUrl: "https://youtu.be/replacement",
+    streamContributionId: "00000000-0000-4000-8000-000000000098",
+  };
+  responseStatus = 409;
+  const user = userEvent.setup();
+  await mount();
+  await user.type(
+    await screen.findByLabelText("Motif du signalement"),
+    "Lien vu",
+  );
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Envoyer le signalement" }),
+  );
+
+  // Then
+  expect(screen.getByText(original.streamUrl)).toBeOnTheScreen();
+  expect(screen.queryByText(detail.streamUrl)).not.toBeOnTheScreen();
+  expect(posts).toHaveLength(1);
+  expect(posts[0].url).toContain(versionId);
 });
