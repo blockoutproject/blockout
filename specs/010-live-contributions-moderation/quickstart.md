@@ -232,7 +232,7 @@ of derivative-read failure; old session/departure callbacks cannot publish a suc
 The owner’s 2026-10-30 simplification is recorded in the existing [report composition](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5534-59410),
 whose visible form already contained only the required reason and Send/Cancel actions. Its private
 composition descriptions now explicitly exclude report refresh/recovery controls. The matching
-[prototype revision](https://github.com/blockoutproject/product-prototype/commit/bf53c53a11870bf52f5f17043c2c14fafadb8173)
+[prototype revision](https://github.com/blockoutproject/product-prototype/commit/7701eea52ed18b32a61e6105985046edaa168cf3)
 uses ordinary errors after report response loss and preserves its exact target/first recorded reason
 on a later explicit retry. These prototype/design checks do not qualify native or provider behavior.
 
