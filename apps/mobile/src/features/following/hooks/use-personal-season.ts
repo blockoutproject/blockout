@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
 import type { FollowingOwner } from "../api/following-keys";
 import {
@@ -60,6 +60,7 @@ export function usePersonalSeason(
     selectedSeason: string | undefined,
     signal: AbortSignal,
     operation: () => Promise<T>,
+    currentKey?: QueryKey,
   ) {
     return readPersonalSelection(
       {
@@ -67,6 +68,8 @@ export function usePersonalSeason(
         owner,
         seasonId: selectedSeason,
         signal,
+        currentKey,
+        bypass,
         options: queryOptions,
         isCurrent: () => current.current === selectedSeason,
         selectSeason,

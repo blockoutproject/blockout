@@ -19,6 +19,7 @@ import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.following.application.FollowState;
+import com.blockout.backend.following.application.ReadFollowLists;
 import com.blockout.backend.following.application.ReadFollowOptions;
 import com.blockout.backend.following.application.ReadFollowOptions.Options;
 import com.blockout.backend.following.application.ReadPersonalCalendar;
@@ -69,6 +70,7 @@ class FollowOptionsWebMvcTest {
   @MockitoBean private FollowState state;
   @MockitoBean private ReadFollowOptions options;
   @MockitoBean private ReadPersonalCalendar calendars;
+  @MockitoBean private ReadFollowLists lists;
   @MockitoBean private AccountAccess accounts;
   @MockitoBean private AccessSettingsStore settings;
   @MockitoBean private PermissionStore permissions;

@@ -4,6 +4,7 @@ import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
 import com.blockout.backend.sporting.application.SportingSeasonSelection;
 import com.blockout.backend.sporting.application.SportingSeasonSelection.Season;
+import com.blockout.backend.sporting.application.SportingTargetSelection;
 import com.blockout.backend.sporting.application.model.SportingPublicInput;
 import com.blockout.backend.sporting.application.model.SportingPublicInput.Alias;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
@@ -36,7 +37,8 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 @RequiredArgsConstructor
-public class JpaSportingReadStore implements SportingReadStore, SportingSeasonSelection {
+public class JpaSportingReadStore
+    implements SportingReadStore, SportingSeasonSelection, SportingTargetSelection {
   private final ClubRepository clubs;
   private final PoolRepository pools;
   private final TeamRepository teams;
@@ -129,6 +131,31 @@ public class JpaSportingReadStore implements SportingReadStore, SportingSeasonSe
             builder.equal(team.get("season"), season),
             SportingVisibilityPredicates.team(teams, team, builder));
     return new Season(season.get("id"), season.get("startYear"), season.get("label"), pools, teams);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Target select(Kind kind, CriteriaQuery<?> query, CriteriaBuilder builder) {
+    return switch (kind) {
+      case TEAM -> {
+        Root<TeamEntity> team = query.from(TeamEntity.class);
+        yield new Target(
+            team.get("id"),
+            builder.coalesce(team.get("manualName"), team.get("sourceName")),
+            team.get("season").get("id"),
+            SportingVisibilityPredicates.team(query, team, builder));
+      }
+      case POOL -> {
+        Root<PoolEntity> pool = query.from(PoolEntity.class);
+        yield new Target(
+            pool.get("id"),
+            builder.coalesce(pool.get("manualName"), pool.get("sourceName")),
+            pool.get("season").get("id"),
+            SportingVisibilityPredicates.pool(pool, builder));
+      }
+      default ->
+          throw new IllegalArgumentException("Sporting target selection requires a team or pool");
+    };
   }
 
   /** {@inheritDoc} */

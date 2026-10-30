@@ -1,8 +1,11 @@
 import type {
   ListPersonalMatchesParams,
   PersonalMatchCalendarResponse,
+  ListTeamFollows200,
+  ListPoolFollows200,
 } from "../../../../.generated/schemas/index.zod";
 import { filterCalendarMatches } from "../../sporting/calendar-data";
+import { withdrawUnavailableFollowLists } from "../lists";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import {
   hashKey,
@@ -16,14 +19,86 @@ import {
 import {
   getFollowOptions,
   listPersonalMatches,
+  listTeamFollows,
+  listPoolFollows,
 } from "../../../../.generated/mobile";
 import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
 import {
   personalCalendarKey,
   personalCalendarCollectionKey,
   followOptionsKey,
+  followListKey,
+  type FollowingTarget,
   type FollowingOwner,
 } from "./following-keys";
+
+/** Canonical F03 summaries remain inside their generated F06 collection envelopes. */
+export type FollowListPage = ListTeamFollows200 | ListPoolFollows200;
+
+/** Retains each private type/season traversal, with pageParam owning its bounded continuation. */
+export function createFollowListOptions(
+  owner: FollowingOwner,
+  request: (signal?: AbortSignal) => Promise<ApiFetchOptions>,
+  type: FollowingTarget["type"],
+  seasonId: string | undefined,
+  read: PersonalCalendarRead,
+  bypass = false,
+) {
+  const selection = seasonId ? { seasonId } : {};
+  const queryKey = followListKey(owner, type, selection, bypass);
+  return infiniteQueryOptions({
+    queryKey,
+    initialPageParam: 0,
+    queryFn: async ({ signal, pageParam, client }): Promise<FollowListPage> => {
+      try {
+        return await read(
+          seasonId,
+          signal,
+          async () => {
+            const options = await request(signal);
+            const result = await (
+              type === "team" ? listTeamFollows : listPoolFollows
+            )(owner.accountId, { ...selection, page: pageParam }, options);
+            if (
+              signal.aborted ||
+              options.signal?.aborted ||
+              !owner.isCurrent(owner.generation)
+            )
+              throw new ApiError("cancelled");
+            return result;
+          },
+          queryKey,
+        );
+      } catch (error) {
+        if (
+          !signal.aborted &&
+          owner.isCurrent(owner.generation) &&
+          error instanceof Error &&
+          (isAccessDenied(error) ||
+            (error instanceof ApiError && error.status === 404))
+        ) {
+          await withdrawRefusedPersonalCollections(
+            client,
+            owner,
+            bypass,
+            isAccessDenied(error) ? undefined : seasonId,
+            queryKey,
+            error,
+          );
+        }
+        throw error;
+      }
+    },
+    getNextPageParam: (last) => last.nextPage,
+    staleTime: Infinity,
+    refetchOnMount: false,
+    retryOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false,
+    networkMode: "always",
+  });
+}
 
 /** One validated options cache for the original session; failure never means no seasons. */
 export function createFollowOptionsQueryOptions(
@@ -49,12 +124,14 @@ export function createFollowOptionsQueryOptions(
   });
 }
 
-/** Captured selection boundary used by seasonal list/calendar reads; it owns no list cache or retries. */
+/** Captured selection boundary reconciles established seasonal absence without adding retries. */
 export interface PersonalSelectionRead {
   client: QueryClient;
   owner: FollowingOwner;
   seasonId: string | undefined;
   signal: AbortSignal;
+  currentKey?: QueryKey;
+  bypass?: boolean;
   options: ReturnType<typeof createFollowOptionsQueryOptions>;
   isCurrent: () => boolean;
   selectSeason: (seasonId: string | undefined) => void;
@@ -62,7 +139,7 @@ export interface PersonalSelectionRead {
 
 /**
  * Reads once, then on seasonal NotFound rereads options once through bounded transport.
- * Successful omission selects the ordinary default; the new query key loads that context.
+ * Successful omission withdraws that season from retained views before selecting the ordinary default.
  * A still-offered season or failed reread preserves the original read error for explicit retry.
  * Obsolete session/selection completions never update the current choice or successful data.
  */
@@ -99,6 +176,14 @@ export async function readPersonalSelection<T>(
       });
       assertCurrent();
       if (!options.seasons.some((season) => season.id === context.seasonId)) {
+        await withdrawUnavailableFollows(
+          context.client,
+          context.owner,
+          context.bypass ?? false,
+          context.seasonId,
+          context.currentKey,
+        );
+        assertCurrent();
         context.selectSeason(options.defaultSeasonId);
         throw new ApiError("cancelled");
       }
@@ -129,24 +214,29 @@ export function createPersonalCalendarOptions(
     initialPageParam: undefined as string | undefined,
     queryFn: async ({ signal, pageParam, client }) => {
       try {
-        const result = await read(selection.seasonId, signal, async () => {
-          const options = await request(signal);
-          const result = await listPersonalMatches(
-            owner.accountId,
-            {
-              ...selection,
-              ...(pageParam ? { nextDay: pageParam } : {}),
-            },
-            options,
-          );
-          if (
-            signal.aborted ||
-            options.signal?.aborted ||
-            !owner.isCurrent(owner.generation)
-          )
-            throw new ApiError("cancelled");
-          return result;
-        });
+        const result = await read(
+          selection.seasonId,
+          signal,
+          async () => {
+            const options = await request(signal);
+            const result = await listPersonalMatches(
+              owner.accountId,
+              {
+                ...selection,
+                ...(pageParam ? { nextDay: pageParam } : {}),
+              },
+              options,
+            );
+            if (
+              signal.aborted ||
+              options.signal?.aborted ||
+              !owner.isCurrent(owner.generation)
+            )
+              throw new ApiError("cancelled");
+            return result;
+          },
+          queryKey,
+        );
         if (!result.hasAvailableFollows)
           await withdrawUnavailableFollows(
             client,
@@ -165,25 +255,14 @@ export function createPersonalCalendarOptions(
           (isAccessDenied(error) ||
             (error instanceof ApiError && error.status === 404))
         ) {
-          const scope = [
-            ...queryKey.slice(0, -1),
-            ...(isAccessDenied(error) || selection.seasonId === undefined
-              ? []
-              : [{ seasonId: selection.seasonId }]),
-          ];
-          await client.cancelQueries({
-            queryKey: scope,
-            predicate: (query) => query.queryHash !== hashKey(queryKey),
-          });
-          for (const query of client
-            .getQueryCache()
-            .findAll({ queryKey: scope }))
-            query.setState({
-              data: undefined,
-              dataUpdatedAt: 0,
-              error,
-              status: "error",
-            });
+          await withdrawRefusedPersonalCollections(
+            client,
+            owner,
+            bypass,
+            isAccessDenied(error) ? undefined : selection.seasonId,
+            queryKey,
+            error,
+          );
         }
         throw error;
       }
@@ -200,6 +279,35 @@ export function createPersonalCalendarOptions(
   });
 }
 
+/** Withdraws refused personal data across both lists and calendars in the same admission context. */
+async function withdrawRefusedPersonalCollections(
+  client: QueryClient,
+  owner: FollowingOwner,
+  bypass: boolean,
+  seasonId: string | undefined,
+  currentKey: QueryKey,
+  error: Error,
+) {
+  for (const collection of [
+    followListKey(owner, "team", {}, bypass).slice(0, -1),
+    followListKey(owner, "pool", {}, bypass).slice(0, -1),
+    personalCalendarCollectionKey(owner, bypass),
+  ]) {
+    const queryKey = [...collection, ...(seasonId ? [{ seasonId }] : [])];
+    await client.cancelQueries({
+      queryKey,
+      predicate: (query) => query.queryHash !== hashKey(currentKey),
+    });
+    for (const query of client.getQueryCache().findAll({ queryKey }))
+      query.setState({
+        data: undefined,
+        dataUpdatedAt: 0,
+        error,
+        status: "error",
+      });
+  }
+}
+
 /**
  * Applies successful category-independent absence to overlapping retained selections. A seasonal
  * absence removes only that season from All seasons; an All-seasons absence withdraws every
@@ -210,22 +318,33 @@ async function withdrawUnavailableFollows(
   owner: FollowingOwner,
   bypass: boolean,
   seasonId: string | undefined,
-  currentKey: QueryKey,
+  currentKey?: QueryKey,
 ) {
+  await withdrawUnavailableFollowLists(
+    client,
+    owner,
+    bypass,
+    seasonId,
+    currentKey,
+  );
   const queryKey = personalCalendarCollectionKey(owner, bypass);
   /** Uses the canonical generated trailing selection to identify overlapping seasonal views. */
   function selectedSeason(key: QueryKey) {
     return (key.at(-1) as Omit<ListPersonalMatchesParams, "nextDay">).seasonId;
   }
-  const filters: QueryFilters = {
+  const filters = {
     queryKey,
     predicate: (query) =>
-      query.queryHash !== hashKey(currentKey) &&
-      (seasonId === undefined ||
-        selectedSeason(query.queryKey) === undefined ||
-        selectedSeason(query.queryKey) === seasonId),
-  };
-  await client.cancelQueries(filters, { revert: false });
+      seasonId === undefined ||
+      selectedSeason(query.queryKey) === undefined ||
+      selectedSeason(query.queryKey) === seasonId,
+  } satisfies QueryFilters;
+  await client.cancelQueries({
+    ...filters,
+    predicate: (query) =>
+      filters.predicate(query) &&
+      (currentKey === undefined || query.queryHash !== hashKey(currentKey)),
+  });
   for (const query of client.getQueryCache().findAll(filters)) {
     const data = client.getQueryData<
       InfiniteData<PersonalMatchCalendarResponse>
@@ -263,4 +382,5 @@ export type PersonalCalendarRead = <T>(
   seasonId: string | undefined,
   signal: AbortSignal,
   operation: () => Promise<T>,
+  currentKey?: QueryKey,
 ) => Promise<T>;

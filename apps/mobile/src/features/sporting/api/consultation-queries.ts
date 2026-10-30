@@ -46,6 +46,7 @@ import {
   removeUnavailablePersonalCalendarMatch,
   removeUnavailablePersonalCalendarPool,
 } from "../../following/calendar";
+import { removeUnavailableFollowTarget } from "../../following/lists";
 import {
   discardCalendarSelection,
   removeUnavailableCalendarMatch,
@@ -122,6 +123,14 @@ export function createConsultationQueries(
     context: QueryFunctionContext,
     teamId: string,
   ) {
+    const owner = captureFollowingOwner(session);
+    if (owner)
+      await removeUnavailableFollowTarget(
+        context.client,
+        owner,
+        Boolean(intent),
+        { type: "team", id: teamId },
+      );
     const filters = {
       queryKey: key([]),
       predicate: (query: Query) =>
@@ -197,13 +206,20 @@ export function createConsultationQueries(
       poolId,
     );
     const owner = captureFollowingOwner(session);
-    if (owner)
+    if (owner) {
+      await removeUnavailableFollowTarget(
+        context.client,
+        owner,
+        Boolean(intent),
+        { type: "pool", id: poolId },
+      );
       await removeUnavailablePersonalCalendarPool(
         context.client,
         owner,
         Boolean(intent),
         poolId,
       );
+    }
   }
 
   /** Prepares fresh F12 options after credentials, preserving current refusal cleanup. */

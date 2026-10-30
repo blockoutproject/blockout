@@ -28,6 +28,7 @@ import com.blockout.backend.following.application.FollowContext.Target;
 import com.blockout.backend.following.application.FollowContext.TargetType;
 import com.blockout.backend.following.application.FollowState;
 import com.blockout.backend.following.application.FollowUnavailableTargetException;
+import com.blockout.backend.following.application.ReadFollowLists;
 import com.blockout.backend.following.application.ReadFollowOptions;
 import com.blockout.backend.following.application.ReadPersonalCalendar;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
@@ -76,6 +77,7 @@ class FollowStateWebMvcTest {
   @MockitoBean private FollowState state;
   @MockitoBean private ReadFollowOptions options;
   @MockitoBean private ReadPersonalCalendar calendars;
+  @MockitoBean private ReadFollowLists lists;
   @MockitoBean private FollowingApiMapper mapper;
   @MockitoBean private AccountAccess accounts;
   @MockitoBean private AccessSettingsStore settings;

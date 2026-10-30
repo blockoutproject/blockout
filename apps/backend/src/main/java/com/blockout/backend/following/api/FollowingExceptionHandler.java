@@ -1,5 +1,6 @@
 package com.blockout.backend.following.api;
 
+import com.blockout.backend.following.application.FollowPageOutOfRangeException;
 import com.blockout.backend.following.application.FollowUnavailableTargetException;
 import com.blockout.backend.shared.http.HttpProblems;
 import org.springframework.core.annotation.Order;
@@ -12,6 +13,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 @Order(0)
 public class FollowingExceptionHandler {
+  /** Rejects an unsupported page or continuation without presenting a false exhaustion. */
+  @ExceptionHandler(FollowPageOutOfRangeException.class)
+  ResponseEntity<Object> invalidPage() {
+    return HttpProblems.response(HttpStatus.BAD_REQUEST, "urn:blockout:problem:invalid-request");
+  }
+
   /** Hides unavailable sporting targets without exposing their identity. */
   @ExceptionHandler(FollowUnavailableTargetException.class)
   ResponseEntity<Object> notFound() {

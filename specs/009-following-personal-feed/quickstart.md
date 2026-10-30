@@ -142,6 +142,56 @@ and its HTML select control are interaction references; their rendering is not n
 npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/following/__tests__/personal-season.test.tsx src/features/following/__tests__/personal-screen.test.tsx
 ```
 
+### Personal team and pool lists (T023–T028 construction)
+
+`FollowListsIntegrationTest` exercises the production F06 reader, F02 current visibility and F03
+batch summaries on migrated PostgreSQL 18.6 with the restricted application role. Both lists
+traverse more than twenty entries using the installed deterministic `fr-x-icu` collation through Hibernate
+`collate`, with accented names, UUID ties, current name corrections, closed seasons and retained
+hidden/reappearing relations. The maximum supported offset executes against PostgreSQL; the
+unrepresentable continuation is exercised with a controlled full-page application port instead of
+manufacturing billions of rows. One-item and twenty-item summary reads have the same bounded SQL
+statement count. `FollowListsWebMvcTest` exercises the production generated controller/mapper,
+strict query bounds, no-store, original-owner/F12 admission and safe failures.
+
+`followed-lists.test.tsx` and `personal-screen.test.tsx` use actual Query, generated list calls,
+session/admission/season owners and native component composition with controlled HTTP/native I/O.
+They cover separate current sections, exact UUID opening through F03/F11, continuation retry,
+homonyms and UUID deduplication, shared All seasons, successful empty/Search versus failure,
+populated return without rereading, confirmed-mutation reset while hidden and first-page loading
+on display. Current F03 refusals cancel older continuations and withdraw only the refused identity;
+retired account responses never become current results. Successful calendar absence also withdraws
+overlapping lists without rereading them on return. Native cancellation restores accepted state
+before removing a refused identity, including an interrupted first-page refresh. When a late hidden
+calendar or current team-detail refusal cancels an initial list read without accepted pages, Query
+exposes ordinary error/retry rather than idle pending state; explicit retry alone admits a new page.
+A failed refresh
+with remaining pages exposes its own explicit retry at the list edge before automatic continuation
+resumes. Original-account refusals withdraw both lists and retained calendars within the same
+session/admission context. A seasonal NotFound followed by successful options omission removes
+that season from overlapping All-seasons data before selecting the fallback. Entity Card extraction
+retains the existing F04 presentation adapter and its consumer checks.
+
+```sh
+./mvnw -B -ntp -pl apps/backend verify -Dtest=ReadFollowListsTest,FollowListsWebMvcTest,FollowOptionsWebMvcTest,FollowStateWebMvcTest,PersonalCalendarWebMvcTest -Dit.test=FollowListsIntegrationTest,FollowOptionsIntegrationTest,PersonalCalendarIntegrationTest -DforkCount=1
+npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/following/__tests__/followed-lists.test.tsx src/features/following/__tests__/personal-screen.test.tsx
+NX_DAEMON=false NX_ISOLATE_PLUGINS=false npx nx run-many -t verify -p backend mobile --parallel=1 --output-style=static
+```
+
+Complete affected verification covers backend unit/MVC and PostgreSQL integration suites, mobile
+lint/typecheck/Jest, both platform JavaScript exports and Expo Doctor.
+
+Native construction observations use the compatible Expo development clients on iPhone 18 Pro /
+iOS 27.0 and Pixel 9 Android emulator, with fictional HTTP and native Auth0 RPC only. The actual
+generated consumers, session/admission/Query owners, native pager and LegendList remain real.
+Observed cases include homonymous teams, independent section collapse, light/dark cards, native
+season selection, exact team detail opening and the existing follow control, empty-season Search,
+iOS retained page failure followed by same-page retry beyond twenty pools, and Android initial
+failure/retry versus successful empty. iOS accessibility-tree extraction was unavailable; coordinate
+interactions establish no screen-reader qualification. These observations do not complete T029 or
+T022/T037's cross-view qualification, live authentication/backend/provider paths, full native
+accessibility or enlarged-text coverage, advertising serving or account-erasure orchestration.
+
 ### Personal complete-day calendar (T030–T035, T036 construction)
 
 `PersonalCalendarIntegrationTest` exercises the production F06/F03 readers on migrated PostgreSQL,
