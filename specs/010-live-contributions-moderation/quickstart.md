@@ -283,9 +283,10 @@ obsolete unused account-prefixed moderation key scaffolding is removed.
 
 Local native construction checks ran on the reused `com.blockout.local` development clients:
 iPhone 18 Pro A / iOS 27.0 (`2C22FCF3-D4A7-4F84-BAB1-F358C71C7649`, 402 × 874 points)
-and Android `Pixel_9` (`emulator-5554`, 1080 × 2424 pixels). Production routes/components,
-F05 private Query/session and the Auth0 JavaScript SDK were retained; an ignored qualification
-entry controlled only the native credential boundary and a fictional HTTP peer. This does not
+and Android `Pixel_9` (`emulator-5554`, 1080 × 2424 pixels), with final captures at application
+source `7937234d`. Production routes/components, F05 private Query/session and the Auth0 JavaScript
+SDK were retained; an external temporary launcher controlled only the native credential boundary
+and a fictional HTTP peer. This does not
 qualify the full product root/onboarding or actual identity/provider operations. Temporary entry,
 Metro resolver and package-main changes were restored; no qualification mechanism is shipped.
 
@@ -305,9 +306,23 @@ apply/reset buttons and the same grouped choices and spacing tokens as search.
 The iOS run used a hardware keyboard and does not establish software-keyboard occlusion behavior.
 Screen-reader speech, enlarged-text/minimum-OS coverage and full session/erasure scenarios remain
 with T056. Representative captures belong in the delivery PR Conversation with their tested source
-revision; no screenshot is committed. The initial Figma comparison used nodes `1293:3968`,
-`4730:31181`, `1310:6016`, `4736:32107` and `4736:32744` in the owning
-[Product Design](plan.md#design-reconciliation-and-evidence); the owner's later application baseline
-governs the final composition. T045's integrated current-owner
+revision; no screenshot is committed. The owner-approved native composition is reconciled in
+[the moderation journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1240-1876),
+preserving the queue `1293:3968`, active `1240:1882`, pending `1310:6016`, historical
+reports `4736:32107` and constrained dark editor `1270:3237`. New search-style filter evidence
+is `7524:8064`; initial queue/editor skeletons are `7526:8249` and `7526:8859`. Earlier filter/action
+references `4730:31181` and `4736:32744` were already absent at reconciliation and are superseded by
+these live frames. The new UI Library `surface/inset` role (`3999:4`) and its two primitive references
+are published current, with Light `#20212408` and Dark `#FFFFFF08`; reports retain `surface/default`.
+Structural inspection finds live instances, editable Outfit text and discrete sporting logos, without
+a flattened screen image. The constrained field uses intrinsic height for enlarged text.
+
+The matching [prototype revision](https://github.com/blockoutproject/product-prototype/commit/f4b2c60c5319470b2f063fa94b00a8bb4ed65cf9)
+reuses its existing pager, native-refresh review control, filters and ordinary buttons. Its shared match
+card, always-mounted prefilled editor, grouped disclosures, exact-source read-only report sheet and
+initial skeletons follow the approved native presentation. Model tests (223), typecheck/build and eighteen
+affected browser checks pass, including draft retention across tabs, exact-address cancellation,
+source-report separation and shared sporting-media fallback at 320 points / enlarged text in both themes.
+These checks qualify the standalone fictional prototype only. T045's integrated current-owner
 qualification, T050/T055 erasure and T056's complete platform/accessibility matrix remain separate;
 controlled SQL, JavaScript or native fixtures establish no provider/production or global design approval.
