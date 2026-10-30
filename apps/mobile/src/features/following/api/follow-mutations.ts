@@ -53,6 +53,27 @@ export function retireSettledFollowAttempts(
 }
 
 /**
+ * Applies a known current restriction to the shared member Query after cancelling older reads.
+ * Public target absence and member refusals reuse this guard; neither deletes the persisted relation.
+ */
+export async function restrictFollowTarget(
+  client: QueryClient,
+  owner: FollowingOwner,
+  target: FollowingTarget,
+  error: ApiError,
+) {
+  if (!owner.isCurrent(owner.generation)) return;
+  const queryKey = followStateKey(owner, target);
+  await client.cancelQueries({ queryKey, exact: true });
+  if (!owner.isCurrent(owner.generation)) return;
+  client.getQueryCache().find({ queryKey, exact: true })?.setState({
+    status: "error",
+    error,
+    errorUpdatedAt: Date.now(),
+  });
+}
+
+/**
  * Owns the shared target lifecycle after initiating-control unmount, using Query's mutation cache
  * for provisional state and a synchronous no-queue guard. Dependent reads cannot undo a saved response.
  */
@@ -115,7 +136,12 @@ export function useFollowMutation(
         try {
           const previousUpdates =
             client.getQueryState(stateKey)?.dataUpdateCount ?? 0;
-          const state = await client.query({ ...options, staleTime: 0 });
+          const state = await client.query({
+            ...options,
+            staleTime: 0,
+            retry: false,
+            networkMode: "always",
+          });
           // Native cancellation can resolve with reverted data; only a newly accepted read is evidence.
           if (
             !owner.isCurrent(owner.generation) ||
@@ -186,17 +212,7 @@ export function useFollowMutation(
     onError: async function acceptFollowRestriction(error) {
       if (!owner?.isCurrent(owner.generation) || !isFollowRestriction(error))
         return;
-      await client.cancelQueries({ queryKey: stateKey, exact: true });
-      if (!owner.isCurrent(owner.generation)) return;
-      // Query owns current availability independently of temporary mutation feedback and its collection.
-      client
-        .getQueryCache()
-        .find({ queryKey: stateKey, exact: true })
-        ?.setState({
-          status: "error",
-          error,
-          errorUpdatedAt: Date.now(),
-        });
+      await restrictFollowTarget(client, owner, target, error);
     },
   });
   const states = useMutationState({

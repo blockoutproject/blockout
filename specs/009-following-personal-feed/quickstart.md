@@ -82,9 +82,10 @@ writing a personal season selection or adding a success panel. Compare the live
 [followed team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1023-5097)
 and [dark pool](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1755-14354)
 instances with the UI Library's [compact button](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=3386-697):
-36-point pill, 20-point leading Plus/Check, inverse surface/content, contextual border and a
-separate platform touch target. The F03 action region supplies its separator and 12-point inset.
-The generated boundary remains unchanged; no public follower-count UI is delivered here.
+36-point pill, 20-point leading Plus/Check, inverse surface/content and a separate platform
+touch target. The owner's appearance correction removes the follow-button stroke and gives
+the counter number the same semantic foreground as its group icon in both themes. The F03 action region supplies its separator and 12-point inset.
+The generated boundary remains unchanged; the independent public counter is qualified below.
 
 ```sh
 npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/following/__tests__/follow-action.test.tsx
@@ -94,6 +95,65 @@ These JavaScript checks establish no actual authentication provider, account-era
 native accessibility or design qualification. T016, later story tasks and T045 retain their scopes;
 live Dynamic Type [F13 native qualification](../003-shared-quality/quickstart.md#native-presentation-qualification) and iOS input
 [F13 native qualification](../003-shared-quality/quickstart.md#native-presentation-qualification) remain deferred.
+
+### Direct counters and bounded recovery (T038–T043 construction)
+
+`FollowerCountIntegrationTest` exercises the real reader and follow replacements on migrated,
+disposable PostgreSQL with the restricted application role: direct counts through repeated true,
+repeated false and re-follow, multiple owners, distinct typed identities and seasons, retained
+hidden relations and current restored visibility. `FollowerCountWebMvcTest` exercises the production
+generated routes, exact safe-integer serialization, strict query shapes, no-store, current F12
+bypass and opaque missing/storage failures. Ordinary public counts invoke no account or permission
+lookup. `ReadFollowerCountTest` covers safe-integer bounds through a controlled persistence port;
+it does not manufacture that number of database rows.
+
+`follower-count.test.tsx` uses real Query, generated validation, theme/session/admission providers
+and the compact counter. HTTP/native identity I/O are controlled. Unknown/invalid/failed reads
+never become zero; retained permitted counts identify a failed refresh and expose count-only retry.
+Current permission/visibility refusals remove retained values, including across a subsequent network
+failure. A current public count NotFound also withdraws the actual F03 team/pool detail,
+reuses its participant/list/calendar cleanup and suspends shared follow controls without a full-detail
+reread, including when the original account becomes established during the first public read
+without changing its session generation. The private opaque member NotFound does not establish public target absence.
+`follow-recovery.test.tsx` composes the actual F03 action region with the counter and
+existing shared mutation lifecycle. It covers a delayed original write after one observation,
+failed dependent count/profile reads after confirmed success and A → guest/B → A while the old
+observation is pending. The existing `follow-action.test.tsx` also covers definite refusal,
+failed/cancelled observation, same-command explicit retry, unmount and affected personal resets.
+One bounded generated member read observes current state; it neither replays a write nor proves
+that the original request cannot complete later. Ordinary and explicit-bypass counters use their
+own keys and only the affected target is invalidated after confirmation.
+
+```sh
+./mvnw -B -ntp -pl apps/backend verify -Dtest=FollowerCountWebMvcTest,ReadFollowerCountTest,FollowStateWebMvcTest,FollowOptionsWebMvcTest,FollowListsWebMvcTest,PersonalCalendarWebMvcTest -Dit.test=FollowerCountIntegrationTest
+npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/following/__tests__/follower-count.test.tsx src/features/following/__tests__/follow-recovery.test.tsx src/features/following/__tests__/follow-action.test.tsx
+```
+
+#### Prepared native A22–A28 cases (T040; execution remains T045)
+
+Use the approved [Home and Sport references](plan.md#constitution-check), the
+[followed team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1023-5097)
+and [dark pool](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1755-14354).
+The group icon and numeric count sit beside the existing compact follow action. F13 owns Outfit,
+semantic tokens, system themes, native controls, freshness and accessibility; this slice adds no
+new design journey. Use fictional accounts/data and controlled response loss, not provider changes.
+Before execution, identify build/commit, device, platform, theme/text scale, real and controlled
+boundaries; keep private diagnostics and relationships outside public captures.
+
+| Scenario | Native action and observable result                                                                                                                                                                                                                                                                                                                                                                                                                        | Owners and prerequisites                                                                                                                                                                                        |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A22      | Open team and pool as guest, free member, Pro and unknown-entitlement member. Verify the direct count independently of profile failure; repeat add/remove, change personal season, hide and restore. Each relation counts once; unknown is distinct from zero.                                                                                                                                                                                             | F02 current targets; F05 original sessions; F09 entitlements remain independent; actual F06 SQL and generated consumers.                                                                                        |
+| A23      | Refuse add/remove, then make a retained target unavailable. Previous confirmation is retained without invented success; current refusal removes public count and suspends personal action. Explicit retry follows current access.                                                                                                                                                                                                                          | F02 visibility; F05/F12 admission; F13 ordinary feedback.                                                                                                                                                       |
+| A24      | Lose a potentially recorded PUT response, delay original completion and fail or delay the single member observation. Shared controls stay provisionally busy only within the bounded wait, then use current observed state or ordinary error/same-command explicit retry. No replay or claim of cancellation. Repeat after unmount and A → guest/B → A, checking no obsolete callback applies.                                                             | Controlled HTTP delay/loss; F13 bounded transport and Query; F05 generation cleanup.                                                                                                                            |
+| A25      | Confirm PUT, then fail profile, options, list/calendar reset and count reads independently, including inactive Home tabs. The write remains successful; visible reads show loading/error/retry, the other count stays unchanged, and selection/category stay intact.                                                                                                                                                                                       | Actual F03/F05/F06 generated paths and F13 Query; controlled read failures only.                                                                                                                                |
+| A26      | Fail initial, refresh and additional-page retrieval independently. Retain permitted unchanged-context content with identifiable freshness; a current refusal must not return after a later network error. Retry the failed boundary without false empty/end-of-list or zero.                                                                                                                                                                               | Actual personal lists/calendar and F03 current visibility; F13 failure isolation.                                                                                                                               |
+| A27      | Remove/recreate a confirmed relation with overlapping team/pool origins and change only the display season. F07 sees one eligible recipient and distinguishes the new relation; no push promise follows from the follow itself.                                                                                                                                                                                                                            | Actual F07 trigger/send, relation rechecks and native notification permission/provider setup are required for their own execution. T044 owns consumption qualification.                                         |
+| A28      | On iOS and Android, exercise system light/dark and live changes, VoiceOver/TalkBack, enlarged text and reduced motion. Count announces its quantity/unknown/failed-refresh meaning; busy/selected/retry states are understandable without color, remain operable without clipping and follow current grants. Filtering/refresh/return causes no interstitial; sporting opening uses F11. Open contextual support without adding collection or diagnostics. | F13 native accessibility and approved designs; F05 original session; F09 free/Pro/unknown; F10 private destination and contextual route; F11 advertising consent/provider prerequisites; F12 current admission. |
+
+Native construction captures can establish only the executed rendering/interaction boundary.
+They do not complete T045, screen-reader/enlarged-text qualification, real Auth0, notification or
+advertising delivery, support-provider collection or account-erasure orchestration. Keep each
+unexecuted prerequisite and qualification explicit; no mocked success substitutes for them.
 
 ### Shared personal season boundary (T017–T021)
 

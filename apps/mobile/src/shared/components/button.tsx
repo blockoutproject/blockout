@@ -51,6 +51,8 @@ export interface ButtonProps {
   contextForeground?: string;
   /** Source-owned paints: gradient primary, flat success, bordered secondary or semantic inverse. */
   variant?: "primary" | "success" | "secondary" | "inverse";
+  /** Set false for a solid action without a stroke; other callers retain their variant's border. */
+  bordered?: boolean;
   /** Decorative trailing glyph from the library; busy state replaces it with the shared indicator. */
   trailingIcon?: LucideIcon;
   /** Compact actions use this leading slot; when supplied it takes precedence over trailingIcon. */
@@ -72,6 +74,7 @@ export function Button({
   contextGradient,
   contextForeground,
   variant = "primary",
+  bordered = true,
   trailingIcon: TrailingIcon,
   leadingIcon: LeadingIcon,
 }: ButtonProps) {
@@ -136,6 +139,7 @@ export function Button({
             styles.action,
             fullWidth ? styles.container : styles.content,
             size === "compact" && styles.compact,
+            size === "compact" && !bordered && styles.compactBorderless,
             {
               backgroundColor:
                 variant === "primary"
@@ -146,7 +150,7 @@ export function Button({
                       ? colors.inverse
                       : colors.raised,
               borderWidth:
-                variant === "secondary" || variant === "inverse"
+                bordered && (variant === "secondary" || variant === "inverse")
                   ? tokens.border.thin
                   : 0,
               borderColor:
@@ -219,6 +223,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.md - tokens.border.thin,
     paddingVertical: tokens.spacing.sm - tokens.border.thin,
     borderRadius: tokens.radius.full,
+  },
+  compactBorderless: {
+    paddingHorizontal: tokens.spacing.md,
+    paddingVertical: tokens.spacing.sm,
   },
   action: {
     minHeight: tokens.size.control.default,

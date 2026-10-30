@@ -81,6 +81,10 @@ The operation replaces desired follow state: repeating true keeps the same relat
 Season choices compose F02's `SportingSeasonSelection` scalar Criteria API with F06's own follow predicates in one native query. F02 alone supplies seasonal fields and current visible target selections; no sporting entity, repository or private HQL fragment crosses into F06. This preserves season order, closed-season consultation and the current-follow default without materializing target IDs. See the [common composition qualification](../003-shared-quality/quickstart.md#common-backend-composition).
 
 The [canonical contracts](contracts/README.md) separate public counts from private state. Counts use the relationships directly, including retained hidden-target relations whenever the target itself is viewable. Failed reads never become zero. Public sporting pages remain usable without private account reads.
+A public count NotFound establishes target absence and uses F03's existing captured-context
+withdrawal boundary, cancelling older representations and suspending shared follow controls. This
+reuses native Query cancellation and current availability; no refusal registry or complete-detail
+reread is added. The opaque private member NotFound cannot establish public sporting absence.
 
 Personal lists use Spring Data `Slice`, twenty entries per page, effective public name in native French alphabetical order then UUID. Use PostgreSQL's deterministic `fr-x-icu` collation for the ordering expression through Hibernate's supported `collate`, not a stored normalized-name copy. Lists return current F03 summaries, omit hidden resources and have no business quota or total. The contract bounds page/nextPage to the native JPA offset range for twenty-item pages; reject unsupported traversal with BadRequest rather than overflowing or reporting a false end. Concurrent renames/hiding can shift offset pages until refresh; deduplicate displayed identities.
 

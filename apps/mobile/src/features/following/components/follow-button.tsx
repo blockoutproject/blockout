@@ -21,16 +21,10 @@ import type { FollowingTarget } from "../api/following-keys";
 export interface FollowButtonProps {
   target: FollowingTarget;
   season: SportingSeasonResponse;
-  /** Public F02 accent used by the approved follow action's contextual border. */
-  contextColor?: string;
 }
 
-/** Uses the compact inverse Figma action and F05 invitation without a Pro gate or extra success panel. */
-export function FollowButton({
-  target,
-  season,
-  contextColor,
-}: FollowButtonProps) {
+/** Uses the borderless compact inverse action and F05 invitation without a Pro gate or extra success panel. */
+export function FollowButton({ target, season }: FollowButtonProps) {
   const context = useFollowStateQuery(target);
   const action = useFollowMutation(target, context);
   const router = useRouter();
@@ -76,7 +70,7 @@ export function FollowButton({
         }
         size="compact"
         variant="inverse"
-        contextColor={contextColor}
+        bordered={false}
         leadingIcon={following ? Check : Plus}
         selected={following ?? false}
         accessibilityHint={
