@@ -14,6 +14,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -73,10 +74,32 @@ public class ReadInbox {
    */
   @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
   public Entry member(NotificationContext owner, UUID id, Instant now) {
-    requireOwner(owner);
-    Snapshot selected =
-        store.member(owner, id, now).orElseThrow(NotificationNotFoundException::new);
-    return hydrate(List.of(selected), now).getFirst();
+    return currentMember(owner, id, now).orElseThrow(NotificationNotFoundException::new);
+  }
+
+  /**
+   * Reads a current member for best-effort eligibility without a normal absence exception marking
+   * the caller's read transaction rollback-only.
+   *
+   * @param owner original account lifecycle
+   * @param id original personal allocation
+   * @return empty after owner/entry removal, expiry or current sporting restriction
+   */
+  public Optional<Entry> availableMember(NotificationContext owner, UUID id) {
+    return currentMember(owner, id, clock.instant());
+  }
+
+  /**
+   * Composes the shared current-member selection without assigning error semantics to absence.
+   *
+   * @param owner original lifecycle
+   * @param id original allocation
+   * @param now common retention and presentation instant
+   * @return authorized current representation, or empty
+   */
+  private Optional<Entry> currentMember(NotificationContext owner, UUID id, Instant now) {
+    if (!accounts.exists(owner.accountId())) return Optional.empty();
+    return store.member(owner, id, now).map(row -> hydrate(List.of(row), now).getFirst());
   }
 
   /**

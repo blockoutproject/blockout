@@ -2,13 +2,60 @@
 
 ## Expo delivery through the existing Java backend
 
-**Decision.** Use Expo Push's official HTTP API through Spring RestClient and SDK-compatible `expo-notifications` on native clients. Keep ordinary system permissions/channels, an explicit SDK handler suppressing foreground presentation and default provider delivery lifetime. The backend sends after commit, without automatic resend. Inspect tickets/receipts once through in-memory work.
+**Decision (revised 2026-10-30).** Use the Java SDK currently listed by Expo, `io.github.hlspablo:expo-server-sdk-java:3.1.6`, and SDK-compatible `expo-notifications` on native clients. The owner explicitly requested the Expo-listed Java SDK in this implementation conversation, superseding the former direct-RestClient/no-community-SDK technical selection. Expo labels this SDK community-maintained; its Node SDK alone is maintained by the Expo team. Keep ordinary system permissions/channels, an explicit SDK handler suppressing foreground presentation and default provider delivery lifetime. The backend sends after commit, without automatic resend. Inspect tickets/receipts once through in-memory work.
 
-**Rationale.** One provider boundary serves the existing Expo application without another deployable or Java community SDK. Expo documents message batches of 100, receipt batches of 1,000, a project rate of 600 messages/second, 4 KiB payloads and receipt inspection around fifteen minutes later. Its recommended receipt window is limited; a ticket/receipt confirms acceptance at a provider boundary, not receipt on a phone. A restart may lose unsent push and receipt work while the database inbox remains available. A native Spring task executor/scheduler is sufficient; no delivery status table is justified by the accepted best-effort behavior.
+**Rationale.** One provider boundary serves the existing Expo application without another deployable or copied provider protocol model. Use the SDK’s public builder, `PushNotification`, ticket/receipt types and serializer. A generated mechanical mapper supplies safe F07 fields; response decisions remain local application evidence, not new SDK DTOs. Expo documents message batches of 100, receipt batches of 1,000, a project rate of 600 messages/second, 4 KiB payloads and receipt inspection around fifteen minutes later. Its recommended receipt window is limited; a ticket/receipt confirms acceptance at a provider boundary, not receipt on a phone. A restart may lose unsent push and receipt work while the database inbox remains available. A native Spring task executor/scheduler is sufficient; no delivery status table is justified by the accepted best-effort behavior.
 
-**Alternatives considered.** Direct APNs/FCM adds two server integrations. A Node sender adds a service only for transport. A persistent outbox, receipt journal and automatic retries improve recovery that the owner explicitly does not require. Short live-specific expiry was rejected in favor of ordinary provider delivery after prolonged offline use; wording must remain factual rather than claim a live stream is currently running.
+**Alternatives considered.** The previous direct RestClient adapter avoided a dependency, but the owner now prefers the provider-listed Java SDK to handwritten protocol handling. Direct APNs/FCM adds two server integrations. A Node sender adds a service only for transport. A persistent outbox, receipt journal and automatic retries improve recovery that the owner explicitly does not require. Short live-specific expiry was rejected in favor of ordinary provider delivery after prolonged offline use; wording must remain factual rather than claim a live stream is currently running.
 
 **Evidence.** [Expo sending](https://docs.expo.dev/push-notifications/sending-notifications/), [FAQ](https://docs.expo.dev/push-notifications/faq/), [native setup](https://docs.expo.dev/push-notifications/push-notifications-setup/), [SDK 58 notifications](https://docs.expo.dev/versions/v58.0.0/sdk/notifications/), [FCM message lifetime](https://firebase.google.com/docs/cloud-messaging/customize-messages/setting-message-lifespan). The SDK page lists the compatible package family; resolve its compatible patch through the ordinary Expo installation procedure during implementation, without upgrading the shared stack. These are documented capabilities, not an integrated Java/mobile qualification. Expo Go is not native push evidence.
+
+### Bounded sender construction
+
+The official send/setup/SDK pages were rechecked on 2026-10-30; their request/rate/payload/receipt
+limits and enhanced-security bearer header remain consistent with the accepted decision. Expo's
+retry recommendations are not delivery requirements: this implementation deliberately retains the
+approved single attempt and single delayed receipt observation. Support for some emulators/simulators
+does not supersede the accepted physical iOS/Android qualification.
+
+`AfterCommitAnnouncements` captures association row incarnations inside the existing producer
+transaction, preventing a later registration from receiving historical work. `ReadPushEligibility`
+uses the existing current inbox/F03/F08 projection and F06 identity API in a short read-only
+transaction. A normal unavailable member uses `ReadInbox.availableMember` instead of catching a
+transactional exception that has already marked its enclosing read transaction rollback-only.
+No owner repository/entity is imported across feature boundaries.
+
+The [SDK listed by Expo](https://docs.expo.dev/push-notifications/sending-notifications/#send-push-notifications-using-a-server)
+is [published on Maven Central](https://github.com/hlspablo/expo-server-sdk-java#installation). Version 3.1.6
+accepts a `CloseableHttpClient`, base URI and access token through its public builder. Its native
+optional badge/TTL/expiration values remain null and are omitted by its own serializer. F07 measures
+the SDK-serialized request for the 4 KiB bound, using the public serializer helper rather than a
+second JSON shape. The SDK performs synchronous calls with no application retry machinery.
+
+Use Spring Boot’s native `HttpComponentsHttpClientBuilder` with the configured HTTP settings and
+Apache’s `disableAutomaticRetries()`: native 429/503 recovery would otherwise replay a JSON POST.
+A standard Apache response interceptor raises a typed `HttpResponseException` on HTTP refusal,
+even with an empty/non-JSON body, before SDK decoding. F07 maps the numeric status and never parses
+private SDK exception messages. SDK/transport decoding failures remain unknown evidence; they do
+not cause resend, reconstructed responses or a replacement parser. Spring owns and closes the
+HTTP pool. The SDK declares an annotated `UNKNOWN` receipt-error value but does not enable its
+native Jackson fallback; a documented `MismatchSenderId` otherwise rejects an entire mixed response,
+including an independent `DeviceNotRegistered`. At SDK startup, enable the standard
+`READ_UNKNOWN_ENUM_VALUES_USING_DEFAULT_VALUE` on its public mapper. This uses the SDK’s own value
+without a model/parser patch and preserves the known invalidation signal. Loopback cases exercise the real SDK’s serialization/decoding and the production HTTP
+client, including single-attempt refusal. Boot manages the existing Apache/Jackson/logging versions;
+no framework upgrade is selected. The SDK’s raw response DEBUG logger is disabled through ordinary
+Spring logging configuration, leaving only F07’s safe evidence categories/counts.
+
+One ordinary `ThreadPoolTaskExecutor` worker, 100 queued batches of up to 100 targets and a 200 ms
+minimum interval keep a single project's rate at or below 500 messages/second. This conservative
+pacing satisfies the 600 limit without a custom token bucket. The environment must have only one
+enabled sender for that Expo project; this is no distributed rate guarantee across replicas.
+One native scheduler retains at most 100 receipt callbacks (100 tickets each), bounded by a native
+semaphore. Each callback runs once around fifteen minutes after acceptance; no SQL transaction
+spans either HTTP operation. Shutdown/rejection discards only transient work. These local bounds
+are implementation limits, not a capacity promise or recovery mechanism. Exact input names and
+safe operational handling remain in the [operations guide](../../infra/operations/README.md#sporting-push-inputs-and-failure-limits).
 
 ## Transactional inbox and approximate start-time announcements
 

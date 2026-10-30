@@ -8,6 +8,26 @@ import java.util.UUID;
  * boundary.
  */
 public interface PushSubscriptionStore {
+  /** Private immutable trigger-time row incarnation, native revision and project-scoped address. */
+  record Target(UUID id, long revision, String address) {}
+
+  /**
+   * Captures only existing destinations under the producer's original-account locks.
+   *
+   * @param accountId original owner
+   * @return immutable current targets; later registrations are never added to this event
+   */
+  List<Target> targets(UUID accountId);
+
+  /**
+   * Checks a captured target without authorizing a replacement incarnation or owner.
+   *
+   * @param accountId original owner
+   * @param target captured private row/version/address
+   * @return whether all captured values still match
+   */
+  boolean current(UUID accountId, Target target);
+
   /**
    * Complete authenticated association intent; installation metadata supplies no account authority.
    */

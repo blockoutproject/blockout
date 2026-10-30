@@ -1,7 +1,11 @@
 package com.blockout.backend.notifications.application;
 
 import com.blockout.backend.notifications.application.AllocateAnnouncements.Created;
+import com.blockout.backend.notifications.application.PushSubscriptionStore.Target;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -19,6 +23,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class AfterCommitAnnouncements {
   private final ApplicationEventPublisher events;
+  private final PushSubscriptionStore subscriptions;
 
   /**
    * Publishes immutable allocations after commit. Rollback discards the callback.
@@ -28,7 +33,12 @@ public class AfterCommitAnnouncements {
   @Transactional(propagation = Propagation.MANDATORY)
   public void submit(List<Created> created) {
     if (created.isEmpty()) return;
-    events.publishEvent(new Pending(new Ready(created)));
+    Map<UUID, List<Target>> targets =
+        created.stream()
+            .map(allocation -> allocation.entry().accountId())
+            .distinct()
+            .collect(Collectors.toUnmodifiableMap(account -> account, subscriptions::targets));
+    events.publishEvent(new Pending(new Ready(created, targets)));
   }
 
   /** Internal allocation event; consumers receive Ready only after successful commit. */
@@ -60,15 +70,23 @@ public class AfterCommitAnnouncements {
    * After-commit integration event for the later best-effort sender; no durable delivery promise.
    *
    * @param entries newly committed allocations and original relation identities
+   * @param targets trigger-time associations per original account; later registration gets no
+   *     catch-up
    */
-  public record Ready(List<Created> entries) {
+  public record Ready(List<Created> entries, Map<UUID, List<Target>> targets) {
     /**
      * Captures immutable transaction outcomes.
      *
      * @param entries committed immutable allocations
+     * @param targets private immutable trigger-time targets
      */
     public Ready {
       entries = List.copyOf(entries);
+      targets =
+          targets.entrySet().stream()
+              .collect(
+                  Collectors.toUnmodifiableMap(
+                      Map.Entry::getKey, entry -> List.copyOf(entry.getValue())));
     }
   }
 }
