@@ -16,6 +16,15 @@ import org.springframework.data.jpa.repository.Query;
 /** Current versions, native history slices and quota aggregates over persisted creation facts. */
 interface ContributionVersionRepository extends JpaRepository<ContributionVersionEntity, UUID> {
   /**
+   * Projects the immutable root without attaching version attribution before account locking.
+   *
+   * @param versionId exact retained identity
+   * @return owning match, or empty for an unknown version
+   */
+  @Query("SELECT v.matchId FROM ContributionVersionEntity v WHERE v.id = :versionId")
+  Optional<UUID> findMatchId(UUID versionId);
+
+  /**
    * Selects active public-link identities for an already admitted bounded match selection.
    *
    * @param matchIds current sporting identities

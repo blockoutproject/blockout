@@ -20,6 +20,7 @@ export function useContributionEntry(
   matchId: string,
   available = true,
   publicContributionId?: string,
+  publicContributionUrl?: string,
 ) {
   const router = useRouter();
   const { session, query, usable, profile } = useOwnContributionsRead(
@@ -56,6 +57,29 @@ export function useContributionEntry(
           : profile
         : undefined,
     canPropose,
+    canReport:
+      available &&
+      !!publicContributionId &&
+      !ownsPublic &&
+      !publicOwnershipUnknown &&
+      (session.status === "guest" || authorized),
+    /** Captures only the contributed identity actually displayed; guests receive no replay context. */
+    report() {
+      if (session.status === "guest")
+        router.push({
+          pathname: "/sign-in-invitation",
+          params: { reason: "stream-report" },
+        });
+      else if (publicContributionId)
+        router.push({
+          pathname: "/matches/[matchId]/report-contribution",
+          params: {
+            matchId,
+            contributionId: publicContributionId,
+            contributionUrl: publicContributionUrl,
+          },
+        });
+    },
     refreshing: query.isRefetching || profile.isRefetching,
     /** Reobserves the existing owner on match refresh; a recovered profile enables its dependent query. */
     refresh() {
@@ -126,6 +150,27 @@ export function ContributionEntry({
       onPress={entry.ownsPublic ? entry.open : entry.propose}
     />
   );
+}
+/** Contextual exact-version report action, distinct from the match's general support destination. */
+export function ContributionReportEntry({ entry }: ContributionEntryProps) {
+  const { colors } = useTheme();
+  return entry.canReport ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Signaler le lien"
+      onPress={entry.report}
+      style={styles.manage}
+    >
+      <Text
+        style={[
+          tokens.typography.body,
+          { color: colors.secondaryText, textDecorationLine: "underline" },
+        ]}
+      >
+        Signaler le lien
+      </Text>
+    </Pressable>
+  ) : null;
 }
 const styles = StyleSheet.create({
   manage: {

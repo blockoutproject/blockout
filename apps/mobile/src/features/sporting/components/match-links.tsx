@@ -19,10 +19,17 @@ export interface MatchLinksProps {
   action?: ReactNode;
   /** F08 supplies the sole primary action when adding a link or managing the exact public owner version. */
   primaryAction?: ReactNode;
+  /** F08 supplies a separate exact-version report action for a non-owned contributed URL. */
+  reportAction?: ReactNode;
 }
 
 /** Offers an available HTTP(S) destination or an explicit empty card with the supplied action, without inferring live status or replay. */
-export function MatchLinks({ detail, action, primaryAction }: MatchLinksProps) {
+export function MatchLinks({
+  detail,
+  action,
+  primaryAction,
+  reportAction,
+}: MatchLinksProps) {
   const { colors } = useTheme();
   const url = safeWebsite(detail.streamUrl);
   if (!url && !action && !primaryAction) return null;
@@ -57,6 +64,7 @@ export function MatchLinks({ detail, action, primaryAction }: MatchLinksProps) {
             {primaryAction}
           </>
         )}
+        {reportAction}
       </View>
     </MatchSurface>
   );

@@ -13,6 +13,42 @@ import java.util.UUID;
  */
 public interface ContributionStore {
   /**
+   * Locates a version's immutable sporting root without hydrating mutable attribution before locks.
+   *
+   * @param versionId exact retained identity
+   * @return owning match, or empty for an unknown version
+   */
+  Optional<UUID> matchForVersion(UUID versionId);
+
+  /**
+   * Reads the original account's report existence without exposing private report content.
+   *
+   * @param versionId exact retained identity
+   * @param reporterId original usable account
+   * @return whether the account already reported this version
+   */
+  boolean reported(UUID versionId, UUID reporterId);
+
+  /**
+   * Inserts one new exact-version report and counts all retained rows in the same transaction.
+   *
+   * @param versionId active version checked under its sporting lock
+   * @param reporterId original reporter protected by its account lock
+   * @param reason trimmed nonempty private reason
+   * @param now original report instant
+   * @return total including anonymous retained rows and the inserted report
+   */
+  long report(UUID versionId, UUID reporterId, String reason, java.time.Instant now);
+
+  /**
+   * Sets the unresolved hold to the exact newly hidden version without advancing revision again.
+   *
+   * @param matchId locked sporting root with contribution activity
+   * @param versionId same-match version hidden by the accepted report
+   */
+  void hold(UUID matchId, UUID versionId);
+
+  /**
    * Reads active-link presence for a bounded set of already consultable sporting matches.
    *
    * @param matchIds identities admitted by F03 in the caller's consistent transaction

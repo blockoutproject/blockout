@@ -27,3 +27,5 @@ generation tag, separating their executable Java interface from future reporting
 operations. Routes, operation IDs, request/response schemas and mobile consumer names remain
 unchanged. The PATCH retains its exact target and required viewed revision; cancellation and
 withdrawal return the current private member with `Accept-Patch: application/json` and `no-store`.
+
+The executable reporting operations use the `StreamReports` generation tag without changing routes, operation IDs or DTOs. Requests contain only `reason`; whitespace-only reasons receive 422 after normalization. Ordinary admitted usable accounts retain the current reporting right independently of publication age or quota. Existing reports return unchanged 200 before activity/threshold evaluation; own-state GET exposes only `reported`. A later explicit retry remains on that account/version, with no automatic replay or special mobile recovery state.

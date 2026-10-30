@@ -40,7 +40,7 @@
       <column name="owner_id"/><column name="created_at"/>
     </createIndex>
     <!-- Community Liquibase has no native partial unique index or CHECK changes.
-         Anonymous pending proposals deliberately remain distinct; report constraints belong to T029. -->
+         Anonymous pending proposals and reports deliberately remain distinct. -->
     <sql dbms="postgresql"><![CDATA[
       CREATE UNIQUE INDEX uk_contribution_active ON contribution_version (match_id) WHERE state = 'ACTIVE';
       CREATE UNIQUE INDEX uk_contribution_pending_owner ON contribution_version (match_id, owner_id)
@@ -52,6 +52,19 @@
       ALTER TABLE contribution_version ADD CONSTRAINT ck_contribution_decision_fact CHECK (
         (decision_kind IS NULL AND decision_at IS NULL AND decision_actor_id IS NULL)
         OR (decision_kind IS NOT NULL AND decision_at IS NOT NULL));
+    ]]></sql>
+    <createTable tableName="contribution_report">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="version_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="reporter_id" type="UUID"/>
+      <column name="reason" type="TEXT"/>
+      <column name="reported_at" type="TIMESTAMP WITH TIME ZONE"><constraints nullable="false"/></column>
+    </createTable>
+    <addForeignKeyConstraint baseTableName="contribution_report" baseColumnNames="version_id" referencedTableName="contribution_version" referencedColumnNames="id" constraintName="fk_contribution_report_version"/>
+    <addForeignKeyConstraint baseTableName="contribution_report" baseColumnNames="reporter_id" referencedTableName="account" referencedColumnNames="id" constraintName="fk_contribution_reporter" onDelete="SET NULL"/>
+    <sql dbms="postgresql"><![CDATA[
+      CREATE UNIQUE INDEX uk_contribution_reporter_version ON contribution_report (version_id, reporter_id)
+        WHERE reporter_id IS NOT NULL;
     ]]></sql>
   </changeSet>
 </databaseChangeLog>

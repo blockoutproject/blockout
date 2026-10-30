@@ -723,3 +723,50 @@ it.each([
     expect(mockPush).not.toHaveBeenCalled();
   },
 );
+
+it("routes the viewed contributed version to reporting independently of support", async () => {
+  // Given
+  const detail = {
+    ...matchDetail(),
+    streamUrl: "https://youtu.be/viewed",
+    streamContributionId: "00000000-0000-4000-8000-000000000099",
+  };
+  const peer = mockFetch.getMockImplementation();
+  mockFetch.mockImplementation(async (url, init) => {
+    if (String(url).endsWith(`/matches/${detail.match.id}`))
+      return Response.json(detail);
+    if (!peer) throw new Error("Missing HTTP boundary");
+    return peer(url, init);
+  });
+  const user = userEvent.setup();
+  await render(
+    <QueryClientProvider client={client}>
+      <ThemeProvider>
+        <ApplicationAccessProvider>
+          <AccountSessionProvider>
+            <AccountFeedbackProvider>
+              <AdvertisingProviders>
+                <MatchScreen matchId={detail.match.id} />
+              </AdvertisingProviders>
+            </AccountFeedbackProvider>
+          </AccountSessionProvider>
+        </ApplicationAccessProvider>
+      </ThemeProvider>
+    </QueryClientProvider>,
+  );
+
+  // When
+  await user.press(
+    await screen.findByRole("button", { name: "Signaler le lien" }),
+  );
+
+  // Then
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/matches/[matchId]/report-contribution",
+    params: {
+      matchId: detail.match.id,
+      contributionId: detail.streamContributionId,
+      contributionUrl: detail.streamUrl,
+    },
+  });
+});

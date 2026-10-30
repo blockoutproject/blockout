@@ -29,7 +29,35 @@ import org.springframework.transaction.annotation.Transactional;
 public class JpaContributionStore implements ContributionStore {
   private final EntityManager entities;
   private final ContributionVersionRepository versions;
+  private final ContributionReportRepository reports;
   private final ContributionPersistenceMapper mapper;
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<UUID> matchForVersion(UUID versionId) {
+    return versions.findMatchId(versionId);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean reported(UUID versionId, UUID reporterId) {
+    return reports.existsByVersionIdAndReporterId(versionId, reporterId);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public long report(UUID versionId, UUID reporterId, String reason, Instant now) {
+    reports.save(new ContributionReportEntity(versionId, reporterId, reason, now));
+    return reports.countByVersionId(versionId);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void hold(UUID matchId, UUID versionId) {
+    entities.find(MatchContributionStateEntity.class, matchId).setReportHoldVersionId(versionId);
+  }
 
   /** {@inheritDoc} */
   @Override
