@@ -14,6 +14,8 @@ export function hasUnsettledProOperation(state: ProState): boolean {
     state.status !== "guest" &&
     [
       "purchasing",
+      "restoring",
+      "restore-uncertain",
       "pending",
       "uncertain",
       "already-owned",
@@ -42,13 +44,27 @@ export function ProVerification({ onSupport }: ProVerificationProps) {
   }
   if (state.status === "guest") return null;
   const uncertain = hasUnsettledProOperation(state);
-  if (state.status !== "unavailable" && !uncertain) return null;
+  if (
+    state.status !== "unavailable" &&
+    !uncertain &&
+    state.operation !== "restored"
+  )
+    return null;
   const waiting =
     state.status === "unavailable" &&
     (state.reason === "association-pending" ||
       (refreshing && !verificationFailed));
   let message = "";
-  if (state.operation === "purchased")
+  if (state.operation === "restoring")
+    message =
+      "La restauration est en cours. Aucun nouvel achat n’est nécessaire.";
+  else if (state.operation === "restored")
+    message =
+      "Restauration terminée. Aucun droit Pro actif n’a été établi pour ce compte. Vérifiez vos droits ou contactez l’assistance sans acheter à nouveau.";
+  else if (state.operation === "restore-uncertain")
+    message =
+      "Le résultat de la restauration est incertain. Vérifiez vos droits ou contactez l’assistance sans acheter à nouveau.";
+  else if (state.operation === "purchased")
     message =
       state.status === "active"
         ? "Paiement confirmé. Les droits liés à cet achat restent à vérifier. Vérifiez vos droits sans acheter à nouveau."
@@ -65,7 +81,7 @@ export function ProVerification({ onSupport }: ProVerificationProps) {
     <View style={styles.feedback}>
       {waiting ? (
         <RequestLoading />
-      ) : uncertain ? (
+      ) : uncertain || state.operation === "restored" ? (
         <>
           <Text
             accessibilityRole="alert"
@@ -78,6 +94,7 @@ export function ProVerification({ onSupport }: ProVerificationProps) {
             label="Vérifier mes droits"
             onPress={() => void verify()}
             loading={refreshing}
+            disabled={state.operation === "restoring"}
           />
         </>
       ) : (

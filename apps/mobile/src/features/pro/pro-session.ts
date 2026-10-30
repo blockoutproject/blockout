@@ -10,7 +10,7 @@ import {
   type ProSessionState,
 } from "./pro-state";
 import { canPurchasePro } from "./pro-offering";
-import { verifiedProOperation } from "./pro-operations";
+import { restoreErrorOutcome, verifiedProOperation } from "./pro-operations";
 
 /** Current native evidence and verification lifecycle; rights remain SDK-owned. */
 export interface ProSessionSnapshot {
@@ -189,10 +189,31 @@ export function createProSession() {
     if (
       operation === "pending" ||
       operation === "uncertain" ||
+      operation === "restore-uncertain" ||
       operation === "failed"
     )
-      diagnose("operation", operation);
+      diagnose(
+        "operation",
+        operation === "restore-uncertain" ? "uncertain" : operation,
+      );
     await refresh(session);
+  }
+
+  /** Records native provider restoration without starting a second store call. */
+  function beginRestore(session: SessionSnapshot): boolean {
+    if (
+      !isAssociated(session) ||
+      !snapshot.evidence ||
+      ["purchasing", "restoring", "pending"].includes(
+        snapshot.evidence.operation,
+      )
+    )
+      return false;
+    publish({
+      ...snapshot,
+      evidence: { ...snapshot.evidence, operation: "restoring" },
+    });
+    return true;
   }
 
   return {
@@ -271,11 +292,29 @@ export function createProSession() {
       return true;
     },
 
+    beginRestore,
+
+    /** Explicit fallback for a missing offer/unknown rights; no retry or restoration on account entry. */
+    async restore(session: SessionSnapshot) {
+      if (!beginRestore(session)) return;
+      const association = snapshot.evidence?.session;
+      try {
+        const customerInfo = await Purchases.restorePurchases();
+        if (snapshot.evidence?.session !== association) return;
+        await completeOperation(session, "restored", customerInfo);
+      } catch (error) {
+        if (snapshot.evidence?.session !== association) return;
+        await completeOperation(session, restoreErrorOutcome(error));
+      }
+    },
+
     /** Closing an in-flight presentation proves no cancellation; verification is the only follow-up. */
     async dismissPresentation(session: SessionSnapshot) {
       if (!isAssociated(session)) return;
       if (snapshot.evidence?.operation === "purchasing")
         await completeOperation(session, "uncertain");
+      else if (snapshot.evidence?.operation === "restoring")
+        await completeOperation(session, "restore-uncertain");
     },
 
     completeOperation,

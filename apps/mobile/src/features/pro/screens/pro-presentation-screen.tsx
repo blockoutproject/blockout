@@ -1,12 +1,21 @@
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { StyleSheet } from "react-native";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { StyleSheet, Text } from "react-native";
 import RevenueCatUI from "react-native-purchases-ui";
 import { useAccountSession } from "../../accounts/current-account";
+import type { CustomerInfo } from "react-native-purchases";
+import { tokens } from "../../../shared/theme/tokens";
+import { useTheme } from "../../../shared/theme/theme-provider";
 import { usePro } from "../pro-provider";
 import { canPurchasePro } from "../pro-offering";
-import { purchaseErrorOutcome } from "../pro-operations";
+import { purchaseErrorOutcome, restoreErrorOutcome } from "../pro-operations";
 import { useProOffering } from "../api/use-pro-offering";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
@@ -19,7 +28,7 @@ import {
   hasUnsettledProOperation,
   ProVerification,
 } from "../components/pro-verification";
-/** F12 admission and explicit management intent; F10 supplies the real destination only when implemented. */
+/** F12 admission, explicit management intent and the existing F10 navigation destination. */
 export interface ProPresentationScreenProps {
   admitted: boolean;
   management?: boolean;
@@ -42,6 +51,8 @@ export function ProPresentationScreen({
     getState,
     refresh,
     beginPurchase,
+    beginRestore,
+    restore,
     completeOperation,
     dismissPresentation,
   } = usePro();
@@ -52,26 +63,39 @@ export function ProPresentationScreen({
   const [view, setView] = useState<"automatic" | "management" | "outcome">(
     management ? "management" : "automatic",
   );
+  const { colors } = useTheme();
+  const liveAccount = useRef(account);
+  useLayoutEffect(() => {
+    liveAccount.current = account;
+  }, [account]);
   const closed = useRef(false);
+  const restoreStarted = useRef(false);
   const paywallFinished = useRef(false);
   const offeringAttempt = useRef<symbol | null>(null);
   /** Reads the live F05 snapshot, including business UUID establishment for the native principal. */
   function isCurrentPresentation() {
-    return account.accountId === openedFor.accountId;
+    return (
+      liveAccount.current.status === "authenticated" &&
+      liveAccount.current.subject === openedFor.subject &&
+      liveAccount.current.accountId === openedFor.accountId
+    );
   }
   const current =
     account.status === "authenticated" &&
     openedFor.accountId !== null &&
-    isCurrentPresentation();
+    account.subject === openedFor.subject &&
+    account.accountId === openedFor.accountId;
   const associated =
     state.status === "active" ||
     state.status === "inactive" ||
     (state.status === "unavailable" && state.reason === "customer-info");
+  const operation = state.status === "guest" ? "idle" : state.operation;
   const purchaseAllowed = canPurchasePro(state);
   const showPaywall =
     view === "automatic" &&
     (purchaseAllowed ||
-      (state.status !== "guest" && state.operation === "purchasing"));
+      (state.status !== "guest" &&
+        ["purchasing", "restoring"].includes(state.operation)));
   const offering = useProOffering(admitted && current && showPaywall);
   const { refetch: readOffering } = offering;
   /** Retains a known empty catalogue on failure, but abandons its feedback when another destination view takes over. */
@@ -94,6 +118,30 @@ export function ProPresentationScreen({
     } finally {
       if (offeringAttempt.current === attempt) offeringAttempt.current = null;
     }
+  }
+  /** Observes a provider-owned explicit restoration; the native UI owns store execution. */
+  function startRestore() {
+    if (closed.current || !isCurrentPresentation()) return;
+    restoreStarted.current = beginRestore();
+  }
+  /** Accepts one attributed native result without equating operation completion with active rights. */
+  function finishRestore(customerInfo?: CustomerInfo, error?: unknown) {
+    if (!restoreStarted.current || !isCurrentPresentation()) return;
+    restoreStarted.current = false;
+    void completeOperation(
+      customerInfo ? "restored" : restoreErrorOutcome(error),
+      customerInfo,
+    );
+    if (closed.current) return;
+    if (customerInfo?.entitlements.active["Blockout Pro"]) close();
+    else setView("outcome");
+  }
+  /** The fallback remains independent of offers; the existing owner gates native execution. */
+  function restoreExplicitly() {
+    if (closed.current || !isCurrentPresentation()) return;
+    offeringAttempt.current = null;
+    setView("outcome");
+    void restore();
   }
   /** Removes the route once, even when native dismissal follows a completion callback. */
   const close = useCallback(() => {
@@ -142,6 +190,9 @@ export function ProPresentationScreen({
       <RevenueCatUI.Paywall
         style={styles.provider}
         options={{ offering: offering.data }}
+        onRestoreStarted={startRestore}
+        onRestoreCompleted={({ customerInfo }) => finishRestore(customerInfo)}
+        onRestoreError={({ error }) => finishRestore(undefined, error)}
         onPurchasePackageInitiated={({ resume }) =>
           resume(
             !closed.current &&
@@ -202,6 +253,12 @@ export function ProPresentationScreen({
     return (
       <RevenueCatUI.CustomerCenterView
         style={styles.provider}
+        onRestoreStarted={() => {
+          setView("management");
+          startRestore();
+        }}
+        onRestoreCompleted={({ customerInfo }) => finishRestore(customerInfo)}
+        onRestoreFailed={({ error }) => finishRestore(undefined, error)}
         onDismiss={() => {
           if (isCurrentPresentation()) close();
         }}
@@ -209,6 +266,7 @@ export function ProPresentationScreen({
           onSupport
             ? ({ actionId }) => {
                 if (
+                  closed.current ||
                   !isCurrentPresentation() ||
                   actionId !==
                     Constants.expoConfig?.extra?.revenueCat
@@ -249,6 +307,23 @@ export function ProPresentationScreen({
           ) : (
             <ProVerification />
           )}
+          <Text
+            style={[tokens.typography.body, { color: colors.secondaryText }]}
+          >
+            La restauration peut associer les achats du store à ce compte, y
+            compris le reçu entier. Elle ne récupère ni votre ancien profil ni
+            vos cadeaux. Un achat d’une autre boutique peut nécessiter
+            l’assistance.
+          </Text>
+          <Button
+            label="Restaurer mes achats"
+            onPress={restoreExplicitly}
+            disabled={
+              !associated ||
+              ["restoring", "purchasing", "pending"].includes(operation)
+            }
+            loading={operation === "restoring"}
+          />
           {associated && (
             <Button
               label="Gérer ou restaurer mes achats"

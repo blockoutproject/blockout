@@ -6,7 +6,9 @@ import type { ProState } from "./pro-state";
 export function canPurchasePro(state: ProState): boolean {
   return (
     state.status === "inactive" &&
-    ["idle", "cancelled", "failed", "completed"].includes(state.operation)
+    ["idle", "cancelled", "failed", "completed", "restored"].includes(
+      state.operation,
+    )
   );
 }
 
