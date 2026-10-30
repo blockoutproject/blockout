@@ -14,19 +14,24 @@ import com.blockout.backend.search.application.SearchContext;
 import com.blockout.backend.search.application.SearchContinuation;
 import com.blockout.backend.search.application.SearchEngine;
 import com.blockout.backend.search.application.SearchPage;
+import com.blockout.backend.search.application.SearchUnavailableException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.TransactionException;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 /** Generated textual collections after the shared F12 security/filter admission. */
 @RestController
 @RequiredArgsConstructor
+@Slf4j
 public class DiscoveryController implements DiscoveryApi {
   private final ReadSearch reads;
   private final ReadSearchOptions options;
@@ -99,14 +104,28 @@ public class DiscoveryController implements DiscoveryApi {
         .body(mapper.toPoolDto(page, cursor(context, page)));
   }
 
-  /** {@inheritDoc} */
+  /**
+   * {@inheritDoc}
+   *
+   * <p>Translates current-read failures around the application transaction, including acquisition
+   * and completion, without exposing storage diagnostics.
+   */
   @Override
   public ResponseEntity<SportingSearchOptionsResponse> getSportingSearchOptions(
       SearchResourceTypeEnum resourceType, Boolean bypass) {
     requests.validateOptions(request);
-    return ResponseEntity.ok()
-        .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(options.read(resourceType)));
+    try {
+      return ResponseEntity.ok()
+          .cacheControl(CacheControl.noStore())
+          .body(mapper.toDto(options.read(resourceType)));
+    } catch (DataAccessException | TransactionException failure) {
+      log.atError()
+          .addKeyValue("operation", "search_options")
+          .addKeyValue("outcome", "unavailable")
+          .addKeyValue("error.type", failure.getClass().getName())
+          .log("Current search options unavailable");
+      throw new SearchUnavailableException(failure);
+    }
   }
 
   /**
