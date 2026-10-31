@@ -6,17 +6,17 @@ description: "Implementation tasks for F01 acquisition and source operations"
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md).
 
-**Prerequisites**: Current accepted owning artifacts, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md), including the F13 native UI foundation. This file schedules future implementation; authoring it performs no application setup, provider access, reconstruction or production operation.
+**Prerequisites**: Current accepted owning artifacts, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md), including the F13 native UI foundation. Provider access, reconstruction and production operations require their actual prerequisites and authorization.
 
 **Tests**: The specification explicitly requests A01–A45 and SC-001–009 qualification. Write automated tests before the implementation they protect and observe meaningful failures. Use sanitized or synthetic fixtures, identifying which cases are observed versus synthetic; never put personal provider payloads in Git. Prepare manual/native/provider cases before execution, which requires actual prerequisites and its own authorization. Documentary checks and samples do not establish full source coverage or reconstruction readiness.
 
-**Organization**: Setup/foundation precede US1, US2, US3 and US5 (P1), then US4, US6 and US7 (P2), preserving the specification's story IDs. Controlled inputs allow local development; integrated acceptance waits for the named real owners. Native task authoring does not wait for future device/provider evidence or another owner's task file.
+**Organization**: Setup/foundation precede US1, US2, US3 and US5 (P1), then US4, US6 and US7 (P2), preserving the specification's story IDs. Controlled inputs allow local development; integrated acceptance waits for the named real owners.
 
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]** marks distinct-file work that can run together after its prerequisites.
 - **[USn]** identifies the owning specification story; setup/foundation/polish have no story label.
-- All boxes remain unchecked until future implementation or qualification is complete.
+- Checked tasks record completed scope and its evidence; remaining implementation and qualification stay unchecked.
 
 ## Path Conventions
 
@@ -242,6 +242,16 @@ description: "Implementation tasks for F01 acquisition and source operations"
 - [ ] T071 Run actual F13 build/test/generation targets in `apps/backend/pom.xml`, `apps/collector/pom.xml` and `apps/mobile/package.json`, including representative parser fixtures, bounded transport, PostgreSQL fencing/ordering, generated consumers and implemented native cases. Verify deterministic generated output remains ignored; repeat affected checks after demonstrated fixes, preserving unavailable live/native/provider evidence rather than broadening into unrelated runtime work.
 - [ ] T072 Complete A01–A45 and SC-001–009 evidence in `specs/001-source-acquisition/quickstart.md`, with actual runnable commands and concise operational links once executable work exists. Check all 55 FRs, distinguish observed versus synthetic/source-unavailable coverage, and retain outstanding F02/F03/F07/F13/F14 integration obligations. Run the repository documentation/contract checks from `README.md`; no document check, sample archive or alert closure certifies runtime, source completeness or transition approval.
 
+- [x] T073 Use canonical six-field validation evidence in `apps/backend/src/main/java/com/blockout/backend/collection/application/model/CollectionState.java` and `apps/collector/src/main/java/com/blockout/collector/acquisition/application/CollectionBackend.java` and their consumers, with an explicit nullable failure category. Preserve the ingestion contract and current evidence semantics, verify fresh generation and both module suites, and independently review the complete touched source/test files. Record the bounded results in `quickstart.md#boundary-evidence`.
+
+- [x] T074 [P] Implement the LNV observation boundary in `apps/collector/src/main/java/com/blockout/collector/acquisition/lnv/`: let the reader own image observation, reuse the parsed passage-local auxiliary index and expose parser facts with their completeness. Migrate parser/reader tests and `CollectorPresentationBoundaryIntegrationTest`; preserve image provenance, independent failures, exact document matching and incomplete detail evidence.
+
+- [x] T075 [P] Narrow `CollectionBackend.Target` to consumed acquisition inputs and verify the generated projection in `CollectionBackendMapperTest`. Retain exact contextual identities, URLs, leading zeros and current locality revisions; leave backend classification/cadence and HTTP fields with their owners.
+
+- [x] T076 After T075 releases the shared model/mapper test files, retain the admitted candidate directly in `CollectionBackend.Cycle` and migrate `QualifySource`, lifecycle checks and generated adapter consumers. Reuse `CollectorLifecycle.inspectConflict` in passages/discovery. Prove failed admission starts no provider work or confirmation read, later polls follow backend eligibility, terminal writes are sent once, unavailable conflict inspection preserves the refusal and confirmed supersession stops work.
+
+- [x] T077 Verify T074–T076 through the actual README/CI commands and isolated collector/backend/PostgreSQL boundary, including presentation, partial commits, contextual identities and absence safety. Independently review changed source/tests and deleted consumers; record controlled versus integrated evidence and unavailable provider qualification in `quickstart.md#boundary-evidence`. Unrelated incomplete qualifications above remain open.
+
 ---
 
 ## Dependencies & Execution Order
@@ -298,14 +308,3 @@ Serialize edits to `collection.xml`, `CollectionStore.java`, `AdmitCollectionCyc
 3. **Operational increments**: Deliver US5 native scheduling/commands, then US4 club/geocoding and US6 observability. Reuse F13 UI/native mechanisms; retain manual recovery and supplier limitations without a new framework.
 4. **Controlled reconstruction**: Complete US7 with real F07/F14 boundaries, current coverage and terminal closure. Qualification prepares the release decision; it does not execute or approve a production reset/cutover.
 5. **Close only supported evidence**: Run polish, preserve unresolved qualifications and report precise obtained/rejected/unavailable scope. No fabricated freshness, coverage, recovery or native approval follows from documentation checks.
-
-## Phase 11: Validation evidence maintenance
-
-- [x] T073 Remove the unused five-argument validation constructors in `apps/backend/src/main/java/com/blockout/backend/collection/application/model/CollectionState.java` and `apps/collector/src/main/java/com/blockout/collector/acquisition/application/CollectionBackend.java`; migrate their four test-fixture consumers to the canonical representation with an explicit nullable failure category. Preserve the ingestion contract and current evidence semantics, verify fresh generation and both module suites, and independently review the complete touched source/test files. Record the bounded results in `quickstart.md#boundary-evidence`.
-
-## Phase 12: Collector responsibility simplification
-
-- [x] T074 [P] Characterize and simplify LNV acquisition in `apps/collector/src/main/java/com/blockout/collector/acquisition/lnv/`: remove the image forwarding component, reuse the parsed passage-local auxiliary index and remove the test-only detail projection. Migrate parser/reader tests and `CollectorPresentationBoundaryIntegrationTest`; preserve image provenance, independent failures, exact document matching and incomplete detail evidence.
-- [x] T075 [P] Narrow `CollectionBackend.Target` to consumed acquisition inputs and verify the generated projection in `CollectionBackendMapperTest`. Retain exact contextual identities, URLs, leading zeros and current locality revisions; leave backend classification/cadence and HTTP fields with their owners.
-- [x] T076 After T075 releases the shared model/mapper test files, retain the admitted candidate directly in `CollectionBackend.Cycle` and migrate `QualifySource`, lifecycle checks and generated adapter consumers. Reuse `CollectorLifecycle.inspectConflict` in passages/discovery. Prove failed admission starts no provider work or confirmation read, later polls follow backend eligibility, terminal writes are sent once, unavailable conflict inspection preserves the refusal and confirmed supersession stops work.
-- [x] T077 Verify T074–T076 through the actual README/CI commands and isolated collector/backend/PostgreSQL boundary, including presentation, partial commits, contextual identities and absence safety. Independently review changed source/tests and deleted consumers; record controlled versus integrated evidence and unavailable provider qualification in `quickstart.md#collector-simplification`. Unrelated incomplete qualifications above remain open.

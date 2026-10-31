@@ -4,7 +4,7 @@
 
 **Input**: [spec.md](spec.md) and the accepted [F13 foundation](../003-shared-quality/plan.md).
 
-**Scope**: Technical planning and reconciled specifications/design for F11; product runtime and provider configuration remain future work.
+**Scope**: F11 technical choices and scoped design. [Tasks](tasks.md) track implementation and remaining provider/native qualifications; [quickstart](quickstart.md) records their actual evidence boundaries.
 
 ## Summary
 
@@ -42,7 +42,7 @@ Use the native Google Mobile Ads/UMP integration and Meta mediation for eligible
 
 **Approved design**: Prototype `89f60e9`, with authorized search-counter removal in `b28c005`. Figma: [age declaration/renewal](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=6650-4899), [privacy/correction](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5272-10390), [search](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=916-2832), published [Age Selector](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=3681-609), and [public-document browser handoff](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5197-5300). Approval covers light/dark, compact-width and enlarged-text specimens; indicative browser controls define no custom reader.
 
-The post-design constitution check identifies no exception. The combined specification and planning delivery remains subject to owner review; these design approvals authorize neither product implementation nor provider activation.
+The post-design constitution check identifies no exception. Design approval establishes the reviewed experience; implementation and provider activation retain their separate authorization and qualification requirements.
 
 ## Project Structure
 
@@ -73,7 +73,7 @@ contracts/http/mobile/openapi.yaml       # existing contact representations; one
 
 **Structure Decision**: Keep the mobile runtime in the advertising owner, with thin calls from actual sporting transitions. Reuse F05/F09 session/entitlement state and F02 contact transactions; do not add a service per feature or a generic provider framework. Map stable extensionless `/legals/{kind}` URLs to the bundled HTML resources through ordinary backend routing.
 
-Blockout-owned age/privacy controls consume the [F13 UI foundation](../003-shared-quality/plan.md#native-ui-and-approved-design) before screen integration. F11 retains the age-selector behavior and privacy composition; shared buttons, fields and sheets supply presentation. The privacy menu closes before the short correction sheet opens; cancellation restores privacy navigation without changing the declaration. Never stack the two sheets or turn the age selector into a text-entry form. Native UMP and browser surfaces retain their provider/platform ownership and qualification. The changed sequencing/design evidence follows [F13 presentation evidence](../003-shared-quality/quickstart.md#native-mobile-and-approved-design); other approved age content remains unchanged.
+Blockout-owned age/privacy controls consume the [F13 UI foundation](../003-shared-quality/plan.md#native-ui-and-approved-design) before screen integration. F11 retains the age-selector behavior and privacy composition; shared buttons, fields and sheets supply presentation. The privacy menu closes before the short correction sheet opens; cancellation restores privacy navigation without changing the declaration. Never stack the two sheets or turn the age selector into a text-entry form. Native UMP and browser surfaces retain their provider/platform ownership and qualification. The changed sequencing/design evidence follows [F13 presentation evidence](../003-shared-quality/quickstart.md#native-ui-and-approved-design); other approved age content remains unchanged.
 
 ## Advertising integration
 
@@ -120,7 +120,7 @@ F11 requires restricted club contacts to stay absent through collection, editing
 
 Do not build generalized referee/person suppression. Other individual requests remain manual under F11; F05 deletion and [F10 private support](../012-reports-feature-suggestions/plan.md) retain their own handling. F10 owns submission and retry behavior; its secondary signal contains no personal content. Support records have no independent Blockout backup; closure is not erasure. Before restored data is reopened, manually reconcile current restrictions, erasures, rights and expiry under F13. Backup retention does not become a universal business/log retention rule.
 
-## Consumer and release reconciliation
+## Consumers and release conditions
 
 - **F02**: contact metadata, collection/edit enforcement, current revision and null representations; reuse existing contracts and club locking.
 - **F05**: advertising declaration does not create a profile field, account age gate or provider identity mapping. Existing synchronous local deletion/manual external cleanup is unchanged.

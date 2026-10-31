@@ -105,7 +105,7 @@ Use official `RevenueCatUI.CustomerCenterView` alone in the same native route ho
 
 Configure the native management and no-active-purchase paths with restoration and the F10 Custom Action where supported. Leave the Customer Center purchase offering unset: purchasing uses the explicitly selected V2 paywall, never an implicit `current` offering from another entry. Disable the built-in Contact Support action and in-app tickets so they do not create a second support channel. Qualify shared configuration changes against V1 during coexistence before publishing them. If Customer Center cannot load, the person can close it and use the existing F10 entry from the profile; assistance does not depend on RevenueCat availability. No custom provider error screen is added.
 
-Prototype/Figma contain only fictitious text identifying the RevenueCat handoff; no offer, purchase, restoration or provider error UI is drawn. Updated captures are tracked by [F13 presentation evidence](../003-shared-quality/quickstart.md#native-mobile-and-approved-design). Those mocks establish navigation intent, not provider or store acceptance.
+Prototype/Figma contain only fictitious text identifying the RevenueCat handoff; no offer, purchase, restoration or provider error UI is drawn. Updated captures are tracked by [F13 presentation evidence](../003-shared-quality/quickstart.md#native-ui-and-approved-design). Those mocks establish navigation intent, not provider or store acceptance.
 
 No receipts, complete SDK objects or customer payloads are automatically attached to support. Operator verification and private records follow F10/F11. Unsupported cross-store restoration uses that process without forced repurchase, identity merging or an automatic gift.
 
@@ -113,7 +113,7 @@ No receipts, complete SDK objects or customer payloads are automatically attache
 
 Keep the existing RevenueCat project and native `Sandbox testing access: Anybody`. Use dedicated test accounts with Test Store for development and routine preproduction; qualify real Apple/Google sandbox purchases with the corresponding platform keys before release. Test Store keys never enter production candidates. A project can hold sandbox and production receipts for the same customer: these are not isolated identity namespaces. F05's original-target and test-account restrictions remain necessary for destructive cleanup.
 
-The current account makes Customer Center available; pricing eligibility is a time-bounded observation, not a permanent free-service guarantee. Select no new RevenueCat subscription as part of this task.
+The current account makes Customer Center available; pricing eligibility is a time-bounded observation, not a permanent free-service guarantee. Use the existing RevenueCat subscription.
 
 F14 retains historical associations and original references needed for explicit restore and scoped erasure. Creating the V2 UUID or signing in is not customer deletion. Accept native receipt-wide transfer; never merge Blockout profiles. The owner confirms there are no V1 gifts: verify that premise at cutover without designing a gift-migration engine. Future V2 gifts use supported owner console grant/change/revoke operations, independently of billing.
 
@@ -121,6 +121,6 @@ F05's local-first deletion and bounded provider attempts remain unchanged. Failu
 
 ## Verification and completion boundary
 
-[Research](research.md) records official documentation, source inspection and bounded console observations. [Quickstart](quickstart.md) defines future integrated qualifications. Controlled local tests establish only Blockout-owned composition and lifecycle behavior. Actual purchases, restoration, provider rendering and account-switch transactions require their separate native/store evidence.
+[Research](research.md) records official documentation, source inspection and bounded console observations. [Quickstart](quickstart.md) owns integrated qualification scenarios and their revision-scoped results. Controlled local tests establish only Blockout-owned composition and lifecycle behavior. Actual purchases, restoration, provider rendering and account-switch transactions require their separate native/store evidence.
 
 The scoped prototype and Figma approvals are recorded in the specification. Check specifications and native planning artifacts together for documentary consistency and owner/consumer coverage. Publication follows [repository delivery policy](../../AGENTS.md#git-delivery); these artifacts establish no provider or runtime qualification.

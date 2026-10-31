@@ -143,14 +143,14 @@ T014/T018 implementation is delivered by [#502](https://github.com/blockoutproje
 
 Implementation inputs include [Product Design mapping controls](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4652-28674), [division catalogue](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1340-9338), [creation](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1370-10242) and [gradient/lifecycle](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1368-10291). These identify design sources, not a passed fidelity comparison. The implementation uses F13 native stack sheets and the existing RHF control; lifecycle and presentation retain independent commands with one revision/recovery owner.
 
-The [retained captures](https://github.com/blockoutproject/blockout/pull/502#issuecomment-6395696451) for [T014/T018](tasks.md) are implementation illustrations only. They are not native, visual, provider or integrated-journey evidence and must not be reused as acceptance, passed scenarios or partial qualification. T055 remains wholly unexecuted for completion purposes and must be performed afresh using its owning specification, approved plan and [prepared scenarios](#presentation-contacts-and-continuity). Future agents must assess the current implementation independently, without inheriting conclusions from that exploration. Related [F13 live Dynamic Type and iOS input qualifications](../003-shared-quality/quickstart.md#native-presentation-qualification) remain with their owner.
+The [retained captures](https://github.com/blockoutproject/blockout/pull/502#issuecomment-6395696451) for [T014/T018](tasks.md) are implementation illustrations only. They are not native, visual, provider or integrated-journey evidence and must not be reused as acceptance, passed scenarios or partial qualification. T055 remains wholly unexecuted for completion purposes and must be performed afresh using its owning specification, approved plan and [prepared scenarios](#presentation-contacts-and-continuity). Future agents must assess the current implementation independently, without inheriting conclusions from that exploration. Related [F13 live Dynamic Type and iOS input qualifications](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) remain with their owner.
 
 ## Presentation, contacts and continuity
 
 In existing native journeys, verify a professional team with no club remains readable/followable without a club link or invented point. Exercise team override → LNV → optional club → missing artwork, plus unchanged nonprofessional inheritance. Fail logo retrieval/replacement and retain the last valid presentation. Check both themes, enlarged text, focus and meaningful accessible action labels.
 
 For T045, use the exact [approved editor, professional-team, partial-map and
-320-point/200% references](plan.md#consumer-and-design-reconciliation). Prepare
+320-point/200% references](plan.md#consumers-and-approved-design). Prepare
 demonstration resources and a current account with `manageSportingPresentation`;
 classification, lifecycle, moderation and Pro alone must grant no editor access.
 Enter the club, team, pool and division presentation routes through their resource
@@ -239,7 +239,7 @@ rights procedure itself. Administrative multipart uses Spring RestClient, not th
 native mobile networking stack. No live FFVB/IGN/LNV reads, provider coverage,
 native design/accessibility, production or protected-logo recovery are certified;
 those remain with their owning tasks, including T055/T056 and [F01 T058](../001-source-acquisition/tasks.md). The
-retained [F13 live Dynamic Type and iOS 17 input limits](../003-shared-quality/quickstart.md#native-presentation-qualification) are unchanged.
+retained [F13 live Dynamic Type and iOS 17 input limits](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) are unchanged.
 
 ### Current visibility and projection boundary
 

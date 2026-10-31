@@ -16,7 +16,7 @@ description: "Implementation tasks for F02 sporting identity, integration and li
 
 - **[P]** means distinct-file work that may run together after its stated prerequisites.
 - **[USn]** maps to the specification's story number.
-- Each path identifies a future implementation location or an existing qualification source. Boxes remain unchecked until implementation evidence exists.
+- Paths identify implementation or its qualification source. Checked tasks record completed scope; remaining work stays unchecked.
 
 ## Path Conventions
 
@@ -175,7 +175,7 @@ The quoted data-model constraints below remain literal. Concrete Java classes gr
 - [x] T042 [P] [US6] Write failing presentation/contact MVC tests in `apps/backend/src/test/java/com/blockout/backend/sporting/api/SportingPresentationWebMvcTest.java`; cover every canonical GET/PATCH/PUT/POST shape, JSON metadata nulls in multipart PATCH, `keep`/`automatic` refusing an image, `replace` requiring one, PNG/JPEG actual content and 5,242,880-byte limit, all-or-none invalid form saves, pool names-only full PUT, atomic contacts PATCH, stale/no-op revisions, permissions, no-store, 415 and 201 Location.
 - [x] T043 [P] [US6] Write failing persistence/privacy/locality tests in `apps/backend/src/test/java/com/blockout/backend/sporting/application/SportingPresentationIntegrationTest.java`; cover A33–A38, independent name/contact overrides, restricted values through collection/return-to-source/restore, atomic bytes/association, professional/nonprofessional logo precedence, contact/grant races, effective locality revision, street-only/masked changes and late geocoding response rejection.
 - [x] T044 [P] [US6] Write failing native form/transport interaction cases in `apps/mobile/src/features/sporting-administration/__tests__/presentation.test.tsx`; cover one atomic generated multipart save, automatic-logo restoration, names-only pool editing, dirty drafts during refetch, field errors, confirmed/uncertain failure recovery, current-session invalidation and action-specific access. Reuse F13's image control and transport; add no contact-correction form.
-- [x] T045 [P] [US6] Prepare the native and protected-logo cases in `specs/002-sporting-data/quickstart.md#presentation-contacts-and-continuity` using the exact approved references in `plan.md#consumer-and-design-reconciliation`; include both themes, enlarged text, narrow viewport, VoiceOver/TalkBack, focus/back/keyboard, professional optional club/map behavior and A39 certain/unresolved/missing-file cases. Keep real recovery evidence private.
+- [x] T045 [P] [US6] Prepare the native and protected-logo cases in `specs/002-sporting-data/quickstart.md#presentation-contacts-and-continuity` using the exact approved references in `plan.md#consumers-and-approved-design`; include both themes, enlarged text, narrow viewport, VoiceOver/TalkBack, focus/back/keyboard, professional optional club/map behavior and A39 certain/unresolved/missing-file cases. Keep real recovery evidence private.
 
 ### Implementation for User Story 6
 

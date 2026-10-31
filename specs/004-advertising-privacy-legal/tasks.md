@@ -10,13 +10,13 @@ description: "Implementation tasks for F11 advertising, privacy and legal"
 
 **Tests**: The specification explicitly requests A01–A27 and SC-001–008 qualification. Write the automated tests below first and observe meaningful failure before their associated implementation. Prepare manual cases before the affected setup; actual provider/device/privacy/release evidence requires its named prerequisites and separate operational authorization. Reuse owning-feature evidence rather than repeating identical suites or claiming doubles qualify real providers.
 
-**Organization**: Setup and foundation precede one phase per specification story, US1–US6, all P1. Each story has an independently testable boundary; dependent native/cross-owner acceptance remains open until real inputs exist. Future owner task files are not prerequisites for authoring F11.
+**Organization**: Setup and foundation precede one phase per specification story, US1–US6, all P1. Each story has an independently testable boundary; dependent native/cross-owner acceptance remains open until real inputs exist.
 
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]** marks distinct-file work that can proceed together after its prerequisites.
 - **[USn]** retains the specification story identifier; setup/foundation/polish have no story label.
-- Paths identify future implementation or the owning qualification source. All tasks start unchecked.
+- Paths identify implementation or its qualification source. Checked tasks record completed scope; remaining work stays unchecked.
 
 ## Path Conventions
 
@@ -39,7 +39,7 @@ description: "Implementation tasks for F11 advertising, privacy and legal"
 **Purpose**: Establish the narrow current-context eligibility boundary used by the counter and native choice lifecycle.
 
 - [x] T003 Write failing eligibility tests in `apps/mobile/src/features/advertising/__tests__/advertising-eligibility.test.ts` using controlled F05/F09/F12 inputs: guests do not wait for account entitlements; active paid/gifted Pro and unknown signed-in state permit neither ads nor inherited exemptions; inactive native state still requires an authorized ad mode and current admission. Cover A → B and A → guest → A without copying entitlement state or inventing a refresh clock.
-- [x] T004 Implement current-context eligibility in `apps/mobile/src/features/advertising/advertising-eligibility.ts`; make T003 pass by consuming the F05 session generation, F09 native entitlement state and F12 admission, with explicit current native-choice inputs. Unestablished authorization never permits requests/display; privacy preparation can remain independent of entitlement retrieval. Keep public sporting data access with its owners and introduce no backend rights projection, consent mirror, account-age inference or advertising identity registry.
+- [x] T004 Implement current-context eligibility in `apps/mobile/src/features/advertising/advertising-eligibility.ts`; make T003 pass by consuming the F05 native-principal context, F09 native entitlement state and F12 admission, with explicit current native-choice inputs. Unestablished authorization never permits requests/display; privacy preparation can remain independent of entitlement retrieval. Keep public sporting data access with its owners and introduce no backend rights projection, consent mirror, account-age inference or advertising identity registry.
 
 **Checkpoint**: Controlled eligibility inputs support isolated story tests. Actual F05/F09/F12 bindings and US2 native choices are required before live ad integration, not before implementing the counter.
 
@@ -117,6 +117,8 @@ description: "Implementation tasks for F11 advertising, privacy and legal"
 - [ ] T025 [US3] Implement ordinary extensionless resource routing in `apps/backend/src/main/java/com/blockout/backend/legal/LegalDocumentsController.java` and the narrow public exceptions in F13's `apps/backend/src/main/java/com/blockout/backend/config/SecurityConfiguration.java`; make T021 pass with the bundled HTML, ordinary explicit missing-page handling and existing backend availability. Preserve the public privacy/deletion URL; add no legal service, CMS, mobile editing API or separate hosting promise.
 - [ ] T026 [US3] Implement `apps/mobile/src/features/privacy/open-legal-document.ts` with `WebBrowser.openBrowserAsync` and connect existing legal entry points; make T023 pass using the iOS integrated browser and Android Custom Tabs for reading/loading/network/return controls. Keep understandable opening failure/retry, no custom reader/offline copy, and no interpretation of reading or continued sign-in as consent or new mandatory acceptance.
 - [ ] T027 [US3] Qualify A12–A15 through `specs/004-advertising-privacy-legal/quickstart.md#scenarios-and-expected-outcomes` and the existing release procedure in `infra/dokploy/README.md`: verify native reading/return, public deletion anchor, missing/network failure, invalid-file rejection and failed-release preservation on an authorized isolated candidate. Public publication additionally waits for T039/T040 truthful-content/release review; after recovery inspect the actual deployed document before claiming publication. Reuse F13's backend delivery evidence, with no independent availability or rollback mechanism.
+
+- [x] T044 [US3] Verify the designated Product Design Account sources follow FR-016 and the approved native-browser handoff, with current screens and the independent sporting reader intact. Record bounded design-source verification and the unresolved UMP illustration ownership/use decision in `quickstart.md#native-setup-boundary-t001t002`; this establishes no native browser or legal-content qualification.
 
 **Checkpoint**: Legal reading and resource validation work independently of ads. Public release still needs verified real information and the existing reviewed delivery authorization.
 
@@ -238,7 +240,3 @@ Parallel markers require completed prerequisites and distinct files. Serialize s
 2. Add US2 local age and ordinary native consent/permission integration, then connect actual sporting transitions and qualify the shared lifecycle. Use one counter, one prepared ad and existing SDK/platform mechanisms throughout.
 3. Deliver US3 static legal reading independently, and integrate US4/US5 privacy proof through their real owners rather than copying contact/support implementations. Complete release truthfulness before publishing the files.
 4. Validate manual rights, provider/store declarations and V1/existing-user continuity through US6 and F14. Reuse native, restore and provider evidence across owners; complete acceptance only when each required outcome is demonstrated, with accepted limits intact.
-
-## Phase 10: Retired representation maintenance
-
-- [x] T044 [US3] Remove the three unpublished, uninstanced private custom legal-reader sources from the designated Product Design Account page, following FR-016 and the approved native-browser handoff. Check incoming prototype references, preserve all current screens and the independent sporting reader, independently review the removal decision, and record exact node IDs, rendering evidence and unresolved consent-simulation candidates in `quickstart.md#retired-legal-reader-authoring-sources`.

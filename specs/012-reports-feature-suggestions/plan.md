@@ -4,7 +4,7 @@
 
 **Input**: [spec.md](spec.md), [F05 identity](../005-accounts-identity/plan.md) and [F11 privacy](../004-advertising-privacy-legal/plan.md).
 
-**Status**: Planning dossier with the scoped prototype and Figma approvals recorded below. Native and provider qualifications remain future implementation checks.
+**Status**: Technical plan with the scoped prototype and Figma approvals recorded below. [Tasks](tasks.md) track implementation and remaining native/provider qualification; [quickstart](quickstart.md) records bounded construction and owner-integration results.
 
 ## Summary
 
@@ -14,11 +14,11 @@ Provide one shared private problem/suggestion form to guests and signed-in peopl
 
 **Language/Version**: Java 25 / Spring Boot 4.1.1; TypeScript / Expo SDK 58 / React Native 0.88 / React 19.3.0, under [F13](../003-shared-quality/plan.md).
 
-**Primary Dependencies**: Spring MVC/RestClient, Java ProcessBuilder and ordinary image decoding; official GitHub CLI 2.102.0 in the future backend image. Existing React Hook Form/Zod, TanStack Query and SDK-compatible Expo ImagePicker/ImageManipulator. The CLI is an invoked binary, not a new service or Java SDK.
+**Primary Dependencies**: Spring MVC/RestClient, Java ProcessBuilder and ordinary image decoding; official GitHub CLI 2.102.0 in the backend image. Existing React Hook Form/Zod, TanStack Query and SDK-compatible Expo ImagePicker/ImageManipulator. The CLI is an invoked binary, not a new service or Java SDK.
 
 **Storage**: GitHub private issues and native attachments only. Current mobile draft and private backend temporary files are transient. No SQL ticket table, parallel image store, support backup or migration.
 
-**Testing**: JUnit/Spring MVC with controlled provider/process boundaries; Jest Expo/React Native Testing Library; native image and real private-provider qualification. Current repository verification covers documents and OpenAPI.
+**Testing**: JUnit/Spring MVC with controlled provider/process boundaries; Jest Expo/React Native Testing Library; native image and real private-provider qualification. The actual application and contract verification commands are owned by the repository README.
 
 **Target Platform**: Existing Linux backend, native iOS/Android mobile, GitHub Cloud and a private Discord webhook.
 
@@ -32,16 +32,16 @@ Provide one shared private problem/suggestion form to guests and signed-in peopl
 
 ## Constitution Check
 
-The initial approved baseline permitted this scoped planning feedback loop. Both scoped approvals below are now recorded; the post-design check passes within this planning-only scope.
+Both scoped approvals below satisfy the design prerequisite. The post-design check preserves the distinction between approved experience, implemented behavior and provider qualification.
 
-| Principle         | Application                                                                                                                                                                                                                                                          |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| I — Specification | F10 owns the synchronous submission and explicit-retry behavior; current requirements integrate these decisions without session narration.                                                                                                                           |
-| II — Ownership    | F11 owns privacy and exceptional rights handling, F12 global access and F13 common controls/diagnostics. Their affected support/backup statements are reconciled.                                                                                                    |
-| III — Design      | Prototype `14f88bb` and its scoped Figma reconciliation were explicitly approved in this conversation on 2026-10-15. The exact affected references appear below; provider/native behavior remains unqualified.                                                       |
-| IV — Contracts    | Extend the canonical mobile root with one multipart operation and shared errors. No copied contract, bespoke encoder or generated-output patch. Integration generation/compilation remains to qualify.                                                               |
-| V — Simplicity    | Native GitHub issues/attachments, ordinary labels, one HTTP form submission and manual exceptional cleanup. No durable ticket/work registry, background retry or storage synchronization.                                                                            |
-| Prerequisites     | The accepted [F05](../005-accounts-identity/plan.md) and [F11](../004-advertising-privacy-legal/plan.md) plans supply identity/privacy boundaries. Private provider configuration and qualification are future implementation prerequisites, not claimed executions. |
+| Principle         | Application                                                                                                                                                                                                                                                                       |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I — Specification | F10 owns the synchronous submission and explicit-retry behavior; current requirements integrate these decisions without session narration.                                                                                                                                        |
+| II — Ownership    | F11 owns privacy and exceptional rights handling, F12 global access and F13 common controls/diagnostics. Their affected support/backup statements are reconciled.                                                                                                                 |
+| III — Design      | Prototype `14f88bb` and its scoped Figma reconciliation were explicitly approved in this conversation on 2026-10-15. The exact affected references appear below; provider/native behavior remains unqualified.                                                                    |
+| IV — Contracts    | Extend the canonical mobile root with one multipart operation and shared errors. No copied contract, bespoke encoder or generated-output patch. Generation/compilation and controlled consumer evidence are recorded in the quickstart; they do not qualify the private provider. |
+| V — Simplicity    | Native GitHub issues/attachments, ordinary labels, one HTTP form submission and manual exceptional cleanup. No durable ticket/work registry, background retry or storage synchronization.                                                                                         |
+| Prerequisites     | The accepted [F05](../005-accounts-identity/plan.md) and [F11](../004-advertising-privacy-legal/plan.md) plans supply identity/privacy boundaries. Real private-provider configuration and qualification retain their task-specific prerequisites and authorization.              |
 
 ## Project Structure
 
@@ -71,7 +71,7 @@ Keep F10 inside the existing applications. Generated DTOs stay at the HTTP bound
 
 ## Complete submission and provider boundary
 
-The [common image decoder](../003-shared-quality/plan.md#common-backend-composition) owns native content detection and decoding only. F10 keeps whole-input validation, its own pre-raster decoded-buffer budget, distinct unsupported/corrupt refusals and exact private originals. This reuse neither implements nor qualifies the provider-submission stages below.
+The [common image decoder](../003-shared-quality/plan.md#mapping-and-conversion-boundaries) owns native content detection and decoding only. F10 keeps whole-input validation, its own pre-raster decoded-buffer budget, distinct unsupported/corrupt refusals and exact private originals. This reuse neither implements nor qualifies the provider-submission stages below.
 
 Bind metadata JSON and repeated image parts with Spring MVC. Validate all fields/files before any provider call: required nonblank text, reply-email syntax, optional classification, allowlisted context, file count, actual PNG/JPEG type, size and decoding. The canonical schema bounds title, description, reply email and context strings. The owner-approved UTF-16 counting rule in FR-004 matches native Java/Zod length validation; title/reply-email normalization runs during JSON binding before Bean Validation. Reuse these constraints in ordinary form/server validation, without truncating submitted content. Configure Spring multipart limits to 5 MiB per file and 26 MiB per request, including metadata and multipart overhead; align reverse-proxy limits with this request. Image decoder checks must not trust filename/MIME or allocate without inspecting image dimensions. The owner approved a 64 MiB decoded-buffer budget on 2026-10-20: reject inputs whose conservative raster and three-row estimate, `8 × width × (height + 3)` bytes, exceeds that budget before native decoding. This bounds admitted image buffers, not total JVM heap usage. A rejected request creates no provider effects.
 
@@ -109,7 +109,7 @@ Exceptional privacy requests follow [F11](../004-advertising-privacy-legal/spec.
 
 ## Design and qualification
 
-The approved [prototype `14f88bb`](https://github.com/blockoutproject/product-prototype/commit/14f88bb) replaces simulated receipt recovery with ordinary send/error/retry. Existing fields, image interactions, confirmation and visual direction remain. The owner explicitly approved this revision and then its Figma reconciliation in this conversation on 2026-10-15.
+The approved [prototype `14f88bb`](https://github.com/blockoutproject/product-prototype/commit/14f88bb) demonstrates ordinary send/error/retry. Existing fields, image interactions, confirmation and visual direction remain. The owner explicitly approved this revision and then its Figma reconciliation in this conversation on 2026-10-15.
 
 Approved Figma references: [sending with the locked form](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5581-15954), [lost response with editable retry](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5581-16247) and [leaving during sending](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4445-16590). The obsolete reopened-operation screen and persistent uncertain-outcome composition were removed. Published library controls and the existing support form pattern remain linked; no UI Library change was needed. No provider console, support history, receipt screen or new erasure journey is designed.
 

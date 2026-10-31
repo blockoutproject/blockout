@@ -96,8 +96,8 @@ npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/follo
 
 These JavaScript checks establish no actual authentication provider, account-erasure orchestration,
 native accessibility or design qualification. T016, later story tasks and T045 retain their scopes;
-live Dynamic Type [F13 native qualification](../003-shared-quality/quickstart.md#native-presentation-qualification) and iOS input
-[F13 native qualification](../003-shared-quality/quickstart.md#native-presentation-qualification) remain deferred.
+live Dynamic Type [F13 native qualification](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) and iOS input
+[F13 native qualification](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) remain deferred.
 
 ### Direct counters and bounded recovery (T038–T043 construction)
 
@@ -280,10 +280,8 @@ An original-account 404 without a seasonal selector withdraws the whole private 
 A new seasonal category captures the current device zone at its first active read, including a
 previously mounted inactive category, without regrouping retained same-season rows on foreground
 return. Established empty selections retire cancelled continuation errors instead of exposing an
-ineffective retry footer. A current F03 match-detail
-refusal cancels older personal continuations and removes that UUID in the same original-owner
-admission context, without reclassifying other rows or reloading the calendar on return. Exact match
-UUID routing is exercised. The shared zero-delay collection regression advances native Query timers
+ineffective retry footer. Current F03 match-detail refusal withdraws its sensitive resource data locally; retained benign
+personal summaries await their own current server refresh. Exact match UUID routing is exercised. The shared zero-delay collection regression advances native Query timers
 before data-observer adoption, then verifies the successful new-zone page survives without another
 request and is collected after calendar closure. HTTP and native I/O/focus are controlled; this establishes no provider,
 full native accessibility or complete account-erasure journey.
@@ -371,7 +369,7 @@ T029's broader list qualification remains with its owner; T016/T044/T045/T048 st
 Using Jest Expo/React Native Testing Library and native device checks where applicable:
 
 - Open the same target in different tabs, act once and observe the same immediate provisional/busy state; repeated taps do not enqueue work and another target remains usable.
-- Leave and return to a populated personal tab without a follow change: preserve its data and traversal without a new request. After reset while hidden, display it and fetch the first page.
+- Leave and return to a populated personal tab without a follow change: preserve its data and traversal under the current Query observer/freshness policy. After reset while hidden, display it and fetch the first page.
 - Make the selected season unavailable: its list/calendar NotFound triggers one options read; successful confirmation switches to the new default or All seasons. Failed options or a still-available season preserve selection and ordinary error/retry without a loop.
 - Confirm the mutation, then fail the list/count refresh: the saved follow remains confirmed and ordinary error/retry applies to the failed read.
 - Confirm a change after several loaded calendar pages: reload the first page only, preserve season/category and do not show the former selection as current. Inactive tabs reload on display.
@@ -382,13 +380,13 @@ Using Jest Expo/React Native Testing Library and native device checks where appl
 
 Use the approved Home/Sport references linked from [the plan](plan.md). A mock test or visual match does not establish native networking, accessibility or integrated generation correctness.
 
-### Shared season and native Home presentation follow-ups
+### Shared season and native Home presentation
 
-At `1a5163d8`, Home's existing personal-season owner is shared only by its Home/season routes; the contextual sheet uses the shared basic radio rows and intrinsic presenter. [F13 Phase 18](../003-shared-quality/quickstart.md#complete-account-and-direct-operational-entries--phase-18) records short-content fitting, native selection/dismissal and Android compact/enlarged-text overflow. Its [representation evidence](../003-shared-quality/quickstart.md#account-readiness-basic-lists-and-contextual-sheets) identifies the current Figma season composition and prototype `8a08c71e`; Club's earlier selector remains unchanged.
+At `1a5163d8`, Home's existing personal-season owner is shared only by its Home/season routes; the contextual sheet uses the shared basic radio rows and intrinsic presenter. [F13 Phase 18](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) records short-content fitting, native selection/dismissal and Android compact/enlarged-text overflow. Its [representation evidence](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) identifies the current Figma season composition and prototype `8a08c71e`; Club's earlier selector remains unchanged.
 
-The separate [native-only Home brand follow-up](../003-shared-quality/quickstart.md#native-home-brand-retreat--a31) at `0f23092e` qualifies collapse-driven fading, transparent retreat, sticky controls and restoration on Android/Duo. Its matches fixture returned 404, so it establishes chrome over the existing Error state rather than a successful personal feed. Neither follow-up changes follow commands, Query/session ownership, scheduling or the outstanding integrated qualifications above.
+The separate [native-only Home brand evidence](../003-shared-quality/quickstart.md#paging-chrome-and-navigation) at `0f23092e` qualifies collapse-driven fading, transparent retreat, sticky controls and restoration on Android/Duo. Its matches fixture returned 404, so it establishes chrome over the existing Error state rather than a successful personal feed. Neither observation changes follow commands, Query/session ownership, scheduling or the outstanding integrated qualifications above.
 
-The later native-only [A32/A33](../003-shared-quality/quickstart.md#native-fitting-state-scrolling-and-home-pager--a32a33) and [A34](../003-shared-quality/quickstart.md#native-blocking-error-recovery--a34) qualify fitting feedback, Home's shared stock pager bar and Retry-only blocking errors on both clients. Error dragging causes no request; its Retry makes one calendar attempt plus the existing season-options revalidation after 404. Earlier A31 Error-scroll footage is historical and superseded for that gesture. These presentation corrections establish no successful feed or additional F06 business acceptance.
+The later native-only [A32/A33](../003-shared-quality/quickstart.md#feedback-and-read-recovery) and [A34](../003-shared-quality/quickstart.md#feedback-and-read-recovery) qualify fitting feedback, Home's shared stock pager bar and Retry-only blocking errors on both clients. Error dragging causes no request; its Retry makes one calendar attempt plus the existing season-options revalidation after 404. A31 footage establishes its recorded chrome behavior only; the A34 entry owns blocking-error interaction. These presentation observations establish no successful feed or additional F06 business acceptance.
 
 ## Original-account erasure participant
 

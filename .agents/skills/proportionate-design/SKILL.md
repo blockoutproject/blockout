@@ -25,6 +25,8 @@ Do not anticipate every possible library defect with duplicate state, defensive 
 
 Compare the concepts and ongoing work an option introduces: duplicated state, synchronization, concurrent updates, persistence, recovery, operational intervention and meaningful tests. Do not use line count, hypothetical future reuse or the agent's ability to generate code as the justification. Avoid speculative extension points; describe a concrete condition for reconsidering the choice only when it helps a present decision.
 
+For an authorized removal or replacement, trace affected consumers, including framework conventions, generated integrations and known external use. Absence from a text search does not establish dead code. Migrate consumers within scope and verify the changed integration and preserved guarantees; report any remaining consumer that prevents completion.
+
 For a material tradeoff, compare the direct solution with a credible simpler alternative. If both preserve accepted behavior, choose within the task's existing authority. If simplicity requires changing behavior, make that change a product decision, not an implementation shortcut. Explain why the added mechanism is necessary when no simpler option satisfies the need.
 
 ## Establish feasibility at the uncertain boundary

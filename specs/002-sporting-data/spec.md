@@ -14,7 +14,7 @@
 
 ## User Scenarios & Testing
 
-Design input: the [approved prototype and Figma references](plan.md#consumer-and-design-reconciliation) cover professional teams without a club, optional club navigation, partial maps and automatic logo restoration. Design approval does not qualify production behavior.
+Design input: the [approved prototype and Figma references](plan.md#consumers-and-approved-design) cover professional teams without a club, optional club navigation, partial maps and automatic logo restoration. Design approval does not qualify production behavior.
 
 Visitors and signed-in users view sporting information. Operators with explicit domain permissions manage sporting presentation, classifications and divisions. Authorized technical operators handle exceptional identity reconciliation; ordinary users and live-stream moderators implicitly receive none of these permissions. Source acquisition supplies observations under [F01](../001-source-acquisition/spec.md), not an already accepted sporting state.
 
