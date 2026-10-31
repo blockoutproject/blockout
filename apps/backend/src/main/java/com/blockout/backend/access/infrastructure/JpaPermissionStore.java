@@ -9,11 +9,20 @@ import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /** JPA current-grant projection; unknown stored identifiers confer no known action. */
 @Repository
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class JpaPermissionStore implements PermissionStore {
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void erase(UUID accountId) {
+    permissions.erase(accountId);
+  }
+
   private final PermissionRepository permissions;
 
   /** {@inheritDoc} */

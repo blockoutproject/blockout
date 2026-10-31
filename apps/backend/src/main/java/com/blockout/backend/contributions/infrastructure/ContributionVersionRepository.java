@@ -11,10 +11,41 @@ import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 /** Current versions, native history slices and quota aggregates over persisted creation facts. */
 interface ContributionVersionRepository extends JpaRepository<ContributionVersionEntity, UUID> {
+  /**
+   * Clears only the erased lifecycle's decisionActorId without changing version facts or activity.
+   *
+   * @param accountId original lifecycle protected by its account lock
+   */
+  @Modifying
+  @Query(
+      "UPDATE ContributionVersionEntity v SET v.decisionActorId = NULL WHERE v.decisionActorId = :accountId")
+  void eraseDecisionActors(UUID accountId);
+
+  /**
+   * Clears only the erased lifecycle's publicationActorId without changing version facts or
+   * activity.
+   *
+   * @param accountId original lifecycle protected by its account lock
+   */
+  @Modifying
+  @Query(
+      "UPDATE ContributionVersionEntity v SET v.publicationActorId = NULL WHERE v.publicationActorId = :accountId")
+  void erasePublicationActors(UUID accountId);
+
+  /**
+   * Clears only the erased lifecycle's ownerId without changing version facts or activity.
+   *
+   * @param accountId original lifecycle protected by its account lock
+   */
+  @Modifying
+  @Query("UPDATE ContributionVersionEntity v SET v.ownerId = NULL WHERE v.ownerId = :accountId")
+  void eraseOwners(UUID accountId);
+
   /**
    * Projects the immutable root without attaching version attribution before account locking.
    *
