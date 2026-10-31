@@ -536,14 +536,14 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
         SELECT m.active, m.message AS maintenance_message, m.revision AS maintenance_revision,
                v.message AS update_message, v.revision AS versions_revision,
                c.enabled, c.request_id, c.revision AS control_revision,
-               p.manual_name, p.revision AS pool_revision,
+               p.manual_name, p.presentation_revision, p.revision AS pool_revision,
                k.setting_division_id, k.setting_format, k.setting_gender, k.revision AS pack_revision,
-               d.active AS division_active,
-               (SELECT count(*) FROM sporting_division) AS divisions,
-               (SELECT count(*) FROM contribution_version) AS versions,
-               (SELECT coalesce(sum(revision),0) FROM contribution_state) AS contribution_revision,
-               (SELECT count(*) FROM match_announcement) AS announcements,
-               (SELECT count(*) FROM notification) AS notifications
+               d.active AS division_active, d.revision AS division_revision,
+               (SELECT COUNT(*) FROM sporting_division) AS divisions,
+               (SELECT COUNT(*) FROM contribution_version) AS versions,
+               (SELECT COALESCE(SUM(revision),0) FROM contribution_state) AS contribution_revision,
+               (SELECT COUNT(*) FROM match_announcement) AS announcements,
+               (SELECT COUNT(*) FROM notification) AS notifications
         FROM access_settings m, access_settings v, collection_control c,
              sporting_pool p JOIN sporting_pack k ON k.id=p.pack_id,
              sporting_division d
