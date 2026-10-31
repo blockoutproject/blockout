@@ -4,7 +4,9 @@ import {
   useEffect,
   type PropsWithChildren,
 } from "react";
-import { useForm, type UseFormReturn } from "react-hook-form";
+import { useForm, useFormState, type UseFormReturn } from "react-hook-form";
+import { usePreventRemove } from "expo-router";
+import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { SupportContextRequest } from "../../../../.generated/schemas/index.zod";
 import { supportSchema, type SupportValues } from "../schemas/support-schema";
@@ -34,6 +36,25 @@ export function SupportVisitProvider({
     defaultValues: supportValues(context, replyEmail),
   });
   const { getFieldState, getValues, setValue } = form;
+  const { isDirty, isSubmitting } = useFormState({ control: form.control });
+  const confirm = useActionConfirmation();
+  usePreventRemove(isDirty, async ({ repeat }) => {
+    const accepted = await confirm({
+      title: isSubmitting
+        ? "Quitter pendant l’envoi ?"
+        : "Abandonner les modifications ?",
+      message: isSubmitting
+        ? "Votre demande a peut-être été reçue. Quitter ne garantit pas l’annulation de l’envoi."
+        : "Le texte et les images de cette demande seront perdus.",
+      confirmLabel: isSubmitting ? "Quitter" : "Abandonner",
+      cancelLabel: "Continuer la saisie",
+      destructive: true,
+    });
+    if (accepted) {
+      form.reset();
+      repeat();
+    }
+  });
   useEffect(() => {
     const state = getFieldState("replyEmail");
     if (

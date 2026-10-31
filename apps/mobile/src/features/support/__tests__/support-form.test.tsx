@@ -12,6 +12,7 @@ import { SupportForm } from "../forms/support-form";
 import { SupportChoice } from "../components/support-choice";
 
 // Only native navigation is replaced; both real route consumers use the same RHF control.
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   usePreventRemove: jest.fn(),
@@ -92,6 +93,7 @@ it("retains editable title, description and corrected contact after refusal", as
       replyEmail: "contact@example.invalid",
       context: { screen: "Profil" },
     }),
+    [],
   );
 });
 
