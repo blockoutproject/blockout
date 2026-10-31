@@ -251,4 +251,96 @@ Presentation inputs now include independent current full/short names and permitt
 
 `SportingPresentationWebMvcTest`, the extended `SportingIngestionWebMvcTest` and `DivisionAdministrationWebMvcTest` exercise generated request/response binding, explicit nulls, media types, current permissions, safe errors and atomic save admission. `SportingPresentationMultipartIntegrationTest` sends real multipart PATCH requests over loopback to the selected Servlet runtime with the production controller and controlled use cases. It verifies required-null metadata, original image bytes and the exact 5,242,880-byte boundary. The actual PNG/JPEG decoder and 4,194,304-pixel ceiling remain the shared JDK validator's responsibility. `IngestionBodyLimitAdviceTest` proves the source-image cutoff before native `Resource` conversion with declared and unknown body lengths; the ingestion MVC suite verifies refusal before any image use case. The professional artwork case also reads distinct effective/manual and automatic bytes before removing the manual image. These cases establish Servlet binding and the bounded owner transactions separately; they do not qualify a native mobile transport.
 
-F01 consumes current permitted municipal context and its revision through the existing read boundary. A missing/restricted effective municipality suppresses the complete served geocoding context. A postal identifier remains optional under that boundary; a qualified unambiguous result for the current context supplies the point. Street-only and masked source changes do not create a locality revision or a new need. F01 retains all attempts, cadence, one-hour deadline, pauses and relaunch ownership. F03/F04/F06 surface, index scheduling/rebuild/recovery and real follow qualification remain T041; these backend suites do not complete it. No provider, native-device or production qualification is claimed.
+F01 consumes current permitted municipal context and its revision through the existing read boundary. A missing/restricted effective municipality suppresses the complete served geocoding context. A postal identifier remains optional under that boundary; a qualified unambiguous result for the current context supplies the point. Street-only and masked source changes do not create a locality revision or a new need. F01 retains all attempts, cadence, one-hour deadline, pauses and relaunch ownership. The owner-only suites above do not themselves complete T041; its implemented consumer evidence is recorded below. No provider, native-device or production qualification is claimed.
+
+### T041 current restrictions and presentation
+
+[CurrentRestrictionsIntegrationTest](../../apps/backend/src/test/java/com/blockout/backend/search/application/CurrentRestrictionsIntegrationTest.java)
+uses actual admitted F01 cycles, F02 catalog/calendar/division commands, F03 public
+HTTP reads and F06 desired-state follows, personal lists, season options and the
+personal calendar. The real F04 `ProjectSearch`, matching adapter and native
+projection writer use disposable TLS OpenSearch 3.9.0 alongside explicitly
+Liquibase-migrated PostgreSQL 18.6 under the restricted application role.
+Projection execution is delayed explicitly; catch-up consumes the actual committed
+identity scopes since the preceding publication and rereads current SQL. Consumed
+events and rebuild preparation events are cleared between observations. No sporting, follow, hydration or projection
+owner is replaced by a double.
+
+The cases observe old native candidates before catch-up and separately verify
+targeted deletion/return and complete generation replacement. Catalog absence,
+one qualified empty current calendar and division inactivity exclude retained
+targets from fresh public/personal requests, old detail/calendar/image links,
+club teams and search examples. Catalog rediscovery, calendar return and division
+reactivation remove only their own cause. Individual match withdrawal also
+defeats completed-calendar selection despite a retained accepted final score.
+Another admitted participation keeps the original team usable. Every transition
+preserves complete original follow tuples; an identically named team in another
+season acquires no implicit relation. Real pause/closure retain consultation and
+follows while the already-running cycle finishes once and further acquisition
+is refused.
+
+[CurrentPresentationIntegrationTest](../../apps/backend/src/test/java/com/blockout/backend/search/application/CurrentPresentationIntegrationTest.java)
+completes T053's consumer chain: current source and independent manual full/short
+names, a qualified technical alias, permitted locality and field restrictions
+reach effective F03 responses and actual native F04 documents. A stale city
+candidate is rejected before reindexing, even when its name also matches. The
+existing private F11 operation is exercised with fictitious inputs; source
+restoration and recollection cannot republish a restricted field. Street-only
+and masked source changes preserve the point/revision and produce no new F01
+geocoding need; a changed effective context rejects an old in-flight result.
+Current club-logo inheritance spans two seasons without copied team bytes,
+while manual team and accepted LNV priority are checked through actual public
+binary reads and search hydration. Exact synthetic optional-club association
+preserves the professional team's native identity.
+
+Run after the existing contract bundle target:
+
+```sh
+NX_LOAD_DOT_ENV_FILES=false npx nx run http-contracts:bundle
+./mvnw -B -ntp -pl apps/backend verify \
+  -Dtest=ReadSearchTest \
+  -Dit.test=CurrentRestrictionsIntegrationTest,CurrentPresentationIntegrationTest
+NX_LOAD_DOT_ENV_FILES=false npx nx run backend:test
+```
+
+The [existing owner cases](../../testing/integration-tests.md#sportingvisibilityintegrationtest)
+retain partial/failed/wrong-context input, source-authority, historical-empty
+reconstruction and standings limits. `SportingPresentationIntegrationTest`,
+`SearchCurrentDataIntegrationTest`, `ProjectSearchTransactionIntegrationTest`,
+`SearchProjectionIntegrationTest`, `FollowListsIntegrationTest`,
+`FollowOptionsIntegrationTest` and `PersonalCalendarIntegrationTest` retain their
+own transaction, matching, publication/failure and composition boundaries.
+Freshly integrated [F13 current-truth evidence](../003-shared-quality/quickstart.md#current-sporting-truth-qualification-a01a03-t021)
+and [T034 generated facts/public reads](#generated-facts-and-public-reads-t034)
+remain complementary; no collector/provider result is inferred from these new
+in-process scenarios.
+
+Clock, source facts, image/geocoding inputs, test JWT principal, exact technical
+alias/club associations and authorization of the private rights operation are
+controlled. This qualifies fresh server reads and real local SQL/index catch-up;
+it does not establish retained native-screen behavior, live scheduler timing,
+actual IGN/LNV/FFVB responses, private rights handling, backup restoration,
+physical/native accessibility, protected V1 logo recovery or production approval.
+T055/T056, F01 provider qualifications and the other owners' native/operational
+tasks remain separate and unchecked where unfinished.
+
+Executed on 2026-10-31 at qualification source
+`3647b27de0a6afcf0be6170dcb9776ac7d2b5bb0`, against unchanged production sources at
+`94f127b1c3b6a3804743d097e579d618b7756cfb`. The final handwritten test blobs are
+`9a31049bea013d97ad389abfb2c3fc35e9367e8f` (restrictions) and
+`759107ed3fa1ac1df20038b9f38a2a0bd43572b2` (presentation). The local Maven
+`0.0.0-SNAPSHOT` build used Microsoft OpenJDK 25.0.4, Node 24.18.0 and npm 12.0.1;
+CI retains Temurin. Spring tests execute compiled application classes; the
+packaged JAR from the final focused verification has SHA-256
+`227abf150ec14c04551492d6bd66bd5e24f5bac9afec74012cc4c7e97a16ea56`.
+
+Passed: complete `backend:test` (1,464 Surefire; 1,178 Failsafe passed and one
+unrelated opt-in F12 consumer case skipped because `BLOCKOUT_ACCESS_CONSUMERS_TEST`
+was absent), then the final focused 14 cross-owner cases plus six `ReadSearchTest`
+cases with no skips. This includes the existing owner suites named above;
+`FollowListsIntegrationTest`, `FollowOptionsIntegrationTest` and
+`PersonalCalendarIntegrationTest` passed 17, eight and 30 cases respectively.
+Contract lint/bundling, real backend generation/compilation, Checkstyle,
+Spotless, repository Prettier, added local links/anchors and diff hygiene passed.
+Only T041 is completed by this qualification; T053's consumer evidence is now
+available without changing its implementation or any common contract.
