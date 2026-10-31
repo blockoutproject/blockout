@@ -1335,6 +1335,25 @@ it.each(
         parsed.searchParams.get("seasonId") === older.id
       )
         return Promise.resolve(new Response(null, { status: 404 }));
+      if (withdrawn && parsed.searchParams.get("seasonId") !== older.id) {
+        if (parsed.pathname.endsWith("/matches")) {
+          const envelope: PersonalMatchCalendarResponse = {
+            hasAvailableFollows: false,
+            calendar: {
+              category:
+                parsed.searchParams.get("category") === "completed"
+                  ? "completed"
+                  : "upcoming",
+              timeZone: parsed.searchParams.get("timeZone") ?? "Europe/Paris",
+              evaluatedAt: "2026-10-28T12:00:00Z",
+              days: [],
+            },
+          };
+          return Promise.resolve(Response.json(envelope));
+        }
+        if (/\/(team|pool)-follows$/.test(parsed.pathname))
+          return Promise.resolve(Response.json({ items: [] }));
+      }
       return transport(url, request);
     });
     await mount();
@@ -1368,10 +1387,12 @@ it.each(
     for (const destination of ["À venir", "Terminés", "Suivis"]) {
       await userEvent.press(screen.getByRole("tab", { name: destination }));
       await layoutNativeTabs();
-      await screen.findByRole("link", {
-        name:
-          destination === "Suivis" ? /Étoile/ : /Ouvrir le match Home — Away/,
-      });
+      await screen.findByText("Aucun suivi à afficher");
+      expect(
+        screen.queryByRole("link", {
+          name: /Étoile|Ouvrir le match Home — Away/,
+        }),
+      ).not.toBeOnTheScreen();
       expect(
         screen.getByRole("button", { name: "Saison des suivis" }),
       ).toHaveAccessibilityValue({ text: label });
@@ -1390,13 +1411,20 @@ it.each(
   },
 );
 
-it.each(["offered", "failed"])(
-  "retains the season after a real calendar NotFound when options are %s and bounds each explicit retry",
-  async (outcome) => {
+it.each(
+  [
+    ["À venir", "matches"],
+    ["Suivis", "team-follows"],
+  ].flatMap(([tab, collection]) =>
+    ["offered", "failed"].map((outcome) => [tab, collection, outcome]),
+  ),
+)(
+  "retains the season in %s after %s NotFound when options are %s and bounds each explicit retry",
+  async (tab, collection, outcome) => {
     // Given
     let refused = false;
     mockFetch.mockImplementation((url, request) => {
-      if (refused && new URL(url).pathname.endsWith("/matches"))
+      if (refused && new URL(url).pathname.endsWith(`/${collection}`))
         return Promise.resolve(new Response(null, { status: 404 }));
       if (refused && url.endsWith("/follow-options") && outcome === "failed")
         return Promise.reject(new TypeError("Synthetic options outage"));
@@ -1408,13 +1436,25 @@ it.each(["offered", "failed"])(
       disabled: false,
     });
     await layoutNativeTabs();
-    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+    await userEvent.press(screen.getByRole("tab", { name: tab }));
+    await layoutNativeTabs();
+    await screen.findByRole("link", {
+      name: tab === "Suivis" ? /Étoile/ : /Ouvrir le match Home — Away/,
+    });
+    if (tab === "Suivis")
+      await userEvent.press(
+        screen.getByRole("button", { name: "Poules suivies", expanded: true }),
+      );
     mockFetch.mockClear();
 
     // When
     refused = true;
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-    await screen.findByRole("button", { name: "Réessayer" });
+    const feedback =
+      tab === "Suivis"
+        ? within(screen.getByLabelText("Équipes et poules suivies"))
+        : screen;
+    const retry = await feedback.findByRole("button", { name: "Réessayer" });
 
     // Then
     expect(
@@ -1425,13 +1465,13 @@ it.each(["offered", "failed"])(
     ).toHaveLength(1);
     expect(
       mockFetch.mock.calls.filter(([url]) =>
-        new URL(url).pathname.endsWith("/matches"),
+        new URL(url).pathname.endsWith(`/${collection}`),
       ),
     ).toHaveLength(1);
 
     // When: only the user's new attempt may recheck uncertainty.
-    await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
-    await screen.findByRole("button", { name: "Réessayer", busy: false });
+    await userEvent.press(retry);
+    await feedback.findByRole("button", { name: "Réessayer", busy: false });
 
     // Then
     expect(
@@ -1439,7 +1479,7 @@ it.each(["offered", "failed"])(
     ).toHaveLength(2);
     expect(
       mockFetch.mock.calls.filter(([url]) =>
-        new URL(url).pathname.endsWith("/matches"),
+        new URL(url).pathname.endsWith(`/${collection}`),
       ),
     ).toHaveLength(2);
     expect(
