@@ -33,12 +33,14 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /** Real local owners/transactions; only external providers are controlled synthetic boundaries. */
+@TestPropertySource(properties = "blockout.accounts.cleanup.environment=disabled")
 @DisplayName("Atomic original-account erasure")
 class EraseAccountIntegrationTest extends ContributionScenario {
   private static final UUID CONNECTION = UUID.fromString("10000000-0000-4000-8000-000000000280");

@@ -24,10 +24,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /** Real F08 commands and F05 erasure retain sporting facts while clearing personal attribution. */
+@TestPropertySource(properties = "blockout.accounts.cleanup.environment=disabled")
 @DisplayName("Contribution erasure integrity")
 class ContributionErasureIntegrationTest extends ContributionScenario {
   private static final String ISSUER = "https://identity.example.invalid/";

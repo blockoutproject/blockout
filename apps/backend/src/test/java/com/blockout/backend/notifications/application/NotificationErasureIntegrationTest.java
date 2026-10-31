@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.event.ApplicationEvents;
@@ -36,6 +37,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** Real F05/F06/F07 erasure with synthetic accounts and no enabled external sender. */
 @RecordApplicationEvents
 @AutoConfigureMockMvc
+@TestPropertySource(properties = "blockout.accounts.cleanup.environment=disabled")
 @DisplayName("Notification account erasure")
 class NotificationErasureIntegrationTest extends ContributionScenario {
   private static final UUID CONNECTION = UUID.fromString("10000000-0000-4000-8000-000000000701");

@@ -4,14 +4,12 @@ import com.auth0.client.mgmt.ManagementApi;
 import com.blockout.backend.accounts.application.AccountCleanup;
 import com.blockout.backend.accounts.application.OriginalTargetCleanup;
 import com.blockout.backend.config.SecurityProperties;
+import java.net.http.HttpClient;
 import java.util.Optional;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
-import org.springframework.boot.http.client.HttpClientSettings;
-import org.springframework.boot.http.client.HttpRedirects;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 /**
@@ -21,20 +19,34 @@ import org.springframework.web.client.RestClient;
 @EnableConfigurationProperties(AccountCleanupProperties.class)
 public class AccountCleanupConfiguration {
   /**
-   * Creates the owned RevenueCat transport without redirects or automatic 429/503/I/O retries.
+   * Owns a native HTTP/1.1 client with redirects disabled. Transmitted POST/DELETE requests are not
+   * replayed by JDK 25's standard policy; connection establishment remains within the total bound.
    *
-   * @param properties positive feature-owned deadlines
-   * @return Spring-managed native HTTP factory
+   * @param properties positive provider deadlines
+   * @return Spring-managed native client, closed at shutdown
    */
-  @Bean(destroyMethod = "destroy")
-  HttpComponentsClientHttpRequestFactory revenueCatCleanupRequests(
-      AccountCleanupProperties properties) {
-    return ClientHttpRequestFactoryBuilder.httpComponents()
-        .withHttpClientCustomizer(builder -> builder.disableAutomaticRetries())
-        .build(
-            HttpClientSettings.defaults()
-                .withTimeouts(properties.connectTimeout(), properties.readTimeout())
-                .withRedirects(HttpRedirects.DONT_FOLLOW));
+  @Bean(destroyMethod = "close")
+  HttpClient revenueCatCleanupHttp(AccountCleanupProperties properties) {
+    return HttpClient.newBuilder()
+        .connectTimeout(properties.connectTimeout())
+        .followRedirects(HttpClient.Redirect.NEVER)
+        .version(HttpClient.Version.HTTP_1_1)
+        .build();
+  }
+
+  /**
+   * Uses Spring 7.0.9's native total-response timeout, including progressive body consumption.
+   *
+   * @param properties positive total response deadline
+   * @param revenueCatCleanupHttp owned native transport
+   * @return ordinary Spring request factory without a custom timeout wrapper
+   */
+  @Bean
+  JdkClientHttpRequestFactory revenueCatCleanupRequests(
+      AccountCleanupProperties properties, HttpClient revenueCatCleanupHttp) {
+    JdkClientHttpRequestFactory requests = new JdkClientHttpRequestFactory(revenueCatCleanupHttp);
+    requests.setReadTimeout(properties.readTimeout());
+    return requests;
   }
 
   /**
@@ -64,7 +76,7 @@ public class AccountCleanupConfiguration {
   @Bean
   AccountCleanup.RevenueCat revenueCatAccountCleanup(
       RestClient.Builder builder,
-      HttpComponentsClientHttpRequestFactory revenueCatCleanupRequests,
+      JdkClientHttpRequestFactory revenueCatCleanupRequests,
       AccountCleanupProperties properties) {
     return new RevenueCatAccountCleanup(
         builder

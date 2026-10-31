@@ -11,6 +11,7 @@ import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
@@ -25,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.security.oauth2.client.InMemoryOAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
@@ -48,11 +49,14 @@ class Auth0ConfigurationIntegrationTest {
   private final ExecutorService workers = Executors.newCachedThreadPool();
   private HttpServer server;
   private String origin;
-  private HttpComponentsClientHttpRequestFactory requests;
+  private JdkClientHttpRequestFactory requests;
+  private HttpClient tokenHttp;
   private String tokenRequest;
   private String resourceAuthorization;
   private boolean refuseToken;
   private String delayedPath;
+  private boolean progressiveToken;
+  private boolean disconnectToken;
   private String tokenRedirect;
   private int redirectStatus;
 
@@ -78,6 +82,10 @@ class Auth0ConfigurationIntegrationTest {
             reads.incrementAndGet();
             resourceAuthorization = exchange.getRequestHeaders().getFirst("Authorization");
           }
+          if (token && disconnectToken) {
+            exchange.close();
+            return;
+          }
           if (token && tokenRedirect != null) {
             exchange.getResponseHeaders().set("Location", tokenRedirect);
             exchange.sendResponseHeaders(redirectStatus, -1);
@@ -101,7 +109,18 @@ class Auth0ConfigurationIntegrationTest {
           exchange.getResponseHeaders().set("Content-Type", "application/json");
           exchange.sendResponseHeaders(token && refuseToken ? 403 : 200, bytes.length);
           try (java.io.OutputStream response = exchange.getResponseBody()) {
-            response.write(bytes);
+            for (byte value : bytes) {
+              response.write(value);
+              if (token && progressiveToken) {
+                response.flush();
+                try {
+                  release.await(50, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException interrupted) {
+                  Thread.currentThread().interrupt();
+                  break;
+                }
+              }
+            }
           }
         });
     server.start();
@@ -114,7 +133,7 @@ class Auth0ConfigurationIntegrationTest {
     release.countDown();
     server.stop(0);
     workers.shutdownNow();
-    if (requests != null) requests.destroy();
+    if (tokenHttp != null) tokenHttp.close();
     validators.close();
     configuration.closeManagementHttp();
   }
@@ -159,6 +178,48 @@ class Auth0ConfigurationIntegrationTest {
     assertThatThrownBy(read).isInstanceOf(AccountUnavailableException.class);
     assertThat(tokens.get()).isEqualTo(1);
     assertThat(reads.get()).isEqualTo(path.equals("/oauth/token") ? 0 : 1);
+  }
+
+  @Test
+  @DisplayName("A dispatched token POST whose response is lost is not replayed")
+  void doesNotReplayLostTokenResponse() {
+    // Given
+    disconnectToken = true;
+    PrincipalReader reader = reader();
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
+        () -> reader.read(origin + "/", "auth0|one");
+
+    // Then
+    assertThatThrownBy(read).isInstanceOf(AccountUnavailableException.class);
+    assertThat(tokens.get()).isEqualTo(1);
+    assertThat(reads.get()).isZero();
+  }
+
+  @Test
+  @DisplayName(
+      "A progressing token body stops within the native total deadline without resource access")
+  void boundsProgressiveToken() throws Exception {
+    // Given: the peer keeps making progress, so a socket inactivity deadline alone is insufficient.
+    progressiveToken = true;
+    PrincipalReader reader = reader();
+    try (ExecutorService caller = Executors.newSingleThreadExecutor()) {
+      java.util.concurrent.Future<?> read =
+          caller.submit(() -> reader.read(origin + "/", "auth0|one"));
+      try {
+        // When
+        org.assertj.core.api.ThrowableAssert.ThrowingCallable response =
+            () -> read.get(1, TimeUnit.SECONDS);
+
+        // Then
+        assertThatThrownBy(response).hasCauseInstanceOf(AccountUnavailableException.class);
+        assertThat(tokens.get()).isEqualTo(1);
+        assertThat(reads.get()).isZero();
+      } finally {
+        release.countDown();
+      }
+    }
   }
 
   @Test
@@ -257,7 +318,8 @@ class Auth0ConfigurationIntegrationTest {
     Auth0Properties properties =
         new Auth0Properties(
             URI.create(origin + "/api/v2/"), Duration.ofSeconds(1), Duration.ofMillis(200));
-    requests = configuration.auth0Requests(properties);
+    tokenHttp = configuration.auth0TokenHttp(properties);
+    requests = configuration.auth0Requests(properties, tokenHttp);
     SecurityProperties security =
         new SecurityProperties(
             URI.create(origin + "/"), "mobile", "mobile", "collector", "collector");

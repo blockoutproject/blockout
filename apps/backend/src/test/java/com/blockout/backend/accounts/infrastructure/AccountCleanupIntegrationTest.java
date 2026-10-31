@@ -10,6 +10,7 @@ import com.blockout.backend.accounts.infrastructure.AccountCleanupProperties.Env
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -27,7 +28,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 /**
@@ -43,9 +44,12 @@ class AccountCleanupIntegrationTest {
   private String identities = "[{\"provider\":\"auth0\",\"connection\":\"isolated-test\"}]";
   private int deleteStatus = 204;
   private boolean delay;
+  private boolean progressive;
+  private boolean disconnect;
   private String redirect;
   private OkHttpClient http;
-  private HttpComponentsClientHttpRequestFactory revenueRequests;
+  private JdkClientHttpRequestFactory revenueRequests;
+  private HttpClient revenueHttp;
 
   /** Opens only a dynamically allocated loopback peer with synthetic responses. */
   @BeforeEach
@@ -58,6 +62,10 @@ class AccountCleanupIntegrationTest {
         exchange -> {
           requests.add(exchange.getRequestMethod() + " " + exchange.getRequestURI().getRawPath());
           exchange.getRequestBody().readAllBytes();
+          if (disconnect) {
+            exchange.close();
+            return;
+          }
           try {
             if (delay) release.get(3, TimeUnit.SECONDS);
             if (redirect != null) exchange.getResponseHeaders().set("Location", redirect);
@@ -70,7 +78,19 @@ class AccountCleanupIntegrationTest {
             int status = exchange.getRequestMethod().equals("GET") ? 200 : deleteStatus;
             exchange.getResponseHeaders().set("Content-Type", "application/json");
             exchange.sendResponseHeaders(status, status == 204 ? -1 : body.length);
-            if (status != 204) exchange.getResponseBody().write(body);
+            if (status != 204) {
+              for (byte value : body) {
+                exchange.getResponseBody().write(value);
+                if (progressive) {
+                  exchange.getResponseBody().flush();
+                  try {
+                    release.get(50, TimeUnit.MILLISECONDS);
+                  } catch (java.util.concurrent.TimeoutException nextByte) {
+                    /* Controlled progressive peer. */
+                  }
+                }
+              }
+            }
           } catch (Exception ignored) {
             // The intentionally timed-out peer can lose its socket; no provider payload is logged.
           } finally {
@@ -95,7 +115,7 @@ class AccountCleanupIntegrationTest {
       http.connectionPool().evictAll();
       http.dispatcher().executorService().shutdown();
     }
-    if (revenueRequests != null) revenueRequests.destroy();
+    if (revenueHttp != null) revenueHttp.close();
   }
 
   @Test
@@ -249,6 +269,47 @@ class AccountCleanupIntegrationTest {
     assertThat(requests).hasSize(1);
   }
 
+  @Test
+  @DisplayName("A dispatched DELETE whose response is lost is not replayed")
+  void doesNotReplayLostResponse() {
+    // Given
+    disconnect = true;
+    AccountCleanup.RevenueCat cleanup = revenueCat(Environment.PREPRODUCTION);
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable remove =
+        () -> cleanup.remove("known-original");
+
+    // Then
+    org.assertj.core.api.Assertions.assertThatThrownBy(remove)
+        .isInstanceOf(org.springframework.web.client.ResourceAccessException.class);
+    assertThat(requests).hasSize(1);
+  }
+
+  @Test
+  @DisplayName(
+      "A progressing RevenueCat body cannot retain cleanup beyond the native total deadline")
+  void boundsProgressingBody() throws Exception {
+    // Given: byte pacing prevents an inactivity timeout; the complete peer body takes over 1 s.
+    deleteStatus = 200;
+    progressive = true;
+    AccountCleanup.RevenueCat cleanup = revenueCat(Environment.PREPRODUCTION);
+    try (ExecutorService caller = Executors.newSingleThreadExecutor()) {
+      java.util.concurrent.Future<Outcome> outcome =
+          caller.submit(() -> cleanup.remove("known-original"));
+      try {
+        // When
+        Outcome result = outcome.get(1, TimeUnit.SECONDS);
+
+        // Then: the documented 200 acknowledgment remains successful without waiting for its body.
+        assertThat(result).isEqualTo(Outcome.QUEUED);
+        assertThat(requests).hasSize(1);
+      } finally {
+        release.complete(null);
+      }
+    }
+  }
+
   /**
    * Builds the production Auth0 native transport over this synthetic peer, with SDK retries off.
    *
@@ -282,7 +343,8 @@ class AccountCleanupIntegrationTest {
    */
   private AccountCleanup.RevenueCat revenueCat(Environment environment) {
     AccountCleanupConfiguration configuration = new AccountCleanupConfiguration();
-    revenueRequests = configuration.revenueCatCleanupRequests(properties(environment));
+    revenueHttp = configuration.revenueCatCleanupHttp(properties(environment));
+    revenueRequests = configuration.revenueCatCleanupRequests(properties(environment), revenueHttp);
     return configuration.revenueCatAccountCleanup(
         RestClient.builder(), revenueRequests, properties(environment));
   }
