@@ -46,6 +46,10 @@ import { submitAgeDeclaration } from "../../advertising/age-declaration";
 import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
 import * as proSessionModule from "../../pro/pro-session";
 import { ownContributions } from "../../contributions/test-support/contribution-data";
+import * as Notifications from "expo-notifications";
+import { NotificationLifecycle } from "../native/notification-lifecycle";
+import { createPushRegistration } from "../native/push-registration";
+import { getGetApplicationAccessQueryKey } from "../../../../.generated/mobile";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
   jest.requireActual(
@@ -74,6 +78,18 @@ jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),
 }));
 jest.mock("expo-notifications", () => ({
+  DEFAULT_ACTION_IDENTIFIER: "default",
+  setNotificationHandler: jest.fn(),
+  getPermissionsAsync: jest
+    .fn()
+    .mockResolvedValue({ granted: false, canAskAgain: false }),
+  addPushTokenListener: jest.fn(() => ({ remove: jest.fn() })),
+  addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  addNotificationResponseReceivedListener: jest.fn(() => ({
+    remove: jest.fn(),
+  })),
+  getLastNotificationResponse: jest.fn(),
+  clearLastNotificationResponse: jest.fn(),
   setBadgeCountAsync: jest.fn().mockResolvedValue(true),
 }));
 const mockFetch = jest.fn();
@@ -93,6 +109,7 @@ function SessionRoutes({
   privacy: ReturnType<typeof createInstallationAdvertisingPrivacy>;
 }) {
   const cache = useQueryClient();
+  const [registration] = useState(createPushRegistration);
   useLayoutEffect(() => {
     privateClient = cache;
   }, [cache]);
@@ -103,6 +120,7 @@ function SessionRoutes({
         <ProProvider>
           <AgeDeclarationProvider enabled privacy={privacy}>
             <NotificationState>
+              <NotificationLifecycle registration={registration} enabled />
               <Stack screenOptions={{ headerShown: false }} />
             </NotificationState>
           </AgeDeclarationProvider>
@@ -135,6 +153,11 @@ beforeEach(async () => {
   jest.useFakeTimers({ now: new Date("2026-10-27T12:00:00Z") });
   client = createQueryClient();
   total = 7;
+  let read = false;
+  jest
+    .mocked(Notifications.addNotificationResponseReceivedListener)
+    .mockClear();
+  jest.mocked(Notifications.clearLastNotificationResponse).mockClear();
   match = { match: { ...row.match }, documents: [], streamUrl };
   jest.replaceProperty(
     proSessionModule,
@@ -175,7 +198,7 @@ beforeEach(async () => {
             : { unreadCount: 0 },
         );
       if (path.endsWith("/notifications"))
-        return Response.json({ notifications: [row] });
+        return Response.json({ notifications: [{ ...row, read }] });
       if (path.endsWith(`/matches/${row.match.id}`))
         return Response.json(match);
       if (path.endsWith("/stream-contributions"))
@@ -185,6 +208,7 @@ beforeEach(async () => {
         init.method === "PATCH"
       ) {
         total = 6;
+        read = true;
         return Response.json({ ...row, read: true });
       }
       throw new Error(`Unexpected synthetic boundary ${path}`);
@@ -218,6 +242,164 @@ async function openInbox() {
     { initialUrl: "/notifications" },
   );
 }
+
+it.each([false, true])(
+  "retains server reading after a detail failure with lost acknowledgement=%s",
+  async (lost) => {
+    // Given: real Router, F03 screen, privacy/session owners and generated F07 commands.
+    await openInbox();
+    await screen.findByRole("link", { name: /non lue$/ });
+    privateClient.setDefaultOptions({ queries: { retry: false } });
+    const ordinary = mockFetch.getMockImplementation();
+    if (!ordinary) throw new Error("Synthetic HTTP implementation is required");
+    mockFetch.mockImplementation(async (url: string, init: RequestInit) => {
+      if (new URL(url).pathname.endsWith(`/matches/${row.match.id}`))
+        return new Response(null, { status: 503 });
+      const response = await ordinary(url, init);
+      if (lost && init.method === "PATCH")
+        throw new TypeError("lost read acknowledgement");
+      return response;
+    });
+    const user = userEvent.setup();
+
+    // When
+    await user.press(screen.getByRole("link", { name: /non lue$/ }));
+    await screen.findByRole("button", { name: "Réessayer" });
+
+    // Then
+    expect(screen).toHavePathname(`/matches/${row.match.id}`);
+
+    // When: the ordinary return/focus reads the server representation.
+    await user.press(screen.getByRole("button", { name: "Retour" }));
+
+    // Then
+    expect(
+      await screen.findByRole("link", { name: /— lue$/ }),
+    ).toBeOnTheScreen();
+    expect(
+      await screen.findByRole("button", { name: "Notifications, 6 non lues" }),
+    ).toBeOnTheScreen();
+    const commands = mockFetch.mock.calls.filter(
+      ([, init]) => init.method === "PATCH",
+    );
+    expect(commands).toHaveLength(1);
+    expect(JSON.parse(commands[0][1].body)).toEqual({ read: true });
+    expect(
+      mockFetch.mock.calls.some(
+        ([url, init]) =>
+          new URL(url).pathname.endsWith(`/notifications/${row.id}`) &&
+          init.method === "GET",
+      ),
+    ).toBe(false);
+  },
+);
+
+it.each(["owner", "foreign", "guest"] as const)(
+  "opens an old missing notification's current F03 target as %s without recreating it",
+  async (actor) => {
+    // Given: only SDK event I/O is controlled; the actual lifecycle and navigator are mounted.
+    if (actor === "guest")
+      mockAuth0.hasValidCredentials.mockResolvedValue(false);
+    const ordinary = mockFetch.getMockImplementation();
+    if (!ordinary) throw new Error("Synthetic HTTP implementation is required");
+    mockFetch.mockImplementation(async (url: string, init: RequestInit) => {
+      const path = new URL(url).pathname;
+      if (path.endsWith(`/notifications/${row.id}`))
+        return new Response(null, { status: 404 });
+      if (path.endsWith("/notifications"))
+        return Response.json({ notifications: [] });
+      if (path.endsWith("/notification-summary"))
+        return Response.json({ unreadCount: 0 });
+      return ordinary(url, init);
+    });
+    await openInbox();
+    await waitFor(() =>
+      expect(
+        client.getQueryData(getGetApplicationAccessQueryKey()),
+      ).toBeDefined(),
+    );
+    await act(async () => jest.advanceTimersByTimeAsync(0));
+    if (actor === "guest") {
+      await screen.findByRole("tab", { name: "Équipes" });
+      await layoutNativeTabs();
+      await waitFor(() => expect(screen).toHavePathname("/search"));
+    }
+    await waitFor(() =>
+      expect(
+        Notifications.addNotificationResponseReceivedListener,
+      ).toHaveBeenCalled(),
+    );
+    const tap = jest
+      .mocked(Notifications.addNotificationResponseReceivedListener)
+      .mock.calls.at(-1)?.[0];
+    if (!tap) throw new Error("The native tap listener must be mounted");
+    const notification: Notifications.NotificationResponse = {
+      actionIdentifier: "default",
+      notification: {
+        date: Date.now(),
+        request: {
+          identifier: "old-missing-entry",
+          trigger: { type: "push" },
+          content: {
+            title: null,
+            subtitle: null,
+            body: null,
+            categoryIdentifier: null,
+            sound: null,
+            launchImageName: null,
+            badge: null,
+            attachments: [],
+            threadIdentifier: null,
+            data: {
+              ownerAccountId:
+                actor === "owner"
+                  ? row.id
+                  : "00000000-0000-4000-8000-000000000991",
+              notificationId: row.id,
+              matchId: row.match.id,
+            },
+          },
+        },
+      },
+    };
+    const before = mockFetch.mock.calls.length;
+
+    // When
+    await act(async () => {
+      tap(notification);
+      tap(notification);
+    });
+    await screen.findByRole("header", { name: "Informations" });
+
+    // Then
+    expect(screen).toHavePathname(`/matches/${row.match.id}`);
+    expect(Notifications.clearLastNotificationResponse).toHaveBeenCalledTimes(
+      1,
+    );
+    const personal = mockFetch.mock.calls
+      .slice(before)
+      .filter(([url]) => /\/notifications\/[^/]+$/.test(new URL(url).pathname));
+    expect(personal).toHaveLength(actor === "owner" ? 1 : 0);
+    if (actor === "owner") expect(personal[0][1].method).toBe("PATCH");
+    expect(
+      mockFetch.mock.calls.some(([, init]) => init.method === "POST"),
+    ).toBe(false);
+    if (actor === "owner") {
+      // When
+      await userEvent
+        .setup()
+        .press(screen.getByRole("button", { name: "Retour" }));
+
+      // Then
+      expect(
+        await screen.findByText("Aucune notification pour le moment"),
+      ).toBeOnTheScreen();
+      expect(
+        await screen.findByRole("button", { name: "Notifications" }),
+      ).toBeOnTheScreen();
+    }
+  },
+);
 
 it.each(["professional", "contributed"] as const)(
   "opens the current match's exact %s stream destination from the real inbox",
@@ -619,6 +801,70 @@ it("retains native in-flight pagination on tab return and allows explicit refres
     await screen.findByRole("link", { name: /^Nouvelle information/ }),
   ).toBeOnTheScreen();
   expect(screen.queryByRole("link", { name: /^Le résultat/ })).toBeNull();
+});
+
+it("distinguishes append retry from failed refresh in the real inbox route", async () => {
+  // Given
+  const second = {
+    ...row,
+    id: "00000000-0000-4000-8000-000000000239",
+    title: "Une autre information sportive",
+  };
+  let failAppend = true;
+  let failRefresh = false;
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) throw new Error("Synthetic HTTP implementation is required");
+  mockFetch.mockImplementation(async (url: string, init: RequestInit) => {
+    const target = new URL(url);
+    if (!target.pathname.endsWith("/notifications")) return ordinary(url, init);
+    if (target.searchParams.has("cursor")) {
+      if (failAppend) throw new TypeError("append unavailable");
+      return Response.json({ notifications: [second] });
+    }
+    if (failRefresh) throw new TypeError("refresh unavailable");
+    return Response.json({ notifications: [row], nextCursor: "same-boundary" });
+  });
+  await openInbox();
+  privateClient.setDefaultOptions({ queries: { retry: false } });
+  const first = await screen.findByRole("link", { name: /^Le résultat/ });
+  const user = userEvent.setup();
+
+  // When
+  await fireEvent(first, "endReached");
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: /^Le résultat/ })).toBeOnTheScreen();
+  await fireEvent(first, "endReached");
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).searchParams.has("cursor"),
+    ),
+  ).toHaveLength(1);
+
+  // When
+  failAppend = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await screen.findByRole("link", { name: /^Une autre information/ });
+  failRefresh = true;
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: /Une erreur est survenue/ }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: /^Le résultat/ })).toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: /^Une autre information/ }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+  expect(
+    mockFetch.mock.calls
+      .filter(([url]) => new URL(url).searchParams.has("cursor"))
+      .map(([url]) => new URL(url).searchParams.get("cursor")),
+  ).toEqual(["same-boundary", "same-boundary"]);
 });
 
 it("retains every native tab action and its full accessible name with enlarged text in a narrow window", async () => {

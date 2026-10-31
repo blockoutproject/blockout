@@ -28,10 +28,16 @@ export function createReadNotificationOptions(
     onError: async (error, id) => {
       // A known removed personal entry must leave the local copy, independently of read-flag freshness.
       if (error instanceof ApiError && error.status === 404) {
-        await client.cancelQueries({
-          queryKey: queries.inbox.queryKey,
-          exact: true,
-        });
+        await Promise.all([
+          client.cancelQueries({
+            queryKey: queries.inbox.queryKey,
+            exact: true,
+          }),
+          client.cancelQueries({
+            queryKey: queries.summary.queryKey,
+            exact: true,
+          }),
+        ]);
         client.setQueryData<InboxData>(
           queries.inbox.queryKey,
           (current) =>
@@ -49,6 +55,11 @@ export function createReadNotificationOptions(
           queryKey: queries.detail(id).queryKey,
           exact: true,
         });
+        // A missing entry makes the old whole total unprovable, even if ordinary refetch is offline.
+        client
+          .getQueryCache()
+          .find({ queryKey: queries.summary.queryKey, exact: true })
+          ?.setState({ data: undefined, dataUpdatedAt: 0 });
         return;
       }
       refuseInboxAccess(client, owner, error);

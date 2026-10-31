@@ -234,9 +234,10 @@ Keep failed, unavailable and passed evidence distinct. Repository/prototype chec
 
 The mobile inbox uses the generated F07 consumers and F05/F12 request context in the existing
 in-memory QueryClient. [Query cases](../../apps/mobile/src/features/notifications/__tests__/inbox.test.tsx)
-cover first-page replacement only on success, retained continuation boundaries, cancelled stale
-responses, monotone read confirmation, missing entries and one bounded member observation after a
-lost acknowledgement. [Clock cases](../../apps/mobile/src/features/notifications/__tests__/inbox-expiry.test.tsx)
+cover native retained-page refetch, retained continuation boundaries, cancelled stale responses,
+true-only mutation invalidation, known missing entries and explicit retry after a lost
+acknowledgement. They assert no local read-true overlay or member-read reconciliation request.
+[Clock cases](../../apps/mobile/src/features/notifications/__tests__/inbox-expiry.test.tsx)
 exercise the 29-elapsed-day cutoff and an unloaded summary expiry without a partial-page count.
 [Screen cases](../../apps/mobile/src/features/notifications/__tests__/inbox-screen.test.tsx) use real
 session/admission/Query owners with controlled native/HTTP I/O; [route cases](../../apps/mobile/src/features/notifications/__tests__/inbox-navigation.test.tsx)
@@ -254,7 +255,7 @@ The prototype remains the interaction source; native scroll, refresh and Router 
 its relevant behavior without copying its demo world or browser scroll machinery.
 
 These controlled cases establish neither physical system badge behavior nor push receipt,
-subscription lifecycle or full cross-owner qualification. T025, T030/T041, T052 and T060
+subscription lifecycle or full cross-owner qualification. T030/T041, T052 and T060
 retain their independent evidence obligations. Support actions and the shared Pro offer remain
 with their existing feature owners. Revision-specific checks, native captures and review outcomes
 belong in the delivery PR.
