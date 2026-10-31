@@ -94,6 +94,8 @@ Run the committed backend target (`npx nx run backend:test`) for complete module
   -Dit.test='EraseAccountIntegrationTest,NotificationErasureIntegrationTest,ContributionErasureIntegrationTest,AccountCleanupIntegrationTest'
 ```
 
+On 2026-10-31, code revision `be77f033702ad67e84ea09437e3c73f6417a5a9b` passes the complete `backend:test` target: 1,439 unit/MVC/configuration tests and 1,123 integration cases, with one existing opt-in generated-settings-consumer case skipped because `BLOCKOUT_ACCESS_CONSUMERS_TEST` is absent. Node 24.18.0, npm 12.0.1 and the installed Microsoft OpenJDK 25.0.4 were used locally; Temurin 25 remains the committed CI runtime and is not installed on this host. Global formatting, 244 local Markdown link targets in the touched artifacts and diff hygiene pass. The two progressive-body regressions failed on Apache before the native JDK correction, then pass together with lost-response no-replay cases. Tests force destructive cleanup off independently of inherited environment configuration.
+
 Provider cleanup remains disabled in the committed defaults. [The environment example](../../apps/backend/.env.example) owns input names. Preproduction requires exclusive original Auth0 connection evidence and individually verified test-only RevenueCat IDs; absence/refusal permits local deletion and emits private manual evidence. Only the existing V2 UUID reference is captured from this schema. Established historical references can be carried by the immutable target value, but F14 still owns their private discovery/coverage before cutover; no search, alias expansion, email mapping or persistent reference registry is introduced.
 
 ## Integration with other owners
