@@ -14,6 +14,7 @@ import { useInboxQueries } from "../api/use-inbox-queries";
 import {
   refreshInbox,
   refreshNotificationSummary,
+  subscribeInboxVisibility,
   type createInboxQueries,
 } from "../api/inbox-queries";
 import { useNotificationBadge } from "../native/notification-badge";
@@ -24,6 +25,8 @@ import {
 } from "./inbox-expiry";
 /** Mounts current private synchronization under ordinary access, with no secondary cache or session owner. */
 export function NotificationState({ children }: PropsWithChildren) {
+  const client = useQueryClient();
+  useEffect(() => subscribeInboxVisibility(client), [client]);
   const { session, queries } = useInboxQueries();
   return (
     <>

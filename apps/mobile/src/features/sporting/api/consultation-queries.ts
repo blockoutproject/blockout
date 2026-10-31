@@ -276,6 +276,7 @@ export function createConsultationQueries(
     match: (id: string) =>
       queryOptions({
         ...consultationOpeningPolicy,
+        meta: { sportingMatchId: id },
         queryKey: key(getGetMatchQueryKey(id)),
         queryFn: async (context) => {
           try {

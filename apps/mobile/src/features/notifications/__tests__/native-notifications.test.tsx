@@ -508,3 +508,36 @@ it("removes native subscriptions and clears the badge after sign-out", async () 
   expect(subscription?.remove).toHaveBeenCalledTimes(1);
   expect(Notifications.setBadgeCountAsync).toHaveBeenCalledWith(0);
 });
+
+it("leaves an old system tap blocked by current maintenance without reading or navigating", async () => {
+  // Given: the real admission and lifecycle owners consume a controlled current F12 response.
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) throw new Error("Synthetic HTTP implementation is required");
+  const access = applicationAccessResponse();
+  access.maintenance.active = true;
+  mockFetch.mockImplementation((url: string, init: RequestInit) =>
+    url.endsWith("application-access")
+      ? Promise.resolve(Response.json(access))
+      : ordinary(url, init),
+  );
+  jest
+    .mocked(Notifications.getLastNotificationResponse)
+    .mockReturnValue(response());
+
+  // When
+  await render(<Root />);
+  await waitFor(() => expect(session.status).toBe("authenticated"));
+
+  // Then
+  expect(
+    mockFetch.mock.calls.some(([url]) => url.endsWith("application-access")),
+  ).toBe(true);
+  expect(mockFetch.mock.calls.some(([, init]) => init.method === "PATCH")).toBe(
+    false,
+  );
+  expect(mockOpen).not.toHaveBeenCalled();
+  expect(
+    Notifications.addNotificationResponseReceivedListener,
+  ).not.toHaveBeenCalled();
+  expect(Notifications.clearLastNotificationResponse).not.toHaveBeenCalled();
+});
