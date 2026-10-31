@@ -310,6 +310,39 @@ and UUID routing. Native ad serving remains with
 [F11 T010/T020](../004-advertising-privacy-legal/tasks.md). T037 and the cross-view portions of
 T022/T029 remain open for their broader integrated qualification.
 
+### Integrated personal season and calendar (T022/T037)
+
+The focused qualification combines the real migrated F02/F03/F06 SQL paths with the real Home,
+season route, Teams/Pools, generated consumers and Query owners. HTTP and native identity I/O
+are controlled in React tests; no following hook, repository or calendar implementation is replaced.
+The database suite controls the clock and one explicit concurrent-write interleaving. Synthetic
+restriction/result setup is separate from the actual F02 calendar acceptance and F06 follow removal.
+
+| Scope   | Executable evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A07–A11 | `FollowOptionsIntegrationTest` establishes the distinct followed/catalog default and absence of invented years; `FollowListsIntegrationTest` establishes both real seasonal lists. `personal-season.test.tsx` and `personal-screen.test.tsx` cover selection/reset, generated All seasons omission, fresh openings, actual other-season follow, Home/season return and independent Club/Search owners.                                                                                                                                                                                      |
+| A12     | `PersonalCalendarIntegrationTest.withdrawnSeasonEndpoints` exercises the production generated controller, original-account/admission reads, mapper and PostgreSQL for team-follows, pool-follows and matches. Actual complete-current-empty acceptance makes the selected season unavailable while preserving relations; options then confirm a catalog default or omit every season/default. The real Home tests exercise each consumer's 404, one options reread, fallback across all three tabs/both lists, and retained choice plus explicit retry when options still offer it or fail. |
+| A17–A19 | The SQL calendar suite selects overlapping team/pool origins once; actual `FollowState.replace(false)` removes each origin and leaves the public match intact after the last removal. Actual complete nonempty acceptance withdraws a match with a retained final result while another participation keeps its team visible; the public match endpoint refuses it. Partial/failed emptiness retains presence; one qualified complete-empty observation hides it. Reappearance preserves the original match/follow UUID while catalog/division restrictions remain independent.              |
+| A20     | The existing SQL calendar and F03 suites cover seven complete nonempty days, a busy day with 26 matches, exclusive continuation, Paris/New York grouping, absent dates/time, definitive/provisional results and postponement. Personal screens reuse the F03 presentation and device-zone owner.                                                                                                                                                                                                                                                                                            |
+| A21     | Real Home/Query/generated cases cover append error/retry, duplicate UUIDs, obsolete season responses and covered/inactive views. The confirmed-change regression resets a multipage Completed selection to its first page, preserves category/season, rejects an old pending page and defers the hidden category until display. Failed unchanged-context refresh retains authorized rows; failed confirmed-change reload exposes the ordinary Error/Retry state.                                                                                                                            |
+
+The demonstrated regression was personal-query invalidation retaining former rows after a confirmed
+follow change and a failed reload. The correction uses native `resetQueries` in the existing captured
+mutation callback for confirmed success only; uncertain writes keep ordinary invalidation. Ordinary
+refresh remains with F03/Query, including retained traversal refetch. No stronger F05 session
+revocation or A → guest → A guarantee is inferred; the current native-principal/private-client owner
+and its accepted tolerances remain applicable.
+
+```sh
+NX_LOAD_DOT_ENV_FILES=false ./mvnw -B -ntp -pl apps/backend verify -Dtest=FollowOptionsWebMvcTest,FollowListsWebMvcTest,PersonalCalendarWebMvcTest,FollowStateWebMvcTest -Dit.test=FollowOptionsIntegrationTest,FollowListsIntegrationTest,PersonalCalendarIntegrationTest,ReadMatchCalendarIntegrationTest -DforkCount=1
+NX_LOAD_DOT_ENV_FILES=false npm run test --workspace=@blockout/mobile -- --runInBand --reporters=default --runTestsByPath src/features/following/__tests__/personal-season.test.tsx src/features/following/__tests__/personal-screen.test.tsx src/features/following/__tests__/personal-calendar.test.tsx src/features/following/__tests__/followed-lists.test.tsx src/features/following/__tests__/follow-action.test.tsx src/features/following/__tests__/follow-recovery.test.tsx
+```
+
+Execution status: focused React checks, mobile lint/typecheck and Java test compilation pass.
+PostgreSQL execution and scoped native confirmation await the predecessor's explicit resource release.
+This is not F07 push, real Auth0/provider, physical-device or full accessibility qualification.
+T029's broader list qualification remains with its owner; T016/T044/T045/T048 stay independent.
+
 ### Integrated journeys to qualify
 
 Using Jest Expo/React Native Testing Library and native device checks where applicable:

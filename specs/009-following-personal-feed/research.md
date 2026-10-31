@@ -2,21 +2,15 @@
 
 The decisions below implement the accepted [F06 specification](spec.md) and the owner decisions recorded below. Documentation and inspected library code establish feasibility; they are not integrated application qualification.
 
-## Shared immediate follow state
+## Follow mutation and personal traversal
 
-**Decision**: Use the existing QueryClient, account/session/target keys and native useMutationState to display a single provisional action across components. Permit one pending action per target; apply the server response to confirmed state, then refresh dependent reads.
+**Decision**: Follow actions use the current [F13 mutation owner](../003-shared-quality/plan.md#frontend-mutation-conventions) within [F05's native principal/private-client lifetime](../005-accounts-identity/plan.md#mobile-session-and-shared-consumers). Confirmed desired-state writes reset affected personal lists/calendars through native `resetQueries`; failed/uncertain writes retain ordinary invalidation and explicit retry. No session generation, shared command guard or confirmation-read protocol is added.
 
-**Rationale**: The required outcome is an immediate consistent button across tabs, not a bespoke synchronization mechanism. TanStack exposes the shared mutation cache and its variables through [useMutationState](https://tanstack.com/query/latest/docs/framework/react/reference/functions/useMutationState); the [optimistic UI guide](https://tanstack.com/query/latest/docs/framework/react/guides/optimistic-updates) supports provisional presentation without rewriting all cached lists.
+**Rationale and evidence**: [QueryClient.resetQueries](https://tanstack.com/query/latest/docs/framework/react/reference/classes/QueryClient#resetqueries) resets cached traversal, cancels its pending reads and refetches active queries. Installed query-core 5.104.3 supplies this native implementation. Personal views derive `enabled` from actual visibility and retain `staleTime: Infinity`, so reset hidden views load their first page when displayed. No old `initialData` or `placeholderData` is supplied. The generated query prefixes cover both list kinds and all season/category/zone selections on the captured private client.
 
-**Alternatives**: Server-confirmed-only presentation does not provide the selected immediate feedback. Optimistically rewriting lists/counts adds rollback paths for no required benefit. No assumptions about another social application's private implementation are used.
+Ordinary calendar refresh keeps [F03's current native Query/grouping policy](../007-sporting-consultation/plan.md#mobile-state-and-navigation), including retained traversal refetch and separate loading-zone contexts. This supersedes the earlier construction's first-page-only refresh recipe; it does not change the confirmed-follow reset requirement. The [qualification](quickstart.md#integrated-personal-season-and-calendar-t022t037) distinguishes these paths using actual personal views and generated consumers.
 
-## Changed-follow reload versus ordinary refresh
-
-**Decision**: Native resetQueries restarts affected personal lists/calendars after a confirmed follow change; visible/enabled views reload, others wait for display. Ordinary same-context refresh uses infiniteQuery with pages: 1 and an explicit stale fetch, preserving old data if it fails.
-
-**Rationale and evidence**: [QueryClient](https://tanstack.com/query/latest/docs/framework/react/reference/classes/QueryClient) documents resets, observer-based activity and bounded infinite fetching. Inspection of the official [query-core 5.104.2 package](https://registry.npmjs.org/@tanstack/query-core/-/query-core-5.104.2.tgz) confirms these mechanisms and the native infiniteQuery name. A mounted hidden tab is not automatically inactive: enabled must follow visibility. The inspected query observer also fetches stale data when re-enabled; use staleTime: Infinity for retained lists/calendars, with explicit stale fetching for manual refresh. This uses the [documented freshness setting](https://tanstack.com/query/latest/docs/framework/react/guides/important-defaults), not a separate navigation cache. Do not supply former personal results as initialData/placeholderData, which could resurrect them on reset. The ordinary refresh recipe is already accepted in [F03](../007-sporting-consultation/plan.md#mobile-state-and-navigation).
-
-**Alternatives**: Default invalidation of a retained infinite query can reload all pages. Tracking every old match's selecting follows or preserving a precise scroll anchor adds unnecessary state. The owner accepted first-page reload with ordinary list error/retry.
+**Alternatives**: Retaining old personal rows after a confirmed follow change can present the former selection after a failed reload. Copying per-match origins or building a synchronization/recovery store is unnecessary; the native reset preserves the component-owned season/category and leaves ordinary loading/error/retry to the existing views. Optimistic full-list/count rewrites and automatic mutation replay remain excluded.
 
 ## Relations, ordering and erasure
 
@@ -50,7 +44,7 @@ Existing accepted Home/Sport journeys cover season changes, empty states, bounde
 
 ## Intrinsic personal-season presentation
 
-**Decision**: Present the selector through the existing Expo Router native stack, using the shared `formSheet` / `sheetAllowedDetents: "fitToContents"` configuration. Home and its `/season` sheet share the sole existing season owner through a provider limited to their common layout. `EntryGroup` and `SelectionRow` supply the same list anatomy as the other bounded choices; the existing Query selection, original generation and F12 admission remain authoritative.
+**Decision**: Present the selector through the existing Expo Router native stack, using the shared `formSheet` / `sheetAllowedDetents: "fitToContents"` configuration. Home and its `/season` sheet share the sole existing season owner through a provider limited to their common layout. `EntryGroup` and `SelectionRow` supply the same list anatomy as the other bounded choices; the existing Query selection, F05 private-client lifetime and F12 admission remain authoritative.
 
 **Rationale and installed evidence**: Reuse F13's [intrinsic sheet composition and installed-platform rationale](../003-shared-quality/research.md#account-readiness-basic-lists-and-intrinsic-sheets), including its shared Android viewport bound. Native presentation owns content fitting and maximum height; the shared ScrollView handles overflow. The Home-specific provider retains one season owner across both routes. Library/source inspection establishes feasibility, not application geometry or accessibility qualification.
 

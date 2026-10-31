@@ -43,7 +43,11 @@ export async function restrictFollowTarget(
     errorUpdatedAt: Date.now(),
   });
 }
-/** Uses an ordinary replacement mutation and refreshes its current projections after settlement. */
+/**
+ * Uses an ordinary replacement mutation. Confirmed changes reset personal traversal while retaining
+ * the component-owned season/category; uncertain failures use ordinary invalidation. Dependent read
+ * failures remain separate from the mutation result on this captured private QueryClient.
+ */
 export function useFollowMutation(
   target: FollowingTarget,
   context: ReturnType<typeof useFollowStateQuery>,
@@ -76,7 +80,7 @@ export function useFollowMutation(
             options,
           );
     },
-    onSettled: () => {
+    onSettled: (_data, error) => {
       if (!owner) return;
       void client.invalidateQueries({ queryKey: stateKey, exact: true });
       void client.invalidateQueries({
@@ -88,7 +92,8 @@ export function useFollowMutation(
         getListPoolFollowsQueryKey(owner.accountId),
         getListPersonalMatchesQueryKey(owner.accountId),
       ]) {
-        void client.invalidateQueries({ queryKey });
+        if (error) void client.invalidateQueries({ queryKey });
+        else void client.resetQueries({ queryKey });
       }
     },
   });

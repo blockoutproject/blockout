@@ -11,6 +11,7 @@ import {
   within,
 } from "@testing-library/react-native";
 import { View } from "react-native";
+import type { PersonalMatchCalendarResponse } from "../../../../.generated/schemas/index.zod";
 import { renderRouter } from "expo-router/testing-library";
 import { PersonalSeasonProvider } from "../components/personal-season-provider";
 import { PersonalNavigation } from "../screens/personal-navigation";
@@ -764,7 +765,7 @@ it.each([false, true])(
   },
 );
 
-it("keeps authorized encounters through a failed pull and ordinary invalidation read", async () => {
+it("retains encounters after an ordinary failed pull but withdraws them after a confirmed follow change fails to reload", async () => {
   // Given
   await mount(<FollowButton target={team} season={older} />);
   await screen.findByRole("button", {
@@ -795,9 +796,10 @@ it("keeps authorized encounters through a failed pull and ordinary invalidation 
   await screen.findByRole("button", { name: "Suivi", busy: false });
 
   // Then
+  await screen.findByRole("button", { name: "Réessayer" });
   expect(
-    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
-  ).toBeOnTheScreen();
+    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).not.toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Saison des suivis" }),
   ).toHaveAccessibilityValue({ text: older.label });
@@ -834,6 +836,142 @@ it("ignores an obsolete refresh after the shared season changes without reportin
     screen.getByRole("button", { name: "Saison des suivis" }),
   ).toHaveAccessibilityValue({ text: newer.label });
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+});
+
+it("restarts the selected completed traversal after a confirmed follow change and rejects its late old page", async () => {
+  // Given
+  let changed = false;
+  const late = Promise.withResolvers<Response>();
+  const oldSecond = "00000000-0000-4000-8000-000000000041";
+  const oldThird = "00000000-0000-4000-8000-000000000042";
+  const replacement = "00000000-0000-4000-8000-000000000043";
+  /** Supplies valid generated envelopes; cursor and identities remain explicit in each request. */
+  function calendar(
+    url: string,
+    id: string,
+    home: string,
+    nextDay?: string,
+  ): Response {
+    const match = matchDetail().match;
+    const category =
+      new URL(url).searchParams.get("category") === "completed"
+        ? "completed"
+        : "upcoming";
+    const envelope: PersonalMatchCalendarResponse = {
+      hasAvailableFollows: true,
+      calendar: {
+        category,
+        timeZone: "Europe/Paris",
+        evaluatedAt: "2026-10-28T12:00:00Z",
+        days: [
+          {
+            date: "2026-10-20",
+            pools: [
+              {
+                poolId: team.id,
+                matches: [
+                  {
+                    ...match,
+                    id,
+                    category,
+                    schedule: { ...match.schedule, localDate: "2026-10-20" },
+                    home: { ...match.home, name: home },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        ...(nextDay ? { nextDay } : {}),
+      },
+    };
+    return Response.json(envelope);
+  }
+  mockFetch.mockImplementation((url, request) => {
+    const parsed = new URL(url);
+    if (request?.method === "PUT") changed = true;
+    if (!parsed.pathname.endsWith("/matches")) return transport(url, request);
+    if (changed) return Promise.resolve(calendar(url, replacement, "Current"));
+    if (parsed.searchParams.get("nextDay") === "2026-10-19")
+      return late.promise;
+    return Promise.resolve(
+      parsed.searchParams.has("nextDay")
+        ? calendar(url, oldSecond, "Second", "2026-10-19")
+        : calendar(url, matchDetail().match.id, "First", "2026-10-20"),
+    );
+  });
+  await mount(<FollowButton target={team} season={older} />);
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  await layoutNativeTabs();
+  await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
+  await layoutNativeTabs();
+  const first = await screen.findByRole("link", {
+    name: /Ouvrir le match First — Away/,
+  });
+  await fireEvent(first, "endReached");
+  const second = await screen.findByRole("link", {
+    name: /Ouvrir le match Second — Away/,
+  });
+  await fireEvent(second, "endReached");
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.some(
+        ([url]) => new URL(url).searchParams.get("nextDay") === "2026-10-19",
+      ),
+    ).toBe(true),
+  );
+  mockFetch.mockClear();
+
+  // When
+  await userEvent.press(
+    screen.getByRole("button", { name: "Suivre", disabled: false }),
+  );
+  await screen.findByRole("button", { name: "Suivi", busy: false });
+  await screen.findByRole("link", { name: /Ouvrir le match Current — Away/ });
+  await act(async () =>
+    late.resolve(
+      calendar(
+        "https://api.example.invalid/?category=completed&timeZone=Europe/Paris",
+        oldThird,
+        "Obsolete",
+      ),
+    ),
+  );
+
+  // Then
+  expect(
+    screen.getByRole("tab", { name: "Terminés", selected: true }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Saison des suivis" }),
+  ).toHaveAccessibilityValue({ text: older.label });
+  expect(
+    screen.queryByRole("link", {
+      name: /Ouvrir le match (First|Second|Obsolete) — Away/,
+    }),
+  ).not.toBeOnTheScreen();
+  const reloads = mockFetch.mock.calls.filter(([url]) =>
+    new URL(url).pathname.endsWith("/matches"),
+  );
+  expect(reloads).toHaveLength(1);
+  expect(new URL(reloads[0][0]).searchParams.get("category")).toBe("completed");
+  expect(new URL(reloads[0][0]).searchParams.has("nextDay")).toBe(false);
+  expect(new URL(reloads[0][0]).searchParams.get("seasonId")).toBe(older.id);
+
+  // When: the mounted hidden category reloads only upon display.
+  await userEvent.press(screen.getByRole("tab", { name: "À venir" }));
+  await layoutNativeTabs();
+  await screen.findByRole("link", { name: /Ouvrir le match Current — Away/ });
+
+  // Then
+  const upcoming = mockFetch.mock.calls.filter(
+    ([url]) => new URL(url).searchParams.get("category") === "upcoming",
+  );
+  expect(upcoming).toHaveLength(1);
+  expect(new URL(upcoming[0][0]).searchParams.has("nextDay")).toBe(false);
 });
 
 it("defers a confirmed-change reload while Home is covered and fetches its first page on return", async () => {
@@ -1166,6 +1304,149 @@ it("opens the native season route and returns to Home with the same owner's acce
   ).toHaveAccessibilityValue({ text: newer.label });
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
 });
+
+it.each(
+  [
+    ["À venir", "matches"],
+    ["Terminés", "matches"],
+    ["Suivis", "team-follows"],
+    ["Suivis", "pool-follows"],
+  ].flatMap(([tab, collection]) =>
+    ["catalog", "empty"].map((fallback) => [tab, collection, fallback]),
+  ),
+)(
+  "reconciles a disappeared season from %s's actual %s consumer with %s options across all personal views",
+  async (tab, collection, fallback) => {
+    // Given: only HTTP/native I/O are controlled; Home, both lists, F03 calendars and Query are real.
+    let withdrawn = false;
+    mockFetch.mockImplementation((url, request) => {
+      const parsed = new URL(url);
+      if (withdrawn && parsed.pathname.endsWith("/follow-options"))
+        return Promise.resolve(
+          Response.json(
+            fallback === "catalog"
+              ? { seasons: [newer], defaultSeasonId: newer.id }
+              : { seasons: [] },
+          ),
+        );
+      if (
+        withdrawn &&
+        parsed.pathname.endsWith(`/${collection}`) &&
+        parsed.searchParams.get("seasonId") === older.id
+      )
+        return Promise.resolve(new Response(null, { status: 404 }));
+      return transport(url, request);
+    });
+    await mount();
+    await screen.findByRole("button", {
+      name: "Saison des suivis",
+      disabled: false,
+    });
+    await layoutNativeTabs();
+    await userEvent.press(screen.getByRole("tab", { name: tab }));
+    await layoutNativeTabs();
+    await screen.findByRole("link", {
+      name: tab === "Suivis" ? /Étoile/ : /Ouvrir le match Home — Away/,
+    });
+    mockFetch.mockClear();
+
+    // When
+    withdrawn = true;
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then: one successful options omission selects the default, then every real tab shares it.
+    const label = fallback === "catalog" ? newer.label : "Toutes saisons";
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Saison des suivis" }),
+      ).toHaveAccessibilityValue({ text: label }),
+    );
+    expect(
+      mockFetch.mock.calls.filter(([url]) => url.endsWith("/follow-options")),
+    ).toHaveLength(1);
+    mockFetch.mockClear();
+    for (const destination of ["À venir", "Terminés", "Suivis"]) {
+      await userEvent.press(screen.getByRole("tab", { name: destination }));
+      await layoutNativeTabs();
+      await screen.findByRole("link", {
+        name:
+          destination === "Suivis" ? /Étoile/ : /Ouvrir le match Home — Away/,
+      });
+      expect(
+        screen.getByRole("button", { name: "Saison des suivis" }),
+      ).toHaveAccessibilityValue({ text: label });
+    }
+    const selections = mockFetch.mock.calls.filter(([url]) =>
+      /\/(matches|team-follows|pool-follows)\?/.test(url),
+    );
+    expect(selections.length).toBeGreaterThan(0);
+    expect(
+      selections.every(
+        ([url]) =>
+          new URL(url).searchParams.get("seasonId") ===
+          (fallback === "catalog" ? newer.id : null),
+      ),
+    ).toBe(true);
+  },
+);
+
+it.each(["offered", "failed"])(
+  "retains the season after a real calendar NotFound when options are %s and bounds each explicit retry",
+  async (outcome) => {
+    // Given
+    let refused = false;
+    mockFetch.mockImplementation((url, request) => {
+      if (refused && new URL(url).pathname.endsWith("/matches"))
+        return Promise.resolve(new Response(null, { status: 404 }));
+      if (refused && url.endsWith("/follow-options") && outcome === "failed")
+        return Promise.reject(new TypeError("Synthetic options outage"));
+      return transport(url, request);
+    });
+    await mount();
+    await screen.findByRole("button", {
+      name: "Saison des suivis",
+      disabled: false,
+    });
+    await layoutNativeTabs();
+    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+    mockFetch.mockClear();
+
+    // When
+    refused = true;
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await screen.findByRole("button", { name: "Réessayer" });
+
+    // Then
+    expect(
+      screen.getByRole("button", { name: "Saison des suivis" }),
+    ).toHaveAccessibilityValue({ text: older.label });
+    expect(
+      mockFetch.mock.calls.filter(([url]) => url.endsWith("/follow-options")),
+    ).toHaveLength(1);
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(url).pathname.endsWith("/matches"),
+      ),
+    ).toHaveLength(1);
+
+    // When: only the user's new attempt may recheck uncertainty.
+    await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+    await screen.findByRole("button", { name: "Réessayer", busy: false });
+
+    // Then
+    expect(
+      mockFetch.mock.calls.filter(([url]) => url.endsWith("/follow-options")),
+    ).toHaveLength(2);
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(url).pathname.endsWith("/matches"),
+      ),
+    ).toHaveLength(2);
+    expect(
+      screen.getByRole("button", { name: "Saison des suivis" }),
+    ).toHaveAccessibilityValue({ text: older.label });
+  },
+);
 
 it("retains pages on append failure, deduplicates UUIDs and keeps homonyms distinguishable", async () => {
   // Given

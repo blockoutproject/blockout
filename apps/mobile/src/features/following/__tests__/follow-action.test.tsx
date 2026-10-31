@@ -534,7 +534,7 @@ it("invalidates after the initiating control unmounts and reads current truth on
   ).toBeEnabled();
 });
 
-it("invalidates owned selections and options/count without touching another owner", async () => {
+it("resets owned selections and invalidates options/count without touching another owner", async () => {
   // Given
   const user = userEvent.setup();
   await renderFollowing(<FollowButton target={team} season={season} />);
@@ -574,8 +574,8 @@ it("invalidates owned selections and options/count without touching another owne
   await screen.findByRole("button", { name: "Suivi", busy: false });
 
   // Then
-  expect(client.getQueryState(listKey)?.isInvalidated).toBe(true);
-  expect(client.getQueryState(calendarKey)?.isInvalidated).toBe(true);
+  expect(client.getQueryData(listKey)).toBeUndefined();
+  expect(client.getQueryData(calendarKey)).toBeUndefined();
   expect(client.getQueryData(otherKey)).toBe("other owner");
   expect(client.getQueryState(optionsKey)?.isInvalidated).toBe(true);
   expect(client.getQueryState(bypassOptionsKey)?.isInvalidated).toBe(true);
