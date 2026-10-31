@@ -12,7 +12,7 @@ import org.springframework.validation.annotation.Validated;
  *
  * @param audience exact Management API audience/base URL, absent before environment activation
  * @param connectTimeout positive native connect deadline
- * @param readTimeout positive native lease/response deadline
+ * @param readTimeout positive total response deadline
  */
 @Validated
 @ConfigurationProperties("blockout.accounts.auth0")

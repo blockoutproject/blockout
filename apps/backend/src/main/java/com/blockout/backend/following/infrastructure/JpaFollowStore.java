@@ -19,6 +19,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class JpaFollowStore implements FollowStore {
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void erase(UUID accountId) {
+    teams.erase(accountId);
+    pools.erase(accountId);
+  }
+
   private final TeamFollowRepository teams;
   private final PoolFollowRepository pools;
   private final FollowPersistenceMapper mapper;

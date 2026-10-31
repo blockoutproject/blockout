@@ -23,6 +23,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class JpaAccountStore implements AccountStore {
   /** {@inheritDoc} */
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void erase(UUID accountId) {
+    accounts.deleteById(accountId);
+    accounts.flush();
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public java.util.Map<UUID, String> displayNames(java.util.Set<UUID> ids) {
     if (ids.isEmpty()) return java.util.Map.of();
     return accounts.findNames(ids).stream()

@@ -4,9 +4,18 @@ import com.blockout.backend.following.application.FollowContext.Relation;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /** Relation persistence; writes participate in the caller's original-account lock/transaction. */
 public interface FollowStore {
+  /**
+   * Removes this original account's personal data in the caller's erasure transaction. Retained
+   * nonpersonal facts and other owners remain unchanged; acquires no domain root.
+   *
+   * @param accountId original lifecycle protected by its account row lock
+   */
+  void erase(UUID accountId);
+
   /**
    * Reads the exact original owner's typed relation, including retained hidden targets.
    *
