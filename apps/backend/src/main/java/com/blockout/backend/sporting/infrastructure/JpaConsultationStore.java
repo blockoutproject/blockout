@@ -1,5 +1,6 @@
 package com.blockout.backend.sporting.infrastructure;
 
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
 import com.blockout.backend.sporting.application.ConsultationMatchSelection;
@@ -22,12 +23,14 @@ import jakarta.persistence.criteria.Fetch;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
+import java.net.URI;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -49,6 +52,28 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
   private final SeasonRepository seasons;
   private final SportingPersistenceMapper mapper;
   private final EntityManager entityManager;
+
+  /** {@inheritDoc} */
+  @Override
+  public URI officialCalendar(UUID poolId) {
+    return entityManager
+        .createQuery(
+            "SELECT p.calendarUrl FROM PoolEntity p WHERE p.id = :id AND p.provider = :provider",
+            String.class)
+        .setParameter("id", poolId)
+        .setParameter("provider", CollectionProviderEnum.FFVB)
+        .getResultStream()
+        .filter(Objects::nonNull)
+        .map(URI::create)
+        .filter(
+            uri ->
+                ("https".equalsIgnoreCase(uri.getScheme())
+                        || "http".equalsIgnoreCase(uri.getScheme()))
+                    && uri.getHost() != null
+                    && uri.getUserInfo() == null)
+        .findFirst()
+        .orElse(null);
+  }
 
   /** {@inheritDoc} */
   @Override

@@ -7,6 +7,7 @@ import com.blockout.backend.sporting.application.model.SportingViews.DivisionDet
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
+import java.net.URI;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -19,6 +20,14 @@ import java.util.UUID;
  * composition.
  */
 public interface ConsultationStore {
+  /**
+   * Reads a previously qualified FFVB calendar reference for an already admitted pool.
+   *
+   * @param poolId current viewable owning pool
+   * @return its published HTTP(S) calendar, or null for absent/non-FFVB references
+   */
+  URI officialCalendar(UUID poolId);
+
   /**
    * Builds the exact public resource predicate; consumers use their own selection instead.
    *

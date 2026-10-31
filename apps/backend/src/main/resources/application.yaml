@@ -45,7 +45,7 @@ blockout:
     retention-cron: ${BLOCKOUT_NOTIFICATIONS_RETENTION_CRON:0 0 3 * * *}
   consultation:
     documents:
-      # Consumed by the document story adapter after origin/transport qualification.
+      information-url: https://www.ffvbbeach.org/ffvbapp/adressier/fiche_match_ffvb.php
       connect-timeout: 3s
       read-timeout: 5s
       max-bytes: 20971520

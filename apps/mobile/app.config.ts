@@ -49,6 +49,8 @@ const config: ExpoConfig = {
   plugins: [
     ["expo-router", { sitemap: false }],
     "expo-image",
+    "@config-plugins/react-native-blob-util",
+    "@config-plugins/react-native-pdf",
     [
       "expo-notifications",
       { defaultChannel: "default", enableBackgroundRemoteNotifications: false },

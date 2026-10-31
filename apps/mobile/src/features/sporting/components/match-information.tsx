@@ -1,7 +1,10 @@
 import { useSportingNavigation } from "../navigation";
-import { CalendarDays } from "lucide-react-native";
+import { CalendarDays, FileText } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
-import type { MatchDetailResponse } from "../../../../.generated/schemas/index.zod";
+import type {
+  MatchDetailResponse,
+  MatchDocumentKindEnum,
+} from "../../../../.generated/schemas/index.zod";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { formatSportingSchedule } from "../model/sporting-time";
@@ -11,23 +14,30 @@ import {
   mapDestination,
   safeWebsite,
 } from "./contact-link";
+import { matchDocumentLabels } from "../api/match-document";
 import { MatchSurface } from "./match-surface";
 
-/** Independent public facts; document/support integrations remain with their owning lots. */
+/** Independent current match facts and explicitly offered document actions. */
 export interface MatchInformationProps {
   detail: MatchDetailResponse;
   displayTimeZone?: string;
+  /** An explicit document opening uses the screen-owned full-screen reader. */
+  onDocumentOpen(kind: MatchDocumentKindEnum): void;
 }
 
 /** Approved information order: division, schedule, referees, pool, venue and qualified source. */
 export function MatchInformation({
   detail,
   displayTimeZone,
+  onDocumentOpen,
 }: MatchInformationProps) {
   const sporting = useSportingNavigation();
   const { colors } = useTheme();
   const match = detail.match;
   const division = match.pool.classification.division;
+  const information = detail.documents.some(
+    (document) => document.kind === "information",
+  );
   const schedule = formatSportingSchedule(match.schedule, displayTimeZone);
   return (
     <MatchSurface division={division}>
@@ -62,17 +72,34 @@ export function MatchInformation({
         }
         onPress={() => void sporting.navigate("pool", match.pool.pool.id)}
       />
-      <ContactLink
-        presentation="information"
-        label="Lieu"
-        value={
-          [detail.venueName, detail.venueAddress].filter(Boolean).join(" · ") ||
-          undefined
-        }
-        destination={
-          detail.venueAddress ? mapDestination(detail.venueAddress) : undefined
-        }
-      />
+      {information ? (
+        <InformationRow
+          label="Lieu"
+          value={
+            [detail.venueName, detail.venueAddress]
+              .filter(Boolean)
+              .join(" · ") || matchDocumentLabels.information
+          }
+          supporting="Fiche d’information (PDF)"
+          icon={FileText}
+          onPress={() => onDocumentOpen("information")}
+        />
+      ) : (
+        <ContactLink
+          presentation="information"
+          label="Lieu"
+          value={
+            [detail.venueName, detail.venueAddress]
+              .filter(Boolean)
+              .join(" · ") || undefined
+          }
+          destination={
+            detail.venueAddress
+              ? mapDestination(detail.venueAddress)
+              : undefined
+          }
+        />
+      )}
       {detail.officialCalendarUrl && (
         <ContactLink
           presentation="information"
@@ -82,6 +109,18 @@ export function MatchInformation({
           icon={CalendarDays}
         />
       )}
+      {detail.documents
+        .filter((document) => document.kind !== "information")
+        .map((document) => (
+          <InformationRow
+            key={document.kind}
+            label="Document"
+            value={matchDocumentLabels[document.kind]}
+            supporting="PDF"
+            icon={FileText}
+            onPress={() => onDocumentOpen(document.kind)}
+          />
+        ))}
     </MatchSurface>
   );
 }

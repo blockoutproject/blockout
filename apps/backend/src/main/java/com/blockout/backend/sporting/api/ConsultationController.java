@@ -1,11 +1,13 @@
 package com.blockout.backend.sporting.api;
 
 import com.blockout.backend.generated.mobile.api.ConsultationApi;
+import com.blockout.backend.generated.mobile.api.SportingApi;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
 import com.blockout.backend.generated.mobile.model.ClubDetailResponse;
 import com.blockout.backend.generated.mobile.model.ClubTeamsResponse;
 import com.blockout.backend.generated.mobile.model.MatchCalendarResponse;
 import com.blockout.backend.generated.mobile.model.MatchDetailResponse;
+import com.blockout.backend.generated.mobile.model.MatchDocumentKindEnum;
 import com.blockout.backend.generated.mobile.model.PoolDetailResponse;
 import com.blockout.backend.generated.mobile.model.PoolParticipantsResponse;
 import com.blockout.backend.generated.mobile.model.PoolStandingsResponse;
@@ -14,6 +16,7 @@ import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.sporting.application.ConsultationRequest.CalendarRequest;
 import com.blockout.backend.sporting.application.ConsultationRequest.ClubSeasonRequest;
 import com.blockout.backend.sporting.application.ReadMatchCalendar;
+import com.blockout.backend.sporting.application.ReadMatchDocument;
 import com.blockout.backend.sporting.application.ReadSportingResources;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
@@ -33,14 +36,16 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Public resource and binary image delivery through generated canonical routes and F12 admission.
+ * Public resource, image and temporary PDF delivery through generated canonical routes and F12
+ * admission.
  */
 @RestController
 @RequiredArgsConstructor
-public class ConsultationController implements ConsultationApi {
+public class ConsultationController implements ConsultationApi, SportingApi {
   private final ReadSportingResources resources;
   private final ConsultationApiMapper mapper;
   private final ReadMatchCalendar calendars;
+  private final ReadMatchDocument documents;
 
   /** {@inheritDoc} */
   @Override
@@ -144,6 +149,16 @@ public class ConsultationController implements ConsultationApi {
   public ResponseEntity<Resource> getTeamLogo(
       UUID teamId, TeamLogoSelectionEnum selection, Boolean bypass) {
     return image(resources.teamLogo(teamId, selection));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public ResponseEntity<Resource> getMatchDocument(
+      UUID matchId, MatchDocumentKindEnum documentKind, Boolean bypass) {
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .contentType(MediaType.APPLICATION_PDF)
+        .body(new ByteArrayResource(documents.read(matchId, documentKind)));
   }
 
   /**
