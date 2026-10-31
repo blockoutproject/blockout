@@ -174,10 +174,10 @@ it("updates retained match detail to the current phone zone on foreground return
     });
   });
 
-  // Then: presentation alone needs no reread; actual calendar/navigation qualification is T023.
+  // Then: formatting uses the current zone while the match owner also rereads on foreground.
   expect(screen.getAllByText("19 sept. 2026 à 18:30")).toHaveLength(2);
   expect(screen.queryByText("20 sept. 2026 à 00:30")).not.toBeOnTheScreen();
-  expect(mockFetch).toHaveBeenCalledTimes(requests);
+  expect(mockFetch).toHaveBeenCalledTimes(requests + 1);
 });
 
 it("uses the rendering day when an initial match response crosses midnight", async () => {

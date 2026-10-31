@@ -87,6 +87,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
       : undefined;
   /** Explicit refresh retains each authorized scope; initial failures keep their existing read retry. */
   async function refresh() {
+    feedback.clear();
     if (tab === "teams" && data && season) {
       const result = await teams.refetch({ cancelRefetch: false });
       if (result.isError && result.data && !isAccessDenied(result.error))

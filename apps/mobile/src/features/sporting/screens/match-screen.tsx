@@ -12,7 +12,7 @@ import {
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { AppState } from "react-native";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 
@@ -33,14 +33,29 @@ import { currentSportingTimeZone } from "../model/sporting-time";
 /** Exact dated public match identity; contextual actions remain with their feature owners. */
 export interface MatchScreenProps {
   matchId: string;
+  /** The route supplies native focus; standalone compositions are focused by default. */
+  focused?: boolean;
 }
 
-/** Presents independent accepted match facts; a missing secondary section never replaces another. */
-export function MatchScreen({ matchId }: MatchScreenProps) {
+/** Presents accepted facts and rereads only this match on route focus and foreground return. */
+export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
   const [teamsTop, setTeamsTop] = useState<number>();
   const [presentation, setPresentation] = useState(() => ({
     timeZone: currentSportingTimeZone(),
   }));
+  const queries = useConsultationQueries();
+  const match = useQuery(queries.match(matchId));
+  const { refetch } = match;
+  const feedback = useActionFeedback();
+  // Effect-owned rereads use the latest feedback owner without making it a request dependency.
+  const reread = useEffectEvent(async () => {
+    const result = await refetch({ cancelRefetch: false });
+    if (result.isError && result.data && !isAccessDenied(result.error))
+      feedback.error();
+  });
+  useEffect(() => {
+    if (focused) void reread();
+  }, [focused, matchId, refetch]);
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") {
@@ -48,12 +63,11 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
         setPresentation({
           timeZone: currentSportingTimeZone(),
         });
+        if (focused) void reread();
       }
     });
     return () => subscription.remove();
-  }, []);
-  const queries = useConsultationQueries();
-  const match = useQuery(queries.match(matchId));
+  }, [focused, matchId, refetch]);
   const data = match.data;
   const contribution = useMatchContributionAction(
     matchId,
@@ -61,9 +75,9 @@ export function MatchScreen({ matchId }: MatchScreenProps) {
     data?.streamUrl ? data.streamContributionId : undefined,
     data?.streamUrl,
   );
-  const feedback = useActionFeedback();
   /** A failed explicit refresh keeps authorized content and reports only the attempted read. */
   async function refresh() {
+    feedback.clear();
     const [result, entryResult] = await Promise.all([
       match.refetch({ cancelRefetch: false }),
       contribution.refresh(),
