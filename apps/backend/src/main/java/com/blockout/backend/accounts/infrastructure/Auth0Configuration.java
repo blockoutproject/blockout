@@ -89,34 +89,28 @@ public class Auth0Configuration {
    * Missing configuration refuses reads without blocking guest/application startup.
    *
    * @param builder Boot's application HTTP builder
-   * @param requests bounded provider factory
+   * @param auth0Requests bounded provider factory
    * @param properties server-only audience/base URL
-   * @param security validated environment issuer
    * @param registrations optional Boot OAuth registrations
    * @param authorizedClients optional Boot in-memory authorized clients
-   * @param validator native provider-email validation
    * @param auth0ManagementHttp official SDK resource transport
-   * @return exact-principal reader with no mobile secret or caller-derived bearer forwarding
+   * @return shared official server SDK, absent without environment configuration
    */
   @Bean
-  PrincipalReader auth0PrincipalReader(
+  @org.jspecify.annotations.Nullable
+  ManagementApi auth0ManagementApi(
       RestClient.Builder builder,
-      HttpComponentsClientHttpRequestFactory requests,
+      HttpComponentsClientHttpRequestFactory auth0Requests,
       Auth0Properties properties,
-      SecurityProperties security,
       ObjectProvider<ClientRegistrationRepository> registrations,
       ObjectProvider<OAuth2AuthorizedClientService> authorizedClients,
-      Validator validator,
       OkHttpClient auth0ManagementHttp) {
     ClientRegistrationRepository registration = registrations.getIfAvailable();
     OAuth2AuthorizedClientService clients = authorizedClients.getIfAvailable();
     if (properties.audience() == null
         || registration == null
         || clients == null
-        || registration.findByRegistrationId("auth0") == null)
-      return (issuer, subject) -> {
-        throw new AccountUnavailableException();
-      };
+        || registration.findByRegistrationId("auth0") == null) return null;
     RestClientClientCredentialsTokenResponseClient tokens =
         new RestClientClientCredentialsTokenResponseClient();
     tokens.setParametersCustomizer(
@@ -125,7 +119,7 @@ public class Auth0Configuration {
     tokens.setRestClient(
         builder
             .clone()
-            .requestFactory(requests)
+            .requestFactory(auth0Requests)
             .configureMessageConverters(
                 converters ->
                     converters.addCustomConverter(
@@ -148,15 +142,35 @@ public class Auth0Configuration {
           if (authorized == null) throw new AccountUnavailableException();
           return "Bearer " + authorized.getAccessToken().getTokenValue();
         };
-    ManagementApi management =
-        new ManagementApi(
-            ClientOptions.builder()
-                .environment(Environment.custom(properties.audience().toString()))
-                .httpClient(auth0ManagementHttp)
-                .maxRetries(0)
-                .addHeader("Authorization", authorization)
-                .build());
-    PrincipalReader reader = new Auth0PrincipalClient(management, validator);
+    return new ManagementApi(
+        ClientOptions.builder()
+            .environment(Environment.custom(properties.audience().toString()))
+            .httpClient(auth0ManagementHttp)
+            .maxRetries(0)
+            .addHeader("Authorization", authorization)
+            .build());
+  }
+
+  /**
+   * Adapts the shared official client to necessary establishment evidence only.
+   *
+   * @param management optional configured server SDK
+   * @param validator native provider-email validator
+   * @param security accepted environment issuer
+   * @return exact-principal reader; missing configuration fails closed
+   */
+  @Bean
+  PrincipalReader auth0PrincipalReader(
+      java.util.Optional<ManagementApi> management,
+      Validator validator,
+      SecurityProperties security) {
+    PrincipalReader reader =
+        management
+            .<PrincipalReader>map(client -> new Auth0PrincipalClient(client, validator))
+            .orElse(
+                (issuer, subject) -> {
+                  throw new AccountUnavailableException();
+                });
     return (issuer, subject) -> {
       if (!security.issuer().toString().equals(issuer)) throw new AccountUnavailableException();
       return reader.read(issuer, subject);

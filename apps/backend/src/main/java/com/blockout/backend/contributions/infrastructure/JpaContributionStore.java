@@ -27,6 +27,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 @RequiredArgsConstructor
 public class JpaContributionStore implements ContributionStore {
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void erase(UUID accountId) {
+    versions.eraseOwners(accountId);
+    versions.erasePublicationActors(accountId);
+    versions.eraseDecisionActors(accountId);
+    reports.eraseReporters(accountId);
+  }
+
   private final EntityManager entities;
   private final ContributionVersionRepository versions;
   private final ContributionReportRepository reports;

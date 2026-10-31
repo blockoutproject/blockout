@@ -2,10 +2,10 @@ package com.blockout.backend.accounts.api;
 
 import com.blockout.backend.accounts.application.AccountContext;
 import com.blockout.backend.accounts.application.ChangeAccountProfile;
+import com.blockout.backend.accounts.application.EraseAccount;
 import com.blockout.backend.accounts.application.EstablishAccount;
 import com.blockout.backend.accounts.application.ProfilePhoto;
 import com.blockout.backend.accounts.application.ReadAccount;
-import com.blockout.backend.accounts.application.exception.AccountUnavailableException;
 import com.blockout.backend.generated.mobile.api.AccountsApi;
 import com.blockout.backend.generated.mobile.model.AccountResponse;
 import com.blockout.backend.generated.mobile.model.ChangeAccountProfileRequest;
@@ -25,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class AccountsController implements AccountsApi {
   private final EstablishAccount establishment;
+  private final EraseAccount erasure;
   private final ReadAccount reads;
   private final ChangeAccountProfile changes;
   private final AccountApiMapper mapper;
@@ -79,8 +80,9 @@ public class AccountsController implements AccountsApi {
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<Void> eraseAccount(UUID id, Boolean bypass) {
-    request.original(id);
-    throw new AccountUnavailableException();
+    AccountContext context = request.original(id);
+    erasure.erase(context.issuer(), context.subject(), id);
+    return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
   }
 
   /** {@inheritDoc} */

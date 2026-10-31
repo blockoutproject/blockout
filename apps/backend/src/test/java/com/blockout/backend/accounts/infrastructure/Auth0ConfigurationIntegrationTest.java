@@ -261,14 +261,15 @@ class Auth0ConfigurationIntegrationTest {
     SecurityProperties security =
         new SecurityProperties(
             URI.create(origin + "/"), "mobile", "mobile", "collector", "collector");
-    return configuration.auth0PrincipalReader(
-        RestClient.builder(),
-        requests,
-        properties,
-        security,
-        beans.getBeanProvider(ClientRegistrationRepository.class),
-        beans.getBeanProvider(OAuth2AuthorizedClientService.class),
-        validators.getValidator(),
-        configuration.auth0ManagementHttp(properties));
+    java.util.Optional<com.auth0.client.mgmt.ManagementApi> management =
+        java.util.Optional.ofNullable(
+            configuration.auth0ManagementApi(
+                RestClient.builder(),
+                requests,
+                properties,
+                beans.getBeanProvider(ClientRegistrationRepository.class),
+                beans.getBeanProvider(OAuth2AuthorizedClientService.class),
+                configuration.auth0ManagementHttp(properties)));
+    return configuration.auth0PrincipalReader(management, validators.getValidator(), security);
   }
 }

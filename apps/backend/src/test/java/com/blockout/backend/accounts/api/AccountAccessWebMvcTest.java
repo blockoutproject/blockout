@@ -5,7 +5,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -62,6 +61,8 @@ import org.springframework.transaction.CannotCreateTransactionException;
 })
 @DisplayName("Explicit account access HTTP boundary")
 class AccountAccessWebMvcTest {
+  @MockitoBean private com.blockout.backend.accounts.application.EraseAccount erasure;
+
   private static final String ISSUER = "https://identity.example.invalid/";
   private static final UUID ID = UUID.fromString("00000000-0000-4000-8000-000000000169");
   private static final Account ACCOUNT =
@@ -391,25 +392,6 @@ class AccountAccessWebMvcTest {
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:not-found"))
         .andExpect(header().string("Cache-Control", "no-store"));
-    verifyNoInteractions(store, establishment, permissions, photos, changes);
-  }
-
-  @Test
-  @DisplayName("Keeps unfinished erasure unavailable after ordinary admission")
-  void preservesUnavailableErasure() throws Exception {
-    // Given
-    MockHttpServletRequestBuilder request =
-        delete("/accounts/" + ID).with(principal("mobile-test"));
-
-    // When
-    ResultActions response = mvc.perform(request);
-
-    // Then
-    response
-        .andExpect(status().isServiceUnavailable())
-        .andExpect(jsonPath("$.type").value("urn:blockout:problem:unavailable"))
-        .andExpect(header().string("Cache-Control", "no-store"));
-    verify(admission).requireOrdinaryAccess(ISSUER, "auth0|one", false);
     verifyNoInteractions(store, establishment, permissions, photos, changes);
   }
 

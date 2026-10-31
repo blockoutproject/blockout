@@ -20,6 +20,13 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 @Transactional(propagation = Propagation.MANDATORY)
 public class JpaPushSubscriptionStore implements PushSubscriptionStore {
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void erase(UUID accountId) {
+    subscriptions.erase(accountId);
+  }
+
   private final PushSubscriptionRepository subscriptions;
   private final PushSubscriptionPersistenceMapper mapper;
   private final EntityManager entities;
