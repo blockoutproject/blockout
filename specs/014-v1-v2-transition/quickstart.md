@@ -34,6 +34,22 @@ Use the [private inventory and destruction gates](../../infra/operations/README.
 
 This inventory/reconciliation preparation provides no executed population inventory or end-to-end continuity qualification. The scoped T019 result below does not complete T020–T022, T025, logo preservation or release execution in [tasks.md](tasks.md); the dated observations in [research.md](research.md#current-v1-evidence) are not new operational evidence.
 
+## Identity and Pro owner integration — T015–T017
+
+The [SQL integration suite](../../apps/backend/src/test/java/com/blockout/backend/accounts/application/TransitionIdentityIntegrationTest.java) composes actual F05 establishment/read/erasure, F12 grants/authorization and the committed Liquibase schema on disposable PostgreSQL 18.6 with the restricted application role. Provider I/O alone is controlled; MockMvc uses Spring Security test JWTs. Linked-method fixtures share the retained principal, even with different provider addresses; distinct unlinked principals with equal or case-varied emails remain private. Missing initial email commits no partial account and needs explicit retry. Unknown age stays unknown; explicit evidence recovery and later outages preserve the actual principal date. Current SQL grants govern projection and protected commands despite obsolete JWT roles. Synthetic business reset invokes no provider deletion. Voluntary erasure followed by registration uses a new UUID and the actual surviving/new principal date, without the old profile or grants; requests for the deleted UUID cannot target its replacement.
+
+The [mobile integration suite](../../apps/mobile/src/features/pro/__tests__/transition-continuity.test.tsx) mounts production routes and actual F05/F09 owners, generated HTTP clients, Query, F10 assistance and F11 advertising admission. Only HTTP, storage and native I/O/provider views are controlled. Explicit sign-in associates RevenueCat with the new business UUID, independently of Auth0 or historical customer references, and reads already-applicable paid/manual rights without restoration. Equal emails across different principals do not carry a gift or private cache. An unusable profile cannot associate RevenueCat; its explicit retry needs no additional hosted login. Deletion and recreation clear the old gift/grants, retain actual principal age and permit only explicit native restoration of the supplied Apple/Google result. Unknown verification, pending payment, uncertain restoration, an empty restore and current revoked rights remain distinct; an old listener payload only occasions a current SDK read. Outage recovery neither opens an offer nor starts advertising, and actual F10 assistance remains reachable with the receipt-wide/cross-store limitations explained by F09.
+
+The existing production composition satisfies these cases; T017 needs no account, entitlement, session, contract or dependency change. Reproduce the focused checks with the repository toolchain:
+
+```sh
+npx nx run mobile:generate --output-style=static
+npm run test --workspace=@blockout/mobile -- --runInBand src/features/pro/__tests__/transition-continuity.test.tsx --reporters=default
+./mvnw -B -ntp -pl apps/backend verify -Dtest=EstablishAccountAgeTest -Dit.test=TransitionIdentityIntegrationTest
+```
+
+These construction tests do not establish actual Google/Apple linking, signing/storage behavior, paying-store account ownership, receipt transfer scope, real restoration, provider erasure or population completeness. They execute no production reset, provider configuration or real support submission. The accepted same-subject token, native cache and cleanup-interruption limits remain unchanged. T020–T022/T025 retain their separate inventory and actual native/provider qualification; all unrelated tasks remain unchanged. This evidence does not qualify SC-002 globally or authorize destruction, cutover or opening.
+
 ## Auth0 default-role isolation — T019
 
 On **2026-10-22**, under the owner's explicit authorization for that provider change, the existing `assign-default-role` Action was restricted using the [operations procedure](../../infra/operations/README.md#auth0-v1-default-role-isolation). Its first executable statement returns unless the initiating client exactly matches the verified retained V1 native registration. V1's executable role-assignment and claim behavior is unchanged; comments were aligned in English.
