@@ -3,7 +3,6 @@ package com.blockout.backend.access.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -13,7 +12,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.blockout.backend.access.domain.Permission;
-import com.blockout.backend.accounts.application.AccountCleanup;
 import com.blockout.backend.accounts.application.EraseAccount;
 import com.blockout.backend.accounts.application.EstablishAccount;
 import com.blockout.backend.accounts.application.PrincipalReader;
@@ -66,7 +64,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * T011 exercises real F01/F02/F05/F08/F12 commands and migrated PostgreSQL. Only time, provider
- * evidence/cleanup and validated HTTP principals are controlled; no authorization is replaced.
+ * evidence and validated HTTP principals are controlled; cleanup uses the real disabled adapters.
+ * No authorization is replaced.
  */
 @AutoConfigureMockMvc
 @TestPropertySource(properties = "blockout.accounts.cleanup.environment=disabled")
@@ -84,8 +83,6 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
   @Autowired private EraseAccount erasure;
   @Autowired private EstablishAccount establishment;
   @MockitoBean private PrincipalReader principal;
-  @MockitoBean private AccountCleanup.Auth0 auth0;
-  @MockitoBean private AccountCleanup.RevenueCat revenueCat;
 
   /** Restores only this suite's disposable settings so every command uses a fresh revision. */
   @BeforeEach
@@ -288,7 +285,6 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
 
     // Then
     assertThat(ordinary.version().ownerId()).isEqualTo(replacementId);
-    verifyNoInteractions(auth0, revenueCat);
   }
 
   @ParameterizedTest
