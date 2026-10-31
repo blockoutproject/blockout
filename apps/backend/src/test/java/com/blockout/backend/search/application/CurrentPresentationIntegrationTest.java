@@ -241,6 +241,7 @@ class CurrentPresentationIntegrationTest {
         new LocalityObservation(
             context(geocoding, 1), localityRevision, GeocodingOutcomeEnum.LOCATED, 48.86, 2.34));
     projection.rebuild();
+    events.clear();
     assertThat(read("/clubs?q=synthetic").get("clubs").size()).isEqualTo(1);
     events.clear();
 
@@ -286,6 +287,7 @@ class CurrentPresentationIntegrationTest {
     assertThat(read("/clubs?q=synthetic").toString()).contains(club.toString());
     assertThat(read("/clubs?q=municipality").get("clubs").isEmpty()).isTrue();
     projection.rebuild();
+    events.clear();
     assertThat(document("clubs", club).city()).isNull();
     assertThat(read("/clubs/" + club).hasNonNull("location")).isFalse();
   }
@@ -467,6 +469,7 @@ class CurrentPresentationIntegrationTest {
             .getFirst();
     UUID proTeam = initial.homeTeamId();
     projection.rebuild();
+    events.clear();
     assertThat(read("/teams/" + proTeam).get("team").hasNonNull("club")).isFalse();
     mvc.perform(get("/teams/" + proTeam + "/logo")).andExpect(status().isNotFound());
     Image clubLogo = image(0x112233);
@@ -527,6 +530,7 @@ class CurrentPresentationIntegrationTest {
         .isEqualTo(ObservationOutcomeEnum.STALE);
     assertLogo(proTeam, sourceLogo);
     projection.rebuild();
+    events.clear();
     assertLogo(proTeam, sourceLogo);
   }
 
@@ -599,6 +603,7 @@ class CurrentPresentationIntegrationTest {
             .collect(Collectors.toSet());
     assertThat(scopes).isNotEmpty();
     projection.update(scopes);
+    events.clear();
   }
 
   /**

@@ -262,7 +262,8 @@ personal calendar. The real F04 `ProjectSearch`, matching adapter and native
 projection writer use disposable TLS OpenSearch 3.9.0 alongside explicitly
 Liquibase-migrated PostgreSQL 18.6 under the restricted application role.
 Projection execution is delayed explicitly; catch-up consumes the actual committed
-identity scopes and rereads current SQL. No sporting, follow, hydration or projection
+identity scopes since the preceding publication and rereads current SQL. Consumed
+events and rebuild preparation events are cleared between observations. No sporting, follow, hydration or projection
 owner is replaced by a double.
 
 The cases observe old native candidates before catch-up and separately verify
@@ -325,12 +326,12 @@ tasks remain separate and unchecked where unfinished.
 
 Executed on 2026-10-31 against unchanged production sources at
 `94f127b1c3b6a3804743d097e579d618b7756cfb`. The final handwritten test blobs are
-`5ad723e5424647296cf4b029e3dfb2bcb20c97c3` (restrictions) and
-`d7727a684a65b27f1ab4eb434a3c024466e3e8d8` (presentation). The local Maven
+`9a31049bea013d97ad389abfb2c3fc35e9367e8f` (restrictions) and
+`759107ed3fa1ac1df20038b9f38a2a0bd43572b2` (presentation). The local Maven
 `0.0.0-SNAPSHOT` build used Microsoft OpenJDK 25.0.4, Node 24.18.0 and npm 12.0.1;
 CI retains Temurin. Spring tests execute compiled application classes; the
 packaged JAR from the final focused verification has SHA-256
-`238bc7985baf965a0a0ff215e14a9b36483ede275ee2310907334a478198ea8e`.
+`c3e2a9da919beb588224d0c901e997cb1aa3d389f981dd3c3afa7a32b272b240`.
 
 Passed: complete `backend:test` (1,464 Surefire; 1,178 Failsafe passed and one
 unrelated opt-in F12 consumer case skipped because `BLOCKOUT_ACCESS_CONSUMERS_TEST`

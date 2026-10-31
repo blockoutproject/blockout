@@ -161,8 +161,8 @@ class CurrentRestrictionsIntegrationTest {
     follow(first.homeTeamId(), scope.pool());
     List<Map<String, Object>> retained = relations();
     projection.rebuild();
-    assertVisible(first);
     events.clear();
+    assertVisible(first);
 
     // When
     switch (cause) {
@@ -205,6 +205,7 @@ class CurrentRestrictionsIntegrationTest {
         .isEqualTo(first.homeTeamId().toString());
     String previous = generation();
     projection.rebuild();
+    events.clear();
     assertThat(generation()).isNotEqualTo(previous);
     assertVisible(first);
     assertThat(relations()).containsExactlyElementsOf(retained);
@@ -219,6 +220,7 @@ class CurrentRestrictionsIntegrationTest {
     follow(first.homeTeamId(), scope.pool());
     List<Map<String, Object>> retained = relations();
     projection.rebuild();
+    events.clear();
     calendars.accept(scope.pool(), calendar(2));
     catalogs.accept(SOURCE, new CatalogObservation(context(3), true, List.of()));
     activity(false);
@@ -241,6 +243,7 @@ class CurrentRestrictionsIntegrationTest {
     assertThat(returned.resourceId()).isEqualTo(first.resourceId());
     assertHidden(first);
     projection.rebuild();
+    events.clear();
     assertThat(indexed("pools", scope.pool())).isFalse();
     activity(true);
     assertVisible(first);
@@ -259,6 +262,7 @@ class CurrentRestrictionsIntegrationTest {
     follow(first.homeTeamId(), scope.pool());
     List<Map<String, Object>> retained = relations();
     projection.rebuild();
+    events.clear();
 
     // When
     ObservationOutcome.Calendar changed = calendars.accept(scope.pool(), calendar(2, "M2"));
@@ -330,6 +334,7 @@ class CurrentRestrictionsIntegrationTest {
     follow(first.homeTeamId(), scope.pool());
     List<Map<String, Object>> retained = relations();
     projection.rebuild();
+    events.clear();
     String completed = calendarPath("poolId=" + scope.pool()).replace("upcoming", "completed");
     String personalCompleted = personal("matches") + "?category=completed&timeZone=Europe/Paris";
     assertThat(read(completed).toString()).contains(first.resourceId().toString());
@@ -385,6 +390,7 @@ class CurrentRestrictionsIntegrationTest {
                 candidate("M1", "Home", DAY).away())
             .homeTeamId();
     projection.rebuild();
+    events.clear();
 
     // When
     calendars.accept(scope.pool(), calendar(2));
@@ -457,6 +463,7 @@ class CurrentRestrictionsIntegrationTest {
     follow(first.homeTeamId(), scope.pool());
     List<Map<String, Object>> retained = relations();
     projection.rebuild();
+    events.clear();
 
     // When
     calendars.accept(scope.pool(), calendar(3));
@@ -487,6 +494,7 @@ class CurrentRestrictionsIntegrationTest {
     follow(first.homeTeamId(), scope.pool());
     List<Map<String, Object>> retained = relations();
     projection.rebuild();
+    events.clear();
 
     // When
     controls.setActivity(
@@ -525,6 +533,7 @@ class CurrentRestrictionsIntegrationTest {
                         null)))
         .isInstanceOf(CollectionConflictException.class);
     projection.rebuild();
+    events.clear();
     assertThat(indexed("teams", first.homeTeamId())).isTrue();
     assertThat(relations()).containsExactlyElementsOf(retained);
   }
@@ -583,6 +592,7 @@ class CurrentRestrictionsIntegrationTest {
             .collect(Collectors.toSet());
     assertThat(scopes).isNotEmpty();
     projection.update(scopes);
+    events.clear();
   }
 
   /**
