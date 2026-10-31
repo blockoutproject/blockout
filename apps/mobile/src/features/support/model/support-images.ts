@@ -152,6 +152,7 @@ export function useSupportImages(
 
   /** Removal is explicit, including an error item; borrowed library originals are never deleted. */
   function remove(id: string) {
+    if (!canSelect() || selection.isPending()) return;
     const current = getValues("images");
     const file = current.find((image) => image.id === id)?.file;
     if (file) release(file);

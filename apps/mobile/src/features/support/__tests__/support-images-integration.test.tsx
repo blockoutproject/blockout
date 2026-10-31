@@ -329,6 +329,49 @@ it("retains the sent bytes until settlement after unmount, without restoring a r
   expect(screen.queryByText("Demande reçue")).toBeNull();
 });
 
+it("reserves sent files before a queued remove event can delete the native bytes", async () => {
+  // Given
+  const { user } = await openSupport();
+  picker.launchImageLibraryAsync.mockResolvedValueOnce({
+    canceled: false,
+    assets: [pickedImage()],
+  });
+  await user.press(screen.getByRole("button", { name: "Ajouter des images" }));
+  const prepared = [...files.values()][0];
+  const send = screen.getByRole("button", { name: "Envoyer la demande" });
+  const remove = screen.getByRole("button", {
+    name: /Supprimer l’image : Image 1/,
+  });
+  let accept!: (response: Response) => void;
+  supportHttp.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        accept = resolve;
+      }),
+  );
+
+  // When: two native events already queued before React can publish RHF's submitting state.
+  await act(() => {
+    send.props.onClick({ nativeEvent: {} });
+    remove.props.onClick({ nativeEvent: {} });
+  });
+  await waitFor(() => expect(supportHttp).toHaveBeenCalledTimes(1));
+
+  // Then
+  expect(prepared.exists).toBe(true);
+  expect(
+    (supportHttp.mock.calls[0][0]?.body as FormData).getAll("images"),
+  ).toHaveLength(1);
+  await act(() =>
+    accept(
+      Response.json(
+        { requestId: "00000000-0000-4000-8000-000000000307" },
+        { status: 201 },
+      ),
+    ),
+  );
+});
+
 it("discards selected images and late preparation across guest → A → guest using the original F05 lifetime", async () => {
   // Given
   const { user } = await openSupport();
