@@ -1685,6 +1685,36 @@ Real components: PostgreSQL, Liquibase, JDBC/Hibernate, real transaction managem
 | `hydratesUnknownClassification`          | Preserves unknown current pool classification when no exact filter is requested.                                                                                                |
 | `readsSummariesInBatches`                | Twenty distinct summaries with distinct seasons, divisions and clubs require the same number of SQL statements as one; current presentation and a clubless team remain correct. |
 
+### CurrentRestrictionsIntegrationTest
+
+Source: [apps/backend/src/test/java/com/blockout/backend/search/application/CurrentRestrictionsIntegrationTest.java](../apps/backend/src/test/java/com/blockout/backend/search/application/CurrentRestrictionsIntegrationTest.java). Classification: **cross-owner application/infrastructure integration / Failsafe**.
+
+Real components: admitted F01 cycles and lifecycle, F02 calendar/catalog/division commands, F03 HTTP resource and calendar reads, F06 desired-state follows and HTTP lists/options/personal calendar, migrated PostgreSQL and F04 `ProjectSearch` with the production TLS OpenSearch matching/writer adapters. Controlled boundaries: fixed clock, synthetic source facts and test JWT principal; projection execution is explicitly delayed while actual committed handoff scopes are recorded. No sporting, follow, hydration or projection owner is mocked. Provider, native UI and scheduler timing are outside these cases.
+
+| Scenario (all declared parameter values) | Protected behavior / detectable regression                                                                                                                                                                                                                     |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `restrictsBeforeCatchUp`                 | Catalog absence, one empty current calendar and division inactivity reject old candidates, URLs and personal surfaces before native catch-up; targeted deletion, original-identity return and complete generation replacement retain the same relation tuples. |
+| `retainsOtherRestrictions`               | Catalog rediscovery, nonempty calendar return and division reactivation clear only their respective cause through actual consumers.                                                                                                                            |
+| `withdrawsOnlyMissingItem`               | A nonempty calendar withdraws only its omitted encounter from public/personal calendars; another encounter cannot replace its identity.                                                                                                                        |
+| `withdrawsScoredItem`                    | An actually accepted final score remains stored while its withdrawn match disappears from completed public/personal calendars.                                                                                                                                 |
+| `retainsOriginalSeasonalTarget`          | An identically named later-season team remains unfollowed; retained relations return only with their original target.                                                                                                                                          |
+| `retainsOtherParticipation`              | Another admitted pool participation preserves the same team's consultation and feed selection when the first pool empties.                                                                                                                                     |
+| `preservesClosedHistory`                 | Actual pause/terminal closure preserve historical public/personal reads and search; the running cycle finishes once and further work is refused.                                                                                                               |
+
+### CurrentPresentationIntegrationTest
+
+Source: [apps/backend/src/test/java/com/blockout/backend/search/application/CurrentPresentationIntegrationTest.java](../apps/backend/src/test/java/com/blockout/backend/search/application/CurrentPresentationIntegrationTest.java). Classification: **cross-owner application/infrastructure integration / Failsafe**.
+
+Real components: admitted F01 calendar/club/geocoding scopes; F02 source, manual presentation, contact restriction, locality and image services; F03 public JSON/binary adapters; F04 current-input expansion, native TLS engine matching and projection. Controlled boundaries: fixed clock, synthetic source/geocoding/image inputs, exact technical alias/optional-club SQL associations and synthetic authorization of the existing private F11 operation. Catch-up consumes actual after-commit identity scopes. No live provider, manual rights handling, native rendering or backup restoration is certified.
+
+| Scenario                              | Protected behavior / detectable regression                                                                                                                                                                         |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `projectsEffectiveNames`              | Current source/full/short manual names and a qualified alias reach F03 and native F04; restoring one name preserves the independent short override.                                                                |
+| `restrictsCurrentLocality`            | Restrictions clear effective city/email and the point, defeat old native city candidates before catch-up, suppress geocoding and reject a late point; targeted/full projection cannot republish restricted values. |
+| `preservesUnchangedGeographicContext` | Street-only and masked source changes preserve the current point/revision without another geocoding need; return to source invalidates the point and rejects older-context results.                                |
+| `presentsInheritedLogosAcrossSeasons` | Current club artwork reaches teams in both seasons without copied bytes; a team override wins until explicit automatic restoration, including actual search hydration and binary reads.                            |
+| `presentsProfessionalAutomaticLogo`   | Clubless professional publication, exact optional club association, manual/LNV/club logo priority and attributable source-name corrections survive native projection and current F03 reads.                        |
+
 ### ResultAnnouncementIntegrationTest
 
 Source: [apps/backend/src/test/java/com/blockout/backend/sporting/application/ResultAnnouncementIntegrationTest.java](../apps/backend/src/test/java/com/blockout/backend/sporting/application/ResultAnnouncementIntegrationTest.java). Classification: **application/infrastructure integration / Failsafe**.
