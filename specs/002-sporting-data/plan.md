@@ -4,7 +4,7 @@
 
 **Input**: [spec.md](spec.md) and the accepted [F13 foundation](../003-shared-quality/plan.md).
 
-**Status**: Accepted technical decisions and scoped design; runtime qualification remains pending.
+**Status**: Accepted technical decisions and scoped design. [Tasks](tasks.md) track implemented work and remaining qualification; [quickstart](quickstart.md) records revision-scoped results and limits.
 
 ## Summary
 
@@ -18,7 +18,7 @@ Keep one authoritative sporting model in the modular backend. The separate colle
 
 **Storage**: F13 PostgreSQL for relational facts, image bytes and associations. F13 evolving Liquibase baseline until first preproduction/production version.
 
-**Testing**: JUnit, Spring MVC, Testcontainers PostgreSQL and generated Java/TypeScript contract checks; existing prototype browser checks and future native mobile qualification.
+**Testing**: JUnit, Spring MVC, Testcontainers PostgreSQL and generated Java/TypeScript contract checks; prototype browser checks and native mobile qualification, with their distinct evidence limits.
 
 **Target Platform**: Existing Linux backend/collector and native iOS/Android app.
 
@@ -97,9 +97,9 @@ F01 owns geocoding and its cadence/relaunch policy. F02 validates results agains
 
 Sporting editors consume the [F13 UI foundation](../003-shared-quality/plan.md#native-ui-and-approved-design) before composing their domain forms. F02 supplies effective primary/gradient inputs and the approved context-color derivation; Figma's representative division modes are fixtures, not a stored palette per division. Shared controls receive those presentation values without importing sporting state; F03 retains the sporting display patterns/screens. Classification field selection uses the existing RHF control through an Expo Router native `formSheet`, with no callback registry or second form state ([Router options](https://docs.expo.dev/router/advanced/stack/), [RHF useForm](https://react-hook-form.com/docs/useform)). Division lifecycle and presentation keep distinct generated commands, while sharing one coherent original revision in the mounted editor. [Quickstart](quickstart.md#classification-and-division-editors) records the current implementation/design boundary.
 
-## Consumer and design reconciliation
+## Consumers and approved design
 
-`SportingSeasonSelection` exposes only scalar native Criteria expressions and visible target subqueries for F06's one-query season composition, following the existing `ConsultationMatchSelection` pattern. F02 infrastructure owns both HQL and Criteria representations of visibility in `SportingVisibilityPredicates`; consumers do not import private entities or clauses. Current summary projections retain names, optional club association and logo presence without loading image bytes. The [shared composition plan](../003-shared-quality/plan.md#common-backend-composition) and [qualification](../003-shared-quality/quickstart.md#common-backend-composition) own the cross-consumer maintenance scope.
+`SportingSeasonSelection` exposes only scalar native Criteria expressions and visible target subqueries for F06's one-query season composition, following the existing `ConsultationMatchSelection` pattern. F02 infrastructure owns both HQL and Criteria representations of visibility in `SportingVisibilityPredicates`; consumers do not import private entities or clauses. Current summary projections retain names, optional club association and logo presence without loading image bytes. The [shared composition plan](../003-shared-quality/plan.md#sporting-read-composition) and [qualification](../003-shared-quality/quickstart.md#shared-backend-reads-images-and-authority) own the cross-consumer maintenance scope.
 
 F01 accepts the order/context/result interface and optional professional club identity. F03 omits unavailable club navigation and map points while preserving useful sections; F04 searches only available fields. Its [projection lifecycle](../008-search-discovery/plan.md#projection-lifecycle) consumes an F02 application API for current public inputs, identity hydration, viewability and dependent-resource reads, without importing JPA entities. Relevant commits submit affected identities/scopes after commit; name/alias/city/classification/relationship/visibility changes include dependent teams and pools, while score-only changes do not. Alias and division-term ownership remains in the [F02 data model](data-model.md#corrections-and-provider-references). F06 preserves existing follow identities. F07/F08 coordinate accepted transitions in-process; F11 restrictions remain authoritative; F12 retains existing editors and permission assignment; F14 preserves club/logo bytes and unresolved associations without guessed joins.
 
@@ -107,4 +107,4 @@ The approved [prototype 236e6a2](https://github.com/blockoutproject/product-prot
 
 ## Verification
 
-[Quickstart](quickstart.md) identifies the future contract/database/native scenarios; [research](research.md) distinguishes observed supplier structures and supported library features from unexecuted integration proof. Check specification coverage, actual canonical contract ownership, links/anchors, formatting and README documentation CI on the final tree.
+[Quickstart](quickstart.md) owns contract/database/native scenarios and their recorded results; [research](research.md) distinguishes observed supplier structures and supported library features from integration proof. Check specification coverage, actual canonical contract ownership, links/anchors, formatting and README documentation CI on the final tree.

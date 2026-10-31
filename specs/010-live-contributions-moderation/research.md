@@ -40,7 +40,7 @@ The private owner collection also projects its exact active member independently
 
 The owner approved prototype [5413817](https://github.com/blockoutproject/product-prototype/commit/54138170f14775fe11132aaa61433329059cbfbb), then the scoped Figma reconciliation linked in [plan.md](plan.md), in the planning conversation. Prototype tests (206), TypeScript and its build passed; browser checks covered complete moderator actions, unavailable report reasons and current-state recovery. These observations establish fictional web behavior only.
 
-Documentation establishes native capabilities, not their integrated execution. Generation/compilation, real PostgreSQL concurrency, native mobile networking/accessibility and F07 integration remain [future qualifications](quickstart.md). No provider account or application runtime was configured and no dependency upgrade was selected.
+Documentation establishes native capabilities; [quickstart](quickstart.md) records actual generation/compilation, PostgreSQL concurrency and owner-integration results with their controlled boundaries. Native networking/accessibility and remaining F07 qualifications require their own evidence. Source inspection alone performs no provider operation or runtime qualification.
 
 ## Contribution draft lifetime under admission gates
 

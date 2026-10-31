@@ -36,7 +36,7 @@ Pre-research and post-design checks pass for the scoped documentary delivery:
 - Existing [October 10 design acceptance](../003-shared-quality/spec.md#evidence-scope) covers season reconciliation and discreet follow reconciliation. Live inspection confirmed the ordinary follow button's loading variant and Home's existing list, empty, loading and error states. No new visual journey is introduced.
 - Relevant design references: [Home](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=888-8), [followed team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1023-5097), [no available follows](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4480-3901), [no matches](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4480-4201). These establish accepted presentation, not native qualification.
 - One canonical mobile OpenAPI source and the existing generation chain; no feature-local editable copy or new deployment.
-- Ordinary relations, counts, projections and Query mechanisms satisfy the need without recovery infrastructure. Runtime qualifications remain future evidence.
+- Ordinary relations, counts, projections and Query mechanisms satisfy the need without recovery infrastructure. The quickstart records actual runtime evidence and pending qualifications.
 
 ## Project Structure
 
@@ -78,7 +78,7 @@ The operation replaces desired follow state: repeating true keeps the same relat
 
 ## Reads and boundaries
 
-Season choices compose F02's `SportingSeasonSelection` scalar Criteria API with F06's own follow predicates in one native query. F02 alone supplies seasonal fields and current visible target selections; no sporting entity, repository or private HQL fragment crosses into F06. This preserves season order, closed-season consultation and the current-follow default without materializing target IDs. See the [common composition qualification](../003-shared-quality/quickstart.md#common-backend-composition).
+Season choices compose F02's `SportingSeasonSelection` scalar Criteria API with F06's own follow predicates in one native query. F02 alone supplies seasonal fields and current visible target selections; no sporting entity, repository or private HQL fragment crosses into F06. This preserves season order, closed-season consultation and the current-follow default without materializing target IDs. See the [common composition qualification](../003-shared-quality/quickstart.md#shared-backend-reads-images-and-authority).
 
 The [canonical contracts](contracts/README.md) separate public counts from private state. Counts use the relationships directly, including retained hidden-target relations whenever the target itself is viewable. Failed reads never become zero. Public sporting pages remain usable without private account reads.
 A public count NotFound establishes target absence and uses F03's existing captured-context
@@ -125,4 +125,4 @@ Follow errors and uncertain acknowledgments keep F13's ordinary action feedback,
 
 ## Qualification
 
-The [quickstart](quickstart.md) defines future database, mobile and generated-boundary qualifications. F03 owns ordinary retained-calendar refresh, F05 account erasure and F07 notification eligibility; the preceding sections define their F06 integration boundaries.
+The [quickstart](quickstart.md) owns database, mobile and generated-boundary qualification scenarios and their recorded results. F03 owns ordinary retained-calendar refresh, F05 account erasure and F07 notification eligibility; the preceding sections define their F06 integration boundaries.

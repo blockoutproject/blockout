@@ -4,7 +4,7 @@
 
 **Input**: [spec.md](spec.md), [F01 acquisition](../001-source-acquisition/plan.md), [F04 discovery](../008-search-discovery/plan.md), [F07 notifications](../011-notifications-delivery/plan.md) and [F10 support](../012-reports-feature-suggestions/plan.md).
 
-**Status**: Prepared for planning review. The common discovery prototype is approved and its faithfully reconciled Figma scope is covered by the owner's explicit advance approval. Native/provider qualifications remain future release prerequisites.
+**Status**: Transition and implementation decisions. The common discovery prototype is approved and its faithfully reconciled Figma scope is covered by the owner's explicit advance approval. [Tasks](tasks.md) and [quickstart](quickstart.md) distinguish implemented increments from pending native/provider and release qualifications.
 
 ## Summary
 
@@ -18,7 +18,7 @@ Preserve Auth0 identities, applicable Pro rights and manually maintained club lo
 
 **Storage**: V2 PostgreSQL under the owning models; private temporary preservation of indispensable V1 references and club-logo files. Providers retain identities and purchases. No replicated business database, generic migration table or persistent application cache.
 
-**Testing**: Existing JUnit/Spring MVC/Testcontainers and Jest Expo/React Native Testing Library; actual signed iOS/Android upgrade and provider qualification. Current repository checks cover documentation and OpenAPI only.
+**Testing**: Existing JUnit/Spring MVC/Testcontainers and Jest Expo/React Native Testing Library; actual signed iOS/Android upgrade and provider qualification. Repository verification covers the actual application and contract targets; signed upgrades, providers and release operations retain separate qualification.
 
 **Target Platform**: Existing production app identities on iOS 16.4+ and Android 10 / API 29+ subject to the selected dependencies' native qualification; existing VPS/Dokploy deployment under F13. Older iOS support and a dedicated compensation process are outside scope.
 
@@ -32,7 +32,7 @@ Preserve Auth0 identities, applicable Pro rights and manually maintained club lo
 
 ## Constitution Check
 
-The approved initial product baseline permits this scoped planning feedback loop. Post-design review confirms the following boundaries. The owner's explicit approval timing instruction is recorded in [Design reconciliation](#design-reconciliation).
+The approved initial product baseline permits this scoped planning feedback loop. Post-design review confirms the following boundaries. The owner's explicit approval timing instruction is recorded in [Design approval](#design-approval).
 
 | Principle         | Application                                                                                                                                                                                                                                                                                                                                                                  |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -118,11 +118,11 @@ The later authorized release follows this order:
 
 Manual operations are sufficient; no release orchestrator, store monitor, countdown or persistent migration state machine is added. Stop before the affected destructive/opening action when a prerequisite is unmet. Before opening, failed preparation may be corrected or abandoned while protected sources remain. After opening, apply current erasure, permission, entitlement and privacy restrictions before restored data or sends become available. An older application image is usable only if compatible with the current schema/data.
 
-## Design reconciliation
+## Design approval
 
 The owner approved prototype [713b37e](https://github.com/blockoutproject/product-prototype/commit/713b37e) on 2026-10-15 and explicitly approved its faithful Figma translation in advance. This owner instruction changes only the timing of the second validation for this scope; it is not a standing exception or an approval of new design choices.
 
-Common discovery replaces the separate transition welcome and includes former-user information in its last step. Existing sign-in, Pro, age and global-gate journeys remain in place. The corresponding Figma [light](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=804-148), [dark](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=831-382) and [320 px](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=6705-5025) states were reconciled and visually checked against that prototype, retaining editable text, Outfit typography, library instances and existing tokens. The obsolete separate journey was removed. No new library component or provider interface was introduced.
+Common discovery includes former-user information in its last step. Existing sign-in, Pro, age and global-gate journeys remain in place. The corresponding Figma [light](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=804-148), [dark](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=831-382) and [320 px](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=6705-5025) states were reconciled and visually checked against that prototype, retaining editable text, Outfit typography, library instances and existing tokens. The journey uses the existing UI library and excludes provider interfaces.
 
 Prototype build and 209 tests passed. Browser review covered completion, skipping, the independent age gate and 320 px with 150% text; Figma review covered the static states linked above. These checks do not qualify native accessibility, secure storage, signed upgrade or provider continuity.
 

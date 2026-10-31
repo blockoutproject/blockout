@@ -16,7 +16,7 @@ description: "Implementation tasks for F14 V1-to-V2 continuity and transition"
 
 - `[P]` denotes separate files with no unfinished dependency between those tasks, after stated prerequisites.
 - `[USn]` follows the owning specification; setup/foundation/polish have no story label.
-- All tasks remain unchecked until their actual implementation or qualification succeeds. Missing operational evidence blocks the affected operation, not unrelated implementation.
+- Checked tasks record completed scope and its evidence. Missing operational evidence keeps the affected operation unchecked without blocking unrelated implementation.
 
 ## Path Conventions
 

@@ -43,7 +43,7 @@ Revisions are nonnegative integers representable exactly by JavaScript, backed b
 
 Read both settings rows with one SQL statement projection so the complete access response has a coherent statement snapshot. Missing/invalid settings fail closed, never synthesize permissive initial values. No global revision row is needed.
 
-Mobile state retains the latest complete configuration in the process public Query cache and one explicit temporary bypass choice in React state. The private Query cache belongs to the mounted native principal. Partial administrative results invalidate the complete public read; they do not confer admission. Native read retries and retained data after a failed refresh are accepted. No highest-revision/restriction ledger, client epoch, persistent configuration cache, verification-age timer or mirrored authorization store is required.
+Mobile state retains the latest complete configuration in the process public Query cache and one explicit temporary bypass choice in React state. The private Query cache belongs to the mounted native principal. Partial administrative results invalidate the complete public read; they do not confer admission. Native read retries and retained data after a failed refresh are accepted. Configuration remains memory-only; backend owners decide authorization.
 
 ## Cross-domain boundaries
 

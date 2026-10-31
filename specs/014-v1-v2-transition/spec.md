@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-23
 
-**Status**: Functional transition decisions accepted. Common V2 onboarding is reconciled with the approved prototype and the owner's explicit advance approval of its faithful Figma translation; [scoped evidence](plan.md#design-reconciliation) records the result and limits. No runtime qualification is implied.
+**Status**: Functional transition decisions accepted. Common V2 onboarding is reconciled with the approved prototype and the owner's explicit advance approval of its faithful Figma translation; [scoped evidence](plan.md#design-approval) records the result and limits. No runtime qualification is implied.
 
 **Input**: F14 transition scope. Define authorized reset outcomes, continuity, welcome and cutover conditions, consuming [F05 identity requirements](../005-accounts-identity/spec.md), [F09 paid-right continuity](../006-pro-subscriptions/spec.md) and [F13 protection/recovery](../003-shared-quality/spec.md), without executing migration or choosing its architecture.
 
@@ -12,7 +12,7 @@ The actors are the V1 user, visitor, holder of a recognized account, subscriber 
 
 ## User Scenarios & Testing
 
-Design input: the designated prototype and Figma files in [AGENTS.md](../../AGENTS.md#design-inputs), with the [common onboarding reconciliation](plan.md#design-reconciliation). Existing [sign-in/restoration approvals](plan.md#design-reconciliation) remain applicable where unchanged. These do not qualify provider or native continuity.
+Design input: the designated prototype and Figma files in [AGENTS.md](../../AGENTS.md#design-inputs), with the [common onboarding reconciliation](plan.md#design-approval). Existing [sign-in/restoration approvals](plan.md#design-approval) remain applicable where unchanged. These do not qualify provider or native continuity.
 
 ### User Story 1 — Understand the transition and regain personal access (Priority: P1)
 

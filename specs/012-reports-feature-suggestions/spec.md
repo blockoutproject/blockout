@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-22
 
-**Status**: Accepted functional baseline and scoped submission simplification; technical decisions are in [plan.md](plan.md), with implementation qualification still pending.
+**Status**: Accepted functional baseline. [Plan.md](plan.md) owns technical decisions, [tasks.md](tasks.md) implementation state and [quickstart.md](quickstart.md) qualification results and remaining limits.
 
 **Input**: F10, Reports and suggestions in the [specification navigation](../../README.md#specifications). Enable a signed-in person or guest to send a complete, private request to support, without in-app conversation or resolution tracking.
 

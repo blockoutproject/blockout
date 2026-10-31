@@ -82,7 +82,7 @@ Use more than twenty versions/reports/matches where applicable, including identi
 
 With Jest Expo/React Native Testing Library and native device checks, preserve drafts on refusal, disable duplicate in-flight actions and reread affected views after confirmation. For version-change commands, lose a response, delay its completion and fail the bounded read: show ordinary error/retry without replay or invented historical success. Exact-version reports instead keep one reason form and ordinary error feedback after refusal or response loss; a later explicit retry retains the original version and is deduplicated by the server. Verify no match-refresh action, stale-target screen, recovery control or automatic write replay. A failed refresh after confirmed success must not undo that success. Sign out/change accounts during reads/writes and reject old callbacks, including returning to the same account. No reconnect replay, polling or offline queue.
 
-Qualify ordinary contribution/replacement, personal-contribution and report screens with the same content and current-journey drafts. Short filters use sheets; simple confirmation uses the platform alert and cancellation has no mutation effect. Exercise first/last inputs, final scrolling actions and keyboard/back separately on both platforms. Review the [approved design references](plan.md#design-reconciliation-and-evidence), light/dark themes, narrow screens, VoiceOver/TalkBack, enlarged text, focus and accessible action states. Existing sports foreground refresh and advertising behavior remain unchanged. Prototype tests and Figma approval do not qualify native networking, SQL concurrency, provider availability or accessibility.
+Qualify ordinary contribution/replacement, personal-contribution and report screens with the same content and current-journey drafts. Short filters use sheets; simple confirmation uses the platform alert and cancellation has no mutation effect. Exercise first/last inputs, final scrolling actions and keyboard/back separately on both platforms. Review the [approved design references](plan.md#approved-design-and-evidence), light/dark themes, narrow screens, VoiceOver/TalkBack, enlarged text, focus and accessible action states. Existing sports foreground refresh and advertising behavior remain unchanged. Prototype tests and Figma approval do not qualify native networking, SQL concurrency, provider availability or accessibility.
 
 ### Prepared interruption and accessibility cases — T049
 
@@ -150,7 +150,7 @@ active contributed URL; no private owner, quota, report or moderation data enter
 
 The form uses the current F13 page/scroll/keyboard composition and the compact F03 match-context variant. `contribution-navigation.test.tsx` mounts actual protected native routes to verify draft/recovery retention after a F12 503 detour and a clean return after acknowledgement. Native interaction and design
 evidence must identify the executed revision, platform and exact
-[approved nodes](plan.md#design-reconciliation-and-evidence); controlled JavaScript evidence
+[approved nodes](plan.md#approved-design-and-evidence); controlled JavaScript evidence
 alone does not qualify native networking, provider behavior or screen-reader announcements.
 Full moderation/lifecycle and extended uncertain-response recovery retain their owning tasks.
 
@@ -207,20 +207,17 @@ versions retain their real consumption. Check the following construction boundar
   text on both platforms. Record actual reader speech/focus separately from accessibility
   semantics in an inspection tree.
 
-Earlier [row/lifecycle captures](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6510562999)
-and [ellipsis-entry captures](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6510989325)
-retain their exact source revisions and narrow execution proofs. Their entry placement,
-row-cancellation controls and empty-management detour are superseded by the current
-[owner direction](plan.md#design-reconciliation-and-evidence); those captures do not establish
-this revised interaction. The [current native evidence](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6511946128)
-identifies source `aa4d229e5138d1429e6bea76987c3e7b6296c622`. After reviewing that result,
-the owner explicitly authorized synchronization and removal of obsolete Figma/prototype states.
+The [row/lifecycle captures](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6510562999)
+and [entry captures](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6510989325)
+establish only their exact source revisions and captured lifecycle cases.
+The [native evidence](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6511946128)
+at source `aa4d229e5138d1429e6bea76987c3e7b6296c622` supplies the reviewed three-card-state,
+ordinary-editor and read-only-history experience. The owner authorized Figma/prototype
+synchronization after reviewing this source, within the [approved scope](plan.md#approved-design-and-evidence).
 
-The [current Figma journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5511-51086)
-contains fourteen representative editable screens and fifteen used private composition masters;
-twenty-four obsolete screens and nineteen unused masters were removed. Final inspection finds
-live library references without broken instances and Outfit product text. The
-[prototype captures and delivery](https://github.com/blockoutproject/product-prototype/pull/15#issuecomment-6512645456) at
+The [Figma journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5511-51086)
+uses editable screens, live library references without broken instances and Outfit product text.
+The [prototype captures and delivery](https://github.com/blockoutproject/product-prototype/pull/15#issuecomment-6512645456) at
 `db183a56f9b70d828d87623254a2eb8d3ab2b317` passes 223 model tests, 29 Chromium cases,
 TypeScript and build. Browser checks cover the three card entries, prefilled replacement,
 cancelled confirmation, acknowledged returns, withdrawal, read-only/zero history, report
@@ -251,7 +248,7 @@ Scoped iOS/Android observations at `e9a6ece6`, including builds and controlled f
 
 The [integrated native evidence](https://github.com/blockoutproject/blockout/pull/562#issuecomment-6479911193) exercises production source `84e723e7` on compatible iOS 27.1 and Android API 37 development clients. iOS keyboard dismissal and cancelling the native discard confirmation preserve the exact draft; the captured future-match form is ineligible for ordinary submission and supplies no new acknowledgement proof. Android font enlargement recreates the Activity without changing the process, returns to the home route and yields a readable empty form on explicit reopening. This establishes neither retained-context cropping nor draft persistence across recreation, and does not erase the earlier failed observation. The real Stream link panel is exercised on both platforms; native external handoff and return are observed on Android. The iOS handoff remains unqualified. The compact contribution summary remains informational and has no navigation dependency. Real TalkBack 17.0 speech captions verify the link field name/hint and the empty-value validation alert on this source; no POST is issued. These two cases do not qualify complete reader traversal or VoiceOver.
 
-T009/T015/T016 construction is complete with the generated/RHF/Query tests, public projection proof and these scoped native observations. The full F03 match status still truncates after a live Android theme change at 130% text; it is absent from the compact F08 context and retains its failed result under [F13 native qualification](../003-shared-quality/quickstart.md#native-presentation-qualification). This grants no Android exception or global native acceptance. T017 retains the complete US1 acceptance execution; T049/T056 and F13 T073 retain the broader journeys, runtime matrix and assistive-technology qualification.
+T009/T015/T016 construction is complete with the generated/RHF/Query tests, public projection proof and these scoped native observations. The full F03 match status still truncates after a live Android theme change at 130% text; it is absent from the compact F08 context and retains its failed result under [F13 native qualification](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets). This grants no Android exception or global native acceptance. T017 retains the complete US1 acceptance execution; T049/T056 and F13 T073 retain the broader journeys, runtime matrix and assistive-technology qualification.
 
 ### Exact-version reporting — T027–T032
 
@@ -277,9 +274,8 @@ or invalid acknowledgement, and a later explicit retry on the same target. No ma
 stale-target explanation or special report recovery state is added. Confirmed success is independent
 of derivative-read failure; old session/departure callbacks cannot publish a success to another view.
 
-The owner’s 2026-10-30 simplification is recorded in the existing [report composition](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5534-59410),
-whose visible form already contained only the required reason and Send/Cancel actions. Its private
-composition descriptions now explicitly exclude report refresh/recovery controls. The matching
+The owner-approved 2026-10-30 [report composition](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5534-59410)
+contains the required reason and Send/Cancel actions, with ordinary failure feedback and retained input. The matching
 [prototype revision](https://github.com/blockoutproject/product-prototype/commit/7701eea52ed18b32a61e6105985046edaa168cf3)
 uses ordinary errors after report response loss and preserves its exact target/first recorded reason
 on a later explicit retry. These prototype/design checks do not qualify native or provider behavior.
@@ -326,8 +322,7 @@ that indicator, following the existing sporting-calendar composition. A successf
 refresh preserves the address while adopting the current revision/address for a new intentional
 confirmation after conflict. Exact lineage navigation and its read-only sheet distinguish same-address
 versions even when the related source is outside loaded history pages. Administrative
-queries use generated resource keys within the existing principal-owned private QueryClient;
-obsolete unused account-prefixed moderation key scaffolding is removed.
+queries use generated resource keys within the existing principal-owned private QueryClient.
 
 Local native construction checks ran on the reused `com.blockout.local` development clients:
 iPhone 18 Pro A / iOS 27.0 (`2C22FCF3-D4A7-4F84-BAB1-F358C71C7649`, 402 × 874 points)
@@ -339,7 +334,7 @@ qualify the full product root/onboarding or actual identity/provider operations.
 Metro resolver and package-main changes were restored; no qualification mechanism is shipped.
 
 The final composition follows the owner's existing-application priority in the
-[design reconciliation](plan.md#design-reconciliation-and-evidence): the shared native `PagedTabs`
+[design reconciliation](plan.md#approved-design-and-evidence): the shared native `PagedTabs`
 and `TabLegendList`, search filter/season controls, personal contribution editor and ordinary
 grouped rows/buttons. Final iOS and Android observations exercise horizontal swipes, returning to
 the active page with the exact dirty address retained, and tab entry without an automatic native
@@ -357,10 +352,8 @@ with T056. Representative captures belong in the delivery PR Conversation with t
 revision; no screenshot is committed. The owner-approved native composition is reconciled in
 [the moderation journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1240-1876),
 preserving the queue `1293:3968`, active `1240:1882`, pending `1310:6016`, historical
-reports `4736:32107` and constrained dark editor `1270:3237`. New search-style filter evidence
-is `7524:8064`; initial queue/editor skeletons are `7526:8249` and `7526:8859`. Earlier filter/action
-references `4730:31181` and `4736:32744` were already absent at reconciliation and are superseded by
-these live frames. The new UI Library `surface/inset` role (`3999:4`) and its two primitive references
+reports `4736:32107` and constrained dark editor `1270:3237`. Search-style filter evidence
+is `7524:8064`; initial queue/editor skeletons are `7526:8249` and `7526:8859`. The UI Library `surface/inset` role (`3999:4`) and its two primitive references
 are published current, with Light `#20212408` and Dark `#FFFFFF08`; reports retain `surface/default`.
 Structural inspection finds live instances, editable Outfit text and discrete sporting logos, without
 a flattened screen image. The constrained field uses intrinsic height for enlarged text.
