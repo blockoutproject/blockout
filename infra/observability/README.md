@@ -61,13 +61,39 @@ Use ordinary Grafana rules and a private native Discord contact point:
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | API availability  | Evaluate the check's native `probe_success`; 0 fails. Missing data and evaluation errors must not become OK.                                                                                                                                 |
 | Domain failure    | Use the implemented owner's stage/scope and last-useful-success evidence. Take thresholds from [F01](../../specs/001-source-acquisition/plan.md#initial-reconstruction-and-operations); do not invent them from HTTP success or log silence. |
-| F05 cleanup       | Alert on a safe `operation=account_cleanup` and failed/uncertain outcome. Aggregate counts by environment/provider; include no original target or raw log line.                                                                              |
+| F05 cleanup       | Use the [F05 cleanup condition](#private-account-cleanup-f05) on the existing `manual_attention` outcome. Aggregate counts by environment/provider; include no original target or raw log line.                                              |
 | Grouping          | Group useful bounded context such as alert name, environment and service; add only the owner's approved nonpersonal dimensions.                                                                                                              |
 | Reminder          | Native repeat interval `5d`, aligned with the native five-minute group interval. Group changes may notify sooner.                                                                                                                            |
 | Discord           | Enable native firing and resolved delivery. Keep the webhook private and inspect actual output for personal references before use; no custom notification service or template is required.                                                   |
 | Missing telemetry | Configure No Data/Error handling explicitly. A healthy Alloy component and a resolved condition are not proof of fresh useful observations.                                                                                                  |
 
 Use the provider's native rule/check identifiers and configuration as their source of truth. Record the selected probe, environment and observed settings with the authorized qualification evidence; do not copy credentials or diagnostic payloads into this public repository. No provider setting or Discord delivery is established by local validation. Test actual firing/group changes/resolution and inspect the five-day repeat setting under T032; a recurring five-day test job is unnecessary.
+
+## Private account cleanup (F05)
+
+The existing [OriginalTargetCleanup](../../apps/backend/src/main/java/com/blockout/backend/accounts/application/OriginalTargetCleanup.java) owns one WARN diagnostic per original target needing manual attention after local commit. Its ECS fields are `operation=account_cleanup`, `outcome=manual_attention`, `provider=auth0|revenuecat` and a finite `reason`: `missing_configuration`, `missing_target`, `unsafe_scope` or `unavailable_or_uncertain`. ECS supplies the time. `scope` is the cleanup configuration category, which can be `disabled`; the collected `environment` label identifies the deployment to investigate. The private `account_cleanup` object contains `original_account_id` and, when known, that attempt's `auth0_subject` or `revenuecat_app_user_id`. No successful-target event or completion ledger is emitted. Auth0 removal/absence and RevenueCat's queued acknowledgment/absence create no diagnostic; asynchronous acceptance alone is normal.
+
+After separate environment authorization, create a **Grafana-managed** Loki rule named `F05 private account cleanup`, evaluated every minute with pending period **0s**. Use this instant metric query as A, selecting the single authorized deployment environment, then threshold A **greater than 0**:
+
+```logql
+sum by (environment, service_name, provider) (
+  count_over_time(
+    {environment="preproduction", service_name="blockout-backend"}
+    | json operation="operation", outcome="outcome", provider="provider"
+    | __error__=""
+    | operation="account_cleanup"
+    | outcome="manual_attention"
+    | provider=~"auth0|revenuecat"
+    [14d]
+  )
+) or vector(0)
+```
+
+The [selective JSON parser](https://grafana.com/docs/loki/latest/query/log_queries/#json) extracts only the three safe fields; private target references never become query labels. Native [count aggregation and the zero fallback](https://grafana.com/docs/loki/latest/query/metric_queries/) count observed diagnostics over the existing 14-day retention. A zero means no matching retained event, not proven cleanup or fresh collection. This sparse failure-only stream cannot detect stopped collection or the accepted interruption between commit and log emission; retain the existing independent availability/telemetry investigation. Use **No Data = Keep Last State**, **Error = Error** and route datasource errors through the existing contact point, following [native error handling](https://grafana.com/docs/grafana/latest/alerting/fundamentals/alert-rule-evaluation/nodata-and-error-states/). Never turn a query error into zero.
+
+Add fixed rule labels `environment` for the selected deployment and `service_name=blockout-backend`, for safe rule routing, including the zero fallback. Datasource errors are independent alert instances; explicitly route this rule's `DatasourceError` by its native rule/datasource labels to the same private contact point. Group notifications by alert name/environment/service/provider, with **group interval 5m**, **repeat interval 5d** and native firing/resolved delivery. Use a fixed summary such as “Account provider cleanup requires private manual review” and this [manual procedure](../operations/README.md#private-account-cleanup). Do not interpolate log lines, the `account_cleanup` object, target IDs, reason text or private case links into annotations/Discord. No custom template, metric, contact point or log sink is added.
+
+This condition counts observations, not unresolved cases: repair does not remove a retained event, and later success at another target cannot clear it. Native expiry, missing-series eviction, rule changes or silencing can end notifications without repair. Before retention expires, preserve only still-needed evidence through the private procedure. Actual Loki evaluation, delivery, retention and manual handling require [F05 T036 qualification](../../specs/005-accounts-identity/quickstart.md#erasure-and-return), alongside F13 T032. With authorized synthetic fixtures, verify no-failure/queued success gives zero, each manual-attention reason fires only its environment/provider, private fields are absent from labels and Discord, datasource failure remains Error, and expiry/resolution is never reported as repaired. Local documentation checks establish none of those provider results.
 
 ## F07 notification retention
 
@@ -91,14 +117,14 @@ telemetry freshness: missing completion, disabled scheduling or a stopped proces
 retention evidence, never successful cleanup. A healthy API or `started` event alone cannot clear
 the condition. Activation/delivery of these provider rules is not established by local tests.
 Use the [F07 manual response](../operations/README.md#notification-retention-failure)
-and [prepared isolated cases](../../specs/011-notifications-delivery/quickstart.md#retention-construction-and-isolated-restore-cases--255).
+and [prepared isolated cases](../../specs/011-notifications-delivery/quickstart.md#retention-construction-and-isolated-restore-cases).
 
 ## Investigate and intervene
 
 1. Identify the environment, affected service/scope and time of detection. Confirm current external health and telemetry freshness. No data means unavailable evidence, not a healthy execution.
 2. Inspect safe stage/outcome/count and latest useful success through the owning feature. Distinguish observation, acquisition, accepted integration and completed projection. Never-run, awaiting eligibility and paused are not successful executions; another scope's success does not clear this one.
 3. Check the relevant [F01 scenarios](../../specs/001-source-acquisition/quickstart.md#core-scenarios). Preserve partial results and use only the owner's existing rerun/read/restart operations. A response lost after a write remains uncertain; do not replay it blindly.
-4. For private account cleanup, follow [F05 erasure and return](../../specs/005-accounts-identity/quickstart.md#erasure-and-return). Verify original targets and current use before any separately authorized destructive provider action. Do not search by email or target a replacement account. An interruption after local commit but before diagnostic emission can remain unreported; no ledger or worker closes that accepted gap. If manual work remains after 14 days, keep only still-needed references in the existing private support process for its justified lifetime.
+4. For private account cleanup, follow the [manual cleanup procedure](../operations/README.md#private-account-cleanup) and its [F05 qualification cases](../../specs/005-accounts-identity/quickstart.md#erasure-and-return).
 5. After intervention, inspect the affected useful results and latest-success evidence. Native resolved means the alert condition ended; a pause, another scope's success or a reachable API alone does not prove business recovery.
 
 Keep detection, notification, intervention and observed recovery distinct. Operator availability creates no response-time guarantee. Restore and rollback remain with the owning [F13 operations tasks](../../specs/003-shared-quality/tasks.md#implementation-and-qualification-for-user-story-5); no new recovery mechanism or backup alert is introduced here.
