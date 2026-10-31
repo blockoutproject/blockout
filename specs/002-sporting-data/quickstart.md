@@ -55,6 +55,69 @@ Verify `Cache-Control: no-store` on administration/ingestion successes and error
 
 Try wrong-environment M2M tokens and unauthorized/stale administrative commands. Expect no effects. Lose a response and read current state before an explicit retry; no automatic mutation replay. Exceed the calendar/image bounds and verify explicit refusal, never truncation or deletion of valid images. Qualify a complete source-season catalog against the 8-MiB JSON bound; include repeated pool labels under distinct compound contexts and identical duplicates. Expect positional result correlation, one atomic catalog commit, and no absence change for stale, invalid or oversized input.
 
+### Generated facts and public reads (T034)
+
+[CollectorSportingReadIntegrationTest](../../apps/collector/src/test/java/com/blockout/collector/acquisition/application/CollectorSportingReadIntegrationTest.java)
+extends the [existing opt-in runtime](../../README.md#collector-to-sporting-qualification),
+with the same explicit disposable database, repackaged backend and local signed
+collector credentials. The production collector mapper and generated RestClient
+submit facts to the backend's generated ingestion interfaces. Anonymous HTTP
+reads then exercise F03's real generated-interface adapters and response mapping;
+no response DTO is constructed to replace those reads.
+
+The cases cover numeric final/provisional/unconfirmed results; synthetic `F`, `P`,
+`3/F`, `3/P`, `F/F` and `2/F`; partial date-only facts and FFVB `00:00`; unusable
+sets beside a usable overall result; retained compatible sets with independent
+freshness; supplied versus unknown publication time; stale whole observations;
+and a newer logical read containing an older supplier publication. The last case
+preserves the accepted publication-age limitation rather than introducing page
+priority or publication-time ordering.
+
+The binary image case submits a generated logo request with supplied or omitted
+publication metadata, checks the retained timestamp and compares the real F03
+logo response to the original synthetic PNG bytes.
+
+Document cases cover private qualified locators, information independent of a
+result, professional scoresheet/statistics finality, result withdrawal/restoration
+and rescheduling under the same identity. F03 responses expose backend document
+subresources only. Ineligible binary requests return NotFound before supplier
+fetching. Eligible PDF bytes are not requested. Standings retain official row and
+column order, absent rank/statistics, nonnumeric ratios, exact participant links,
+unmatched rows and original table freshness through non-publication or a recorded
+acquisition failure. No-table, not-published and published-empty remain distinct.
+
+All input facts and publication timestamps in this suite are synthetic regression
+evidence, including every special notation; they add no provider-observed sample
+or coverage claim. Existing [source interpretation limits](research.md#supplier-interpretation-limits)
+remain applicable. Actual source association, PDF relay and physical/native
+qualification remain with [F03 T057/T058](../007-sporting-consultation/tasks.md),
+and this qualification completes no other F02 task or release gate.
+
+Executed on 2026-10-31 in the issue-205 worktree against unchanged backend source
+`4690a987bbf061245b24c0ec711fd65550c73bdd`. Its repackaged Spring Boot JAR had
+SHA-256 `ffe986e26ec7b27ce9b89a507e29675d210e6f5b67b536611baeb8c2ac474ae3`.
+PostgreSQL 18.6 used the newly created Compose project
+`blockout-205-qualification` on loopback 5585, with explicit Liquibase migration
+and the restricted application runtime role; suite-owned backends used 8385 and
+local signed identities. The Java 25.0.4 runtime was Microsoft OpenJDK; the CI
+vendor remains Temurin. No JVM, dependency or contract configuration changed.
+
+Passed: all 25 new T034 cases and the complete `collector:test` target (215
+Surefire + 197 Failsafe cases, no skips), including the existing admission,
+ordering/transaction, partial-success, contextual-identity and presentation
+qualifications. Complementary backend checks passed 97 unit/MVC/contract cases
+and 63 Failsafe cases in `CalendarAcceptanceIntegrationTest`,
+`MatchDetailsAndStandingsIntegrationTest`, `PoolConsultationIntegrationTest` and
+`MatchDocumentsIntegrationTest`. Contract lint/bundling, actual Java generation,
+compilation, Checkstyle, Spotless, repository Prettier and diff hygiene passed.
+The handwritten test source blob is
+`02beb7c7e6911f8368fe78e63a67dc8107a96911`; no production change was needed.
+
+The suite-owned backend/signing listeners and clients closed after execution.
+The isolated Compose container, network and volume were removed. These synthetic
+HTTP/SQL/reference results complete only T034, with the provider/native and
+publication-age limits above unchanged.
+
 ## Classification and division editors
 
 T014/T018 use the existing F05 session and F12 operational admission. Enter pack/pool

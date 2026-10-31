@@ -83,6 +83,8 @@ Validate local links, anchors and source ownership against the final tree. [CI](
 
 F01 T032 adds `CollectorPartialSuccessIntegrationTest` and `CollectorContextIdentityIntegrationTest` using the same runtime and fixture. They qualify independent partial commits, atomic standings replacement, contextual/seasonal identities and qualified absence through actual F01/F02 transactions. One standings test temporarily adds and removes a synthetic rejecting constraint with the migration role to prove rollback. The 100-match cases use Spring's native response-timeout setting of 15 seconds instead of the shared small HTTP test peer's two seconds; no retry is enabled. The boundary suite additionally observes PostgreSQL blocking through each calendar item and final absence commit. [F01's evidence](specs/001-source-acquisition/quickstart.md#collector-partial-success-and-absence-t032) records scope and limits.
 
+F02 T034 adds `CollectorSportingReadIntegrationTest` to the same opt-in chain. It submits interpreted synthetic facts through the production generated collector client and backend interfaces, then reads actual F03 match, document-action, standings and participant responses. It checks result finality, special notation, unknown facts, independent freshness, logical ordering and official rows without fetching eligible PDFs. [The read qualification](specs/002-sporting-data/quickstart.md#generated-facts-and-public-reads-t034) records its evidence and limits.
+
 For example, from the repository root, with ports 5484 and 8184 available:
 
 ```sh
@@ -93,7 +95,7 @@ LIQUIBASE_URL=jdbc:postgresql://127.0.0.1:5484/blockout \
 LIQUIBASE_USERNAME=blockout_migration LIQUIBASE_PASSWORD=local-migration-only \
 ./mvnw -B -ntp -pl apps/backend liquibase:update
 ./mvnw -B -ntp -pl apps/collector verify \
-  -Dit.test='CollectorSportingBoundaryIntegrationTest,CollectorPartialSuccessIntegrationTest,CollectorContextIdentityIntegrationTest' \
+  -Dit.test='CollectorSportingBoundaryIntegrationTest,CollectorPartialSuccessIntegrationTest,CollectorContextIdentityIntegrationTest,CollectorSportingReadIntegrationTest' \
   -Dblockout.qualify-collector-sporting=true \
   -Dqualification.backend-jar="$PWD/apps/backend/target/backend-0.0.0-SNAPSHOT.jar" \
   -Dqualification.backend-port=8184 \
