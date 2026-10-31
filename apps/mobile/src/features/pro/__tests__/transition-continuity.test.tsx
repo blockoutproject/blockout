@@ -24,6 +24,7 @@ import {
 } from "../../accounts/test-support/native-auth0";
 import { submitAgeDeclaration } from "../../advertising/age-declaration";
 import { nativeAdvertising } from "../../advertising/test-support/native-privacy";
+import { controlledInterstitial } from "../../advertising/test-support/interstitial";
 import { usePro } from "../../pro";
 import * as proSessionModule from "../../pro/pro-session";
 import {
@@ -55,6 +56,10 @@ jest.mock("expo-constants", () => {
         extra: {
           ...actual.default.expoConfig?.extra,
           revenueCat: { iosApiKey: "test_public", offeringIdentifier: "v2" },
+          advertising: {
+            iosInterstitialUnitId: "synthetic-unit",
+            androidInterstitialUnitId: "synthetic-unit",
+          },
         },
       },
     },
@@ -93,12 +98,20 @@ jest.mock("react-native-google-mobile-ads", () => ({
   ...jest.requireActual("../../advertising/test-support/native-privacy")
     .nativeAdvertising,
   default: () => mockMobileAds,
+  AdEventType: {
+    LOADED: "loaded",
+    OPENED: "opened",
+    CLOSED: "closed",
+    ERROR: "error",
+  },
+  InterstitialAd: { createForAdRequest: jest.fn(() => mockCreateAd()) },
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, options?: RequestInit) =>
     mockFetch(url, options),
 }));
 
+const mockCreateAd = jest.fn(controlledInterstitial);
 const mockMobileAds = {
   setRequestConfiguration: jest.fn().mockResolvedValue(undefined),
   initialize: jest.fn().mockResolvedValue([]),
@@ -190,6 +203,7 @@ beforeEach(async () => {
   mockPurchases.getOfferings
     .mockReset()
     .mockResolvedValue({ current: null, all: { v2: v2Offering } });
+  mockCreateAd.mockReset().mockImplementation(controlledInterstitial);
   mockMobileAds.initialize.mockClear();
   mockMobileAds.setRequestConfiguration.mockClear();
   nativeAdvertising.AdsConsent.gatherConsent.mockClear();
@@ -416,6 +430,14 @@ it("keeps an outage unknown and offers explicit store restoration and actual cro
   );
   const user = userEvent.setup();
   await openInstallation("/sign-in");
+  await waitFor(() => expect(mockCreateAd).toHaveBeenCalled());
+  const guestRequests = mockCreateAd.mock.calls.length;
+  const guestAds = mockCreateAd.mock.results.flatMap((result) =>
+    result.type === "return" ? [result.value] : [],
+  );
+  guestAds.forEach((ad) => expect(ad.load).toHaveBeenCalledTimes(1));
+
+  // When
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
   await screen.findByText("Fresh_profile");
   await waitFor(() =>
@@ -425,7 +447,12 @@ it("keeps an outage unknown and offers explicit store restoration and actual cro
     }),
   );
 
-  const adsInitializations = mockMobileAds.initialize.mock.calls.length;
+  // Then
+  expect(mockCreateAd).toHaveBeenCalledTimes(guestRequests);
+  guestAds.forEach((ad) => {
+    expect(ad.load).toHaveBeenCalledTimes(1);
+    expect(ad.show).not.toHaveBeenCalled();
+  });
 
   // When
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
@@ -446,7 +473,8 @@ it("keeps an outage unknown and offers explicit store restoration and actual cro
   ).toBeOnTheScreen();
   expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
   expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
-  expect(mockMobileAds.initialize).toHaveBeenCalledTimes(adsInitializations);
+  expect(mockCreateAd).toHaveBeenCalledTimes(guestRequests);
+  guestAds.forEach((ad) => expect(ad.load).toHaveBeenCalledTimes(1));
 
   // When
   await user.press(
@@ -460,6 +488,8 @@ it("keeps an outage unknown and offers explicit store restoration and actual cro
     "shared@example.invalid",
   );
   expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
+  expect(mockCreateAd).toHaveBeenCalledTimes(guestRequests);
+  guestAds.forEach((ad) => expect(ad.load).toHaveBeenCalledTimes(1));
 });
 
 it.each(["APP_STORE", "PLAY_STORE"] as const)(
