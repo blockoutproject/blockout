@@ -1,3 +1,8 @@
+import {
+  DocumentReader,
+  documentRead,
+  documentReaders,
+} from "../test-support/native-document-files";
 import type { ReactElement } from "react";
 import type { QueryClient } from "@tanstack/react-query";
 import {
@@ -104,7 +109,18 @@ function reads(url: string) {
   return consultationResponse(url, detail);
 }
 
+const originalReader = Object.getOwnPropertyDescriptor(
+  globalThis,
+  "FileReader",
+);
+
 beforeEach(() => {
+  Object.defineProperty(globalThis, "FileReader", {
+    configurable: true,
+    value: DocumentReader,
+  });
+  documentReaders.length = 0;
+  documentRead.mockClear();
   jest.useFakeTimers();
   publicClient = consultationPublicClient();
   detail = {
@@ -137,6 +153,8 @@ beforeEach(() => {
     ));
 });
 afterEach(async () => {
+  if (originalReader)
+    Object.defineProperty(globalThis, "FileReader", originalReader);
   await cleanup();
   client?.clear();
   publicClient.clear();

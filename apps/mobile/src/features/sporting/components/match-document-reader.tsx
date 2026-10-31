@@ -1,6 +1,7 @@
 import { useLayoutEffect, useState, useEffectEvent } from "react";
 import { Modal, StyleSheet, Text, View } from "react-native";
 import Pdf from "react-native-pdf";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Flag, X } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import type { File } from "expo-file-system";
@@ -46,50 +47,54 @@ export function MatchDocumentReader({
   const { colors } = useTheme();
   return (
     <Modal visible presentationStyle="fullScreen" onRequestClose={onClose}>
-      <Page accessibilityViewIsModal>
-        <View style={styles.header}>
-          <IconButton label="Fermer le document" onPress={onClose}>
-            <X
-              accessible={false}
-              size={tokens.size.icon.lg}
-              color={colors.icon}
-            />
-          </IconButton>
-          <Text
-            accessibilityRole="header"
-            style={[styles.title, { color: colors.text }]}
-          >
-            {matchDocumentLabels[kind]}
-          </Text>
-          <IconButton
-            label="Signaler un problème avec le document"
-            onPress={() => {
-              onClose();
-              router.push(
-                supportHref({
-                  screen: "match",
-                  targetType: "match",
-                  targetId: matchId,
-                }),
-              );
-            }}
-          >
-            <Flag
-              accessible={false}
-              size={tokens.size.icon.lg}
-              color={colors.icon}
-            />
-          </IconButton>
-        </View>
-        {current && (
-          <DocumentAttempt
-            key={`${matchId}:${kind}:${attempt}`}
-            matchId={matchId}
-            kind={kind}
-            onRetry={() => setAttempt((value) => value + 1)}
-          />
-        )}
-      </Page>
+      <SafeAreaProvider>
+        <Page accessibilityViewIsModal>
+          <View style={styles.header}>
+            <IconButton label="Fermer le document" onPress={onClose}>
+              <X
+                accessible={false}
+                size={tokens.size.icon.lg}
+                color={colors.icon}
+              />
+            </IconButton>
+            <Text
+              accessibilityRole="header"
+              style={[styles.title, { color: colors.text }]}
+            >
+              {matchDocumentLabels[kind]}
+            </Text>
+            <IconButton
+              label="Signaler un problème avec le document"
+              onPress={() => {
+                onClose();
+                router.push(
+                  supportHref({
+                    screen: "match",
+                    targetType: "match",
+                    targetId: matchId,
+                  }),
+                );
+              }}
+            >
+              <Flag
+                accessible={false}
+                size={tokens.size.icon.lg}
+                color={colors.icon}
+              />
+            </IconButton>
+          </View>
+          <SafeAreaView edges={["bottom"]} style={styles.pdf}>
+            {current && (
+              <DocumentAttempt
+                key={`${matchId}:${kind}:${attempt}`}
+                matchId={matchId}
+                kind={kind}
+                onRetry={() => setAttempt((value) => value + 1)}
+              />
+            )}
+          </SafeAreaView>
+        </Page>
+      </SafeAreaProvider>
     </Modal>
   );
 }

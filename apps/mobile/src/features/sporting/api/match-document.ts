@@ -25,7 +25,7 @@ export async function downloadMatchDocument(
   options.signal?.throwIfAborted();
   if (blob.type.split(";", 1)[0].toLowerCase() !== "application/pdf")
     throw new ApiError("schema");
-  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const bytes = await readDocumentBytes(blob, options.signal);
   options.signal?.throwIfAborted();
   const directory = new Directory(Paths.cache, "f03-match-documents");
   directory.create({ intermediates: true, idempotent: true });
@@ -39,6 +39,50 @@ export async function downloadMatchDocument(
     releaseMatchDocument(file);
     throw error;
   }
+}
+
+/** Reads the installed RN Blob through its native FileReader API, releasing listeners on every outcome. */
+function readDocumentBytes(
+  blob: Blob,
+  signal?: AbortSignal | null,
+): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new ApiError("cancelled"));
+      return;
+    }
+    const reader = new FileReader();
+    /** Native completion, failure and cancellation release the same request subscription. */
+    function cleanup() {
+      signal?.removeEventListener("abort", cancel);
+      reader.onload = null;
+      reader.onerror = null;
+    }
+    /** A cancelled native decode cannot deliver bytes to the temporary-file owner. */
+    function cancel() {
+      cleanup();
+      if (reader.readyState === FileReader.LOADING) reader.abort();
+      reject(new ApiError("cancelled"));
+    }
+    reader.onerror = () => {
+      cleanup();
+      reject(new ApiError("network"));
+    };
+    reader.onload = () => {
+      const bytes = reader.result;
+      cleanup();
+      if (bytes !== null && typeof bytes !== "string")
+        resolve(new Uint8Array(bytes));
+      else reject(new ApiError("schema"));
+    };
+    signal?.addEventListener("abort", cancel, { once: true });
+    try {
+      reader.readAsArrayBuffer(blob);
+    } catch {
+      cleanup();
+      reject(new ApiError("network"));
+    }
+  });
 }
 
 /** Releases an owned handle; a native deletion failure leaves only a cold-start-cleanable file. */

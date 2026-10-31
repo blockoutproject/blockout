@@ -1,4 +1,9 @@
 import {
+  DocumentReader,
+  documentRead,
+  documentReaders,
+} from "../test-support/native-document-files";
+import {
   documentFiles as mockFiles,
   documentWrite,
 } from "../test-support/native-document-files";
@@ -20,7 +25,18 @@ jest.mock(
 const mockFetch = jest.fn();
 const id = "00000000-0000-4000-8000-000000000259";
 
+const originalReader = Object.getOwnPropertyDescriptor(
+  globalThis,
+  "FileReader",
+);
+
 beforeEach(() => {
+  Object.defineProperty(globalThis, "FileReader", {
+    configurable: true,
+    value: DocumentReader,
+  });
+  documentReaders.length = 0;
+  documentRead.mockClear();
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   mockFiles.length = 0;
   documentWrite.mockReset();
@@ -28,6 +44,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  if (originalReader)
+    Object.defineProperty(globalThis, "FileReader", originalReader);
   delete process.env.EXPO_PUBLIC_API_URL;
 });
 
@@ -132,4 +150,57 @@ it("releases a just-written file when cancellation wins before handoff", async (
   // Then
   await expect(download).rejects.toThrow();
   expect(mockFiles[0].exists).toBe(false);
+});
+
+it("reads the installed native Blob shape without requiring Blob.arrayBuffer", async () => {
+  // Given: Expo Fetch returns the RN Blob, which does not implement arrayBuffer.
+  const blob = new Blob(["%PDF-1.7\nsynthetic\n%%EOF"], {
+    type: "application/pdf",
+  });
+  Object.defineProperty(blob, "arrayBuffer", { value: undefined });
+  const response = new Response(null, {
+    headers: { "Content-Type": "application/pdf" },
+  });
+  jest.spyOn(response, "blob").mockResolvedValue(blob);
+  mockFetch.mockResolvedValue(response);
+  const bytes = new TextEncoder().encode("%PDF-1.7\nsynthetic\n%%EOF");
+  documentRead.mockImplementationOnce((reader) => {
+    reader.result = bytes.buffer;
+    reader.onload?.();
+  });
+
+  // When
+  const file = await downloadMatchDocument(id, "information", {});
+
+  // Then
+  expect(documentRead).toHaveBeenCalledWith(expect.any(DocumentReader), blob);
+  expect(file.write).toHaveBeenCalledWith(bytes);
+});
+
+it("aborts a pending native Blob read and rejects a late native completion before creating a file", async () => {
+  // Given
+  const controller = new AbortController();
+  const started = Promise.withResolvers<void>();
+  mockFetch.mockResolvedValue(
+    new Response("%PDF-1.7\n%%EOF", {
+      headers: { "Content-Type": "application/pdf" },
+    }),
+  );
+  documentRead.mockImplementationOnce(() => started.resolve());
+  const download = downloadMatchDocument(id, "information", {
+    signal: controller.signal,
+  });
+  await started.promise;
+  const reader = documentReaders[0];
+  const late = reader.onload;
+
+  // When
+  controller.abort();
+  reader.result = new ArrayBuffer(8);
+  late?.();
+
+  // Then
+  await expect(download).rejects.toMatchObject({ kind: "cancelled" });
+  expect(reader.abort).toHaveBeenCalledTimes(1);
+  expect(mockFiles).toHaveLength(0);
 });

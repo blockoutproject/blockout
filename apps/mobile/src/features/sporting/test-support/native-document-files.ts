@@ -42,3 +42,34 @@ export const nativeDocumentFiles = {
   Directory: DocumentDirectory,
   Paths: { cache: { uri: "file:///cache" } },
 };
+
+/** Controlled native FileReader boundary; Node Blob supplies bytes only for ordinary fixture defaults. */
+export class DocumentReader {
+  static LOADING = 1;
+  readyState = 0;
+  result: ArrayBuffer | null = null;
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  abort = jest.fn(() => {
+    this.readyState = 2;
+  });
+
+  /** Starts one native read; tests can retain it and choose completion or cancellation. */
+  readAsArrayBuffer(blob: Blob) {
+    this.readyState = DocumentReader.LOADING;
+    documentReaders.push(this);
+    documentRead(this, blob);
+  }
+}
+
+/** Native read handles, reset for every scenario. */
+export const documentReaders: DocumentReader[] = [];
+/** Supplies ordinary native completion; explicit boundary cases override this native I/O only. */
+export const documentRead = jest.fn((reader: DocumentReader, blob: Blob) => {
+  void blob.arrayBuffer().then((bytes) => {
+    if (reader.readyState !== DocumentReader.LOADING) return;
+    reader.result = bytes;
+    reader.readyState = 2;
+    reader.onload?.();
+  });
+});
