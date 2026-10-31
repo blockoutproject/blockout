@@ -207,17 +207,17 @@ versions retain their real consumption. Check the following construction boundar
   text on both platforms. Record actual reader speech/focus separately from accessibility
   semantics in an inspection tree.
 
-The [row/lifecycle captures](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6510562999)
-and [entry captures](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6510989325)
+The row/lifecycle captures
+and entry captures
 establish only their exact source revisions and captured lifecycle cases.
-The [native evidence](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6511946128)
+The native evidence
 at source `aa4d229e5138d1429e6bea76987c3e7b6296c622` supplies the reviewed three-card-state,
 ordinary-editor and read-only-history experience. The owner authorized Figma/prototype
 synchronization after reviewing this source, within the [approved scope](plan.md#approved-design-and-evidence).
 
 The [Figma journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5511-51086)
 uses editable screens, live library references without broken instances and Outfit product text.
-The [prototype captures and delivery](https://github.com/blockoutproject/product-prototype/pull/15#issuecomment-6512645456) at
+The prototype captures and delivery at
 `db183a56f9b70d828d87623254a2eb8d3ab2b317` passes 223 model tests, 29 Chromium cases,
 TypeScript and build. Browser checks cover the three card entries, prefilled replacement,
 cancelled confirmation, acknowledged returns, withdrawal, read-only/zero history, report
@@ -226,7 +226,7 @@ fictional local services; its dialogs represent native confirmations and do not 
 platform execution. The existing build chunk-size advisory remains. US4 native reporting and
 the wider qualification matrix retain their own scope.
 
-The current [native captures and observations](https://github.com/blockoutproject/blockout/pull/575#issuecomment-6511946128)
+The current native captures and observations
 use production screens on compatible iOS 27.0 and Android 17/API 37 development clients with
 fictional Auth0/storage and a controlled HTTP peer. Both platforms exercise direct first
 proposal, prefilled own-link editing, native replacement and withdrawal confirmations, and
@@ -244,9 +244,9 @@ T023, US4 reporting, actual US5/US6 moderation/erasure, T049/T056 and the minimu
 and screen-reader matrix retain their own qualification. A synthetic peer establishes only its
 rendering, transport and interaction boundaries; it is not provider or global design approval.
 
-Scoped iOS/Android observations at `e9a6ece6`, including builds and controlled fixtures, are recorded in the [native contribution evidence](https://github.com/blockoutproject/blockout/pull/557#issuecomment-6475614201). Available-entry/form composition, keyboard/back, retained drafts, real refusal/explicit retry, acknowledgement and exact active public projection were observed. That run also reported cropped labels after live Android text enlargement and development navigation warnings; its missing screen-reader and minimum-OS evidence remains explicitly unqualified.
+Scoped iOS/Android observations at `e9a6ece6`, including builds and controlled fixtures, are recorded in the native contribution evidence. Available-entry/form composition, keyboard/back, retained drafts, real refusal/explicit retry, acknowledgement and exact active public projection were observed. That run also reported cropped labels after live Android text enlargement and development navigation warnings; its missing screen-reader and minimum-OS evidence remains explicitly unqualified.
 
-The [integrated native evidence](https://github.com/blockoutproject/blockout/pull/562#issuecomment-6479911193) exercises production source `84e723e7` on compatible iOS 27.1 and Android API 37 development clients. iOS keyboard dismissal and cancelling the native discard confirmation preserve the exact draft; the captured future-match form is ineligible for ordinary submission and supplies no new acknowledgement proof. Android font enlargement recreates the Activity without changing the process, returns to the home route and yields a readable empty form on explicit reopening. This establishes neither retained-context cropping nor draft persistence across recreation, and does not erase the earlier failed observation. The real Stream link panel is exercised on both platforms; native external handoff and return are observed on Android. The iOS handoff remains unqualified. The compact contribution summary remains informational and has no navigation dependency. Real TalkBack 17.0 speech captions verify the link field name/hint and the empty-value validation alert on this source; no POST is issued. These two cases do not qualify complete reader traversal or VoiceOver.
+The integrated native evidence exercises production source `84e723e7` on compatible iOS 27.1 and Android API 37 development clients. iOS keyboard dismissal and cancelling the native discard confirmation preserve the exact draft; the captured future-match form is ineligible for ordinary submission and supplies no new acknowledgement proof. Android font enlargement recreates the Activity without changing the process, returns to the home route and yields a readable empty form on explicit reopening. This establishes neither retained-context cropping nor draft persistence across recreation, and does not erase the earlier failed observation. The real Stream link panel is exercised on both platforms; native external handoff and return are observed on Android. The iOS handoff remains unqualified. The compact contribution summary remains informational and has no navigation dependency. Real TalkBack 17.0 speech captions verify the link field name/hint and the empty-value validation alert on this source; no POST is issued. These two cases do not qualify complete reader traversal or VoiceOver.
 
 T009/T015/T016 construction is complete with the generated/RHF/Query tests, public projection proof and these scoped native observations. The full F03 match status still truncates after a live Android theme change at 130% text; it is absent from the compact F08 context and retains its failed result under [F13 native qualification](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets). This grants no Android exception or global native acceptance. T017 retains the complete US1 acceptance execution; T049/T056 and F13 T073 retain the broader journeys, runtime matrix and assistive-technology qualification.
 
