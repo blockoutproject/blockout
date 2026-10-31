@@ -2,6 +2,68 @@
 
 This guide prepares [isolated restoration and compatible rollback](#inputs-and-isolation) under F13 and [V1-to-V2 continuity](#private-continuity-inventory) under F14. Each operation needs its own authorization and evidence; preparing these instructions performs none of them.
 
+## Owner-only action grants
+
+Only the product owner may assign or withdraw privileged actions, through an independently authorized database connection. A delegated operator receives application capabilities only: no SQL credentials, assignment endpoint or right to redistribute grants. Confirm the environment and current deployment, verify the target privately through F05, and use its **current business UUID** (`account.id`), never an email, Auth0 subject, old UUID or inferred replacement. Keep identifiers, connection material and results private; there is no public grant ledger.
+
+The current [backend action definitions](../../apps/backend/src/main/java/com/blockout/backend/access/domain/Permission.java) and [migration](../../apps/backend/src/main/resources/db/changelog/access.xml) own these exact values:
+
+| Persisted `account_permission.permission` | Scope                                                                     |
+| ----------------------------------------- | ------------------------------------------------------------------------- |
+| `maintenance.manage`                      | F12 maintenance content and activation                                    |
+| `application-versions.manage`             | F12 minimum versions, messages and store links                            |
+| `maintenance.bypass`                      | F12 explicit personal maintenance bypass                                  |
+| `collection.manage`                       | F01 source, season and collection commands                                |
+| `sporting-presentation.manage`            | F02 sporting presentation and club contacts                               |
+| `sporting-classification.manage`          | F02 classification                                                        |
+| `division-lifecycle.manage`               | F02 division creation and activity                                        |
+| `stream-links.moderate`                   | F08 complete stream-link moderation, including publication and withdrawal |
+
+Each grant is independent. None delegates F09 provider-console powers or F11 legal publication, which remain owner-only through their existing operations. Ordinary capabilities need no grant row and retain resource, ownership, age and quota conditions, including F08's seven days and its sole moderation exception. No role, `isAdmin`, startup grant, owner table, grant history or delegation mechanism is involved.
+
+Prepare one of the following short scripts in a private temporary file, then run it with native `psql`. The operator must identify an already authorized libpq connection/service; `owner_connection` below is a fictitious service name, not a provisioned account or connection string. Use protected libpq credential handling without shell tracing or credentials in arguments. The UUID and permission are fictitious examples: replace them privately after verification and choose exactly one supported value above. Preparing this runbook authorizes no real assignment.
+
+```sh
+psql -X 'service=owner_connection' -v ON_ERROR_STOP=1 \
+  -v account_id=00000000-0000-4000-8000-000000000287 \
+  -v permission=maintenance.manage -f /private/path/grant.sql
+```
+
+Grant (`grant.sql`):
+
+```sql
+BEGIN ISOLATION LEVEL READ COMMITTED;
+SELECT id AS locked_account_id FROM account
+WHERE id = :'account_id'::uuid FOR UPDATE
+\gset
+INSERT INTO account_permission(account_id, permission)
+VALUES (:'locked_account_id'::uuid, :'permission')
+ON CONFLICT (account_id, permission) DO NOTHING;
+COMMIT;
+SELECT EXISTS (SELECT 1 FROM account_permission
+  WHERE account_id = :'account_id'::uuid AND permission = :'permission') AS granted;
+```
+
+For withdrawal, run the same `psql` invocation with `-f /private/path/revoke.sql`:
+
+```sql
+BEGIN ISOLATION LEVEL READ COMMITTED;
+SELECT id AS locked_account_id FROM account
+WHERE id = :'account_id'::uuid FOR UPDATE
+\gset
+DELETE FROM account_permission
+WHERE account_id = :'locked_account_id'::uuid AND permission = :'permission';
+COMMIT;
+SELECT EXISTS (SELECT 1 FROM account_permission
+  WHERE account_id = :'account_id'::uuid AND permission = :'permission') AS granted;
+```
+
+Execute each file as one batch; do not leave a transaction open while inspecting identity or calling a provider. Native [`\gset`](https://www.postgresql.org/docs/18/app-psql.html#APP-PSQL-META-COMMAND-GSET) requires exactly one row: an absent account stops the noninteractive `ON_ERROR_STOP` script and disconnect rolls back its transaction. This also refuses a missing revoke target, rather than silently targeting a replacement. The primary key makes a repeated grant a no-op; deleting an absent association on an existing account is also a no-op. After commit, reread the association (`granted=true` for grant, `false` for withdrawal) and the current `/accounts/me` capability. An uncertain result requires this read before any explicit repeat; a prior projection or visible button authorizes no later effect.
+
+Grant-only transactions take only the target account lock. Protected commands take domain roots first in their owner's order, then all concerned accounts in UUID order, and read grants **after** those locks; they acquire no sporting root afterward. Under [READ COMMITTED](https://www.postgresql.org/docs/18/transaction-iso.html#XACT-READ-COMMITTED), the post-lock grant statement sees a withdrawal that committed while the command waited. An admitted short transaction may finish before a waiting withdrawal; a command ordered after withdrawal is refused without effects. No remote cancellation or immediate invalidation of an already returned response is promised.
+
+[F05 erasure](../../specs/005-accounts-identity/plan.md#erasure-and-manual-resolution) removes the original account and its grants, while global `access_settings` survive. Explicit recreation gets a fresh UUID with no inherited grants. An old UUID-targeted command cannot act on it; an otherwise valid same-subject token may identify the replacement only under its current rights. See [F12 T011 qualification](../../specs/013-administration-app-configuration/quickstart.md#direct-authorization-and-manual-grant-lifecycle--t011) for the disposable-data proof and its provider/native limits.
+
 ## Ordinary owner recovery
 
 Use these existing owner paths after interrupted processing without resetting retained data. Confirm the environment, deployed revision, affected source/control/resource and current authorization before acting. Keep original command/cycle identities and private evidence; never infer cancellation from a lost response or completion from a resolved alert. The [A11–A13 qualification](../../specs/003-shared-quality/quickstart.md#ordinary-owner-recovery-a11a13) separates tested behavior from provider/production/restoration evidence.
