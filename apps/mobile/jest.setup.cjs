@@ -74,3 +74,9 @@ jest.mock("expo-tracking-transparency", () => ({
   })),
   requestTrackingPermissionsAsync: jest.fn(),
 }));
+
+// PDF decoding belongs to the native module; lifecycle suites supply controlled native callbacks.
+jest.mock("react-native-pdf", () => ({
+  __esModule: true,
+  default: jest.fn(() => null),
+}));

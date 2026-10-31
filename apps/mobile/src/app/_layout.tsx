@@ -36,6 +36,8 @@ import {
   type PushRegistration,
 } from "../features/notifications/native/push-registration";
 
+import { cleanupMatchDocuments } from "../features/sporting/api/match-document";
+
 initializeSentry();
 
 /** Binds private cache/push lifecycle and separates protected ordinary/operational navigation. */
@@ -127,6 +129,7 @@ function ThemedNavigation({
 
 /** Starts public checking above F14/Auth0; all session restoration and returns preserve that process owner. */
 function RootLayout() {
+  useEffect(cleanupMatchDocuments, []);
   const [queryClient] = useState(createQueryClient);
   const [registration] = useState(createPushRegistration);
   const [privacy] = useState(createInstallationAdvertisingPrivacy);

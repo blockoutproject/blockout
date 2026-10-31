@@ -18,6 +18,7 @@ import com.blockout.backend.generated.mobile.model.StandingsAvailabilityEnum;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import com.blockout.backend.sporting.application.ConsultationViews;
 import com.blockout.backend.sporting.application.ReadMatchCalendar;
+import com.blockout.backend.sporting.application.ReadMatchDocument;
 import com.blockout.backend.sporting.application.ReadSportingResources;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import java.time.OffsetDateTime;
@@ -54,6 +55,7 @@ class PoolConsultationWebMvcTest {
   @Autowired private MockMvc mvc;
   @MockitoBean private ReadSportingResources resources;
   @MockitoBean private ReadMatchCalendar calendars;
+  @MockitoBean private ReadMatchDocument documents;
   @MockitoBean private MaintenanceAdmission admission;
 
   @Test

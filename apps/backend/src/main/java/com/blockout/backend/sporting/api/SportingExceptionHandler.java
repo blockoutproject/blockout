@@ -2,6 +2,7 @@ package com.blockout.backend.sporting.api;
 
 import com.blockout.backend.generated.mobile.model.ProblemResponse;
 import com.blockout.backend.shared.http.HttpProblems;
+import com.blockout.backend.sporting.application.exception.MatchDocumentUnavailableException;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.exception.SportingValidationException;
@@ -42,6 +43,13 @@ public class SportingExceptionHandler {
     if (!exception.getResourceIds().isEmpty())
       problem.setConflictingResourceIds(exception.getResourceIds());
     return HttpProblems.response(problem, HttpHeaders.EMPTY);
+  }
+
+  /** Returns an ordinary supplier outage without exposing locators, content or failure details. */
+  @ExceptionHandler(MatchDocumentUnavailableException.class)
+  ResponseEntity<Object> documentUnavailable() {
+    return HttpProblems.response(
+        HttpStatus.SERVICE_UNAVAILABLE, "urn:blockout:problem:unavailable");
   }
 
   /** Does not disclose submitted references in the missing-resource response. */

@@ -56,6 +56,7 @@ public class ReadSportingResources {
   private final Clock clock;
   private final ReadPublicContribution contributions;
   private final ReadCollectionWork collection;
+  private final ReadMatchDocument documents;
 
   /**
    * Reads only the current public club identity for summary consumers.
@@ -273,8 +274,8 @@ public class ReadSportingResources {
         details.venueAddress(),
         details.referees(),
         contributions.read(id).map(mapper::toView).orElse(null),
-        null,
-        List.of());
+        reads.officialCalendar(input.pool().id()),
+        documents.actions(id));
   }
 
   /**

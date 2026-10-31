@@ -26,6 +26,8 @@ import { MatchCompactHeader } from "../components/match-compact-header";
 import { MatchSummary } from "../components/match-summary";
 import { MatchSetScores } from "../components/match-set-scores";
 import { MatchInformation } from "../components/match-information";
+import type { MatchDocumentKindEnum } from "../../../../.generated/schemas/index.zod";
+import { MatchDocumentReader } from "../components/match-document-reader";
 import { MatchLinks } from "../components/match-links";
 import { divisionTextColor } from "../presentation";
 import { currentSportingTimeZone } from "../model/sporting-time";
@@ -69,6 +71,15 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
     return () => subscription.remove();
   }, [focused, matchId, refetch]);
   const data = match.data;
+  const [document, setDocument] = useState<{
+    matchId: string;
+    kind: MatchDocumentKindEnum;
+  }>();
+  const documentAvailable =
+    document?.matchId === matchId &&
+    !!data?.documents.some((item) => item.kind === document.kind);
+  // Retire a local opening when its resource/context disappears; a later recovery never reopens it.
+  if (document && (!focused || !documentAvailable)) setDocument(undefined);
   const contribution = useMatchContributionAction(
     matchId,
     !!data,
@@ -187,6 +198,7 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
                       }
                     />
                     <MatchInformation
+                      onDocumentOpen={(kind) => setDocument({ matchId, kind })}
                       detail={data}
                       displayTimeZone={presentation.timeZone}
                     />
@@ -197,6 +209,14 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
           </PageScrollView>
         )}
       </ScrollChrome>
+      {focused && documentAvailable && document && (
+        <MatchDocumentReader
+          key={`${matchId}:${document.kind}`}
+          matchId={matchId}
+          kind={document.kind}
+          onClose={() => setDocument(undefined)}
+        />
+      )}
     </Page>
   );
 }
