@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Controller, useFormState, useWatch } from "react-hook-form";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
@@ -30,6 +31,7 @@ export function SupportForm({ onSubmit }: SupportFormProps) {
   const kind = useWatch({ control, name: "kind" });
   const router = useRouter();
   const feedback = useActionFeedback();
+  const submitting = useRef(false);
   useDiscardChanges(isDirty, () => reset());
 
   /** Awaits the preparation consumer once, retaining editable input and ordinary feedback on refusal. */
@@ -39,6 +41,17 @@ export function SupportForm({ onSubmit }: SupportFormProps) {
       await onSubmit(toSupportRequest(values, context));
     } catch {
       feedback.error();
+    }
+  }
+
+  /** Serializes native taps before RHF's asynchronous validation can trigger a second send. */
+  async function send() {
+    if (submitting.current) return;
+    submitting.current = true;
+    try {
+      await handleSubmit(submit)();
+    } finally {
+      submitting.current = false;
     }
   }
 
@@ -145,7 +158,7 @@ export function SupportForm({ onSubmit }: SupportFormProps) {
       <Button
         label="Envoyer la demande"
         loading={isSubmitting}
-        onPress={() => void handleSubmit(submit)()}
+        onPress={() => void send()}
       />
     </View>
   );
