@@ -30,7 +30,8 @@
       "dependsOn": ["generate"]
     },
     "lint": {
-      "command": "npm run lint --workspace=@blockout/mobile"
+      "command": "npm run lint --workspace=@blockout/mobile",
+      "dependsOn": ["generate"]
     },
     "format-check": {
       "command": "npm run format:check --workspace=@blockout/mobile"

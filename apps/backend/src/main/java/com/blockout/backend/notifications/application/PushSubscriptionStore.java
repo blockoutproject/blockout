@@ -8,6 +8,14 @@ import java.util.UUID;
  * boundary.
  */
 public interface PushSubscriptionStore {
+  /**
+   * Removes this original account's personal data in the caller's erasure transaction. Retained
+   * nonpersonal facts and other owners remain unchanged; acquires no domain root.
+   *
+   * @param accountId original lifecycle protected by its account row lock
+   */
+  void erase(UUID accountId);
+
   /** Private immutable trigger-time row incarnation, native revision and project-scoped address. */
   record Target(UUID id, long revision, String address) {}
 

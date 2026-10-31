@@ -15,6 +15,15 @@ import org.springframework.data.jpa.repository.Query;
  */
 interface PushSubscriptionRepository extends JpaRepository<PushSubscriptionEntity, UUID> {
   /**
+   * Deletes every original-owner row, including hidden entries, under its account lock.
+   *
+   * @param accountId locked original lifecycle
+   */
+  @Modifying
+  @Query("DELETE FROM PushSubscriptionEntity e WHERE e.accountId = :accountId")
+  void erase(UUID accountId);
+
+  /**
    * Captures detached private targets for one locked original owner.
    *
    * @param accountId original account UUID

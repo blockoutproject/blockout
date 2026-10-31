@@ -13,6 +13,14 @@ import java.util.UUID;
  */
 public interface ContributionStore {
   /**
+   * Removes this original account's personal data in the caller's erasure transaction. Retained
+   * nonpersonal facts and other owners remain unchanged; acquires no domain root.
+   *
+   * @param accountId original lifecycle protected by its account row lock
+   */
+  void erase(UUID accountId);
+
+  /**
    * Locates a version's immutable sporting root without hydrating mutable attribution before locks.
    *
    * @param versionId exact retained identity

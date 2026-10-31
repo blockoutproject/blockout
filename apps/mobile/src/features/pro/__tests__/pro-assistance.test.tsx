@@ -13,6 +13,8 @@ import SupportRoute from "../../../app/(ordinary)/support/index";
 import { ProfileSupportAction } from "../../accounts/components/profile-support-action";
 import { ProProfileEntry } from "../components/pro-profile-entry";
 import { AccountAdmissionProvider } from "../../accounts/components/account-admission";
+import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
+import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { useSupportVisit } from "../../support/forms/support-visit";
 import { renderRouter } from "expo-router/testing-library";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
@@ -89,6 +91,20 @@ const accountA = "00000000-0000-4000-8000-000000000318";
 beforeEach(() => {
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
+  process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
+  const transport = jest.requireMock(
+    "expo/fetch",
+  ) as typeof import("expo/fetch");
+  jest
+    .mocked(transport.fetch)
+    .mockImplementation(
+      async (url) =>
+        (String(url).endsWith("/application-access")
+          ? Response.json(applicationAccessResponse())
+          : new Response(null, { status: 404 })) as Awaited<
+          ReturnType<typeof transport.fetch>
+        >,
+    );
   jest.replaceProperty(
     proSessionModule,
     "proSession",
@@ -99,6 +115,7 @@ beforeEach(() => {
     .mockReset()
     .mockResolvedValue({ current: null, all: { v2: v2Offering } });
   client = createQueryClient();
+  client.setQueryDefaults([], { retry: false, gcTime: Infinity });
 });
 afterEach(async () => {
   await cleanup();
@@ -166,9 +183,11 @@ async function mount() {
       wrapper: ({ children }) => (
         <QueryClientProvider client={client}>
           <ThemeProvider>
-            <AccountSessionProvider>
-              <ProProvider>{children}</ProProvider>
-            </AccountSessionProvider>
+            <ApplicationAccessProvider>
+              <AccountSessionProvider>
+                <ProProvider>{children}</ProProvider>
+              </AccountSessionProvider>
+            </ApplicationAccessProvider>
           </ThemeProvider>
         </QueryClientProvider>
       ),

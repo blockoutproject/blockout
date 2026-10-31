@@ -374,3 +374,7 @@ source-report separation and shared sporting-media fallback at 320 points / enla
 These checks qualify the standalone fictional prototype only. T045's integrated current-owner
 qualification, T050/T055 erasure and T056's complete platform/accessibility matrix remain separate;
 controlled SQL, JavaScript or native fixtures establish no provider/production or global design approval.
+
+## Original-account attribution erasure (T046/T050)
+
+`ContributionErasureIntegrationTest` runs actual F05 erasure with F08 submission, reporting and moderation over the migrated database. Hidden versions, ownerless pending proposals, report counts/distinct anonymous rows, holds, decision chronology, quota flags and lineage remain unchanged while owner/publication/decision actors and each erased reporter's reason disappear. Re-registration recovers no ownership. Submission/report/reactivation races hold their real sporting roots before the account phase: erasure completes without those roots and the resumed writer refuses the old actor or rereads anonymous source ownership. [F05's rollback cases](../005-accounts-identity/quickstart.md#server-erasure-construction) additionally reject required participant SQL and final account deletion, preserving all local owners and suppressing external cleanup. Controlled provider boundaries and synthetic fixtures establish no native, live-provider or wider T055/T056 acceptance.

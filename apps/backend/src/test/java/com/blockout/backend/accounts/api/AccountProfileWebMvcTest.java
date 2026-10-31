@@ -62,6 +62,8 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 })
 @DisplayName("Atomic profile HTTP input")
 class AccountProfileWebMvcTest {
+  @MockitoBean private com.blockout.backend.accounts.application.EraseAccount erasure;
+
   private static final String ISSUER = "https://identity.example.invalid/";
   private static final UUID ID = UUID.fromString("00000000-0000-4000-8000-000000000173");
   @Autowired private MockMvc mvc;

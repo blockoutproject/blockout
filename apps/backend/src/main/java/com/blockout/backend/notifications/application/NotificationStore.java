@@ -8,6 +8,14 @@ import java.util.UUID;
 /** F07 writes: producer/read locks are caller ordered; retention deletes only due personal rows. */
 public interface NotificationStore {
   /**
+   * Removes this original account's personal data in the caller's erasure transaction. Retained
+   * nonpersonal facts and other owners remain unchanged; acquires no domain root.
+   *
+   * @param accountId original lifecycle protected by its account row lock
+   */
+  void erase(UUID accountId);
+
+  /**
    * Deletes one bounded batch of personal rows across all owners, read and visibility states. Uses
    * a dedicated retention transaction; never deletes facts or installation associations.
    *

@@ -16,6 +16,15 @@ import org.springframework.data.jpa.repository.Query;
 interface NotificationRepository
     extends JpaRepository<NotificationEntity, UUID>, JpaSpecificationExecutor<NotificationEntity> {
   /**
+   * Deletes every original-owner row, including hidden entries, under its account lock.
+   *
+   * @param accountId locked original lifecycle
+   */
+  @Modifying
+  @Query("DELETE FROM NotificationEntity e WHERE e.accountId = :accountId")
+  void erase(UUID accountId);
+
+  /**
    * Selects an owner's original sporting lock target without hydrating a personal entity.
    *
    * @param accountId captured original account

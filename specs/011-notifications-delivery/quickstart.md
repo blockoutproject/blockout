@@ -315,3 +315,7 @@ For each executed case, retain reviewed commit/native build, physical device/OS,
 scenario and passed/failed/unavailable result in the owning qualification evidence. Keep private
 addresses, credentials, ticket IDs and attachments outside this public repository. A successful
 sample does not establish delivery guarantees or complete the other outstanding F07 tasks.
+
+## Original-account erasure construction (T038)
+
+`NotificationErasureIntegrationTest` uses the real F05 orchestrator and F06/F07 persistence, migrations and transactions. It removes hidden inbox rows and multiple destinations while preserving other accounts and consumed match facts, orders reassociation before and after erasure, and resumes captured delivery/receipt work against a newer association. No old provider handoff or invalidation reaches that association. The [F05 construction record](../005-accounts-identity/quickstart.md#server-erasure-construction) owns common rollback, writer-lock and adapter evidence. T038 began with a generated HTTP case failing against the 503 stub. This scoped local construction does not complete T040/T041, physical delivery, provider activation or F05's wider T035 qualification.

@@ -14,6 +14,14 @@ import java.util.UUID;
  */
 public interface AccountStore {
   /**
+   * Removes this original account's personal data in the caller's erasure transaction. Retained
+   * nonpersonal facts and other owners remain unchanged; acquires no domain root.
+   *
+   * @param accountId original lifecycle protected by its account row lock
+   */
+  void erase(UUID accountId);
+
+  /**
    * Reads current attribution names without loading profile/photo data per version.
    *
    * @param ids original lifecycle identities needed by a bounded private page
