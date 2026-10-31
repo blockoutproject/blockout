@@ -4,6 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.blockout.backend.accounts.application.exception.AccountNotFoundException;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
@@ -44,10 +49,14 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -57,6 +66,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * controlled.
  */
 @SpringBootTest
+@AutoConfigureMockMvc
 @Import({
   PostgresTestConfiguration.class,
   SportingIdentityFixture.class,
@@ -69,6 +79,8 @@ class PersonalCalendarIntegrationTest {
   @Autowired private MatchCalendarFixture fixtures;
   @Autowired private SportingIdentityFixture identities;
   @Autowired private ReadPersonalCalendar reads;
+  @Autowired private FollowState states;
+  @Autowired private MockMvc mvc;
   @Autowired private AcceptCalendar acceptance;
   @Autowired private ChangeCollectionSeasons seasons;
   @Autowired private JdbcTemplate sql;
@@ -91,7 +103,7 @@ class PersonalCalendarIntegrationTest {
 
   @Test
   @DisplayName("Union selects each match once until its last selecting follow is removed")
-  void overlappingOrigins() {
+  void overlappingOrigins() throws Exception {
     // Given
     MatchView match = fixtures.match(scope.pool(), "UNION", DAY, null);
     follow("team", match.homeTeamId());
@@ -100,11 +112,20 @@ class PersonalCalendarIntegrationTest {
 
     // When / Then
     assertThat(ids(read(null))).containsExactly(match.id());
-    sql.update("DELETE FROM team_follow WHERE team_id=?", match.homeTeamId());
+    states.replace(
+        new FollowContext(
+            ACCOUNT, new FollowContext.Target(FollowContext.TargetType.TEAM, match.homeTeamId())),
+        false);
     assertThat(ids(read(null))).containsExactly(match.id());
-    sql.update("DELETE FROM pool_follow WHERE pool_id=?", scope.pool());
+    states.replace(
+        new FollowContext(
+            ACCOUNT, new FollowContext.Target(FollowContext.TargetType.POOL, scope.pool())),
+        false);
     assertThat(ids(read(null))).containsExactly(match.id());
-    sql.update("DELETE FROM team_follow WHERE team_id=?", match.awayTeamId());
+    states.replace(
+        new FollowContext(
+            ACCOUNT, new FollowContext.Target(FollowContext.TargetType.TEAM, match.awayTeamId())),
+        false);
     ReadPersonalCalendar.Calendar empty = read(null);
     assertThat(ids(empty)).isEmpty();
     assertThat(empty.hasAvailableFollows()).isFalse();
@@ -112,6 +133,81 @@ class PersonalCalendarIntegrationTest {
             sql.queryForObject(
                 "SELECT present FROM sporting_match WHERE id=?", Boolean.class, match.id()))
         .isTrue();
+    mvc.perform(get("/matches/" + match.id()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.match.id").value(match.id().toString()));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "team-follows,true",
+    "pool-follows,true",
+    "matches,true",
+    "team-follows,false",
+    "pool-follows,false",
+    "matches,false"
+  })
+  @DisplayName(
+      "Real personal endpoints return seasonal NotFound after qualified withdrawal, with options confirming the fallback")
+  void withdrawnSeasonEndpoints(String collection, boolean remainingCatalogue) throws Exception {
+    // Given
+    MatchView match = fixtures.match(scope.pool(), "SEASON", DAY, null);
+    follow("team", match.homeTeamId());
+    follow("pool", scope.pool());
+    UUID fallback = remainingCatalogue ? seasons.getOrCreate(2027).id() : null;
+    if (remainingCatalogue) {
+      identities.createPool(
+          new PoolKey(
+              CollectionProviderEnum.FFVB, fallback, "SYNTHETIC", "COMP", null, null, "NEW"),
+          "PACK",
+          "New catalogue pool",
+          new SportingClassification(
+              SportingIngestionFixture.DIVISION, SportFormatEnum._6X6, SportGenderEnum.MALE));
+    }
+    personal(collection, scope.season()).andExpect(status().isOk());
+    mvc.perform(get("/accounts/" + ACCOUNT + "/follow-options").with(owner()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.defaultSeasonId").value(scope.season().toString()));
+
+    // When: actual F02 acceptance establishes complete current absence without deleting follows.
+    acceptance.accept(
+        scope.pool(),
+        new CalendarObservation(
+            new MatchObservation.Context(scope.cycle().id(), 1, clock.instant(), null),
+            true,
+            List.of(),
+            List.of(),
+            List.of()));
+
+    // Then
+    personal(collection, scope.season())
+        .andExpect(status().isNotFound())
+        .andExpect(header().string("Cache-Control", "no-store"));
+    ResultActions options =
+        mvc.perform(get("/accounts/" + ACCOUNT + "/follow-options").with(owner()))
+            .andExpect(status().isOk());
+    if (remainingCatalogue) {
+      options
+          .andExpect(jsonPath("$.seasons.length()").value(1))
+          .andExpect(jsonPath("$.defaultSeasonId").value(fallback.toString()));
+    } else {
+      options
+          .andExpect(jsonPath("$.seasons").isEmpty())
+          .andExpect(jsonPath("$.defaultSeasonId").doesNotExist());
+    }
+    ResultActions next = personal(collection, fallback).andExpect(status().isOk());
+    if (collection.equals("matches")) {
+      next.andExpect(jsonPath("$.hasAvailableFollows").value(false))
+          .andExpect(jsonPath("$.calendar.days").isEmpty());
+    } else next.andExpect(jsonPath("$.items").isEmpty());
+    assertThat(
+            sql.queryForObject(
+                "SELECT COUNT(*) FROM team_follow WHERE account_id=?", Long.class, ACCOUNT))
+        .isEqualTo(1L);
+    assertThat(
+            sql.queryForObject(
+                "SELECT COUNT(*) FROM pool_follow WHERE account_id=?", Long.class, ACCOUNT))
+        .isEqualTo(1L);
   }
 
   @Test
@@ -337,15 +433,62 @@ class PersonalCalendarIntegrationTest {
   @Test
   @DisplayName(
       "Withdrawn matches remain absent despite retained results and another visible participation")
-  void withdrawalOverridesResults() {
+  void withdrawalOverridesResults() throws Exception {
     // Given
-    MatchView match = fixtures.match(scope.pool(), "WITHDRAWN", DAY, null);
-    follow("team", match.homeTeamId());
+    acceptance.accept(
+        scope.pool(),
+        new CalendarObservation(
+            new MatchObservation.Context(scope.cycle().id(), 1, clock.instant(), null),
+            true,
+            List.of(
+                SportingIngestionFixture.candidate("WITHDRAWN", "Home", DAY),
+                SportingIngestionFixture.candidate("REMAINING", "Other home", DAY)),
+            List.of(),
+            List.of()));
+    UUID matchId =
+        sql.queryForObject("SELECT id FROM sporting_match WHERE reference='WITHDRAWN'", UUID.class);
+    UUID homeId =
+        sql.queryForObject(
+            "SELECT home_team_id FROM sporting_match WHERE id=?", UUID.class, matchId);
+    UUID otherPool =
+        identities
+            .createPool(
+                new PoolKey(
+                    CollectionProviderEnum.FFVB,
+                    scope.season(),
+                    "SYNTHETIC",
+                    "COMP",
+                    null,
+                    null,
+                    "OTHER"),
+                "PACK",
+                "Other participation",
+                new SportingClassification(
+                    SportingIngestionFixture.DIVISION, SportFormatEnum._6X6, SportGenderEnum.MALE))
+            .id();
+    MatchView other =
+        identities.identifyMatch(
+            otherPool,
+            "OTHER",
+            new TeamCandidate(null, "Home", "000160", null),
+            new TeamCandidate(null, "Away", "000161", null));
+    sql.update("UPDATE sporting_match SET local_date=? WHERE id=?", DAY, other.id());
+    assertThat(other.homeTeamId()).isEqualTo(homeId);
+    follow("team", homeId);
+    follow("pool", scope.pool());
     sql.update(
-        "UPDATE sporting_match SET present=FALSE, result_state='FINAL', home_sets=3, away_sets=0 WHERE id=?",
-        match.id());
+        "UPDATE sporting_match SET result_state='FINAL', home_sets=3, away_sets=0 WHERE id=?",
+        matchId);
 
     // When
+    acceptance.accept(
+        scope.pool(),
+        new CalendarObservation(
+            new MatchObservation.Context(scope.cycle().id(), 2, clock.instant(), null),
+            true,
+            List.of(SportingIngestionFixture.candidate("REMAINING", "Other home", DAY)),
+            List.of(),
+            List.of()));
     ReadPersonalCalendar.Calendar page =
         reads.read(
             ACCOUNT,
@@ -355,6 +498,12 @@ class PersonalCalendarIntegrationTest {
     // Then
     assertThat(page.hasAvailableFollows()).isTrue();
     assertThat(ids(page)).isEmpty();
+    assertThat(
+            sql.queryForObject(
+                "SELECT result_state FROM sporting_match WHERE id=?", String.class, matchId))
+        .isEqualTo("FINAL");
+    mvc.perform(get("/matches/" + matchId)).andExpect(status().isNotFound());
+    mvc.perform(get("/teams/" + homeId)).andExpect(status().isOk());
   }
 
   @ParameterizedTest
@@ -391,42 +540,69 @@ class PersonalCalendarIntegrationTest {
         .isEqualTo(1L);
   }
 
-  @Test
+  @ParameterizedTest
+  @ValueSource(strings = {"catalog", "division"})
   @DisplayName(
       "Authorized reappearance restores retained follows without lifting an independent restriction")
-  void reappearance() {
+  void reappearance(String restriction) {
     // Given
     acceptance.accept(
         scope.pool(),
         new CalendarObservation(
+            new MatchObservation.Context(scope.cycle().id(), 1, clock.instant(), null),
+            true,
+            List.of(SportingIngestionFixture.candidate("RETURN", "Home", DAY)),
+            List.of(),
+            List.of()));
+    UUID original =
+        sql.queryForObject("SELECT id FROM sporting_match WHERE reference='RETURN'", UUID.class);
+    states.replace(
+        new FollowContext(
+            ACCOUNT, new FollowContext.Target(FollowContext.TargetType.POOL, scope.pool())),
+        true);
+    UUID relation =
+        sql.queryForObject("SELECT id FROM pool_follow WHERE account_id=?", UUID.class, ACCOUNT);
+    acceptance.accept(
+        scope.pool(),
+        new CalendarObservation(
             new MatchObservation.Context(
-                scope.cycle().id(), 1, Instant.parse("2026-10-28T12:00:00Z"), null),
+                scope.cycle().id(), 2, Instant.parse("2026-10-28T12:00:00Z"), null),
             true,
             List.of(),
             List.of(),
             List.of()));
-    follow("pool", scope.pool());
     assertThat(read(null).hasAvailableFollows()).isFalse();
+    if (restriction.equals("catalog"))
+      sql.update("UPDATE sporting_pool SET catalog_eligible=FALSE WHERE id=?", scope.pool());
+    else
+      sql.update(
+          "UPDATE sporting_division SET active=FALSE WHERE id=?",
+          SportingIngestionFixture.DIVISION);
 
     // When
     acceptance.accept(
         scope.pool(),
         new CalendarObservation(
             new MatchObservation.Context(
-                scope.cycle().id(), 2, Instant.parse("2026-10-28T12:00:01Z"), null),
+                scope.cycle().id(), 3, Instant.parse("2026-10-28T12:00:01Z"), null),
             true,
             List.of(SportingIngestionFixture.candidate("RETURN", "Home", DAY)),
             List.of(),
             List.of()));
-    ReadPersonalCalendar.Calendar restored = read(null);
-    sql.update(
-        "UPDATE sporting_division SET active=FALSE WHERE id=?", SportingIngestionFixture.DIVISION);
-
     // Then
-    assertThat(restored.hasAvailableFollows()).isTrue();
-    assertThat(ids(restored)).hasSize(1);
     assertThat(read(null).hasAvailableFollows()).isFalse();
     assertThat(ids(read(null))).isEmpty();
+    if (restriction.equals("catalog"))
+      sql.update("UPDATE sporting_pool SET catalog_eligible=TRUE WHERE id=?", scope.pool());
+    else
+      sql.update(
+          "UPDATE sporting_division SET active=TRUE WHERE id=?", SportingIngestionFixture.DIVISION);
+    assertThat(read(null).hasAvailableFollows()).isTrue();
+    assertThat(ids(read(null))).containsExactly(original);
+    assertThat(
+            sql.queryForObject(
+                "SELECT id FROM pool_follow WHERE account_id=?", UUID.class, ACCOUNT))
+        .isEqualTo(relation);
   }
 
   @Test
@@ -531,7 +707,42 @@ class PersonalCalendarIntegrationTest {
         .isInstanceOf(AccountNotFoundException.class);
   }
 
-  /** Selects one synthetic owner's upcoming calendar with an explicit optional season. */
+  /**
+   * Calls the production generated personal collection with real security, ownership and SQL reads.
+   *
+   * @param collection canonical collection suffix
+   * @param season optional sporting season; null leaves the query absent for All seasons
+   * @return HTTP result for explicit scenario assertions
+   * @throws Exception when MVC dispatch fails
+   */
+  private ResultActions personal(String collection, UUID season) throws Exception {
+    org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request =
+        get("/accounts/" + ACCOUNT + "/" + collection).with(owner());
+    if (season != null) request.param("seasonId", season.toString());
+    if (collection.equals("matches"))
+      request.param("category", "upcoming").param("timeZone", "Europe/Paris");
+    return mvc.perform(request);
+  }
+
+  /**
+   * Supplies a validated synthetic principal; current account and admission still read PostgreSQL.
+   */
+  private RequestPostProcessor owner() {
+    return jwt()
+        .jwt(
+            token ->
+                token
+                    .issuer("https://identity.example.invalid/")
+                    .subject("personal-calendar")
+                    .claim("azp", "mobile-test"));
+  }
+
+  /**
+   * Selects one synthetic owner's upcoming calendar.
+   *
+   * @param seasonId optional sporting selection
+   * @return current F06 envelope from the actual SQL/F03 composition
+   */
   private ReadPersonalCalendar.Calendar read(UUID seasonId) {
     return reads.read(
         ACCOUNT,
@@ -541,6 +752,9 @@ class PersonalCalendarIntegrationTest {
 
   /**
    * Persists one explicitly typed original-account relation in this suite's disposable database.
+   *
+   * @param type association table kind
+   * @param target exact sporting UUID
    */
   private void follow(String type, UUID target) {
     sql.update(
@@ -550,7 +764,12 @@ class PersonalCalendarIntegrationTest {
         target);
   }
 
-  /** Extracts selected identities without obscuring database mutations or the tested read. */
+  /**
+   * Extracts identities without obscuring mutations or the tested read.
+   *
+   * @param response accepted F06 envelope
+   * @return selected match identities in traversal order
+   */
   private List<UUID> ids(ReadPersonalCalendar.Calendar response) {
     return response.calendar().days().stream()
         .flatMap(day -> day.pools().stream())
