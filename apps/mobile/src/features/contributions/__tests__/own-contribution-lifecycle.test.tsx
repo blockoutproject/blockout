@@ -636,7 +636,7 @@ it("abandons the native confirmation without changing either version", async () 
   expect(screen.getByText("En attente de validation")).toBeOnTheScreen();
 });
 
-it("requires a fresh read after conflict and never transfers the old confirmation to a new version", async () => {
+it("refreshes after conflict without transferring the old confirmation to a new version", async () => {
   // Given
   const boundary = mockFetch.getMockImplementation();
   if (!boundary) throw new Error("Missing test HTTP boundary");
@@ -677,7 +677,9 @@ it("requires a fresh read after conflict and never transfers the old confirmatio
 
   // Then
   expect(
-    await screen.findByText(/L’état courant a été relu/),
+    await screen.findByText(
+      "La contribution a changé. Vérifiez les données avant une nouvelle action.",
+    ),
   ).toBeOnTheScreen();
   expect(pages).toEqual([0, 0]);
   expect(patches).toEqual([

@@ -84,6 +84,54 @@ With Jest Expo/React Native Testing Library and native device checks, preserve d
 
 Qualify ordinary contribution/replacement, personal-contribution and report screens with the same content and current-journey drafts. Short filters use sheets; simple confirmation uses the platform alert and cancellation has no mutation effect. Exercise first/last inputs, final scrolling actions and keyboard/back separately on both platforms. Review the [approved design references](plan.md#design-reconciliation-and-evidence), light/dark themes, narrow screens, VoiceOver/TalkBack, enlarged text, focus and accessible action states. Existing sports foreground refresh and advertising behavior remain unchanged. Prototype tests and Figma approval do not qualify native networking, SQL concurrency, provider availability or accessibility.
 
+### Prepared interruption and accessibility cases — T049
+
+Execute these cases under T056 on compatible native iOS and Android development builds generated
+from the tested revision. Record the build/commit, OS, device/viewport, appearance and text scale
+with each result. Use the existing F05 native session/private QueryClient, F12 admission and stream
+moderation grant, F03 public match projection and F13 controls/feedback. Keep fictional addresses,
+private report reasons and synthetic accounts in task-owned fixtures outside Git. A transport double
+can control a lost response, an explicitly delayed completion or a failed GET; it establishes only
+that controlled boundary. Real SQL/erasure/notification effects retain T050/T054/T055 ownership.
+
+| Case                           | Fixture and action                                                                                                                                                                                               | Expected native observation                                                                                                                                                                                                                                                                  |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Appearance and narrow layout   | Open ordinary proposal, owned editor/history, exact-version report, private queue and version detail in light, dark and system appearance at the narrow supported width. Change system appearance while mounted. | Shared surfaces/text/semantic badges follow appearance; no cropped field, hidden final action or private content outside the admitted account.                                                                                                                                               |
+| Large text and keyboard        | Increase system text size on both OSes; edit the first/last field, open/cancel confirmation, scroll to final actions, dismiss keyboard and use native back.                                                      | Inputs and full labels remain reachable without overlapping keyboard/chrome; cancelling sends no write and retains the mounted draft; deliberate route departure follows ordinary draft abandonment.                                                                                         |
+| VoiceOver / TalkBack           | Traverse headings, address/reason fields, active/pending badges, version disclosures, report sections and decision buttons. Open and dismiss a dialog/sheet.                                                     | Names, roles, disabled/pending states and reasons are understandable without color; focus enters the dialog/sheet and returns to its trigger. Pending reads have one accessible announcement, and ordinary toast/field failures are discoverable.                                            |
+| Coexisting versions and quotas | Retain an active link beside a pending replacement and more than twenty read-only own versions; refuse a new submission at the server quota.                                                                     | The active link remains distinct from the proposal, total/history remain readable, no history-row command or quota counter appears, and the refused draft is retained.                                                                                                                       |
+| Erased reason                  | Read a counted report whose author/reason have been erased, beside an intact report on a historical reactivation source.                                                                                         | Count and historical source remain clear; unavailable reason has no invented author/text. No report author is exposed. Actual erasure is T050/T055, not a fixture claim.                                                                                                                     |
+| Lost response and later state  | Lose each submit/cancel/withdraw/publication/approval/rejection/withdrawal/reactivation response, then expose a newer state. Delay one completion beyond an explicit refresh.                                    | Ordinary failure feedback and settlement invalidation; no automatic second write, command latch or inferred historical success. Subsequent explicit actions carry their viewed exact target/revision. Cancellation remains an API test because native history offers no cancellation action. |
+| Failed explicit refresh        | Keep an edited address and authorized history, then fail pull-to-refresh after a conflict or response loss.                                                                                                      | Draft/history remain mounted with ordinary error feedback; no persistent technical explanation claims a successful read. A later successful explicit refresh recovers current data.                                                                                                          |
+| Exact-version report           | Lose acknowledgement, fail the dependent read, then intentionally send again after restoring transport; meanwhile replace the public link. Also confirm a report before failing both dependent reads.            | Ordinary error retains the reason and original version; no match-refresh/recovery action or retargeting. Manual repetition stays on the same account/version. A confirmed report remains successful despite failed reads.                                                                    |
+| Account/route departure        | Delay credential preparation or response, then sign out, sign in as a different subject or remove the route.                                                                                                     | The new subject owns a fresh private cache and draft; captured credentials cannot become the other subject's credentials. Old completion produces no new-view feedback/navigation or mutation replay.                                                                                        |
+
+For each row record passed, failed or unavailable evidence separately for iOS and Android. Native
+accessibility services, live identity credentials and controlled sporting/grant fixtures must actually
+be available before claiming their cases. T049 prepares this matrix; it does not complete T056,
+physical-device/provider qualification or design acceptance.
+
+### Ordinary interruption and diagnostic boundaries — T047/T048/T051–T053
+
+[Recovery tests](../../apps/mobile/src/features/contributions/__tests__/contribution-recovery.test.tsx)
+use actual generated calls, F05/F12 providers, private QueryClients and RHF forms with only HTTP,
+native credential I/O and navigation controlled. Version mutations keep ordinary Query settlement
+invalidation, including exact private moderation members and public F03 reads; a failed read neither
+proves rollback nor overturns acknowledged success. Report acknowledgement is displayed directly
+from the mutation when its dependent read fails; a transport outage permits another deliberate
+same-target submission without adding a recovery control. A current read observing an existing report after response loss does not discard the failed attempt’s draft or replace its ordinary feedback. Known authorization refusals remove
+private owner data before a subsequent outage can retain it. A refused F03 match removes the captured report address and disables sending while preserving the local reason; a refusal of only the old report member keeps its exact-target retry. The confirmed report result remains distinct from a pending explicit retry.
+
+[Mobile diagnostics](../../apps/mobile/src/features/contributions/__tests__/contribution-diagnostics.test.ts)
+check the generated F13 transport classification, safe local feedback and F13 Sentry privacy filter
+with event correlation and packaged source coordinates. [MVC logging tests](../../apps/backend/src/test/java/com/blockout/backend/contributions/api/ContributionFailureLoggingTest.java)
+exercise real generated routes, contribution/shared advice and the native Boot ECS encoder:
+business refusal/conflict emits no unexpected-failure event; unexpected SQL/read faults have one
+shared HTTP diagnostic with bounded operation/outcome/type. URLs, query strings, private reasons,
+identities, credentials and payloads are excluded. F08 adds no capture sink, duplicate diagnostic or
+cleanup-content exception. F13 activation/symbolication and actual provider telemetry remain with
+[F13 qualification](../003-shared-quality/quickstart.md#delivery-and-operations).
+
 ### Native submission and public entry — T009/T015/T016
 
 The ordinary match contribution route composes F03's current match summary and the F08

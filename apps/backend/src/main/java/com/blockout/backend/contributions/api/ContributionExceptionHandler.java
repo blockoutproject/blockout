@@ -32,7 +32,7 @@ public class ContributionExceptionHandler {
    * Refuses an incompatible exact-version action without exposing another contribution's state.
    *
    * @param failure bounded lifecycle conflict
-   * @return canonical private conflict requiring a current read before a new explicit action
+   * @return canonical private conflict for a later explicit action with its viewed revision
    */
   @ExceptionHandler(ContributionConflictException.class)
   ResponseEntity<Object> conflict(ContributionConflictException failure) {

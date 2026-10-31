@@ -16,15 +16,13 @@ import { useActionConfirmation } from "../../../shared/forms/use-action-confirma
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
-import {
-  isOwnContributionAccessDenied,
-  type useOwnContributions,
-} from "../api/own-contributions";
+import { type useOwnContributions } from "../api/own-contributions";
 import {
   contributionSchema,
   type ContributionValues,
 } from "../schemas/contribution-schema";
 import { contributionValues } from "./contribution-values";
+import { contributionErrorMessage } from "../api/contribution-errors";
 
 /** One mounted original-match address draft; normal RHF lifetime ends when the route is removed. */
 export interface ContributionFormProps {
@@ -68,27 +66,8 @@ export function ContributionForm({
   });
   const { submit, change, query } = editing;
   const busy = submit.isPending || change.isPending || query.isFetching;
-  const recoveryError = submit.error ?? change.error;
   const disabled =
     !editing.usable || query.isError || !current.eligibility.canSubmit;
-  /** Rereads the original collection while preserving the draft and reporting failures only to its mounted owner. */
-  async function refresh() {
-    feedback.clear();
-    try {
-      await editing.refresh();
-    } catch {
-      if (mounted.current) feedback.error();
-    }
-  }
-  /** Reads current state after a conflict/uncertain response without interpreting it as historical acknowledgement. */
-  async function reread() {
-    feedback.clear();
-    try {
-      await editing.refresh();
-    } catch {
-      if (mounted.current) feedback.error();
-    }
-  }
   /** Acknowledges the saved address before leaving for the exact match, without abandoning a dirty form. */
   function finish(url: string) {
     reset(contributionValues(url));
@@ -121,13 +100,7 @@ export function ContributionForm({
         setError("url", {
           message: "Le lien a été refusé. Votre saisie est conservée.",
         });
-        await refresh();
-      } else if (error instanceof ApiError && error.status === 409)
-        await reread();
-      else
-        feedback.error(
-          "La contribution est indisponible. Votre saisie est conservée.",
-        );
+      } else feedback.error(contributionErrorMessage(error));
     }
   }
   /** Withdraws the exact displayed published version independently of eligibility for a new proposal. */
@@ -153,15 +126,7 @@ export function ContributionForm({
       finish(accepted.contribution.url);
     } catch (error) {
       if (!mounted.current) return;
-      if (
-        (error instanceof ApiError && error.status === 409) ||
-        isOwnContributionAccessDenied(error)
-      )
-        await reread();
-      else
-        feedback.error(
-          "La modification est indisponible. Relisez votre contribution avant de réessayer.",
-        );
+      feedback.error(contributionErrorMessage(error));
     }
   }
   return (
@@ -223,16 +188,6 @@ export function ContributionForm({
           </Text>
         )}
 
-        {recoveryError instanceof ApiError && recoveryError.status === 409 && (
-          <Text
-            accessibilityLiveRegion="polite"
-            style={[tokens.typography.body, { color: colors.text }]}
-          >
-            {recoveryError instanceof ApiError && recoveryError.status === 409
-              ? "La contribution a changé. L’état courant a été relu. Vérifiez votre saisie avant une nouvelle action."
-              : "Le résultat de la demande reste incertain. L’état courant a été relu ; vérifiez-le avant une nouvelle action."}
-          </Text>
-        )}
         <Button
           label={replacement ? "Remplacer le lien" : "Soumettre le lien"}
           fullWidth
