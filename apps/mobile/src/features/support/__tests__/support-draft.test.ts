@@ -7,7 +7,7 @@ import { supportMetadata } from "./fixtures";
 
 it.each(["problem", "suggestion"])("accepts %s without a subject", (kind) => {
   // Given
-  const draft = { ...supportMetadata, kind, subject: "" };
+  const draft = { ...supportMetadata, images: [], kind, subject: "" };
 
   // When
   const request = toSupportRequest(supportSchema.parse(draft), {});
@@ -21,7 +21,7 @@ it.each(SupportRequestSubjectEnum.options)(
   "retains optional canonical subject %s",
   (subject) => {
     // Given
-    const draft = { ...supportMetadata, subject };
+    const draft = { ...supportMetadata, images: [], subject };
 
     // When
     const request = toSupportRequest(supportSchema.parse(draft), {});
@@ -33,7 +33,12 @@ it.each(SupportRequestSubjectEnum.options)(
 
 it.each(["title", "description", "replyEmail"])("refuses blank %s", (field) => {
   // Given
-  const draft = { ...supportMetadata, subject: "", [field]: " \n\u00a0 " };
+  const draft = {
+    ...supportMetadata,
+    images: [],
+    subject: "",
+    [field]: " \n\u00a0 ",
+  };
 
   // When
   const result = supportSchema.safeParse(draft);
@@ -50,7 +55,12 @@ it.each([
   (field, maximum) => {
     // Given
     const exact = "🏐".repeat(maximum / 2);
-    const draft = { ...supportMetadata, subject: "", [field]: exact };
+    const draft = {
+      ...supportMetadata,
+      images: [],
+      subject: "",
+      [field]: exact,
+    };
 
     // When
     const accepted = supportSchema.parse(draft);
@@ -66,6 +76,7 @@ it("trims only the outer title/contact whitespace and preserves explanation", ()
   // Given
   const draft = {
     ...supportMetadata,
+    images: [],
     subject: "",
     title: " Titre ",
     description: " Ligne 1\nLigne 2 ",
@@ -87,7 +98,7 @@ it.each(["incorrect", "x".repeat(243) + "@example.invalid"])(
   "refuses invalid or oversized reply contact",
   (replyEmail) => {
     // Given
-    const draft = { ...supportMetadata, subject: "", replyEmail };
+    const draft = { ...supportMetadata, images: [], subject: "", replyEmail };
 
     // When
     const result = supportSchema.safeParse(draft);
@@ -108,7 +119,7 @@ it("accepts exactly 254 email code units and refuses 255", () => {
     "." +
     "d".repeat(56) +
     ".test";
-  const draft = { ...supportMetadata, subject: "", replyEmail };
+  const draft = { ...supportMetadata, images: [], subject: "", replyEmail };
 
   // When
   const exact = supportSchema.safeParse(draft);

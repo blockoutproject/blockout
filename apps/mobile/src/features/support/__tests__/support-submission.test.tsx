@@ -35,6 +35,7 @@ import { useSupportSubmission } from "../api/use-support-submission";
 import { supportImage, supportMetadata } from "./fixtures";
 
 // The real SDK, F05 private Query lifetime, RHF, generated client and transport remain mounted.
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
 );
