@@ -79,7 +79,7 @@ F13's data model contains logical responsibilities, not generic tables to scaffo
 ### Implementation and qualification for User Story 1
 
 - [x] T020 [US1] Configure native Query defaults in `apps/mobile/src/shared/query/query-client.ts` and compose the provider in `apps/mobile/src/app/_layout.tsx`; make T018 pass with `networkMode: 'always'`, retries and implicit focus/reconnection refresh off, no persistent business cache, and feature-owned approved refresh/expiry policies.
-- [ ] T021 [US1] Qualify A01–A03 through the implemented F01/F02/F03/F04 paths using `specs/003-shared-quality/quickstart.md#data-and-schema` and the owning automated suites; verify correction/visibility before projection catch-up and retained data after supplier failure. Record actual outcomes in the delivery evidence; domain owners fix their semantics, and no load/latency/propagation benchmark is added.
+- [x] T021 [US1] Qualify A01–A03 through the implemented F01/F02/F03/F04 paths using `specs/003-shared-quality/quickstart.md#data-and-schema` and the owning automated suites; verify correction/visibility before projection catch-up and retained data after supplier failure. Record actual outcomes in the delivery evidence; domain owners fix their semantics, and no load/latency/propagation benchmark is added.
 
 **Checkpoint**: US1 is complete only when its independent test has actual evidence. Unavailable owner/runtime/provider inputs leave the affected tasks pending; continue unrelated ready work using the dependencies below.
 

@@ -64,9 +64,9 @@ import tools.jackson.databind.JsonNode;
 
 /**
  * F02 T034 facts and F13 A03 failures through production collector mappers/generated clients, the
- * executable backend's generated interfaces and actual F03 HTTP reads. Provider transport/input
- * and local signing keys are controlled. PDF delivery, native consumers and provider coverage
- * remain with their owners; no generated response DTO substitutes for a read.
+ * executable backend's generated interfaces and actual F03 HTTP reads. Provider transport/input and
+ * local signing keys are controlled. PDF delivery, native consumers and provider coverage remain
+ * with their owners; no generated response DTO substitutes for a read.
  */
 @EnabledIfSystemProperty(named = "blockout.qualify-collector-sporting", matches = "true")
 @DisplayName("Generated sporting facts through actual public read consumers")
