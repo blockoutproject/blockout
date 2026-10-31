@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { type QueryClient } from "@tanstack/react-query";
+import { onlineManager, type QueryClient } from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -62,6 +62,7 @@ let client: QueryClient;
 let publicClient: QueryClient;
 let detail = matchDetail();
 
+/** Supplies controlled successful HTTP bodies while the feature's generated readers stay real. */
 function reads(url: string) {
   return consultationResponse(url, detail);
 }
@@ -104,6 +105,7 @@ afterEach(async () => {
   jest.useRealTimers();
   process.env = { ...environment };
   jest.restoreAllMocks();
+  onlineManager.setOnline(true);
 });
 
 it("rereads the current match when its route regains focus and applies accepted result, date and link changes", async () => {
@@ -393,4 +395,63 @@ it("uses only transient feedback for a failed focus reread while keeping accepte
   expect(
     screen.queryByRole("button", { name: "Réessayer" }),
   ).not.toBeOnTheScreen();
+});
+
+it("retains permitted facts after failed refresh and reconnect, then accepts an explicit current reread without issuing a business command", async () => {
+  // Given: real screen, generated reader and Query owners; only the HTTP boundary is controlled.
+  detail.venueName = "Salle conservée";
+  await renderPage(<MatchScreen matchId={sportingId} />);
+  await screen.findByLabelText("Lieu : Salle conservée");
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  mockFetch.mockClear();
+  mockFetch.mockImplementation((url: string) =>
+    url.endsWith(`/matches/${sportingId}`)
+      ? Promise.reject(new TypeError("offline"))
+      : reads(url),
+  );
+
+  // When: userEvent cannot express the native RefreshControl gesture.
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await screen.findByRole("alert");
+  expect(screen.getByLabelText("Lieu : Salle conservée")).toBeOnTheScreen();
+  expect(screen.getByText("Home")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+
+  // When: ordinary Query reconnect reads may run; they cannot replay a business command.
+  await act(() => onlineManager.setOnline(false));
+  await act(() => onlineManager.setOnline(true));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // Then: reconnect with the source still failing does not invent absence or recovery.
+  expect(screen.getByLabelText("Lieu : Salle conservée")).toBeOnTheScreen();
+  expect(
+    client.getQueryData<{ match: typeof detail.match }>([
+      `/matches/${sportingId}`,
+    ])?.match.schedule.observedAt,
+  ).toBe(detail.match.schedule.observedAt);
+  expect(
+    mockFetch.mock.calls.every(
+      ([, options]) => (options?.method ?? "GET") === "GET",
+    ),
+  ).toBe(true);
+
+  // When: the next explicit pull reads accepted current facts through the same owner.
+  detail = { ...detail, venueName: "Salle corrigée" };
+  mockFetch.mockImplementation(reads);
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await screen.findByLabelText("Lieu : Salle corrigée");
+  expect(
+    screen.queryByLabelText("Lieu : Salle conservée"),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.every(
+      ([, options]) => (options?.method ?? "GET") === "GET",
+    ),
+  ).toBe(true);
 });
