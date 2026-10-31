@@ -49,6 +49,7 @@ export default function TabsLayout() {
   const sheetVisible = useSegments().includes("(sheets)");
   const { session, queries } = useInboxQueries();
   const summary = useQuery({
+    ...queries?.summary,
     queryKey: getGetNotificationSummaryQueryKey(
       session.accountId ?? "unavailable",
     ),

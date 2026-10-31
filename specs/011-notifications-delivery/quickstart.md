@@ -116,6 +116,34 @@ scheduled purge or F05 erasure qualification. [T052](tasks.md) owns those races;
 and [T017–T024](tasks.md) own native inbox behavior. No device, push/provider or production evidence is claimed.
 Revision-specific commands and outcomes remain in the delivery PR.
 
+## Current sporting and link visibility
+
+[Current-owner SQL cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/NotificationVisibilityIntegrationTest.java)
+use actual admitted F02 calendar/result transitions, F03 projections, F08 public reads and moderation
+reactivation/withdrawal, F06 relations and the real pre-handoff sender on migrated PostgreSQL 18.6.
+They cover withdrawal, inactive division, removed date, qualified empty calendar, season closure
+alone, corrected result, retained reappearance, expiry and controlled personal-row deletion.
+Inbox/member/count/send predicates preserve original identity, family, variant, read state and age;
+consumed match facts prevent reallocation. The hold/hiding fixture is a controlled persisted state,
+not report-threshold qualification; the clock and external provider are controlled.
+
+[Query cases](../../apps/mobile/src/features/notifications/__tests__/notification-visibility.test.tsx)
+exercise actual F03 and generated F07 reads with delayed responses, unavailable versus network
+outcomes (including a refusal followed by offline native retries), current link absence,
+retained/expired reappearance and pending member cancellation.
+An enriched result first mentioning a public link then receives a successful F03 response without
+that link: a delayed old page and subsequent offline refresh cannot restore its stale claim,
+while its result, original personal fields and count remain usable.
+The [Router integration](../../apps/mobile/src/features/notifications/__tests__/inbox-navigation.test.tsx)
+mounts the actual private-client subscription and current match destination, including a public
+match refusal while private account reads are suspended and a same-client offline return. Existing
+[SDK/session cases](../../apps/mobile/src/features/notifications/__tests__/native-notifications.test.tsx)
+also cover old taps under current maintenance, original-account read isolation and independent
+read/navigation failures. HTTP, credentials and native SDK boundaries remain controlled.
+These T042–T045 proofs reuse the existing backend bindings without a contract or stored-text rewrite.
+Actual report/hold command scenarios, physical phones, system messages and provider delivery remain
+[T046/T041](tasks.md); no simulator, JavaScript export or SDK double supplies that evidence.
+
 ## Retention construction and isolated restore cases
 
 T047/T049 use the existing 29-elapsed-day cutoff, independent of physical deletion.

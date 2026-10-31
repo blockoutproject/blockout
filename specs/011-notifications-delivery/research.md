@@ -114,6 +114,20 @@ with [T052 and T051](tasks.md).
 
 ### Ordinary mobile read state
 
+F03 annotates its native match query with the addressed match identity. F07 subscribes to actual
+401/403/404 query outcomes, including intermediate failed attempts before native retries finish,
+throughout the original F05 private client's lifetime, even while private reads are suspended.
+Native query metadata identifies existing F07 resources; the subscription cancels pending
+inbox/count/member reads, removes the refused match's loaded entries and invalidates the
+unprovable whole count.
+There is no restriction registry or dependency graph. A network/503 failure alone retains authorized
+data; a later fresh authorized inbox response may restore a retained entry. F03's successful
+absence of a stream cancels older inbox/member reads and replaces stale link wording with the
+existing F07 absence copy in controlled cache. It preserves the result, family, read state,
+original age and unread count; the next ordinary F07 read supplies complete current editorial
+text. This is local sanitization of known-stale presentation, not a stored-text synchronization
+or a second editorial engine.
+
 A native true-only mutation invalidates the current inbox and whole-summary queries from mutation options, so completion survives removal of its initiating screen. Active observers consume invalidation; inactive screens recover on focus. No local monotone true overlay or uncertain-write GET acknowledgement is retained. Current server reads may briefly show an older read flag/count; a lost response permits later explicit safe true repetition. The private QueryClient follows F05's actual native identity lifetime, while active original-createdAt expiry, known owner/access refusal and exact-count invalidation retain their narrow privacy responsibilities. Cache staleTime/gcTime does not enforce retention. These ordinary freshness decisions supersede earlier coupled/monotone test expectations, without changing persisted true-only intent or dated native evidence.
 
 ## Association identity and native lifecycle

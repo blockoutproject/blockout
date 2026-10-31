@@ -23,6 +23,7 @@ import {
   notificationExpiry,
 } from "../state/inbox-expiry";
 import { getNotificationKeys } from "./notification-keys";
+import { subscribeMatchAccess } from "../../sporting/match-access";
 /** Captured F05 session; private requests retain their original account. */
 export type InboxOwner = SessionSnapshot;
 /** Prepares credentials and current ordinary admission immediately before each request. */
@@ -52,6 +53,7 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
     request: currentRequest,
     inbox: infiniteQueryOptions({
       queryKey: keys.inbox,
+      meta: { notificationResource: "inbox" },
       staleTime: 0,
       initialPageParam: undefined as string | undefined,
       queryFn: async ({
@@ -82,6 +84,7 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
     }),
     summary: queryOptions({
       queryKey: keys.summary,
+      meta: { notificationResource: "summary" },
       staleTime: 0,
       queryFn: async ({ signal, client }) => {
         try {
@@ -106,6 +109,7 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
         queryKey: keys.detail(id),
         staleTime: 0,
         gcTime: 0,
+        meta: { notificationResource: "detail" },
         queryFn: async ({ signal }): Promise<NotificationResponse> => {
           const row = await getNotification(
             accountId,
@@ -139,6 +143,52 @@ export function refreshNotificationSummary(
     { queryKey: queries.summary.queryKey, exact: true },
     { throwOnError: true },
   );
+}
+/**
+ * Connects current F03 refusals for the original F05 client's entire lifetime, including periods
+ * with suspended private reads. Query metadata identifies existing resources, without retaining
+ * restrictions or account state. Native cancellation discards older responses; only a fresh
+ * authorized inbox read may restore a row. Whole counts become unknown, never page-derived.
+ * Known link absence removes stale link wording locally while preserving results and counts;
+ * a fresh F07 read supplies the next complete editorial text.
+ * @returns cleanup when this original private client is detached
+ */
+export function subscribeInboxVisibility(client: QueryClient) {
+  return subscribeMatchAccess(client, (matchId, outcome) => {
+    // A pending member response has no known match yet; discard these transient reads in this
+    // private client as well, including details outside the loaded inbox pages.
+    client.removeQueries({
+      predicate: (query) => query.meta?.notificationResource === "detail",
+    });
+    for (const query of client.getQueryCache().findAll()) {
+      const resource = query.meta?.notificationResource;
+      if (resource !== "inbox" && resource !== "summary") continue;
+      if (resource === "summary" && outcome === "link-unavailable") continue;
+      const filter = { queryKey: query.queryKey, exact: true };
+      void client.cancelQueries(filter);
+      if (resource === "summary")
+        query.setState({ data: undefined, dataUpdatedAt: 0 });
+      else
+        client.setQueryData<InboxData>(
+          query.queryKey,
+          (data) =>
+            data && {
+              ...data,
+              pages: data.pages.map((page) => ({
+                ...page,
+                notifications: page.notifications.flatMap((row) => {
+                  if (row.match.id !== matchId) return [row];
+                  if (outcome === "unavailable") return [];
+                  if (row.family === "result") return [row];
+                  // Use only F07's existing absence copy until its next current response.
+                  return [{ ...row, title: "Le lien n’est plus proposé." }];
+                }),
+              })),
+            },
+        );
+      void client.invalidateQueries({ ...filter, refetchType: "none" });
+    }
+  });
 }
 /**
  * Applies a known current owner refusal or missing owner across private list/count observers. Older reads are
