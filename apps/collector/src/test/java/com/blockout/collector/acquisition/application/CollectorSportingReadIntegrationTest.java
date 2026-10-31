@@ -2,14 +2,20 @@ package com.blockout.collector.acquisition.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.ffvb.FfvbCalendarParser;
+import com.blockout.collector.acquisition.ffvb.FfvbObservationReader;
 import com.blockout.collector.acquisition.ffvb.FfvbPage;
 import com.blockout.collector.acquisition.ffvb.FfvbScope;
+import com.blockout.collector.acquisition.ffvb.FfvbStandingsParser;
 import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendClient;
 import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendMapperImpl;
 import com.blockout.collector.acquisition.infrastructure.backend.SportingObservationClient;
 import com.blockout.collector.acquisition.infrastructure.backend.SportingObservationMapperImpl;
+import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.collector.generated.ingestion.api.SportingApi;
@@ -28,11 +34,13 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -47,6 +55,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.web.client.HttpClientErrorException;
@@ -54,10 +63,10 @@ import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 
 /**
- * F02 T034 synthetic facts through production collector mappers/generated clients, the executable
- * backend's generated interfaces and actual F03 HTTP reads. Only interpreted provider input and
+ * F02 T034 facts and F13 A03 failures through production collector mappers/generated clients, the
+ * executable backend's generated interfaces and actual F03 HTTP reads. Provider transport/input and
  * local signing keys are controlled. PDF delivery, native consumers and provider coverage remain
- * with their owners; no generated response DTO is constructed as a substitute for a read.
+ * with their owners; no generated response DTO substitutes for a read.
  */
 @EnabledIfSystemProperty(named = "blockout.qualify-collector-sporting", matches = "true")
 @DisplayName("Generated sporting facts through actual public read consumers")
@@ -743,6 +752,176 @@ class CollectorSportingReadIntegrationTest {
     assertThat(read.get("lastAttemptFailed").asBoolean()).isFalse();
   }
 
+  @Test
+  @DisplayName(
+      "Ordinary unavailable and unreadable acquisition retains accepted details, calendar and table")
+  void retainsSportingTruthThroughOrdinaryProviderFailures() {
+    // Given: independently accepted groups have their own observation and publication timestamps.
+    CollectorLifecycle.AdmittedCycle initial = lifecycle.admit(CONTROL, null, 0, null);
+    UUID match =
+        sporting
+            .calendar(
+                POOL,
+                context(initial, initial.nextReadOrdinal(), FIRST, PUBLISHED),
+                calendar(
+                    SportingObservation.Facts.builder().localDate(JsonNullable.of(DATE)).build()))
+            .outcomes()
+            .getFirst()
+            .resourceId();
+    sporting.detail(
+        match,
+        context(
+            initial, initial.nextReadOrdinal(), FIRST.plusSeconds(30), PUBLISHED.plusSeconds(30)),
+        SportingObservation.Facts.builder()
+            .result(
+                JsonNullable.of(new SportingObservation.Result(ResultStateEnum.FINAL, 3, 1, null)))
+            .venueName(JsonNullable.of("Synthetic retained venue"))
+            .build());
+    sporting.standings(
+        POOL,
+        context(
+            initial, initial.nextReadOrdinal(), FIRST.plusSeconds(60), PUBLISHED.plusSeconds(60)),
+        new SportingObservation.Standings(
+            StandingsPublicationStateEnum.PUBLISHED,
+            List.of("Points"),
+            List.of(new SportingObservation.Standing("Home", null, 1, Map.of("Points", "9")))));
+    lifecycle.complete(initial, Instant.now());
+    JsonNode accepted = read("/matches/" + match);
+    JsonNode calendar =
+        read("/matches?poolId=" + POOL + "&category=completed&timeZone=Europe/Paris").get("days");
+    JsonNode table = read("/pools/" + POOL + "/standings");
+    Map<String, Object> freshness =
+        runtime.sql.queryForMap(
+            "SELECT schedule_observed_at,schedule_published_at,result_observed_at,result_published_at FROM sporting_match WHERE id=?",
+            match);
+    Map<String, Object> standingsFreshness =
+        runtime.sql.queryForMap(
+            "SELECT table_observed_at,table_published_at FROM sporting_standings WHERE pool_id=?",
+            POOL);
+    assertThat(accepted.at("/match/schedule/observedAt").asString()).isEqualTo(FIRST.toString());
+    assertThat(accepted.at("/match/result/observedAt").asString())
+        .isEqualTo(FIRST.plusSeconds(30).toString());
+    assertThat(table.get("observedAt").asString()).isEqualTo(FIRST.plusSeconds(60).toString());
+    assertThat(calendar.isEmpty()).isFalse();
+
+    ProviderHttpClient provider = mock(ProviderHttpClient.class);
+    DiscoverSeasonSources discovery = mock(DiscoverSeasonSources.class);
+    when(discovery.catalog(any(), any(), any()))
+        .thenThrow(new FfvbAcquisitionException("Synthetic unavailable discovery"));
+    Clock clock = Clock.systemUTC();
+    FfvbAcquisition acquisition =
+        new FfvbObservationReader(
+            provider, new FfvbCalendarParser(), new FfvbStandingsParser(), clock);
+    CollectPassage passage =
+        new CollectPassage(
+            backend,
+            sporting,
+            acquisition,
+            mock(LnvAcquisition.class),
+            mock(ClubSheets.class),
+            mock(MunicipalGeocoder.class),
+            discovery,
+            lifecycle,
+            clock,
+            new CollectionStageMapperImpl());
+
+    UUID operator = UUID.fromString("00000000-0000-4000-8000-000000000212");
+    runtime.sql.update("DELETE FROM account WHERE id=?", operator);
+    runtime.sql.update(
+        "INSERT INTO account(id,issuer,subject,username,email,principal_created_at) VALUES (?, ?, 'issue212', 'issue212', 'synthetic@example.invalid', '2020-01-01T00:00:00Z')",
+        operator,
+        runtime.issuer());
+    runtime.sql.update(
+        "INSERT INTO account_permission(account_id,permission) VALUES (?,'collection.manage')",
+        operator);
+    String authorization = "Bearer " + runtime.mobileToken("issue212");
+    for (String failure : List.of("technical", "structure")) {
+      // When: the ordinary reader first fails to obtain bytes, then refuses unreadable HTML.
+      when(provider.page(any()))
+          .thenAnswer(
+              call ->
+                  failure.equals("technical")
+                      ? CompletableFuture.failedFuture(
+                          new java.io.IOException("Synthetic unavailable source"))
+                      : CompletableFuture.completedFuture(
+                          new ProviderResponse(
+                              "<html>unreadable synthetic content</html>"
+                                  .getBytes(StandardCharsets.UTF_8),
+                              call.getArgument(0),
+                              true)));
+      // Request each ordinary pass through F01 instead of bypassing its failure cadence in SQL.
+      JsonNode control =
+          publicReads
+              .get()
+              .uri("/administration/collection-controls/" + CONTROL)
+              .header("Authorization", authorization)
+              .retrieve()
+              .body(JsonNode.class);
+      JsonNode requested =
+          publicReads
+              .post()
+              .uri("/administration/collection-controls/" + CONTROL + "/requests")
+              .header("Authorization", authorization)
+              .contentType(MediaType.APPLICATION_JSON)
+              .body(Map.of("revision", control.get("revision").asLong()))
+              .retrieve()
+              .body(JsonNode.class);
+      CollectorLifecycle.AdmittedCycle cycle =
+          lifecycle.admit(
+              CONTROL,
+              null,
+              requested.get("revision").asLong(),
+              UUID.fromString(requested.get("pendingRequestId").asString()));
+      passage.execute(cycle);
+
+      // Then: acquisition fails operationally, without any successful integration or inferred
+      // absence.
+      List<Map<String, Object>> outcomes =
+          runtime.sql.queryForList(
+              "SELECT stage,outcome,reason_type FROM collection_result WHERE scope_id=? AND phase='ACQUISITION' ORDER BY stage",
+              POOL);
+      assertThat(outcomes)
+          .hasSize(2)
+          .allSatisfy(
+              outcome -> {
+                assertThat(outcome.get("outcome")).isEqualTo("FAILED");
+                assertThat(outcome.get("reason_type"))
+                    .isEqualTo("urn:blockout:acquisition:" + failure);
+              });
+      assertThat(outcomes)
+          .extracting(outcome -> outcome.get("stage"))
+          .containsExactly("CALENDAR", "STANDINGS");
+      assertThat(
+              runtime.sql.queryForObject(
+                  "SELECT COUNT(*) FROM collection_result WHERE scope_id=? AND phase='INTEGRATION'",
+                  Integer.class,
+                  POOL))
+          .isZero();
+      for (int reread = 0; reread < 2; reread++) {
+        assertThat(read("/matches/" + match)).isEqualTo(accepted);
+        assertThat(
+                read("/matches?poolId=" + POOL + "&category=completed&timeZone=Europe/Paris")
+                    .get("days"))
+            .isEqualTo(calendar);
+        JsonNode retained = read("/pools/" + POOL + "/standings");
+        assertThat(retained.get("availability").asString()).isEqualTo("available");
+        assertThat(retained.get("lastAttemptFailed").asBoolean()).isTrue();
+        assertThat(retained.get("observedAt")).isEqualTo(table.get("observedAt"));
+        assertThat(retained.get("rows")).isEqualTo(table.get("rows"));
+      }
+      assertThat(
+              runtime.sql.queryForMap(
+                  "SELECT schedule_observed_at,schedule_published_at,result_observed_at,result_published_at FROM sporting_match WHERE id=?",
+                  match))
+          .isEqualTo(freshness);
+      assertThat(
+              runtime.sql.queryForMap(
+                  "SELECT table_observed_at,table_published_at FROM sporting_standings WHERE pool_id=?",
+                  POOL))
+          .isEqualTo(standingsFreshness);
+    }
+  }
+
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   @DisplayName(
@@ -792,12 +971,23 @@ class CollectorSportingReadIntegrationTest {
     }
   }
 
-  @Test
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
   @DisplayName("No table, qualified non-publication and a published empty table remain distinct")
-  void distinguishesStandingsAvailability() {
+  void distinguishesStandingsAvailability(boolean retainedTable) {
     // Given
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
     JsonNode unavailable = read("/pools/" + POOL + "/standings");
+    if (retainedTable) {
+      sporting.standings(
+          POOL,
+          context(cycle, cycle.nextReadOrdinal(), FIRST.minusSeconds(60), PUBLISHED),
+          new SportingObservation.Standings(
+              StandingsPublicationStateEnum.PUBLISHED,
+              List.of("Points"),
+              List.of(
+                  new SportingObservation.Standing("Retained", null, 1, Map.of("Points", "9")))));
+    }
 
     // When
     sporting.standings(
@@ -816,8 +1006,15 @@ class CollectorSportingReadIntegrationTest {
     // Then
     assertThat(unavailable.get("availability").asString()).isEqualTo("unavailable");
     assertThat(unavailable.has("observedAt")).isFalse();
-    assertThat(unpublished.get("availability").asString()).isEqualTo("not-published");
-    assertThat(unpublished.has("observedAt")).isFalse();
+    assertThat(unpublished.get("availability").asString())
+        .isEqualTo(retainedTable ? "available" : "not-published");
+    if (retainedTable) {
+      assertThat(unpublished.get("observedAt").asString())
+          .isEqualTo(FIRST.minusSeconds(60).toString());
+      assertThat(unpublished.at("/rows/0/sourceName").asString()).isEqualTo("Retained");
+    } else {
+      assertThat(unpublished.has("observedAt")).isFalse();
+    }
     assertThat(empty.get("availability").asString()).isEqualTo("available");
     assertThat(empty.get("observedAt").asString()).isEqualTo(FIRST.plusSeconds(60).toString());
     assertThat(empty.get("rows").isEmpty()).isTrue();
