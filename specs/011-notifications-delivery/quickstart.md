@@ -1,12 +1,12 @@
 # Quickstart: Qualify notifications, inbox and push
 
-Follow the [local development setup](../../README.md#local-development) and run the [repository verification commands](../../README.md#verification). The scenarios below require the notification implementation and native provider setup; shared checks alone do not qualify inbox or push behavior.
+Follow the [local development setup](../../README.md#local-development) and run the [repository verification commands](../../README.md#verification). The scenarios below require the notification implementation; physical push scenarios additionally require native provider setup. Shared checks alone do not qualify inbox or push behavior.
 
 The current [mobile state plan](plan.md#inbox-retention-and-mobile-state) uses native mutation invalidation and active Query observers, with ordinary eventual read-flag/count freshness. Recheck an uncertain PATCH acknowledgement, inactive/focused refetch and a subject change while reads finish. Existing dated qualifications retain the behavior of their named revision; former read-true overlay/member-reconciliation assertions do not certify this replacement. Active original-createdAt expiry and private ownership remain required.
 
 ## Prerequisites
 
-Use the [generated HTTP boundary](../003-shared-quality/contracts/README.md) and actual PostgreSQL schema, fixtures for usable/deleted accounts and overlapping follows, accepted sporting transitions, and controlled Expo send/receipt doubles. Native checks require development/release builds on physical iOS and Android devices, separate nonproduction credentials and destinations, and known test accounts. Do not use real user payloads or Expo Go as delivery evidence.
+Use the [generated HTTP boundary](../003-shared-quality/contracts/README.md) and actual PostgreSQL schema, fixtures for usable/deleted accounts and overlapping follows, accepted sporting transitions, and controlled Expo send/receipt doubles where relevant. T025 qualifies generated consumers, SQL and the real F03 navigation composition; its controlled I/O and simulator/emulator observations do not establish physical badge behavior or receipt. T041 requires development/release builds on physical iOS and Android devices, separate nonproduction credentials and destinations, and known test accounts. Do not use real user payloads or Expo Go as delivery evidence.
 
 The [model](data-model.md), [contracts](contracts/README.md) and owning specification define exact states. Use JUnit/Spring MVC/Testcontainers for server boundaries and Jest Expo/React Native Testing Library for mobile behavior. No additional E2E framework or load programme is required.
 
@@ -229,6 +229,85 @@ T030’s [physical push preparation](#physical-push-preparation) expands the nat
 | Design          | Reviewed inbox/match/guest flows in light/dark, narrow screens, enlarged text and screen readers.                                                                                                                            | Existing shared components remain usable; no deletion-progress or recovery screen is introduced. Native interfaces are separately qualified.                                                                                                                                                                                                          |
 
 Keep failed, unavailable and passed evidence distinct. Repository/prototype checks prove neither native push delivery nor owner design approval. Final planning publication requires both scoped design approvals recorded in the plan.
+
+## Inbox traversal qualification (T025)
+
+Qualified on 2026-10-31 at source `bac37dac3ef3dddb65da9481d56b91c66f87e2a7`, based on
+`94f127b1c3b6a3804743d097e579d618b7756cfb`. The local record covers synthetic accounts
+and sporting data only, with Node 24.18.0, npm 12.0.1 and Microsoft OpenJDK 25.0.4;
+CI uses the committed Temurin 25 setup.
+
+The [HTTP traversal suite](../../apps/backend/src/test/java/com/blockout/backend/notifications/api/InboxTraversalIntegrationTest.java)
+joins the production generated controllers, real F03/F05/F12 application owners and migrated
+PostgreSQL. It traverses forty-three equal-timestamp entries in twenty-row windows after removing
+the cursor anchor, inserting a newer row, correcting a future row and withdrawing another.
+Its separate summary has seven unread with only two unread in the loaded window; real PATCH,
+the existing purge participant and current sporting visibility produce four, then zero/empty.
+Repeated true and correction preserve original time/order/read state. A missing entry returns
+404 without recreation while its still-authorized F03 match remains available. Native Spring
+Security test principals control JWT I/O; no identity provider or Pro provider is contacted.
+The eight new HTTP/SQL cases passed, together with the existing fourteen read and eight
+mark-read SQL cases on PostgreSQL 18.6. The 58 targeted HTTP/contract cases also passed.
+
+The [Query suite](../../apps/mobile/src/features/notifications/__tests__/inbox.test.tsx)
+uses two independent clients for the same original owner, one offline, through actual generated
+consumers. A lost acknowledgement triggers ordinary invalidation/refetch without another PATCH
+or member-read reconciliation. Offline data can retain an older read flag until refresh; an
+unloaded expiry invalidates its exact total without deriving it from the two loaded rows.
+A known missing member cancels an older summary and clears the unprovable total, even if the
+following refresh fails. The latter regression failed before the scoped mutation correction.
+
+The [Router suite](../../apps/mobile/src/features/notifications/__tests__/inbox-navigation.test.tsx)
+keeps actual inbox/tab/match routes, private session cache, F11 opening and native response
+lifecycle. It distinguishes append failure with same-cursor explicit retry from failed refresh,
+keeps confirmed reading after detail failure with or without a lost PATCH response, and opens
+an old missing entry's currently authorized match for owner/foreign-account/guest contexts.
+Only the original owner attempts PATCH; display alone performs none. The existing screen,
+expiry, visibility and native/session suites supply active/offline/resume age exclusion,
+zero-badge removal, stale-response cancellation and original-client isolation. HTTP and native
+SDK I/O remain controlled; these tests are not a live mobile-to-PostgreSQL network run.
+
+Native observations also passed on iPhone 18 Pro simulator B, iOS 27.0
+(`DD662133-3F23-457C-A42B-D3DDC544F6E0`, 402×874 points), and a worktree-owned Pixel 9
+emulator, Android 17/API 37 (`emulator-5610`, 1080×2424 pixels), using `agent-device`
+session `issue-265`. Both reused compatible `com.blockout.local` development clients,
+version 0.0.0/build 1, with the source above; no native rebuild was needed. The iOS
+executable SHA-256 is `ebcc57107a7e23f2d7261832b0537149ffe59f6e8fbc907252a39a43ae5280e8`;
+the reused Android APK SHA-256 is `c7ac5cef60b26fd6c8f8d972b88c551485ef2bc0064d7f89d13b98e88c4638a3`.
+Actual session/Query/inbox/F03/F11 consumers remained in place. A temporary Metro resolver
+controlled only native Auth0 I/O and unavailable advertising I/O; a disposable HTTP fixture
+supplied generated-compatible responses and deliberately dropped the accepted true-only
+PATCH acknowledgement. Each platform displayed two unread rows with a tab total of seven,
+opened the actual F03 match, then returned to a read row and total six without replay.
+A second entry's 404 followed by unavailable list/summary refreshes retained the first row
+and removed the unprovable exact tab badge. This observes application navigation/rendering,
+not native Auth0 restoration, advertising, physical system badges or provider receipt.
+Representative captures belong in the delivery PR Conversation, outside Git.
+
+Passed commands on this source:
+
+- `./mvnw -B -ntp -pl apps/backend verify -Dtest=NotificationsWebMvcTest,NotificationAccessWebMvcTest,NotificationContractWebMvcTest -Dit.test=InboxTraversalIntegrationTest,ReadInboxIntegrationTest,MarkNotificationReadIntegrationTest`: 58 HTTP/contract and 30 SQL cases.
+- `NX_DAEMON=false NX_LOAD_DOT_ENV_FILES=false npx nx run backend:verify --output-style=static`: 1,464 Surefire cases and 1,172 executed Failsafe cases; one optional parameter-consumer test skipped.
+- `NX_LOAD_DOT_ENV_FILES=false EXPO_NO_DOTENV=1 npm run test --workspace=@blockout/mobile -- --runInBand --reporters=default`: 164 suites/2,186 cases passed, one suite/six opt-in provider cases skipped; includes the 22 real Router cases.
+- Mobile Nx lint/typecheck, native-platform JavaScript exports and Expo Doctor (20/20) passed. Lint retains four pre-existing duplicate-import warnings in untouched document suites.
+
+Two initial attempts did not pass: the HTTP test tried to decode responses with generated
+server DTOs, whose Java response-decoder behavior is not the selected client boundary;
+the test now asserts actual serialized JSON while mobile Zod validation remains unchanged.
+The default two-worker Jest run lost one worker to `SIGSEGV` before its nine-case suite
+could run. That suite and the complete suite passed in the README-supported serial mode.
+The combined Nx run was stopped after this worker failure; the backend target was then
+executed separately. No production dependency, worker configuration or test assertion was
+weakened to obtain these results.
+
+Cleanup was verified: test containers removed by their lifecycle, original named volumes
+preserved, fixture/Metro stopped, ports 5665/8465/8265/5610/5611 free, simulator B restored
+to Shutdown, and only the worktree-owned Android AVD/data and its two ADB reverse ports
+removed. The pre-existing simulator A remained Booted and the reused binaries were untouched.
+T025 is complete within these generated/SQL/navigation boundaries.
+Physical system badges, APNs/FCM/Expo receipt and real credentials remain T041; full
+purge/restore/erasure races remain T051/T052. No complete US4/US7 or provider/production
+qualification is inferred.
 
 ## Native inbox construction
 
