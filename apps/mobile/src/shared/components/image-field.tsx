@@ -8,6 +8,7 @@ import {
 } from "lucide-react-native";
 import { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
 import { IconButton } from "./icon-button";
@@ -217,11 +218,14 @@ export function ImageField({
         onRequestClose={() => setPreviewId(undefined)}
       >
         {preview && (
-          <ImagePreview
-            key={`${preview.id}:${preview.uri}`}
-            image={preview}
-            onClose={() => setPreviewId(undefined)}
-          />
+          // A native Modal has its own view root; measure its insets inside that root.
+          <SafeAreaProvider>
+            <ImagePreview
+              key={`${preview.id}:${preview.uri}`}
+              image={preview}
+              onClose={() => setPreviewId(undefined)}
+            />
+          </SafeAreaProvider>
         )}
       </Modal>
     </View>

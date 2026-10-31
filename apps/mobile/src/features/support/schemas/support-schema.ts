@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { SupportImage } from "../model/support-images";
 import {
   SupportRequestKindEnum,
   SupportRequestSubjectEnum,
@@ -6,6 +7,7 @@ import {
 
 /** Editing validation preserves the explanation and enforces canonical UTF-16 bounds without truncation. */
 export const supportSchema = z.object({
+  images: z.array(z.custom<SupportImage>()).max(5),
   kind: SupportRequestKindEnum,
   subject: z.union([z.literal(""), SupportRequestSubjectEnum]),
   title: z

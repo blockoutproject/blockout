@@ -9,6 +9,12 @@ export function toSupportRequest(
   values: SupportValues,
   context: SupportContextRequest,
 ): SubmitSupportRequest {
-  const { subject, ...fields } = values;
-  return { ...fields, ...(subject ? { subject } : {}), context };
+  return {
+    kind: values.kind,
+    title: values.title,
+    description: values.description,
+    replyEmail: values.replyEmail,
+    ...(values.subject ? { subject: values.subject } : {}),
+    context,
+  };
 }

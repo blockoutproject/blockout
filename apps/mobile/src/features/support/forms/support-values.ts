@@ -7,6 +7,7 @@ export function supportValues(
   replyEmail = "",
 ): SupportValues {
   return {
+    images: [],
     kind: "problem",
     subject: context.target
       ? "sporting-data"
