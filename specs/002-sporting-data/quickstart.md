@@ -324,14 +324,15 @@ physical/native accessibility, protected V1 logo recovery or production approval
 T055/T056, F01 provider qualifications and the other owners' native/operational
 tasks remain separate and unchecked where unfinished.
 
-Executed on 2026-10-31 against unchanged production sources at
+Executed on 2026-10-31 at qualification source
+`3647b27de0a6afcf0be6170dcb9776ac7d2b5bb0`, against unchanged production sources at
 `94f127b1c3b6a3804743d097e579d618b7756cfb`. The final handwritten test blobs are
 `9a31049bea013d97ad389abfb2c3fc35e9367e8f` (restrictions) and
 `759107ed3fa1ac1df20038b9f38a2a0bd43572b2` (presentation). The local Maven
 `0.0.0-SNAPSHOT` build used Microsoft OpenJDK 25.0.4, Node 24.18.0 and npm 12.0.1;
 CI retains Temurin. Spring tests execute compiled application classes; the
 packaged JAR from the final focused verification has SHA-256
-`c3e2a9da919beb588224d0c901e997cb1aa3d389f981dd3c3afa7a32b272b240`.
+`227abf150ec14c04551492d6bd66bd5e24f5bac9afec74012cc4c7e97a16ea56`.
 
 Passed: complete `backend:test` (1,464 Surefire; 1,178 Failsafe passed and one
 unrelated opt-in F12 consumer case skipped because `BLOCKOUT_ACCESS_CONSUMERS_TEST`
