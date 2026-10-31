@@ -3,6 +3,8 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
+  useRef,
   useState,
   type PropsWithChildren,
   type ReactNode,
@@ -55,7 +57,7 @@ export interface AccountSession extends SessionSnapshot {
   signIn(audience: string): Promise<AccountCommandSession | undefined>;
   /** Attempts exact push removal, then uses the native SDK's ordinary logout semantics. */
   signOut(): Promise<void>;
-  /** Clears locally through the SDK without browser closure, after bounded push removal. */
+  /** Clears this caller's native subject locally after bounded push removal; refuses a different current subject. */
   clearCredentials(): Promise<void>;
   retryInitialization(): void;
   retryAuthentication(): void;
@@ -165,6 +167,10 @@ function SessionScope({
       ? initialization.credentialsManager
       : undefined;
   const subject = auth.user?.sub ?? null;
+  const currentSubject = useRef(subject);
+  useLayoutEffect(() => {
+    currentSubject.current = subject;
+  }, [subject]);
   const [operation, setOperation] = useState<AccountSession["operation"]>();
   const credentialsFor = useCallback(
     async (original: string | null) => {
@@ -239,11 +245,13 @@ function SessionScope({
       }
     },
     async clearCredentials() {
+      if (currentSubject.current !== subject) throw new ApiError("cancelled");
       if (operation) return;
       const remove = preparePushRemoval?.();
       setOperation("signing-out");
       try {
         await remove?.().catch(() => undefined);
+        if (currentSubject.current !== subject) throw new ApiError("cancelled");
         if (initialization.status === "ready") await auth.clearCredentials();
       } finally {
         setOperation(undefined);

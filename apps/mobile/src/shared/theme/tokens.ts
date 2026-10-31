@@ -171,6 +171,8 @@ const spacing = {
 
 /** Active Core radius roles, including the distinct entity-media and preview radii. */
 const radius = {
+  // UI Library Inputs / Checkbox 6476:136382 retains the compact selection corner.
+  xs: 4,
   sm: 8,
   control: 12,
   lg: 16,
@@ -205,7 +207,7 @@ export const tokens = {
     media: { row: 40, entity: 48, match: 32 },
   },
   touch,
-  border: { thin: 1 },
+  border: { thin: 1, subtle: 1.5 },
   opacity: { disabled: 0.45, pressed: 0.9 },
   elevation: { offsetX: 0, offsetY: 4, blur: 10 },
   motion: {

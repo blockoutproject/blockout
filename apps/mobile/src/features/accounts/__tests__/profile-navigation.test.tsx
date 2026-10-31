@@ -184,7 +184,7 @@ it("opens the profile overview without mounting its editor", async () => {
   ).toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Supprimer mon compte" }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Enregistrer" }),
