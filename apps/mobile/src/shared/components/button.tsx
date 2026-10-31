@@ -49,8 +49,8 @@ export interface ButtonProps {
   contextGradient?: readonly string[] | null;
   /** Caller-resolved black/white contrast against contextColor, independent of system appearance. */
   contextForeground?: string;
-  /** Source-owned paints: gradient primary, flat success, bordered secondary or semantic inverse. */
-  variant?: "primary" | "success" | "secondary" | "inverse";
+  /** Source-owned paints, including flat destructive confirmation from UI Library 7000:4103. */
+  variant?: "primary" | "success" | "destructive" | "secondary" | "inverse";
   /** Set false for a solid action without a stroke; other callers retain their variant's border. */
   bordered?: boolean;
   /** Decorative trailing glyph from the library; busy state replaces it with the shared indicator. */
@@ -94,9 +94,11 @@ export function Button({
       ? actionContext.onAction
       : variant === "success"
         ? colors.onSuccessAction
-        : variant === "inverse"
-          ? colors.onInverse
-          : colors.text;
+        : variant === "destructive"
+          ? colors.onDangerAction
+          : variant === "inverse"
+            ? colors.onInverse
+            : colors.text;
   const Icon = LeadingIcon ?? TrailingIcon;
   const icon =
     Icon &&
@@ -146,9 +148,11 @@ export function Button({
                   ? actionContext.primary
                   : variant === "success"
                     ? colors.successAction
-                    : variant === "inverse"
-                      ? colors.inverse
-                      : colors.raised,
+                    : variant === "destructive"
+                      ? colors.dangerAction
+                      : variant === "inverse"
+                        ? colors.inverse
+                        : colors.raised,
               borderWidth:
                 bordered && (variant === "secondary" || variant === "inverse")
                   ? tokens.border.thin
