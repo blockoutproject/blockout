@@ -180,8 +180,9 @@ The existing entry/age guards now live in `apps/mobile/src/app/(ordinary)/(tabs)
 with Home still at `/` and its contextual choice at `/season`. The latter is a `(sheets)` leaf of
 the same native stack, so the application-wide sheet convention owns presentation and tab clearance.
 F07 owns its ordinary tab placement; the personal context, controls and calendar remain with F06.
-US3 retains the follow-list composition. T021 supplies the bounded read boundary; T022/T029/T037
-retain qualification through all actual views and endpoints.
+US3 retains the follow-list composition. T021 supplies the bounded read boundary; the
+[integrated qualification](#integrated-personal-season-and-calendar-t022t037) covers T022/T037
+through all actual views and endpoints. T029 retains its broader list qualification.
 
 On each required native platform, open the selector with a short season catalogue and verify that
 the sheet fits its content, exposes every radio row and leaves no fixed half-screen empty region.
@@ -251,9 +252,10 @@ Observed cases include homonymous teams, independent section collapse, light/dar
 season selection, exact team detail opening and the existing follow control, empty-season Search,
 iOS retained page failure followed by same-page retry beyond twenty pools, and Android initial
 failure/retry versus successful empty. iOS accessibility-tree extraction was unavailable; coordinate
-interactions establish no screen-reader qualification. These observations do not complete T029 or
-T022/T037's cross-view qualification, live authentication/backend/provider paths, full native
-accessibility or enlarged-text coverage, advertising serving or account-erasure orchestration.
+interactions establish no screen-reader qualification. T022/T037's integrated proof follows below.
+These construction observations do not complete T029's broader list qualification, live
+authentication/backend/provider paths, full native accessibility or enlarged-text coverage,
+advertising serving or account-erasure orchestration.
 
 ### Personal complete-day calendar (T030–T035, T036 construction)
 
@@ -307,8 +309,8 @@ F06 adds no counter, ad preparation or destination copy. The
 [entry composition cases](../../apps/mobile/src/features/advertising/__tests__/sporting-ad-entry.test.tsx)
 exercise that real row and shared owner, while the personal screen cases retain actual pagination
 and UUID routing. Native ad serving remains with
-[F11 T010/T020](../004-advertising-privacy-legal/tasks.md). T037 and the cross-view portions of
-T022/T029 remain open for their broader integrated qualification.
+[F11 T010/T020](../004-advertising-privacy-legal/tasks.md). T022/T037's integrated qualification
+follows below; T029 retains its broader list qualification.
 
 ### Integrated personal season and calendar (T022/T037)
 
@@ -331,15 +333,36 @@ follow change and a failed reload. The correction uses native `resetQueries` in 
 mutation callback for confirmed success only; uncertain writes keep ordinary invalidation. Ordinary
 refresh remains with F03/Query, including retained traversal refetch. No stronger F05 session
 revocation or A → guest → A guarantee is inferred; the current native-principal/private-client owner
-and its accepted tolerances remain applicable.
+and its accepted tolerances remain applicable. The applicable refresh/session conventions are
+[F03's current plan](../007-sporting-consultation/plan.md#mobile-state-and-navigation) and
+[F05's current plan](../005-accounts-identity/plan.md#mobile-session-and-shared-consumers), as
+reconciled in this feature's [mobile plan](plan.md#mobile-state-and-failure-handling).
 
 ```sh
 NX_LOAD_DOT_ENV_FILES=false ./mvnw -B -ntp -pl apps/backend verify -Dtest=FollowOptionsWebMvcTest,FollowListsWebMvcTest,PersonalCalendarWebMvcTest,FollowStateWebMvcTest -Dit.test=FollowOptionsIntegrationTest,FollowListsIntegrationTest,PersonalCalendarIntegrationTest,ReadMatchCalendarIntegrationTest -DforkCount=1
 NX_LOAD_DOT_ENV_FILES=false npm run test --workspace=@blockout/mobile -- --runInBand --reporters=default --runTestsByPath src/features/following/__tests__/personal-season.test.tsx src/features/following/__tests__/personal-screen.test.tsx src/features/following/__tests__/personal-calendar.test.tsx src/features/following/__tests__/followed-lists.test.tsx src/features/following/__tests__/follow-action.test.tsx src/features/following/__tests__/follow-recovery.test.tsx
 ```
 
-Execution status: focused React checks, mobile lint/typecheck and Java test compilation pass.
-PostgreSQL execution and scoped native confirmation await the predecessor's explicit resource release.
+Execution on 2026-10-31 at `28c7a88c` passes the focused six React suites (106 tests) and the
+focused PostgreSQL/API command (62 unit/MVC tests and 65 integration tests, none skipped).
+The README/CI `backend` and `mobile` Nx `verify` targets pass: 1,464 backend unit/MVC tests,
+1,163 integration tests with one independent F12 opt-in skipped, and 2,156 mobile tests with six
+independent F12 provider cases skipped. Mobile lint/typecheck, both JavaScript exports and all
+20 Expo Doctor checks pass. Four existing duplicate-import lint warnings remain in untouched
+sporting PDF tests. Local Java is Microsoft OpenJDK 25.0.4; PostgreSQL is the selected 18.6 image.
+
+Scoped native observations at the same source revision use `com.blockout.local` 0.0.0 (1),
+light appearance and default text: the reused iPhone 18 Pro-B / iOS 27.0 client
+(`ebcc57107a7e`, simulator `DD662133-3F23-457C-A42B-D3DDC544F6E0`) and the rebuilt Pixel 9 /
+Android 17 client (`c7ac5cef60b2`, emulator `emulator-5602`). HTTP and native Auth0 RPC are
+controlled; the real Auth0 React SDK/provider, generated validation, session/admission, Query, native pager
+and navigation remain active. Both platforms open Completed → Match → Team, confirm unfollow,
+and return to Completed with `2026/2027` retained and ordinary Error/Retry replacing former rows
+when reload fails. Android also retains rows after an observed failed ordinary pull; iOS explicit
+retry recovers in the same context. Android's age-gate accessibility extraction was unavailable,
+so its fictional age input used visible coordinates. Representative captures and full build
+fingerprints belong to the delivery PR's Conversation; no screen-reader approval follows.
+
 This is not F07 push, real Auth0/provider, physical-device or full accessibility qualification.
 T029's broader list qualification remains with its owner; T016/T044/T045/T048 stay independent.
 
