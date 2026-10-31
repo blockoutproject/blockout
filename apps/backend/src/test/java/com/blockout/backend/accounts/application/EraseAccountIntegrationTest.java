@@ -41,6 +41,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** Real local owners/transactions; only external providers are controlled synthetic boundaries. */
 @DisplayName("Atomic original-account erasure")
 class EraseAccountIntegrationTest extends ContributionScenario {
+  private static final UUID CONNECTION = UUID.fromString("10000000-0000-4000-8000-000000000280");
+  private static final UUID INSTALLATION = UUID.fromString("20000000-0000-4000-8000-000000000280");
   private static final String ISSUER = "https://identity.example.invalid/";
   @Autowired private EraseAccount erasure;
   @MockitoSpyBean private AccountStore accounts;
@@ -75,8 +77,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
         null,
         ProfilePhotoActionEnum.REPLACE,
         new ProfilePhoto(new byte[] {1}, "image/png", 1));
-    destinations.replace(
-        new Registration(UUID.randomUUID(), UUID.randomUUID(), FOLLOWER, "Expo[original]"));
+    destinations.replace(new Registration(CONNECTION, INSTALLATION, FOLLOWER, "Expo[original]"));
     moderator(FOLLOWER);
     sql.update(
         "UPDATE sporting_pool SET catalog_eligible=FALSE, calendar_empty=TRUE WHERE id=?",
@@ -144,8 +145,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
     follow(FOLLOWER);
     SubmitContribution.Outcome active = submit(AUTHOR, "0", "https://youtu.be/facts", false);
     reports.report(FOLLOWER, active.version().id(), "Synthetic private reason");
-    destinations.replace(
-        new Registration(UUID.randomUUID(), UUID.randomUUID(), FOLLOWER, "Expo[original]"));
+    destinations.replace(new Registration(CONNECTION, INSTALLATION, FOLLOWER, "Expo[original]"));
     moderator(FOLLOWER);
     try (Connection connection =
             DriverManager.getConnection(
@@ -219,8 +219,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
                       case "follow" -> follow(FOLLOWER);
                       case "destination" ->
                           destinations.replace(
-                              new Registration(
-                                  UUID.randomUUID(), UUID.randomUUID(), FOLLOWER, "Expo[race]"));
+                              new Registration(CONNECTION, INSTALLATION, FOLLOWER, "Expo[race]"));
                       case "grant" -> moderator(FOLLOWER);
                       default -> throw new IllegalArgumentException(writer);
                     }
@@ -297,10 +296,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
                               case "destination" ->
                                   destinations.replace(
                                       new Registration(
-                                          UUID.randomUUID(),
-                                          UUID.randomUUID(),
-                                          FOLLOWER,
-                                          "Expo[late]"));
+                                          CONNECTION, INSTALLATION, FOLLOWER, "Expo[late]"));
                               case "grant" -> {
                                 if (!locks.lock(FOLLOWER)) throw new AccountNotFoundException();
                                 moderator(FOLLOWER);
@@ -317,8 +313,6 @@ class EraseAccountIntegrationTest extends ContributionScenario {
       // Then
       Class<? extends RuntimeException> refusal =
           switch (writer) {
-            case "follow" ->
-                com.blockout.backend.following.application.FollowUnavailableTargetException.class;
             case "destination" ->
                 com.blockout.backend.notifications.application.NotificationNotFoundException.class;
             default -> AccountNotFoundException.class;

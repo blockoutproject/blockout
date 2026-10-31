@@ -38,6 +38,14 @@ import org.springframework.transaction.support.TransactionTemplate;
 @AutoConfigureMockMvc
 @DisplayName("Notification account erasure")
 class NotificationErasureIntegrationTest extends ContributionScenario {
+  private static final UUID CONNECTION = UUID.fromString("10000000-0000-4000-8000-000000000701");
+  private static final UUID NEXT = UUID.fromString("10000000-0000-4000-8000-000000000702");
+  private static final UUID SECOND = UUID.fromString("10000000-0000-4000-8000-000000000703");
+  private static final UUID INSTALLATION = UUID.fromString("20000000-0000-4000-8000-000000000701");
+  private static final UUID OTHER_INSTALLATION =
+      UUID.fromString("20000000-0000-4000-8000-000000000702");
+  private static final UUID SECOND_INSTALLATION =
+      UUID.fromString("20000000-0000-4000-8000-000000000703");
   @Autowired private MockMvc mvc;
   @Autowired private EraseAccount erasure;
   @MockitoSpyBean private AccountStore accounts;
@@ -54,13 +62,11 @@ class NotificationErasureIntegrationTest extends ContributionScenario {
     follow(FOLLOWER);
     follow(OTHER);
     submit(AUTHOR, "0", "https://youtu.be/synthetic", false);
-    subscriptions.replace(
-        new Registration(UUID.randomUUID(), UUID.randomUUID(), FOLLOWER, "Expo[original]"));
-    subscriptions.replace(
-        new Registration(UUID.randomUUID(), UUID.randomUUID(), OTHER, "Expo[other]"));
+    subscriptions.replace(new Registration(CONNECTION, INSTALLATION, FOLLOWER, "Expo[original]"));
+    subscriptions.replace(new Registration(NEXT, OTHER_INSTALLATION, OTHER, "Expo[other]"));
     result(2, com.blockout.backend.generated.ingestion.model.ResultStateEnum.FINAL);
     subscriptions.replace(
-        new Registration(UUID.randomUUID(), UUID.randomUUID(), FOLLOWER, "Expo[second-device]"));
+        new Registration(SECOND, SECOND_INSTALLATION, FOLLOWER, "Expo[second-device]"));
     long facts = count("match_announcement");
     assertThat(count("notification")).isEqualTo(4);
     sql.update(
@@ -107,9 +113,9 @@ class NotificationErasureIntegrationTest extends ContributionScenario {
   @DisplayName("Reassociation committed first survives original-account erasure")
   void preservesReassociatedDestination() throws Exception {
     // Given
-    UUID installation = UUID.randomUUID();
-    UUID old = UUID.randomUUID();
-    UUID next = UUID.randomUUID();
+    UUID installation = INSTALLATION;
+    UUID old = CONNECTION;
+    UUID next = NEXT;
     subscriptions.replace(new Registration(old, installation, FOLLOWER, "Expo[original]"));
     CompletableFuture<Integer> erasurePid = new CompletableFuture<>();
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
@@ -164,10 +170,9 @@ class NotificationErasureIntegrationTest extends ContributionScenario {
   @DisplayName("Reassociation ordered after erasure registers only the surviving new owner")
   void reassociatesAfterErasure() throws Exception {
     // Given
-    UUID installation = UUID.randomUUID();
-    UUID next = UUID.randomUUID();
-    subscriptions.replace(
-        new Registration(UUID.randomUUID(), installation, FOLLOWER, "Expo[original]"));
+    UUID installation = INSTALLATION;
+    UUID next = NEXT;
+    subscriptions.replace(new Registration(CONNECTION, installation, FOLLOWER, "Expo[original]"));
     CompletableFuture<Void> removed = new CompletableFuture<>();
     CompletableFuture<Void> commit = new CompletableFuture<>();
     CompletableFuture<Integer> registrationPid = new CompletableFuture<>();
@@ -226,9 +231,8 @@ class NotificationErasureIntegrationTest extends ContributionScenario {
   @DisplayName("Captured in-flight work and late receipt cannot target a later association")
   void rejectsOldDeliveryAfterErasure() {
     // Given
-    UUID installation = UUID.randomUUID();
-    subscriptions.replace(
-        new Registration(UUID.randomUUID(), installation, FOLLOWER, "Expo[original]"));
+    UUID installation = INSTALLATION;
+    subscriptions.replace(new Registration(CONNECTION, installation, FOLLOWER, "Expo[original]"));
     follow(FOLLOWER);
     submit(AUTHOR, "0", "https://youtu.be/inflight", false);
     Ready ready = events.stream(Ready.class).findFirst().orElseThrow();
@@ -238,8 +242,7 @@ class NotificationErasureIntegrationTest extends ContributionScenario {
 
     // When
     erasure.erase("https://identity.example.invalid/", FOLLOWER.toString(), FOLLOWER);
-    subscriptions.replace(
-        new Registration(UUID.randomUUID(), installation, OTHER, "Expo[original]"));
+    subscriptions.replace(new Registration(NEXT, installation, OTHER, "Expo[original]"));
     delivery.deliver(attempts);
     boolean invalidated =
         new TransactionTemplate(transactions)

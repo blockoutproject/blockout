@@ -6,10 +6,10 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 
-/** Native Spring Data read projection; grant management has no application write API. */
+/** Native grant reads and account erasure; grant assignment has no application write API. */
 interface PermissionRepository extends Repository<PermissionEntity, PermissionEntity.Key> {
   /**
-   * Deletes every original-owner row, including hidden entries, under its account lock.
+   * Deletes every original-owner grant under its account lock.
    *
    * @param accountId locked original lifecycle
    */
