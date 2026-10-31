@@ -6,9 +6,10 @@ import type { SubmitSupportRequest } from "../../../../.generated/schemas/index.
 import { TextField } from "../../../shared/components/text-field";
 import { SelectField } from "../../../shared/components/select-field";
 import { FieldMessage } from "../../../shared/components/field-message";
+import { ImageField } from "../../../shared/components/image-field";
 import { Button } from "../../../shared/components/button";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
+import { useSupportImages } from "../model/support-images";
 import { tokens } from "../../../shared/theme/tokens";
 import { toSupportRequest } from "../api/support-request";
 import {
@@ -20,25 +21,38 @@ import { useSupportVisit } from "./support-visit";
 
 /** A validated preparation boundary; only the complete-send owner may subsequently confirm receipt. */
 export interface SupportFormProps {
-  onSubmit: (request: SubmitSupportRequest) => Promise<void>;
+  onSubmit: (
+    request: SubmitSupportRequest,
+    images: readonly Blob[],
+  ) => Promise<void>;
 }
 
 /** Uses shared native controls, current-journey retention and explicit dirty-form abandonment. */
 export function SupportForm({ onSubmit }: SupportFormProps) {
   const { form, context } = useSupportVisit();
   const { control, handleSubmit, reset, setValue, getValues } = form;
-  const { isDirty, isSubmitting } = useFormState({ control });
+  const { isSubmitting } = useFormState({ control });
   const kind = useWatch({ control, name: "kind" });
   const router = useRouter();
   const feedback = useActionFeedback();
   const submitting = useRef(false);
-  useDiscardChanges(isDirty, () => reset());
+  const attachments = useSupportImages(form, () => !submitting.current);
+  const unready = attachments.images.some((image) => image.status !== "ready");
 
   /** Awaits the preparation consumer once, retaining editable input and ordinary feedback on refusal. */
   async function submit(values: SupportValues) {
     feedback.clear();
     try {
-      await onSubmit(toSupportRequest(values, context));
+      const files: Blob[] = [];
+      for (const image of values.images) {
+        if (image.status !== "ready" || !image.file)
+          throw new Error("Unready support image");
+        files.push(image.file);
+      }
+      const attempt = onSubmit(toSupportRequest(values, context), files);
+      attachments.retainUntil(attempt);
+      await attempt;
+      reset();
     } catch {
       feedback.error();
     }
@@ -46,7 +60,8 @@ export function SupportForm({ onSubmit }: SupportFormProps) {
 
   /** Serializes native taps before RHF's asynchronous validation can trigger a second send. */
   async function send() {
-    if (submitting.current) return;
+    if (submitting.current || attachments.selection.isPending() || unready)
+      return;
     submitting.current = true;
     try {
       await handleSubmit(submit)();
@@ -154,10 +169,23 @@ export function SupportForm({ onSubmit }: SupportFormProps) {
           )}
         />
       </View>
+      <ImageField
+        label="Images (facultatif)"
+        images={attachments.images}
+        selection={attachments.selection}
+        onRemove={attachments.remove}
+        multiple
+        contentFit="contain"
+        chooseLabel="Ajouter des images"
+        helper="Jusqu’à cinq images PNG ou JPEG, de 5 Mio maximum chacune."
+        error={attachments.error}
+        disabled={isSubmitting}
+      />
       <FieldMessage helper="Évitez les informations personnelles inutiles, mots de passe et justificatifs de paiement. Aucune capture n’est obligatoire." />
       <Button
         label="Envoyer la demande"
         loading={isSubmitting}
+        disabled={attachments.selection.pending || unready}
         onPress={() => void send()}
       />
     </View>

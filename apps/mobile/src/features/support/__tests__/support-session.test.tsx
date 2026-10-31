@@ -31,6 +31,7 @@ import SupportLayout from "../../../app/(ordinary)/support/_layout";
 import SupportChoiceRoute from "../../../app/(ordinary)/support/choice";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
@@ -165,6 +166,7 @@ it("uses an editable SDK contact after failed establishment without acquiring mo
           },
         }),
       }),
+      [],
     ),
   );
   expect(mockAuth0.getCredentials).toHaveBeenCalledTimes(calls);
@@ -291,6 +293,7 @@ it.each(["authentication"] as const)(
             signInFailure: { method: "hosted", stage, reason: "unavailable" },
           }),
         }),
+        [],
       ),
     );
     expect(mockAuth0.getCredentials).toHaveBeenCalledTimes(calls);
