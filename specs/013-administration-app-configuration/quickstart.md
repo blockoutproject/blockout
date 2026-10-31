@@ -33,7 +33,7 @@ Use isolated PostgreSQL and native development builds with valid environment-spe
 
 The [owner-only grant/revoke procedure](../../infra/operations/README.md#owner-only-action-grants) uses native psql batches against a separately authorized connection. Assignment is an owner operation, never an application capability. The eight exact action values stay independent; F09 console operations and F11 legal publication remain owner-only. No provider/production operation or delegated SQL access is authorized by this qualification.
 
-Execution status: the scoped PostgreSQL qualification is prepared; results are pending the preceding runtime allocation's explicit release. T011 remains open until execution succeeds.
+On 2026-10-31, the scoped qualification passed at source revision `1f5a4d55811da7f58006e26cbbaddccbcc250dfb`, based on `94f127b1c3b6a3804743d097e579d618b7756cfb`. The 32 direct-command cases and three native psql cases pass on disposable PostgreSQL 18.6 migrated through the real Liquibase baseline. T011 is complete within this local synthetic-data boundary. No production code, contract, migration or dependency changed.
 
 The new [direct authorization suite](../../apps/backend/src/test/java/com/blockout/backend/access/application/DirectAuthorizationIntegrationTest.java) uses the actual F01 controls, F02 presentation/classification/division commands, F05 establishment/erasure and F08 submission, with real F12 grants, account locks and migrated PostgreSQL. Only time, provider establishment evidence and validated test JWT principals are controlled; the real cleanup adapters are explicitly disabled. It replaces no authorization policy. The [manual SQL suite](../../apps/backend/src/test/java/com/blockout/backend/access/infrastructure/ManualGrantOperationsIntegrationTest.java) executes the runbook's two SQL blocks unchanged with native psql in its own migrated container, using fictitious fixture identities.
 
@@ -56,6 +56,8 @@ NX_LOAD_DOT_ENV_FILES=false NX_DAEMON=false NX_ISOLATE_PLUGINS=false \
   npx nx run backend:verify --output-style=static
 ```
 
+The final `backend:verify` run passes Checkstyle, Spotless, generation, compilation, packaging, all three contract bundles, 1,464 Surefire tests and 1,199 executed Failsafe cases. Failsafe reports 1,200 cases including the existing opt-in settings-consumer test skipped without `BLOCKOUT_ACCESS_CONSUMERS_TEST`; that separate T020 boundary is unaffected. The run uses Node 24.18.0, npm 12.0.1, the Maven 3.9.16 wrapper and the installed Microsoft OpenJDK 25.0.4; CI retains its Temurin 25 setup. Repository formatting, local links/anchors and diff hygiene also pass. The initial focused run had one fixture error from an unstubbed cleanup double after local erasure; replacing those doubles with the real explicitly disabled cleanup adapters makes the complete direct suite pass. No final test failure remains and no production fix was needed.
+
 These local tests exercise actual owner commands and SQL, with synthetic identities and no external sign-in, source collection or provider mutation. They do not qualify native credential restoration, physical devices, real owner access controls, store/provider journeys or production assignments. Backend inspection retains domain roots before accounts, UUID ordering for the account union and no later sporting lock; erasure acquires no sporting root. Existing [F05 lifecycle limits](../005-accounts-identity/plan.md#erasure-and-manual-resolution), T031/T039/T041/T045 and other untouched tasks remain applicable.
 
 ## First-environment rehearsal
@@ -74,7 +76,7 @@ On 2026-10-22, the 20 semantic cases in `apps/mobile/src/features/access/__tests
 
 An unsigned local iOS development build succeeded for the reserved iOS 17 simulator, with Sentry's native `SENTRY_DISABLE_AUTO_UPLOAD=true` option. A direct `/administration` link rendered the existing closed-admission refusal in light and dark appearances. This proves local compilation and the bounded refusal only, not operator, provider, physical-device or complete design qualification. The technical entry follows approved [Account 4868:5908](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4868-5908), F13 tokens and bundled Outfit; no operator-session visual acceptance is claimed. Text scaling retains the accepted [F13 iOS limitation](../003-shared-quality/quickstart.md#native-mobile-and-approved-design), without a remount or local dependency patch.
 
-Admission remains closed by default through the existing F05 composition boundary. T028 owns separate operational routes and version/maintenance guards; T019, T037 and F01 own the linked destination screens. T011, T031 and the remaining integrated/native scenarios above remain unqualified. Entry visibility supplies no domain grant, temporary bypass, F09 owner power or F11 legal publication.
+Admission remains closed by default through the existing F05 composition boundary. T028 owns separate operational routes and version/maintenance guards; T019, T037 and F01 own the linked destination screens. T011's direct-command qualification is recorded above; T031 and the remaining integrated/native scenarios retain their separate qualification obligations. Entry visibility supplies no domain grant, temporary bypass, F09 owner power or F11 legal publication.
 
 ## Atomic settings — T012–T020
 
