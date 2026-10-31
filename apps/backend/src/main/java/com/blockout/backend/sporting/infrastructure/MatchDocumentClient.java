@@ -54,6 +54,18 @@ public class MatchDocumentClient implements MatchDocumentSource {
             .readTimeout(properties.readTimeout())
             .writeTimeout(properties.readTimeout())
             .callTimeout(properties.connectTimeout().plus(properties.readTimeout()))
+            // Native status follow-ups (e.g. 503 Retry-After: 0) are independent of connection
+            // retries.
+            // Reject terminal HTTP errors before OkHttp can replay the accepted GET or form POST.
+            .addNetworkInterceptor(
+                chain -> {
+                  Response response = chain.proceed(chain.request());
+                  if (response.code() >= 400) {
+                    response.close();
+                    throw new MatchDocumentUnavailableException();
+                  }
+                  return response;
+                })
             .retryOnConnectionFailure(false)
             .followRedirects(false)
             .followSslRedirects(false)

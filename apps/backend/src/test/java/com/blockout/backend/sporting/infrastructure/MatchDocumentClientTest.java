@@ -246,6 +246,35 @@ class MatchDocumentClientTest {
     }
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"GET", "POST"})
+  @DisplayName("Refuses a supplier retry hint without silently repeating GET or information POST")
+  void refusesImplicitStatusRetry(String method) {
+    // Given
+    AtomicInteger requests = new AtomicInteger();
+    server.createContext(
+        "/information",
+        exchange -> {
+          if (requests.incrementAndGet() == 1) {
+            exchange.getResponseHeaders().add("Retry-After", "0");
+            exchange.sendResponseHeaders(503, -1);
+            exchange.close();
+          } else pdf(exchange, "application/pdf", PDF);
+        });
+    Reference reference =
+        method.equals("POST")
+            ? new Reference(null, new InformationSheet("2026/2027", "ORIGIN", "EXACT259"))
+            : new Reference(origin.resolve("/information"), null);
+
+    // When
+    Throwable failure =
+        org.assertj.core.api.Assertions.catchThrowable(() -> client.fetch(reference));
+
+    // Then
+    assertThat(requests).hasValue(1);
+    assertThat(failure).isInstanceOf(MatchDocumentUnavailableException.class);
+  }
+
   @Test
   @DisplayName("Refuses disabled origins without dispatching an HTTP call")
   void refusesDisabledOrigin() {
