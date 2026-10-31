@@ -300,10 +300,6 @@ The combined Nx run was stopped after this worker failure; the backend target wa
 executed separately. No production dependency, worker configuration or test assertion was
 weakened to obtain these results.
 
-Cleanup was verified: test containers removed by their lifecycle, original named volumes
-preserved, fixture/Metro stopped, ports 5665/8465/8265/5610/5611 free, simulator B restored
-to Shutdown, and only the worktree-owned Android AVD/data and its two ADB reverse ports
-removed. The pre-existing simulator A remained Booted and the reused binaries were untouched.
 T025 is complete within these generated/SQL/navigation boundaries.
 Physical system badges, APNs/FCM/Expo receipt and real credentials remain T041; full
 purge/restore/erasure races remain T051/T052. No complete US4/US7 or provider/production
