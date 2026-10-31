@@ -92,6 +92,24 @@ The common five-step journey uses the approved Figma references in [the plan](pl
 
 Controlled Jest cases cover interruption, V1/initialization flags, finish/skip, read/write failures, restart, foreground, sign-out, later app versions, pending-read deep links, current gates and cancelled/failed/profile-unavailable F05 entry with guest/help availability. HTTP and native SDK I/O are controlled; this is not actual provider or store qualification. Local Android API 29 debug-build observations and representative light/dark, compact and enlarged-text captures are recorded in [PR #487](https://github.com/blockoutproject/blockout/pull/487); they use a demonstration public-admission peer and do not establish signed-upgrade or complete native acceptance. Actual-owner integration T011, signed upgrade/reinstall/backup T012 and complete native/accessibility qualification T013–T014 remain pending.
 
+## Actual discovery owners and fresh personal state — T011/T026/T033
+
+On **2026-10-31**, the two new mobile suites passed **14 cases**, and `TransitionResetIntegrationTest` passed **6 cases** against disposable PostgreSQL 18.6 with the committed Liquibase migrations and restricted application role. The existing production composition satisfies these cases; no owner, contract, dependency, screen or reset mechanism required alteration.
+
+- [Discovery owner integration](../../apps/mobile/src/features/onboarding/__tests__/discovery-owner-integration.test.tsx) mounts the actual application routes, root, F05 session, F09 Pro, F10 help form, F11 age and F12 admission owners. It verifies explicit first sign-in/establishment followed by ordinary restoration, unknown versus SDK-expired rights, explicit restoration, assistance after cancelled/failed sign-in or unavailable profile, independent age declaration after skip and help suppression under each global gate. Old profile reads, paywall callbacks and grants do not enter a different subject's private tree.
+- [Fresh-state mobile integration](../../apps/mobile/src/features/onboarding/__tests__/transition-reset.test.tsx) uses actual F05/F06/F07 providers, generated clients and profile/follow/inbox consumers. Accepted empty responses end loading with the existing empty states and a zero badge. Following remains voluntary and targets the exact current UUID. Issued follow/read commands keep their original account and detached client across A → guest → B → A; returning A reads current server state. The installation age declaration survives account changes.
+- [Fresh-state SQL integration](../../apps/backend/src/test/java/com/blockout/backend/accounts/application/TransitionResetIntegrationTest.java) uses real establishment, account, follow, inbox and current-grant services, plus MockMvc/Spring Security test JWTs. A newly established UUID gets a neutral profile, no photo/grants/follows/inbox and a zero unread count despite another account sharing its provider email and holding personal state. Voluntary team/pool follows remain separate; homonyms and absent old references confer no association. Guest and B cannot read or mutate A's original private resources. Only principal evidence and time are controlled.
+
+Reproduce the focused checks after ordinary contract generation:
+
+```sh
+npx nx run mobile:generate --output-style=static
+npm run test --workspace=@blockout/mobile -- --runInBand src/features/onboarding/__tests__/discovery-owner-integration.test.tsx src/features/onboarding/__tests__/transition-reset.test.tsx
+./mvnw -B -ntp -pl apps/backend verify -Dtest=EstablishAccountAgeTest -Dit.test=TransitionResetIntegrationTest
+```
+
+These are construction tests with synthetic HTTP/storage/native SDK boundaries and isolated SQL fixtures. They perform no business-data reset, V1-origin detection, identity linking, automatic restoration, real support submission or external erasure. F10 cases and F05/F11 privacy/erasure obligations remain independently applicable; their provider retention/erasure is not qualified here. Clearing a private cache does not undo an issued server or native operation. The accepted Auth0 same-subject and RevenueCat cache limits remain unchanged. Signed upgrades, physical devices, real providers, historical populations, destination delivery, reconstruction and cutover remain with their separate tasks; this evidence does not complete T012/T013/T020–T025/T029–T032/T034 or establish design acceptance.
+
 ## Current repository checks
 
 Run the [README verification commands](../../README.md#verification), including the legacy OpenAPI root and backend tests. They cover generation, binding, serialization, HTTP admission and missing configuration. The real F12 repository integration is recorded above; actual old-binary compatibility and deployment remain separate qualification boundaries.

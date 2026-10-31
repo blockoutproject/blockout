@@ -586,6 +586,14 @@ it("rejects old private reads, Pro callbacks and administrative grants after cha
         all: { "Blockout Pro": entitlement() },
         verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
       }),
+      storeTransaction: {
+        transactionIdentifier: "synthetic-old-purchase",
+        productIdentifier: "monthly",
+        purchaseDate: "2026-10-30T12:00:00Z",
+        purchaseToken: null,
+        originalJson: null,
+        signature: null,
+      },
     });
     oldPaywall.onDismiss?.();
   });
