@@ -14,12 +14,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.blockout.backend.generated.mobile.model.NotificationResponse;
-import com.blockout.backend.generated.mobile.model.NotificationsResponse;
 import com.blockout.backend.notifications.application.PurgeNotifications;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -41,6 +40,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -81,9 +81,9 @@ class InboxTraversalIntegrationTest {
     for (int number = 1; number <= 43; number++)
       ids.add(entry(sql, number, ACCOUNT, NOW.minusSeconds(60)));
     Collections.reverse(ids);
-    NotificationsResponse first = page(null);
-    assertThat(first.getNotifications())
-        .extracting(NotificationResponse::getId)
+    JsonNode first = page(null);
+    assertThat(first.path("notifications"))
+        .extracting(row -> UUID.fromString(row.path("id").asString()))
         .containsExactlyElementsOf(ids.subList(0, 20));
 
     // When: these committed changes occur between actual HTTP requests, without a snapshot promise.
@@ -91,23 +91,25 @@ class InboxTraversalIntegrationTest {
     UUID newest = entry(sql, 100, ACCOUNT, NOW);
     sql.update("UPDATE sporting_match SET present=FALSE WHERE id=?", ids.get(21));
     sql.update("UPDATE sporting_match SET home_sets=1, away_sets=3 WHERE id=?", ids.get(20));
-    NotificationsResponse second = page(first.getNextCursor());
-    NotificationsResponse last = page(second.getNextCursor());
+    JsonNode second = page(first.path("nextCursor").asString());
+    JsonNode last = page(second.path("nextCursor").asString());
 
     // Then
     List<UUID> remaining = new ArrayList<>(ids.subList(20, 43));
     remaining.remove(ids.get(21));
-    assertThat(second.getNotifications()).hasSize(20);
-    assertThat(second.getNotifications().getFirst().getMatch().getResult().getHomeSets())
-        .isEqualTo(1);
-    assertThat(second.getNotifications().getFirst().getCreatedAt().toInstant())
+    assertThat(second.path("notifications")).hasSize(20);
+    assertThat(second.at("/notifications/0/match/result/homeSets").asInt()).isEqualTo(1);
+    assertThat(Instant.parse(second.at("/notifications/0/createdAt").asString()))
         .isEqualTo(NOW.minusSeconds(60));
     List<UUID> traversed = new ArrayList<>();
-    second.getNotifications().forEach(row -> traversed.add(row.getId()));
-    last.getNotifications().forEach(row -> traversed.add(row.getId()));
+    second
+        .path("notifications")
+        .forEach(row -> traversed.add(UUID.fromString(row.path("id").asString())));
+    last.path("notifications")
+        .forEach(row -> traversed.add(UUID.fromString(row.path("id").asString())));
     assertThat(traversed).containsExactlyElementsOf(remaining).doesNotHaveDuplicates();
-    assertThat(last.getNextCursor()).isNull();
-    assertThat(page(null).getNotifications().getFirst().getId()).isEqualTo(newest);
+    assertThat(last.has("nextCursor")).isFalse();
+    assertThat(page(null).at("/notifications/0/id").asString()).isEqualTo(newest.toString());
   }
 
   @Test
@@ -125,7 +127,7 @@ class InboxTraversalIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"read\":true}"))
         .andExpect(status().isOk());
-    NotificationResponse before = page(null).getNotifications().getLast();
+    JsonNode before = page(null).at("/notifications/1");
 
     // When
     sql.update("UPDATE sporting_match SET home_sets=1, away_sets=3 WHERE id=?", older);
@@ -136,17 +138,17 @@ class InboxTraversalIntegrationTest {
                 .content("{\"read\":true}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.read").value(true));
-    NotificationsResponse corrected = page(null);
+    JsonNode corrected = page(null);
 
     // Then
-    assertThat(corrected.getNotifications())
-        .extracting(NotificationResponse::getId)
+    assertThat(corrected.path("notifications"))
+        .extracting(row -> UUID.fromString(row.path("id").asString()))
         .containsExactly(newer, older);
-    NotificationResponse after = corrected.getNotifications().getLast();
-    assertThat(after.getRead()).isTrue();
-    assertThat(after.getCreatedAt()).isEqualTo(before.getCreatedAt());
-    assertThat(after.getFamily()).isEqualTo(before.getFamily());
-    assertThat(after.getMatch().getResult().getHomeSets()).isEqualTo(1);
+    JsonNode after = corrected.at("/notifications/1");
+    assertThat(after.path("read").asBoolean()).isTrue();
+    assertThat(after.path("createdAt")).isEqualTo(before.path("createdAt"));
+    assertThat(after.path("family")).isEqualTo(before.path("family"));
+    assertThat(after.at("/match/result/homeSets").asInt()).isEqualTo(1);
     mvc.perform(get("/matches/" + older))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.match.result.homeSets").value(1));
@@ -176,8 +178,13 @@ class InboxTraversalIntegrationTest {
               number == 1 ? NOW.minus(Duration.ofDays(29)).plusSeconds(1) : NOW.minusSeconds(60)));
     for (int number = 6; number <= 23; number++)
       sql.update("UPDATE notification SET is_read=TRUE WHERE id=?", ids.get(number - 1));
-    NotificationsResponse loaded = page(null);
-    assertThat(loaded.getNotifications().stream().filter(row -> !row.getRead()).count())
+    JsonNode loaded = page(null);
+    assertThat(
+            loaded
+                .path("notifications")
+                .valueStream()
+                .filter(row -> !row.path("read").asBoolean())
+                .count())
         .isEqualTo(2);
     mvc.perform(get(SUMMARY).with(principal("one")))
         .andExpect(status().isOk())
@@ -216,7 +223,7 @@ class InboxTraversalIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.unreadCount").value(0))
         .andExpect(jsonPath("$.nextExpiryAt").doesNotExist());
-    assertThat(page(null).getNotifications()).isEmpty();
+    assertThat(page(null).path("notifications")).isEmpty();
     mvc.perform(
             patch(COLLECTION + "/" + ids.getFirst())
                 .with(principal("one"))
@@ -270,13 +277,13 @@ class InboxTraversalIntegrationTest {
   }
 
   /**
-   * Traverses the production controller and decodes its generated transport model.
+   * Traverses the production controller and reads its serialized JSON response.
    *
    * @param cursor original opaque continuation, or absent for refresh
    * @return authorized HTTP window with no test-side sorting or filtering
-   * @throws Exception if HTTP execution or generated-model decoding fails
+   * @throws Exception if HTTP execution or JSON parsing fails
    */
-  private NotificationsResponse page(String cursor) throws Exception {
+  private JsonNode page(String cursor) throws Exception {
     MockHttpServletRequestBuilder request = get(COLLECTION).with(principal("one"));
     if (cursor != null) request.queryParam("cursor", cursor);
     String response =
@@ -286,7 +293,7 @@ class InboxTraversalIntegrationTest {
             .andReturn()
             .getResponse()
             .getContentAsString();
-    return json.readValue(response, NotificationsResponse.class);
+    return json.readTree(response);
   }
 
   /**

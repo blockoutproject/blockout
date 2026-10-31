@@ -39,7 +39,10 @@ import { notificationResponse } from "../test-support/notification-data";
 import { createInboxQueries } from "../api/inbox-queries";
 import { currentAccountQuery } from "../../accounts/api/current-account-query";
 import type { MatchDetailResponse } from "../../../../.generated/schemas/index.zod";
-import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
+import {
+  AccessAdmissionProvider,
+  useAccessAdmission,
+} from "../../access/queries/use-access-admission";
 import { ProProvider } from "../../pro";
 import { AgeDeclarationProvider } from "../../advertising/age-declaration-provider";
 import { submitAgeDeclaration } from "../../advertising/age-declaration";
@@ -49,7 +52,6 @@ import { ownContributions } from "../../contributions/test-support/contribution-
 import * as Notifications from "expo-notifications";
 import { NotificationLifecycle } from "../native/notification-lifecycle";
 import { createPushRegistration } from "../native/push-registration";
-import { getGetApplicationAccessQueryKey } from "../../../../.generated/mobile";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
   jest.requireActual(
@@ -120,13 +122,28 @@ function SessionRoutes({
         <ProProvider>
           <AgeDeclarationProvider enabled privacy={privacy}>
             <NotificationState>
-              <NotificationLifecycle registration={registration} enabled />
+              <NativeResponses registration={registration} />
               <Stack screenOptions={{ headerShown: false }} />
             </NotificationState>
           </AgeDeclarationProvider>
         </ProProvider>
       </AccessAdmissionProvider>
     </AccountFeedbackProvider>
+  );
+}
+
+/** Uses the actual root admission rule before SDK response subscriptions can become ready. */
+function NativeResponses({
+  registration,
+}: {
+  registration: ReturnType<typeof createPushRegistration>;
+}) {
+  const access = useAccessAdmission();
+  return (
+    <NotificationLifecycle
+      registration={registration}
+      enabled={access.ordinary}
+    />
   );
 }
 
@@ -313,12 +330,6 @@ it.each(["owner", "foreign", "guest"] as const)(
       return ordinary(url, init);
     });
     await openInbox();
-    await waitFor(() =>
-      expect(
-        client.getQueryData(getGetApplicationAccessQueryKey()),
-      ).toBeDefined(),
-    );
-    await act(async () => jest.advanceTimersByTimeAsync(0));
     if (actor === "guest") {
       await screen.findByRole("tab", { name: "Équipes" });
       await layoutNativeTabs();
