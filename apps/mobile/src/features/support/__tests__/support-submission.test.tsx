@@ -73,6 +73,7 @@ let client = createQueryClient();
 const acceptedId = "00000000-0000-4000-8000-000000000301";
 
 beforeEach(() => {
+  jest.useFakeTimers();
   client = createQueryClient();
   Object.assign(process.env, {
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
@@ -107,6 +108,8 @@ afterEach(async () => {
   client.clear();
   onlineManager.setOnline(true);
   jest.restoreAllMocks();
+  jest.clearAllTimers();
+  jest.useRealTimers();
   process.env = { ...environment };
 });
 

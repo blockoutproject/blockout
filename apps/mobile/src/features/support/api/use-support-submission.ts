@@ -34,7 +34,6 @@ export function useSupportSubmission() {
   }, []);
   const mutation = useMutation({
     mutationKey: getCreateSupportRequestMutationKey(),
-    gcTime: 0,
     retry: false,
     networkMode: "always",
     mutationFn: async (body: CreateSupportRequestBody) => {
@@ -66,7 +65,7 @@ export function useSupportSubmission() {
 
   /**
    * Captures metadata and the complete selection before credentials or network I/O.
-   * A missing prepared file rejects the whole selection; Blob/Expo File contents are immutable.
+   * A missing prepared file rejects the whole selection; callers retain prepared bytes through settlement.
    * RHF's caller serializes taps and retains its editable values on rejection.
    */
   async function send(
