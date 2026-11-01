@@ -3,7 +3,6 @@ import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { PageHeader } from "../../../shared/components/page-header";
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import {
   Page,
   PageScrollView,
@@ -21,8 +20,6 @@ import {
   SportingSupportAction,
   useMatchContributionAction,
 } from "../components/sporting-actions";
-import { tokens } from "../../../shared/theme/tokens";
-import { MatchCompactHeader } from "../components/match-compact-header";
 import { MatchSummary } from "../components/match-summary";
 import { MatchSetScores } from "../components/match-set-scores";
 import { MatchInformation } from "../components/match-information";
@@ -41,7 +38,6 @@ export interface MatchScreenProps {
 
 /** Presents accepted facts and rereads only this match on route focus and foreground return. */
 export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
-  const [teamsTop, setTeamsTop] = useState<number>();
   const [presentation, setPresentation] = useState(() => ({
     timeZone: currentSportingTimeZone(),
   }));
@@ -101,114 +97,77 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
   }
   const blockingState = !data ? <ReadFeedback query={match} /> : undefined;
   return (
-    <Page edges={["left", "right", "bottom"]}>
-      <ScrollChrome
-        header={(scrollY) =>
+    <Page>
+      <PageHeader
+        title="Le match"
+        action={
+          <SportingSupportAction target={{ type: "match", id: matchId }} />
+        }
+      />
+      <PageScrollView
+        refreshControl={
           data ? (
-            <MatchCompactHeader
-              match={data.match}
-              scrollY={scrollY}
-              teamsTop={teamsTop}
-              displayTimeZone={presentation.timeZone}
-              action={
-                <SportingSupportAction
-                  target={{ type: "match", id: matchId }}
-                />
-              }
+            <DataRefreshControl
+              refreshing={match.isRefetching || contribution.refreshing}
+              onRefresh={() => void refresh()}
             />
-          ) : (
-            <PageHeader
-              action={
-                <SportingSupportAction
-                  target={{ type: "match", id: matchId }}
-                />
-              }
-            />
-          )
+          ) : undefined
         }
       >
-        {({ onScroll, headerHeight }) => (
-          <PageScrollView
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            scrollIndicatorInsets={{ top: headerHeight }}
-            contentContainerStyle={{ paddingTop: headerHeight }}
-            refreshControl={
-              data ? (
-                <DataRefreshControl
-                  progressViewOffset={headerHeight}
-                  refreshing={match.isRefetching || contribution.refreshing}
-                  onRefresh={() => void refresh()}
+        {blockingState ? (
+          <ScreenState>{blockingState}</ScreenState>
+        ) : (
+          <PageContent>
+            {data && (
+              <>
+                <MatchSummary
+                  match={data.match}
+                  displayTimeZone={presentation.timeZone}
                 />
-              ) : undefined
-            }
-          >
-            {blockingState ? (
-              <ScreenState>{blockingState}</ScreenState>
-            ) : (
-              <PageContent>
-                {data && (
-                  <>
-                    <MatchSummary
-                      match={data.match}
-                      onTeamsLayout={({ nativeEvent }) =>
-                        setTeamsTop(
-                          tokens.layout.content.start + nativeEvent.layout.y,
-                        )
-                      }
-                      displayTimeZone={presentation.timeZone}
-                    />
-                    <MatchSetScores match={data.match} sets={data.sets} />
-                    <MatchLinks
-                      detail={data}
-                      reportAction={
-                        <ContributionReportEntry entry={contribution} />
-                      }
-                      action={
-                        contribution.hasProposals &&
-                        !contribution.ownsPublic ? (
-                          <MatchContributionAction
-                            entry={contribution}
-                            header
-                          />
-                        ) : undefined
-                      }
-                      primaryAction={
-                        contribution.publicOwnershipUnknown ||
-                        contribution.ownsPublic ||
-                        (!data.streamUrl && contribution.canPropose) ? (
-                          <MatchContributionAction
-                            entry={contribution}
-                            contextColor={
-                              data.match.pool.classification.division?.color
-                            }
-                            contextGradient={
-                              data.match.pool.classification.division?.gradient
-                            }
-                            contextForeground={
-                              data.match.pool.classification.division
-                                ? divisionTextColor(
-                                    data.match.pool.classification.division
-                                      .color,
-                                  )
-                                : undefined
-                            }
-                          />
-                        ) : undefined
-                      }
-                    />
-                    <MatchInformation
-                      onDocumentOpen={(kind) => setDocument({ matchId, kind })}
-                      detail={data}
-                      displayTimeZone={presentation.timeZone}
-                    />
-                  </>
-                )}
-              </PageContent>
+                <MatchSetScores match={data.match} sets={data.sets} />
+                <MatchLinks
+                  detail={data}
+                  reportAction={
+                    <ContributionReportEntry entry={contribution} />
+                  }
+                  action={
+                    contribution.hasProposals && !contribution.ownsPublic ? (
+                      <MatchContributionAction entry={contribution} header />
+                    ) : undefined
+                  }
+                  primaryAction={
+                    contribution.publicOwnershipUnknown ||
+                    contribution.ownsPublic ||
+                    (!data.streamUrl && contribution.canPropose) ? (
+                      <MatchContributionAction
+                        entry={contribution}
+                        contextColor={
+                          data.match.pool.classification.division?.color
+                        }
+                        contextGradient={
+                          data.match.pool.classification.division?.gradient
+                        }
+                        contextForeground={
+                          data.match.pool.classification.division
+                            ? divisionTextColor(
+                                data.match.pool.classification.division.color,
+                              )
+                            : undefined
+                        }
+                      />
+                    ) : undefined
+                  }
+                />
+                <MatchInformation
+                  onDocumentOpen={(kind) => setDocument({ matchId, kind })}
+                  detail={data}
+                  displayTimeZone={presentation.timeZone}
+                />
+              </>
             )}
-          </PageScrollView>
+          </PageContent>
         )}
-      </ScrollChrome>
+      </PageScrollView>
       {focused && documentAvailable && document && (
         <MatchDocumentReader
           key={`${matchId}:${document.kind}`}

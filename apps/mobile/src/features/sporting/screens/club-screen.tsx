@@ -1,13 +1,9 @@
 import { SportingSupportAction } from "../components/sporting-actions";
 import { SportingCalendar } from "../components/sporting-calendar";
-import { SportingCompactHeader } from "../components/sporting-compact-header";
-import { TabLegendList } from "react-native-collapsible-tab/legend-list";
-import {
-  PagedTabs,
-  PagerTabBar,
-  PagedStateScrollView,
-  pagedListDefaults,
-} from "../../../shared/components/paged-tabs";
+import { SportingPageHeader } from "../components/sporting-page-header";
+import { LegendList } from "@legendapp/list/react-native";
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
+import { PagedTabs } from "../../../shared/components/paged-tabs";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { ResourceText } from "../components/resource-text";
@@ -25,7 +21,7 @@ import { EmptyState } from "../../../shared/components/state-card";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Surface } from "../../../shared/components/surface";
 import { hashKey, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Globe, Mail, MapPin, Phone } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
 import { tokens } from "../../../shared/theme/tokens";
@@ -59,7 +55,7 @@ export function ClubScreen(props: ClubScreenProps) {
 
 /**
  * Retains a valid season across common reads; only successful disappearance derives the fallback.
- * The season keys RNCT's native scroll context while the selected category remains owned here.
+ * The season keys the native scene lifetime while the selected category remains owned here.
  */
 function ClubPage({ clubId }: ClubScreenProps) {
   const queries = useConsultationQueries();
@@ -69,6 +65,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
   const [choosingSeason, setChoosingSeason] = useState(false);
   const data = club.data;
   const feedback = useActionFeedback();
+  const currentScope = useRef("");
   const seasons = data?.seasons ?? [];
   const season =
     seasons.find((item) => item.id === selectedSeason) ?? seasons[0];
@@ -85,17 +82,32 @@ function ClubPage({ clubId }: ClubScreenProps) {
     !isAccessDenied(teams.error) && teams.data?.seasonId === season?.id
       ? teams.data
       : undefined;
-  /** Explicit refresh retains each authorized scope; initial failures keep their existing read retry. */
+  const scope = `${tab}:${season?.id ?? ""}`;
+  useLayoutEffect(() => {
+    currentScope.current = scope;
+  }, [scope]);
+  /** Explicit refresh retains each authorized scope; late failure feedback stays with the attempted selection. */
   async function refresh() {
     feedback.clear();
+    const attemptedScope = scope;
     if (tab === "teams" && data && season) {
       const result = await teams.refetch({ cancelRefetch: false });
-      if (result.isError && result.data && !isAccessDenied(result.error))
+      if (
+        currentScope.current === attemptedScope &&
+        result.isError &&
+        result.data &&
+        !isAccessDenied(result.error)
+      )
         feedback.error();
       return;
     }
     const result = await club.refetch({ cancelRefetch: false });
-    if (result.isError && result.data && !isAccessDenied(result.error))
+    if (
+      currentScope.current === attemptedScope &&
+      result.isError &&
+      result.data &&
+      !isAccessDenied(result.error)
+    )
       feedback.error();
   }
   const identity = data ? (
@@ -136,7 +148,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
   ) : undefined;
   const blockingState = !data ? <ReadFeedback query={club} /> : undefined;
   return (
-    <Page edges={blockingState ? undefined : ["left", "right", "bottom"]}>
+    <Page>
       {blockingState ? (
         <>
           <PageHeader
@@ -156,31 +168,23 @@ function ClubPage({ clubId }: ClubScreenProps) {
           onSelect={setTab}
           header={
             data && (
-              <SportingCompactHeader
+              <SportingPageHeader
                 action={
                   <SportingSupportAction
                     target={{ type: "club", id: clubId }}
                   />
                 }
-                title="Club"
                 identity={data.club}
                 kind="club"
               />
             )
           }
-          collapsibleHeader={<PageContent>{identity}</PageContent>}
-          renderTabBar={(props) => (
-            <>
-              <PagerTabBar {...props} />
-              {tab !== "info" && seasonControls}
-            </>
-          )}
           tabs={tabs.map(({ id: value, label }) => ({
             id: value,
             label,
             content:
               value !== "info" && !season ? (
-                <PagedStateScrollView
+                <PageScrollView
                   refreshControl={
                     <DataRefreshControl
                       refreshing={club.isRefetching}
@@ -189,17 +193,24 @@ function ClubPage({ clubId }: ClubScreenProps) {
                     />
                   }
                 >
+                  <PageContent>
+                    {identity}
+                    {seasonControls}
+                  </PageContent>
                   <ScreenState>
                     <EmptyState title="Aucune saison disponible" />
                   </ScreenState>
-                </PagedStateScrollView>
+                </PageScrollView>
               ) : (value === "upcoming" || value === "completed") && season ? (
                 <SportingCalendar
                   selection={{ clubId, seasonId: season.id, category: value }}
                   active={tab === value}
-                />
+                >
+                  {identity}
+                  {seasonControls}
+                </SportingCalendar>
               ) : value === "teams" && season && !teamData?.items.length ? (
-                <PagedStateScrollView
+                <PageScrollView
                   refreshControl={
                     teamData ? (
                       <DataRefreshControl
@@ -210,6 +221,10 @@ function ClubPage({ clubId }: ClubScreenProps) {
                     ) : undefined
                   }
                 >
+                  <PageContent>
+                    {identity}
+                    {seasonControls}
+                  </PageContent>
                   <ScreenState>
                     {!teamData ? (
                       <ReadFeedback query={teams} />
@@ -217,10 +232,10 @@ function ClubPage({ clubId }: ClubScreenProps) {
                       <EmptyState title="Aucune équipe pour cette saison" />
                     )}
                   </ScreenState>
-                </PagedStateScrollView>
+                </PageScrollView>
               ) : (
-                <TabLegendList
-                  {...pagedListDefaults}
+                <LegendList
+                  {...hiddenScrollIndicators}
                   alwaysBounceVertical
                   recycleItems
                   refreshControl={
@@ -263,60 +278,68 @@ function ClubPage({ clubId }: ClubScreenProps) {
                     </Surface>
                   )}
                   ListHeaderComponent={
-                    data && value === "info" ? (
-                      <View style={styles.header}>
-                        <Surface>
-                          <ResourceText>Coordonnées</ResourceText>
-                          <ContactLink
-                            label="Site web"
-                            value={data.contacts.website}
-                            destination={safeWebsite(data.contacts.website)}
-                            icon={Globe}
-                          />
-                          <ContactLink
-                            label="E-mail du club"
-                            value={data.contacts.email}
-                            destination={
-                              data.contacts.email
-                                ? `mailto:${encodeURIComponent(data.contacts.email)}`
-                                : undefined
-                            }
-                            icon={Mail}
-                          />
-                          <ContactLink
-                            label="Téléphone"
-                            value={data.contacts.phone}
-                            destination={phoneDestination(data.contacts.phone)}
-                            icon={Phone}
-                          />
-                        </Surface>
-                        <Surface>
-                          <ResourceText>Localisation</ResourceText>
-                          <ResourceText>Commune du club</ResourceText>
-                          {data.location ? (
+                    <View style={styles.header}>
+                      {identity}
+                      {value !== "info" && seasonControls}
+                      {data && value === "info" && (
+                        <>
+                          <Surface>
+                            <ResourceText>Coordonnées</ResourceText>
                             <ContactLink
-                              label="Ouvrir la commune sur la carte"
-                              value={data.location.label}
-                              destination={mapDestination(
-                                `${data.location.latitude},${data.location.longitude}`,
-                              )}
-                              icon={MapPin}
+                              label="Site web"
+                              value={data.contacts.website}
+                              destination={safeWebsite(data.contacts.website)}
+                              icon={Globe}
                             />
-                          ) : (
-                            <ResourceText>Commune non renseignée</ResourceText>
-                          )}
-                          <ResourceText>
-                            {[
-                              data.contacts.address,
-                              data.contacts.postalCode,
-                              data.contacts.city,
-                            ]
-                              .filter(Boolean)
-                              .join(", ") || "Adresse non renseignée"}
-                          </ResourceText>
-                        </Surface>
-                      </View>
-                    ) : undefined
+                            <ContactLink
+                              label="E-mail du club"
+                              value={data.contacts.email}
+                              destination={
+                                data.contacts.email
+                                  ? `mailto:${encodeURIComponent(data.contacts.email)}`
+                                  : undefined
+                              }
+                              icon={Mail}
+                            />
+                            <ContactLink
+                              label="Téléphone"
+                              value={data.contacts.phone}
+                              destination={phoneDestination(
+                                data.contacts.phone,
+                              )}
+                              icon={Phone}
+                            />
+                          </Surface>
+                          <Surface>
+                            <ResourceText>Localisation</ResourceText>
+                            <ResourceText>Commune du club</ResourceText>
+                            {data.location ? (
+                              <ContactLink
+                                label="Ouvrir la commune sur la carte"
+                                value={data.location.label}
+                                destination={mapDestination(
+                                  `${data.location.latitude},${data.location.longitude}`,
+                                )}
+                                icon={MapPin}
+                              />
+                            ) : (
+                              <ResourceText>
+                                Commune non renseignée
+                              </ResourceText>
+                            )}
+                            <ResourceText>
+                              {[
+                                data.contacts.address,
+                                data.contacts.postalCode,
+                                data.contacts.city,
+                              ]
+                                .filter(Boolean)
+                                .join(", ") || "Adresse non renseignée"}
+                            </ResourceText>
+                          </Surface>
+                        </>
+                      )}
+                    </View>
                   }
                 />
               ),
@@ -331,7 +354,6 @@ const styles = StyleSheet.create({
   header: { gap: tokens.spacing.lg, marginBottom: tokens.layout.list.gap },
   season: {
     gap: tokens.spacing.sm,
-    paddingHorizontal: tokens.spacing.lg,
     paddingBottom: tokens.spacing.sm,
   },
 });

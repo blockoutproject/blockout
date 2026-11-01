@@ -4,7 +4,7 @@ import {
   type PropsWithChildren as QueryFixtureProps,
 } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import "../../../shared/native/test-support/tab-view-native";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -196,7 +196,6 @@ async function open(content = panel()) {
     ),
   });
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  await layoutNativeTabs();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   return result;
 }
@@ -240,7 +239,6 @@ it("opens independent participants lazily when the pool standings are unavailabl
 
   // When
   await user.press(screen.getByRole("tab", { name: "Carte" }));
-  await layoutNativeTabs();
 
   // Then
   expect(
@@ -349,7 +347,7 @@ it("distinguishes no usable locations from no participating teams", async () => 
   expect(screen.queryByText(/Aucune équipe/)).toBeNull();
 });
 
-it("does not create markers from unmatched standings and preserves exact selected statistics", async () => {
+it("opens the exact participant without reading or displaying optional standings", async () => {
   // Given
   participants.items = [
     participant(sportingId, "Rives", {
@@ -384,9 +382,14 @@ it("does not create markers from unmatched standings and preserves exact selecte
   );
 
   // Then
-  expect(await screen.findByText("∞")).toBeOnTheScreen();
-  expect(screen.getByText("0")).toBeOnTheScreen();
-  expect(screen.getByText("7")).toBeOnTheScreen();
+  expect(await screen.findByText("Rives")).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).pathname.endsWith("/standings"),
+    ),
+  ).toHaveLength(0);
+  expect(screen.queryByText("∞")).toBeNull();
+  expect(screen.queryByText("Pts")).toBeNull();
   expect(screen.getByRole("link", { name: "Voir l’équipe" })).toBeOnTheScreen();
   expect(screen.queryByText("Commune publiée")).toBeNull();
   expect(screen.queryByText("Unmatched")).toBeNull();
@@ -432,7 +435,7 @@ it("closes the selected summary without changing participants or needing a tile-
   expect(mockFetch).toHaveBeenCalledTimes(reads);
 });
 
-it("keeps local selection changes from retrying failed optional standings", async () => {
+it("keeps local selection changes independent of standings reads", async () => {
   // Given
   const location = { latitude: 46.16, longitude: -1.15, label: "La Rochelle" };
   participants.items = [
@@ -452,7 +455,7 @@ it("keeps local selection changes from retrying failed optional standings", asyn
     mockFetch.mock.calls.filter(([url]) =>
       new URL(url).pathname.endsWith("/standings"),
     ),
-  ).toHaveLength(1);
+  ).toHaveLength(0);
   mockFetch.mockClear();
 
   // When
@@ -468,6 +471,43 @@ it("keeps local selection changes from retrying failed optional standings", asyn
   // Then
   expect(mockFetch).not.toHaveBeenCalled();
   expect(screen.getByRole("link", { name: "Voir l’équipe" })).toBeOnTheScreen();
+});
+
+it("retains an admitted map selection when returning from standings without rereading either resource", async () => {
+  // Given: actual shared scenes admit standings first, then independent participants.
+  participants.items = [
+    participant(sportingId, "Rives", {
+      latitude: 46.16,
+      longitude: -1.15,
+      label: "La Rochelle",
+    }),
+  ];
+  const user = userEvent.setup();
+  await open(<PoolScreen poolId={pool.pool.id} />);
+  await user.press(screen.getByRole("tab", { name: "Carte" }));
+  await fireEvent(
+    await screen.findByRole("button", { name: "La Rochelle: Rives" }),
+    "press",
+    { stopPropagation: jest.fn() },
+  );
+  await screen.findByRole("link", { name: "Voir l’équipe" });
+
+  // When: the same mounted map is covered by another retained scene and selected again.
+  await user.press(screen.getByRole("tab", { name: "Classement" }));
+  expect(screen.queryByRole("link", { name: "Voir l’équipe" })).toBeNull();
+  await user.press(screen.getByRole("tab", { name: "Carte" }));
+
+  // Then: selection and exact action survive; the native camera/offset still need device evidence.
+  expect(
+    screen.getByRole("radio", { name: "Rives", checked: true }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: "Voir l’équipe" })).toBeOnTheScreen();
+  for (const resource of ["participants", "standings"])
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(url).pathname.endsWith(`/${resource}`),
+      ),
+    ).toHaveLength(1);
 });
 
 it("drops a selected invalidated locality after refreshing only participants", async () => {
@@ -650,7 +690,7 @@ it("keeps municipal framing above a measured enlarged selection for one coincide
   await open();
   const nativeMap = await screen.findByTestId("native-map-boundary");
   await fireEvent(nativeMap, "layout", {
-    nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 583 } },
+    nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 440 } },
   });
   await fireEvent(nativeMap, "mapReady");
   await fireEvent(screen.getByTestId("pool-map-identity"), "layout", {
@@ -665,7 +705,7 @@ it("keeps municipal framing above a measured enlarged selection for one coincide
 
   // When
   await fireEvent(screen.getByTestId("pool-map-selection"), "layout", {
-    nativeEvent: { layout: { x: 0, y: 0, width: 346, height: 350 } },
+    nativeEvent: { layout: { x: 0, y: 0, width: 346, height: 178 } },
   });
 
   // Then
@@ -676,55 +716,11 @@ it("keeps municipal framing above a measured enlarged selection for one coincide
     { latitude: 0.075, longitude: 0.075 },
     { latitude: -0.075, longitude: -0.075 },
   ]);
-  expect(options.edgePadding.bottom).toBeGreaterThan(350);
+  expect(options.edgePadding.bottom).toBeGreaterThan(178);
   expect(options.edgePadding.top).toBeGreaterThan(140);
   expect(
     screen.getByRole("button", { name: "Test city: Rives, Marais" }).props
       .coordinate,
   ).toEqual({ latitude: 0, longitude: 0 });
   expect(screen.getByRole("radio", { name: "Marais" })).toBeOnTheScreen();
-});
-
-it("presents the published cumulative record without inventing recent match form", async () => {
-  // Given
-  participants.items = [
-    participant(sportingId, "Rives", {
-      latitude: 46.16,
-      longitude: -1.15,
-      label: "La Rochelle",
-    }),
-  ];
-  table = {
-    poolId: pool.pool.id,
-    availability: "available",
-    observedAt: "2026-10-20T12:00:00Z",
-    lastAttemptFailed: false,
-    columns: ["J", "G", "P", "Pts"],
-    rows: [
-      {
-        sourceName: "Rives",
-        team: { id: sportingId, name: "Rives" },
-        position: 2,
-        statistics: { J: "8", G: "6", P: "2", Pts: "18" },
-      },
-    ],
-  };
-  await open();
-
-  // When
-  await fireEvent(
-    await screen.findByRole("button", { name: "La Rochelle: Rives" }),
-    "press",
-    { stopPropagation: jest.fn() },
-  );
-
-  // Then
-  expect(await screen.findByText("Joués")).toBeOnTheScreen();
-  expect(screen.getByText("Gagnés")).toBeOnTheScreen();
-  expect(screen.getByText("Perdus")).toBeOnTheScreen();
-  expect(screen.getByText("8")).toBeOnTheScreen();
-  expect(screen.getByText("6")).toBeOnTheScreen();
-  expect(screen.getByText("18")).toBeOnTheScreen();
-  expect(screen.getByRole("link", { name: "Voir l’équipe" })).toBeOnTheScreen();
-  expect(screen.queryByText("5 derniers matchs")).toBeNull();
 });

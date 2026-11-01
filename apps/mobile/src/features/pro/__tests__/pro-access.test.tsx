@@ -15,7 +15,7 @@ import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import RevenueCatUI from "react-native-purchases-ui";
 import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 import OrdinaryLayout from "../../../app/(ordinary)/_layout";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import "../../../shared/native/test-support/tab-view-native";
 import { useAccountSession } from "../../accounts/current-account";
 import { accountResponse } from "../../accounts/test-support/account-response";
 import {
@@ -297,14 +297,12 @@ async function openInstallation(initialUrl = poolPath) {
     { initialUrl },
   );
   await screen.findByRole("tab", { name: "Carte" });
-  await layoutNativeTabs();
 }
 
 /** Exercises map selection plus both complete-day club traversals through their actual route/query owners. */
 async function consultPublicSport() {
   const user = userEvent.setup();
   await user.press(screen.getByRole("tab", { name: "Carte" }));
-  await layoutNativeTabs();
   const marker = await screen.findByRole("button", {
     name: "La Rochelle: Rives",
   });
@@ -316,13 +314,11 @@ async function consultPublicSport() {
   expect(screen).toHavePathname(poolPath);
   await act(() => router.push(clubPath));
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   for (const [label, category] of [
     ["À venir", "upcoming"],
     ["Terminés", "completed"],
   ]) {
     await user.press(screen.getByRole("tab", { name: label }));
-    await layoutNativeTabs();
     await screen.findByRole("link", {
       name: new RegExp(`Ouvrir le match ${category} first`),
     });
@@ -468,7 +464,6 @@ it.each([
 /** Selects the real map summary; navigation continues through F11's single sporting transition. */
 async function selectMappedTeam() {
   await userEvent.press(screen.getByRole("tab", { name: "Carte" }));
-  await layoutNativeTabs();
   await fireEvent(
     await screen.findByRole("button", { name: "La Rochelle: Rives" }),
     "press",
@@ -620,7 +615,6 @@ it("does not transfer a gifted exemption to the guest after actual F05 sign-out"
   await waitFor(() => expect(owners.session.status).toBe("guest"));
   await act(() => router.push(poolPath));
   await screen.findByRole("tab", { name: "Carte" });
-  await layoutNativeTabs();
 
   // Then
   expect(owners.pro.state.status).toBe("guest");
@@ -722,7 +716,6 @@ it("keeps public consultation usable after an interrupted native purchase withou
   mockPurchases.getOfferings.mockClear();
   await act(() => router.push(poolPath));
   await screen.findByRole("tab", { name: "Carte" });
-  await layoutNativeTabs();
   await consultPublicSport();
 
   // Then

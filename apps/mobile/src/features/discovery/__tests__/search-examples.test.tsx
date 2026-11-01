@@ -5,7 +5,7 @@ import {
   type PropsWithChildren as QueryFixtureProps,
 } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import "../../../shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Text } from "react-native";
@@ -206,7 +206,6 @@ async function renderSearch(proAccent = false) {
       ),
     },
   );
-  await layoutNativeTabs();
 }
 
 /** Executes the real F03 child read while retaining its ordinary parent cache identity. */
@@ -521,7 +520,6 @@ it("allows a new visit to select an identity whose previous detail refusal is st
 
   // When: new current backend authority admits the identity in a new visit.
   await act(async () => router.replace("/search"));
-  await layoutNativeTabs();
   await user.press(screen.getByRole("tab", { name: "Clubs" }));
 
   // Then

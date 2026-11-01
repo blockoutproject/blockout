@@ -1,5 +1,5 @@
 import { createInstallationAdvertisingPrivacy } from "../../advertising/advertising-privacy";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import "../../../shared/native/test-support/tab-view-native";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -332,7 +332,6 @@ it.each(["owner", "foreign", "guest"] as const)(
     await openInbox();
     if (actor === "guest") {
       await screen.findByRole("tab", { name: "Équipes" });
-      await layoutNativeTabs();
       await waitFor(() => expect(screen).toHavePathname("/search"));
     }
     await waitFor(() =>
@@ -696,7 +695,6 @@ it("routes a guest to public search without requesting a personal inbox or showi
   // When
   await openInbox();
   await screen.findByRole("tab", { name: "Équipes" });
-  await layoutNativeTabs();
 
   // Then
   await waitFor(() => expect(screen).toHavePathname("/search"));
@@ -714,7 +712,6 @@ it("retains the public search visit through its native sheets and a bottom-tab r
   mockAuth0.hasValidCredentials.mockResolvedValue(false);
   await openInbox();
   await screen.findByRole("tab", { name: "Équipes" });
-  await layoutNativeTabs();
   const user = userEvent.setup();
   await user.press(await screen.findByRole("button", { name: "Filtres" }));
   await user.press(await screen.findByRole("button", { name: "Genre" }));
@@ -724,14 +721,11 @@ it("retains the public search visit through its native sheets and a bottom-tab r
   );
   await waitFor(() => expect(screen).toHavePathname("/search"));
 
-  await layoutNativeTabs();
-
   // When
   await user.press(screen.getByRole("button", { name: "Profil" }));
   await waitFor(() => expect(screen).toHavePathname("/profile"));
   await user.press(screen.getByRole("button", { name: "Rechercher" }));
   await waitFor(() => expect(screen).toHavePathname("/search"));
-  await layoutNativeTabs();
   await user.press(
     await screen.findByRole("button", { name: "Filtres actifs" }),
   );
@@ -893,7 +887,6 @@ it("retains every native tab action and its full accessible name with enlarged t
   await waitFor(() => expect(screen).toHavePathname("/profile"));
   await user.press(screen.getByRole("button", { name: "Rechercher" }));
   await waitFor(() => expect(screen).toHavePathname("/search"));
-  await layoutNativeTabs();
   await user.press(
     screen.getByRole("button", { name: "Notifications, 7 non lues" }),
   );

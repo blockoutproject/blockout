@@ -9,7 +9,7 @@ import { PageHeader } from "../../../shared/components/page-header";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+
 import { ErrorState } from "../../../shared/components/state-card";
 import {
   MatchSummary,
@@ -43,90 +43,79 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
       feedback.error();
   }
   return (
-    <Page edges={["left", "right", "bottom"]}>
-      <ScrollChrome header={<PageHeader title="Lien de diffusion" />}>
-        {({ onScroll, headerHeight }) => (
-          <FormScrollView
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            scrollIndicatorInsets={{ top: headerHeight }}
-            contentContainerStyle={{ paddingTop: headerHeight }}
-            refreshControl={
-              authenticated && editing.usable && current ? (
-                <DataRefreshControl
-                  progressViewOffset={headerHeight}
-                  enabled={!editing.submit.isPending}
-                  refreshing={editing.query.isRefetching || match.isRefetching}
-                  onRefresh={() => void refresh()}
-                />
-              ) : undefined
-            }
-          >
-            {guest ? (
-              <ScreenState>
-                <Button
-                  label="Se connecter"
-                  onPress={() =>
-                    router.push({
-                      pathname: "/sign-in-invitation",
-                      params: { reason: "contribution" },
-                    })
-                  }
-                />
-              </ScreenState>
-            ) : !authenticated ? (
-              <ScreenState>
-                {editing.session.status === "restoring" ||
-                editing.session.operation ? (
-                  <RequestLoading />
-                ) : (
-                  <Button
-                    label="Se connecter"
-                    onPress={() => router.push("/sign-in")}
-                  />
-                )}
-              </ScreenState>
-            ) : !editing.profile.data ? (
-              <ScreenState>
-                <ReadFeedback query={editing.profile} />
-              </ScreenState>
-            ) : !editing.usable && !current ? (
-              <ScreenState>
-                <ErrorState
-                  onRetry={() => void editing.profile.refetch()}
-                  retrying={editing.profile.isFetching}
-                />
-              </ScreenState>
-            ) : !current ? (
-              <ScreenState>
-                <ReadFeedback query={editing.query} />
-              </ScreenState>
+    <Page>
+      <PageHeader title="Lien de diffusion" />
+      <FormScrollView
+        refreshControl={
+          authenticated && editing.usable && current ? (
+            <DataRefreshControl
+              enabled={!editing.submit.isPending}
+              refreshing={editing.query.isRefetching || match.isRefetching}
+              onRefresh={() => void refresh()}
+            />
+          ) : undefined
+        }
+      >
+        {guest ? (
+          <ScreenState>
+            <Button
+              label="Se connecter"
+              onPress={() =>
+                router.push({
+                  pathname: "/sign-in-invitation",
+                  params: { reason: "contribution" },
+                })
+              }
+            />
+          </ScreenState>
+        ) : !authenticated ? (
+          <ScreenState>
+            {editing.session.status === "restoring" ||
+            editing.session.operation ? (
+              <RequestLoading />
             ) : (
-              <PageContent>
-                {match.data && (
-                  <MatchSummary
-                    match={match.data.match}
-                    presentation="context"
-                  />
-                )}
-                {editing.profile.isError && (
-                  <Button
-                    label="Réessayer le profil"
-                    loading={editing.profile.isFetching}
-                    onPress={() => void editing.profile.refetch()}
-                  />
-                )}
-                <ContributionForm
-                  key={`${editing.session.subject}:${editing.session.accountId}:${matchId}`}
-                  matchId={matchId}
-                  current={current}
-                  editing={editing}
-                />
-              </PageContent>
+              <Button
+                label="Se connecter"
+                onPress={() => router.push("/sign-in")}
+              />
             )}
-          </FormScrollView>
+          </ScreenState>
+        ) : !editing.profile.data ? (
+          <ScreenState>
+            <ReadFeedback query={editing.profile} />
+          </ScreenState>
+        ) : !editing.usable && !current ? (
+          <ScreenState>
+            <ErrorState
+              onRetry={() => void editing.profile.refetch()}
+              retrying={editing.profile.isFetching}
+            />
+          </ScreenState>
+        ) : !current ? (
+          <ScreenState>
+            <ReadFeedback query={editing.query} />
+          </ScreenState>
+        ) : (
+          <PageContent>
+            {match.data && (
+              <MatchSummary match={match.data.match} presentation="context" />
+            )}
+            {editing.profile.isError && (
+              <Button
+                label="Réessayer le profil"
+                loading={editing.profile.isFetching}
+                onPress={() => void editing.profile.refetch()}
+              />
+            )}
+            <ContributionForm
+              key={`${editing.session.subject}:${editing.session.accountId}:${matchId}`}
+              matchId={matchId}
+              current={current}
+              editing={editing}
+            />
+          </PageContent>
         )}
-      </ScrollChrome>
+      </FormScrollView>
     </Page>
   );
 }

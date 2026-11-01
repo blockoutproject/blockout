@@ -6,10 +6,9 @@ import {
   PropsWithChildren,
 } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import "../../../shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { FlatList } from "react-native";
 import { SearchVisitProvider } from "../forms/search-visit";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import {
@@ -219,7 +218,6 @@ async function renderSearch(proAccent = false) {
       <SearchOwners proAccent={proAccent}>{children}</SearchOwners>
     ),
   });
-  await layoutNativeTabs();
   return result;
 }
 
@@ -364,7 +362,16 @@ it("selects the search resource through native page settlement and retains its s
   await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
     nativeEvent: { position: 2 },
   });
-  await layoutNativeTabs();
+  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageScroll", {
+    nativeEvent: { position: 2, offset: 0 },
+  });
+  await fireEvent(
+    screen.getByTestId("native-tabs-pager"),
+    "pageScrollStateChanged",
+    {
+      nativeEvent: { pageScrollState: "idle" },
+    },
+  );
 
   // Then: business selection, accessible content and the common input agree with that page.
   expect(await screen.findByText("Niort")).toBeOnTheScreen();
@@ -387,7 +394,16 @@ it("selects the search resource through native page settlement and retains its s
   await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
     nativeEvent: { position: 0 },
   });
-  await layoutNativeTabs();
+  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageScroll", {
+    nativeEvent: { position: 0, offset: 0 },
+  });
+  await fireEvent(
+    screen.getByTestId("native-tabs-pager"),
+    "pageScrollStateChanged",
+    {
+      nativeEvent: { pageScrollState: "idle" },
+    },
+  );
 
   // Then: the visited result and controls remain coherent through ordinary native rereading.
   expect(await screen.findByText("Volley professionnel")).toBeOnTheScreen();
@@ -406,7 +422,7 @@ it("selects the search resource through native page settlement and retains its s
   ).toBe(true);
 });
 
-it("reads changed text only for the selected resource and resets all cached native lists", async () => {
+it("reads changed text only for the selected resource and preserves equivalent normalized criteria", async () => {
   // Given: all three scene contexts exist, with their accepted result pages.
   const user = userEvent.setup();
   await renderSearch();
@@ -439,19 +455,14 @@ it("reads changed text only for the selected resource and resets all cached nati
     screen.getByRole("header", { name: "1 résultat chargé" }),
   ).toBeOnTheScreen();
 
-  // When: returning to accepted criteria remounts three real loaded list owners.
+  // When: the user returns to earlier criteria while Teams stays selected.
   mockFetch.mockClear();
-  const scroll = jest.spyOn(FlatList.prototype, "scrollToOffset");
   await fireEvent.changeText(screen.getByLabelText("Rechercher"), "Volley");
   await screen.findByText("Volley professionnel");
 
-  // Then: all loaded contexts reset while only the selected resource rereads its changed criteria.
+  // Then: only the selected resource rereads the changed criteria; native position is qualified separately.
   expect(mockFetch).toHaveBeenCalledTimes(1);
   expect(new URL(String(mockFetch.mock.calls[0][0])).pathname).toBe("/teams");
-  expect(scroll.mock.calls).toEqual(
-    Array(3).fill([{ offset: 0, animated: false }]),
-  );
-  expect(new Set(scroll.mock.contexts).size).toBe(3);
 });
 
 it("clears the shared query and opens examples for the selected tab", async () => {
@@ -783,7 +794,7 @@ it.each(["empty", "error"])(
 );
 
 it("does not append from an inactive resource or covered Search route", async () => {
-  // Given: RNCT retains the club scene after selecting another resource.
+  // Given: The native pager retains the club scene after selecting another resource.
   const user = userEvent.setup();
   const pending = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url: string) => {
@@ -835,7 +846,7 @@ it("does not append from an inactive resource or covered Search route", async ()
 });
 
 it("shares one pending cursor read across repeated native end events", async () => {
-  // Given: RNCT retains the club scene after selecting another resource.
+  // Given: The native pager retains the club scene after selecting another resource.
   const user = userEvent.setup();
   const pending = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url: string) => {

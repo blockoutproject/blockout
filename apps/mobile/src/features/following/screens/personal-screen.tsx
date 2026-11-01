@@ -8,7 +8,7 @@ import {
 import { Page, PageScrollView } from "../../../shared/components/page";
 import { BrandMark } from "../../../shared/components/brand-mark";
 import { useTheme } from "../../../shared/theme/theme-provider";
-import { PagedTabs, PagerTabBar } from "../../../shared/components/paged-tabs";
+import { PagedTabs } from "../../../shared/components/paged-tabs";
 import { PersonalCalendar } from "../components/personal-calendar";
 import { FollowedLists } from "../components/followed-lists";
 import { Tabs } from "../../../shared/components/tabs";
@@ -61,7 +61,7 @@ export function PersonalScreen() {
     </Page>
   );
 }
-/** The branded heading retracts above the sticky personal controls through the native pager. */
+/** The branded heading stays above the opaque personal controls and independent scenes. */
 function PersonalHeader() {
   const { colors } = useTheme();
   return (
@@ -88,7 +88,7 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
   /** Composes the native pager bar or non-paged admission choices beside the same season owner. */
   function controls(tabBar: ReactNode) {
     return (
-      <View style={[styles.controls, !ready && styles.admissionControls]}>
+      <View style={styles.controls}>
         <View style={styles.tabs}>{tabBar}</View>
         <PersonalSeasonSelector
           options={blocked ? undefined : season.options.data}
@@ -100,13 +100,13 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
     );
   }
   return (
-    <Page edges={ready ? ["left", "right", "bottom"] : undefined}>
+    <Page>
       {ready ? (
         <PagedTabs
           selected={tab}
           onSelect={setTab}
-          collapsibleHeader={<PersonalHeader />}
-          renderTabBar={(props) => controls(<PagerTabBar {...props} />)}
+          header={<PersonalHeader />}
+          renderTabBar={controls}
           tabs={tabs.map(({ id, label }) => ({
             id,
             label,
@@ -171,8 +171,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
-    paddingRight: tokens.spacing.lg,
+    paddingHorizontal: tokens.spacing.lg,
   },
-  admissionControls: { paddingLeft: tokens.spacing.lg },
   tabs: { flex: 1, minWidth: 0 },
 });

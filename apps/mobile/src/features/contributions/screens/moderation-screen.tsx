@@ -2,7 +2,7 @@ import { Controller, useForm } from "react-hook-form";
 import { hashKey } from "@tanstack/react-query";
 import { Link, useNavigation, useRouter } from "expo-router";
 import { Image } from "expo-image";
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   AppState,
   Keyboard,
@@ -12,24 +12,20 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import {
-  useCollapsingTabsContext,
-  type CollapsingTabsRef,
-} from "react-native-collapsible-tab";
-import { TabLegendList } from "react-native-collapsible-tab/legend-list";
+import { LegendList } from "@legendapp/list/react-native";
 import type { StreamModerationItemResponse } from "../../../../.generated/schemas/index.zod";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { ListContinuation } from "../../../shared/components/list-continuation";
 import { ListSeparator } from "../../../shared/components/list-separator";
-import { Page, pageContentStyle } from "../../../shared/components/page";
 import {
-  PagedTabs,
-  PagerTabBar,
-  PagedStateScrollView,
-  pagedListDefaults,
-} from "../../../shared/components/paged-tabs";
+  Page,
+  PageScrollView,
+  pageContentStyle,
+} from "../../../shared/components/page";
+import { PagedTabs } from "../../../shared/components/paged-tabs";
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { PageHeader } from "../../../shared/components/page-header";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
@@ -51,7 +47,7 @@ const queueTabs = [
 export interface ModerationScreenProps {
   filters: ModerationFilters;
 }
-/** Reuses the search native pager, tab bar and controls; RNCT is the sole scroll/gesture owner. */
+/** Keeps queue navigation and search above independently retained native list scenes. */
 export function ModerationScreen({ filters }: ModerationScreenProps) {
   const router = useRouter();
   const { colors } = useTheme();
@@ -60,7 +56,6 @@ export function ModerationScreen({ filters }: ModerationScreenProps) {
     tokens.size.control.default,
     tokens.typography.body.lineHeight * fontScale + tokens.spacing.md * 2,
   );
-  const pager = useRef<CollapsingTabsRef>(null);
   const selected =
     !filters.state || filters.state === "to-review"
       ? "to-review"
@@ -71,27 +66,13 @@ export function ModerationScreen({ filters }: ModerationScreenProps) {
     filters.state && !["to-review", "active", "all"].includes(filters.state)
       ? filters.state
       : undefined;
-  const criteria = hashKey([
-    filters.query,
-    filters.seasonId,
-    filters.platform,
-    specificState,
-  ]);
-  const previousCriteria = useRef(criteria);
-  useEffect(() => {
-    if (previousCriteria.current !== criteria) {
-      pager.current?.scrollAllToTop();
-      previousCriteria.current = criteria;
-    }
-  }, [criteria]);
   const changed = !!filters.seasonId || !!filters.platform || !!specificState;
   const { control, handleSubmit, setValue } = useForm<{ query: string }>({
     defaultValues: { query: filters.query ?? "" },
   });
   return (
-    <Page edges={["left", "right", "bottom"]}>
+    <Page>
       <PagedTabs
-        ref={pager}
         selected={selected}
         onSelect={(state) => router.setParams({ state })}
         header={<PageHeader title="Liens vidéo" />}
@@ -100,7 +81,6 @@ export function ModerationScreen({ filters }: ModerationScreenProps) {
           label,
           content: (
             <QueueScene
-              id={id}
               active={selected === id}
               filters={{
                 ...filters,
@@ -109,9 +89,9 @@ export function ModerationScreen({ filters }: ModerationScreenProps) {
             />
           ),
         }))}
-        renderTabBar={(props) => (
+        renderTabBar={(tabBar) => (
           <>
-            <PagerTabBar {...props} />
+            <View style={styles.tabs}>{tabBar}</View>
             <View style={styles.toolbar}>
               <View style={styles.searchInput}>
                 <Controller
@@ -190,11 +170,9 @@ export function ModerationScreen({ filters }: ModerationScreenProps) {
 
 /** One retained native page has one private Query traversal; inactive pages neither fetch nor continue. */
 function QueueScene({
-  id,
   active,
   filters,
 }: {
-  id: string;
   active: boolean;
   filters: ModerationFilters;
 }) {
@@ -204,7 +182,19 @@ function QueueScene({
   const { colors } = useTheme();
   const feedback = useActionFeedback();
   const navigation = useNavigation();
-  const { focusedTab } = useCollapsingTabsContext();
+  const criteria = hashKey([filters]);
+  const identity = hashKey([
+    editing.session.subject,
+    editing.session.accountId,
+    filters,
+  ]);
+  const currentScene = useRef<string | undefined>(undefined);
+  useLayoutEffect(() => {
+    currentScene.current = active && editing.allowed ? identity : undefined;
+    return () => {
+      currentScene.current = undefined;
+    };
+  }, [active, editing.allowed, identity]);
   const current =
     editing.canRetain && !isAccessDenied(query.error)
       ? query.data?.pages[0]
@@ -226,7 +216,8 @@ function QueueScene({
     try {
       await editing.refresh();
     } catch {
-      feedback.error();
+      if (currentScene.current === identity && navigation.isFocused())
+        feedback.error();
     } finally {
       setRefreshing(false);
     }
@@ -249,7 +240,7 @@ function QueueScene({
     if (
       result.isFetchNextPageError &&
       navigation.isFocused() &&
-      focusedTab.value === id
+      currentScene.current === identity
     )
       feedback.error();
   }
@@ -265,15 +256,24 @@ function QueueScene({
     (editing.profile.isPending || (editing.allowed && query.isPending))
   )
     return (
-      <PagedStateScrollView>
-        <View style={[pageContentStyle, styles.list]}>
+      <PageScrollView
+        key={criteria}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        <View style={pageContentStyle}>
           <ModerationQueueLoading />
         </View>
-      </PagedStateScrollView>
+      </PageScrollView>
     );
   if (rows.length === 0)
     return (
-      <PagedStateScrollView refreshControl={refreshControl}>
+      <PageScrollView
+        key={criteria}
+        refreshControl={refreshControl}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         <ScreenState>
           {!editing.canRetain && editing.profile.isSuccess ? (
             <Text style={[tokens.typography.body, { color: colors.text }]}>
@@ -294,16 +294,17 @@ function QueueScene({
             />
           )}
         </ScreenState>
-      </PagedStateScrollView>
+      </PageScrollView>
     );
   return (
-    <TabLegendList
-      {...pagedListDefaults}
+    <LegendList
+      key={criteria}
+      {...hiddenScrollIndicators}
       recycleItems
       accessibilityLabel="File de modération des liens"
       data={rows}
       keyExtractor={(item) => item.match.id}
-      contentContainerStyle={[pageContentStyle, styles.list]}
+      contentContainerStyle={pageContentStyle}
       ItemSeparatorComponent={ListSeparator}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
@@ -377,7 +378,7 @@ function ModerationQueueRow({ item }: { item: StreamModerationItemResponse }) {
   );
 }
 const styles = StyleSheet.create({
-  list: { paddingTop: tokens.layout.content.start },
+  tabs: { paddingHorizontal: tokens.spacing.screen },
   toolbar: {
     flexDirection: "row",
     alignItems: "flex-start",

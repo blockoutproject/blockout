@@ -1,4 +1,4 @@
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import "../../../shared/native/test-support/tab-view-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   act,
@@ -232,9 +232,7 @@ it("establishes a fresh profile and honest empty follows/inbox without choosing 
     </Consumers>,
   );
   await screen.findByRole("tab", { name: "Suivis" });
-  await layoutNativeTabs();
   await user.press(screen.getByRole("tab", { name: "Suivis" }));
-  await layoutNativeTabs();
 
   // Then
   expect(await screen.findByText("Aucun suivi à afficher")).toBeOnTheScreen();

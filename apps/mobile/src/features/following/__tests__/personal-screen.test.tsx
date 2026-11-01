@@ -1,4 +1,4 @@
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import "../../../shared/native/test-support/tab-view-native";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
@@ -319,14 +319,12 @@ it("shows separate current teams and pools in Following and opens their exact sp
     name: "Saison des suivis",
     disabled: false,
   });
-  await layoutNativeTabs();
   expect(
     mockFetch.mock.calls.some(([url]) => /\/(team|pool)-follows\?/.test(url)),
   ).toBe(false);
 
   // When
   await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
-  await layoutNativeTabs();
   const teamLink = await screen.findByRole("link", { name: /Étoile/ });
   const poolLink = await screen.findByRole("link", { name: /Poule A/ });
   await userEvent.press(teamLink);
@@ -371,11 +369,8 @@ it("keeps the selected season after an actual other-season follow invalidates cu
     ).toHaveAccessibilityValue({ text: older.label }),
   );
 
-  await layoutNativeTabs();
-
   // When
   await user.press(screen.getByRole("tab", { name: "Suivis" }));
-  await layoutNativeTabs();
   await screen.findByRole("tab", { name: "Suivis", selected: true });
   await user.press(
     screen.getByRole("button", { name: "Suivre", disabled: false }),
@@ -405,7 +400,6 @@ it("keeps list failures distinct from emptiness and retains the accepted persona
     name: "Saison des suivis",
     disabled: false,
   });
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   mockFetch.mockClear();
   mockFetch.mockImplementation((url, request) =>
@@ -416,7 +410,6 @@ it("keeps list failures distinct from emptiness and retains the accepted persona
 
   // When
   await user.press(screen.getByRole("tab", { name: "Suivis" }));
-  await layoutNativeTabs();
 
   // Then: each failed collection keeps its own explicit retry, with no false empty state.
   expect(
@@ -558,7 +551,6 @@ it("leaves the actual club-season and search-input owners unchanged", async () =
   const clubTeams = await within(
     screen.getByLabelText("Public club"),
   ).findByRole("tab", { name: "Équipes" });
-  await layoutNativeTabs();
   await user.press(clubTeams);
   await screen.findByRole("button", { name: `Saison ${older.label}` });
   await user.type(screen.getByLabelText("Rechercher"), "Volleyball");
@@ -693,7 +685,6 @@ it("opens each personal encounter through the existing sporting navigation after
     name: "Saison des suivis",
     disabled: false,
   });
-  await layoutNativeTabs();
   const match = await screen.findByRole("link", {
     name: /Ouvrir le match Home — Away/,
   });
@@ -703,7 +694,16 @@ it("opens each personal encounter through the existing sporting navigation after
   await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
     nativeEvent: { position: 1 },
   });
-  await layoutNativeTabs();
+  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageScroll", {
+    nativeEvent: { position: 1, offset: 0 },
+  });
+  await fireEvent(
+    screen.getByTestId("native-tabs-pager"),
+    "pageScrollStateChanged",
+    {
+      nativeEvent: { pageScrollState: "idle" },
+    },
+  );
 
   // Then
   expect(mockPush).toHaveBeenCalledWith({
@@ -746,7 +746,6 @@ it.each([false, true])(
       name: "Saison des suivis",
       disabled: false,
     });
-    await layoutNativeTabs();
 
     // Then
     await screen.findByText(
@@ -772,7 +771,6 @@ it("retains encounters after an ordinary failed pull but withdraws them after a 
     name: "Saison des suivis",
     disabled: false,
   });
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   mockFetch.mockImplementation((url, request) =>
     new URL(url).pathname === `/accounts/${accountId}/matches`
@@ -812,7 +810,6 @@ it("ignores an obsolete refresh after the shared season changes without reportin
     name: "Saison des suivis",
     disabled: false,
   });
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   const late = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url, request) =>
@@ -905,9 +902,7 @@ it("restarts the selected completed traversal after a confirmed follow change an
     name: "Saison des suivis",
     disabled: false,
   });
-  await layoutNativeTabs();
   await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
-  await layoutNativeTabs();
   const first = await screen.findByRole("link", {
     name: /Ouvrir le match First — Away/,
   });
@@ -963,7 +958,6 @@ it("restarts the selected completed traversal after a confirmed follow change an
 
   // When: the mounted hidden category reloads only upon display.
   await userEvent.press(screen.getByRole("tab", { name: "À venir" }));
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Current — Away/ });
 
   // Then
@@ -981,7 +975,6 @@ it("defers a confirmed-change reload while Home is covered and fetches its first
     name: "Saison des suivis",
     disabled: false,
   });
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   await act(async () => {
     mockFocus.focused = false;
@@ -1031,7 +1024,6 @@ it("withdraws a refused calendar after refresh and presents its card without a d
     name: "Saison des suivis",
     disabled: false,
   });
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   mockFetch.mockImplementation((url, request) =>
     new URL(url).pathname === `/accounts/${accountId}/matches`
@@ -1071,7 +1063,6 @@ it("withdraws obsolete personal rows when a successful continuation establishes 
     name: "Saison des suivis",
     disabled: false,
   });
-  await layoutNativeTabs();
   const match = await screen.findByRole("link", {
     name: /Ouvrir le match Home — Away/,
   });
@@ -1117,7 +1108,6 @@ it("retains its own calendar projection after an independent match-detail refusa
     name: "Saison des suivis",
     disabled: false,
   });
-  await layoutNativeTabs();
   const match = await screen.findByRole("link", {
     name: /Ouvrir le match Home — Away/,
   });
@@ -1145,10 +1135,8 @@ it("keeps current absence across previously visited personal categories", async 
     name: "Saison des suivis",
     disabled: false,
   });
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   mockFetch.mockImplementation(async (url, request) => {
     const response = await transport(url, request);
@@ -1166,7 +1154,6 @@ it("keeps current absence across previously visited personal categories", async 
   await screen.findByText("Aucun suivi à afficher");
   mockFetch.mockClear();
   await userEvent.press(screen.getByRole("tab", { name: "À venir" }));
-  await layoutNativeTabs();
 
   // Then
   await screen.findByText("Aucun suivi à afficher");
@@ -1192,7 +1179,6 @@ it("captures the current loading zone when selecting a new personal season", asy
     name: "Saison des suivis",
     disabled: false,
   });
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   deviceZone = "America/New_York";
 
@@ -1234,13 +1220,10 @@ it("keeps the mounted category zone until its ordinary refresh", async () => {
     name: "Saison des suivis",
     disabled: false,
   });
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   await userEvent.press(screen.getByRole("tab", { name: "À venir" }));
-  await layoutNativeTabs();
   await userEvent.press(
     screen.getByRole("button", { name: "Saison des suivis" }),
   );
@@ -1251,7 +1234,6 @@ it("keeps the mounted category zone until its ordinary refresh", async () => {
 
   // When: the already-mounted category has no loaded traversal for the new season yet.
   await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
 
   // Then
@@ -1361,9 +1343,7 @@ it.each(
       name: "Saison des suivis",
       disabled: false,
     });
-    await layoutNativeTabs();
     await userEvent.press(screen.getByRole("tab", { name: tab }));
-    await layoutNativeTabs();
     await screen.findByRole("link", {
       name: tab === "Suivis" ? /Étoile/ : /Ouvrir le match Home — Away/,
     });
@@ -1403,7 +1383,6 @@ it.each(
     mockFetch.mockClear();
     for (const destination of ["À venir", "Terminés", "Suivis"]) {
       await userEvent.press(screen.getByRole("tab", { name: destination }));
-      await layoutNativeTabs();
       await screen.findByText("Aucun suivi à afficher");
       expect(
         screen.queryByRole("link", {
@@ -1452,9 +1431,7 @@ it.each(
       name: "Saison des suivis",
       disabled: false,
     });
-    await layoutNativeTabs();
     await userEvent.press(screen.getByRole("tab", { name: tab }));
-    await layoutNativeTabs();
     await screen.findByRole("link", {
       name: tab === "Suivis" ? /Étoile/ : /Ouvrir le match Home — Away/,
     });
@@ -1538,9 +1515,7 @@ it("retains pages on append failure, deduplicates UUIDs and keeps homonyms disti
     name: "Saison des suivis",
     disabled: false,
   });
-  await layoutNativeTabs();
   await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
-  await layoutNativeTabs();
   const firstLink = await screen.findByRole("link", {
     name: /Étoile.*2025\/2026.*6 × 6/,
   });
@@ -1587,9 +1562,7 @@ it("retains populated Following on return and defers mutation resets while Home 
     name: "Saison des suivis",
     disabled: false,
   });
-  await layoutNativeTabs();
   await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Étoile/ });
   await act(async () => {
     mockFocus.focused = false;
@@ -1653,7 +1626,6 @@ it("shares All seasons across both lists and offers Search only after successful
     name: "Saison des suivis",
     disabled: false,
   });
-  await layoutNativeTabs();
   await userEvent.press(
     screen.getByRole("button", { name: "Saison des suivis" }),
   );
@@ -1664,7 +1636,6 @@ it("shares All seasons across both lists and offers Search only after successful
 
   // When
   await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
-  await layoutNativeTabs();
   await userEvent.press(
     await screen.findByRole("button", {
       name: "Rechercher une équipe ou une poule",
@@ -1698,9 +1669,7 @@ it("keeps an explicit read retry at the list edge after a failed first-page refr
     name: "Saison des suivis",
     disabled: false,
   });
-  await layoutNativeTabs();
   await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Étoile/ });
   unavailable = true;
 

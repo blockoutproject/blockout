@@ -1,5 +1,5 @@
 import { Search } from "lucide-react-native";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { hashKey, useInfiniteQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import type { CalendarCategoryEnum } from "../../../../.generated/schemas/index.zod";
 import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
@@ -66,6 +66,7 @@ export function PersonalCalendar({
   });
   return (
     <SportingCalendarView
+      key={hashKey(options.queryKey)}
       calendar={calendar}
       active={active}
       onRefresh={refresh}

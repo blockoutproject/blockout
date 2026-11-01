@@ -13,7 +13,7 @@ import {
   onlineManager,
   type InfiniteData,
 } from "@tanstack/react-query";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import "../../../shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { router, Stack } from "expo-router";
@@ -80,7 +80,7 @@ const season = { id: firstId, label: "2026/2027", startYear: 2026 };
 let client: QueryClient;
 let publicClient = createQueryClient();
 
-/** Only HTTP is controlled: generated transport, Query, admission, session, RNCT and Router stay real. */
+/** Only HTTP is controlled: generated transport, Query, admission, session, shared paging and Router stay real. */
 function publicReads(url: string): Promise<Response> {
   const parsed = new URL(url);
   if (parsed.pathname.endsWith("/application-access"))
@@ -229,7 +229,6 @@ async function renderSearch() {
       ),
     },
   );
-  await layoutNativeTabs();
   return result;
 }
 

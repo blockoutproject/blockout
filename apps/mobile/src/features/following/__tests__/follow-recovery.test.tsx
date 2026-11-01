@@ -17,7 +17,7 @@ import { FollowerCount } from "../components/follower-count";
 import { TeamScreen } from "../../sporting/screens/team-screen";
 import { PoolScreen } from "../../sporting/screens/pool-screen";
 import { FollowButton } from "../components/follow-button";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import "../../../shared/native/test-support/tab-view-native";
 import { SportingActions } from "../../sporting/components/sporting-actions";
 import type { InfiniteData } from "@tanstack/react-query";
 import type { ListTeamFollows200 } from "../../../../.generated/schemas/index.zod";
@@ -383,7 +383,6 @@ it.each(["team", "pool"] as const)(
       </>,
     );
     await screen.findByText("Current sporting identity");
-    await layoutNativeTabs();
     await screen.findByLabelText("2 abonnés");
     await waitFor(() =>
       expect(
@@ -442,7 +441,6 @@ it("keeps public sporting content when the private opaque member read returns 40
     />,
   );
   await screen.findByText("Public team remains viewable");
-  await layoutNativeTabs();
 
   // When / Then
   await screen.findAllByRole("button", { name: "Réessayer" });
@@ -488,7 +486,6 @@ it("applies public absence to an account established while the first counter is 
     </>,
   );
   await screen.findByText("Profile resolves after public read starts");
-  await layoutNativeTabs();
   await waitFor(() =>
     expect(
       mockFetch.mock.calls.filter(([url]) => url.endsWith("/follower-count")),

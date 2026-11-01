@@ -5,9 +5,11 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
 import {
   Platform,
@@ -17,10 +19,6 @@ import {
   Text,
   View,
 } from "react-native";
-import {
-  TabScrollView,
-  useCollapsingTabsContext,
-} from "react-native-collapsible-tab";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import MapView, {
   Marker,
@@ -32,15 +30,10 @@ import type {
   PoolSummaryResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
-import {
-  BottomContentSpacer,
-  useBottomContentInset,
-} from "../../../shared/components/bottom-content-inset";
 import { Button } from "../../../shared/components/button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { IconButton } from "../../../shared/components/icon-button";
-import { PageContent } from "../../../shared/components/page";
-import { PagedStateScrollView } from "../../../shared/components/paged-tabs";
+import { PageContent, PageScrollView } from "../../../shared/components/page";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { EmptyState } from "../../../shared/components/state-card";
@@ -52,23 +45,17 @@ import { consultationOpeningPolicy } from "../api/consultation-queries";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import { useSportingNavigation } from "../navigation";
 import { SportingLogo } from "./sporting-identity";
-import { StandingPerformanceBar } from "./standing-performance-bar";
-
-/** Approved map labels for the same published G/P record understood by the standings cards. */
-const recordLabels: Readonly<Record<string, string>> = {
-  J: "Joués",
-  G: "Gagnés",
-  P: "Perdus",
-};
 
 /** One pool's participant map; active controls the existing accepted-opening boundary. */
 export interface PoolMapProps {
   pool: PoolSummaryResponse;
   active?: boolean;
+  /** Ordinary scene identity scrolls before the bounded map or its read state. */
+  children?: ReactNode;
 }
 
 /** Reads independent participants; native providers alone own basemap loading and failure presentation. */
-export function PoolMap({ pool, active = true }: PoolMapProps) {
+export function PoolMap({ pool, active = true, children }: PoolMapProps) {
   const queries = useConsultationQueries();
   const participants = useQuery({
     ...queries.participants(pool.pool.id),
@@ -76,6 +63,10 @@ export function PoolMap({ pool, active = true }: PoolMapProps) {
   });
   const feedback = useActionFeedback();
   const { colors } = useTheme();
+  const currentActive = useRef(active);
+  useLayoutEffect(() => {
+    currentActive.current = active;
+  }, [active]);
   const data = participants.data;
   const located = data?.items.filter((item) => item.location).length ?? 0;
   const total = data?.items.length ?? 0;
@@ -83,20 +74,24 @@ export function PoolMap({ pool, active = true }: PoolMapProps) {
 
   /** Refreshes only participants; an ordinary failed read retains the existing authorized map. */
   async function refresh() {
+    if (!active) return;
     feedback.clear();
     const result = await participants.refetch({ cancelRefetch: false });
-    if (result.isError && result.data) feedback.error();
+    if (currentActive.current && result.isError && result.data)
+      feedback.error();
   }
 
   const refreshControl = data ? (
     <DataRefreshControl
       refreshing={participants.isRefetching}
       onRefresh={() => void refresh()}
+      enabled={active}
     />
   ) : undefined;
   if (!data || located === 0)
     return (
-      <PagedStateScrollView refreshControl={refreshControl}>
+      <PageScrollView refreshControl={refreshControl}>
+        {children && <PageContent>{children}</PageContent>}
         <ScreenState>
           {!data ? (
             <ReadFeedback query={participants} />
@@ -116,15 +111,12 @@ export function PoolMap({ pool, active = true }: PoolMapProps) {
             </EmptyState>
           )}
         </ScreenState>
-      </PagedStateScrollView>
+      </PageScrollView>
     );
   return (
-    <TabScrollView
-      {...hiddenScrollIndicators}
-      alwaysBounceVertical
-      refreshControl={refreshControl}
-    >
+    <PageScrollView alwaysBounceVertical refreshControl={refreshControl}>
       <PageContent>
+        {children}
         <ParticipantMap
           pool={pool}
           items={data.items}
@@ -136,8 +128,7 @@ export function PoolMap({ pool, active = true }: PoolMapProps) {
           }
         />
       </PageContent>
-      <BottomContentSpacer />
-    </TabScrollView>
+    </PageScrollView>
   );
 }
 
@@ -181,11 +172,13 @@ function ParticipantMap({
   coverage: string;
 }) {
   const { colors, scheme } = useTheme();
-  const { containerHeight, paddingTop } = useCollapsingTabsContext();
-  const bottomContentInset = useBottomContentInset();
   const gradientId = useId();
   const reducedMotion = useReducedMotion();
   const feedback = useActionFeedback();
+  const currentActive = useRef(active);
+  useLayoutEffect(() => {
+    currentActive.current = active;
+  }, [active]);
   const map = useRef<MapView>(null);
   const [ready, setReady] = useState(false);
   const [laidOut, setLaidOut] = useState(false);
@@ -199,15 +192,6 @@ function ParticipantMap({
   );
   const selected = point?.items.find(
     (item) => item.team.team.id === selectedId,
-  );
-  // Native flow grows for wrapping identity/selection; RNCT owns the whole page's scrolling.
-  const minimumHeight = Math.max(
-    tokens.sporting.mapMinHeight,
-    containerHeight -
-      paddingTop -
-      bottomContentInset -
-      tokens.layout.content.start -
-      tokens.layout.content.end,
   );
   const selectionVisible = !!selected;
 
@@ -252,9 +236,10 @@ function ParticipantMap({
 
   /** Lets the native camera own position and scale; no region mirror or tile-state detector is stored. */
   async function zoom(direction: 1 | -1) {
+    if (!active) return;
     try {
       const camera = await map.current?.getCamera();
-      if (!camera || !map.current) return;
+      if (!currentActive.current || !camera || !map.current) return;
       const change =
         Platform.OS === "ios" && camera.altitude !== undefined
           ? { altitude: camera.altitude / 2 ** direction }
@@ -265,17 +250,12 @@ function ParticipantMap({
       if (reducedMotion) map.current.setCamera(change);
       else map.current.animateCamera(change);
     } catch {
-      feedback.error();
+      if (currentActive.current) feedback.error();
     }
   }
 
   return (
-    <View
-      style={[
-        styles.map,
-        { minHeight: minimumHeight, borderColor: colors.border },
-      ]}
-    >
+    <View style={[styles.map, { borderColor: colors.border }]}>
       <MapView
         ref={map}
         style={StyleSheet.absoluteFill}
@@ -461,7 +441,6 @@ function ParticipantMap({
             <ParticipantSummary
               key={selected.team.team.id}
               participant={selected}
-              poolId={pool.pool.id}
               active={active}
             />
           </View>
@@ -471,45 +450,20 @@ function ParticipantMap({
   );
 }
 
-/** Optional official statistics enrich the exact selection without owning its identity or availability. */
+/** Identifies the exact participant and opens its team; statistics remain on their own journey. */
 function ParticipantSummary({
   participant,
-  poolId,
   active,
 }: {
   participant: PoolParticipantResponse;
-  poolId: string;
   active: boolean;
 }) {
-  const queries = useConsultationQueries();
-  const standings = useQuery({
-    ...queries.standings(poolId),
-    refetchOnMount: false,
-    retryOnMount: false,
-  });
   const { colors } = useTheme();
   const sporting = useSportingNavigation(active);
   const identity = participant.team.team;
-  const row =
-    standings.data?.availability === "available"
-      ? standings.data.rows.find((entry) => entry.team?.id === identity.id)
-      : undefined;
-  const columns = row ? (standings.data?.columns ?? []) : [];
-  const trailing = columns.at(-1);
-  const publishedRecord = columns.includes("G") && columns.includes("P");
   return (
     <>
-      <View style={[styles.summaryIdentity, { borderColor: colors.border }]}>
-        {row?.position !== undefined && (
-          <View style={[styles.rank, { backgroundColor: colors.rank.neutral }]}>
-            <Text
-              accessibilityLabel={`Rang ${row.position}`}
-              style={[tokens.typography.headingSm, { color: colors.text }]}
-            >
-              {row.position}
-            </Text>
-          </View>
-        )}
+      <View style={styles.summaryIdentity}>
         <SportingLogo
           identity={identity}
           kind="team"
@@ -518,46 +472,7 @@ function ParticipantSummary({
         <Text style={[styles.teamName, { color: colors.text }]}>
           {identity.name}
         </Text>
-        {row && trailing && (
-          <View style={styles.points}>
-            <Text style={[tokens.typography.headingLg, { color: colors.text }]}>
-              {row.statistics[trailing] ?? "—"}
-            </Text>
-            <Text
-              style={[
-                tokens.typography.metadata,
-                { color: colors.secondaryText },
-              ]}
-            >
-              {trailing}
-            </Text>
-          </View>
-        )}
       </View>
-      {row && columns.length > 1 && (
-        <View style={[styles.record, { borderColor: colors.border }]}>
-          <View style={styles.statistics}>
-            {columns.slice(0, -1).map((column) => (
-              <View key={column} style={styles.statistic}>
-                <Text
-                  style={[
-                    tokens.typography.metadata,
-                    { color: colors.secondaryText },
-                  ]}
-                >
-                  {publishedRecord ? (recordLabels[column] ?? column) : column}
-                </Text>
-                <Text
-                  style={[tokens.typography.headingSm, { color: colors.text }]}
-                >
-                  {row.statistics[column] ?? "—"}
-                </Text>
-              </View>
-            ))}
-          </View>
-          <StandingPerformanceBar row={row} columns={columns} />
-        </View>
-      )}
       <Button
         label="Voir l’équipe"
         accessibilityRole="link"
@@ -571,6 +486,7 @@ function ParticipantSummary({
 
 const styles = StyleSheet.create({
   map: {
+    height: 440,
     borderRadius: tokens.radius.panel,
     borderWidth: tokens.border.thin,
     overflow: "hidden",
@@ -587,9 +503,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   controls: {
-    alignSelf: "flex-end",
-    marginTop: tokens.spacing.xs,
-    marginRight: tokens.spacing.md,
+    position: "absolute",
+    top: 77,
+    right: tokens.spacing.md,
     gap: tokens.spacing.xs,
   },
   surfaceControl: {
@@ -625,28 +541,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
-    borderTopWidth: tokens.border.thin,
-    paddingTop: tokens.spacing.md,
-  },
-  rank: {
-    minWidth: tokens.sporting.standingsRankWidth,
-    minHeight: tokens.sporting.standingsRankHeight,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: tokens.spacing.xs,
-    borderRadius: tokens.radius.sm,
   },
   teamName: { ...tokens.typography.label, flex: 1 },
-  points: { alignItems: "flex-end" },
-  record: {
-    borderTopWidth: tokens.border.thin,
-    paddingTop: tokens.spacing.md,
-    gap: tokens.spacing.sm,
-  },
-  statistics: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: tokens.spacing.xs,
-  },
-  statistic: { alignItems: "center", flexGrow: 1, gap: tokens.spacing.xs },
 });

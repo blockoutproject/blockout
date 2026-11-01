@@ -8,17 +8,15 @@ import { useRouter } from "expo-router";
 import { Search } from "lucide-react-native";
 import { DisclosureChevron } from "../../../shared/components/disclosure-chevron";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { TabLegendList } from "react-native-collapsible-tab/legend-list";
+import { LegendList } from "@legendapp/list/react-native";
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
+import { PageScrollView } from "../../../shared/components/page";
 import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { ListContinuation } from "../../../shared/components/list-continuation";
-import {
-  pagedListDefaults,
-  PagedStateScrollView,
-} from "../../../shared/components/paged-tabs";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { EmptyState } from "../../../shared/components/state-card";
@@ -198,15 +196,15 @@ export function FollowedLists(props: FollowedListsProps) {
     !pools.query.hasNextPage
   )
     return (
-      <PagedStateScrollView refreshControl={refreshControl}>
+      <PageScrollView refreshControl={refreshControl}>
         <ScreenState>
           <NoAvailableFollows />
         </ScreenState>
-      </PagedStateScrollView>
+      </PageScrollView>
     );
   return (
-    <TabLegendList
-      {...pagedListDefaults}
+    <LegendList
+      {...hiddenScrollIndicators}
       accessibilityRole="list"
       accessibilityLabel="Équipes et poules suivies"
       data={rows}
