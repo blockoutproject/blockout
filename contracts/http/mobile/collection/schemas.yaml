@@ -399,11 +399,6 @@ CollectionResultResponse:
       description: Last usable success for this exact scope, stage and phase, null if absent.
       format: date-time
       nullable: true
-    firstFailureAt:
-      type: string
-      description: First failure of this scope/stage/phase outage across cycles, preserved until affected-scope recovery; null when not applicable.
-      format: date-time
-      nullable: true
     reasonType:
       type: string
       description: Stable safe machine problem type when relevant.
@@ -431,7 +426,6 @@ CollectionResultResponse:
     - outcome
     - observedAt
     - lastSuccessAt
-    - firstFailureAt
 CollectionResultPageResponse:
   title: CollectionResultPageResponse
   type: object

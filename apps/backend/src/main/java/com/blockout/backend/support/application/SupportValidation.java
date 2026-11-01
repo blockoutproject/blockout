@@ -46,7 +46,7 @@ public final class SupportValidation {
     List<String> mediaTypes = new ArrayList<>();
     for (byte[] image : snapshots) mediaTypes.add(validateImage(image));
 
-    List<SupportSubmission.Image> files = new ArrayList<>();
+    List<Path> files = new ArrayList<>();
     try {
       for (int index = 0; index < snapshots.size(); index++) {
         String mediaType = mediaTypes.get(index);
@@ -56,13 +56,13 @@ public final class SupportValidation {
                 "support-",
                 mediaType.equals("image/png") ? ".png" : ".jpg",
                 PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
-        files.add(new SupportSubmission.Image(file, mediaType));
+        files.add(file);
         Files.write(file, snapshots.get(index));
       }
-      return new SupportSubmission(UUID.randomUUID(), metadata, files, null);
+      return new SupportSubmission(UUID.randomUUID(), metadata, files);
     } catch (IOException exception) {
       try {
-        new SupportSubmission(null, metadata, files, null).close();
+        new SupportSubmission(null, metadata, files).close();
       } catch (IOException cleanupFailure) {
         exception.addSuppressed(cleanupFailure);
       }

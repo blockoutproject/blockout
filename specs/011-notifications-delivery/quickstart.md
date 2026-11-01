@@ -146,19 +146,11 @@ Actual report/hold command scenarios, physical phones, system messages and provi
 
 ## Retention construction and isolated restore cases
 
-T047/T049 use the existing 29-elapsed-day cutoff, independent of physical deletion.
-The dedicated [PostgreSQL cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/PurgeNotificationsIntegrationTest.java)
-exercise all four families, read/hidden states, the microsecond before age 29, exact age 29,
-overdue age 31, Paris/New York spring/autumn transitions, read/create overlap and interruption
-after a committed batch. The next ordinary daily invocation must remove remaining due rows
-without changing surviving creation dates or nonpersonal consumed match facts.
-Revision-specific commands and results belong in the delivery PR; these cases establish no
-actual F05 erasure, mobile expiry, sender/provider or operational restoration evidence.
+T047/T049 use the 29-elapsed-day cutoff independently of physical deletion. The [PostgreSQL cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/PurgeNotificationsIntegrationTest.java) exercise all families/read/hidden states, the microsecond before age 29, exact age 29, overdue age 31, Paris/New York daylight-saving changes and read/create overlap. The historical batch-interruption result establishes only the earlier per-batch progress; it does not qualify atomic-pass behavior.
 
-The [T047/T049](tasks.md) qualification uses actual Spring/JPA transactions and current
-inbox reads, with a controlled clock and test-only SQL interruption. No sender/ephemeral-work
-is qualified by those purge cases; subscription construction is described below, and those
-purge results do not qualify sending after failed deletion.
+The fixed-cutoff orchestration and actual PostgreSQL cases establish one atomic pass, definite statement/deferred-trigger commit refusal, no false completed/count diagnostic, ambient-transaction refusal and successful next ordinary deletion. Useful facts, original creation times and strict age-29 consultation/count/send exclusion remain independent of physical cleanup. The deferred trigger proves definite refusal/rollback, not every possible lost commit acknowledgement: runtime diagnostics leave unknown completion unconfirmed without claiming zero effects or a deletion count. No retry/recovery protocol is added.
+
+These cases use real Spring/JPA transactions and current inbox reads, a controlled clock and test-only SQL interruption. They qualify neither actual F05 erasure, mobile native expiry, sender/ephemeral-work/provider behavior, hosted daily execution nor operational restoration. Subscription construction remains separate, and these purge cases do not qualify sending after failed deletion. Revision-specific commands, counts and delivery chronology remain outside Git.
 
 T048 prepares the following cases for [F13's initial isolated restore](../003-shared-quality/quickstart.md#initial-restore-and-activation-condition)
 and the existing [pre-reopen reconciliation](../../infra/operations/README.md#reconcile-before-access-or-sends).
@@ -231,8 +223,7 @@ Keep failed, unavailable and passed evidence distinct. Repository/prototype chec
 
 ## Inbox traversal qualification (T025)
 
-Qualified on 2026-10-31 at source `bac37dac3ef3dddb65da9481d56b91c66f87e2a7`, based on
-`94f127b1c3b6a3804743d097e579d618b7756cfb`. The local record covers synthetic accounts
+The controlled construction boundary uses synthetic accounts
 and sporting data only, with Node 24.18.0, npm 12.0.1 and Microsoft OpenJDK 25.0.4;
 CI uses the committed Temurin 25 setup.
 
@@ -245,8 +236,6 @@ the existing purge participant and current sporting visibility produce four, the
 Repeated true and correction preserve original time/order/read state. A missing entry returns
 404 without recreation while its still-authorized F03 match remains available. Native Spring
 Security test principals control JWT I/O; no identity provider or Pro provider is contacted.
-The eight new HTTP/SQL cases passed, together with the existing fourteen read and eight
-mark-read SQL cases on PostgreSQL 18.6. The 58 targeted HTTP/contract cases also passed.
 
 The [Query suite](../../apps/mobile/src/features/notifications/__tests__/inbox.test.tsx)
 uses two independent clients for the same original owner, one offline, through actual generated
@@ -254,7 +243,7 @@ consumers. A lost acknowledgement triggers ordinary invalidation/refetch without
 or member-read reconciliation. Offline data can retain an older read flag until refresh; an
 unloaded expiry invalidates its exact total without deriving it from the two loaded rows.
 A known missing member cancels an older summary and clears the unprovable total, even if the
-following refresh fails. The latter regression failed before the scoped mutation correction.
+following refresh fails.
 
 The [Router suite](../../apps/mobile/src/features/notifications/__tests__/inbox-navigation.test.tsx)
 keeps actual inbox/tab/match routes, private session cache, F11 opening and native response
@@ -266,13 +255,7 @@ expiry, visibility and native/session suites supply active/offline/resume age ex
 zero-badge removal, stale-response cancellation and original-client isolation. HTTP and native
 SDK I/O remain controlled; these tests are not a live mobile-to-PostgreSQL network run.
 
-Native observations also passed on iPhone 18 Pro simulator B, iOS 27.0
-(`DD662133-3F23-457C-A42B-D3DDC544F6E0`, 402×874 points), and a worktree-owned Pixel 9
-emulator, Android 17/API 37 (`emulator-5610`, 1080×2424 pixels), using `agent-device`
-session `issue-265`. Both reused compatible `com.blockout.local` development clients,
-version 0.0.0/build 1, with the source above; no native rebuild was needed. The iOS
-executable SHA-256 is `ebcc57107a7e23f2d7261832b0537149ffe59f6e8fbc907252a39a43ae5280e8`;
-the reused Android APK SHA-256 is `c7ac5cef60b26fd6c8f8d972b88c551485ef2bc0064d7f89d13b98e88c4638a3`.
+Native observations use iPhone 18 Pro simulator B / iOS 27.0 (402×874 points) and Pixel 9 emulator / Android 17/API 37 (1080×2424 pixels), with compatible `com.blockout.local` development clients, version 0.0.0/build 1.
 Actual session/Query/inbox/F03/F11 consumers remained in place. A temporary Metro resolver
 controlled only native Auth0 I/O and unavailable advertising I/O; a disposable HTTP fixture
 supplied generated-compatible responses and deliberately dropped the accepted true-only
@@ -283,21 +266,13 @@ and removed the unprovable exact tab badge. This observes application navigation
 not native Auth0 restoration, advertising, physical system badges or provider receipt.
 Representative captures belong in the delivery PR Conversation, outside Git.
 
-Passed commands on this source:
+Reproduce the automated boundary through the repository toolchain:
 
-- `./mvnw -B -ntp -pl apps/backend verify -Dtest=NotificationsWebMvcTest,NotificationAccessWebMvcTest,NotificationContractWebMvcTest -Dit.test=InboxTraversalIntegrationTest,ReadInboxIntegrationTest,MarkNotificationReadIntegrationTest`: 58 HTTP/contract and 30 SQL cases.
-- `NX_DAEMON=false NX_LOAD_DOT_ENV_FILES=false npx nx run backend:verify --output-style=static`: 1,464 Surefire cases and 1,172 executed Failsafe cases; one optional parameter-consumer test skipped.
-- `NX_LOAD_DOT_ENV_FILES=false EXPO_NO_DOTENV=1 npm run test --workspace=@blockout/mobile -- --runInBand --reporters=default`: 164 suites/2,186 cases passed, one suite/six opt-in provider cases skipped; includes the 22 real Router cases.
-- Mobile Nx lint/typecheck, native-platform JavaScript exports and Expo Doctor (20/20) passed. Lint retains four pre-existing duplicate-import warnings in untouched document suites.
+- `./mvnw -B -ntp -pl apps/backend verify -Dtest=NotificationsWebMvcTest,NotificationAccessWebMvcTest,NotificationContractWebMvcTest -Dit.test=InboxTraversalIntegrationTest,ReadInboxIntegrationTest,MarkNotificationReadIntegrationTest`.
+- `NX_DAEMON=false NX_LOAD_DOT_ENV_FILES=false npx nx run backend:verify --output-style=static`. The independent optional parameter-consumer case requires its explicit opt-in.
+- `NX_LOAD_DOT_ENV_FILES=false EXPO_NO_DOTENV=1 npm run test --workspace=@blockout/mobile -- --runInBand --reporters=default`. Opt-in provider cases remain separate from standalone Jest.
 
-Two initial attempts did not pass: the HTTP test tried to decode responses with generated
-server DTOs, whose Java response-decoder behavior is not the selected client boundary;
-the test now asserts actual serialized JSON while mobile Zod validation remains unchanged.
-The default two-worker Jest run lost one worker to `SIGSEGV` before its nine-case suite
-could run. That suite and the complete suite passed in the README-supported serial mode.
-The combined Nx run was stopped after this worker failure; the backend target was then
-executed separately. No production dependency, worker configuration or test assertion was
-weakened to obtain these results.
+The generated server DTO decoder is outside the selected mobile response boundary: HTTP assertions use actual serialized JSON and mobile Zod validation remains unchanged. A parallel Jest worker has exited with `SIGSEGV`; its cause and worker/startup reliability remain unqualified. No production dependency or assertion is weakened to hide that limitation.
 
 T025 is complete within these generated/SQL/navigation boundaries.
 Physical system badges, APNs/FCM/Expo receipt and real credentials remain T041; full
@@ -414,11 +389,10 @@ build or provider/project mutation was performed by construction.
 | Account/destination races        | A → guest → A/B, token rotation, delayed removal/receipt and an old PUT already transmitted before reassociation; erase the original account through its actual F05 owner.                                                    | New connection/row identities protect replacements. A transmitted old PUT may win until the next ordinary current registration; no repair/replay loop or old private access. No system-notice recall is assumed.                     |
 | Provider failure/process loss    | Authorized controlled refusal/timeout/invalid-destination outcome and process shutdown before send/receipt; no private raw diagnostic in public evidence.                                                                     | Inbox remains committed, uncertainty is distinct from rejection, only the exact `DeviceNotRegistered` target is invalidated, receipts are observed once if available, and restart/overload causes no resend.                         |
 
-For each executed case, retain reviewed commit/native build, physical device/OS, isolated environment,
-scenario and passed/failed/unavailable result in the owning qualification evidence. Keep private
+For each executed case, keep exact source/build identifiers and detailed execution records outside Git in delivery evidence. The owning qualification retains platform, isolated environment, scenario and passed/failed/unavailable scope. Keep private
 addresses, credentials, ticket IDs and attachments outside this public repository. A successful
 sample does not establish delivery guarantees or complete the other outstanding F07 tasks.
 
 ## Original-account erasure construction (T038)
 
-`NotificationErasureIntegrationTest` uses the real F05 orchestrator and F06/F07 persistence, migrations and transactions. It removes hidden inbox rows and multiple destinations while preserving other accounts and consumed match facts, orders reassociation before and after erasure, and resumes captured delivery/receipt work against a newer association. No old provider handoff or invalidation reaches that association. The [F05 construction record](../005-accounts-identity/quickstart.md#server-erasure-construction) owns common rollback, writer-lock and adapter evidence. T038 began with a generated HTTP case failing against the 503 stub. This scoped local construction does not complete T040/T041, physical delivery, provider activation or F05's wider T035 qualification.
+`NotificationErasureIntegrationTest` uses the real F05 orchestrator and F06/F07 persistence, migrations and transactions. It removes hidden inbox rows and multiple destinations while preserving other accounts and consumed match facts, orders reassociation before and after erasure, and resumes captured delivery/receipt work against a newer association. No old provider handoff or invalidation reaches that association. The [F05 construction record](../005-accounts-identity/quickstart.md#server-erasure-construction) owns common rollback, writer-lock and adapter evidence. This scoped local construction does not complete T040/T041, physical delivery, provider activation or F05's wider T035 qualification.

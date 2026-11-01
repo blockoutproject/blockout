@@ -87,7 +87,6 @@ class FfvbObservationReaderIntegrationTest {
             16384,
             1,
             1,
-            1,
             20,
             Duration.ofMinutes(1),
             Duration.ZERO,

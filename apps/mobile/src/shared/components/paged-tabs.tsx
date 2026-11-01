@@ -1,387 +1,160 @@
-import { hiddenScrollIndicators } from "../native/scroll-indicators";
-import { BlurTargetView } from "expo-blur";
 import {
-  cloneElement,
-  createContext,
   useCallback,
-  useContext,
   useEffect,
-  useLayoutEffect,
-  useMemo,
   useRef,
   useState,
-  type ComponentRef,
-  type PropsWithChildren,
-  type ReactElement,
   type ReactNode,
-  type RefObject,
 } from "react";
-import {
-  StyleSheet,
-  View,
-  useWindowDimensions,
-  type RefreshControlProps,
-} from "react-native";
-import {
-  Tabs,
-  TabScrollView,
-  DefaultTabBar,
-  useActiveTabScrollY,
-  useCollapsingTabsContext,
-  useCollapseProgress,
-  useHeaderScrollY,
-  type CollapsingTabsRef,
-  type TabBarRenderProps,
-} from "react-native-collapsible-tab";
-import Animated, {
-  interpolateColor,
-  useAnimatedStyle,
-  type SharedValue,
-} from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Platform, StyleSheet, View } from "react-native";
+import PagerView from "react-native-pager-view";
 import { useTheme } from "../theme/theme-provider";
 import { useReducedMotion } from "../theme/use-reduced-motion";
 import { tokens } from "../theme/tokens";
-import { ScrollBackdrop, type ScrollBlurTarget } from "./scroll-backdrop";
-import {
-  BottomContentSpacer,
-  useBottomContentInset,
-} from "./bottom-content-inset";
+import { Tabs, type TabsProps } from "./tabs";
 
-/** RNCT owns offsets and measured header padding; native lists must not compensate that padding with a second scroll. */
-export const pagedListDefaults = {
-  ...hiddenScrollIndicators,
-  maintainVisibleContentPosition: false,
-} as const;
-
-/** Scene-local presentation signal; RNCT remains the sole owner of scroll offsets. */
-const TabFeedbackContext = createContext<((feedback: boolean) => void) | null>(
-  null,
-);
-
-/**
- * Feedback keeps native overflow and refresh while only reading RNCT's current chrome geometry.
- * With no usable rows it neither registers a tab scroll handle nor drives header collapse.
- * Its scene uses the opaque page canvas instead of blurring absent content beneath the shared header.
- * Oversized chrome uses the stock adapter so its actual overflow can collapse; loaded lists stay unchanged.
- */
-export function PagedStateScrollView({
-  children,
-  refreshControl,
-}: PropsWithChildren<{ refreshControl?: ReactElement<RefreshControlProps> }>) {
-  const reportFeedback = useContext(TabFeedbackContext);
-  useLayoutEffect(() => {
-    reportFeedback?.(true);
-    return () => reportFeedback?.(false);
-  }, [reportFeedback]);
-  const { containerHeight, paddingTop } = useCollapsingTabsContext();
-  const collapse = useHeaderScrollY();
-  const bottomContentInset = useBottomContentInset();
-  const visibleArea = useAnimatedStyle(() => ({
-    minHeight: containerHeight,
-    paddingTop: paddingTop - collapse.value,
-  }));
-  const refresh =
-    refreshControl &&
-    cloneElement(refreshControl, { progressViewOffset: paddingTop });
-  // Oversized chrome is real overflow: the stock adapter must let the user collapse it to reach feedback.
-  if (containerHeight > 0 && paddingTop > containerHeight - bottomContentInset)
-    return (
-      <TabScrollView
-        {...hiddenScrollIndicators}
-        contentContainerStyle={styles.stateContent}
-        alwaysBounceVertical={!!refreshControl}
-        refreshControl={refresh}
-      >
-        {children}
-        <BottomContentSpacer />
-      </TabScrollView>
-    );
-  return (
-    <Animated.ScrollView
-      {...hiddenScrollIndicators}
-      contentContainerStyle={styles.stateContent}
-      scrollIndicatorInsets={{ top: paddingTop }}
-      alwaysBounceVertical={!!refreshControl}
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="on-drag"
-      refreshControl={refresh}
-    >
-      <Animated.View style={visibleArea}>
-        {children}
-        <BottomContentSpacer />
-      </Animated.View>
-    </Animated.ScrollView>
-  );
-}
-
-/** Stable feature identities and their explicitly composed content; data stays with each feature. */
+/** Stable feature identities and their explicitly composed scenes; data remains feature-owned. */
 export interface PagedTab {
   id: string;
   label: string;
   content: ReactNode;
 }
 
-/**
- * One native pager with retained lazy pages, measured chrome and official scroll adapters.
- * Compose inside Page without its top edge: this pattern owns the top inset and fixed header.
- * Header is the pinned navigation; collapsibleHeader is optional content that leaves beneath it.
- */
+/** Fixed opaque controls above independently scrolling native scenes; Page owns the safe areas. */
 export interface PagedTabsProps {
-  /** Object ref exposes RNCT native commands for feature-owned context changes, without another scroll owner. */
-  ref?: RefObject<CollapsingTabsRef | null>;
   tabs: readonly PagedTab[];
   selected: string;
   onSelect: (id: string) => void;
   header?: ReactNode;
-  collapsibleHeader?: ReactNode;
-  renderTabBar?: (props: TabBarRenderProps) => ReactNode;
+  /** Wraps the existing choices with feature controls, without exposing the native command. */
+  renderTabBar?: (tabBar: ReactNode) => ReactNode;
 }
 
-/** Bridges caller-owned tab identities to RNCT's public ref, without owning selection or scroll offsets. */
+/** Adapts settled native pages to feature identities without shared vertical geometry or progress. */
 export function PagedTabs({
-  ref: nativePager,
   tabs,
   selected,
   onSelect,
   header,
-  collapsibleHeader,
   renderTabBar,
 }: PagedTabsProps) {
-  const internalPager = useRef<CollapsingTabsRef>(null);
-  const pager = nativePager ?? internalPager;
+  const pager = useRef<PagerView>(null);
+  const index = Math.max(
+    0,
+    tabs.findIndex((tab) => tab.id === selected),
+  );
+  const reported = useRef(index);
+  const terminal = useRef(index);
+  const instantTarget = useRef<number | null>(null);
+  const controlled = useRef(index);
   const reducedMotion = useReducedMotion();
-  const insets = useSafeAreaInsets();
-  const [pinnedHeight, setPinnedHeight] = useState(
-    Math.max(insets.top, tokens.spacing.sm),
-  );
-  const [targets, setTargets] = useState<
-    Record<string, ComponentRef<typeof View> | null>
-  >({});
-  const registerTarget = useCallback(
-    (id: string, target: ComponentRef<typeof View> | null) => {
-      setTargets((current) => {
-        if (current[id] === target) return current;
-        if (target) return { ...current, [id]: target };
-        const next = { ...current };
-        delete next[id];
-        return next;
-      });
+  const { colors } = useTheme();
+
+  /** iOS's animated selected event is early; only an explicit nonanimated command uses it. */
+  const move = useCallback(
+    (position: number) => {
+      instantTarget.current = reducedMotion ? position : null;
+      if (reducedMotion) pager.current?.setPageWithoutAnimation(position);
+      else pager.current?.setPage(position);
     },
-    [],
+    [reducedMotion],
   );
-  const target: ScrollBlurTarget = useMemo(
-    () => (targets[selected] ? { current: targets[selected] } : undefined),
-    [selected, targets],
-  );
+
+  /** Suppresses duplicate native confirmations while leaving selected business scope with the feature. */
+  function settle(position: number) {
+    const tab = tabs[position];
+    if (!tab || reported.current === position) return;
+    reported.current = position;
+    if (tab.id !== selected) onSelect(tab.id);
+  }
+
   useEffect(() => {
-    if (
-      tabs.some((tab) => tab.id === selected) &&
-      pager.current?.getFocusedTab() !== selected
-    )
-      pager.current?.jumpToTab(selected, !reducedMotion);
-  }, [selected, tabs, reducedMotion, pager]);
-  return (
-    <Tabs.Container
-      ref={pager}
-      lazy
-      initialTabName={selected}
-      minHeaderHeight={pinnedHeight}
-      headerBackgroundColor="transparent"
-      pagerProps={{
-        testID: "native-tabs-pager",
-        keyboardDismissMode: "on-drag",
-      }}
-      onTabChange={({ tabName }) => {
-        if (tabName !== selected) onSelect(tabName);
-      }}
-      renderHeader={() => (
-        <PagedHeader
-          target={target}
-          pinnedHeight={pinnedHeight}
-          onPinnedHeight={setPinnedHeight}
-          header={header}
-          collapsibleHeader={collapsibleHeader}
-        />
-      )}
-      renderTabBar={(props) => {
-        const presentation = {
-          ...props,
-          onTabPress: (name: string) =>
-            pager.current?.jumpToTab(name, !reducedMotion),
-        };
-        return renderTabBar ? (
-          renderTabBar(presentation)
-        ) : (
-          <PagerTabBar {...presentation} />
-        );
-      }}
-    >
-      {tabs.map((tab) => (
-        <Tabs.Tab key={tab.id} name={tab.id} label={tab.label}>
-          <TabContent
-            id={tab.id}
-            active={selected === tab.id}
-            registerTarget={registerTarget}
-          >
-            {tab.content}
-          </TabContent>
-        </Tabs.Tab>
-      ))}
-    </Tabs.Container>
-  );
-}
+    // A content rerender or preference change must not replay the old prop during an in-flight tap.
+    if (controlled.current === index) return;
+    controlled.current = index;
+    if (reported.current === index) return;
+    move(index);
+  }, [index, move]);
 
-/** Usable scenes publish a blur target; feedback keeps the page canvas and inactive content stays inaccessible. */
-function TabContent({
-  id,
-  active,
-  registerTarget,
-  children,
-}: {
-  id: string;
-  active: boolean;
-  registerTarget: (id: string, node: ComponentRef<typeof View> | null) => void;
-  children: ReactNode;
-}) {
-  const [feedback, setFeedback] = useState(false);
-  const ref = useCallback(
-    (node: ComponentRef<typeof View> | null) =>
-      registerTarget(id, feedback ? null : node),
-    [feedback, id, registerTarget],
+  const choices: TabsProps = {
+    items: tabs,
+    selected,
+    onSelect: (id) => {
+      const position = tabs.findIndex((tab) => tab.id === id);
+      if (position >= 0) move(position);
+    },
+  };
+  const choicesNode = <Tabs {...choices} />;
+  const tabBar = renderTabBar ? (
+    renderTabBar(choicesNode)
+  ) : (
+    <View style={styles.rail}>{choicesNode}</View>
   );
   return (
-    <TabFeedbackContext value={setFeedback}>
-      <BlurTargetView
-        ref={ref}
+    <View style={[styles.fill, { backgroundColor: colors.canvas }]}>
+      {header}
+      {tabBar}
+      <PagerView
+        ref={pager}
+        testID="native-tabs-pager"
         style={styles.fill}
-        accessibilityElementsHidden={!active}
-        importantForAccessibility={active ? "auto" : "no-hide-descendants"}
-      >
-        {children}
-      </BlurTargetView>
-    </TabFeedbackContext>
-  );
-}
-
-/** Fixed navigation clips retracting content; a standalone Home brand fades through the transparent top area. */
-function PagedHeader({
-  target,
-  pinnedHeight,
-  onPinnedHeight,
-  header,
-  collapsibleHeader,
-}: {
-  target: ScrollBlurTarget;
-  pinnedHeight: number;
-  onPinnedHeight: (height: number) => void;
-  header: ReactNode;
-  collapsibleHeader: ReactNode;
-}) {
-  const insets = useSafeAreaInsets();
-  const { headerHeight, tabBarHeight } = useCollapsingTabsContext();
-  const collapse = useHeaderScrollY();
-  const progress = useCollapseProgress();
-  const scrollY = useActiveTabScrollY();
-  const hasPinnedHeader = !!header;
-  const pinned = useAnimatedStyle(() => ({
-    transform: [{ translateY: collapse.value }],
-  }));
-  const scrolling = useAnimatedStyle(() => ({
-    transform: [{ translateY: -collapse.value }],
-    opacity: hasPinnedHeader ? 1 : 1 - progress.value,
-  }));
-  return (
-    <View style={{ paddingTop: pinnedHeight }}>
-      <ScrollBackdrop
-        target={target}
-        height={headerHeight + tabBarHeight}
-        scrollY={scrollY}
-      />
-      <Animated.View style={[hasPinnedHeader && styles.clip, pinned]}>
-        <Animated.View style={scrolling}>{collapsibleHeader}</Animated.View>
-      </Animated.View>
-      <Animated.View pointerEvents="box-none" style={[styles.pinned, pinned]}>
-        <View
-          style={{ paddingTop: Math.max(insets.top, tokens.spacing.sm) }}
-          onLayout={({ nativeEvent }) =>
-            onPinnedHeight(nativeEvent.layout.height)
+        initialPage={index}
+        keyboardDismissMode="on-drag"
+        onPageSelected={({ nativeEvent }) => {
+          const position = nativeEvent.position;
+          if (Platform.OS === "android" || instantTarget.current === position) {
+            instantTarget.current = null;
+            terminal.current = position;
+            settle(position);
           }
-        >
-          {header}
-        </View>
-      </Animated.View>
+        }}
+        onPageScroll={
+          Platform.OS === "ios"
+            ? ({ nativeEvent }) => {
+                if (nativeEvent.offset === 0)
+                  terminal.current = nativeEvent.position;
+              }
+            : undefined
+        }
+        onPageScrollStateChanged={
+          Platform.OS === "ios"
+            ? ({ nativeEvent }) => {
+                if (nativeEvent.pageScrollState === "dragging")
+                  instantTarget.current = null;
+                if (nativeEvent.pageScrollState === "idle")
+                  settle(terminal.current);
+              }
+            : undefined
+        }
+      >
+        {tabs.map((tab) => (
+          <Scene key={tab.id} active={selected === tab.id}>
+            {tab.content}
+          </Scene>
+        ))}
+      </PagerView>
     </View>
   );
 }
 
-/** Stock RNCT geometry drives the pill and the same continuous label-color progress during taps and swipes. */
-export function PagerTabBar(props: TabBarRenderProps) {
-  const { colors, membership } = useTheme();
+/** First selection mounts the scene once; retained children own their native position and resource lifetime. */
+function Scene({ active, children }: { active: boolean; children: ReactNode }) {
+  const [visited, setVisited] = useState(active);
+  if (active && !visited) setVisited(true);
   return (
-    <DefaultTabBar
-      {...props}
-      backgroundColor="transparent"
-      activeColor={membership.content}
-      inactiveColor={colors.secondaryText}
-      indicatorColor={membership.fill}
-      style={styles.bar}
-      tabStyle={styles.tab}
-      indicatorStyle={styles.indicator}
-      renderLabel={({ label, index }) => (
-        <PagerLabel label={label} index={index} position={props.indexDecimal} />
-      )}
-    />
-  );
-}
-
-/** Large labels wrap inside the viewport; color follows the library position without React frame updates. */
-function PagerLabel({
-  label,
-  index,
-  position,
-}: {
-  label: string;
-  index: number;
-  position: SharedValue<number>;
-}) {
-  const { colors, membership } = useTheme();
-  const { width } = useWindowDimensions();
-  const animated = useAnimatedStyle(() => ({
-    color: interpolateColor(
-      Math.max(0, 1 - Math.abs(position.value - index)),
-      [0, 1],
-      [colors.secondaryText, membership.content],
-    ),
-  }));
-  return (
-    <Animated.Text
-      numberOfLines={2}
-      style={[
-        styles.label,
-        { maxWidth: width - 2 * tokens.spacing.screen },
-        animated,
-      ]}
+    <View
+      collapsable={false}
+      style={styles.scene}
+      pointerEvents={active ? "auto" : "none"}
+      accessibilityElementsHidden={!active}
+      importantForAccessibility={active ? "auto" : "no-hide-descendants"}
     >
-      {label}
-    </Animated.Text>
+      {visited ? children : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  stateContent: { flexGrow: 1 },
   fill: { flex: 1 },
-  clip: { overflow: "hidden" },
-  pinned: { position: "absolute", left: 0, right: 0, top: 0, zIndex: 1 },
-  // RNCT supplies 12 points inside the rail; four more retain the shared 16-point page edge.
-  bar: { borderBottomWidth: 0, paddingHorizontal: tokens.spacing.xs },
-  tab: {
-    minHeight: tokens.touch.minimum,
-    paddingHorizontal: tokens.spacing.lg,
-    paddingVertical: tokens.spacing.sm,
-    marginRight: tokens.spacing.md,
-    zIndex: 1,
-  },
-  indicator: { height: "100%", borderRadius: tokens.radius.control },
-  label: { ...tokens.typography.label, textAlign: "center" },
+  scene: { width: "100%", height: "100%" },
+  rail: { paddingHorizontal: tokens.spacing.screen },
 });

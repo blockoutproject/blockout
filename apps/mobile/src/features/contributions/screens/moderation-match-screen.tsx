@@ -1,19 +1,8 @@
 import { useNavigation } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import {
-  AppState,
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-  type ScrollViewProps,
-} from "react-native";
-import {
-  KeyboardProvider,
-  KeyboardAwareScrollView,
-} from "react-native-keyboard-controller";
-import { useCollapsingTabsContext } from "react-native-collapsible-tab";
-import { TabLegendList } from "react-native-collapsible-tab/legend-list";
+import { hashKey } from "@tanstack/react-query";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { AppState, StyleSheet, Text, View } from "react-native";
+import { LegendList } from "@legendapp/list/react-native";
 import type {
   ModeratedStreamContributionsResponse,
   ModeratedStreamContributionResponse,
@@ -25,12 +14,14 @@ import { Button } from "../../../shared/components/button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { ListContinuation } from "../../../shared/components/list-continuation";
-import { Page, pageContentStyle } from "../../../shared/components/page";
 import {
-  PagedTabs,
-  PagedStateScrollView,
-  pagedListDefaults,
-} from "../../../shared/components/paged-tabs";
+  Page,
+  PageScrollView,
+  pageContentStyle,
+} from "../../../shared/components/page";
+import { FormScrollView } from "../../../shared/components/form-scroll-view";
+import { PagedTabs } from "../../../shared/components/paged-tabs";
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { PageHeader } from "../../../shared/components/page-header";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
@@ -137,8 +128,8 @@ export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
         );
     }
   }
-  const content = (
-    <Page edges={["left", "right", "bottom"]}>
+  return (
+    <Page>
       <PagedTabs
         selected={tab}
         onSelect={setTab}
@@ -198,11 +189,6 @@ export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
       />
     </Page>
   );
-  return Platform.OS === "android" ? (
-    <KeyboardProvider>{content}</KeyboardProvider>
-  ) : (
-    content
-  );
 }
 
 /** The stable active tab retains RHF input across native tab switches and ordinary read outages. */
@@ -247,15 +233,21 @@ function ActiveScene({
     (editing.profile.isPending || (editing.allowed && editing.query.isPending))
   )
     return (
-      <PagedStateScrollView>
-        <View style={[pageContentStyle, styles.list]}>
+      <PageScrollView
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        <View style={pageContentStyle}>
           <ModerationMatchLoading editor />
         </View>
-      </PagedStateScrollView>
+      </PageScrollView>
     );
   if (!current)
     return (
-      <PagedStateScrollView>
+      <PageScrollView
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         <ScreenState>
           {!editing.canRetain && editing.profile.isSuccess ? (
             <Text style={[tokens.typography.body, { color: colors.text }]}>
@@ -271,22 +263,12 @@ function ActiveScene({
             />
           )}
         </ScreenState>
-      </PagedStateScrollView>
+      </PageScrollView>
     );
   const published = current.activeContribution;
   return (
-    <TabLegendList<never>
-      {...pagedListDefaults}
-      recycleItems={false}
-      accessibilityLabel="Lien actif et signalements"
-      data={[]}
-      renderItem={() => null}
-      automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
-      keyboardShouldPersistTaps="handled"
-      renderScrollComponent={
-        Platform.OS === "android" ? renderModerationKeyboardScroll : undefined
-      }
-      contentContainerStyle={[pageContentStyle, styles.list]}
+    <FormScrollView
+      contentContainerStyle={pageContentStyle}
       refreshControl={
         <DataRefreshControl
           enabled={active && !busy}
@@ -294,62 +276,59 @@ function ActiveScene({
           onRefresh={() => void refresh()}
         />
       }
-      ListHeaderComponent={
-        <View style={styles.header}>
-          {confirmed && (
-            <Text
-              accessibilityLiveRegion="polite"
-              style={[tokens.typography.strong, { color: colors.text }]}
-            >
-              Décision confirmée
-            </Text>
-          )}
-          {editing.profile.isError && (
-            <Button
-              label="Réessayer le profil"
-              loading={editing.profile.isFetching}
-              onPress={() => void editing.profile.refetch()}
-            />
-          )}
-          <ModerationMatchContext match={current.match} />
+    >
+      <View style={styles.header}>
+        {confirmed && (
+          <Text
+            accessibilityLiveRegion="polite"
+            style={[tokens.typography.strong, { color: colors.text }]}
+          >
+            Décision confirmée
+          </Text>
+        )}
+        {editing.profile.isError && (
+          <Button
+            label="Réessayer le profil"
+            loading={editing.profile.isFetching}
+            onPress={() => void editing.profile.refetch()}
+          />
+        )}
+        <ModerationMatchContext match={current.match} />
 
-          {!published && (
-            <Text
-              style={[tokens.typography.body, { color: colors.secondaryText }]}
-            >
-              Aucun lien actif
-            </Text>
-          )}
-          {(published || current.canPublish) && (
-            <ModerationPublicationForm
-              ref={form}
-              current={current}
-              editing={editing}
-              onWithdraw={() => {
-                if (published)
-                  onAction(published, "withdraw", current.revision);
-              }}
-              onSuccess={onSuccess}
-            >
-              {published && (
-                <ContributionHistory
-                  key={published.id}
-                  matchId={matchId}
-                  contribution={published}
-                  detailsOnly
-                  busy={busy}
-                />
-              )}
-            </ModerationPublicationForm>
-          )}
-        </View>
-      }
-      ListFooterComponent={<BottomContentSpacer />}
-    />
+        {!published && (
+          <Text
+            style={[tokens.typography.body, { color: colors.secondaryText }]}
+          >
+            Aucun lien actif
+          </Text>
+        )}
+        {(published || current.canPublish) && (
+          <ModerationPublicationForm
+            ref={form}
+            current={current}
+            editing={editing}
+            onWithdraw={() => {
+              if (published) onAction(published, "withdraw", current.revision);
+            }}
+            onSuccess={onSuccess}
+          >
+            {published && (
+              <ContributionHistory
+                key={published.id}
+                matchId={matchId}
+                contribution={published}
+                detailsOnly
+                busy={busy}
+              />
+            )}
+          </ModerationPublicationForm>
+        )}
+      </View>
+    </FormScrollView>
   );
 }
 
-/** Each proposal/history scene uses the same native list adapter and continuation footer as existing application lists. */
+/** Each proposal/history scene retains its native list and explicit continuation footer independently. */
 function VersionScene({
   matchId,
   state,
@@ -385,7 +364,19 @@ function VersionScene({
       ]
     : [];
   const navigation = useNavigation();
-  const { focusedTab } = useCollapsingTabsContext();
+  const identity = hashKey([
+    reading.session.subject,
+    reading.session.accountId,
+    matchId,
+    state,
+  ]);
+  const currentScene = useRef<string | undefined>(undefined);
+  useLayoutEffect(() => {
+    currentScene.current = active && reading.allowed ? identity : undefined;
+    return () => {
+      currentScene.current = undefined;
+    };
+  }, [active, reading.allowed, identity]);
   const feedback = useActionFeedback();
   const { colors } = useTheme();
   /** Rereads this traversal and shared active context; independent read failures never discard authorized rows. */
@@ -398,13 +389,17 @@ function VersionScene({
         reading.refresh(),
         refreshContext(),
       ]);
-      if (results.some((result) => result.status === "rejected"))
+      if (
+        currentScene.current === identity &&
+        navigation.isFocused() &&
+        results.some((result) => result.status === "rejected")
+      )
         feedback.error();
     } finally {
       setRefreshing(false);
     }
   }
-  /** RNCT focus and the existing native end event own continuation, with an explicit footer retry after failure. */
+  /** Only the current scene may report a late continuation failure; its footer retries the original cursor. */
   async function more() {
     if (
       !active ||
@@ -423,7 +418,7 @@ function VersionScene({
     if (
       result.isFetchNextPageError &&
       navigation.isFocused() &&
-      focusedTab.value === state
+      currentScene.current === identity
     )
       feedback.error();
   }
@@ -432,15 +427,21 @@ function VersionScene({
     (reading.profile.isPending || (reading.allowed && query.isPending))
   )
     return (
-      <PagedStateScrollView>
-        <View style={[pageContentStyle, styles.list]}>
+      <PageScrollView
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        <View style={pageContentStyle}>
           <ModerationMatchLoading />
         </View>
-      </PagedStateScrollView>
+      </PageScrollView>
     );
   if (!current)
     return (
-      <PagedStateScrollView>
+      <PageScrollView
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         <ScreenState>
           {!reading.canRetain && reading.profile.isSuccess ? (
             <Text style={[tokens.typography.body, { color: colors.text }]}>
@@ -456,18 +457,19 @@ function VersionScene({
             />
           )}
         </ScreenState>
-      </PagedStateScrollView>
+      </PageScrollView>
     );
   return (
-    <TabLegendList
-      {...pagedListDefaults}
+    <LegendList
+      key={identity}
+      {...hiddenScrollIndicators}
       recycleItems={false}
       accessibilityLabel={
         state === "pending" ? "Propositions de liens" : "Historique des liens"
       }
       data={rows}
       keyExtractor={(item) => item.id}
-      contentContainerStyle={[pageContentStyle, styles.list]}
+      contentContainerStyle={pageContentStyle}
       ItemSeparatorComponent={ListSeparator}
       onEndReached={() => {
         if (!query.isError) void more();
@@ -539,14 +541,9 @@ function VersionScene({
     />
   );
 }
-/** Keeps the existing Android keyboard owner on the pager list's own supported scroll component. */
-function renderModerationKeyboardScroll(props: ScrollViewProps) {
-  return <KeyboardAwareScrollView {...props} />;
-}
 const styles = StyleSheet.create({
   header: {
     gap: tokens.layout.list.gap,
     paddingBottom: tokens.layout.list.gap,
   },
-  list: { paddingTop: tokens.layout.content.start },
 });

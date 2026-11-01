@@ -10,7 +10,6 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
-import java.time.Instant;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.event.Level;
@@ -79,18 +78,6 @@ public class CollectionOperationalDiagnostics {
                   .result(control.id(), event.scopeId(), event.stage(), event.phase())
                   .orElseThrow();
           boolean success = result.outcome() == CollectionOutcomeEnum.SUCCESS;
-          boolean structural = result.firstStructuralFailureAt() != null;
-          boolean delayed =
-              !structural
-                  && result.phase() == CollectionPhaseEnum.ACQUISITION
-                  && (control.family() == CollectionFamilyEnum.CLUB_SHEETS
-                      || control.family() == CollectionFamilyEnum.GEOCODING);
-          Instant alertAt =
-              success
-                  ? null
-                  : structural
-                      ? result.firstStructuralFailureAt()
-                      : result.firstFailureAt().plusSeconds(delayed ? 86_400 : 0);
           log.atLevel(success ? Level.INFO : Level.WARN)
               .addKeyValue("operation", "collection_evidence")
               .addKeyValue("collection_control", control.id())
@@ -110,10 +97,7 @@ public class CollectionOperationalDiagnostics {
               .addKeyValue("collection_cycle_order", result.cycleOrder())
               .addKeyValue("collection_read_ordinal", result.readOrdinal())
               .addKeyValue("collection_observed_at", result.observedAt())
-              .addKeyValue("collection_first_failure_at", result.firstFailureAt())
-              .addKeyValue(
-                  "collection_first_structural_failure_at", result.firstStructuralFailureAt())
-              .addKeyValue("collection_alert_at", epoch(alertAt))
+              .addKeyValue("collection_actionable", success ? 0 : 1)
               .addKeyValue("last_success_at", result.lastSuccessAt())
               .addKeyValue("affected_count", bounded(result.obtainedCount()))
               .addKeyValue("partial_count", bounded(result.rejectedCount()))
@@ -233,15 +217,5 @@ public class CollectionOperationalDiagnostics {
    */
   private Long bounded(Long count) {
     return count == null ? null : Math.min(count, REPORT_LIMIT);
-  }
-
-  /**
-   * Supplies a numeric LogQL deadline; zero denotes a new usable observation at this exact key.
-   *
-   * @param instant first failure's actionable instant, or null after recovery
-   * @return epoch seconds with subsecond evidence retained for threshold evaluation
-   */
-  private double epoch(Instant instant) {
-    return instant == null ? 0 : instant.getEpochSecond() + instant.getNano() / 1_000_000_000.0;
   }
 }

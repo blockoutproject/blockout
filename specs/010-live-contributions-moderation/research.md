@@ -38,7 +38,7 @@ The private owner collection also projects its exact active member independently
 
 ## Evidence limits
 
-The owner approved prototype [5413817](https://github.com/blockoutproject/product-prototype/commit/54138170f14775fe11132aaa61433329059cbfbb), then the scoped Figma reconciliation linked in [plan.md](plan.md), in the planning conversation. Prototype tests (206), TypeScript and its build passed; browser checks covered complete moderator actions, unavailable report reasons and current-state recovery. These observations establish fictional web behavior only.
+The [approved design](plan.md#approved-design-and-evidence) covers complete moderator actions, unavailable report reasons and current-state recovery. Prototype browser observations establish fictional web behavior only, independently of native/provider qualification.
 
 Documentation establishes native capabilities; [quickstart](quickstart.md) records actual generation/compilation, PostgreSQL concurrency and owner-integration results with their controlled boundaries. Native networking/accessibility and remaining F07 qualifications require their own evidence. Source inspection alone performs no provider operation or runtime qualification.
 

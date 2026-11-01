@@ -52,10 +52,6 @@ class TransitionIdentityIntegrationTest {
   private static final String SUBJECT = "google-oauth2|retained";
   private static final Instant CREATED = Instant.parse("2020-01-02T03:04:05Z");
   private static final UUID OLD = UUID.fromString("00000000-0000-4000-8000-000000000338");
-  private static final List<PrincipalReader.Identity> LINKED =
-      List.of(
-          new PrincipalReader.Identity("google-oauth2", "google-oauth2"),
-          new PrincipalReader.Identity("apple", "apple"));
   @Autowired private EstablishAccount establishment;
   @Autowired private ReadAccount accounts;
   @Autowired private EraseAccount erasure;
@@ -87,8 +83,8 @@ class TransitionIdentityIntegrationTest {
     sql.update("DELETE FROM account WHERE id=?", OLD);
     when(provider.read(ISSUER, SUBJECT))
         .thenReturn(
-            new PrincipalReader.Evidence("google@example.invalid", CREATED, LINKED),
-            new PrincipalReader.Evidence("apple@privaterelay.example.invalid", CREATED, LINKED));
+            new PrincipalReader.Evidence("google@example.invalid", CREATED),
+            new PrincipalReader.Evidence("apple@privaterelay.example.invalid", CREATED));
 
     // When
     mvc.perform(post("/accounts").with(principal(SUBJECT))).andExpect(status().isCreated());
@@ -117,9 +113,9 @@ class TransitionIdentityIntegrationTest {
     // Given
     String other = "apple|unlinked";
     when(provider.read(ISSUER, SUBJECT))
-        .thenReturn(new PrincipalReader.Evidence("shared@example.invalid", CREATED, LINKED));
+        .thenReturn(new PrincipalReader.Evidence("shared@example.invalid", CREATED));
     when(provider.read(ISSUER, other))
-        .thenReturn(new PrincipalReader.Evidence(secondEmail, CREATED, List.of()));
+        .thenReturn(new PrincipalReader.Evidence(secondEmail, CREATED));
     Account first = establishment.establish(ISSUER, SUBJECT).view().account();
 
     // When
@@ -141,8 +137,7 @@ class TransitionIdentityIntegrationTest {
   @DisplayName("Suspends email-less first creation until an explicit usable-evidence retry")
   void retriesMissingEmailExplicitly(String email) throws Exception {
     // Given
-    when(provider.read(ISSUER, SUBJECT))
-        .thenReturn(new PrincipalReader.Evidence(email, CREATED, LINKED));
+    when(provider.read(ISSUER, SUBJECT)).thenReturn(new PrincipalReader.Evidence(email, CREATED));
 
     // When
     mvc.perform(post("/accounts").with(principal(SUBJECT)))
@@ -156,7 +151,7 @@ class TransitionIdentityIntegrationTest {
 
     // When
     when(provider.read(ISSUER, SUBJECT))
-        .thenReturn(new PrincipalReader.Evidence("recovered@example.invalid", CREATED, LINKED));
+        .thenReturn(new PrincipalReader.Evidence("recovered@example.invalid", CREATED));
     mvc.perform(post("/accounts").with(principal(SUBJECT))).andExpect(status().isCreated());
 
     // Then
@@ -169,9 +164,9 @@ class TransitionIdentityIntegrationTest {
   void retainsTrustworthyAge() {
     // Given
     when(provider.read(ISSUER, SUBJECT))
-        .thenReturn(new PrincipalReader.Evidence("known@example.invalid", null, LINKED))
+        .thenReturn(new PrincipalReader.Evidence("known@example.invalid", null))
         .thenThrow(new AccountUnavailableException())
-        .thenReturn(new PrincipalReader.Evidence(null, CREATED, LINKED))
+        .thenReturn(new PrincipalReader.Evidence(null, CREATED))
         .thenThrow(new AccountUnavailableException());
     Account initial = establishment.establish(ISSUER, SUBJECT).view().account();
     assertThat(initial.principalCreatedAt()).isNull();
@@ -200,7 +195,7 @@ class TransitionIdentityIntegrationTest {
   void appliesCurrentGrants() throws Exception {
     // Given
     when(provider.read(ISSUER, SUBJECT))
-        .thenReturn(new PrincipalReader.Evidence("owner@example.invalid", CREATED, LINKED));
+        .thenReturn(new PrincipalReader.Evidence("owner@example.invalid", CREATED));
     Account current = establishment.establish(ISSUER, SUBJECT).view().account();
     sql.update("INSERT INTO account_permission VALUES (?,'maintenance.manage')", current.id());
 
@@ -236,7 +231,7 @@ class TransitionIdentityIntegrationTest {
   void recreatesAfterBusinessErasure(boolean principalSurvives) {
     // Given
     when(provider.read(ISSUER, SUBJECT))
-        .thenReturn(new PrincipalReader.Evidence("owner@example.invalid", CREATED, LINKED));
+        .thenReturn(new PrincipalReader.Evidence("owner@example.invalid", CREATED));
     Account original = establishment.establish(ISSUER, SUBJECT).view().account();
     sql.update("UPDATE account SET username='Former_profile' WHERE id=?", original.id());
     sql.update("INSERT INTO account_permission VALUES (?,'maintenance.manage')", original.id());
@@ -244,8 +239,7 @@ class TransitionIdentityIntegrationTest {
     Instant currentCreated = principalSurvives ? CREATED : Instant.parse("2026-10-31T12:00:00Z");
     if (!principalSurvives)
       when(provider.read(ISSUER, currentSubject))
-          .thenReturn(
-              new PrincipalReader.Evidence("owner@example.invalid", currentCreated, List.of()));
+          .thenReturn(new PrincipalReader.Evidence("owner@example.invalid", currentCreated));
     when(auth0Cleanup.remove(ISSUER, SUBJECT))
         .thenReturn(
             principalSurvives

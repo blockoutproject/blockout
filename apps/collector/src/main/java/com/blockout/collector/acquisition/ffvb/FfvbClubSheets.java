@@ -41,7 +41,7 @@ public class FfvbClubSheets implements ClubSheets {
   @Override
   public SportingObservation.Club read(String reference) {
     if (reference == null || reference.isBlank()) throw invalid();
-    ProviderResponse response = http.page(LOOKUP).join();
+    ProviderResponse response = http.page(LOOKUP);
     Document document =
         Jsoup.parse(new String(response.body(), FfvbPage.CHARSET), response.url().toString());
     List<FormElement> forms =
@@ -66,7 +66,7 @@ public class FfvbClubSheets implements ClubSheets {
             .toList();
     if (fields.stream().filter(field -> field.getName().equals("id_club")).count() != 1)
       throw invalid();
-    return parse(http.post(URI.create(form.absUrl("action")), fields).join(), reference);
+    return parse(http.post(URI.create(form.absUrl("action")), fields), reference);
   }
 
   /**

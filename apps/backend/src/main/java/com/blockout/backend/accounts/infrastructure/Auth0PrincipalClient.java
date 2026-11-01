@@ -4,14 +4,11 @@ import com.auth0.client.mgmt.ManagementApi;
 import com.auth0.client.mgmt.core.ManagementException;
 import com.auth0.client.mgmt.types.GetUserRequestParameters;
 import com.auth0.client.mgmt.types.GetUserResponseContent;
-import com.auth0.client.mgmt.types.UserIdentitySchema;
 import com.blockout.backend.accounts.application.PrincipalReader;
 import com.blockout.backend.accounts.application.exception.AccountUnavailableException;
 import jakarta.validation.Validator;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
@@ -33,26 +30,15 @@ public class Auth0PrincipalClient implements PrincipalReader {
               .get(
                   subject,
                   GetUserRequestParameters.builder()
-                      .fields("user_id,email,created_at,identities")
+                      .fields("user_id,email,created_at")
                       .includeFields(true)
                       .build());
       if (principal.getUserId().filter(subject::equals).isEmpty())
         throw new AccountUnavailableException();
       String candidate = principal.getEmail().orElse(null);
       String email = validator.validate(new ProviderEmail(candidate)).isEmpty() ? candidate : null;
-      List<Identity> identities = new ArrayList<>();
-      for (UserIdentitySchema identity : principal.getIdentities().orElse(List.of())) {
-        if (identity.getProvider().isPresent() && identity.getConnection().isPresent()) {
-          identities.add(
-              new Identity(
-                  identity.getProvider().orElseThrow().toString(),
-                  identity.getConnection().orElseThrow()));
-        }
-      }
       return new Evidence(
-          email,
-          principal.getCreatedAt().map(java.time.OffsetDateTime::toInstant).orElse(null),
-          List.copyOf(identities));
+          email, principal.getCreatedAt().map(java.time.OffsetDateTime::toInstant).orElse(null));
     } catch (ManagementException
         | OAuth2AuthorizationException
         | AccountUnavailableException failure) {

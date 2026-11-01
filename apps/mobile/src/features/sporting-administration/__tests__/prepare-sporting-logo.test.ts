@@ -16,7 +16,7 @@ const original = {
   uri: "file:///original.jpg",
   size: 2_521_838,
   type: "image/jpeg",
-  copy: jest.fn(),
+  copy: jest.fn<Promise<void>, [File]>(),
   delete: jest.fn(),
 };
 const copy = {
@@ -49,7 +49,7 @@ const asset = {
 beforeEach(() => {
   jest.clearAllMocks();
   output.size = 12_273_912;
-  original.copy.mockReset();
+  original.copy.mockReset().mockResolvedValue(undefined);
   jest
     .mocked(File)
     .mockImplementation(
@@ -87,6 +87,34 @@ it("copies an admissible JPEG without encoding or taking ownership of the borrow
   expect(copy.delete).not.toHaveBeenCalled();
 });
 
+it("keeps preparation pending and leaves the borrowed input intact until native copying completes", async () => {
+  // Given
+  const copying = Promise.withResolvers<void>();
+  original.copy.mockReturnValueOnce(copying.promise);
+  let delivered = false;
+
+  // When
+  const preparation = prepareSportingLogo(asset).then((file) => {
+    delivered = true;
+    return file;
+  });
+  await Promise.resolve();
+
+  // Then
+  expect(delivered).toBe(false);
+  expect(original.delete).not.toHaveBeenCalled();
+  expect(copy.delete).not.toHaveBeenCalled();
+
+  // When
+  copying.resolve();
+  const prepared = await preparation;
+
+  // Then
+  expect(prepared).toBe(copy);
+  expect(original.delete).not.toHaveBeenCalled();
+  expect(copy.delete).not.toHaveBeenCalled();
+});
+
 it("deletes an invalid encoded output and releases native handles", async () => {
   // Given
   const source = { ...asset, width: 4096, height: 4096 };
@@ -105,9 +133,7 @@ it("deletes an invalid encoded output and releases native handles", async () => 
 
 it("deletes a partially copied destination when native copying fails", async () => {
   // Given
-  original.copy.mockImplementation(() => {
-    throw new Error("Copy failed");
-  });
+  original.copy.mockRejectedValueOnce(new Error("Copy failed"));
 
   // When
   const preparation = prepareSportingLogo(asset);

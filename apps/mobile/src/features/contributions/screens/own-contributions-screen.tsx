@@ -3,6 +3,7 @@ import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import {
   AppState,
+  FlatList,
   Platform,
   StyleSheet,
   Text,
@@ -13,7 +14,6 @@ import {
   KeyboardAwareScrollView,
   KeyboardProvider,
 } from "react-native-keyboard-controller";
-import Animated from "react-native-reanimated";
 import type {
   OwnStreamContributionResponse,
   StreamContributionStateEnum,
@@ -29,7 +29,7 @@ import { PageHeader } from "../../../shared/components/page-header";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+
 import { ErrorState } from "../../../shared/components/state-card";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -168,154 +168,141 @@ export function OwnContributionsScreen({
       feedback.error();
   }
   const content = (
-    <Page edges={["left", "right"]}>
-      <ScrollChrome header={<PageHeader title="Lien de diffusion" />}>
-        {({ onScroll, headerHeight }) => (
-          <Animated.FlatList
-            {...hiddenScrollIndicators}
-            accessibilityLabel="Liste de mes propositions"
-            automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
-            keyboardShouldPersistTaps="handled"
-            renderScrollComponent={
-              Platform.OS === "android" ? renderAndroidScroll : undefined
-            }
-            alwaysBounceVertical={authorized && !!current}
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            scrollIndicatorInsets={{ top: headerHeight }}
-            contentContainerStyle={[
-              pageContentStyle,
-              { paddingTop: headerHeight + tokens.layout.content.start },
-            ]}
-            data={rows}
-            keyExtractor={(item) => item.id}
-            onEndReached={() => {
-              if (!query.isError) void loadMore();
-            }}
-            ItemSeparatorComponent={EntryGroupSeparator}
-            refreshControl={
-              authorized && current ? (
-                <DataRefreshControl
-                  progressViewOffset={headerHeight}
-                  enabled={!change.isPending && !submit.isPending}
-                  refreshing={query.isRefetching || match.isRefetching}
-                  onRefresh={() => void refresh()}
+    <Page edges={["top", "left", "right"]}>
+      <PageHeader title="Lien de diffusion" />
+      <FlatList
+        {...hiddenScrollIndicators}
+        accessibilityLabel="Liste de mes propositions"
+        automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+        keyboardShouldPersistTaps="handled"
+        renderScrollComponent={
+          Platform.OS === "android" ? renderAndroidScroll : undefined
+        }
+        alwaysBounceVertical={authorized && !!current}
+
+        contentContainerStyle={pageContentStyle}
+        data={rows}
+        keyExtractor={(item) => item.id}
+        onEndReached={() => {
+          if (!query.isError) void loadMore();
+        }}
+        ItemSeparatorComponent={EntryGroupSeparator}
+        refreshControl={
+          authorized && current ? (
+            <DataRefreshControl
+              enabled={!change.isPending && !submit.isPending}
+              refreshing={query.isRefetching || match.isRefetching}
+              onRefresh={() => void refresh()}
+            />
+          ) : undefined
+        }
+        ListHeaderComponent={
+          <View style={styles.header}>
+            {authorized && current && match.data && (
+              <MatchSummary match={match.data.match} presentation="context" />
+            )}
+            {session.status === "guest" ? (
+              <ScreenState>
+                <Button
+                  label="Se connecter"
+                  onPress={() =>
+                    router.push({
+                      pathname: "/sign-in-invitation",
+                      params: { reason: "contribution" },
+                    })
+                  }
                 />
-              ) : undefined
-            }
-            ListHeaderComponent={
-              <View style={styles.header}>
-                {authorized && current && match.data && (
-                  <MatchSummary
-                    match={match.data.match}
-                    presentation="context"
-                  />
-                )}
-                {session.status === "guest" ? (
-                  <ScreenState>
-                    <Button
-                      label="Se connecter"
-                      onPress={() =>
-                        router.push({
-                          pathname: "/sign-in-invitation",
-                          params: { reason: "contribution" },
-                        })
-                      }
-                    />
-                  </ScreenState>
-                ) : session.status !== "authenticated" ? (
-                  <ScreenState>
-                    {session.status === "restoring" || session.operation ? (
-                      <RequestLoading />
-                    ) : (
-                      <Button
-                        label="Se connecter"
-                        onPress={() => router.push("/sign-in")}
-                      />
-                    )}
-                  </ScreenState>
-                ) : !editing.profile.data ? (
-                  <ScreenState>
-                    <ReadFeedback query={editing.profile} />
-                  </ScreenState>
-                ) : !editing.canRetain ? (
-                  <ScreenState>
-                    <ErrorState
-                      onRetry={() => void editing.profile.refetch()}
-                      retrying={editing.profile.isFetching}
-                    />
-                  </ScreenState>
-                ) : !current || !authorized ? (
-                  <ScreenState>
-                    {query.isError ||
-                    isOwnContributionAccessDenied(match.error) ? (
-                      <ErrorState
-                        onRetry={() => void refresh()}
-                        retrying={query.isFetching || match.isFetching}
-                      />
-                    ) : (
-                      <ReadFeedback query={query} />
-                    )}
-                  </ScreenState>
+              </ScreenState>
+            ) : session.status !== "authenticated" ? (
+              <ScreenState>
+                {session.status === "restoring" || session.operation ? (
+                  <RequestLoading />
                 ) : (
-                  <>
-                    {editing.profile.isError && (
-                      <Button
-                        label="Réessayer le profil"
-                        loading={editing.profile.isFetching}
-                        onPress={() => void editing.profile.refetch()}
-                      />
-                    )}
-                    {active && (
-                      <ContributionForm
-                        matchId={matchId}
-                        current={current}
-                        editing={editing}
-                        replacement={active}
-                      />
-                    )}
-                    {!current.eligibility.canSubmit &&
-                      current.eligibility.reason && (
-                        <Text
-                          style={[
-                            tokens.typography.body,
-                            { color: colors.secondaryText },
-                          ]}
-                        >
-                          {current.eligibility.reason}
-                        </Text>
-                      )}
-                  </>
-                )}
-                <Text
-                  accessibilityRole="header"
-                  style={[tokens.typography.heading, { color: colors.text }]}
-                >
-                  {authorized && current
-                    ? `Mes propositions (${current.proposalCount})`
-                    : "Mes propositions"}
-                </Text>
-              </View>
-            }
-            renderItem={({ item }) => <ProposalRow item={item} />}
-            ListFooterComponent={
-              <>
-                {authorized && (
-                  <ListContinuation
-                    loading={query.isFetchingNextPage}
-                    failed={query.isFetchNextPageError}
-                    disabled={
-                      query.isFetching || change.isPending || submit.isPending
-                    }
-                    onRetry={() => void loadMore()}
+                  <Button
+                    label="Se connecter"
+                    onPress={() => router.push("/sign-in")}
                   />
                 )}
-                <BottomContentSpacer />
+              </ScreenState>
+            ) : !editing.profile.data ? (
+              <ScreenState>
+                <ReadFeedback query={editing.profile} />
+              </ScreenState>
+            ) : !editing.canRetain ? (
+              <ScreenState>
+                <ErrorState
+                  onRetry={() => void editing.profile.refetch()}
+                  retrying={editing.profile.isFetching}
+                />
+              </ScreenState>
+            ) : !current || !authorized ? (
+              <ScreenState>
+                {query.isError || isOwnContributionAccessDenied(match.error) ? (
+                  <ErrorState
+                    onRetry={() => void refresh()}
+                    retrying={query.isFetching || match.isFetching}
+                  />
+                ) : (
+                  <ReadFeedback query={query} />
+                )}
+              </ScreenState>
+            ) : (
+              <>
+                {editing.profile.isError && (
+                  <Button
+                    label="Réessayer le profil"
+                    loading={editing.profile.isFetching}
+                    onPress={() => void editing.profile.refetch()}
+                  />
+                )}
+                {active && (
+                  <ContributionForm
+                    matchId={matchId}
+                    current={current}
+                    editing={editing}
+                    replacement={active}
+                  />
+                )}
+                {!current.eligibility.canSubmit &&
+                  current.eligibility.reason && (
+                    <Text
+                      style={[
+                        tokens.typography.body,
+                        { color: colors.secondaryText },
+                      ]}
+                    >
+                      {current.eligibility.reason}
+                    </Text>
+                  )}
               </>
-            }
-          />
-        )}
-      </ScrollChrome>
+            )}
+            <Text
+              accessibilityRole="header"
+              style={[tokens.typography.heading, { color: colors.text }]}
+            >
+              {authorized && current
+                ? `Mes propositions (${current.proposalCount})`
+                : "Mes propositions"}
+            </Text>
+          </View>
+        }
+        renderItem={({ item }) => <ProposalRow item={item} />}
+        ListFooterComponent={
+          <>
+            {authorized && (
+              <ListContinuation
+                loading={query.isFetchingNextPage}
+                failed={query.isFetchNextPageError}
+                disabled={
+                  query.isFetching || change.isPending || submit.isPending
+                }
+                onRetry={() => void loadMore()}
+              />
+            )}
+            <BottomContentSpacer />
+          </>
+        }
+      />
     </Page>
   );
   return Platform.OS === "android" ? (

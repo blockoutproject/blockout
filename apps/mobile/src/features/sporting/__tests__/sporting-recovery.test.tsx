@@ -11,7 +11,7 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { Pressable, Text } from "react-native";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import "../../../shared/native/test-support/tab-view-native";
 import {
   mockAuth0,
   credentialsFor,
@@ -191,7 +191,6 @@ it.each(pages)(
     // Given
     await renderPage(element);
     await screen.findAllByText(label);
-    await layoutNativeTabs();
     mockFetch.mockImplementation((url: string) =>
       new URL(url).pathname === path
         ? Promise.reject(new TypeError("offline"))
@@ -233,7 +232,6 @@ it.each([401, 403, 404])(
     // Given
     await renderPage(<ClubScreen clubId={sportingId} />);
     await screen.findByText("Club des Rives");
-    await layoutNativeTabs();
     await screen.findByRole("link", { name: /E-mail du club/ });
     mockFetch.mockImplementation((url: string) =>
       url.endsWith(`/clubs/${sportingId}`)
@@ -278,9 +276,7 @@ it("distinguishes a failed teams section from a successful empty season and keep
   );
   await renderPage(<ClubScreen clubId={sportingId} />);
   await screen.findByText("Club des Rives");
-  await layoutNativeTabs();
   await screen.findByText("Coordonnées");
-  await layoutNativeTabs();
 
   // When
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
@@ -316,7 +312,6 @@ it("keeps a pool's calendar and map independent of failed standings without wait
   );
   await renderPage(<PoolScreen poolId={sportingId} />);
   await screen.findByText("Pool");
-  await layoutNativeTabs();
   await screen.findByRole("alert");
 
   // When
@@ -373,9 +368,11 @@ it("removes deliberately absent contacts and native artwork on their own success
   );
 
   // Then
-  expect(
-    screen.queryByRole("link", { name: /E-mail du club/ }),
-  ).not.toBeOnTheScreen();
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("link", { name: /E-mail du club/ }),
+    ).not.toBeOnTheScreen(),
+  );
   await waitFor(() =>
     expect(
       screen.queryByRole("image", { name: "Logo : Club des Rives" }),
@@ -442,9 +439,7 @@ it("keeps season selection when an earlier teams request completes after a new s
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
   await screen.findByText("Club des Rives");
-  await layoutNativeTabs();
   await screen.findByText("Coordonnées");
-  await layoutNativeTabs();
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
   await screen.findByRole("progressbar", { name: "Chargement en cours" });
 
@@ -453,7 +448,6 @@ it("keeps season selection when an earlier teams request completes after a new s
     screen.getByRole("button", { name: `Saison ${season.label}` }),
   );
   await user.press(screen.getByRole("button", { name: older.label }));
-  await layoutNativeTabs();
   await screen.findByText("Aucune équipe pour cette saison");
   await act(() =>
     old.resolve(
@@ -621,7 +615,6 @@ it.each(["current", "former"] as const)(
     await screen.findAllByRole("image", {
       name: "Chargement du logo : Public club",
     });
-    await layoutNativeTabs();
     await screen.findByRole("link", { name: /bypass@example.invalid/ });
     await waitFor(() =>
       expect(
@@ -698,7 +691,6 @@ it.each([
     // Given
     await renderPage(element);
     await screen.findAllByText(label);
-    await layoutNativeTabs();
     await waitFor(() => expect(client.isFetching()).toBe(0));
     mockFetch.mockImplementation((url: string) =>
       new URL(url).pathname === path

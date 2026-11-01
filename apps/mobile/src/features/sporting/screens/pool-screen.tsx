@@ -1,13 +1,10 @@
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { SportingSupportAction } from "../components/sporting-actions";
 import { PoolMap } from "../components/pool-map";
 import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
-import { SportingCompactHeader } from "../components/sporting-compact-header";
-import { TabScrollView } from "react-native-collapsible-tab";
+import { SportingPageHeader } from "../components/sporting-page-header";
 import { PagedTabs } from "../../../shared/components/paged-tabs";
 import { ResourceText } from "../components/resource-text";
-import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { PageHeader } from "../../../shared/components/page-header";
@@ -68,13 +65,7 @@ function PoolPage({
       subtitle={[data.pool.competitionName, data.pool.phaseName]
         .filter(Boolean)
         .join(" · ")}
-    >
-      {renderFollow?.(
-        data.pool.pool,
-        data.pool.season,
-        data.pool.classification.division?.color,
-      )}
-    </SportingIdentity>
+    />
   ) : undefined;
   const tabs = [
     { id: "standings", label: "Classement" },
@@ -84,7 +75,7 @@ function PoolPage({
   ] as const;
   const blockingState = !data ? <ReadFeedback query={pool} /> : undefined;
   return (
-    <Page edges={blockingState ? undefined : ["left", "right", "bottom"]}>
+    <Page>
       {blockingState ? (
         <>
           <PageHeader
@@ -103,20 +94,25 @@ function PoolPage({
           onSelect={setTab}
           header={
             data && (
-              <SportingCompactHeader
-                action={
-                  <SportingSupportAction
-                    target={{ type: "pool", id: poolId }}
-                  />
-                }
-                title="Poule"
-                identity={data.pool.pool}
-                division={data.pool.classification.division}
-                kind="pool"
-              />
+              <>
+                <SportingPageHeader
+                  action={
+                    <SportingSupportAction
+                      target={{ type: "pool", id: poolId }}
+                    />
+                  }
+                  identity={data.pool.pool}
+                  division={data.pool.classification.division}
+                  kind="pool"
+                />
+                {renderFollow?.(
+                  data.pool.pool,
+                  data.pool.season,
+                  data.pool.classification.division?.color,
+                )}
+              </>
             )
           }
-          collapsibleHeader={<PageContent>{identity}</PageContent>}
           tabs={tabs.map(({ id: value, label }) => ({
             id: value,
             label,
@@ -125,14 +121,21 @@ function PoolPage({
                 <SportingCalendar
                   selection={{ poolId, category: value }}
                   active={tab === value}
-                />
+                >
+                  {identity}
+                </SportingCalendar>
               ) : value === "standings" && data && !renderStandings ? (
-                <PoolStandings pool={data.pool} active={tab === value} />
+                <PoolStandings pool={data.pool} active={tab === value}>
+                  {identity}
+                </PoolStandings>
               ) : value === "map" && data && !renderMap ? (
-                <PoolMap pool={data.pool} active={tab === value} />
+                <PoolMap pool={data.pool} active={tab === value}>
+                  {identity}
+                </PoolMap>
               ) : (
-                <TabScrollView {...hiddenScrollIndicators} alwaysBounceVertical>
+                <PageScrollView alwaysBounceVertical>
                   <PageContent>
+                    {identity}
                     {data &&
                       (value === "standings"
                         ? (renderStandings?.(data.pool) ?? (
@@ -146,8 +149,7 @@ function PoolPage({
                             </ResourceText>
                           )))}
                   </PageContent>
-                  <BottomContentSpacer />
-                </TabScrollView>
+                </PageScrollView>
               ),
           }))}
         />

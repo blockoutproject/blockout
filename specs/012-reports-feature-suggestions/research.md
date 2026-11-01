@@ -4,7 +4,7 @@
 
 **Decision:** One bounded submission, complete confirmation or ordinary form error with explicit retry. GitHub is the only durable case and attachment store. No receipt endpoint, database ticket, outbox, automatic resend or persistent mobile submission pointer.
 
-**Rationale:** The accepted scope permits rare duplicate private issues to be closed manually. A response lost after provider success does not establish failure; an error makes the retained form editable without claiming cancellation. A known issue can be checked once during its current backend attempt, but the application does not search for past submissions.
+**Rationale:** The accepted scope permits rare duplicate private issues to be closed manually. A response lost after provider success does not establish failure; an error makes the retained form editable without claiming cancellation. A known issue can be checked once during its current backend attempt, but the application does not search for past submissions. That reference stays local to send orchestration; the immutable validated snapshot owns metadata, the request UUID and private temporary paths. MIME is needed during content validation and filename selection, with no separate retained value afterward. One `SupportApiMapper` owns both HTTP directions at this boundary, without another bean/lifecycle or provider authority.
 
 **Alternatives considered:** A receipt registry or recovery lookup would add storage, lifecycle and reconciliation solely to eliminate an explicitly accepted exceptional duplicate. A queue would change synchronous complete acceptance. Neither is retained.
 

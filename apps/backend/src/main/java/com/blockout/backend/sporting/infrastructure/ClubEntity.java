@@ -50,7 +50,6 @@ public class ClubEntity {
   @Setter private String manualName;
   @Setter private long presentationRevision;
   @Setter private long contactsRevision;
-  @Setter private long logoRevision;
   @Setter private byte[] logo;
   @Setter private String logoMediaType;
   @Setter private Long detailCycleOrder;

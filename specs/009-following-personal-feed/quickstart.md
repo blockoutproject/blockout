@@ -13,7 +13,7 @@ The foundation is exercised by `FollowingContractWebMvcTest`, `FollowAccessWebMv
 Java interfaces/DTOs and Orval consumers. Java MVC uses the production `FollowingController` with controlled application ports and actual
 generated argument conversion; F05 identity and F12 admission run with controlled
 account/settings/transaction collaborators. Mobile uses the
-real F05 generation, Query cleanup and F13 transport with controlled HTTP. These checks establish
+real F05 mounted native-principal lifetime, Query cleanup and F13 transport with controlled HTTP. These checks establish
 binding, original-owner rejection and late-response isolation, including returning to the same
 account; they establish the real HTTP binding, but no persisted relation, account-erasure race,
 native networking, screen or provider behavior. Generated response Bean Validation in the Java
@@ -56,18 +56,21 @@ Follow both teams and their pool: each match appears once. Remove origins in tur
 
 Read beyond one twenty-item follow page, including equal names and French accented names. Verify page/continuation bounds and clean BadRequest handling before native offset conversion, without overflow or a false end. Verify stable ordering, no false end on a page error and a fresh traversal after concurrent changes. Check the selected PostgreSQL image supplies the intended French collation and Hibernate executes the ordering expression.
 
+Opening the season selector is the explicit recovery from a selected-season error. Verify its reachability, retention of the selection when options fail, and successful omission withdrawing exact-season and All-seasons rows before fallback, including when an earlier options Query was evicted. Failed reads establish no absence. Native private-client lifetime and per-control pending behavior follow the existing [session owner](../005-accounts-identity/plan.md#mobile-session-and-shared-consumers); the database retains uniqueness and desired-state idempotence.
+
 ## Mobile journeys
 
 ### Native follow action boundary (T008, T014, T015)
 
 `follow-action.test.tsx` exercises the real Query, theme, F05 session and F12 admission owners,
 generated member operations and response validation. Only native Auth0 I/O and HTTP are controlled.
-It covers shared target busy/provisional state, independent typed targets, explicit replacement,
-guest invitation with no sign-in replay, unavailable profile, exact sporting-route composition,
-completion after unmount and retired-session rejection. Definite refusals retain confirmation;
-reopening a restored target reads its current member state and retires superseded action feedback.
-A new explicit attempt also retires terminal mutation entries, so an older failure cannot return
-when another control unmounts. Confirmed state reconciles both ordinary and explicit F12 bypass
+It covers each mounted control's busy/provisional state, independent typed targets and independent
+same-target controls, explicit replacement, guest invitation without sign-in replay, unavailable
+profile and exact sporting-route composition. Shared confirmed Query data remains distinct from
+local mutation presentation. Subject unmount keeps detached completions in their original private
+client under F05's accepted freshness limits; original-principal checks still protect dispatch.
+Definite refusals retain confirmation, and reopening a restored target reads current member state.
+Confirmed state reconciles both ordinary and explicit F12 bypass
 cache variants. Response loss performs one bounded member read without replay, and failed observation leaves an
 ordinary explicit retry of the same requested value. A successful observation is not announced as
 proof of the original write or delayed cancellation.
@@ -117,7 +120,7 @@ Current permission/visibility refusals remove retained values, including across 
 failure. A current public count NotFound also withdraws the actual F03 team/pool detail,
 reuses its participant/list/calendar cleanup and suspends shared follow controls without a full-detail
 reread, including when the original account becomes established during the first public read
-without changing its session generation. The private opaque member NotFound does not establish public target absence.
+within the same captured private-client lifetime. The private opaque member NotFound does not establish public target absence.
 `follow-recovery.test.tsx` composes the actual F03 action region with the counter and
 existing shared mutation lifecycle. It covers a delayed original write after one observation,
 failed dependent count/profile reads after confirmed success and A → guest/B → A while the old
@@ -143,15 +146,15 @@ new design journey. Use fictional accounts/data and controlled response loss, no
 Before execution, identify build/commit, device, platform, theme/text scale, real and controlled
 boundaries; keep private diagnostics and relationships outside public captures.
 
-| Scenario | Native action and observable result                                                                                                                                                                                                                                                                                                                                                                                                                        | Owners and prerequisites                                                                                                                                                                                        |
-| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A22      | Open team and pool as guest, free member, Pro and unknown-entitlement member. Verify the direct count independently of profile failure; repeat add/remove, change personal season, hide and restore. Each relation counts once; unknown is distinct from zero.                                                                                                                                                                                             | F02 current targets; F05 original sessions; F09 entitlements remain independent; actual F06 SQL and generated consumers.                                                                                        |
-| A23      | Refuse add/remove, then make a retained target unavailable. Previous confirmation is retained without invented success; current refusal removes public count and suspends personal action. Explicit retry follows current access.                                                                                                                                                                                                                          | F02 visibility; F05/F12 admission; F13 ordinary feedback.                                                                                                                                                       |
-| A24      | Lose a potentially recorded PUT response, delay original completion and fail or delay the single member observation. Shared controls stay provisionally busy only within the bounded wait, then use current observed state or ordinary error/same-command explicit retry. No replay or claim of cancellation. Repeat after unmount and A → guest/B → A, checking no obsolete callback applies.                                                             | Controlled HTTP delay/loss; F13 bounded transport and Query; F05 generation cleanup.                                                                                                                            |
-| A25      | Confirm PUT, then fail profile, options, list/calendar reset and count reads independently, including inactive Home tabs. The write remains successful; visible reads show loading/error/retry, the other count stays unchanged, and selection/category stay intact.                                                                                                                                                                                       | Actual F03/F05/F06 generated paths and F13 Query; controlled read failures only.                                                                                                                                |
-| A26      | Fail initial, refresh and additional-page retrieval independently. Retain permitted unchanged-context content with identifiable freshness; a current refusal must not return after a later network error. Retry the failed boundary without false empty/end-of-list or zero.                                                                                                                                                                               | Actual personal lists/calendar and F03 current visibility; F13 failure isolation.                                                                                                                               |
-| A27      | Remove/recreate a confirmed relation with overlapping team/pool origins and change only the display season. F07 sees one eligible recipient and distinguishes the new relation; no push promise follows from the follow itself.                                                                                                                                                                                                                            | Actual F07 trigger/send, relation rechecks and native notification permission/provider setup are required for their own execution. T044 owns consumption qualification.                                         |
-| A28      | On iOS and Android, exercise system light/dark and live changes, VoiceOver/TalkBack, enlarged text and reduced motion. Count announces its quantity/unknown/failed-refresh meaning; busy/selected/retry states are understandable without color, remain operable without clipping and follow current grants. Filtering/refresh/return causes no interstitial; sporting opening uses F11. Open contextual support without adding collection or diagnostics. | F13 native accessibility and approved designs; F05 original session; F09 free/Pro/unknown; F10 private destination and contextual route; F11 advertising consent/provider prerequisites; F12 current admission. |
+| Scenario | Native action and observable result                                                                                                                                                                                                                                                                                                                                                                                                                                   | Owners and prerequisites                                                                                                                                                                                        |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A22      | Open team and pool as guest, free member, Pro and unknown-entitlement member. Verify the direct count independently of profile failure; repeat add/remove, change personal season, hide and restore. Each relation counts once; unknown is distinct from zero.                                                                                                                                                                                                        | F02 current targets; F05 original sessions; F09 entitlements remain independent; actual F06 SQL and generated consumers.                                                                                        |
+| A23      | Refuse add/remove, then make a retained target unavailable. Previous confirmation is retained without invented success; current refusal removes public count and suspends personal action. Explicit retry follows current access.                                                                                                                                                                                                                                     | F02 visibility; F05/F12 admission; F13 ordinary feedback.                                                                                                                                                       |
+| A24      | Lose a potentially recorded PUT response, delay original completion and fail or delay the member reread triggered by ordinary invalidation. Only the initiating mounted control owns provisional/pending feedback; independent controls retain their own state. Use current observed confirmation or ordinary error/same-command explicit retry. No replay or claim of cancellation. Repeat after unmount and A → guest/B → A, checking no obsolete callback applies. | Controlled HTTP delay/loss; F13 bounded transport and Query; F05 private React/Query lifetime.                                                                                                                  |
+| A25      | Confirm PUT, then fail profile, options, list/calendar reset and count reads independently, including inactive Home tabs. The write remains successful; visible reads show loading/error/retry, the other count stays unchanged, and selection/category stay intact.                                                                                                                                                                                                  | Actual F03/F05/F06 generated paths and F13 Query; controlled read failures only.                                                                                                                                |
+| A26      | Fail initial, refresh and additional-page retrieval independently. Retain permitted unchanged-context content with identifiable freshness; a current refusal must not return after a later network error. Retry the failed boundary without false empty/end-of-list or zero.                                                                                                                                                                                          | Actual personal lists/calendar and F03 current visibility; F13 failure isolation.                                                                                                                               |
+| A27      | Remove/recreate a confirmed relation with overlapping team/pool origins and change only the display season. F07 sees one eligible recipient and distinguishes the new relation; no push promise follows from the follow itself.                                                                                                                                                                                                                                       | Actual F07 trigger/send, relation rechecks and native notification permission/provider setup are required for their own execution. T044 owns consumption qualification.                                         |
+| A28      | On iOS and Android, exercise system light/dark and live changes, VoiceOver/TalkBack, enlarged text and reduced motion. Count announces its quantity/unknown/failed-refresh meaning; busy/selected/retry states are understandable without color, remain operable without clipping and follow current grants. Filtering/refresh/return causes no interstitial; sporting opening uses F11. Open contextual support without adding collection or diagnostics.            | F13 native accessibility and approved designs; F05 original session; F09 free/Pro/unknown; F10 private destination and contextual route; F11 advertising consent/provider prerequisites; F12 current admission. |
 
 Native construction captures can establish only the executed rendering/interaction boundary.
 They do not complete T045, screen-reader/enlarged-text qualification, real Auth0, notification or
@@ -171,16 +174,18 @@ transport with controlled HTTP. It covers shared selection, All seasons, reset, 
 successful disappearance, failed reconciliation, explicit retry and obsolete session/selection responses.
 `personal-screen.test.tsx` adds the actual F05/F12 providers, Home, follow action, club and search
 components; native identity/inset I/O and HTTP are controlled. Current private refusals remain
-blocking across a subsequent network failure until a successful read. The actual Home/season native routes share one generation-scoped owner. Opening the contextual
+blocking across a subsequent network failure until a successful read. The actual Home/season native routes share one selection owner within the mounted private-client lifetime. Opening the contextual
 route starts one explicit options reread; only that request may publish opening feedback, while
 retained Query error state alone emits none.
 These tests establish neither native networking nor provider qualification.
+
+The actual Home/season owners run on iOS 27.0 and Android 17/API 37 with fictional HTTP and native identity I/O. A selected-season 404 keeps its choice and makes no options request; the existing selector stays reachable. Opening it establishes omission and the default fallback. An Android options failure preserves the checked old choice until another explicit opening succeeds; the existing finite Query retries are unchanged. On iOS, returning to previously retained All-seasons content cannot restore the omitted match. These bounded native journeys establish the revised selection/withdrawal interaction, without physical-device, provider, complete screen-reader or new design approval.
 
 The existing entry/age guards now live in `apps/mobile/src/app/(ordinary)/(tabs)/(home)/_layout.tsx`,
 with Home still at `/` and its contextual choice at `/season`. The latter is a `(sheets)` leaf of
 the same native stack, so the application-wide sheet convention owns presentation and tab clearance.
 F07 owns its ordinary tab placement; the personal context, controls and calendar remain with F06.
-US3 retains the follow-list composition. T021 supplies the bounded read boundary; the
+US3 retains the follow-list composition. T021 supplies the successful-options withdrawal boundary; the
 [integrated qualification](#integrated-personal-season-and-calendar-t022t037) covers T022/T037
 through all actual views and endpoints. T029 retains its broader list qualification.
 
@@ -198,7 +203,7 @@ scrolling, safe-area or accessibility outcomes.
 Compare the [Home controls](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5075-4799)
 with the UI Library's [compact tabs](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=841-983)
 and [season selector](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=3176-2823).
-The [prototype Home](https://github.com/blockoutproject/product-prototype/blob/859bf5970ff0cda8a9a7ddb9aaa7203ce7c7d7a0/src/sport/discovery-screens.tsx#L279)
+The [approved Home composition](plan.md#mobile-state-and-failure-handling)
 and its HTML select control are interaction references; their rendering is not native evidence.
 
 ```sh
@@ -232,7 +237,7 @@ exposes ordinary error/retry rather than idle pending state; explicit retry alon
 A failed refresh
 with remaining pages exposes its own explicit retry at the list edge before automatic continuation
 resumes. Original-account refusals withdraw both lists and retained calendars within the same
-session/admission context. A seasonal NotFound followed by successful options omission removes
+session/admission context. An explicit successful options reload omitting a formerly offered season removes
 that season from overlapping All-seasons data before selecting the fallback. Entity Card extraction
 retains the existing F04 presentation adapter and its consumer checks.
 
@@ -293,7 +298,7 @@ npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/follo
 
 Native construction observations use the aligned F13 development clients on iOS 27.1 Duo and
 Android 17 / Pixel 9, with controlled HTTP and native Auth0 RPC only. The actual entry, generated
-validation, session/admission/Query owners, RNCT pager and LegendList composition remain real.
+validation, session/admission/Query owners and the observed native pager/LegendList composition remained real. The current shared paging composition retains its separate [F13 qualification](../003-shared-quality/quickstart.md#paging-chrome-and-navigation).
 Observed cases include system light/dark, missing/provisional results, native season selection and
 Search, complete-day continuation, retained page failure and same-cursor explicit retry, retained
 rows after a failed ordinary pull, and cross-category withdrawal after successful no-follow evidence.
@@ -341,18 +346,11 @@ NX_LOAD_DOT_ENV_FILES=false ./mvnw -B -ntp -pl apps/backend verify -Dtest=Follow
 NX_LOAD_DOT_ENV_FILES=false npm run test --workspace=@blockout/mobile -- --runInBand --reporters=default --runTestsByPath src/features/following/__tests__/personal-season.test.tsx src/features/following/__tests__/personal-screen.test.tsx src/features/following/__tests__/personal-calendar.test.tsx src/features/following/__tests__/followed-lists.test.tsx src/features/following/__tests__/follow-action.test.tsx src/features/following/__tests__/follow-recovery.test.tsx
 ```
 
-Execution on 2026-10-31 at `28c7a88c` passes the focused six React suites (106 tests) and the
-focused PostgreSQL/API command (62 unit/MVC tests and 65 integration tests, none skipped).
-The README/CI `backend` and `mobile` Nx `verify` targets pass: 1,464 backend unit/MVC tests,
-1,163 integration tests with one independent F12 opt-in skipped, and 2,156 mobile tests with six
-independent F12 provider cases skipped. Mobile lint/typecheck, both JavaScript exports and all
-20 Expo Doctor checks pass. Four existing duplicate-import lint warnings remain in untouched
-sporting PDF tests. Local Java is Microsoft OpenJDK 25.0.4; PostgreSQL is the selected 18.6 image.
+The focused React and PostgreSQL/API qualification uses synthetic data and the selected PostgreSQL 18.6 image with Microsoft OpenJDK 25.0.4. Independent opt-in F12 consumer/provider cases remain outside ordinary runs. Application verification does not establish native, provider or complete accessibility acceptance.
 
-Scoped native observations at the same source revision use `com.blockout.local` 0.0.0 (1),
-light appearance and default text: the reused iPhone 18 Pro-B / iOS 27.0 client
-(`ebcc57107a7e`, simulator `DD662133-3F23-457C-A42B-D3DDC544F6E0`) and the rebuilt Pixel 9 /
-Android 17 client (`c7ac5cef60b2`, emulator `emulator-5602`). HTTP and native Auth0 RPC are
+Scoped native observations use `com.blockout.local` 0.0.0 (1),
+light appearance and default text on iPhone 18 Pro / iOS 27.0 and Pixel 9 /
+Android 17. HTTP and native Auth0 RPC are
 controlled; the real Auth0 React SDK/provider, generated validation, session/admission, Query, native pager
 and navigation remain active. Both platforms open Completed → Match → Team, confirm unfollow,
 and return to Completed with `2026/2027` retained and ordinary Error/Retry replacing former rows
@@ -368,25 +366,25 @@ T029's broader list qualification remains with its owner; T016/T044/T045/T048 st
 
 Using Jest Expo/React Native Testing Library and native device checks where applicable:
 
-- Open the same target in different tabs, act once and observe the same immediate provisional/busy state; repeated taps do not enqueue work and another target remains usable.
+- Open the same target in independent visits/controls: only the initiating mounted control becomes provisional/busy; another may send a desired-state request. Each control prevents its own pending repeat, no tap queues or mutation replays, and shared confirmed data refreshes after settlement. Preserve one shared team-follow action across its tabs.
 - Leave and return to a populated personal tab without a follow change: preserve its data and traversal under the current Query observer/freshness policy. After reset while hidden, display it and fetch the first page.
-- Make the selected season unavailable: its list/calendar NotFound triggers one options read; successful confirmation switches to the new default or All seasons. Failed options or a still-available season preserve selection and ordinary error/retry without a loop.
+- Make the selected season unavailable: its list/calendar NotFound remains an ordinary error until the holder opens the existing season selector. Its successful options read establishes omission, withdraws retained exact/All data and selects the new default or All seasons. Failed options or a still-offered season preserve selection without a loop.
 - Confirm the mutation, then fail the list/count refresh: the saved follow remains confirmed and ordinary error/retry applies to the failed read.
 - Confirm a change after several loaded calendar pages: reload the first page only, preserve season/category and do not show the former selection as current. Inactive tabs reload on display.
 - Fail a normal unchanged-context refresh: retain authorized content. Fail an additional page: retain earlier pages and retry the continuation.
 - Lose a write response: perform one bounded current-state read, no automatic mutation replay. Fail that read too: ordinary action error, no invented success. Delayed completion follows the documented server ordering.
-- Sign out or change accounts during reads/writes, including returning to the same account: reject old-session callbacks and remove private data.
+- Sign out or change subjects during reads/writes: remove the old private client/data and preserve original-principal dispatch. Returning to the same subject uses its new mounted lifetime under F05’s accepted freshness limits; no application generation or global callback-rejection promise is added.
 - Verify guest invitation without automatic follow after sign-in, accessible busy/selected states without colour alone, and unchanged advertising triggers.
 
 Use the approved Home/Sport references linked from [the plan](plan.md). A mock test or visual match does not establish native networking, accessibility or integrated generation correctness.
 
 ### Shared season and native Home presentation
 
-At `1a5163d8`, Home's existing personal-season owner is shared only by its Home/season routes; the contextual sheet uses the shared basic radio rows and intrinsic presenter. [F13 Phase 18](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) records short-content fitting, native selection/dismissal and Android compact/enlarged-text overflow. Its [representation evidence](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) identifies the current Figma season composition and prototype `8a08c71e`; Club's earlier selector remains unchanged.
+Home's existing personal-season owner is shared only by its Home/season routes; the contextual sheet uses the shared basic radio rows and intrinsic presenter. [F13 contextual-sheet qualification](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) retains short-content fitting, native selection/dismissal and Android compact/enlarged-text overflow. Its [representation evidence](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) identifies the current Figma season composition and prototype; Club's earlier selector remains unchanged.
 
-The separate [native-only Home brand evidence](../003-shared-quality/quickstart.md#paging-chrome-and-navigation) at `0f23092e` qualifies collapse-driven fading, transparent retreat, sticky controls and restoration on Android/Duo. Its matches fixture returned 404, so it establishes chrome over the existing Error state rather than a successful personal feed. Neither observation changes follow commands, Query/session ownership, scheduling or the outstanding integrated qualifications above.
+Current opaque Home presentation has bounded iOS/Android evidence through the actual Home layout, Tabs, personal-season owner, contextual selector, calendar and followed lists. Native selection/dismissal and Home → Team → Club → Back navigation exercise actual UUID routes. Fresh iOS 2.143 and Android 2.0 launches reach the final followed card above the measured two-row capsule. The year may wrap and long rails require horizontal scrolling; the observations do not promise simultaneous visibility of every tab label. Generated consumers and production Query/session/admission owners remain real, with fictional HTTP/native identity I/O, a controlled acknowledged-age input and root stack. This qualifies the exercised native composition, not the complete product root, age storage, notification/SDK lifecycle, physical devices or provider behavior. [F13's qualification limits](../003-shared-quality/quickstart.md#native-qualification-limits) and [F03's resource-page evidence](../007-sporting-consultation/quickstart.md#evidence-to-retain) retain their shared boundaries. Follow commands, scheduling and the outstanding integrated qualifications keep their existing owners.
 
-The later native-only [A32/A33](../003-shared-quality/quickstart.md#feedback-and-read-recovery) and [A34](../003-shared-quality/quickstart.md#feedback-and-read-recovery) qualify fitting feedback, Home's shared stock pager bar and Retry-only blocking errors on both clients. Error dragging causes no request; its Retry makes one calendar attempt plus the existing season-options revalidation after 404. A31 footage establishes its recorded chrome behavior only; the A34 entry owns blocking-error interaction. These presentation observations establish no successful feed or additional F06 business acceptance.
+The later native-only [A32/A33](../003-shared-quality/quickstart.md#feedback-and-read-recovery) and [A34](../003-shared-quality/quickstart.md#feedback-and-read-recovery) qualify fitting feedback, Home's shared stock pager bar and Retry-only blocking errors on both clients. In those earlier captures, Error dragging caused no request and Retry made one calendar attempt plus the former season-options revalidation after 404. Current FR-012 supersedes that automatic recovery; the old capture does not qualify today’s explicit selector journey. A31 footage establishes only its earlier chrome behavior, and A34 retains the observed blocking-error interaction. These presentation observations establish no successful feed or additional F06 business acceptance.
 
 ## Original-account erasure participant
 

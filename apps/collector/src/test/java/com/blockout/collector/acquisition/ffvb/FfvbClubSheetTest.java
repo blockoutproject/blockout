@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
 import com.blockout.collector.acquisition.application.ProviderResponse;
@@ -16,7 +16,6 @@ import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpCl
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import org.apache.hc.core5.http.NameValuePair;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
@@ -42,9 +41,7 @@ class FfvbClubSheetTest {
   void rejectsUnusableLookup(String form) {
     // Given
     ProviderHttpClient http = mock(ProviderHttpClient.class);
-    when(http.page(FORM))
-        .thenReturn(
-            CompletableFuture.completedFuture(new ProviderResponse(bytes(form), FORM, true)));
+    doReturn(new ProviderResponse(bytes(form), FORM, true)).when(http).page(FORM);
 
     // When
     ThrowingCallable action = () -> new FfvbClubSheets(http).read("000042");
@@ -74,16 +71,15 @@ class FfvbClubSheetTest {
   void followsPublishedForm() {
     // Given
     ProviderHttpClient http = mock(ProviderHttpClient.class);
-    when(http.page(FORM))
-        .thenReturn(
-            CompletableFuture.completedFuture(
-                new ProviderResponse(
-                    bytes(
-                        "<form method=POST action='current_club.php'><input name=id_club><input name=scope value=current type=hidden></form>"),
-                    FORM,
-                    true)));
-    when(http.post(any(), any()))
-        .thenReturn(CompletableFuture.completedFuture(bytes(sheet("000042"))));
+    doReturn(
+            new ProviderResponse(
+                bytes(
+                    "<form method=POST action='current_club.php'><input name=id_club><input name=scope value=current type=hidden></form>"),
+                FORM,
+                true))
+        .when(http)
+        .page(FORM);
+    doReturn(bytes(sheet("000042"))).when(http).post(any(), any());
     FfvbClubSheets reader = new FfvbClubSheets(http);
 
     // When

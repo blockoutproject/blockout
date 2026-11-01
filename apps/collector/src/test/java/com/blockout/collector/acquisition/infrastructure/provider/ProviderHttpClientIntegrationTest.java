@@ -2,6 +2,7 @@ package com.blockout.collector.acquisition.infrastructure.provider;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.config.AcquisitionConfiguration;
@@ -10,21 +11,23 @@ import com.sun.net.httpserver.HttpServer;
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.GZIPOutputStream;
 import org.apache.hc.client5.http.HttpResponseException;
 import org.apache.hc.client5.http.RedirectException;
+import org.apache.hc.core5.http.ConnectionRequestTimeoutException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,7 +35,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.core.task.TaskRejectedException;
 
 /** Exercises native transport limits against isolated peers, never live source providers. */
 @DisplayName("Bounded provider HTTP reads")
@@ -81,11 +83,59 @@ class ProviderHttpClientIntegrationTest {
         });
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
-      ProviderResponse result = client.page(origin.resolve("/source")).get(5, TimeUnit.SECONDS);
+      ProviderResponse result = client.page(origin.resolve("/source"));
 
       // Then
       assertThat(result.body()).isEqualTo("ok".getBytes(StandardCharsets.UTF_8));
       assertThat(requests).hasValue(2);
+    }
+  }
+
+  @Test
+  @DisplayName("Raises checked transport failures directly with their native cause")
+  void raisesTransportFailureSynchronously() throws Exception {
+    // Given
+    server.createContext(
+        "/source",
+        exchange -> {
+          exchange.sendResponseHeaders(500, -1);
+          exchange.close();
+        });
+    try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
+      // When
+      org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
+          () -> client.page(origin.resolve("/source"));
+
+      // Then
+      assertThatThrownBy(read)
+          .isInstanceOf(UncheckedIOException.class)
+          .hasCauseInstanceOf(HttpResponseException.class);
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {302, 503})
+  @DisplayName("Requires a new provider permit for each retry or redirect exchange")
+  void budgetsEveryActualExchange(int status) throws Exception {
+    // Given
+    AtomicInteger requests = new AtomicInteger();
+    server.createContext(
+        "/source",
+        exchange -> {
+          requests.incrementAndGet();
+          exchange.getResponseHeaders().add("Location", "/source");
+          exchange.getResponseHeaders().add("Retry-After", "1");
+          exchange.sendResponseHeaders(status, -1);
+          exchange.close();
+        });
+    try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 1)) {
+      // When
+      org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
+          () -> client.page(origin.resolve("/source"));
+
+      // Then
+      assertThatThrownBy(read).isInstanceOf(RequestNotPermitted.class);
+      assertThat(requests).hasValue(1);
     }
   }
 
@@ -97,7 +147,7 @@ class ProviderHttpClientIntegrationTest {
     serveGzip(content);
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
-      byte[] actual = client.page(origin.resolve("/source")).get(5, TimeUnit.SECONDS).body();
+      byte[] actual = client.page(origin.resolve("/source")).body();
 
       // Then
       assertThat(actual).isEqualTo(content);
@@ -112,7 +162,7 @@ class ProviderHttpClientIntegrationTest {
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
       org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.page(origin.resolve("/source")).get(5, TimeUnit.SECONDS);
+          () -> client.page(origin.resolve("/source"));
 
       // Then
       assertThatThrownBy(action)
@@ -158,48 +208,107 @@ class ProviderHttpClientIntegrationTest {
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
       org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.page(origin.resolve("/source")).get(5, TimeUnit.SECONDS);
+          () -> client.page(origin.resolve("/source"));
 
       // Then
-      assertThatThrownBy(action).hasRootCauseInstanceOf(IllegalArgumentException.class);
+      assertThatThrownBy(action).isInstanceOf(IllegalArgumentException.class);
       assertThat(followed).hasValue(0);
     }
   }
 
   @Test
-  @DisplayName("Rejects pending work after the shared provider queue fills")
+  @DisplayName("Bounds active connections and pending caller lease waiting")
   void boundsActiveAndPendingWork() throws Exception {
     // Given
     CountDownLatch entered = new CountDownLatch(1);
     CountDownLatch release = new CountDownLatch(1);
+    AtomicInteger requests = new AtomicInteger();
     server.createContext(
         "/source",
         exchange -> {
+          requests.incrementAndGet();
+          exchange.sendResponseHeaders(200, 0);
           entered.countDown();
           try {
-            release.await(5, TimeUnit.SECONDS);
-          } catch (InterruptedException exception) {
+            // Progress keeps the leased response alive while a different caller exhausts its lease
+            // wait.
+            while (!release.await(25, TimeUnit.MILLISECONDS)) {
+              exchange.getResponseBody().write('x');
+              exchange.getResponseBody().flush();
+            }
+          } catch (InterruptedException failure) {
             Thread.currentThread().interrupt();
+          } finally {
+            exchange.close();
           }
-          exchange.sendResponseHeaders(200, -1);
-          exchange.close();
         });
-    try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
-      CompletableFuture<ProviderResponse> running = client.page(origin.resolve("/source"));
+    try (ExecutorService callers = Executors.newSingleThreadExecutor();
+        ProviderHttpClient client = client(1024, Duration.ofMillis(250), 1)) {
+      Future<ProviderResponse> running =
+          callers.submit(() -> client.page(origin.resolve("/source")));
       assertThat(entered.await(3, TimeUnit.SECONDS)).isTrue();
-      CompletableFuture<ProviderResponse> queued = client.page(origin.resolve("/source"));
       try {
         // When
-        org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
+        org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
             () -> client.page(origin.resolve("/source"));
 
         // Then
-        assertThatThrownBy(action).isInstanceOf(TaskRejectedException.class);
+        assertThatThrownBy(read)
+            .isInstanceOf(UncheckedIOException.class)
+            .hasCauseInstanceOf(ConnectionRequestTimeoutException.class);
+        assertThat(requests).hasValue(1);
       } finally {
         release.countDown();
       }
-      running.get(5, TimeUnit.SECONDS);
-      queued.get(5, TimeUnit.SECONDS);
+      assertThat(running.get(5, TimeUnit.SECONDS)).isNotNull();
+    }
+  }
+
+  @Test
+  @DisplayName("Closing the transport ends pending reads without another supplier request")
+  void closesPendingReads() throws Exception {
+    // Given
+    AtomicInteger requests = new AtomicInteger();
+    CountDownLatch entered = new CountDownLatch(1);
+    CountDownLatch waiting = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    server.createContext(
+        "/source",
+        exchange -> {
+          requests.incrementAndGet();
+          entered.countDown();
+          try {
+            release.await(5, TimeUnit.SECONDS);
+          } catch (InterruptedException failure) {
+            Thread.currentThread().interrupt();
+          } finally {
+            exchange.close();
+          }
+        });
+    try (ExecutorService callers = Executors.newFixedThreadPool(2);
+        ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
+      Future<Throwable> active =
+          callers.submit(() -> catchThrowable(() -> client.page(origin.resolve("/source"))));
+      assertThat(entered.await(3, TimeUnit.SECONDS)).isTrue();
+      Future<Throwable> pending =
+          callers.submit(
+              () -> {
+                waiting.countDown();
+                return catchThrowable(() -> client.page(origin.resolve("/source")));
+              });
+      assertThat(waiting.await(3, TimeUnit.SECONDS)).isTrue();
+
+      // When
+      client.close();
+
+      // Then
+      assertThat(active.get(5, TimeUnit.SECONDS))
+          .isInstanceOfAny(UncheckedIOException.class, IllegalStateException.class);
+      assertThat(pending.get(5, TimeUnit.SECONDS))
+          .isInstanceOfAny(UncheckedIOException.class, IllegalStateException.class);
+      assertThat(requests).hasValue(1);
+    } finally {
+      release.countDown();
     }
   }
 
@@ -216,13 +325,51 @@ class ProviderHttpClientIntegrationTest {
           exchange.close();
         });
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 1)) {
-      client.page(origin.resolve("/source")).get(5, TimeUnit.SECONDS);
+      client.page(origin.resolve("/source"));
       // When
       org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.page(origin.resolve("/source")).get(5, TimeUnit.SECONDS);
+          () -> client.page(origin.resolve("/source"));
 
       // Then
-      assertThatThrownBy(action).hasRootCauseInstanceOf(RequestNotPermitted.class);
+      assertThatThrownBy(action).isInstanceOf(RequestNotPermitted.class);
+      assertThat(requests).hasValue(1);
+    }
+  }
+
+  @Test
+  @DisplayName("Interrupting a started caller produces no further supplier request")
+  void interruptsStartedCaller() throws Exception {
+    // Given
+    AtomicInteger requests = new AtomicInteger();
+    CountDownLatch started = new CountDownLatch(1);
+    CountDownLatch finished = new CountDownLatch(1);
+    server.createContext(
+        "/source",
+        exchange -> {
+          requests.incrementAndGet();
+          exchange.sendResponseHeaders(200, -1);
+          exchange.close();
+        });
+    try (ExecutorService callers = Executors.newSingleThreadExecutor();
+        ProviderHttpClient client = client(32, Duration.ofSeconds(3), 1, Duration.ofSeconds(5))) {
+      client.page(origin.resolve("/source"));
+      Future<?> pending =
+          callers.submit(
+              () -> {
+                started.countDown();
+                try {
+                  client.page(origin.resolve("/source"));
+                } finally {
+                  finished.countDown();
+                }
+              });
+      assertThat(started.await(3, TimeUnit.SECONDS)).isTrue();
+
+      // When
+      pending.cancel(true);
+
+      // Then
+      assertThat(finished.await(3, TimeUnit.SECONDS)).isTrue();
       assertThat(requests).hasValue(1);
     }
   }
@@ -244,7 +391,7 @@ class ProviderHttpClientIntegrationTest {
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
       org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.post(origin.resolve("/source"), List.of()).get(5, TimeUnit.SECONDS);
+          () -> client.post(origin.resolve("/source"), List.of());
 
       // Then
       assertThatThrownBy(action).hasRootCauseInstanceOf(HttpResponseException.class);
@@ -267,11 +414,10 @@ class ProviderHttpClientIntegrationTest {
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
       org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () ->
-              (post
-                      ? client.post(origin.resolve("/source"), List.of())
-                      : client.page(origin.resolve("/source")))
-                  .get(5, TimeUnit.SECONDS);
+          () -> {
+            if (post) client.post(origin.resolve("/source"), List.of());
+            else client.page(origin.resolve("/source"));
+          };
 
       // Then
       assertThatThrownBy(action).hasRootCauseInstanceOf(IOException.class);
@@ -299,7 +445,7 @@ class ProviderHttpClientIntegrationTest {
     try (ProviderHttpClient client = client(32, Duration.ofMillis(100), 10)) {
       // When
       org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.page(origin.resolve("/source")).get(3, TimeUnit.SECONDS);
+          () -> client.page(origin.resolve("/source"));
 
       // Then
       assertThatThrownBy(action).hasRootCauseInstanceOf(SocketTimeoutException.class);
@@ -325,7 +471,7 @@ class ProviderHttpClientIntegrationTest {
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
       org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.page(origin.resolve("/source")).get(3, TimeUnit.SECONDS);
+          () -> client.page(origin.resolve("/source"));
 
       // Then
       assertThatThrownBy(action).hasRootCauseInstanceOf(RedirectException.class);
@@ -354,7 +500,7 @@ class ProviderHttpClientIntegrationTest {
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
       org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.page(origin.resolve("/source")).get(1, TimeUnit.SECONDS);
+          () -> client.page(origin.resolve("/source"));
 
       // Then
       assertThatThrownBy(action)
@@ -378,7 +524,7 @@ class ProviderHttpClientIntegrationTest {
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
       ProviderHttpClient.StatusResponse response =
-          client.getWithBadRequest(origin.resolve("/source")).get(5, TimeUnit.SECONDS);
+          client.getWithBadRequest(origin.resolve("/source"));
 
       // Then
       assertThat(response.status()).isEqualTo(400);
@@ -400,7 +546,7 @@ class ProviderHttpClientIntegrationTest {
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
       org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-          () -> client.getWithBadRequest(origin.resolve("/source")).get(5, TimeUnit.SECONDS);
+          () -> client.getWithBadRequest(origin.resolve("/source"));
 
       // Then
       assertThatThrownBy(read)
@@ -409,7 +555,7 @@ class ProviderHttpClientIntegrationTest {
   }
 
   /**
-   * Builds a real native transport with one worker and one pending slot against the isolated peer.
+   * Builds one native connection with finite lease waiting against the isolated peer.
    *
    * @param bytes maximum decoded response size
    * @param timeout native connection and response timeout
@@ -417,6 +563,20 @@ class ProviderHttpClientIntegrationTest {
    * @return independently closable provider budget
    */
   private ProviderHttpClient client(int bytes, Duration timeout, int permits) {
+    return client(bytes, timeout, permits, Duration.ZERO);
+  }
+
+  /**
+   * Builds the same isolated native budget with a scenario-owned finite permit wait.
+   *
+   * @param bytes maximum decoded response size
+   * @param timeout native connection, response and lease wait
+   * @param permits shared request budget for the test period
+   * @param permitTimeout maximum wait for another native request permit
+   * @return caller-owned transport without a provider executor
+   */
+  private ProviderHttpClient client(
+      int bytes, Duration timeout, int permits, Duration permitTimeout) {
     AcquisitionProperties properties =
         new AcquisitionProperties(
             List.of(origin.toString()),
@@ -426,10 +586,9 @@ class ProviderHttpClientIntegrationTest {
             bytes,
             1,
             1,
-            1,
             permits,
             Duration.ofMinutes(1),
-            Duration.ZERO,
+            permitTimeout,
             List.of());
     return new AcquisitionConfiguration().ffvbProviderClient(properties);
   }

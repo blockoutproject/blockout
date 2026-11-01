@@ -5,7 +5,7 @@ import {
   PropsWithChildren,
 } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import "../../../shared/native/test-support/tab-view-native";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -17,8 +17,8 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { AppState, Dimensions } from "react-native";
-import { Tabs } from "react-native-collapsible-tab";
+import { AppState, Dimensions, View } from "react-native";
+import { PagedTabs } from "../../../shared/components/paged-tabs";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import type {
@@ -160,13 +160,27 @@ function Providers({ children }: PropsWithChildren) {
   );
 }
 
-/** Supplies the same official native tab context used by resource screens for a calendar-only scenario. */
+/** Supplies resource screens' real scene ownership for a calendar-only scenario. */
 function CalendarTab({ children }: PropsWithChildren) {
   return (
-    <Tabs.Container>
-      <Tabs.Tab name="calendar">{children}</Tabs.Tab>
-    </Tabs.Container>
+    <PagedTabs
+      selected="calendar"
+      onSelect={() => undefined}
+      tabs={[{ id: "calendar", label: "Calendrier", content: children }]}
+    />
   );
+}
+
+/** Supplies a completed native swipe sequence; shared production code decides platform settlement. */
+async function settleNativePage(position: number) {
+  const pager = screen.getByTestId("native-tabs-pager");
+  await fireEvent(pager, "pageSelected", { nativeEvent: { position } });
+  await fireEvent(pager, "pageScroll", {
+    nativeEvent: { position, offset: 0 },
+  });
+  await fireEvent(pager, "pageScrollStateChanged", {
+    nativeEvent: { pageScrollState: "idle" },
+  });
 }
 
 it.each([
@@ -267,7 +281,6 @@ it("retains loaded calendar data and its active context through native font-size
       </CalendarTab>,
       { wrapper: Providers },
     );
-    await layoutNativeTabs();
     await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
 
     // When: the native Dimensions change event enters the stacked layout, then restores ordinary text.
@@ -278,14 +291,13 @@ it("retains loaded calendar data and its active context through native font-size
           screen: { ...original.screen, fontScale },
         });
       });
-      await layoutNativeTabs();
 
       // Then: data and current-tab actions stay usable throughout both transitions.
       expect(
         screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
       ).toBeOnTheScreen();
       expect(
-        screen.getByRole("tab", { name: "calendar", selected: true }),
+        screen.getByRole("tab", { name: "Calendrier", selected: true }),
       ).toBeOnTheScreen();
       expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
     }
@@ -311,7 +323,6 @@ it("retains calendar rows with one toast after refresh failure and replaces them
     </CalendarTab>,
     { wrapper: Providers },
   );
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   mockFetch.mockImplementation((url: string) =>
     new URL(url).pathname.endsWith("/application-access")
@@ -361,7 +372,6 @@ it("keeps pagination unavailable while a successful first-page replacement is pe
     </CalendarTab>,
     { wrapper: Providers },
   );
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   const refreshed = Promise.withResolvers<Response>();
   mockFetch.mockReturnValueOnce(refreshed.promise);
@@ -407,7 +417,6 @@ it("selects normal new-zone loading and error before an explicit retry", async (
     </CalendarTab>,
     { wrapper: Providers },
   );
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   const pending = Promise.withResolvers<Response>();
   mockFetch.mockClear().mockReturnValue(pending.promise);
@@ -491,7 +500,6 @@ it("reports a failed active cursor and retries the same boundary from its footer
     </CalendarTab>,
     { wrapper: Providers },
   );
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   mockFetch.mockClear();
 
@@ -558,7 +566,6 @@ it("does not append from a covered or inactive calendar", async () => {
     </CalendarTab>,
     { wrapper: Providers },
   );
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   mockFetch.mockClear();
 
@@ -597,6 +604,152 @@ it("does not append from a covered or inactive calendar", async () => {
   ).toHaveLength(0);
 });
 
+it("keeps a delayed cursor failure in its original scene after departure", async () => {
+  // Given: the real calendar owner has usable rows and a pending continuation.
+  calendar = { ...calendar, nextDay: "2026-09-21" };
+  const pending = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string) => {
+    const target = new URL(url);
+    if (target.pathname.endsWith("/application-access"))
+      return Promise.resolve(Response.json(applicationAccessResponse()));
+    return target.searchParams.has("nextDay")
+      ? pending.promise
+      : Promise.resolve(Response.json(calendar));
+  });
+  const view = await render(
+    <CalendarTab>
+      <SportingCalendar
+        selection={{ teamId: sportingId, category: "upcoming" }}
+      />
+    </CalendarTab>,
+    { wrapper: Providers },
+  );
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  mockFetch.mockClear();
+  await fireEvent(
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    "endReached",
+  );
+  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+
+  // When: the scene remains mounted but loses selection before its request fails.
+  await view.rerender(
+    <CalendarTab>
+      <SportingCalendar
+        selection={{ teamId: sportingId, category: "upcoming" }}
+        active={false}
+      />
+    </CalendarTab>,
+  );
+  await act(async () => pending.resolve(Response.json({}, { status: 503 })));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await screen.findByRole("button", { name: "Réessayer" });
+
+  // Then: authorized rows/cursor retry remain local, with no toast over the new context.
+  expect(
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
+  await userEvent.press(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  );
+  expect(
+    mockFetch.mock.calls
+      .map(([url]) => new URL(url))
+      .filter((url) => url.pathname === "/matches")
+      .map((url) => url.searchParams.get("nextDay")),
+  ).toEqual(["2026-09-21"]);
+  expect(
+    screen.queryByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeNull();
+});
+
+it("keeps a pending former selection refresh outside the newly selected calendar", async () => {
+  // Given: another retained observer keeps the original read alive when the visible selection changes.
+  const nextTeam = "00000000-0000-4000-8000-000000000009";
+  const pending = Promise.withResolvers<Response>();
+  const started = Promise.withResolvers<void>();
+  let holdOriginal = false;
+  const nextCalendar = {
+    ...calendar,
+    days: [
+      {
+        ...calendar.days[0],
+        pools: [
+          {
+            ...calendar.days[0].pools[0],
+            matches: [
+              {
+                ...matchDetail().match,
+                home: { id: nextTeam, name: "Current team" },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  mockFetch.mockImplementation((url: string) => {
+    const target = new URL(url);
+    if (target.pathname.endsWith("/application-access"))
+      return Promise.resolve(Response.json(applicationAccessResponse()));
+    if (target.searchParams.get("teamId") === nextTeam)
+      return Promise.resolve(Response.json(nextCalendar));
+    if (holdOriginal) {
+      started.resolve();
+      return pending.promise;
+    }
+    return Promise.resolve(Response.json(calendar));
+  });
+  /** A covered, retained observer uses the same real Query resource as the visible original scene. */
+  function calendars(teamId: string) {
+    return (
+      <>
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <SportingCalendar
+            selection={{ teamId: sportingId, category: "upcoming" }}
+            active={false}
+          />
+        </View>
+        <CalendarTab>
+          <SportingCalendar selection={{ teamId, category: "upcoming" }} />
+        </CalendarTab>
+      </>
+    );
+  }
+  const view = await render(calendars(sportingId), { wrapper: Providers });
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  holdOriginal = true;
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await act(() => started.promise);
+
+  // When: current intent changes while the former selection still has a legitimate mounted observer.
+  try {
+    await view.rerender(calendars(nextTeam));
+    await screen.findByRole("link", {
+      name: /Ouvrir le match Current team — Away/,
+    });
+    expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+  } finally {
+    await act(async () => pending.resolve(Response.json({}, { status: 503 })));
+  }
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // Then: current rows remain usable and a former read never announces an error in their context.
+  expect(
+    screen.getByRole("link", { name: /Ouvrir le match Current team — Away/ }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeNull();
+});
+
 it("pages from club information through teams to the calendar and back without rereading common data", async () => {
   // Given
   const club = clubDetail();
@@ -617,23 +770,14 @@ it("pages from club information through teams to the calendar and back without r
   });
   await render(<ClubScreen clubId={sportingId} />, { wrapper: Providers });
   await screen.findByRole("tab", { name: "Infos" });
-  await layoutNativeTabs();
   await screen.findByText("Coordonnées");
 
   // When: the native pager selects all resource tabs, including retained neighbour panels.
-  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
-    nativeEvent: { position: 1 },
-  });
-  await layoutNativeTabs();
+  await settleNativePage(1);
   await screen.findByText("Aucune équipe pour cette saison");
-  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
-    nativeEvent: { position: 2 },
-  });
-  await layoutNativeTabs();
+  await settleNativePage(2);
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
-  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
-    nativeEvent: { position: 1 },
-  });
+  await settleNativePage(1);
 
   // Then
   expect(
@@ -676,7 +820,6 @@ it("loads calendar tabs lazily and refreshes only the active calendar through ge
   const events = jest.spyOn(AppState, "addEventListener");
   await render(<TeamScreen teamId={sportingId} />, { wrapper: Providers });
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   const requests = mockFetch.mock.calls.length;
 
@@ -704,7 +847,6 @@ it("loads calendar tabs lazily and refreshes only the active calendar through ge
 
   // When: a visited sibling stays mounted, but only the newly displayed category refreshes.
   await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
-  await layoutNativeTabs();
   await screen.findByRole("tab", { name: "Terminés", selected: true });
   await waitFor(() =>
     expect(
@@ -759,13 +901,10 @@ it("changes calendar category with the native horizontal pager without rereading
   );
   await render(<TeamScreen teamId={sportingId} />, { wrapper: Providers });
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
 
   // When: native page settlement is not expressible with userEvent.
-  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
-    nativeEvent: { position: 1 },
-  });
+  await settleNativePage(1);
 
   // Then
   await waitFor(() =>

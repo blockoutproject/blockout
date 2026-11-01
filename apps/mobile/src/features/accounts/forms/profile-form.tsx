@@ -18,7 +18,7 @@ import {
   FormScrollView,
   type FormScrollViewProps,
 } from "../../../shared/components/form-scroll-view";
-import type { ScrollChromeContentProps } from "../../../shared/components/scroll-chrome";
+
 import { ScreenState } from "../../../shared/components/screen-state";
 import { ProfileLoading } from "../components/profile-loading";
 import { TextField } from "../../../shared/components/text-field";
@@ -34,8 +34,7 @@ import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 
 /** An editable snapshot of this original account; parent native principal changes remount it. */
 export interface ProfileFormProps {
-  /** Existing page chrome and native refresh; initial photo admission withholds the refresh control. */
-  scroll: ScrollChromeContentProps;
+  /** Native refresh stays withheld until the initial photo admits the mounted draft. */
   refreshControl: FormScrollViewProps["refreshControl"];
   account: AccountResponse;
   /** Keeps the local draft visible while the current account read cannot authorize personal edits. */
@@ -50,7 +49,6 @@ export interface ProfileFormProps {
 }
 /** Keeps mounted input through ordinary save failures and preserves each submitted photo until settlement. */
 export function ProfileForm({
-  scroll: { onScroll, headerHeight },
   refreshControl,
   account,
   disabled,
@@ -198,10 +196,6 @@ export function ProfileForm({
   }
   return (
     <FormScrollView
-      onScroll={onScroll}
-      scrollEventThrottle={16}
-      scrollIndicatorInsets={{ top: headerHeight }}
-      contentContainerStyle={{ paddingTop: headerHeight }}
       refreshControl={admitted || photoReady ? refreshControl : undefined}
     >
       {!admitted && !photoReady ? (

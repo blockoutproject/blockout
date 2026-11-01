@@ -5,7 +5,6 @@ import {
   type AdError,
 } from "react-native-google-mobile-ads";
 import { createInterstitialLifecycle } from "../interstitial-lifecycle";
-import { openSportingAdTransition } from "../sporting-ad-transition";
 import {
   advertisingContext,
   controlledInterstitial,
@@ -51,8 +50,7 @@ function action() {
 async function nineActions(
   lifecycle: ReturnType<typeof createInterstitialLifecycle>,
 ) {
-  for (let index = 0; index < 9; index++)
-    await openSportingAdTransition(lifecycle, action());
+  for (let index = 0; index < 9; index++) await lifecycle.transition(action());
 }
 it("preloads one instance with current request options and resets only on OPENED", async () => {
   // Given
@@ -68,7 +66,7 @@ it("preloads one instance with current request options and resets only on OPENED
   ad.emit(AdEventType.LOADED);
   // When
   const destination = action();
-  const result = openSportingAdTransition(lifecycle, destination);
+  const result = lifecycle.transition(destination);
   await Promise.resolve();
   // Then: a resolved show promise neither opens nor dismisses the ad.
   expect(InterstitialAd.createForAdRequest).toHaveBeenCalledWith("test-unit", {
@@ -111,7 +109,7 @@ it.each(["closed", "error", "rejected", "synchronous"])(
         throw new Error("private provider payload");
       });
     // When
-    const result = openSportingAdTransition(lifecycle, destination);
+    const result = lifecycle.transition(destination);
     if (outcome === "closed") ad.emit(AdEventType.CLOSED);
     if (outcome === "error")
       ad.emit(AdEventType.ERROR, { ...noFill, phase: "show" });
@@ -130,7 +128,7 @@ it.each(["closed", "error", "rejected", "synchronous"])(
       expect(Sentry.captureException).toHaveBeenCalledWith(
         new Error("Interstitial show failed"),
       );
-      await openSportingAdTransition(lifecycle, action());
+      await lifecycle.transition(action());
       expect(mockCreateAd).toHaveBeenCalledTimes(2);
     }
   },
@@ -147,14 +145,10 @@ it("waits for the next eligible sporting action after no-fill without treating i
   // When
   ad.emit(AdEventType.ERROR, noFill);
   lifecycle.preload();
-  await openSportingAdTransition(lifecycle, {
-    ...action(),
-    kind: "foreground",
-  });
   // Then
   expect(mockCreateAd).toHaveBeenCalledTimes(1);
   expect(Sentry.captureException).not.toHaveBeenCalled();
-  await openSportingAdTransition(lifecycle, action());
+  await lifecycle.transition(action());
   expect(mockCreateAd).toHaveBeenCalledTimes(2);
   expect(lifecycle.count).toBe(1);
 });
@@ -175,7 +169,7 @@ it.each([3599999, 3600000, 3600001])(
     clock.mockReturnValue(1000 + age);
     const destination = action();
     // When
-    const result = openSportingAdTransition(lifecycle, destination);
+    const result = lifecycle.transition(destination);
     // Then
     if (age < 3600000) {
       expect(ad.show).toHaveBeenCalledTimes(1);
@@ -208,7 +202,7 @@ it.each(["privacy", "session", "destination"])(
     await nineActions(lifecycle);
     let valid = true;
     const destination = { ...action(), isCurrent: () => valid };
-    const result = openSportingAdTransition(lifecycle, destination);
+    const result = lifecycle.transition(destination);
     ad.destroy.mockImplementation(() =>
       expect(destination.open).toHaveBeenCalledTimes(
         change === "privacy" ? 1 : 0,
@@ -246,7 +240,7 @@ it("rechecks authorization before show and discards incompatible session and mod
   await nineActions(lifecycle);
   current = { ...input, admission: { ordinary: false } };
   // When
-  await openSportingAdTransition(lifecycle, action());
+  await lifecycle.transition(action());
   session = { subject: "auth0|other", accountId: "other" };
   current = { ...current, account: { ...current.account, ...session } };
   current = {
@@ -280,7 +274,7 @@ it("does not preload after dismissal when current authorization has been withdra
   const ad = mockCreateAd.mock.results[0].value;
   ad.emit(AdEventType.LOADED);
   await nineActions(lifecycle);
-  const result = openSportingAdTransition(lifecycle, action());
+  const result = lifecycle.transition(action());
   ad.emit(AdEventType.OPENED);
   current = { ...input, choices: null };
   // When
@@ -302,7 +296,7 @@ it("keeps destination errors separate from ad failure after dismissal", async ()
   ad.emit(AdEventType.LOADED);
   await nineActions(lifecycle);
   const error = new Error("Destination unavailable");
-  const result = openSportingAdTransition(lifecycle, {
+  const result = lifecycle.transition({
     ...action(),
     open: () => {
       throw error;
@@ -330,7 +324,7 @@ it("allows restart to abandon a callback-free hang without a watchdog or replay"
   await nineActions(lifecycle);
   const destination = action();
   const completed = jest.fn();
-  void openSportingAdTransition(lifecycle, destination).then(completed);
+  void lifecycle.transition(destination).then(completed);
   // When
   await jest.advanceTimersByTimeAsync(24 * 60 * 60 * 1000);
   const restarted = createInterstitialLifecycle({
@@ -370,7 +364,7 @@ it.each(["create", "load", "sdk-error"])(
       ad.emit(AdEventType.ERROR, { ...noFill, reason: "network-error" });
     lifecycle.preload();
     const destination = action();
-    await openSportingAdTransition(lifecycle, destination);
+    await lifecycle.transition(destination);
     // Then
     expect(destination.open).toHaveBeenCalledTimes(1);
     expect(lifecycle.count).toBe(1);
@@ -412,7 +406,7 @@ it.each(["switch", "first-account"])(
     ad.emit(AdEventType.LOADED);
     await nineActions(lifecycle);
     const destination = action();
-    const result = openSportingAdTransition(lifecycle, destination);
+    const result = lifecycle.transition(destination);
     // When
     session = {
       subject: `auth0|${"00000000-0000-4000-8000-000000000002"}`,

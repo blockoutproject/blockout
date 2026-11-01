@@ -16,7 +16,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.blockout.backend.accounts.application.AccountAdmission;
 import com.blockout.backend.accounts.application.PrincipalReader;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -77,7 +76,7 @@ class AccountMaintenanceAdmissionIntegrationTest {
   void establishesWhileInactive(String intent) throws Exception {
     // Given
     when(provider.read(ISSUER, "auth0|signup"))
-        .thenReturn(new PrincipalReader.Evidence("signup@example.invalid", null, List.of()));
+        .thenReturn(new PrincipalReader.Evidence("signup@example.invalid", null));
 
     MockHttpServletRequestBuilder request = post("/accounts").with(principal("auth0|signup"));
     if (intent != null) request.header("Blockout-Maintenance-Bypass", intent);
@@ -207,7 +206,7 @@ class AccountMaintenanceAdmissionIntegrationTest {
         ACCOUNT);
     UUID replacement = UUID.fromString("00000000-0000-4000-8000-000000000999");
     when(provider.read(ISSUER, "auth0|existing"))
-        .thenReturn(new PrincipalReader.Evidence("provider@example.invalid", null, List.of()));
+        .thenReturn(new PrincipalReader.Evidence("provider@example.invalid", null));
     doAnswer(
             call -> {
               Object admitted = call.callRealMethod();
@@ -262,7 +261,7 @@ class AccountMaintenanceAdmissionIntegrationTest {
         "INSERT INTO account_permission (account_id, permission) VALUES (?, 'maintenance.bypass')",
         ACCOUNT);
     when(provider.read(ISSUER, "auth0|existing"))
-        .thenReturn(new PrincipalReader.Evidence("current@example.invalid", null, List.of()));
+        .thenReturn(new PrincipalReader.Evidence("current@example.invalid", null));
 
     // When
     mvc.perform(
@@ -348,7 +347,7 @@ class AccountMaintenanceAdmissionIntegrationTest {
               assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
               providerStarted.countDown();
               assertThat(releaseProvider.await(10, TimeUnit.SECONDS)).isTrue();
-              return new PrincipalReader.Evidence("signup@example.invalid", null, List.of());
+              return new PrincipalReader.Evidence("signup@example.invalid", null);
             });
 
     // When

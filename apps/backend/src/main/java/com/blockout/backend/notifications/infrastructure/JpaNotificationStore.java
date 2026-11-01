@@ -7,11 +7,9 @@ import com.blockout.backend.notifications.domain.MatchAnnouncementFacts;
 import com.blockout.backend.notifications.domain.NotificationRetention;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,18 +26,14 @@ public class JpaNotificationStore implements NotificationStore {
     notifications.erase(accountId);
   }
 
-  private static final int PURGE_BATCH_SIZE = 100;
   private final EntityManager entities;
   private final NotificationRepository notifications;
   private final NotificationPersistenceMapper mapper;
 
   /** {@inheritDoc} */
   @Override
-  public PurgeBatch deleteExpired(Instant cutoff) {
-    List<UUID> selected = notifications.findExpiredIds(cutoff, Limit.of(PURGE_BATCH_SIZE));
-    if (selected.isEmpty()) return new PurgeBatch(0, false);
-    int deleted = notifications.deleteExpired(selected, cutoff);
-    return new PurgeBatch(deleted, selected.size() == PURGE_BATCH_SIZE);
+  public int deleteExpired(Instant cutoff) {
+    return notifications.deleteExpired(cutoff);
   }
 
   /** {@inheritDoc} */

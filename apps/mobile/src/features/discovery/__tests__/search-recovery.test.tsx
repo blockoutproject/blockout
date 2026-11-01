@@ -13,7 +13,7 @@ import {
   onlineManager,
   type InfiniteData,
 } from "@tanstack/react-query";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import "../../../shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { router, Stack } from "expo-router";
@@ -21,7 +21,7 @@ import { Text } from "react-native";
 import ClubRoute from "../../../app/(ordinary)/clubs/[clubId]";
 import SupportLayout from "../../../app/(ordinary)/support/_layout";
 import { SupportScreen } from "../../support/screens/support-screen";
-import { AccountAdmissionProvider } from "../../accounts/components/account-admission";
+import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
 import { useConsultationQueries } from "../../sporting/match-consultation";
 import { renderRouter } from "expo-router/testing-library";
 import { type DiscoveryPage } from "../api/discovery-queries";
@@ -80,7 +80,7 @@ const season = { id: firstId, label: "2026/2027", startYear: 2026 };
 let client: QueryClient;
 let publicClient = createQueryClient();
 
-/** Only HTTP is controlled: generated transport, Query, admission, session, RNCT and Router stay real. */
+/** Only HTTP is controlled: generated transport, Query, admission, session, shared paging and Router stay real. */
 function publicReads(url: string): Promise<Response> {
   const parsed = new URL(url);
   if (parsed.pathname.endsWith("/application-access"))
@@ -212,13 +212,13 @@ async function renderSearch() {
                 <ApplicationAccessProvider>
                   <AccountSessionProvider>
                     <PrivateQueries>
-                      <AccountAdmissionProvider admitted>
+                      <AccessAdmissionProvider>
                         <AccountFeedbackProvider>
                           <AdvertisingProviders>
                             {children}
                           </AdvertisingProviders>
                         </AccountFeedbackProvider>
-                      </AccountAdmissionProvider>
+                      </AccessAdmissionProvider>
                     </PrivateQueries>
                   </AccountSessionProvider>
                 </ApplicationAccessProvider>
@@ -229,7 +229,6 @@ async function renderSearch() {
       ),
     },
   );
-  await layoutNativeTabs();
   return result;
 }
 

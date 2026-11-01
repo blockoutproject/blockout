@@ -236,8 +236,6 @@ export const tokens = {
     standingsMarkerWidth: 3,
     standingsMarkerHeight: 40,
     standingsPointsWidth: 34,
-    // Product Design pool map selection 4517:12199; wrapping native content may grow the canvas.
-    mapMinHeight: 583,
     // Product Design Standing Card 4280:10033 / Standings Block 4510:28651.
     standingsCard: {
       firstMinHeight: 288,

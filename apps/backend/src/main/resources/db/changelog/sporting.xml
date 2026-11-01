@@ -2,7 +2,7 @@
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
-  <!-- Mutable F02 baseline while environments remain disposable; no reset is authorized. -->
+  <!-- Keep applied F02 changeSets intact; append retained-data changes without an environment reset. -->
   <changeSet id="sporting-identities" author="blockout">
     <createTable tableName="sporting_season">
       <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
@@ -343,5 +343,9 @@
     </createTable>
     <addPrimaryKey tableName="sporting_standing_statistic" columnNames="row_id,label" constraintName="pk_standing_statistic"/>
     <addForeignKeyConstraint baseTableName="sporting_standing_statistic" baseColumnNames="row_id" referencedTableName="sporting_standing_row" referencedColumnNames="id" constraintName="fk_standing_statistic_row"/>
+  </changeSet>
+  <changeSet id="sporting-team-presentation-independence-20261101" author="blockout">
+    <comment>Team edit revisions no longer depend on inherited club artwork; retain all logo bytes.</comment>
+    <dropColumn tableName="sporting_club" columnName="logo_revision"/>
   </changeSet>
 </databaseChangeLog>

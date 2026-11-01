@@ -1,8 +1,8 @@
 import { useNavigation, useRouter } from "expo-router";
 import { CalendarDays, MapPin, Users } from "lucide-react-native";
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import Animated from "react-native-reanimated";
+import { FlatList, StyleSheet, Text, View } from "react-native";
+
 import type {
   CollectionFamilyEnum,
   CollectionSeasonResponse,
@@ -23,7 +23,7 @@ import {
 import { PageHeader } from "../../../shared/components/page-header";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -67,104 +67,86 @@ export function CollectionDashboardScreen() {
     <AccessFeedback {...authority} />
   ) : undefined;
   return (
-    <Page edges={["left", "right", "bottom"]}>
-      <ScrollChrome header={<PageHeader title="Collectes" />}>
-        {({ onScroll, headerHeight }) => (
-          <PageScrollView
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            scrollIndicatorInsets={{ top: headerHeight }}
-            contentContainerStyle={{ paddingTop: headerHeight }}
-            refreshControl={
-              authority.enabled ? (
-                <DataRefreshControl
-                  progressViewOffset={headerHeight}
-                  refreshing={
-                    query.isRefetching || authority.account.isRefetching
-                  }
-                  onRefresh={() => void refresh()}
-                />
-              ) : undefined
-            }
-          >
-            {blockingState ? (
-              <ScreenState>{blockingState}</ScreenState>
-            ) : (
-              <PageContent>
-                {authority.enabled && (
-                  <>
-                    <Text
-                      accessibilityRole="header"
-                      style={[
-                        tokens.typography.heading,
-                        { color: colors.text },
-                      ]}
-                    >
-                      Compétitions
-                    </Text>
-                    {(!denied ? query.data?.items : undefined)?.map(
-                      (season) => (
-                        <PreparationLink
-                          key={season.id}
-                          label={season.label}
-                          detail={seasonStatus(season)}
-                          icon={CalendarDays}
-                          onPress={() =>
-                            router.push({
-                              pathname: "/collection/[seasonId]",
-                              params: { seasonId: season.id },
-                            })
-                          }
-                        />
-                      ),
-                    )}
-                    {!denied && query.data?.items.length === 0 && (
-                      <EmptyState title="Aucune saison découverte" />
-                    )}
-                    {denied || (query.isError && !query.data) ? (
-                      <ErrorState
-                        onRetry={() => void refresh()}
-                        retrying={query.isFetching}
-                      />
-                    ) : (
-                      !query.data && <CollectionLoading />
-                    )}
-                    <Text
-                      accessibilityRole="header"
-                      style={[
-                        tokens.typography.heading,
-                        { color: colors.text },
-                      ]}
-                    >
-                      Clubs · indépendants des saisons
-                    </Text>
-                    <PreparationLink
-                      label="Fiches clubs"
-                      icon={Users}
-                      onPress={() =>
-                        router.push({
-                          pathname: "/collection/clubs/[family]",
-                          params: { family: "club-sheets" },
-                        })
-                      }
-                    />
-                    <PreparationLink
-                      label="Géocodage"
-                      icon={MapPin}
-                      onPress={() =>
-                        router.push({
-                          pathname: "/collection/clubs/[family]",
-                          params: { family: "geocoding" },
-                        })
-                      }
-                    />
-                  </>
+    <Page>
+      <PageHeader title="Collectes" />
+      <PageScrollView
+        refreshControl={
+          authority.enabled ? (
+            <DataRefreshControl
+              refreshing={query.isRefetching || authority.account.isRefetching}
+              onRefresh={() => void refresh()}
+            />
+          ) : undefined
+        }
+      >
+        {blockingState ? (
+          <ScreenState>{blockingState}</ScreenState>
+        ) : (
+          <PageContent>
+            {authority.enabled && (
+              <>
+                <Text
+                  accessibilityRole="header"
+                  style={[tokens.typography.heading, { color: colors.text }]}
+                >
+                  Compétitions
+                </Text>
+                {(!denied ? query.data?.items : undefined)?.map((season) => (
+                  <PreparationLink
+                    key={season.id}
+                    label={season.label}
+                    detail={seasonStatus(season)}
+                    icon={CalendarDays}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/collection/[seasonId]",
+                        params: { seasonId: season.id },
+                      })
+                    }
+                  />
+                ))}
+                {!denied && query.data?.items.length === 0 && (
+                  <EmptyState title="Aucune saison découverte" />
                 )}
-              </PageContent>
+                {denied || (query.isError && !query.data) ? (
+                  <ErrorState
+                    onRetry={() => void refresh()}
+                    retrying={query.isFetching}
+                  />
+                ) : (
+                  !query.data && <CollectionLoading />
+                )}
+                <Text
+                  accessibilityRole="header"
+                  style={[tokens.typography.heading, { color: colors.text }]}
+                >
+                  Clubs · indépendants des saisons
+                </Text>
+                <PreparationLink
+                  label="Fiches clubs"
+                  icon={Users}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/collection/clubs/[family]",
+                      params: { family: "club-sheets" },
+                    })
+                  }
+                />
+                <PreparationLink
+                  label="Géocodage"
+                  icon={MapPin}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/collection/clubs/[family]",
+                      params: { family: "geocoding" },
+                    })
+                  }
+                />
+              </>
             )}
-          </PageScrollView>
+          </PageContent>
         )}
-      </ScrollChrome>
+      </PageScrollView>
     </Page>
   );
 }
@@ -193,39 +175,31 @@ function SeasonControlScope({
   const feedback = useActionFeedback();
   if (!authority.enabled || !season.data || isAccessDenied(season.error))
     return (
-      <Page edges={["left", "right", "bottom"]}>
-        <ScrollChrome header={<PageHeader title={familyLabels[family]} />}>
-          {({ onScroll, headerHeight }) => (
-            <PageScrollView
-              onScroll={onScroll}
-              scrollEventThrottle={16}
-              scrollIndicatorInsets={{ top: headerHeight }}
-              contentContainerStyle={{ paddingTop: headerHeight }}
-            >
-              <ScreenState>
-                {!authority.enabled ? (
-                  <AccessFeedback {...authority} />
-                ) : season.isError ? (
-                  <ErrorState
-                    onRetry={() =>
-                      void season.refetch().then((result) => {
-                        if (
-                          result.isError &&
-                          result.data &&
-                          !isAccessDenied(result.error)
-                        )
-                          feedback.error();
-                      })
-                    }
-                    retrying={season.isFetching}
-                  />
-                ) : (
-                  <RequestLoading />
-                )}
-              </ScreenState>
-            </PageScrollView>
-          )}
-        </ScrollChrome>
+      <Page>
+        <PageHeader title={familyLabels[family]} />
+        <PageScrollView>
+          <ScreenState>
+            {!authority.enabled ? (
+              <AccessFeedback {...authority} />
+            ) : season.isError ? (
+              <ErrorState
+                onRetry={() =>
+                  void season.refetch().then((result) => {
+                    if (
+                      result.isError &&
+                      result.data &&
+                      !isAccessDenied(result.error)
+                    )
+                      feedback.error();
+                  })
+                }
+                retrying={season.isFetching}
+              />
+            ) : (
+              <RequestLoading />
+            )}
+          </ScreenState>
+        </PageScrollView>
       </Page>
     );
   return (
@@ -266,41 +240,33 @@ function ControlScope({
     );
   if (!authority.enabled || !selected)
     return (
-      <Page edges={["left", "right", "bottom"]}>
-        <ScrollChrome header={<PageHeader title={familyLabels[family]} />}>
-          {({ onScroll, headerHeight }) => (
-            <PageScrollView
-              onScroll={onScroll}
-              scrollEventThrottle={16}
-              scrollIndicatorInsets={{ top: headerHeight }}
-              contentContainerStyle={{ paddingTop: headerHeight }}
-            >
-              <ScreenState>
-                {!authority.enabled ? (
-                  <AccessFeedback {...authority} />
-                ) : query.isError ? (
-                  <ErrorState
-                    onRetry={() =>
-                      void query.refetch().then((result) => {
-                        if (
-                          result.isError &&
-                          result.data &&
-                          !isAccessDenied(result.error)
-                        )
-                          feedback.error();
-                      })
-                    }
-                    retrying={query.isFetching}
-                  />
-                ) : query.data ? (
-                  <ErrorState />
-                ) : (
-                  <RequestLoading />
-                )}
-              </ScreenState>
-            </PageScrollView>
-          )}
-        </ScrollChrome>
+      <Page>
+        <PageHeader title={familyLabels[family]} />
+        <PageScrollView>
+          <ScreenState>
+            {!authority.enabled ? (
+              <AccessFeedback {...authority} />
+            ) : query.isError ? (
+              <ErrorState
+                onRetry={() =>
+                  void query.refetch().then((result) => {
+                    if (
+                      result.isError &&
+                      result.data &&
+                      !isAccessDenied(result.error)
+                    )
+                      feedback.error();
+                  })
+                }
+                retrying={query.isFetching}
+              />
+            ) : query.data ? (
+              <ErrorState />
+            ) : (
+              <RequestLoading />
+            )}
+          </ScreenState>
+        </PageScrollView>
       </Page>
     );
   return (
@@ -452,117 +418,98 @@ function ControlDashboard({
     </View>
   );
   return (
-    <Page edges={["left", "right", "bottom"]}>
-      <ScrollChrome header={<PageHeader title={familyLabels[family]} />}>
-        {({ onScroll, headerHeight }) =>
-          !authority.enabled || !matches ? (
-            <PageScrollView
-              onScroll={onScroll}
-              scrollEventThrottle={16}
-              scrollIndicatorInsets={{ top: headerHeight }}
-              contentContainerStyle={{ paddingTop: headerHeight }}
-            >
-              <ScreenState>
-                {!authority.enabled ? (
-                  <AccessFeedback {...authority} />
-                ) : query.isError ? (
-                  <ErrorState
-                    onRetry={() => void query.refetch()}
-                    retrying={query.isFetching}
-                  />
-                ) : current ? (
-                  <ErrorState />
-                ) : (
-                  <RequestLoading />
-                )}
-              </ScreenState>
-            </PageScrollView>
-          ) : (
-            <Animated.FlatList
-              {...hiddenScrollIndicators}
-              testID="collection-results-list"
-              onScroll={onScroll}
-              scrollEventThrottle={16}
-              scrollIndicatorInsets={{ top: headerHeight }}
-              alwaysBounceVertical
-              refreshControl={
-                authority.sessionStatus === "authenticated" ? (
-                  <DataRefreshControl
-                    progressViewOffset={headerHeight}
-                    enabled={
-                      !editing.activity.isPending &&
-                      !editing.request.isPending &&
-                      !results.isFetchingNextPage
-                    }
-                    refreshing={refreshing}
-                    onRefresh={() => void refresh()}
-                  />
-                ) : undefined
-              }
-              data={rows}
-              keyExtractor={(row) => `${row.scopeId}/${row.stage}/${row.phase}`}
-              contentContainerStyle={[
-                rows.length ? pageContentStyle : styles.emptyList,
-                {
-                  paddingTop:
-                    headerHeight +
-                    (rows.length ? tokens.layout.content.start : 0),
-                },
-              ]}
-              ListHeaderComponent={header}
-              ItemSeparatorComponent={ListSeparator}
-              onEndReached={() => {
-                if (!query.isError && !results.isError) loadMore();
-              }}
-              onEndReachedThreshold={0.5}
-              renderItem={({ item }) => (
-                <CollectionResult result={item} diagnostics={diagnostics} />
+    <Page>
+      <PageHeader title={familyLabels[family]} />
+      {!authority.enabled || !matches ? (
+        <PageScrollView>
+          <ScreenState>
+            {!authority.enabled ? (
+              <AccessFeedback {...authority} />
+            ) : query.isError ? (
+              <ErrorState
+                onRetry={() => void query.refetch()}
+                retrying={query.isFetching}
+              />
+            ) : current ? (
+              <ErrorState />
+            ) : (
+              <RequestLoading />
+            )}
+          </ScreenState>
+        </PageScrollView>
+      ) : (
+        <FlatList
+          {...hiddenScrollIndicators}
+          testID="collection-results-list"
+          alwaysBounceVertical
+          refreshControl={
+            authority.sessionStatus === "authenticated" ? (
+              <DataRefreshControl
+                enabled={
+                  !editing.activity.isPending &&
+                  !editing.request.isPending &&
+                  !results.isFetchingNextPage
+                }
+                refreshing={refreshing}
+                onRefresh={() => void refresh()}
+              />
+            ) : undefined
+          }
+          data={rows}
+          keyExtractor={(row) => `${row.scopeId}/${row.stage}/${row.phase}`}
+          contentContainerStyle={
+            rows.length ? pageContentStyle : styles.emptyList
+          }
+          ListHeaderComponent={header}
+          ItemSeparatorComponent={ListSeparator}
+          onEndReached={() => {
+            if (!query.isError && !results.isError) loadMore();
+          }}
+          onEndReachedThreshold={0.5}
+          renderItem={({ item }) => (
+            <CollectionResult result={item} diagnostics={diagnostics} />
+          )}
+          ListEmptyComponent={
+            <ScreenState>
+              {isAccessDenied(results.error) ||
+              (results.isError && !results.data) ? (
+                <ErrorState
+                  onRetry={() => void results.refetch({ cancelRefetch: false })}
+                  retrying={results.isFetching}
+                />
+              ) : results.isPending ? (
+                <RequestLoading />
+              ) : (
+                <EmptyState
+                  title="Aucun résultat observé"
+                  description="Aucun succès ne peut être confirmé."
+                />
               )}
-              ListEmptyComponent={
-                <ScreenState>
-                  {isAccessDenied(results.error) ||
-                  (results.isError && !results.data) ? (
-                    <ErrorState
-                      onRetry={() =>
-                        void results.refetch({ cancelRefetch: false })
-                      }
-                      retrying={results.isFetching}
-                    />
-                  ) : results.isPending ? (
-                    <RequestLoading />
-                  ) : (
-                    <EmptyState
-                      title="Aucun résultat observé"
-                      description="Aucun succès ne peut être confirmé."
-                    />
-                  )}
-                </ScreenState>
-              }
-              ListFooterComponent={
-                <>
-                  {!isAccessDenied(results.error) && results.hasNextPage ? (
-                    <View style={styles.footer}>
-                      <ListContinuation
-                        loading={results.isFetchingNextPage}
-                        failed={results.isFetchNextPageError}
-                        disabled={
-                          results.isFetching ||
-                          refreshing ||
-                          query.isFetching ||
-                          editing.activity.isPending ||
-                          editing.request.isPending
-                        }
-                        onRetry={loadMore}
-                      />
-                    </View>
-                  ) : undefined}
-                  <BottomContentSpacer />
-                </>
-              }
-            />
-          )
-        }
-      </ScrollChrome>
+            </ScreenState>
+          }
+          ListFooterComponent={
+            <>
+              {!isAccessDenied(results.error) && results.hasNextPage ? (
+                <View style={styles.footer}>
+                  <ListContinuation
+                    loading={results.isFetchingNextPage}
+                    failed={results.isFetchNextPageError}
+                    disabled={
+                      results.isFetching ||
+                      refreshing ||
+                      query.isFetching ||
+                      editing.activity.isPending ||
+                      editing.request.isPending
+                    }
+                    onRetry={loadMore}
+                  />
+                </View>
+              ) : undefined}
+              <BottomContentSpacer />
+            </>
+          }
+        />
+      )}
     </Page>
   );
 }

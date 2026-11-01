@@ -92,7 +92,7 @@ public class QualifySource {
               URI.create("urn:blockout:acquisition:structure"));
         season = candidate.seasonLabel();
       } else {
-        ProviderResponse response = lnvHttp.page(candidate.candidateUrl()).join();
+        ProviderResponse response = lnvHttp.page(candidate.candidateUrl());
         season = lnv.qualify(response.body(), response.url(), candidate.organizerReference());
       }
       if (season == null)

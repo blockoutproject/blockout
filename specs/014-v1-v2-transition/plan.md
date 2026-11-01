@@ -120,11 +120,11 @@ Manual operations are sufficient; no release orchestrator, store monitor, countd
 
 ## Design approval
 
-The owner approved prototype [713b37e](https://github.com/blockoutproject/product-prototype/commit/713b37e) on 2026-10-15 and explicitly approved its faithful Figma translation in advance. This owner instruction changes only the timing of the second validation for this scope; it is not a standing exception or an approval of new design choices.
+The owner approved prototype on 2026-10-15 and explicitly approved its faithful Figma translation in advance. This owner instruction changes only the timing of the second validation for this scope; it is not a standing exception or an approval of new design choices.
 
 Common discovery includes former-user information in its last step. Existing sign-in, Pro, age and global-gate journeys remain in place. The corresponding Figma [light](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=804-148), [dark](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=831-382) and [320 px](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=6705-5025) states were reconciled and visually checked against that prototype, retaining editable text, Outfit typography, library instances and existing tokens. The journey uses the existing UI library and excludes provider interfaces.
 
-Prototype build and 209 tests passed. Browser review covered completion, skipping, the independent age gate and 320 px with 150% text; Figma review covered the static states linked above. These checks do not qualify native accessibility, secure storage, signed upgrade or provider continuity.
+Prototype browser review covers completion, skipping, the independent age gate and 320 px with 150% text; Figma review covered the static states linked above. These checks do not qualify native accessibility, secure storage, signed upgrade or provider continuity.
 
 ## Verification and evidence limits
 

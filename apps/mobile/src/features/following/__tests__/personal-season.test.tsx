@@ -1,4 +1,4 @@
-import { QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { QueryClientProvider, useInfiniteQuery } from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -8,11 +8,6 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { Text } from "react-native";
-import {
-  listTeamFollows,
-  listPoolFollows,
-  listPersonalMatches,
-} from "../../../../.generated/mobile";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { Button } from "../../../shared/components/button";
@@ -21,16 +16,11 @@ import { PersonalSeasonSelector } from "../components/personal-season-selector";
 import { PersonalSeasonChoices } from "../components/personal-season-choices";
 import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { usePersonalSeason } from "../hooks/use-personal-season";
+import { followOptionsKey, type FollowingOwner } from "../api/following-keys";
 import {
-  followListKey,
-  followOptionsKey,
-  type FollowingOwner,
-} from "../api/following-keys";
-import {
-  readPersonalSelection,
-  createFollowOptionsQueryOptions,
+  createPersonalCalendarOptions,
+  createFollowListOptions,
 } from "../api/personal-queries";
-import { ApiError } from "../../../shared/api/api-fetch";
 import { useState } from "react";
 
 // Native safe-area measurement is controlled; these interactions do not qualify sheet geometry.
@@ -71,32 +61,16 @@ function PersonalProbe({ enabled = true }: { enabled?: boolean }) {
   const season = usePersonalSeason(owner, request, enabled);
   const [tab, setTab] = useState("upcoming");
   const [choicesOpen, setChoicesOpen] = useState(false);
-  const list = useQuery({
-    queryKey: [
-      ...followListKey(
-        owner,
-        tab === "following" ? "pool" : "team",
-        season.seasonId ? { seasonId: season.seasonId } : {},
-      ),
-      tab,
-    ],
+  const list = useInfiniteQuery({
+    ...createFollowListOptions(
+      owner,
+      request,
+      tab === "following" ? "pool" : "team",
+      season.seasonId,
+    ),
     enabled: enabled && Boolean(season.options.data),
-    queryFn: ({ signal }) =>
-      season.read(season.seasonId, signal, async () => {
-        const options = await request(signal);
-        return tab === "following"
-          ? listPoolFollows(
-              accountId,
-              season.seasonId ? { seasonId: season.seasonId } : {},
-              options,
-            )
-          : listTeamFollows(
-              accountId,
-              season.seasonId ? { seasonId: season.seasonId } : {},
-              options,
-            );
-      }),
   });
+
   return (
     <>
       <Tabs
@@ -308,7 +282,7 @@ it.each(["empty", "default"])(
 );
 
 it.each(["offered", "failure"])(
-  "performs one bounded options reread on a seasonal NotFound and retains the choice after %s",
+  "does not reload options after seasonal NotFound despite %s of a future options read",
   async (outcome) => {
     // Given
     const user = userEvent.setup();
@@ -330,14 +304,14 @@ it.each(["offered", "failure"])(
     await screen.findByText("Read failed");
 
     // Then
-    expect(optionReads()).toBe(2);
+    expect(optionReads()).toBe(1);
     expect(
       screen.getByRole("button", { name: "Saison des suivis" }),
     ).toHaveAccessibilityValue({ text: older.label });
 
     // When
     await user.press(screen.getByRole("button", { name: "Retry read" }));
-    await waitFor(() => expect(optionReads()).toBe(3));
+    await waitFor(() => expect(optionReads()).toBe(1));
 
     // Then
     expect(
@@ -346,7 +320,7 @@ it.each(["offered", "failure"])(
   },
 );
 
-it("loads the new context only after the bounded reread proves omission", async () => {
+it("keeps an unavailable selection until explicit options reload establishes its disappearance", async () => {
   // Given
   const user = userEvent.setup();
   await mount();
@@ -361,6 +335,19 @@ it("loads the new context only after the bounded reread proves omission", async 
 
   // When
   await user.press(screen.getByRole("button", { name: "Retry read" }));
+  await screen.findByText("Read failed");
+
+  // Then
+  expect(optionReads()).toBe(1);
+  expect(
+    screen.getByRole("button", { name: "Saison des suivis" }),
+  ).toBeEnabled();
+  expect(
+    screen.getByRole("button", { name: "Saison des suivis" }),
+  ).toHaveAccessibilityValue({ text: older.label });
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Reload options" }));
 
   // Then
   await waitFor(() =>
@@ -372,65 +359,24 @@ it("loads the new context only after the bounded reread proves omission", async 
   expect(optionReads()).toBe(2);
 });
 
-it("does not reread options for an All-seasons NotFound", async () => {
-  // Given
-  const selectSeason = jest.fn();
-  const context = {
-    client,
-    owner,
-    seasonId: undefined,
-    signal: new AbortController().signal,
-    options: createFollowOptionsQueryOptions(owner, request),
-    selectSeason,
-  };
-  const notFound = new ApiError("http", 404);
+it.each([undefined, older.id])(
+  "keeps a generated calendar NotFound ordinary for selection %s",
+  async (seasonId) => {
+    // Given
+    mockFetch.mockResolvedValue(new Response(null, { status: 404 }));
+    const options = createPersonalCalendarOptions(owner, request, {
+      seasonId,
+      category: "upcoming",
+      timeZone: "Europe/Paris",
+    });
 
-  // When / Then
-  await expect(
-    readPersonalSelection(context, async () => {
-      throw notFound;
-    }),
-  ).rejects.toBe(notFound);
-  expect(mockFetch).not.toHaveBeenCalled();
-  expect(selectSeason).not.toHaveBeenCalled();
-});
-
-it("uses the same bounded reconciliation for the real generated calendar", async () => {
-  // Given
-  mockFetch.mockImplementation(async (url) =>
-    url.includes("follow-options")
-      ? Response.json({ seasons: [], defaultSeasonId: undefined })
-      : new Response(null, { status: 404 }),
-  );
-  const selectSeason = jest.fn();
-  const signal = new AbortController().signal;
-
-  // When / Then
-  await expect(
-    readPersonalSelection(
-      {
-        client,
-        owner,
-        seasonId: older.id,
-        signal,
-        options: createFollowOptionsQueryOptions(owner, request),
-        selectSeason,
-      },
-      () =>
-        listPersonalMatches(
-          accountId,
-          {
-            category: "upcoming",
-            timeZone: "Europe/Paris",
-            seasonId: older.id,
-          },
-          { signal },
-        ),
-    ),
-  ).rejects.toMatchObject({ kind: "cancelled" });
-  expect(selectSeason).toHaveBeenCalledWith(undefined);
-  expect(optionReads()).toBe(1);
-});
+    // When / Then
+    await expect(client.fetchInfiniteQuery(options)).rejects.toMatchObject({
+      status: 404,
+    });
+    expect(optionReads()).toBe(0);
+  },
+);
 
 it("keeps the explicit newer choice when an older seasonal read completes late", async () => {
   // Given

@@ -9,12 +9,12 @@ import { ListContinuation } from "../../../shared/components/list-continuation";
 import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { PageHeader } from "../../../shared/components/page-header";
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { useNavigation, useRouter } from "expo-router";
 import { Layers } from "lucide-react-native";
-import { StyleSheet, Text, View } from "react-native";
-import Animated from "react-native-reanimated";
+import { FlatList, StyleSheet, Text, View } from "react-native";
+
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { tokens } from "../../../shared/theme/tokens";
@@ -69,123 +69,99 @@ export function SourceChildrenScreen({
       feedback.error();
   }
   return (
-    <Page edges={["left", "right", "bottom"]}>
-      <ScrollChrome header={<PageHeader title="Groupes découverts" />}>
-        {({ onScroll, headerHeight }) => (
-          <Animated.FlatList
-            {...hiddenScrollIndicators}
-            testID="collection-source-children-list"
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            scrollIndicatorInsets={{ top: headerHeight }}
-            alwaysBounceVertical={authority.enabled && !denied && !!query.data}
-            refreshControl={
-              authority.enabled && !denied && query.data ? (
-                <DataRefreshControl
-                  progressViewOffset={headerHeight}
-                  enabled={!query.isFetchingNextPage}
-                  refreshing={
-                    query.isRefetching || authority.account.isRefetching
-                  }
-                  onRefresh={() => void refresh()}
+    <Page>
+      <PageHeader title="Groupes découverts" />
+      <FlatList
+        {...hiddenScrollIndicators}
+        testID="collection-source-children-list"
+        alwaysBounceVertical={authority.enabled && !denied && !!query.data}
+        refreshControl={
+          authority.enabled && !denied && query.data ? (
+            <DataRefreshControl
+              enabled={!query.isFetchingNextPage}
+              refreshing={query.isRefetching || authority.account.isRefetching}
+              onRefresh={() => void refresh()}
+            />
+          ) : undefined
+        }
+        data={authority.enabled ? items : []}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={
+          authority.enabled && items.length ? pageContentStyle : styles.list
+        }
+        ItemSeparatorComponent={ListSeparator}
+        onEndReached={() => {
+          if (!query.isError) loadMore();
+        }}
+        onEndReachedThreshold={0.5}
+        ListHeaderComponent={
+          <>
+            {parentId && authority.enabled && (
+              <View style={[!items.length && pageContentStyle, styles.header]}>
+                <ClassificationEntry target={{ kind: "pack", id: parentId }} />
+              </View>
+            )}
+          </>
+        }
+        renderItem={({ item }) =>
+          item.kind === "pack" ? (
+            <PreparationLink
+              label={item.label}
+              icon={Layers}
+              onPress={() =>
+                router.push({
+                  pathname:
+                    "/collection/[seasonId]/sources/[sourceId]/children",
+                  params: { seasonId, sourceId, parentId: item.id },
+                })
+              }
+            />
+          ) : (
+            <View>
+              <Text style={[tokens.typography.body, { color: colors.text }]}>
+                {item.label}
+              </Text>
+              <ClassificationEntry target={{ kind: "pool", id: item.id }} />
+            </View>
+          )
+        }
+        ListEmptyComponent={
+          <ScreenState>
+            {!authority.enabled ? (
+              <AccessFeedback {...authority} />
+            ) : denied ? (
+              <ErrorState
+                onRetry={() => void query.refetch({ cancelRefetch: false })}
+                retrying={query.isFetching}
+              />
+            ) : query.isPending ? (
+              <RequestLoading />
+            ) : query.isError && !query.data ? (
+              <ErrorState
+                onRetry={() => void query.refetch({ cancelRefetch: false })}
+                retrying={query.isFetching}
+              />
+            ) : (
+              <EmptyState title="Aucun groupe découvert" />
+            )}
+          </ScreenState>
+        }
+        ListFooterComponent={
+          <>
+            {authority.enabled && !denied && query.hasNextPage ? (
+              <View style={styles.footer}>
+                <ListContinuation
+                  loading={query.isFetchingNextPage}
+                  failed={query.isFetchNextPageError}
+                  disabled={query.isFetching}
+                  onRetry={loadMore}
                 />
-              ) : undefined
-            }
-            data={authority.enabled ? items : []}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={[
-              authority.enabled && items.length
-                ? pageContentStyle
-                : styles.list,
-              {
-                paddingTop:
-                  headerHeight +
-                  (authority.enabled && items.length
-                    ? tokens.layout.content.start
-                    : 0),
-              },
-            ]}
-            ItemSeparatorComponent={ListSeparator}
-            onEndReached={() => {
-              if (!query.isError) loadMore();
-            }}
-            onEndReachedThreshold={0.5}
-            ListHeaderComponent={
-              <>
-                {parentId && authority.enabled && (
-                  <View
-                    style={[!items.length && pageContentStyle, styles.header]}
-                  >
-                    <ClassificationEntry
-                      target={{ kind: "pack", id: parentId }}
-                    />
-                  </View>
-                )}
-              </>
-            }
-            renderItem={({ item }) =>
-              item.kind === "pack" ? (
-                <PreparationLink
-                  label={item.label}
-                  icon={Layers}
-                  onPress={() =>
-                    router.push({
-                      pathname:
-                        "/collection/[seasonId]/sources/[sourceId]/children",
-                      params: { seasonId, sourceId, parentId: item.id },
-                    })
-                  }
-                />
-              ) : (
-                <View>
-                  <Text
-                    style={[tokens.typography.body, { color: colors.text }]}
-                  >
-                    {item.label}
-                  </Text>
-                  <ClassificationEntry target={{ kind: "pool", id: item.id }} />
-                </View>
-              )
-            }
-            ListEmptyComponent={
-              <ScreenState>
-                {!authority.enabled ? (
-                  <AccessFeedback {...authority} />
-                ) : denied ? (
-                  <ErrorState
-                    onRetry={() => void query.refetch({ cancelRefetch: false })}
-                    retrying={query.isFetching}
-                  />
-                ) : query.isPending ? (
-                  <RequestLoading />
-                ) : query.isError && !query.data ? (
-                  <ErrorState
-                    onRetry={() => void query.refetch({ cancelRefetch: false })}
-                    retrying={query.isFetching}
-                  />
-                ) : (
-                  <EmptyState title="Aucun groupe découvert" />
-                )}
-              </ScreenState>
-            }
-            ListFooterComponent={
-              <>
-                {authority.enabled && !denied && query.hasNextPage ? (
-                  <View style={styles.footer}>
-                    <ListContinuation
-                      loading={query.isFetchingNextPage}
-                      failed={query.isFetchNextPageError}
-                      disabled={query.isFetching}
-                      onRetry={loadMore}
-                    />
-                  </View>
-                ) : undefined}
-                <BottomContentSpacer />
-              </>
-            }
-          />
-        )}
-      </ScrollChrome>
+              </View>
+            ) : undefined}
+            <BottomContentSpacer />
+          </>
+        }
+      />
     </Page>
   );
 }

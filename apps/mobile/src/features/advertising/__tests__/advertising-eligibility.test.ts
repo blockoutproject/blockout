@@ -66,9 +66,7 @@ it("lets an admitted guest prepare choices and serve ads without any account ent
   });
   // Then
   expect(eligibility).toEqual({
-    canPrepareChoices: true,
-    canRequestAds: true,
-    canDisplayAds: true,
+    canServeAds: true,
   });
 });
 it.each([
@@ -99,9 +97,7 @@ it.each([
     });
     // Then
     expect(eligibility).toEqual({
-      canPrepareChoices: false,
-      canRequestAds: false,
-      canDisplayAds: false,
+      canServeAds: false,
     });
   },
 );
@@ -135,9 +131,7 @@ it.each(["absent", "pending", "failed", "missing-info"] as const)(
     });
     // Then
     expect(eligibility).toEqual({
-      canPrepareChoices: true,
-      canRequestAds: false,
-      canDisplayAds: false,
+      canServeAds: false,
     });
   },
 );
@@ -165,8 +159,7 @@ it.each([
       },
     });
     // Then
-    expect(eligibility.canRequestAds).toBe(false);
-    expect(eligibility.canDisplayAds).toBe(false);
+    expect(eligibility.canServeAds).toBe(false);
   },
 );
 it.each(["personalized", "contextual", "limited"] as const)(
@@ -187,9 +180,7 @@ it.each(["personalized", "contextual", "limited"] as const)(
     });
     // Then
     expect(eligibility).toEqual({
-      canPrepareChoices: true,
-      canRequestAds: true,
-      canDisplayAds: true,
+      canServeAds: true,
     });
   },
 );
@@ -201,52 +192,42 @@ describe.each(["guest", "inactive"] as const)(
         label: "blocked F12 admission",
         admission: { ordinary: false },
         choices: { canRequestAds: true, authorizedMode: "limited" },
-        canPrepareChoices: false,
       },
       {
         label: "missing native choices",
         admission: { ordinary: true },
         choices: null,
-        canPrepareChoices: true,
       },
       {
         label: "native request refusal",
         admission: { ordinary: true },
         choices: { canRequestAds: false, authorizedMode: "limited" },
-        canPrepareChoices: true,
       },
       {
         label: "no authorized advertising mode",
         admission: { ordinary: true },
         choices: { canRequestAds: true, authorizedMode: null },
-        canPrepareChoices: true,
       },
-    ] as const)(
-      "rejects $label",
-      ({ admission, choices, canPrepareChoices }) => {
-        // Given
-        if (state === "guest") {
-          session = { subject: null, accountId: null };
-          account = { ...account, ...session };
-          account.status = "guest";
-        }
-        const nativePro =
-          state === "guest" ? null : nativeState({ ...session });
-        // When
-        const eligibility = getAdvertisingEligibility({
-          account,
-          pro: getProState(account, nativePro),
-          admission,
-          choices: choices ? { ...choices, session: { ...session } } : null,
-        });
-        // Then
-        expect(eligibility).toEqual({
-          canPrepareChoices,
-          canRequestAds: false,
-          canDisplayAds: false,
-        });
-      },
-    );
+    ] as const)("rejects $label", ({ admission, choices }) => {
+      // Given
+      if (state === "guest") {
+        session = { subject: null, accountId: null };
+        account = { ...account, ...session };
+        account.status = "guest";
+      }
+      const nativePro = state === "guest" ? null : nativeState({ ...session });
+      // When
+      const eligibility = getAdvertisingEligibility({
+        account,
+        pro: getProState(account, nativePro),
+        admission,
+        choices: choices ? { ...choices, session: { ...session } } : null,
+      });
+      // Then
+      expect(eligibility).toEqual({
+        canServeAds: false,
+      });
+    });
   },
 );
 it.each(["active", "inactive"] as const)(
@@ -272,9 +253,7 @@ it.each(["active", "inactive"] as const)(
     });
     // Then: B has neither A's exemption nor permission to serve ads while its own rights are unknown.
     expect(eligibility).toEqual({
-      canPrepareChoices: true,
-      canRequestAds: false,
-      canDisplayAds: false,
+      canServeAds: false,
     });
   },
 );
@@ -306,9 +285,7 @@ it.each(["direct-switch", "guest-return"] as const)(
     });
     // Then
     expect(eligibility).toEqual({
-      canPrepareChoices: true,
-      canRequestAds: false,
-      canDisplayAds: false,
+      canServeAds: false,
     });
   },
 );
@@ -332,9 +309,7 @@ it("requires current choices when a guest becomes an established account during 
   });
   // Then
   expect(eligibility).toEqual({
-    canPrepareChoices: true,
-    canRequestAds: false,
-    canDisplayAds: false,
+    canServeAds: false,
   });
 });
 it("rechecks changed native rights before presentation without retaining a former permission", () => {
@@ -356,11 +331,8 @@ it("rechecks changed native rights before presentation without retaining a forme
     pro: getProState(account, nativeState({ ...session }, entitlement())),
   });
   // Then
-  expect(inactive.canRequestAds).toBe(true);
-  expect(inactive.canDisplayAds).toBe(true);
+  expect(inactive.canServeAds).toBe(true);
   expect(active).toEqual({
-    canPrepareChoices: false,
-    canRequestAds: false,
-    canDisplayAds: false,
+    canServeAds: false,
   });
 });

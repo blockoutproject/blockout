@@ -2,8 +2,8 @@
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
-  <!-- Domain owners add their real tables here while all databases remain disposable.
-       Freeze this baseline at the first preproduction/production version; append immutable changes thereafter. -->
+  <!-- Keep existing changeSets intact. Append domain-owned migrations for retained-data changes.
+       No schema change here authorizes resetting an environment or discarding protected data. -->
   <include file="sporting.xml" relativeToChangelogFile="true"/>
   <include file="collection.xml" relativeToChangelogFile="true"/>
   <include file="accounts.xml" relativeToChangelogFile="true"/>

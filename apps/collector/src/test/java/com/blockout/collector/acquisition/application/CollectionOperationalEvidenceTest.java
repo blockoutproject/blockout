@@ -3,6 +3,7 @@ package com.blockout.collector.acquisition.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -27,7 +28,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 import org.apache.hc.client5.http.HttpResponseException;
@@ -234,10 +234,11 @@ class CollectionOperationalEvidenceTest {
             .build();
     when(backend.targets(cycle.getCycle().id(), 0))
         .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
-    when(http.page(source))
-        .thenReturn(
-            CompletableFuture.failedFuture(
-                new HttpResponseException(503, "private-provider-body")));
+    doThrow(
+            new java.io.UncheckedIOException(
+                new HttpResponseException(503, "private-provider-body")))
+        .when(http)
+        .page(source);
 
     // When
     actual.execute(cycle);

@@ -20,8 +20,6 @@ import lombok.RequiredArgsConstructor;
 import org.hibernate.SessionFactory;
 import org.hibernate.query.criteria.HibernateCriteriaBuilder;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.SliceImpl;
 import org.springframework.data.jpa.support.PageableUtils;
 import org.springframework.stereotype.Repository;
 
@@ -35,22 +33,16 @@ public class JpaFollowReadStore implements FollowReadStore {
   private final EntityManager entities;
   private final SportingSeasonSelection sporting;
   private final SportingTargetSelection targets;
+  private final TeamFollowRepository teamFollows;
+  private final PoolFollowRepository poolFollows;
 
   /** {@inheritDoc} */
   @Override
   public long count(Target target) {
-    CriteriaBuilder builder = entities.getCriteriaBuilder();
-    CriteriaQuery<Long> query = builder.createQuery(Long.class);
-    Root<?> follow =
-        target.type() == TargetType.TEAM
-            ? query.from(TeamFollowEntity.class)
-            : query.from(PoolFollowEntity.class);
-    query
-        .select(builder.count(follow))
-        .where(
-            builder.equal(
-                follow.get(target.type() == TargetType.TEAM ? "teamId" : "poolId"), target.id()));
-    return entities.createQuery(query).getSingleResult();
+    return switch (target.type()) {
+      case TEAM -> teamFollows.countByTeamId(target.id());
+      case POOL -> poolFollows.countByPoolId(target.id());
+    };
   }
 
   /** {@inheritDoc} */
@@ -84,12 +76,9 @@ public class JpaFollowReadStore implements FollowReadStore {
             .setFirstResult(PageableUtils.getOffsetAsInteger(request))
             .setMaxResults(request.getPageSize() + 1)
             .getResultList();
-    Slice<UUID> slice =
-        new SliceImpl<>(
-            rows.subList(0, Math.min(rows.size(), request.getPageSize())),
-            request,
-            rows.size() > request.getPageSize());
-    return new TargetPage(slice.getContent(), slice.hasNext());
+    return new TargetPage(
+        rows.subList(0, Math.min(rows.size(), request.getPageSize())),
+        rows.size() > request.getPageSize());
   }
 
   /** {@inheritDoc} */

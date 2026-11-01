@@ -143,8 +143,8 @@ SportingPresentationResponse:
     revision:
       type: string
       description:
-        Opaque current editing revision, changed by relevant state changes, not freshness-only
-        refreshes.
+        Opaque current editing revision for this resource's own presentation. Inherited club artwork
+        changes do not invalidate a team edit; freshness-only refreshes do not change the revision.
     names:
       $ref: "#/NamePresentationResponse"
     logo:
@@ -244,8 +244,8 @@ PoolPresentationResponse:
     revision:
       type: string
       description:
-        Opaque current editing revision, changed by relevant state changes, not freshness-only
-        refreshes.
+        Opaque current editing revision for this resource's own presentation. Inherited club artwork
+        changes do not invalidate a team edit; freshness-only refreshes do not change the revision.
     names:
       $ref: "#/NamePresentationResponse"
   required:

@@ -12,14 +12,15 @@ import SupportChoiceRoute from "../../../app/(ordinary)/support/choice";
 import SupportRoute from "../../../app/(ordinary)/support/index";
 import { ProfileSupportAction } from "../../accounts/components/profile-support-action";
 import { ProProfileEntry } from "../components/pro-profile-entry";
-import { AccountAdmissionProvider } from "../../accounts/components/account-admission";
+import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { useSupportVisit } from "../../support/forms/support-visit";
 import { renderRouter } from "expo-router/testing-library";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Text } from "react-native";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { getGetApplicationAccessQueryKey } from "../../../../.generated/mobile";
 import { type CustomerCenterViewProps } from "react-native-purchases-ui";
 import type { AccountSession } from "../../accounts";
 import {
@@ -127,17 +128,22 @@ afterEach(async () => {
 function Journey() {
   useQueryClient().setQueryDefaults([], { retry: false, gcTime: Infinity });
   const a = useAccountSession();
-  const [admitted, updateAdmission] = useState(true);
   useEffect(() => {
     account = a;
-    setAdmitted = updateAdmission;
+    setAdmitted = (admitted) => {
+      const snapshot = applicationAccessResponse();
+      client.setQueryData(getGetApplicationAccessQueryKey(), {
+        ...snapshot,
+        maintenance: { ...snapshot.maintenance, active: !admitted },
+      });
+    };
   }, [a]);
   return (
-    <AccountAdmissionProvider admitted={admitted}>
+    <AccessAdmissionProvider>
       <ActionFeedbackProvider scopeKey={a.subject ?? "guest"}>
         <Stack screenOptions={{ headerShown: false, animation: "none" }} />
       </ActionFeedbackProvider>
-    </AccountAdmissionProvider>
+    </AccessAdmissionProvider>
   );
 }
 /** Real profile entry and independent F10 fallback; no provider dependency in support navigation. */
@@ -276,6 +282,9 @@ it("does not open support when F12 withdraws ordinary admission", async () => {
 
   // When
   await act(() => setAdmitted(false));
+  await waitFor(() =>
+    expect(screen.queryByText("Native management")).not.toBeOnTheScreen(),
+  );
   await act(() => callback({ actionId: "f10-help", purchaseIdentifier: null }));
 
   // Then

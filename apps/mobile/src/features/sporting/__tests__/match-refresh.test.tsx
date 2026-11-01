@@ -10,7 +10,7 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { AppState, type AppStateStatus } from "react-native";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import "../../../shared/native/test-support/tab-view-native";
 import { mockAuth0 } from "../../accounts/test-support/native-auth0";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import {
@@ -303,7 +303,6 @@ it("retains an already loaded calendar across match focus/foreground reads witho
     </>,
   );
   await screen.findByText("Équipe des Rives");
-  await layoutNativeTabs();
   await userEvent.setup().press(screen.getByRole("tab", { name: "À venir" }));
   await screen.findAllByText("Home");
   await waitFor(() => expect(client.isFetching()).toBe(0));
@@ -345,9 +344,7 @@ it("refreshes only the active club tab while preserving common information and s
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
   await screen.findByText("Club des Rives");
-  await layoutNativeTabs();
   await screen.findByText("Coordonnées");
-  await layoutNativeTabs();
   await user.press(screen.getByRole("tab", { name: "À venir" }));
   await screen.findByText("Aucun match pour cette sélection");
   await user.press(screen.getByRole("tab", { name: "Terminés" }));

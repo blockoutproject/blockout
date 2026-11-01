@@ -17,10 +17,8 @@ import java.util.UUID;
  * @param requestId opaque reference generated after whole-input validation
  * @param metadata validated declarations, without identity or entitlement authority
  * @param images all validated original files, in submission order
- * @param issueNumber known private issue during this attempt, or null before creation
  */
-public record SupportSubmission(
-    UUID requestId, Metadata metadata, List<Image> images, Long issueNumber)
+public record SupportSubmission(UUID requestId, Metadata metadata, List<Path> images)
     implements AutoCloseable {
   /**
    * Freezes the image list; the snapshot owns every listed temporary file.
@@ -28,7 +26,6 @@ public record SupportSubmission(
    * @param requestId opaque reference for this validated attempt
    * @param metadata detached canonical declarations
    * @param images validated private originals owned by this snapshot
-   * @param issueNumber current private issue reference, or null before creation
    */
   public SupportSubmission {
     images = List.copyOf(images);
@@ -42,9 +39,9 @@ public record SupportSubmission(
   @Override
   public void close() throws IOException {
     IOException failure = null;
-    for (Image image : images) {
+    for (Path image : images) {
       try {
-        Files.deleteIfExists(image.path());
+        Files.deleteIfExists(image);
       } catch (IOException exception) {
         if (failure == null) failure = exception;
         else failure.addSuppressed(exception);
@@ -81,7 +78,4 @@ public record SupportSubmission(
 
   /** Safe declared sign-in facts; the client must omit raw provider content and credentials. */
   public record SignInFailure(String method, String stage, String reason, String reference) {}
-
-  /** A private original with a generated filename and content-detected media type. */
-  public record Image(Path path, String mediaType) {}
 }

@@ -1,6 +1,4 @@
-import { StyleSheet, Text } from "react-native";
-import { useCollapseProgress } from "react-native-collapsible-tab";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import { StyleSheet, Text, View } from "react-native";
 import type {
   SportingDivisionResponse,
   SportingIdentityResponse,
@@ -8,41 +6,33 @@ import type {
 import { PageHeader } from "../../../shared/components/page-header";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
-import { useReducedMotion } from "../../../shared/theme/use-reduced-motion";
 import { SportingLogo } from "./sporting-identity";
 import type { ReactNode } from "react";
 
-/** A compact copy uses the same canonical logo; the large identity remains the sole action/reading region. */
-export interface SportingCompactHeaderProps {
-  title: string;
+/** Fixed navigation retains the canonical identity independently of each scrolling scene. */
+export interface SportingPageHeaderProps {
   identity: SportingIdentityResponse;
   kind: "team" | "pool" | "club";
   division?: SportingDivisionResponse;
-  /** Kept outside the fading identity so ordinary detail failures never own action availability. */
+  /** Contextual support remains independent of the body content. */
   action?: ReactNode;
 }
 
-/** Fades the accepted 28px identity into the pinned navigation as RNCT collapses the real profile. */
-export function SportingCompactHeader({
-  title,
+/** Composes the opaque shared navigation with its approved 28-point identity and exact public name. */
+export function SportingPageHeader({
   identity,
   kind,
   division,
   action,
-}: SportingCompactHeaderProps) {
-  const progress = useCollapseProgress();
-  const reducedMotion = useReducedMotion();
+}: SportingPageHeaderProps) {
   const { colors } = useTheme();
-  const fade = useAnimatedStyle(() => ({
-    opacity: reducedMotion ? (progress.value >= 1 ? 1 : 0) : progress.value,
-  }));
   return (
-    <PageHeader title={title} action={action}>
-      <Animated.View
+    <PageHeader title={identity.name} action={action}>
+      <View
         pointerEvents="none"
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
-        style={[styles.identity, fade]}
+        style={styles.identity}
       >
         <SportingLogo
           identity={
@@ -56,7 +46,7 @@ export function SportingCompactHeader({
         <Text numberOfLines={1} style={[styles.name, { color: colors.text }]}>
           {identity.name}
         </Text>
-      </Animated.View>
+      </View>
     </PageHeader>
   );
 }
