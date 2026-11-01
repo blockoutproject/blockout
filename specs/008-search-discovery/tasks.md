@@ -121,6 +121,8 @@ description: "Implementation tasks for F04 search and discovery"
 
 ---
 
+- [x] T072 [US4] Implement one hydration per nonempty native batch of at most 200 candidates in `apps/backend/src/main/java/com/blockout/backend/search/application/ReadSearch.java`, preserving examples/order/lookahead/cursor/evaluation-bound/current restrictions. Qualify direct traversal and the real bounded SQL hydration in existing search integration tests; record scoped evidence in `specs/008-search-discovery/quickstart.md`.
+
 ## Phase 6: User Story 5 — Understand errors and retry search (Priority: P1)
 
 **Goal**: Keep failures, uncertainty and actual absence distinct while respecting current access and operational recovery limits.
@@ -230,7 +232,3 @@ Complete setup/foundation, then deliver US2's named-search slice with real analy
 ### Incremental Delivery
 
 Add current choices and retained filters, full native browsing/exact destinations, failure/session/operational qualification, then stable examples. Validate each story's independent criteria and integrate real owners as they become available. Keep future Java/native/environment failures visible at their specific gate; stop for an owner decision if satisfying them would require changing an accepted mechanism or guarantee. Task completion never authorizes deployment, provider changes, production cutover or promotion to main.
-
-## Batch hydration simplification (2026-11-01)
-
-- [x] T072 [US4] Apply S-02 in `apps/backend/src/main/java/com/blockout/backend/search/application/ReadSearch.java`: one existing at-most-200 candidate hydration per engine batch, removing 21-slice orchestration while preserving examples/order/lookahead/cursor/evaluation-bound/current restrictions. Adapt direct traversal cases and qualify the real bounded SQL hydration in existing search integration tests; record scoped evidence in `specs/008-search-discovery/quickstart.md`.

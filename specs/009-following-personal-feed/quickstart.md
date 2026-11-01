@@ -56,6 +56,8 @@ Follow both teams and their pool: each match appears once. Remove origins in tur
 
 Read beyond one twenty-item follow page, including equal names and French accented names. Verify page/continuation bounds and clean BadRequest handling before native offset conversion, without overflow or a false end. Verify stable ordering, no false end on a page error and a fresh traversal after concurrent changes. Check the selected PostgreSQL image supplies the intended French collation and Hibernate executes the ordering expression.
 
+Opening the season selector is the explicit recovery from a selected-season error. Verify its reachability, retention of the selection when options fail, and successful omission withdrawing exact-season and All-seasons rows before fallback, including when an earlier options Query was evicted. Failed reads establish no absence. Native private-client lifetime and per-control pending behavior follow the existing [session owner](../005-accounts-identity/plan.md#mobile-session-and-shared-consumers); the database retains uniqueness and desired-state idempotence.
+
 ## Mobile journeys
 
 ### Native follow action boundary (T008, T014, T015)
@@ -176,6 +178,8 @@ blocking across a subsequent network failure until a successful read. The actual
 route starts one explicit options reread; only that request may publish opening feedback, while
 retained Query error state alone emits none.
 These tests establish neither native networking nor provider qualification.
+
+At `3004a3df3a95da0378c97e8c40ce9ae0b0070933`, the actual Home/season owners run on iOS 27.0 and Android 17/API 37 with fictional HTTP and native identity I/O. A selected-season 404 keeps its choice and makes no options request; the existing selector stays reachable. Opening it establishes omission and the default fallback. An Android options failure preserves the checked old choice until another explicit opening succeeds; the existing finite Query retries are unchanged. On iOS, returning to previously retained All-seasons content cannot restore the omitted match. These bounded native journeys establish the revised selection/withdrawal interaction, without physical-device, provider, complete screen-reader or new design approval.
 
 The existing entry/age guards now live in `apps/mobile/src/app/(ordinary)/(tabs)/(home)/_layout.tsx`,
 with Home still at `/` and its contextual choice at `/season`. The latter is a `(sheets)` leaf of
@@ -392,9 +396,3 @@ The later native-only [A32/A33](../003-shared-quality/quickstart.md#feedback-and
 ## Original-account erasure participant
 
 T011 supplies `EraseAccountFollows` through the actual F06 JPA store in F05's single account-lock transaction. The [F05 server erasure construction](../005-accounts-identity/quickstart.md#server-erasure-construction) qualifies visible/hidden pool and team relation removal, writer ordering, rollback and replacement-account isolation. Sporting targets and other owners survive; this adds no sporting-root acquisition or F06 recovery process. Broader T016 qualification retains its own scope.
-
-### Accepted simplification qualification boundary
-
-FR-012 now permits ordinary selected-season errors until the holder opens the existing season selector; only its successful choices reload establishes disappearance and fallback. Verify the selector remains reachable while the calendar/list is unavailable, failed options preserve selection, late reads cannot replace a newer selection, and successful omission withdraws retained exact-season and All-seasons rows before fallback. Check the first options read with pre-existing retained queries as well as ordinary subsequent reloads. Keep targeted refusal cancellation/clearing; do not use reciprocal resets.
-
-FR-023 now accepts per-mounted-control provisional/pending state and concurrent desired-state requests from independent controls/visits, as the deliberate two-control case demonstrates. The previous target-wide shared-provisional and automatic-NotFound-repair evidence does not qualify these revised boundaries. Current execution results and unavailable native evidence must be recorded separately after application checks; database uniqueness/idempotence and one team action remain required.

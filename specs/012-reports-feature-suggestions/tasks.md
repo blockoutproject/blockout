@@ -96,6 +96,9 @@ description: "Implementation tasks for F10 private support and suggestions"
 
 ---
 
+- [x] T074 [US3] Implement the validated send boundary in `apps/backend/src/main/java/com/blockout/backend/support/`: the immutable snapshot owns metadata, request UUID and private temporary paths; `SupportApiMapper` owns both HTTP directions, while the issue number stays local to orchestration. Preserve real MIME/content validation, all-file acceptance and cleanup after confirmed child termination.
+- [x] T075 [US3] Qualify existing support mapper/validation/orchestration/process tests under `apps/backend/src/test/java/com/blockout/backend/support/` for concrete mappings, actual content/extension checks, complete receipt and private-file cleanup. Compile generated mappings and record current scoped verification in `specs/012-reports-feature-suggestions/quickstart.md`, preserving historical provider/native qualification limits.
+
 ## Phase 5: User Story 4 — Handle the request within its authorized process (Priority: P1)
 
 **Goal**: Private case handling, independent domain authority and proportionate exceptional rights handling.
@@ -165,8 +168,3 @@ Serialize shared-file edits: support-form.tsx (T013/T029/T046), context (T010/T0
 Deliver US1 first as the guided-form MVP with controlled context/admission evidence. Add US3 complete-send behavior against controlled providers, then US4's actual private-provider qualification and handling. Add US2's native image journey and finish cross-story qualifications. A text-only development increment is not permission to omit images from the accepted release.
 
 Before real use, demonstrate the complete selected content, actual attachment confidentiality and applicable provider erasure, native preparation, owner session/access isolation and bounded failures. Retain ordinary editable retry and manual incomplete/duplicate closure. Do not replace accepted limits with receipt lookup, exactly-once delivery, automated reconciliation, a support database or a new recovery journey.
-
-## Current simplification delivery (2026-11-01)
-
-- [x] T074 [US3] Apply BI-02/BI-03 in `apps/backend/src/main/java/com/blockout/backend/support/`: retain validated temporary paths only, remove the always-null issue field and combine HTTP mappings in `SupportApiMapper`. Preserve real MIME/content validation, all-file acceptance and cleanup after confirmed child termination.
-- [x] T075 [US3] Adapt existing support mapper/validation/orchestration/process tests under `apps/backend/src/test/java/com/blockout/backend/support/`, remove assertions for deleted unused fields, compile generated mappings and record current scoped verification in `specs/012-reports-feature-suggestions/quickstart.md`. Historical provider/native qualifications remain unchanged.

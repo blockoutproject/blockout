@@ -144,21 +144,13 @@ These T042–T045 proofs reuse the existing backend bindings without a contract 
 Actual report/hold command scenarios, physical phones, system messages and provider delivery remain
 [T046/T041](tasks.md); no simulator, JavaScript export or SDK double supplies that evidence.
 
-## Earlier retention construction and isolated restore cases
+## Retention construction and isolated restore cases
 
-The earlier T047/T049 batching construction used the existing 29-elapsed-day cutoff, independent of physical deletion. Its per-batch interruption result is historical evidence and does not qualify the current atomic-pass replacement below.
-The dedicated [PostgreSQL cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/PurgeNotificationsIntegrationTest.java)
-exercise all four families, read/hidden states, the microsecond before age 29, exact age 29,
-overdue age 31, Paris/New York spring/autumn transitions, read/create overlap and interruption
-after a committed batch. The next ordinary daily invocation must remove remaining due rows
-without changing surviving creation dates or nonpersonal consumed match facts.
-Revision-specific commands and results belong in the delivery PR; these cases establish no
-actual F05 erasure, mobile expiry, sender/provider or operational restoration evidence.
+T047/T049 use the 29-elapsed-day cutoff independently of physical deletion. The [PostgreSQL cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/PurgeNotificationsIntegrationTest.java) exercise all families/read/hidden states, the microsecond before age 29, exact age 29, overdue age 31, Paris/New York daylight-saving changes and read/create overlap. The historical batch-interruption result establishes only the earlier per-batch progress; it does not qualify atomic-pass behavior.
 
-The [T047/T049](tasks.md) qualification uses actual Spring/JPA transactions and current
-inbox reads, with a controlled clock and test-only SQL interruption. No sender/ephemeral-work
-is qualified by those purge cases; subscription construction is described below, and those
-purge results do not qualify sending after failed deletion.
+At source/test revision `3004a3df3a95da0378c97e8c40ce9ae0b0070933`, the fixed-cutoff orchestration and actual PostgreSQL cases establish one atomic pass, definite statement/deferred-trigger commit refusal, no false completed/count diagnostic, ambient-transaction refusal and successful next ordinary deletion. Useful facts, original creation times and strict age-29 consultation/count/send exclusion remain independent of physical cleanup. The deferred trigger proves definite refusal/rollback, not every possible lost commit acknowledgement: runtime diagnostics leave unknown completion unconfirmed without claiming zero effects or a deletion count. No retry/recovery protocol is added.
+
+These cases use real Spring/JPA transactions and current inbox reads, a controlled clock and test-only SQL interruption. They qualify neither actual F05 erasure, mobile native expiry, sender/ephemeral-work/provider behavior, hosted daily execution nor operational restoration. Subscription construction remains separate, and these purge cases do not qualify sending after failed deletion. Revision-specific commands, counts and delivery chronology remain outside Git.
 
 T048 prepares the following cases for [F13's initial isolated restore](../003-shared-quality/quickstart.md#initial-restore-and-activation-condition)
 and the existing [pre-reopen reconciliation](../../infra/operations/README.md#reconcile-before-access-or-sends).
@@ -422,17 +414,3 @@ sample does not establish delivery guarantees or complete the other outstanding 
 ## Original-account erasure construction (T038)
 
 `NotificationErasureIntegrationTest` uses the real F05 orchestrator and F06/F07 persistence, migrations and transactions. It removes hidden inbox rows and multiple destinations while preserving other accounts and consumed match facts, orders reassociation before and after erasure, and resumes captured delivery/receipt work against a newer association. No old provider handoff or invalidation reaches that association. The [F05 construction record](../005-accounts-identity/quickstart.md#server-erasure-construction) owns common rollback, writer-lock and adapter evidence. T038 began with a generated HTTP case failing against the 503 stub. This scoped local construction does not complete T040/T041, physical delivery, provider activation or F05's wider T035 qualification.
-
-## Atomic-pass retention verification (2026-11-01)
-
-The current [retention plan](plan.md#inbox-retention-and-mobile-state) uses one cutoff DELETE and commits before reporting completed/count. Requalify exact elapsed-age/DST, all states/families, read/create overlap, full rollback on definite statement/commit refusal, safe unconfirmed diagnostics without false success or invented deletion counts, and the next ordinary daily pass. Keep logical read/count/send exclusion independent of failed physical cleanup. Current scoped execution results are recorded below and in the appended [tasks](tasks.md); earlier batch results are not proof of this replacement. Operational restore and real provider/device prerequisites remain separate.
-
-## Atomic retention qualification (2026-11-01)
-
-Source/test revision: `3004a3df3a95da0378c97e8c40ce9ae0b0070933`. Subsequent documentation-only commits inherit these unchanged application sources.
-
-After the coordinated full run exposed one unrelated collection test expectation, a combined targeted `verify` passes Checkstyle, current generation/compilation, packaging and Spotless with 15 Surefire and 28 Failsafe cases, without skips. F07 contributes the one fixed-cutoff orchestration case and all 13 `PurgeNotificationsIntegrationTest` cases. They cover exact elapsed-age/DST, all families/read/hidden states, read/create overlap, definite SQL refusal and next ordinary pass, actual PostgreSQL deferred-trigger commit refusal, safe incomplete diagnostics without false completed/count, and ambient-transaction refusal. The remaining cases requalify F01's corrected scoped operational fixture; these results do not relabel the initial full run as successful.
-
-The native deferred trigger establishes definite commit refusal/rollback, not every possible network acknowledgement failure. Runtime diagnostics deliberately leave completion unconfirmed after an unknown commit result; they assert neither zero effects nor a deletion count. Each pass remains atomic and the next ordinary predicate safely handles remaining due rows. Logical age-29 exclusion remains independent of physical cleanup.
-
-No actual hosted daily execution, notification provider delivery, mobile native expiry, production backup restore or production data migration was performed. Those existing qualifications remain separate; no new retry/recovery protocol was introduced.

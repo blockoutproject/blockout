@@ -173,6 +173,9 @@ description: "Implementation tasks for F07 notifications, inbox and push"
 
 ---
 
+- [x] T072 [US7] Implement one fixed-cutoff JPQL deletion inside one effective transaction in `apps/backend/src/main/java/com/blockout/backend/notifications/`, reporting completion/count only after confirmed commit. Preserve daily scheduling, strict logical age-29 exclusion and honest unconfirmed outcomes without a partial-progress protocol.
+- [x] T073 [US7] Qualify `apps/backend/src/test/java/com/blockout/backend/notifications/application/PurgeNotificationsIntegrationTest.java` for atomic rollback, actual commit refusal, no false completed/count diagnostic, next-pass success and retained expiry/concurrency/fact invariants. Qualify direct orchestration and cross-owner recovery consumers; record scoped evidence in `specs/011-notifications-delivery/quickstart.md`.
+
 ## Phase 8: User Story 2 — Hear about a link at the right time (Priority: P2)
 
 **Goal**: Create live and later-link events from actual accepted publications/current eligibility without repeated categories.
@@ -288,8 +291,3 @@ Marked tests occupy separate files after prerequisites. Serialize shared `notifi
 2. **Incremental P1 work**: Add current inbox/read/count/expiry, associations and best-effort push, restriction integration and daily purge; validate each story independently. Keep provider/device/restore evidence pending until its actual prerequisites exist.
 3. **Complete V2 scope**: Add ordinary due/live/later-link processing and native editorial qualification. These P2 stories are not optional launch omissions; early shared integrity already protects their consumers.
 4. **Finish evidence**: Run generated consumers, concurrency/native/restore cases and final quickstart. Preserve ordinary daily/minute passes, manual intervention and accepted delivery/offline limits without replay, a persistent queue or stronger guarantees.
-
-## Atomic retention simplification (2026-11-01)
-
-- [x] T072 [US7] Apply N-01 in `apps/backend/src/main/java/com/blockout/backend/notifications/`: one fixed-cutoff JPQL delete inside one effective transaction, completion/count log after commit, no selected-ID batching, PurgeBatch/more loop or nested REQUIRES_NEW service. Keep daily schedule and logical age-29 exclusion.
-- [x] T073 [US7] Requalify `apps/backend/src/test/java/com/blockout/backend/notifications/application/PurgeNotificationsIntegrationTest.java` for atomic rollback, actual commit failure, no false completed diagnostic, next-pass success and retained expiry/concurrency/fact invariants; adapt direct orchestration and cross-owner recovery consumers and record scoped evidence in `specs/011-notifications-delivery/quickstart.md`.

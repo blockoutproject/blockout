@@ -28,7 +28,7 @@ Unique `(accountId, matchId, family)` supplements consumed match facts. The latt
 
 Current match/pool/team/division/result presentation comes from owner-controlled read projections. No serialized sporting DTO, source document, video URL history, duplicated score or separately synchronized rendered text is stored here. Public viewability is a database predicate before paging/counting. Required internal creation occurs in the sporting transaction; projections of corrections need no per-entry content rewrite.
 
-A short consistent summary computes count plus minimum `createdAt + 29 elapsed days` over consultable unread entries. No expiry is returned at zero. All reads/sends exclude entries from 29 days; daily physical deletion includes hidden/read rows, normally removing them before 30. F05 erasure is immediate and supersedes retention. No permanent per-recipient delivery/announcement history remains after purge.
+A short consistent summary computes count plus minimum `createdAt + 29 elapsed days` over consultable unread entries. No expiry is returned at zero. All reads/sends exclude entries from 29 days; daily physical deletion includes hidden/read rows, normally removing them before 30. F05 erasure is immediate and supersedes retention. No permanent per-recipient delivery/announcement history remains after purge. Physical retention applies the fixed inclusive `createdAt` cutoff in one transaction, without selected-ID batches, partial-progress records or a per-entry archive. A definite refusal rolls back the pass; an uncertain commit may have applied the whole pass and provides no confirmed deletion count. The next ordinary pass/manual operation safely re-evaluates due rows while logical expiry remains strict. Completed diagnostics describe only confirmed deletion.
 
 ## Push subscription
 
@@ -53,7 +53,3 @@ After-commit send context references newly created entries, the original eligibl
 The original principal's private QueryClient holds validated responses by generated account keys and continuation. Server read state is monotone; cached read flags/counts have ordinary eventual freshness through invalidation/refetch, without a local true overlay or member-read acknowledgement protocol. Expired or known-restricted/purged content cannot be restored by older responses. A known missing member invalidates its unprovable whole total, without subtracting loaded rows. No read journal or complete inbox mirror is added. Logout/account changes clear private queries and local badge, regardless of best-effort disassociation outcome.
 
 The installation and current connection UUIDs are device metadata; the Expo address is obtained through the native SDK. Neither provides account authority, and no retained credential exists solely to clean up a failed logout.
-
-## Atomic daily retention execution
-
-The physical purge applies its fixed inclusive `createdAt` cutoff in one database transaction. No selected-ID batch, partial-progress record or per-entry archive is retained. A definite transaction refusal rolls back completely; an uncertain commit may have applied the whole pass and leaves no confirmed deletion count. The next ordinary pass/manual operation safely re-evaluates due rows; rows remain logically excluded from age 29 throughout. Completed diagnostics describe only committed deletion.

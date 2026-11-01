@@ -62,24 +62,14 @@ The [OpenAPI 3.0.4 specification](https://spec.openapis.org/oas/v3.0.4.html#spec
 
 ## Logos and locality
 
-**Decision**: Fetch LNV logos during existing calendar passages, using the published resource address once per distinct team in that passage. Prioritize manual team, accepted LNV, optional club, then missing artwork. Keep image bytes and association in PostgreSQL.
+**Decision**: Fetch LNV logos during existing calendar passages, using the published resource address once per distinct team in that passage. Prioritize manual team, accepted LNV, optional club, then missing artwork. Keep image bytes and association in PostgreSQL. Team edit tokens cover only their own presentation fields; current club artwork remains a read dependency.
 
-**Rationale**: An additional daily schedule and due-state would cost more mechanisms than the accepted repeated downloads. An inspected [team page](https://lnv-web.dataproject.com/CompetitionTeamDetails.aspx?ID=135&TeamID=702) published image URLs; an inspected JPEG-named/type-declared response actually held PNG bytes. Validate content rather than trusting extension. No original-resolution API or conditional-request support is presumed. Failed retrieval preserves the previous valid image independently of matches.
+**Rationale**: An additional daily schedule and due-state would cost more mechanisms than the accepted repeated downloads. An inspected [team page](https://lnv-web.dataproject.com/CompetitionTeamDetails.aspx?ID=135&TeamID=702) published image URLs; an inspected JPEG-named/type-declared response actually held PNG bytes. Validate content rather than trusting extension. No original-resolution API or conditional-request support is presumed. Failed retrieval preserves the previous valid image independently of matches. Team commands never overwrite parent artwork, so a parent-only change does not require another editing counter or club lock. The inherited preview may change while editing; own-team conflict detection and season/account/grant safeguards remain effective.
 
-**Alternatives considered**: Extra scheduler, separate image storage synchronization and guessed source-image paths are rejected. Geocoding remains F01's provider responsibility; F02 only defines effective locality, context revision and admissible results.
+**Alternatives considered**: Extra scheduler, separate image storage synchronization and guessed source-image paths are rejected. A composite parent-artwork revision provides stronger preview consistency but adds a counter, projection component and lock without protecting a team write. Copying parent artwork into teams would break current inheritance. Classification and locality tokens protect their own distinct invariants. Geocoding remains F01's provider responsibility; F02 only defines effective locality, context revision and admissible results.
 
 ## Supplier interpretation limits
 
 FFVB CSV samples used CP1252, semicolon fields and request/HTML context for season/pool attribution. Club codes are strings, including leading zeros and alphanumeric territory codes. A shared youth export can be partitioned only using demonstrated published group/tour context; matchday or code prefixes are not universal rules. Recognized byes, special scores and absent time remain distinct from parse failure. The [FFVB WebSport manual](https://www.ffvbbeach.org/ffvbapp/websport/WEBSport_2019_documentation.pdf) is dated supporting evidence, not proof of every current page.
 
 No raw provider archive or personal contact fixture is added. Observed samples do not prove exhaustive seasons, live-state semantics, all image formats or future HTML stability. F01 maintains adapters when a supported structure changes; F02 preserves accepted state on unusable observations.
-
-## Team editing independent from inherited artwork
-
-**Decision (2026-11-01):** Remove the club-logo revision component and team-editor parent lock while preserving the team's own edit revision and current inheritance.
-
-**Rationale:** Team commands do not overwrite parent artwork. A parent-only change caused a conflict even for unchanged KEEP/name edits without protecting an actual team write. Season/account/grant guards and own-team conflict detection still protect their concrete boundaries.
-
-**Accepted limit:** A visible inherited preview can change while editing; current fallback is resolved on ordinary subsequent reads. AUTOMATIC clears only the team override. The retained-data migration drops only the unused counter, not artwork or identity.
-
-**Alternatives considered:** Keeping the parent revision provides extra preview consistency but couples independent editors and requires a counter, composite and lock. Copying parent artwork into teams would break current inheritance and is rejected. Classification and locality revisions serve different integrity needs and remain.

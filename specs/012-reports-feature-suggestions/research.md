@@ -4,7 +4,7 @@
 
 **Decision:** One bounded submission, complete confirmation or ordinary form error with explicit retry. GitHub is the only durable case and attachment store. No receipt endpoint, database ticket, outbox, automatic resend or persistent mobile submission pointer.
 
-**Rationale:** The accepted scope permits rare duplicate private issues to be closed manually. A response lost after provider success does not establish failure; an error makes the retained form editable without claiming cancellation. A known issue can be checked once during its current backend attempt, but the application does not search for past submissions.
+**Rationale:** The accepted scope permits rare duplicate private issues to be closed manually. A response lost after provider success does not establish failure; an error makes the retained form editable without claiming cancellation. A known issue can be checked once during its current backend attempt, but the application does not search for past submissions. That reference stays local to send orchestration; the immutable validated snapshot owns metadata, the request UUID and private temporary paths. MIME is needed during content validation and filename selection, with no separate retained value afterward. One `SupportApiMapper` owns both HTTP directions at this boundary, without another bean/lifecycle or provider authority.
 
 **Alternatives considered:** A receipt registry or recovery lookup would add storage, lifecycle and reconciliation solely to eliminate an explicitly accepted exceptional duplicate. A queue would change synchronous complete acceptance. Neither is retained.
 
@@ -61,11 +61,3 @@ Orval 8.41.0 emits object-valued multipart metadata as an untyped string. The op
 Support configuration binds through Spring Boot. Destination settings remain absent until explicit private-destination configuration; a supplied destination requires the fixed repository, intake labels and credentials. This foundation activates no provider adapter. Repository privacy and attachment permissions still require US4 qualification before real use.
 
 On 2026-10-20 the owner also approved native UTF-16 counting for F10 text bounds, without changing their numeric values. Java `@Size` and Zod `.max()` count a supplementary emoji as two units. This is an explicit additional application restriction beyond JSON Schema `maxLength` code-point semantics, stated in the canonical request description; it avoids replacing generator validation or maintaining templates. Exact/over-limit supplementary-character cases qualify this accepted behavior.
-
-## Minimal send snapshot and HTTP mapper
-
-**Decision (2026-11-01):** Store only validated temporary paths beside metadata/request UUID, and combine request/response mappings in the existing `SupportApiMapper`.
-
-**Rationale:** Post-validation MIME and an always-null snapshot issue number have no production consumer. The separate input mapper adds another bean at the same boundary without distinct authority or lifecycle. MIME remains essential during validation; the actual issue number remains local during sending.
-
-**Alternatives considered:** Keeping the unused fields suggests retained responsibilities that do not exist. Adding a receipt/state registry or replacing the private CLI attachment boundary would add scope and violate the current accepted limits. No product behavior changes.

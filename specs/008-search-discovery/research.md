@@ -30,7 +30,7 @@
 
 **Alternatives considered**: Offset paging has a deep result window and changing boundaries. PIT plus `search_after` gives stronger consistency but introduces creation, identifiers, expiry and release/error handling for a snapshot guarantee not required here. Scroll is not the user pagination mechanism. No retained result table or cursor signing service is needed: the cursor is a validated position, never an authorization credential. Identity deduplication and a fresh traversal handle changed data; no permanent-omission guarantee is claimed during concurrent mutation.
 
-**Current-data filtering**: Bounded candidate iteration is required because an index may lag a restriction. Continue internally rather than ask users to traverse empty pages; return ordinary failure if no eligible results or actual exhaustion can be established within the bound. Hydrate only current public values. A simple indexed/current city comparison rejects stale candidates, accepting temporary omission instead of token attribution or a separate contact synchronization workflow.
+**Current-data filtering**: Bounded candidate iteration is required because an index may lag a restriction. Continue internally rather than ask users to traverse empty pages; return ordinary failure if no eligible results or actual exhaustion can be established within the bound. Hydrate each nonempty native batch of at most 200 candidates once through the existing current-data owner, then consume its ordered eligible results. A mostly eligible batch may load unused candidates, while one snapshot avoids repeated short hydration transactions. Slicing into smaller groups can save that tail but adds another traversal loop and snapshots; reconsider it only if measured bounded cost warrants it. Sparse successful empty pages would transfer scanning and end proof to HTTP/mobile and are not selected. A simple indexed/current city comparison rejects stale candidates, accepting temporary omission instead of token attribution or a separate contact synchronization workflow.
 
 ## Automatic refresh with one writer
 
@@ -81,13 +81,3 @@ Search uses no pull-to-refresh or refresh button. Its native Query owner handles
 **Rationale**: Environment separation prevents accidental index mixing but not host loss. PostgreSQL recovery followed by reconstruction is sufficient for derived data. Native OpenSearch [security configuration](https://docs.opensearch.org/latest/security/configuration/index/) supplies the selected boundary; demo settings and disabled certificate verification are not acceptable deployment defaults.
 
 **Alternatives considered**: An HA deployment, Dashboards, another alerting platform, index snapshots or an operator rebuild screen add maintenance without an accepted requirement. Runtime provisioning, permissions, restoration and F13 alert qualification remain future work.
-
-## Batch hydration ownership
-
-**Decision (2026-11-01):** Invoke the existing current-data hydration owner once per native 200-candidate batch.
-
-**Rationale:** The existing hydration boundary already supports that bound. Additional 21-candidate slicing saves unused-tail reads but adds another traversal loop and snapshots without a product requirement.
-
-**Accepted limit:** Up to 200 current candidates can be hydrated when only 21 eligible candidates are needed; no performance improvement is claimed. Current visibility/city checks, exact cursor consumption, examples and end/error semantics remain.
-
-**Alternatives considered:** Retaining slices is reasonable if measured bounded cost later warrants it. Sparse successful empty pages would move scanning/end proof into HTTP/mobile and are not selected.

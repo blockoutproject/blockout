@@ -116,6 +116,8 @@ At source `25d9cbf0`, four controlled regressions reproduce a purchase started i
 
 These tests exercise real session/Query/Pro providers with SDK and navigation doubles; no store operation was performed. [F13's implementation-review qualification](../003-shared-quality/quickstart.md#mobile-identity-reads-and-commands) owns the combined checks and native regression observations. T026/T027/T042 retain their independent provider/store/accessibility prerequisites.
 
+Current login, purchase and restore information retires an older verification read and failure flag atomically. Controlled SDK-I/O cases at `3004a3df3a95da0378c97e8c40ce9ae0b0070933` verify that delayed prior completion cannot overwrite that evidence, that payment remains distinct from gifts, and that first configuration or an outcome without information retains ordinary verification. These checks do not qualify native store behavior; T012/T018 and the purchase/restoration qualifications retain their own scope.
+
 ### Public sport and advertising consumers — T006/T011
 
 [`pro-access.test.tsx`](../../apps/mobile/src/features/pro/__tests__/pro-access.test.tsx) mounts the production root and Expo Router routes, F05 native session/private Query lifetime, F09 Pro owner and F11 installation age/privacy/interstitial owner. Only native SDK/platform/storage and HTTP I/O are controlled; sporting hooks, generated clients/response validation, queries, entitlement projection and advertising eligibility remain real.
@@ -125,7 +127,3 @@ The 21 cases cover guest, inactive/free, paid, gifted, association pending/faile
 The targeted suite passed against the existing integration. Reuse [`transition-continuity.test.tsx`](../../apps/mobile/src/features/pro/__tests__/transition-continuity.test.tsx), [F05 session-consumer evidence](../005-accounts-identity/quickstart.md) and [F11 eligibility/lifecycle evidence](../004-advertising-privacy-legal/quickstart.md) for the broader identity and advertising cases rather than duplicating them here.
 
 These controlled JavaScript checks establish owner integration only. No actual RevenueCat/store transaction, UMP/ATT prompt, ad serving, physical map/provider behavior or new design qualification was performed. T012/T018 and the other native/provider qualification tasks remain unchecked.
-
-### Direct supplied information qualification
-
-Accept current login and completed native purchase/restore CustomerInfo directly. Verify it clears both an older pending read and its failure flag atomically, rejects that read on later completion, and preserves unresolved payment separately from independent gifted rights. No duplicate immediate getCustomerInfo is required. First configuration or operation outcomes without supplied information retain ordinary verification; foreground, native listener and explicit verification remain. Controlled native-I/O tests do not certify store behavior; retain the existing iOS/Android purchase/restoration qualifications.
