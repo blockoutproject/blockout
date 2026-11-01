@@ -2,7 +2,7 @@
 
 ## Ownership and persistence
 
-[F02](../002-sporting-data/data-model.md) owns seasons, clubs, teams, pools, participations, matches, accepted facts, restrictions and images. F03 adds read projections and calendar interpretation, not another persistent sporting model. DTO names and exact absence rules are defined by the [canonical contracts](contracts/README.md).
+[F02](../002-sporting-data/data-model.md) owns seasons, clubs, teams, pools, participations, matches, accepted facts, restrictions and images. F03 adds read projections and calendar interpretation, not another persistent sporting model. The Map’s optional selected-team record is derived from the existing official table by exact resolved identity; it adds no stored facts, association or cache lifetime. DTO names and exact absence rules are defined by the [canonical contracts](contracts/README.md).
 
 | Read concept       | Content and relations                                                                                            | Integrity                                                                                                                  |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |

@@ -27,7 +27,10 @@ export interface ProContext {
   refresh(): Promise<boolean | undefined>;
   /** Retries association or verification, never payment; only an accepted verification returns an outcome. */
   retry(): Promise<boolean | undefined>;
-  /** Consumes an attributed native operation outcome and rereads ordinary SDK state. */
+  /**
+   * Consumes attributed operation outcomes and supplied CustomerInfo directly;
+   * rereads ordinary SDK state only when no CustomerInfo was supplied.
+   */
   completeOperation(
     operation: ProOperation,
     customerInfo?: CustomerInfo,
