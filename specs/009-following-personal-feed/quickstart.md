@@ -179,7 +179,7 @@ route starts one explicit options reread; only that request may publish opening 
 retained Query error state alone emits none.
 These tests establish neither native networking nor provider qualification.
 
-At `3004a3df3a95da0378c97e8c40ce9ae0b0070933`, the actual Home/season owners run on iOS 27.0 and Android 17/API 37 with fictional HTTP and native identity I/O. A selected-season 404 keeps its choice and makes no options request; the existing selector stays reachable. Opening it establishes omission and the default fallback. An Android options failure preserves the checked old choice until another explicit opening succeeds; the existing finite Query retries are unchanged. On iOS, returning to previously retained All-seasons content cannot restore the omitted match. These bounded native journeys establish the revised selection/withdrawal interaction, without physical-device, provider, complete screen-reader or new design approval.
+The actual Home/season owners run on iOS 27.0 and Android 17/API 37 with fictional HTTP and native identity I/O. A selected-season 404 keeps its choice and makes no options request; the existing selector stays reachable. Opening it establishes omission and the default fallback. An Android options failure preserves the checked old choice until another explicit opening succeeds; the existing finite Query retries are unchanged. On iOS, returning to previously retained All-seasons content cannot restore the omitted match. These bounded native journeys establish the revised selection/withdrawal interaction, without physical-device, provider, complete screen-reader or new design approval.
 
 The existing entry/age guards now live in `apps/mobile/src/app/(ordinary)/(tabs)/(home)/_layout.tsx`,
 with Home still at `/` and its contextual choice at `/season`. The latter is a `(sheets)` leaf of
@@ -203,7 +203,7 @@ scrolling, safe-area or accessibility outcomes.
 Compare the [Home controls](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5075-4799)
 with the UI Library's [compact tabs](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=841-983)
 and [season selector](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=3176-2823).
-The [prototype Home](https://github.com/blockoutproject/product-prototype/blob/859bf5970ff0cda8a9a7ddb9aaa7203ce7c7d7a0/src/sport/discovery-screens.tsx#L279)
+The [approved Home composition](plan.md#mobile-state-and-failure-handling)
 and its HTML select control are interaction references; their rendering is not native evidence.
 
 ```sh
@@ -298,7 +298,7 @@ npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/follo
 
 Native construction observations use the aligned F13 development clients on iOS 27.1 Duo and
 Android 17 / Pixel 9, with controlled HTTP and native Auth0 RPC only. The actual entry, generated
-validation, session/admission/Query owners, RNCT pager and LegendList composition remain real.
+validation, session/admission/Query owners and the observed native pager/LegendList composition remained real. The current shared paging composition retains its separate [F13 qualification](../003-shared-quality/quickstart.md#paging-chrome-and-navigation).
 Observed cases include system light/dark, missing/provisional results, native season selection and
 Search, complete-day continuation, retained page failure and same-cursor explicit retry, retained
 rows after a failed ordinary pull, and cross-category withdrawal after successful no-follow evidence.
@@ -346,18 +346,11 @@ NX_LOAD_DOT_ENV_FILES=false ./mvnw -B -ntp -pl apps/backend verify -Dtest=Follow
 NX_LOAD_DOT_ENV_FILES=false npm run test --workspace=@blockout/mobile -- --runInBand --reporters=default --runTestsByPath src/features/following/__tests__/personal-season.test.tsx src/features/following/__tests__/personal-screen.test.tsx src/features/following/__tests__/personal-calendar.test.tsx src/features/following/__tests__/followed-lists.test.tsx src/features/following/__tests__/follow-action.test.tsx src/features/following/__tests__/follow-recovery.test.tsx
 ```
 
-Execution on 2026-10-31 at `28c7a88c` passes the focused six React suites (106 tests) and the
-focused PostgreSQL/API command (62 unit/MVC tests and 65 integration tests, none skipped).
-The README/CI `backend` and `mobile` Nx `verify` targets pass: 1,464 backend unit/MVC tests,
-1,163 integration tests with one independent F12 opt-in skipped, and 2,156 mobile tests with six
-independent F12 provider cases skipped. Mobile lint/typecheck, both JavaScript exports and all
-20 Expo Doctor checks pass. Four existing duplicate-import lint warnings remain in untouched
-sporting PDF tests. Local Java is Microsoft OpenJDK 25.0.4; PostgreSQL is the selected 18.6 image.
+The focused React and PostgreSQL/API qualification uses synthetic data and the selected PostgreSQL 18.6 image with Microsoft OpenJDK 25.0.4. Independent opt-in F12 consumer/provider cases remain outside ordinary runs. Application verification does not establish native, provider or complete accessibility acceptance.
 
-Scoped native observations at the same source revision use `com.blockout.local` 0.0.0 (1),
-light appearance and default text: the reused iPhone 18 Pro-B / iOS 27.0 client
-(`ebcc57107a7e`, simulator `DD662133-3F23-457C-A42B-D3DDC544F6E0`) and the rebuilt Pixel 9 /
-Android 17 client (`c7ac5cef60b2`, emulator `emulator-5602`). HTTP and native Auth0 RPC are
+Scoped native observations use `com.blockout.local` 0.0.0 (1),
+light appearance and default text on iPhone 18 Pro / iOS 27.0 and Pixel 9 /
+Android 17. HTTP and native Auth0 RPC are
 controlled; the real Auth0 React SDK/provider, generated validation, session/admission, Query, native pager
 and navigation remain active. Both platforms open Completed → Match → Team, confirm unfollow,
 and return to Completed with `2026/2027` retained and ordinary Error/Retry replacing former rows
@@ -387,11 +380,11 @@ Use the approved Home/Sport references linked from [the plan](plan.md). A mock t
 
 ### Shared season and native Home presentation
 
-At `1a5163d8`, Home's existing personal-season owner is shared only by its Home/season routes; the contextual sheet uses the shared basic radio rows and intrinsic presenter. [F13 Phase 18](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) records short-content fitting, native selection/dismissal and Android compact/enlarged-text overflow. Its [representation evidence](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) identifies the current Figma season composition and prototype `8a08c71e`; Club's earlier selector remains unchanged.
+Home's existing personal-season owner is shared only by its Home/season routes; the contextual sheet uses the shared basic radio rows and intrinsic presenter. [F13 contextual-sheet qualification](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) retains short-content fitting, native selection/dismissal and Android compact/enlarged-text overflow. Its [representation evidence](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) identifies the current Figma season composition and prototype; Club's earlier selector remains unchanged.
 
-The separate [native-only Home brand evidence](../003-shared-quality/quickstart.md#paging-chrome-and-navigation) at `0f23092e` qualifies collapse-driven fading, transparent retreat, sticky controls and restoration on Android/Duo. Its matches fixture returned 404, so it establishes chrome over the existing Error state rather than a successful personal feed. Neither observation changes follow commands, Query/session ownership, scheduling or the outstanding integrated qualifications above.
+Earlier [Home brand observations](../003-shared-quality/quickstart.md#paging-chrome-and-navigation) used the former collapsing header on Android/Duo. Their matches fixture returned 404, establishing chrome over Error rather than a successful personal feed. They do not qualify the current fixed opaque rails. Follow commands, Query/session ownership, scheduling and the outstanding integrated qualifications retain their owners.
 
-The later native-only [A32/A33](../003-shared-quality/quickstart.md#feedback-and-read-recovery) and [A34](../003-shared-quality/quickstart.md#feedback-and-read-recovery) qualify fitting feedback, Home's shared stock pager bar and Retry-only blocking errors on both clients. At that recorded revision, Error dragging caused no request and Retry made one calendar attempt plus the former season-options revalidation after 404. Current FR-012 supersedes that automatic recovery; the old capture does not qualify today’s explicit selector journey. A31 footage establishes only its recorded chrome behavior, and A34 retains the observed blocking-error interaction. These presentation observations establish no successful feed or additional F06 business acceptance.
+The later native-only [A32/A33](../003-shared-quality/quickstart.md#feedback-and-read-recovery) and [A34](../003-shared-quality/quickstart.md#feedback-and-read-recovery) qualify fitting feedback, Home's shared stock pager bar and Retry-only blocking errors on both clients. In those earlier captures, Error dragging caused no request and Retry made one calendar attempt plus the former season-options revalidation after 404. Current FR-012 supersedes that automatic recovery; the old capture does not qualify today’s explicit selector journey. A31 footage establishes only its earlier chrome behavior, and A34 retains the observed blocking-error interaction. These presentation observations establish no successful feed or additional F06 business acceptance.
 
 ## Original-account erasure participant
 

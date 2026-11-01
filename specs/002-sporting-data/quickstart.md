@@ -93,30 +93,7 @@ remain applicable. Actual source association, PDF relay and physical/native
 qualification remain with [F03 T057/T058](../007-sporting-consultation/tasks.md),
 and this qualification completes no other F02 task or release gate.
 
-Executed on 2026-10-31 in the issue-205 worktree against unchanged backend source
-`4690a987bbf061245b24c0ec711fd65550c73bdd`. Its repackaged Spring Boot JAR had
-SHA-256 `ffe986e26ec7b27ce9b89a507e29675d210e6f5b67b536611baeb8c2ac474ae3`.
-PostgreSQL 18.6 used the newly created Compose project
-`blockout-205-qualification` on loopback 5585, with explicit Liquibase migration
-and the restricted application runtime role; suite-owned backends used 8385 and
-local signed identities. The Java 25.0.4 runtime was Microsoft OpenJDK; the CI
-vendor remains Temurin. No JVM, dependency or contract configuration changed.
-
-Passed: all 25 new T034 cases and the complete `collector:test` target (215
-Surefire + 197 Failsafe cases, no skips), including the existing admission,
-ordering/transaction, partial-success, contextual-identity and presentation
-qualifications. Complementary backend checks passed 97 unit/MVC/contract cases
-and 63 Failsafe cases in `CalendarAcceptanceIntegrationTest`,
-`MatchDetailsAndStandingsIntegrationTest`, `PoolConsultationIntegrationTest` and
-`MatchDocumentsIntegrationTest`. Contract lint/bundling, actual Java generation,
-compilation, Checkstyle, Spotless, repository Prettier and diff hygiene passed.
-The handwritten test source blob is
-`02beb7c7e6911f8368fe78e63a67dc8107a96911`; no production change was needed.
-
-The suite-owned backend/signing listeners and clients closed after execution.
-The isolated Compose container, network and volume were removed. These synthetic
-HTTP/SQL/reference results complete only T034, with the provider/native and
-publication-age limits above unchanged.
+The isolated qualification uses a separately packaged Spring Boot backend, local signed identities and disposable PostgreSQL 18.6 with explicit Liquibase migration and the restricted application role. The Java 25.0.4 runtime was Microsoft OpenJDK; CI uses Temurin. The suite establishes only T034's synthetic HTTP/SQL/reference boundaries. Actual source association, provider/native and publication-age qualifications remain separate; execution creates no production effect.
 
 ## Classification and division editors
 
@@ -147,11 +124,11 @@ The retained captures for [T014/T018](tasks.md) are implementation illustrations
 
 ## Presentation, contacts and continuity
 
-Team editing checks its own presentation revision while inherited artwork remains current across seasons. KEEP and an own-name edit remain valid after a parent-only artwork change; REPLACE preserves precedence and AUTOMATIC resolves the latest fallback. The inherited preview may change during editing. At source/test revision `3004a3df3a95da0378c97e8c40ce9ae0b0070933`, controlled PostgreSQL presentation cases establish this behavior, an edit completing while a separate parent club row lock remains held, and retained own-team stale/no-op, season/current-grant, classification/locality and club-contact privacy protections. This does not qualify native editor rendering, provider image acquisition or real V1-logo operations.
+Team editing checks its own presentation revision while inherited artwork remains current across seasons. KEEP and an own-name edit remain valid after a parent-only artwork change; REPLACE preserves precedence and AUTOMATIC resolves the latest fallback. The inherited preview may change during editing. Controlled PostgreSQL presentation cases establish this behavior, an edit completing while a separate parent club row lock remains held, and retained own-team stale/no-op, season/current-grant, classification/locality and club-contact privacy protections. This does not qualify native editor rendering, provider image acquisition or real V1-logo operations.
 
-A task-owned PostgreSQL 18.6/Liquibase upgrade from the exact applied chain at `5a72566ce210e3a3e475dd979ab009e7c296fd54` to `3004a3df3a95da0378c97e8c40ce9ae0b0070933` preserves every earlier applied checksum, synthetic club bytes/media type/name and own presentation/locality/contact revisions. Only the obsolete club-logo counter is removed from sporting data; the coordinated F01 migration preserves its useful current evidence while dropping its two outage clocks. Clean creation is also exercised by the application suites. This is isolated retained-data evidence, not production migration or rollback approval. Incompatible writers must stop before the contract change; removed counters/clocks are unrecoverable and require compatible forward repair rather than a claimed schema rollback.
+A task-owned PostgreSQL 18.6/Liquibase upgrade from the previously applied change-set chain preserves every earlier applied checksum, synthetic club bytes/media type/name and own presentation/locality/contact revisions. Only the obsolete club-logo counter is removed from sporting data; the coordinated F01 migration preserves its useful current evidence while dropping its two outage clocks. Clean creation is also exercised by the application suites. This is isolated retained-data evidence, not production migration or rollback approval. Incompatible writers must stop before the contract change; removed counters/clocks are unrecoverable and require compatible forward repair rather than a claimed schema rollback.
 
-The native preparation boundary at `3004a3df3a95da0378c97e8c40ce9ae0b0070933` invokes actual `prepareSportingLogo` and Expo FileSystem on compatible iOS 27.0 and Android 17/API 37 clients. The accepted public PNG copy preserves all source bytes, then disposes only the owned output. This direct operation check establishes copy completion/ownership; full picker, editor and upload qualification remains with T045/T055, without a native-provider or accessibility claim.
+The bounded native preparation check invokes actual `prepareSportingLogo` and Expo FileSystem on compatible iOS 27.0 and Android 17/API 37 clients. The accepted public PNG copy preserves all source bytes, then disposes only the owned output. This direct operation check establishes copy completion/ownership; full picker, editor and upload qualification remains with T045/T055, without a native-provider or accessibility claim.
 
 In existing native journeys, verify a professional team with no club remains readable/followable without a club link or invented point. Exercise team override → LNV → optional club → missing artwork, plus unchanged nonprofessional inheritance. Fail logo retrieval/replacement and retain the last valid presentation. Check both themes, enlarged text, focus and meaningful accessible action labels.
 
@@ -207,16 +184,11 @@ explicit database/backend properties. Ordinary CI compiles them and skips execut
 without these opt-in inputs. The dedicated `collector-presentation.sql` supplements
 the existing reset fixture only in that disposable database.
 
-On 2026-10-25, the issue-200 worktree qualified the production collector lifecycle,
-passage, generated ingestion clients/mappers, backend security/controllers and
-F01/F02 commits on PostgreSQL 18.6, explicitly migrated with Liquibase. The isolated
-Compose project was `blockout-issue-200`, PostgreSQL port 5500 and backend port 8200;
-the backend used the restricted application role. Collector `verify` passed 284
-ordinary tests plus 13 presentation/locality and 10 existing cross-owner runtime
-cases. Backend packaging, contract lint/bundling, Checkstyle, Spotless and repository
-Prettier passed.
+The collector lifecycle, passage, generated ingestion clients/mappers and backend
+security/controllers exercise F01/F02 commits on explicitly migrated disposable
+PostgreSQL 18.6 under the restricted application role.
 
-The 13 cases establish:
+The cases establish:
 
 - One image acquisition per distinct resolved team across repeated matches and
   pools with distinct calendar URLs in a passage, including failed attempts. Two teams sharing one URL still
@@ -309,7 +281,7 @@ NX_LOAD_DOT_ENV_FILES=false npx nx run http-contracts:bundle
 NX_LOAD_DOT_ENV_FILES=false npx nx run backend:test
 ```
 
-The [existing owner cases](../../testing/integration-tests.md#sportingvisibilityintegrationtest)
+The [existing owner cases](#identities-and-useful-partial-success)
 retain partial/failed/wrong-context input, source-authority, historical-empty
 reconstruction and standings limits. `SportingPresentationIntegrationTest`,
 `SearchCurrentDataIntegrationTest`, `ProjectSearchTransactionIntegrationTest`,
@@ -330,23 +302,4 @@ physical/native accessibility, protected V1 logo recovery or production approval
 T055/T056, F01 provider qualifications and the other owners' native/operational
 tasks remain separate and unchecked where unfinished.
 
-Executed on 2026-10-31 at qualification source
-`3647b27de0a6afcf0be6170dcb9776ac7d2b5bb0`, against unchanged production sources at
-`94f127b1c3b6a3804743d097e579d618b7756cfb`. The final handwritten test blobs are
-`9a31049bea013d97ad389abfb2c3fc35e9367e8f` (restrictions) and
-`759107ed3fa1ac1df20038b9f38a2a0bd43572b2` (presentation). The local Maven
-`0.0.0-SNAPSHOT` build used Microsoft OpenJDK 25.0.4, Node 24.18.0 and npm 12.0.1;
-CI retains Temurin. Spring tests execute compiled application classes; the
-packaged JAR from the final focused verification has SHA-256
-`227abf150ec14c04551492d6bd66bd5e24f5bac9afec74012cc4c7e97a16ea56`.
-
-Passed: complete `backend:test` (1,464 Surefire; 1,178 Failsafe passed and one
-unrelated opt-in F12 consumer case skipped because `BLOCKOUT_ACCESS_CONSUMERS_TEST`
-was absent), then the final focused 14 cross-owner cases plus six `ReadSearchTest`
-cases with no skips. This includes the existing owner suites named above;
-`FollowListsIntegrationTest`, `FollowOptionsIntegrationTest` and
-`PersonalCalendarIntegrationTest` passed 17, eight and 30 cases respectively.
-Contract lint/bundling, real backend generation/compilation, Checkstyle,
-Spotless, repository Prettier, added local links/anchors and diff hygiene passed.
-Only T041 is completed by this qualification; T053's consumer evidence is now
-available without changing its implementation or any common contract.
+The local SQL qualification uses compiled application classes, disposable migrated PostgreSQL 18.6 and Microsoft OpenJDK 25.0.4; CI uses Temurin. The controlled cross-owner scenarios establish T041's server/current-data boundary and provide T053 consumer evidence without changing their product contracts. Unfinished native/provider/operations tasks retain the limits above.

@@ -34,13 +34,13 @@ No Pro HTTP endpoint, backend rights mirror, gift ledger, webhook, polling, pers
 
 ## Constitution Check
 
-| Principle                    | Evaluation                                                                                                                                                        |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| I — Specification-led intent | Guest entry and V2 offer presentation are integrated into F09. F14 records the absence of V1 gifts without weakening continuity for categories actually present.  |
-| II — Domain integrity        | F05 owns identity/erasure, F09 Pro consumption, F10 assistance, F11 advertising/privacy and F14 continuity. No new ownership or service boundary.                 |
-| III — Approved design        | Existing scoped approvals remain applicable. Prototype `6858562` and its Figma translation are explicitly approved for the shared invitation and guest Pro entry. |
-| IV — Contract first          | [Contracts](contracts/README.md) define SDK and consumer agreements. No new HTTP operation or editable copy of the canonical API is needed.                       |
-| V — Simplicity               | Native SDK state/UI and manual intervention satisfy the agreed need. [Research](research.md) explains alternatives and evidence limits.                           |
+| Principle                    | Evaluation                                                                                                                                                           |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I — Specification-led intent | Guest entry and V2 offer presentation are integrated into F09. F14 records the absence of V1 gifts without weakening continuity for categories actually present.     |
+| II — Domain integrity        | F05 owns identity/erasure, F09 Pro consumption, F10 assistance, F11 advertising/privacy and F14 continuity. No new ownership or service boundary.                    |
+| III — Approved design        | Existing scoped approvals remain applicable. the approved prototype and its Figma translation are explicitly approved for the shared invitation and guest Pro entry. |
+| IV — Contract first          | [Contracts](contracts/README.md) define SDK and consumer agreements. No new HTTP operation or editable copy of the canonical API is needed.                          |
+| V — Simplicity               | Native SDK state/UI and manual intervention satisfy the agreed need. [Research](research.md) explains alternatives and evidence limits.                              |
 
 The [existing scoped approval](spec.md#assumptions-and-dependencies) and [Pro journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5258-5951) remain references for unchanged scope. The [shared-invitation reconciliation](spec.md#assumptions-and-dependencies) covers the shared invitation and guest Pro entry. These approvals do not qualify native authentication or billing.
 
@@ -121,6 +121,6 @@ F05's local-first deletion and bounded provider attempts remain unchanged. Failu
 
 ## Verification and completion boundary
 
-[Research](research.md) records official documentation, source inspection and bounded console observations. [Quickstart](quickstart.md) owns integrated qualification scenarios and their revision-scoped results. Controlled local tests establish only Blockout-owned composition and lifecycle behavior. Actual purchases, restoration, provider rendering and account-switch transactions require their separate native/store evidence.
+[Research](research.md) records official documentation, source inspection and bounded console observations. [Quickstart](quickstart.md) owns integrated qualification scenarios and their scoped results. Controlled local tests establish only Blockout-owned composition and lifecycle behavior. Actual purchases, restoration, provider rendering and account-switch transactions require their separate native/store evidence.
 
 The scoped prototype and Figma approvals are recorded in the specification. Check specifications and native planning artifacts together for documentary consistency and owner/consumer coverage. Publication follows [repository delivery policy](../../AGENTS.md#git-delivery); these artifacts establish no provider or runtime qualification.

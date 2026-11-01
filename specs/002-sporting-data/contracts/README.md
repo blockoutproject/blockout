@@ -35,7 +35,7 @@ Sporting operations and models live in the [mobile paths](../../../contracts/htt
 
 The existing team-logo read accepts optional `selection=automatic` to resolve current fallback bytes independently of a manual override; omission keeps the effective-image read. F02 supplies the current image selection and distinct editor reference, while F03 retains its public HTTP adapter and qualification. See the canonical [team-logo path](../../../contracts/http/mobile/consultation/paths.yaml) and [selection enum](../../../contracts/http/mobile/sporting/schemas.yaml).
 
-No bulk job resource, generic alias editor, professional club-association route or extra public API version prefix is introduced. Contract `info.version` identifies this source revision family, not a mobile minimum version or a deployed product release.
+No bulk job resource, generic alias editor, professional club-association route or extra public API version prefix is introduced. Contract `info.version` identifies the authored contract family, not a mobile minimum version or a deployed product release.
 
 ## Ingestion
 

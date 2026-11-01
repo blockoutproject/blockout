@@ -87,8 +87,8 @@ Qualify ordinary contribution/replacement, personal-contribution and report scre
 ### Prepared interruption and accessibility cases — T049
 
 Execute these cases under T056 on compatible native iOS and Android development builds generated
-from the tested revision. Record the build/commit, OS, device/viewport, appearance and text scale
-with each result. Use the existing F05 native session/private QueryClient, F12 admission and stream
+from the tested candidate. Keep exact source/build associations and detailed results in delivery evidence;
+declare the qualified OS, device/viewport, appearance and text scale with their scope and limits. Use the existing F05 native session/private QueryClient, F12 admission and stream
 moderation grant, F03 public match projection and F13 controls/feedback. Keep fictional addresses,
 private report reasons and synthetic accounts in task-owned fixtures outside Git. A transport double
 can control a lost response, an explicitly delayed completion or a failed GET; it establishes only
@@ -207,19 +207,14 @@ versions retain their real consumption. Check the following construction boundar
   text on both platforms. Record actual reader speech/focus separately from accessibility
   semantics in an inspection tree.
 
-The row/lifecycle captures
-and entry captures
-establish only their exact source revisions and captured lifecycle cases.
-The native evidence
-at source `aa4d229e5138d1429e6bea76987c3e7b6296c622` supplies the reviewed three-card-state,
+The row/lifecycle and entry captures establish only their captured lifecycle cases.
+The native evidence supplies the reviewed three-card-state,
 ordinary-editor and read-only-history experience. The owner authorized Figma/prototype
-synchronization after reviewing this source, within the [approved scope](plan.md#approved-design-and-evidence).
+synchronization after reviewing this experience, within the [approved scope](plan.md#approved-design-and-evidence).
 
 The [Figma journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5511-51086)
 uses editable screens, live library references without broken instances and Outfit product text.
-The prototype captures and delivery at
-`db183a56f9b70d828d87623254a2eb8d3ab2b317` passes 223 model tests, 29 Chromium cases,
-TypeScript and build. Browser checks cover the three card entries, prefilled replacement,
+The approved prototype browser checks cover the three card entries, prefilled replacement,
 cancelled confirmation, acknowledged returns, withdrawal, read-only/zero history, report
 cancellation, narrow/dark layouts and the header inset regression. This prototype uses only
 fictional local services; its dialogs represent native confirmations and do not qualify native
@@ -244,9 +239,9 @@ T023, US4 reporting, actual US5/US6 moderation/erasure, T049/T056 and the minimu
 and screen-reader matrix retain their own qualification. A synthetic peer establishes only its
 rendering, transport and interaction boundaries; it is not provider or global design approval.
 
-Scoped iOS/Android observations at `e9a6ece6`, including builds and controlled fixtures, are recorded in the native contribution evidence. Available-entry/form composition, keyboard/back, retained drafts, real refusal/explicit retry, acknowledgement and exact active public projection were observed. That run also reported cropped labels after live Android text enlargement and development navigation warnings; its missing screen-reader and minimum-OS evidence remains explicitly unqualified.
+Scoped iOS/Android observations, including builds and controlled fixtures, are recorded in the native contribution evidence. Available-entry/form composition, keyboard/back, retained drafts, real refusal/explicit retry, acknowledgement and exact active public projection were observed. That run also reported cropped labels after live Android text enlargement and development navigation warnings; its missing screen-reader and minimum-OS evidence remains explicitly unqualified.
 
-The integrated native evidence exercises production source `84e723e7` on compatible iOS 27.1 and Android API 37 development clients. iOS keyboard dismissal and cancelling the native discard confirmation preserve the exact draft; the captured future-match form is ineligible for ordinary submission and supplies no new acknowledgement proof. Android font enlargement recreates the Activity without changing the process, returns to the home route and yields a readable empty form on explicit reopening. This establishes neither retained-context cropping nor draft persistence across recreation, and does not erase the earlier failed observation. The real Stream link panel is exercised on both platforms; native external handoff and return are observed on Android. The iOS handoff remains unqualified. The compact contribution summary remains informational and has no navigation dependency. Real TalkBack 17.0 speech captions verify the link field name/hint and the empty-value validation alert on this source; no POST is issued. These two cases do not qualify complete reader traversal or VoiceOver.
+The integrated native evidence exercises the contribution flow on compatible iOS 27.1 and Android API 37 development clients. iOS keyboard dismissal and cancelling the native discard confirmation preserve the exact draft; the captured future-match form is ineligible for ordinary submission and supplies no new acknowledgement proof. Android font enlargement recreates the Activity without changing the process, returns to the home route and yields a readable empty form on explicit reopening. This establishes neither retained-context cropping nor draft persistence across recreation, and does not erase the earlier failed observation. The real Stream link panel is exercised on both platforms; native external handoff and return are observed on Android. The iOS handoff remains unqualified. The compact contribution summary remains informational and has no navigation dependency. Real TalkBack 17.0 speech captions verify the link field name/hint and the empty-value validation alert in this flow; no POST is issued. These two cases do not qualify complete reader traversal or VoiceOver.
 
 T009/T015/T016 construction is complete with the generated/RHF/Query tests, public projection proof and these scoped native observations. The full F03 match status still truncates after a live Android theme change at 130% text; it is absent from the compact F08 context and retains its failed result under [F13 native qualification](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets). This grants no Android exception or global native acceptance. T017 retains the complete US1 acceptance execution; T049/T056 and F13 T073 retain the broader journeys, runtime matrix and assistive-technology qualification.
 
@@ -274,13 +269,13 @@ or invalid acknowledgement, and a later explicit retry on the same target. No ma
 stale-target explanation or special report recovery state is added. Confirmed success is independent
 of derivative-read failure; old session/departure callbacks cannot publish a success to another view.
 
-The owner-approved 2026-10-30 [report composition](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5534-59410)
+The owner-approved [report composition](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5534-59410)
 contains the required reason and Send/Cancel actions, with ordinary failure feedback and retained input. The matching
-[prototype revision](https://github.com/blockoutproject/product-prototype/commit/7701eea52ed18b32a61e6105985046edaa168cf3)
+[approved prototype experience](plan.md#approved-design-and-evidence)
 uses ordinary errors after report response loss and preserves its exact target/first recorded reason
 on a later explicit retry. These prototype/design checks do not qualify native or provider behavior.
 
-Scoped native captures at application source `9c5090350d3a433b013339c0c32940d9c1ea06aa` use reused
+Scoped native captures use reused
 `com.blockout.local` development clients, production screens/the native report route and real
 Query/F05/F12 providers, with fictional auth/storage and a local HTTP peer. iOS 27.0 presents the
 ordinary light report form from the exact match entry; Android API 37 presents the dark enlarged-text
@@ -325,17 +320,15 @@ versions even when the related source is outside loaded history pages. Administr
 queries use generated resource keys within the existing principal-owned private QueryClient.
 
 Local native construction checks ran on the reused `com.blockout.local` development clients:
-iPhone 18 Pro A / iOS 27.0 (`2C22FCF3-D4A7-4F84-BAB1-F358C71C7649`, 402 × 874 points)
-and Android `Pixel_9` (`emulator-5554`, 1080 × 2424 pixels), with final captures at application
-source `7937234d`. Production routes/components, F05 private Query/session and the Auth0 JavaScript
+iPhone 18 Pro / iOS 27.0 (402 × 874 points)
+and Android `Pixel_9` (1080 × 2424 pixels). Production routes/components, F05 private Query/session and the Auth0 JavaScript
 SDK were retained; an external temporary launcher controlled only the native credential boundary
 and a fictional HTTP peer. This does not
-qualify the full product root/onboarding or actual identity/provider operations. Temporary entry,
-Metro resolver and package-main changes were restored; no qualification mechanism is shipped.
+qualify the full product root/onboarding or actual identity/provider operations. No temporary launcher or native-credential fixture is shipped.
 
 The final composition follows the owner's existing-application priority in the
-[design reconciliation](plan.md#approved-design-and-evidence): the shared native `PagedTabs`
-and `TabLegendList`, search filter/season controls, personal contribution editor and ordinary
+[design reconciliation](plan.md#approved-design-and-evidence): the shared native paged scenes
+and virtualized lists, search filter/season controls, personal contribution editor and ordinary
 grouped rows/buttons. Final iOS and Android observations exercise horizontal swipes, returning to
 the active page with the exact dirty address retained, and tab entry without an automatic native
 refresh animation. iOS complete address replacement and cancellation of the native replacement
@@ -348,8 +341,7 @@ apply/reset buttons and the same grouped choices and spacing tokens as search.
 
 The iOS run used a hardware keyboard and does not establish software-keyboard occlusion behavior.
 Screen-reader speech, enlarged-text/minimum-OS coverage and full session/erasure scenarios remain
-with T056. Representative captures belong in the delivery PR Conversation with their tested source
-revision; no screenshot is committed. The owner-approved native composition is reconciled in
+with T056. Representative captures belong in the delivery PR Conversation with their platform, state and native-boundary scope; no screenshot is committed. The owner-approved native composition is reconciled in
 [the moderation journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1240-1876),
 preserving the queue `1293:3968`, active `1240:1882`, pending `1310:6016`, historical
 reports `4736:32107` and constrained dark editor `1270:3237`. Search-style filter evidence
@@ -358,11 +350,10 @@ are published current, with Light `#20212408` and Dark `#FFFFFF08`; reports reta
 Structural inspection finds live instances, editable Outfit text and discrete sporting logos, without
 a flattened screen image. The constrained field uses intrinsic height for enlarged text.
 
-The matching [prototype revision](https://github.com/blockoutproject/product-prototype/commit/f4b2c60c5319470b2f063fa94b00a8bb4ed65cf9)
+The [approved prototype experience](plan.md#approved-design-and-evidence)
 reuses its existing pager, native-refresh review control, filters and ordinary buttons. Its shared match
 card, always-mounted prefilled editor, grouped disclosures, exact-source read-only report sheet and
-initial skeletons follow the approved native presentation. Model tests (223), typecheck/build and eighteen
-affected browser checks pass, including draft retention across tabs, exact-address cancellation,
+initial skeletons follow the approved native presentation. Fictional prototype checks cover draft retention across tabs, exact-address cancellation,
 source-report separation and shared sporting-media fallback at 320 points / enlarged text in both themes.
 These checks qualify the standalone fictional prototype only. T045's integrated current-owner
 qualification, T050/T055 erasure and T056's complete platform/accessibility matrix remain separate;
