@@ -1,6 +1,6 @@
 # Integration test boundaries
 
-This reference describes the existing V2 test evidence and its canonical setups. It is test maintenance documentation, not a feature specification or acceptance record. Product requirements and pending native/provider qualifications remain in their owning `specs/` artifacts. The [scenario inventory](integration-tests.md) identifies the real components, controlled boundaries and detectable regression for the documented integration scenarios.
+This reference describes the existing V2 test evidence and its canonical setups. It is test maintenance documentation, not a feature specification or acceptance record. Product requirements and pending native/provider qualifications remain in their owning `specs/` artifacts. The [scenario inventory](integration-tests.md) provides navigation to suite boundaries, controlled inputs and lifecycle limits; executable source owns scenario names, parameters and assertions.
 
 Use the installed [Java testing policy](../.agents/skills/java-testing/SKILL.md), its [canonical examples](../.agents/skills/java-testing/references/examples.md), the [Expo testing policy](../.agents/skills/expo-testing/SKILL.md) and its [examples](../.agents/skills/expo-testing/references/examples.md). Keep scenario inputs, the action and assertions visible with Given/When/Then phases. Parameterized rows are distinct boundary cases of the named scenario.
 

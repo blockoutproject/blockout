@@ -34,7 +34,7 @@ A repeated DELETE for the original absent UUID causes no provider effects. Re-re
 
 ## Mobile transient state
 
-The native Auth0 SDK holds credentials in its secure store. The application holds a session UUID, current account identity and private query/form state in memory. Every sign-out/account change rotates the session UUID and removes private state. In-flight callbacks include their captured generation; those from an older generation are rejected even after A → guest → A.
+The native Auth0 SDK holds credentials in its secure store. The application reads the current validated subject and business account, while each mounted subject owns its private QueryClient and forms. Sign-out or a subject change unmounts that private lifetime and clears its data. A later A → guest → A mounts a fresh private client; detached callbacks can only complete against the old client. Operations that dispatch credentials still verify their captured original principal. No application session UUID or generation counter is introduced. The [plan](plan.md#mobile-session-and-shared-consumers) owns the concrete boundaries.
 
 Authentication, business-profile availability and RevenueCat SDK entitlement state remain distinct. Known network failure does not imply revocation. No persistent business cache or write queue is added. F07's expiry and current permissions still restrict retained in-memory data.
 

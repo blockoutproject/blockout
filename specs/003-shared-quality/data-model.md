@@ -40,7 +40,7 @@ Retained inputs include V1 club reference, logo association, recoverable bytes a
 
 ## Transient mobile session and cache
 
-Logical fields: current account/session identity, local session generation, in-flight request association and validated cached business values. Session generation is a small in-memory guard, not a distributed session database. Sign-out/account change invalidates the generation, cancels requests and clears private data; late results from the previous generation are rejected even when cancellation loses a race. Auth0 credentials use the native secure store; RevenueCat's SDK state has its distinct authority. No persistent business cache or queued write.
+Logical fields: current validated subject and business account, the subject's mounted private QueryClient, original-principal request association and validated cached business values. Sign-out or subject change unmounts that lifetime and clears private data; late callbacks remain attached to the discarded client even when cancellation loses a race. Returning to the same subject mounts fresh state. There is no application session UUID or generation counter. Auth0 credentials use the native secure store; RevenueCat's serialized native association and SDK state have their distinct authority. No persistent business cache or queued write.
 
 Admission state is transient under [F12](../013-administration-app-configuration/spec.md): no persisted fallback survives cold start. Domain expiry still applies to retained data without connectivity.
 

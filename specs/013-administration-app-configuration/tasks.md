@@ -238,3 +238,7 @@ Serialize edits to `access.xml` (T007/T015), the F05 response mapper and shared 
 2. **Incremental settings and admission**: Deliver US2's atomic settings, then US3's server/native gates. Develop with bounded F05/F13/F14 inputs; retain actual owner/native proofs as explicit obligations rather than waiting for all feature programmes before coding.
 3. **Complete maintenance and versions**: Integrate US4 with F07 and finish US5 native stores/settings/preparation. Validate combined restrictions and latest complete configuration through actual consumers; no privileged bootstrap.
 4. **Close only supported evidence**: Complete polish and each story's acceptance evidence. Documentation, generated schema validation, mocked providers and native screenshots each retain their limits; production and F14 launch operations require their own authorization.
+
+## Phase 9: Direct admission consumption
+
+- [ ] T078 Consume the existing F12 ordinary-admission context directly from mobile Account/Pro/support routes; remove the account-owned mirrored provider and unused maintenance decoder, preserving shared complete-access refusal invalidation and route checks in the affected real-provider suites.
