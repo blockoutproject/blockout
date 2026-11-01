@@ -26,8 +26,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class SupportController implements SupportApi {
   private final CreateSupportRequest create;
-  private final SupportInputMapper input;
-  private final SupportApiMapper output;
+  private final SupportApiMapper mapper;
   private final SupportDiagnostics diagnostics;
 
   /** {@inheritDoc} */
@@ -42,7 +41,7 @@ public class SupportController implements SupportApi {
     }
     return ResponseEntity.status(201)
         .cacheControl(CacheControl.noStore())
-        .body(output.toDto(create.create(input.toMetadata(metadata), originals)));
+        .body(mapper.toDto(create.create(mapper.toMetadata(metadata), originals)));
   }
 
   /**

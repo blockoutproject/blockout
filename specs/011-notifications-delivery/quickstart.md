@@ -144,9 +144,9 @@ These T042–T045 proofs reuse the existing backend bindings without a contract 
 Actual report/hold command scenarios, physical phones, system messages and provider delivery remain
 [T046/T041](tasks.md); no simulator, JavaScript export or SDK double supplies that evidence.
 
-## Retention construction and isolated restore cases
+## Earlier retention construction and isolated restore cases
 
-T047/T049 use the existing 29-elapsed-day cutoff, independent of physical deletion.
+The earlier T047/T049 batching construction used the existing 29-elapsed-day cutoff, independent of physical deletion. Its per-batch interruption result is historical evidence and does not qualify the current atomic-pass replacement below.
 The dedicated [PostgreSQL cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/PurgeNotificationsIntegrationTest.java)
 exercise all four families, read/hidden states, the microsecond before age 29, exact age 29,
 overdue age 31, Paris/New York spring/autumn transitions, read/create overlap and interruption
@@ -422,3 +422,17 @@ sample does not establish delivery guarantees or complete the other outstanding 
 ## Original-account erasure construction (T038)
 
 `NotificationErasureIntegrationTest` uses the real F05 orchestrator and F06/F07 persistence, migrations and transactions. It removes hidden inbox rows and multiple destinations while preserving other accounts and consumed match facts, orders reassociation before and after erasure, and resumes captured delivery/receipt work against a newer association. No old provider handoff or invalidation reaches that association. The [F05 construction record](../005-accounts-identity/quickstart.md#server-erasure-construction) owns common rollback, writer-lock and adapter evidence. T038 began with a generated HTTP case failing against the 503 stub. This scoped local construction does not complete T040/T041, physical delivery, provider activation or F05's wider T035 qualification.
+
+## Atomic-pass retention verification (2026-11-01)
+
+The current [retention plan](plan.md#inbox-retention-and-mobile-state) uses one cutoff DELETE and commits before reporting completed/count. Requalify exact elapsed-age/DST, all states/families, read/create overlap, full rollback on definite statement/commit refusal, safe unconfirmed diagnostics without false success or invented deletion counts, and the next ordinary daily pass. Keep logical read/count/send exclusion independent of failed physical cleanup. Current scoped execution results are recorded below and in the appended [tasks](tasks.md); earlier batch results are not proof of this replacement. Operational restore and real provider/device prerequisites remain separate.
+
+## Atomic retention qualification (2026-11-01)
+
+Source/test revision: pending delivery commit; verified working tree is based on `5a72566ce210e3a3e475dd979ab009e7c296fd54`. The delivery must replace this provisional revision before publication.
+
+After the coordinated full run exposed one unrelated collection test expectation, a combined targeted `verify` passes Checkstyle, current generation/compilation, packaging and Spotless with 15 Surefire and 28 Failsafe cases, without skips. F07 contributes the one fixed-cutoff orchestration case and all 13 `PurgeNotificationsIntegrationTest` cases. They cover exact elapsed-age/DST, all families/read/hidden states, read/create overlap, definite SQL refusal and next ordinary pass, actual PostgreSQL deferred-trigger commit refusal, safe incomplete diagnostics without false completed/count, and ambient-transaction refusal. The remaining cases requalify F01's corrected scoped operational fixture; these results do not relabel the initial full run as successful.
+
+The native deferred trigger establishes definite commit refusal/rollback, not every possible network acknowledgement failure. Runtime diagnostics deliberately leave completion unconfirmed after an unknown commit result; they assert neither zero effects nor a deletion count. Each pass remains atomic and the next ordinary predicate safely handles remaining due rows. Logical age-29 exclusion remains independent of physical cleanup.
+
+No actual hosted daily execution, notification provider delivery, mobile native expiry, production backup restore or production data migration was performed. Those existing qualifications remain separate; no new retry/recovery protocol was introduced.

@@ -64,7 +64,7 @@ public class LnvObservationReader implements LnvAcquisition {
   /** {@inheritDoc} */
   @Override
   public Resource read(URI uri) {
-    ProviderResponse response = http.page(uri).join();
+    ProviderResponse response = http.page(uri);
     return fromPage(response, clock.instant());
   }
 
@@ -125,7 +125,7 @@ public class LnvObservationReader implements LnvAcquisition {
         LnvDocumentReferences.Form form = documents.form(response.body(), response.url(), label);
         if (form == null) return null;
         requireMatch(form.action(), target);
-        ProviderResponse document = http.postPage(form.action(), form.fields()).join();
+        ProviderResponse document = http.postPage(form.action(), form.fields());
         requireMatch(document.url(), target);
         requireSeason(document, target);
         URI pdf = documents.publishedPdf(document.body(), document.url());
@@ -159,7 +159,7 @@ public class LnvObservationReader implements LnvAcquisition {
         try {
           long ordinal = nextOrdinal.getAsLong();
           ProviderResponse xml =
-              http.page(URI.create("https://www.lnv.fr/xml/calendrier-" + code + ".xml")).join();
+              http.page(URI.create("https://www.lnv.fr/xml/calendrier-" + code + ".xml"));
           Instant observedAt = clock.instant();
           Document document =
               Jsoup.parse(new String(xml.body(), StandardCharsets.UTF_8), "", Parser.xmlParser());
@@ -232,7 +232,7 @@ public class LnvObservationReader implements LnvAcquisition {
    */
   @Override
   public Read<byte[]> image(URI uri) {
-    ProviderResponse response = http.image(uri).join();
+    ProviderResponse response = http.image(uri);
     return response.supplierRead() ? new Read<>(response.body(), clock.instant()) : null;
   }
 }

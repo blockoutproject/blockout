@@ -344,3 +344,17 @@ Contract lint/bundling, real backend generation/compilation, Checkstyle,
 Spotless, repository Prettier, added local links/anchors and diff hygiene passed.
 Only T041 is completed by this qualification; T053's consumer evidence is now
 available without changing its implementation or any common contract.
+
+## Team presentation independence (2026-11-01)
+
+Requalify parent-only artwork changes while a team editor is open: KEEP and an own-name edit succeed against the unchanged team revision, current inheritance across seasons remains live, REPLACE preserves precedence and AUTOMATIC resolves the latest fallback. Preserve own-team stale/no-op conflicts, classification/locality revisions, season/current grants and club-contact privacy locks. Verify the appended migration against an already-applied chain with retained synthetic artwork as well as clean creation. Current controlled results and the retained upgrade are recorded below and in the appended [tasks](tasks.md); historical parent-revision conflict assertions do not qualify this accepted replacement.
+
+## Independent team presentation qualification (2026-11-01)
+
+Source/test revision: pending delivery commit; verified working tree is based on `5a72566ce210e3a3e475dd979ab009e7c296fd54`. The delivery must replace this provisional revision before publication.
+
+All 35 current `SportingPresentationIntegrationTest` cases pass in the coordinated clean backend run. The changed inheritance case accepts KEEP and a name edit after parent-only artwork changes while preserving current cross-season fallback. A concurrent PostgreSQL case completes the team edit while a separate club row lock remains held. Existing own-team conflict, precedence, season/current-grant, classification/locality and club-contact restrictions continue to pass. The run's unrelated collection fixture failure is not presented as a globally successful initial run.
+
+A separate task-owned PostgreSQL 18.6/Liquibase probe applies the exact 11-changeSet chain from `5a72566ce210e3a3e475dd979ab009e7c296fd54`, inserts synthetic retained club and collection rows, then applies the current chain. All 11 applied checksums remain unchanged and exactly two appended changes run. The BS-01 change removes only `sporting_club.logo_revision`; club bytes/media type/name and own presentation/locality/contact revisions remain unchanged. The coordinated F01 change removes only its two obsolete clocks, preserving current operational evidence. The task database is removed afterward. This proves the scoped retained upgrade and clean suite creation, without resetting retained environments or claiming production rollout/rollback. Removed counters/clocks cannot be recovered by a schema rollback; stop incompatible writers and use compatible forward repair.
+
+No native visual/editor rendering, provider image acquisition, real V1 logo preservation operation or production migration occurred. Historical qualifications retain their original revisions and limits.

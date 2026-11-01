@@ -54,7 +54,8 @@ public class AcquisitionConfiguration {
   }
 
   /**
-   * Bounds passage admission independently from provider request pools, without a catch-up queue.
+   * Bounds synchronous passage callers independently from native connections, without a catch-up
+   * queue.
    *
    * @param properties existing conservative per-provider concurrency budget
    * @return managed executor; saturation refuses work before backend admission
@@ -147,13 +148,13 @@ public class AcquisitionConfiguration {
   }
 
   /**
-   * Wires native bounded pools, queue, permits and retries; no scheduling or provider call starts
-   * here.
+   * Wires native bounded connections, finite lease/permit waits and retries; no scheduling or
+   * provider call starts here.
    *
    * @param name finite provider budget name
    * @param allowedOrigins configured exact origins including allowed redirect destinations
    * @param properties validated budgets
-   * @return client owning its executor and pooled connections
+   * @return client owning its pooled connections
    */
   private ProviderHttpClient client(
       String name, List<String> allowedOrigins, AcquisitionProperties properties) {
@@ -170,12 +171,6 @@ public class AcquisitionConfiguration {
                 .limitRefreshPeriod(properties.refreshPeriod())
                 .timeoutDuration(properties.permitTimeout())
                 .build());
-    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-    executor.setCorePoolSize(properties.concurrencyPerProvider());
-    executor.setMaxPoolSize(properties.concurrencyPerProvider());
-    executor.setQueueCapacity(properties.queueCapacityPerProvider());
-    executor.setThreadNamePrefix("acquisition-" + name + "-");
-    executor.initialize();
     HttpClientBuilder builder =
         name.equals("lnv")
             ? CachingHttpClients.custom()
@@ -227,13 +222,13 @@ public class AcquisitionConfiguration {
                   }
                 })
             .addExecInterceptorBefore(
-                ChainElement.CONNECT.name(),
+                ChainElement.MAIN_TRANSPORT.name(),
                 "provider-exchange",
                 (request, scope, chain) -> {
                   RateLimiter.waitForPermission(limiter);
                   return chain.proceed(request, scope);
                 })
             .build();
-    return new ProviderHttpClient(http, executor, origins, properties.maxResponseBytes());
+    return new ProviderHttpClient(http, origins, properties.maxResponseBytes());
   }
 }

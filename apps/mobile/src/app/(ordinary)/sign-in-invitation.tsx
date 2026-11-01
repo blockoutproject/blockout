@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import { useAccountAdmission } from "../../features/accounts/components/account-admission";
+import { useAccessAdmission } from "../../features/access/queries/use-access-admission";
 import { SignInInvitationScreen } from "../../features/accounts/screens/sign-in-invitation-screen";
 
 /** Shared contextual F05 invitation; the reason selects copy and carries no deferred command. */
@@ -7,7 +7,7 @@ export default function SignInInvitationRoute() {
   const { reason } = useLocalSearchParams<{ reason?: string }>();
   return (
     <SignInInvitationScreen
-      admitted={useAccountAdmission()}
+      admitted={useAccessAdmission().ordinary}
       message={
         reason === "stream-report"
           ? "Connectez-vous pour signaler ce Stream link"

@@ -1315,7 +1315,7 @@ it.each(
     ["catalog", "empty"].map((fallback) => [tab, collection, fallback]),
   ),
 )(
-  "reconciles a disappeared season from %s's actual %s consumer with %s options across all personal views",
+  "reconciles a disappeared season after opening the selector following %s/%s failure with %s options",
   async (tab, collection, fallback) => {
     // Given: only HTTP/native I/O are controlled; Home, both lists, F03 calendars and Query are real.
     let withdrawn = false;
@@ -1373,7 +1373,24 @@ it.each(
     withdrawn = true;
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
-    // Then: one successful options omission selects the default, then every real tab shares it.
+    // Then: data failure alone leaves the current selector available and starts no options read.
+    expect(
+      mockFetch.mock.calls.filter(([url]) => url.endsWith("/follow-options")),
+    ).toHaveLength(0);
+    expect(
+      screen.getByRole("button", { name: "Saison des suivis" }),
+    ).toHaveAccessibilityValue({ text: older.label });
+
+    // When: the holder uses the existing selector to establish current choices.
+    await userEvent.press(
+      screen.getByRole("button", { name: "Saison des suivis" }),
+    );
+    await screen.findByRole("radio", {
+      name: fallback === "catalog" ? newer.label : "Toutes les saisons",
+    });
+    await userEvent.press(screen.getByRole("button", { name: "Fermer" }));
+
+    // Then: successful omission applies the ordinary default to every personal view.
     const label = fallback === "catalog" ? newer.label : "Toutes saisons";
     await waitFor(() =>
       expect(
@@ -1462,7 +1479,7 @@ it.each(
     ).toHaveAccessibilityValue({ text: older.label });
     expect(
       mockFetch.mock.calls.filter(([url]) => url.endsWith("/follow-options")),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
     expect(
       mockFetch.mock.calls.filter(([url]) =>
         new URL(url).pathname.endsWith(`/${collection}`),
@@ -1476,7 +1493,7 @@ it.each(
     // Then
     expect(
       mockFetch.mock.calls.filter(([url]) => url.endsWith("/follow-options")),
-    ).toHaveLength(2);
+    ).toHaveLength(0);
     expect(
       mockFetch.mock.calls.filter(([url]) =>
         new URL(url).pathname.endsWith(`/${collection}`),

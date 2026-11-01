@@ -1,11 +1,11 @@
 package com.blockout.backend.support.infrastructure;
 
 import com.blockout.backend.support.application.SupportAttachments;
-import com.blockout.backend.support.application.SupportSubmission;
 import com.blockout.backend.support.application.SupportUnavailableException;
 import com.blockout.backend.support.application.SupportUnavailableException.Reason;
 import com.blockout.backend.support.application.SupportUnavailableException.Stage;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +41,7 @@ public final class GitHubAttachmentProcess implements SupportAttachments {
 
   /** {@inheritDoc} */
   @Override
-  public void attach(long issueNumber, List<SupportSubmission.Image> images) {
+  public void attach(long issueNumber, List<Path> images) {
     if (destination == null)
       throw new SupportUnavailableException(Stage.CONFIGURATION, Reason.UNCONFIGURED);
     List<String> arguments = new ArrayList<>(executable);
@@ -52,8 +52,7 @@ public final class GitHubAttachmentProcess implements SupportAttachments {
             Long.toString(issueNumber),
             "--repo",
             "github.com/" + destination.repository()));
-    for (SupportSubmission.Image image : images)
-      arguments.addAll(List.of("--attach", image.path().toString()));
+    for (Path image : images) arguments.addAll(List.of("--attach", image.toString()));
     ProcessBuilder builder =
         new ProcessBuilder(arguments)
             .redirectOutput(ProcessBuilder.Redirect.DISCARD)

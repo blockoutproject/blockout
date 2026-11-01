@@ -1,5 +1,5 @@
 import { Stack, useGlobalSearchParams } from "expo-router";
-import { useAccountAdmission } from "../../../features/accounts/components/account-admission";
+import { useAccessAdmission } from "../../../features/access/queries/use-access-admission";
 import { SupportJourney } from "../../../features/support/screens/support-journey";
 import { sheetScreenOptions } from "../../../shared/components/sheet";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -11,7 +11,7 @@ export const unstable_settings = { anchor: "index" };
 export default function SupportLayout() {
   // The layout's local params exclude the leaf query; the journey captures this complete URL once.
   const params = useGlobalSearchParams();
-  const admitted = useAccountAdmission();
+  const admitted = useAccessAdmission().ordinary;
   const { colors } = useTheme();
   return (
     <SupportJourney

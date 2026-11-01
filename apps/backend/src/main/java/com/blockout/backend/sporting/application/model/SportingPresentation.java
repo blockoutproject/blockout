@@ -132,7 +132,7 @@ public final class SportingPresentation {
   /** Effective and candidate artwork references; the image's owner retains the actual bytes. */
   public record Logo(String effectiveUrl, String manualUrl, String automaticUrl) {}
 
-  /** Detached presentation editor state, with a revision covering inherited artwork as needed. */
+  /** Detached presentation editor state, with its own resource editing revision. */
   public record View(UUID id, Kind kind, String revision, Names names, Logo logo) {}
 
   /** Complete desired names and explicit manual-image action after content validation. */

@@ -116,7 +116,6 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
                   key={season.seasonId ?? "all-seasons"}
                   owner={owner}
                   request={request}
-                  read={season.read}
                   seasonId={season.seasonId}
                   category={id}
                   active={focused && tab === id}
@@ -127,7 +126,6 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
                   key={season.seasonId ?? "all-seasons"}
                   owner={owner}
                   request={request}
-                  read={season.read}
                   seasonId={season.seasonId}
                   active={focused && tab === id}
                   bypass={bypass}

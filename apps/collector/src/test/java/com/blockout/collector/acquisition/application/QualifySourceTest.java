@@ -2,6 +2,8 @@ package com.blockout.collector.acquisition.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -18,7 +20,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -63,8 +64,7 @@ class QualifySourceTest {
     byte[] page =
         "<title>Alterna VOLSTAR 2026/2027</title><a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>"
             .getBytes(StandardCharsets.UTF_8);
-    when(http.page(url))
-        .thenReturn(CompletableFuture.completedFuture(new ProviderResponse(page, url, true)));
+    doReturn(new ProviderResponse(page, url, true)).when(http).page(url);
     QualifySource service =
         new QualifySource(
             http,
@@ -102,8 +102,7 @@ class QualifySourceTest {
     byte[] page =
         "<title>Alterna VOLSTAR</title><a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>"
             .getBytes(StandardCharsets.UTF_8);
-    when(http.page(url))
-        .thenReturn(CompletableFuture.completedFuture(new ProviderResponse(page, url, true)));
+    doReturn(new ProviderResponse(page, url, true)).when(http).page(url);
     QualifySource service =
         new QualifySource(
             http,
@@ -131,13 +130,13 @@ class QualifySourceTest {
     byte[] page =
         "<title>Alterna VOLSTAR</title><a href='CompetitionMatches.aspx?ID=999&PID=902'>Regular</a>"
             .getBytes(StandardCharsets.UTF_8);
-    when(http.page(url))
-        .thenReturn(
-            CompletableFuture.completedFuture(
-                new ProviderResponse(
-                    page,
-                    URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=999"),
-                    true)));
+    doReturn(
+            new ProviderResponse(
+                page,
+                URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=999"),
+                true))
+        .when(http)
+        .page(url);
     QualifySource service =
         new QualifySource(
             http,
@@ -163,17 +162,17 @@ class QualifySourceTest {
     ProviderPages http = mock(ProviderPages.class);
     URI url = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901");
     if (unavailable)
-      when(http.page(url))
-          .thenReturn(
-              CompletableFuture.failedFuture(new IOException("Synthetic transport failure")));
+      doThrow(new java.io.UncheckedIOException(new IOException("Synthetic transport failure")))
+          .when(http)
+          .page(url);
     else
-      when(http.page(url))
-          .thenReturn(
-              CompletableFuture.completedFuture(
-                  new ProviderResponse(
-                      "<html>Unsupported synthetic content</html>".getBytes(StandardCharsets.UTF_8),
-                      url,
-                      true)));
+      doReturn(
+              new ProviderResponse(
+                  "<html>Unsupported synthetic content</html>".getBytes(StandardCharsets.UTF_8),
+                  url,
+                  true))
+          .when(http)
+          .page(url);
     QualifySource service =
         new QualifySource(
             http,

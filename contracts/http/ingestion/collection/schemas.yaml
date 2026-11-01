@@ -153,8 +153,8 @@ StartCollectionCycleInternalRequest:
     cycleId:
       type: string
       description:
-        New collector UUID; read this same cycle after an uncertain response before any supplier
-        work.
+        New collector UUID for this admission attempt. Supplier work requires its successful admission
+        response; a failed exchange does not permit recovery by a confirmation read.
       format: uuid
     incarnationId:
       type: string

@@ -247,10 +247,6 @@ public interface CollectionApiMapper {
       target = "lastSuccessAt",
       source = "lastSuccessAt",
       nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  @Mapping(
-      target = "firstFailureAt",
-      source = "firstFailureAt",
-      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   CollectionResultResponse toDto(CollectionResult source);
 
   /**

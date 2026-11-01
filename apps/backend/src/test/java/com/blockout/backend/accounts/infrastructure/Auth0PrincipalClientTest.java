@@ -43,7 +43,7 @@ class Auth0PrincipalClientTest {
   }
 
   @Test
-  @DisplayName("Reads only the exact encoded principal and preserves existing linked evidence")
+  @DisplayName("Reads only minimal evidence for the exact encoded principal")
   void readsExactPrincipal(CapturedOutput output) {
     // Given
     String body =
@@ -60,15 +60,10 @@ class Auth0PrincipalClientTest {
 
     // Then
     assertThat(request.url().encodedPath()).isEqualTo("/api/v2/users/auth0%7Cone");
-    assertThat(request.url().queryParameter("fields"))
-        .isEqualTo("user_id,email,created_at,identities");
+    assertThat(request.url().queryParameter("fields")).isEqualTo("user_id,email,created_at");
     assertThat(request.url().queryParameter("include_fields")).isEqualTo("true");
     assertThat(result.email()).isEqualTo("shared@example.invalid");
     assertThat(result.createdAt()).isEqualTo(Instant.parse("2020-01-02T03:04:05Z"));
-    assertThat(result.identities())
-        .containsExactly(
-            new PrincipalReader.Identity("google-oauth2", "google-oauth2"),
-            new PrincipalReader.Identity("apple", "apple"));
     assertThat(output)
         .doesNotContain(
             "Private name",

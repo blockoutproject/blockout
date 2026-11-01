@@ -49,7 +49,6 @@ import tools.jackson.databind.json.JsonMapper;
   HttpConfiguration.class,
   SecurityConfiguration.class,
   ApiExceptionHandler.class,
-  SupportInputMapperImpl.class,
   SupportApiMapperImpl.class,
   CreateSupportRequest.class,
   SupportConfiguration.class,

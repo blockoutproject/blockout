@@ -285,3 +285,10 @@ When parallel implementation is authorized, use only the distinct-file batches a
 - No raw provider archive, automatic replay, durable notification outbox, generic merge console, extra logo scheduler or speculative shared package is needed.
 - Documentation/schema checks establish only documentary correctness. Generated binding, PostgreSQL races, current grants, native rendering, actual provider observations and protected-logo recovery require their own execution evidence.
 - Keep personal contacts, real V1 associations/files, private diagnostics and credentials out of public fixtures and reports. Use synthetic/minimized cases and authorized private evidence destinations.
+
+## Independent team presentation simplification (2026-11-01)
+
+- [x] T072 [US6] Apply BS-01 in `apps/backend/src/main/java/com/blockout/backend/sporting/infrastructure/`: remove the club-logo revision counter/composite/projection and team-editor club lock while preserving team/season/account/grant safeguards, current inheritance and separate classification/locality/club privacy semantics. Append a retained-data drop-column migration under `apps/backend/src/main/resources/db/changelog/`; never rewrite applied baseline history or reset data.
+- [x] T073 [US6] Adapt `apps/backend/src/test/java/com/blockout/backend/sporting/application/SportingPresentationIntegrationTest.java` and persistence mapper cases for parent-only edit success/current fallback, own-team stale protection and precedence. Verify clean creation and retained-chain upgrade without losing artwork, then record exact scoped evidence in `specs/002-sporting-data/quickstart.md`.
+
+- [ ] T074 [US6] Correct `apps/mobile/src/features/sporting-administration/images/prepare-sporting-logo.ts` to await Expo's native copy before preparation/handoff completes, preserving borrowed input and owned partial-file cleanup. Verify deferred completion/rejection and relevant native image preparation; record boundary limits in `specs/002-sporting-data/quickstart.md`.

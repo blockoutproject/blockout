@@ -112,8 +112,9 @@ Cycles:
     description:
       Requires the current collector incarnation. Checks the selected control/candidate revision,
       lifecycle, pause and accepted pending intent; one concurrent cycle per control or candidate. Commits
-      running and freezes authorized context before provider reads. Lost acknowledgement requires GET
-      of the supplied cycleId before work. An existing matching cycle returns 200; conflicting identity/context
+      running and freezes authorized context before provider reads. Only a successful admission response
+      permits supplier work; a failed exchange ends this attempt without confirmation recovery. Later ordinary
+      polling follows current backend eligibility. An existing matching cycle returns 200; conflicting identity/context
       returns 409.
     responses:
       "201":
@@ -170,8 +171,8 @@ Cycle:
       - CollectorOperations
     summary: Read a current cycle
     description:
-      Requires collector credentials. Returns retained current context after uncertain admission/completion;
-      no execution-history lookup guarantee.
+      Requires collector credentials. Returns retained current context for ordinary inspection;
+      this read does not recover supplier permission after a failed admission exchange or promise execution history.
     responses:
       "200":
         description: Retained current cycle state.

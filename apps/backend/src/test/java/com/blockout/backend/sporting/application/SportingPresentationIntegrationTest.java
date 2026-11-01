@@ -1,6 +1,7 @@
 package com.blockout.backend.sporting.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -1083,14 +1084,62 @@ class SportingPresentationIntegrationTest {
                 Integer.class,
                 club))
         .isZero();
-    assertThatThrownBy(
-            () ->
-                presentation.set(
-                    account,
-                    SportingProjectionChanges.Kind.TEAM,
-                    team,
-                    new Edit(teamBefore.revision(), null, null, LogoActionEnum.KEEP, null)))
-        .isInstanceOf(SportingConflictException.class);
+    SportingPresentation.View kept =
+        presentation.set(
+            account,
+            SportingProjectionChanges.Kind.TEAM,
+            team,
+            new Edit(teamBefore.revision(), null, null, LogoActionEnum.KEEP, null));
+    assertThat(kept.revision()).isEqualTo(teamBefore.revision());
+    SportingPresentation.View renamed =
+        presentation.set(
+            account,
+            SportingProjectionChanges.Kind.TEAM,
+            team,
+            new Edit(teamBefore.revision(), "Independent team", null, LogoActionEnum.KEEP, null));
+    assertThat(renamed.names().effectiveName()).isEqualTo("Independent team");
+    assertThat(reads.publicLogo(SportingProjectionChanges.Kind.TEAM, team).orElseThrow().bytes())
+        .isEqualTo(second.bytes());
+  }
+
+  @Test
+  @DisplayName("Edits team fields without waiting for its inherited club artwork lock")
+  void editsTeamIndependentlyOfClub() {
+    // Given
+    SportingPresentation.View current =
+        configurationReads.presentation(account, SportingProjectionChanges.Kind.TEAM, team);
+    TransactionTemplate parent = new TransactionTemplate(transactions);
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      parent.executeWithoutResult(
+          status -> {
+            sql.queryForObject(
+                "SELECT id FROM sporting_club WHERE id=? FOR UPDATE", UUID.class, club);
+
+            // When: the parent lock stays held while the independent team command must finish.
+            Future<SportingPresentation.View> pending =
+                worker.submit(
+                    () ->
+                        presentation.set(
+                            account,
+                            SportingProjectionChanges.Kind.TEAM,
+                            team,
+                            new Edit(
+                                current.revision(),
+                                "Independent team",
+                                null,
+                                LogoActionEnum.KEEP,
+                                null)));
+
+            // Then
+            assertThatCode(() -> pending.get(5, TimeUnit.SECONDS)).doesNotThrowAnyException();
+          });
+    }
+    assertThat(
+            configurationReads
+                .presentation(account, SportingProjectionChanges.Kind.TEAM, team)
+                .names()
+                .effectiveName())
+        .isEqualTo("Independent team");
   }
 
   @Test

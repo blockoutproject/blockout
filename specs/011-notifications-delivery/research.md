@@ -184,3 +184,13 @@ The installed SDK 58 declarations and real Router integration tests establish th
 this choice changes no dependency or accepted behavior. Native layout, safe-area and accessibility
 inspection remain separate from those tests. Existing UI Library navigation labels and
 strong-color badge roles supply the semantic token values.
+
+## Atomic daily physical retention
+
+**Decision (2026-11-01):** Replace selected-ID batches and independent subtransactions with one native JPQL `DELETE` at the pass's fixed inclusive creation cutoff. The application uses `TransactionTemplate` so a completion/count diagnostic is emitted only after real commit.
+
+**Rationale:** Logical age-29 exclusion independently protects reads/counts/sends. Notification rows have no removal callback or child lifecycle requiring entity deletion. One transaction removes the progress record, selection query, loop and nested proxy while preserving facts and other owners.
+
+**Accepted limit:** Each pass remains atomic. A definite transaction refusal rolls it back; a lost commit acknowledgement can leave the whole pass committed but unconfirmed. Report unconfirmed completion without a deletion count or a claim of zero effects. The next daily predicate or manual intervention safely removes any still-due rows, without another recovery protocol. One pass may hold more row locks and create a larger WAL/rollback unit. There is no measured load/duration requirement justifying incremental progress. Consider batching again only after a concrete deletion-duration/locking problem is observed.
+
+**Alternatives considered:** Batching preserves stronger intra-pass progress at greater coordination/test cost. Per-entity deletion would load unnecessary objects. A recovery queue, extra retry schedule or weakened age exclusion is unnecessary and not selected.

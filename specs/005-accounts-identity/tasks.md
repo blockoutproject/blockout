@@ -245,5 +245,5 @@ Markers apply only after the preceding prerequisites, to disjoint files. Seriali
 
 The current [session owner](plan.md#mobile-session-and-shared-consumers) remains the contract. The owner approved removing unused establishment evidence and reconciling stale derived generation wording on 2026-11-01; this introduces no new identity guarantee.
 
-- [ ] T072 Align `data-model.md` with the subject-mounted private QueryClient and review F06/F09/F13 consumer wording; preserve credential original-principal checks and native SDK ordering.
-- [ ] T073 Remove unused linked identities from `PrincipalReader.Evidence` and `Auth0PrincipalClient` establishment reads; verify required email/creation evidence and retain destructive cleanup's separate live identity/connection checks.
+- [x] T072 Align `data-model.md` with the subject-mounted private QueryClient and review F06/F09/F13 consumer wording; preserve credential original-principal checks and native SDK ordering.
+- [x] T073 Remove unused linked identities from `PrincipalReader.Evidence` and `Auth0PrincipalClient` establishment reads; verify required email/creation evidence and retain destructive cleanup's separate live identity/connection checks.

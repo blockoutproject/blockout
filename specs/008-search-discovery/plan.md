@@ -131,3 +131,7 @@ Run one isolated OpenSearch instance per environment with its own volume/configu
 Search indexes are disposable derivatives. PostgreSQL backups preserve the authoritative inputs; restoration rebuilds indexes before search is usable. No extra backup chain, Dashboards deployment or operator screen. Existing private logs/metrics and native Grafana alerts expose failed targeted/rebuild work and last successful rebuild; an alert closure is not proof of search recovery. Exclude query text, city values, credentials and raw engine/provider payloads from telemetry.
 
 [Research](research.md) records decision rationale; [quickstart](quickstart.md) distinguishes implemented engine/client and contract checks from outstanding business, native, restoration and deployment qualifications. Run the [README verification commands](../../README.md#verification) for affected boundaries; [tasks](tasks.md) track the remaining work.
+
+## One hydration per native candidate batch (2026-11-01)
+
+Hydrate each existing native batch of at most 200 candidates once through `HydrateSearch.current`, then consume the same score/UUID order with existing eligibility, useful lookahead and exact consumed cursor. Remove the internal 21-candidate slice loop. Preserve the ten-batch evaluation bound, ordinary retryable failure if neither useful page nor end is established, stable examples and current SQL/city restrictions. A mostly eligible batch may hydrate its unused tail; this bounded extra work is accepted without a latency claim or sparse-page UX change.

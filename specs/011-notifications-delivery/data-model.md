@@ -53,3 +53,7 @@ After-commit send context references newly created entries, the original eligibl
 The original principal's private QueryClient holds validated responses by generated account keys and continuation. Server read state is monotone; cached read flags/counts have ordinary eventual freshness through invalidation/refetch, without a local true overlay or member-read acknowledgement protocol. Expired or known-restricted/purged content cannot be restored by older responses. A known missing member invalidates its unprovable whole total, without subtracting loaded rows. No read journal or complete inbox mirror is added. Logout/account changes clear private queries and local badge, regardless of best-effort disassociation outcome.
 
 The installation and current connection UUIDs are device metadata; the Expo address is obtained through the native SDK. Neither provides account authority, and no retained credential exists solely to clean up a failed logout.
+
+## Atomic daily retention execution
+
+The physical purge applies its fixed inclusive `createdAt` cutoff in one database transaction. No selected-ID batch, partial-progress record or per-entry archive is retained. A definite transaction refusal rolls back completely; an uncertain commit may have applied the whole pass and leaves no confirmed deletion count. The next ordinary pass/manual operation safely re-evaluates due rows; rows remain logically excluded from age 29 throughout. Completed diagnostics describe only committed deletion.

@@ -18,7 +18,7 @@ import org.mapstruct.factory.Mappers;
 
 /** Proves real MapStruct output detaches every allowed declaration without granting authority. */
 @DisplayName("Support input mapping")
-class SupportInputMapperTest {
+class SupportApiMapperTest {
   @Test
   @DisplayName("Copies all declared metadata into an immutable snapshot")
   void mapsDeclaredContext() {
@@ -48,7 +48,7 @@ class SupportInputMapperTest {
                 "fiction@example.invalid",
                 context)
             .subject(SupportRequestSubjectEnum.SPORTING_DATA);
-    SupportInputMapper mapper = Mappers.getMapper(SupportInputMapper.class);
+    SupportApiMapper mapper = Mappers.getMapper(SupportApiMapper.class);
 
     // When
     SupportSubmission.Metadata result = mapper.toMetadata(request);
@@ -89,7 +89,7 @@ class SupportInputMapperTest {
             "Description",
             "fiction@example.invalid",
             new SupportContextRequest());
-    SupportInputMapper mapper = Mappers.getMapper(SupportInputMapper.class);
+    SupportApiMapper mapper = Mappers.getMapper(SupportApiMapper.class);
 
     // When
     SupportSubmission.Metadata result = mapper.toMetadata(request);

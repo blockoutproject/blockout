@@ -9,6 +9,14 @@ import org.springframework.data.jpa.repository.Query;
 /** Native JPA queries over only pool relations, with no sporting presentation copies. */
 interface PoolFollowRepository extends JpaRepository<PoolFollowEntity, UUID> {
   /**
+   * Counts retained relations for the exact target, independently of current presentation.
+   *
+   * @param poolId original pool identity already admitted by the application owner
+   * @return number of persisted distinct owner/target relationships
+   */
+  long countByPoolId(UUID poolId);
+
+  /**
    * Deletes every original-owner row, including hidden entries, under its account lock.
    *
    * @param accountId locked original lifecycle

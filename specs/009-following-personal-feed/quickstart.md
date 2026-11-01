@@ -13,7 +13,7 @@ The foundation is exercised by `FollowingContractWebMvcTest`, `FollowAccessWebMv
 Java interfaces/DTOs and Orval consumers. Java MVC uses the production `FollowingController` with controlled application ports and actual
 generated argument conversion; F05 identity and F12 admission run with controlled
 account/settings/transaction collaborators. Mobile uses the
-real F05 generation, Query cleanup and F13 transport with controlled HTTP. These checks establish
+real F05 mounted native-principal lifetime, Query cleanup and F13 transport with controlled HTTP. These checks establish
 binding, original-owner rejection and late-response isolation, including returning to the same
 account; they establish the real HTTP binding, but no persisted relation, account-erasure race,
 native networking, screen or provider behavior. Generated response Bean Validation in the Java
@@ -62,12 +62,13 @@ Read beyond one twenty-item follow page, including equal names and French accent
 
 `follow-action.test.tsx` exercises the real Query, theme, F05 session and F12 admission owners,
 generated member operations and response validation. Only native Auth0 I/O and HTTP are controlled.
-It covers shared target busy/provisional state, independent typed targets, explicit replacement,
-guest invitation with no sign-in replay, unavailable profile, exact sporting-route composition,
-completion after unmount and retired-session rejection. Definite refusals retain confirmation;
-reopening a restored target reads its current member state and retires superseded action feedback.
-A new explicit attempt also retires terminal mutation entries, so an older failure cannot return
-when another control unmounts. Confirmed state reconciles both ordinary and explicit F12 bypass
+It covers each mounted control's busy/provisional state, independent typed targets and independent
+same-target controls, explicit replacement, guest invitation without sign-in replay, unavailable
+profile and exact sporting-route composition. Shared confirmed Query data remains distinct from
+local mutation presentation. Subject unmount keeps detached completions in their original private
+client under F05's accepted freshness limits; original-principal checks still protect dispatch.
+Definite refusals retain confirmation, and reopening a restored target reads current member state.
+Confirmed state reconciles both ordinary and explicit F12 bypass
 cache variants. Response loss performs one bounded member read without replay, and failed observation leaves an
 ordinary explicit retry of the same requested value. A successful observation is not announced as
 proof of the original write or delayed cancellation.
@@ -117,7 +118,7 @@ Current permission/visibility refusals remove retained values, including across 
 failure. A current public count NotFound also withdraws the actual F03 team/pool detail,
 reuses its participant/list/calendar cleanup and suspends shared follow controls without a full-detail
 reread, including when the original account becomes established during the first public read
-without changing its session generation. The private opaque member NotFound does not establish public target absence.
+within the same captured private-client lifetime. The private opaque member NotFound does not establish public target absence.
 `follow-recovery.test.tsx` composes the actual F03 action region with the counter and
 existing shared mutation lifecycle. It covers a delayed original write after one observation,
 failed dependent count/profile reads after confirmed success and A → guest/B → A while the old
@@ -171,7 +172,7 @@ transport with controlled HTTP. It covers shared selection, All seasons, reset, 
 successful disappearance, failed reconciliation, explicit retry and obsolete session/selection responses.
 `personal-screen.test.tsx` adds the actual F05/F12 providers, Home, follow action, club and search
 components; native identity/inset I/O and HTTP are controlled. Current private refusals remain
-blocking across a subsequent network failure until a successful read. The actual Home/season native routes share one generation-scoped owner. Opening the contextual
+blocking across a subsequent network failure until a successful read. The actual Home/season native routes share one selection owner within the mounted private-client lifetime. Opening the contextual
 route starts one explicit options reread; only that request may publish opening feedback, while
 retained Query error state alone emits none.
 These tests establish neither native networking nor provider qualification.
@@ -180,7 +181,7 @@ The existing entry/age guards now live in `apps/mobile/src/app/(ordinary)/(tabs)
 with Home still at `/` and its contextual choice at `/season`. The latter is a `(sheets)` leaf of
 the same native stack, so the application-wide sheet convention owns presentation and tab clearance.
 F07 owns its ordinary tab placement; the personal context, controls and calendar remain with F06.
-US3 retains the follow-list composition. T021 supplies the bounded read boundary; the
+US3 retains the follow-list composition. T021 supplies the successful-options withdrawal boundary; the
 [integrated qualification](#integrated-personal-season-and-calendar-t022t037) covers T022/T037
 through all actual views and endpoints. T029 retains its broader list qualification.
 
@@ -232,7 +233,7 @@ exposes ordinary error/retry rather than idle pending state; explicit retry alon
 A failed refresh
 with remaining pages exposes its own explicit retry at the list edge before automatic continuation
 resumes. Original-account refusals withdraw both lists and retained calendars within the same
-session/admission context. A seasonal NotFound followed by successful options omission removes
+session/admission context. An explicit successful options reload omitting a formerly offered season removes
 that season from overlapping All-seasons data before selecting the fallback. Entity Card extraction
 retains the existing F04 presentation adapter and its consumer checks.
 
@@ -368,14 +369,14 @@ T029's broader list qualification remains with its owner; T016/T044/T045/T048 st
 
 Using Jest Expo/React Native Testing Library and native device checks where applicable:
 
-- Open the same target in different tabs, act once and observe the same immediate provisional/busy state; repeated taps do not enqueue work and another target remains usable.
+- Open the same target in independent visits/controls: only the initiating mounted control becomes provisional/busy; another may send a desired-state request. Each control prevents its own pending repeat, no tap queues or mutation replays, and shared confirmed data refreshes after settlement. Preserve one shared team-follow action across its tabs.
 - Leave and return to a populated personal tab without a follow change: preserve its data and traversal under the current Query observer/freshness policy. After reset while hidden, display it and fetch the first page.
-- Make the selected season unavailable: its list/calendar NotFound triggers one options read; successful confirmation switches to the new default or All seasons. Failed options or a still-available season preserve selection and ordinary error/retry without a loop.
+- Make the selected season unavailable: its list/calendar NotFound remains an ordinary error until the holder opens the existing season selector. Its successful options read establishes omission, withdraws retained exact/All data and selects the new default or All seasons. Failed options or a still-offered season preserve selection without a loop.
 - Confirm the mutation, then fail the list/count refresh: the saved follow remains confirmed and ordinary error/retry applies to the failed read.
 - Confirm a change after several loaded calendar pages: reload the first page only, preserve season/category and do not show the former selection as current. Inactive tabs reload on display.
 - Fail a normal unchanged-context refresh: retain authorized content. Fail an additional page: retain earlier pages and retry the continuation.
 - Lose a write response: perform one bounded current-state read, no automatic mutation replay. Fail that read too: ordinary action error, no invented success. Delayed completion follows the documented server ordering.
-- Sign out or change accounts during reads/writes, including returning to the same account: reject old-session callbacks and remove private data.
+- Sign out or change subjects during reads/writes: remove the old private client/data and preserve original-principal dispatch. Returning to the same subject uses its new mounted lifetime under F05’s accepted freshness limits; no application generation or global callback-rejection promise is added.
 - Verify guest invitation without automatic follow after sign-in, accessible busy/selected states without colour alone, and unchanged advertising triggers.
 
 Use the approved Home/Sport references linked from [the plan](plan.md). A mock test or visual match does not establish native networking, accessibility or integrated generation correctness.
@@ -386,8 +387,14 @@ At `1a5163d8`, Home's existing personal-season owner is shared only by its Home/
 
 The separate [native-only Home brand evidence](../003-shared-quality/quickstart.md#paging-chrome-and-navigation) at `0f23092e` qualifies collapse-driven fading, transparent retreat, sticky controls and restoration on Android/Duo. Its matches fixture returned 404, so it establishes chrome over the existing Error state rather than a successful personal feed. Neither observation changes follow commands, Query/session ownership, scheduling or the outstanding integrated qualifications above.
 
-The later native-only [A32/A33](../003-shared-quality/quickstart.md#feedback-and-read-recovery) and [A34](../003-shared-quality/quickstart.md#feedback-and-read-recovery) qualify fitting feedback, Home's shared stock pager bar and Retry-only blocking errors on both clients. Error dragging causes no request; its Retry makes one calendar attempt plus the existing season-options revalidation after 404. A31 footage establishes its recorded chrome behavior only; the A34 entry owns blocking-error interaction. These presentation observations establish no successful feed or additional F06 business acceptance.
+The later native-only [A32/A33](../003-shared-quality/quickstart.md#feedback-and-read-recovery) and [A34](../003-shared-quality/quickstart.md#feedback-and-read-recovery) qualify fitting feedback, Home's shared stock pager bar and Retry-only blocking errors on both clients. At that recorded revision, Error dragging caused no request and Retry made one calendar attempt plus the former season-options revalidation after 404. Current FR-012 supersedes that automatic recovery; the old capture does not qualify today’s explicit selector journey. A31 footage establishes only its recorded chrome behavior, and A34 retains the observed blocking-error interaction. These presentation observations establish no successful feed or additional F06 business acceptance.
 
 ## Original-account erasure participant
 
 T011 supplies `EraseAccountFollows` through the actual F06 JPA store in F05's single account-lock transaction. The [F05 server erasure construction](../005-accounts-identity/quickstart.md#server-erasure-construction) qualifies visible/hidden pool and team relation removal, writer ordering, rollback and replacement-account isolation. Sporting targets and other owners survive; this adds no sporting-root acquisition or F06 recovery process. Broader T016 qualification retains its own scope.
+
+### Accepted simplification qualification boundary
+
+FR-012 now permits ordinary selected-season errors until the holder opens the existing season selector; only its successful choices reload establishes disappearance and fallback. Verify the selector remains reachable while the calendar/list is unavailable, failed options preserve selection, late reads cannot replace a newer selection, and successful omission withdraws retained exact-season and All-seasons rows before fallback. Check the first options read with pre-existing retained queries as well as ordinary subsequent reloads. Keep targeted refusal cancellation/clearing; do not use reciprocal resets.
+
+FR-023 now accepts per-mounted-control provisional/pending state and concurrent desired-state requests from independent controls/visits, as the deliberate two-control case demonstrates. The previous target-wide shared-provisional and automatic-NotFound-repair evidence does not qualify these revised boundaries. Current execution results and unavailable native evidence must be recorded separately after application checks; database uniqueness/idempotence and one team action remain required.

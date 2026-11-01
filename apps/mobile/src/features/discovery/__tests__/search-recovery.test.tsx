@@ -21,7 +21,7 @@ import { Text } from "react-native";
 import ClubRoute from "../../../app/(ordinary)/clubs/[clubId]";
 import SupportLayout from "../../../app/(ordinary)/support/_layout";
 import { SupportScreen } from "../../support/screens/support-screen";
-import { AccountAdmissionProvider } from "../../accounts/components/account-admission";
+import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
 import { useConsultationQueries } from "../../sporting/match-consultation";
 import { renderRouter } from "expo-router/testing-library";
 import { type DiscoveryPage } from "../api/discovery-queries";
@@ -212,13 +212,13 @@ async function renderSearch() {
                 <ApplicationAccessProvider>
                   <AccountSessionProvider>
                     <PrivateQueries>
-                      <AccountAdmissionProvider admitted>
+                      <AccessAdmissionProvider>
                         <AccountFeedbackProvider>
                           <AdvertisingProviders>
                             {children}
                           </AdvertisingProviders>
                         </AccountFeedbackProvider>
-                      </AccountAdmissionProvider>
+                      </AccessAdmissionProvider>
                     </PrivateQueries>
                   </AccountSessionProvider>
                 </ApplicationAccessProvider>

@@ -67,7 +67,6 @@ export function result(
     outcome: "unconfirmed",
     observedAt: "2026-10-24T12:00:00Z",
     lastSuccessAt: null,
-    firstFailureAt: null,
     ...overrides,
   };
 }

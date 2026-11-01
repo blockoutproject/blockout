@@ -37,8 +37,7 @@ import { AdvertisingProviders } from "../../advertising/test-support/advertising
 import * as proSessionModule from "../../pro/pro-session";
 import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
 import SignInInvitationRoute from "../../../app/(ordinary)/sign-in-invitation";
-import { AccountAdmissionProvider } from "../../accounts/components/account-admission";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
+import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
 
 jest.mock("@sentry/react-native", () => ({
   init: jest.fn(),
@@ -149,11 +148,10 @@ function Layout() {
 
 /** Supplies the real F12 ordinary admission to the production F05 route, as the application root does. */
 function InvitationRoute() {
-  const admission = useOrdinaryRequest();
   return (
-    <AccountAdmissionProvider admitted={admission.admitted}>
+    <AccessAdmissionProvider>
       <SignInInvitationRoute />
-    </AccountAdmissionProvider>
+    </AccessAdmissionProvider>
   );
 }
 

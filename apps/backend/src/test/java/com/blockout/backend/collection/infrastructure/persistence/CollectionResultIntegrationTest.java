@@ -124,7 +124,7 @@ class CollectionResultIntegrationTest {
     // Then
     assertThat(current(CollectionPhaseEnum.ACQUISITION).outcome())
         .isEqualTo(CollectionOutcomeEnum.FAILED);
-    assertThat(current(CollectionPhaseEnum.ACQUISITION).firstFailureAt())
+    assertThat(current(CollectionPhaseEnum.ACQUISITION).observedAt())
         .isEqualTo(OBSERVED.plusSeconds(1));
     CollectionState.ResultPage first = store.results(CONTROL, 0, 1);
     assertThat(first.items())
@@ -260,7 +260,7 @@ class CollectionResultIntegrationTest {
     assertThat(current(CollectionPhaseEnum.ACQUISITION).lastSuccessAt())
         .isEqualTo(OBSERVED.plusSeconds(1));
     assertThat(current(CollectionPhaseEnum.INTEGRATION).lastSuccessAt()).isNull();
-    assertThat(current(CollectionPhaseEnum.INTEGRATION).firstFailureAt())
+    assertThat(current(CollectionPhaseEnum.INTEGRATION).observedAt())
         .isEqualTo(OBSERVED.plusSeconds(1));
     assertThat(current(CollectionPhaseEnum.INTEGRATION).obtainedCount()).isNull();
   }
@@ -315,8 +315,8 @@ class CollectionResultIntegrationTest {
         cycle.id(), evidence(1, CollectionPhaseEnum.ACQUISITION, CollectionOutcomeEnum.PARTIAL));
 
     // Then
-    assertThat(current(CollectionPhaseEnum.ACQUISITION).firstFailureAt())
-        .isEqualTo(OBSERVED.plusSeconds(5));
+    assertThat(current(CollectionPhaseEnum.ACQUISITION).outcome())
+        .isEqualTo(CollectionOutcomeEnum.PARTIAL);
     assertThat(current(CollectionPhaseEnum.ACQUISITION).readOrdinal()).isEqualTo(1);
     assertThat(current(CollectionPhaseEnum.ACQUISITION).cycleOrder()).isEqualTo(cycle.cycleOrder());
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_result", Integer.class))

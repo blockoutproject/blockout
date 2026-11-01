@@ -201,7 +201,6 @@ class CollectorPresentationBoundaryIntegrationTest {
             8 * 1024 * 1024,
             0,
             1,
-            0,
             100,
             Duration.ofSeconds(1),
             Duration.ZERO,

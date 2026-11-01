@@ -260,3 +260,7 @@ Serialize edits to shared controllers/projections/read adapters, mobile screens/
 2. Add US2 time presentation and US3 one complete calendar query/retained refresh; demonstrate their combined date/time and PostgreSQL cases before broadening consumers.
 3. Add US4 native maps/official standings and US6 honest recovery, then US5 qualified stream/PDF delivery. Reuse shared owners and the native mechanisms selected by the plan.
 4. Execute real generated-consumer, database, iOS/Android, source and embedded-owner qualifications incrementally, reusing identical evidence. Keep unexecuted prerequisites visible and reopen only demonstrated compatibility/decision failures; no implicit upgrade, fork or recovery system substitutes for an accepted requirement.
+
+## Phase 10: Await native document completion
+
+- [ ] T074 [US5] Correct `apps/mobile/src/features/sporting/api/match-document.ts` to await Expo's native file write before PDF handoff; retain abort/partial-file cleanup and the generated Blob/FileReader boundary. Verify deferred success/rejection/cancellation and relevant native iOS/Android reading using `specs/007-sporting-consultation/quickstart.md#scenarios-and-expected-outcomes`; no new file manager, retry or provider operation.

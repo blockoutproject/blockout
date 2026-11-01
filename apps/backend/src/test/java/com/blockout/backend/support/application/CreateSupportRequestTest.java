@@ -87,11 +87,11 @@ class CreateSupportRequestTest {
     doAnswer(
             invocation -> {
               assertThat(invocation.<Long>getArgument(0)).isEqualTo(17L);
-              List<SupportSubmission.Image> images = invocation.getArgument(1);
+              List<Path> images = invocation.getArgument(1);
               assertThat(images).hasSize(5);
-              for (SupportSubmission.Image image : images) {
-                assertThat(Files.readAllBytes(image.path())).isEqualTo(image());
-                originals.add(image.path());
+              for (Path image : images) {
+                assertThat(Files.readAllBytes(image)).isEqualTo(image());
+                originals.add(image);
               }
               effects.add("attach-all");
               return null;

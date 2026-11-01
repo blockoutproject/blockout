@@ -1,11 +1,10 @@
 package com.blockout.collector.acquisition.application;
 
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
-import java.util.concurrent.CompletionException;
 import java.util.function.LongSupplier;
-import org.springframework.core.task.TaskRejectedException;
 
 /** Explicit professional-page boundary, with independent sporting and media observations. */
 public interface LnvAcquisition {
@@ -55,8 +54,8 @@ public interface LnvAcquisition {
    * @param uri admitted page
    * @return one shared source read, without a durable page cache
    * @throws IllegalArgumentException when the source URL is outside the configured origins
-   * @throws TaskRejectedException when the shared provider capacity is full
-   * @throws CompletionException when the asynchronous page acquisition fails
+   * @throws RuntimeException when the finite shared permit budget cannot be obtained
+   * @throws UncheckedIOException when the bounded synchronous page read fails
    */
   Resource read(URI uri);
 
@@ -124,8 +123,8 @@ public interface LnvAcquisition {
    * @param uri published URL
    * @return new source bytes or null for cache reuse
    * @throws IllegalArgumentException when the source URL is outside the configured origins
-   * @throws TaskRejectedException when the shared provider capacity is full
-   * @throws CompletionException when the asynchronous image acquisition fails
+   * @throws RuntimeException when the finite shared permit budget cannot be obtained
+   * @throws UncheckedIOException when the bounded synchronous image read fails
    */
   Read<byte[]> image(URI uri);
 }

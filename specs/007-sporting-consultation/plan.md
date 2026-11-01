@@ -113,7 +113,7 @@ F01 reads the applicable LNV XML index once per eligible pass solely for documen
 
 For a document read, the backend checks current eligibility and loads its reference in a short transaction, then fetches outside the transaction using bounded HTTP requests, approved source origins and redirects, PDF validation and safe errors. The client supplies only match identity and document kind. No supplier body, URL credential or personal detail enters logs. No archive, durable download job, URL-renewal workflow or automatic retry.
 
-The mobile shared transport owns download cancellation and error handling; successful binary data goes to a temporary Expo cache file and then a local URI in the native PDF reader hosted full screen, never inside a sheet. Cleanup occurs at close/failure and cold start for leftovers. JSON validation remains at the F13 boundary; binary responses intentionally bypass JSON parsing. Reading adds no separate reader-app dependency, offline guarantee or export action.
+The mobile shared transport owns download cancellation and error handling; successful binary data goes to a temporary Expo cache file. Await the native file write before handing its local URI to the full-screen native PDF reader, then recheck cancellation. A rejected write or cancellation removes the owned partial file. Cleanup occurs at close/failure and cold start for leftovers. JSON validation remains at the F13 boundary; binary responses intentionally bypass JSON parsing. Reading adds no separate reader-app dependency, offline guarantee or export action.
 
 ## Design and validation
 

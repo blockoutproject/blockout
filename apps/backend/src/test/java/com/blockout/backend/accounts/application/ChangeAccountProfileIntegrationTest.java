@@ -97,7 +97,7 @@ class ChangeAccountProfileIntegrationTest {
     when(provider.read(ISSUER, "auth0|one"))
         .thenReturn(
             new PrincipalReader.Evidence(
-                "updated@example.invalid", Instant.parse("2020-01-01T00:00:00Z"), List.of()));
+                "updated@example.invalid", Instant.parse("2020-01-01T00:00:00Z")));
 
     // When
     ReadAccount.View saved =

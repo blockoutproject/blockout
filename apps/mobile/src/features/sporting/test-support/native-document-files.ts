@@ -4,9 +4,9 @@ export class DocumentFile {
   name: string;
   exists = false;
   create = jest.fn();
-  write = jest.fn((bytes: Uint8Array) => {
+  write = jest.fn(async (bytes: Uint8Array) => {
     this.exists = true;
-    documentWrite(bytes);
+    await documentWrite(bytes);
   });
   delete = jest.fn(() => {
     this.exists = false;
@@ -20,8 +20,8 @@ export class DocumentFile {
   }
 }
 
-/** Native byte-write outcome; tests may fail a write after a partial file has appeared. */
-export const documentWrite = jest.fn();
+/** Native asynchronous byte-write outcome; a rejected promise may leave a partial file. */
+export const documentWrite = jest.fn<Promise<void>, [Uint8Array]>();
 /** Current synthetic handles, reset independently for every test. */
 export const documentFiles: DocumentFile[] = [];
 

@@ -2,6 +2,8 @@ package com.blockout.collector.acquisition.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -16,7 +18,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,15 +54,16 @@ class CurrentEntryOperationalEvidenceIntegrationTest {
   @DisplayName("A usable reread recovers only the same official entry")
   void recoversSameEntry(CapturedOutput output) {
     // Given
-    when(http.page(ENTRY))
-        .thenReturn(
-            CompletableFuture.failedFuture(new IOException("private-provider-body")),
-            response(ENTRY, "<iframe src='" + SOURCE + "'></iframe>"));
-    when(http.page(SOURCE))
-        .thenReturn(
+    doThrow(new java.io.UncheckedIOException(new IOException("private-provider-body")))
+        .doReturn(response(ENTRY, "<iframe src='" + SOURCE + "'></iframe>"))
+        .when(http)
+        .page(ENTRY);
+    doReturn(
             response(
                 SOURCE,
-                "<title>Alterna VOLSTAR 2026/2027</title><a href='" + SOURCE + "'>Regular</a>"));
+                "<title>Alterna VOLSTAR 2026/2027</title><a href='" + SOURCE + "'>Regular</a>"))
+        .when(http)
+        .page(SOURCE);
 
     // When
     discovery.currentEntries();
@@ -83,7 +85,7 @@ class CurrentEntryOperationalEvidenceIntegrationTest {
   @DisplayName("An unrecognized entry cannot manufacture recovery")
   void refusesUnrecognizedEntry(CapturedOutput output) {
     // Given
-    when(http.page(ENTRY)).thenReturn(response(ENTRY, "<html>unrecognized page</html>"));
+    doReturn(response(ENTRY, "<html>unrecognized page</html>")).when(http).page(ENTRY);
 
     // When
     discovery.currentEntries();
@@ -107,20 +109,22 @@ class CurrentEntryOperationalEvidenceIntegrationTest {
     URI entry = URI.create("https://www.ffvb.org/120-37-1-Championnats-Regionaux");
     URI broken = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/broken.htm");
     URI valid = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/valid.htm");
-    when(http.page(broken))
-        .thenReturn(
-            http200
-                ? response(broken, "<html>unrecognized page</html>")
-                : CompletableFuture.failedFuture(new IOException("private-provider-body")));
-    when(http.page(entry))
-        .thenReturn(
-            response(
-                entry, "<a href='" + broken + "'>First</a><a href='" + valid + "'>Second</a>"));
-    when(http.page(valid))
-        .thenReturn(
+    if (http200)
+      doReturn(response(broken, "<html>unrecognized page</html>")).when(http).page(broken);
+    else
+      doThrow(new java.io.UncheckedIOException(new IOException("private-provider-body")))
+          .when(http)
+          .page(broken);
+    doReturn(
+            response(entry, "<a href='" + broken + "'>First</a><a href='" + valid + "'>Second</a>"))
+        .when(http)
+        .page(entry);
+    doReturn(
             response(
                 valid,
-                "<span>Regional</span><select><option value='vbspo_calendrier.php?saison=2026/2027&codent=LIRA&poule=AA'>Pool</option></select>"));
+                "<span>Regional</span><select><option value='vbspo_calendrier.php?saison=2026/2027&codent=LIRA&poule=AA'>Pool</option></select>"))
+        .when(http)
+        .page(valid);
 
     // When
     discovery.currentEntries();
@@ -136,10 +140,10 @@ class CurrentEntryOperationalEvidenceIntegrationTest {
   @DisplayName("Missing seasonal attribution is not an unusable recognized source")
   void preservesUnknownSeason(CapturedOutput output) {
     // Given
-    when(http.page(ENTRY)).thenReturn(response(ENTRY, "<iframe src='" + SOURCE + "'></iframe>"));
-    when(http.page(SOURCE))
-        .thenReturn(
-            response(SOURCE, "<title>Alterna VOLSTAR</title><a href='" + SOURCE + "'>Regular</a>"));
+    doReturn(response(ENTRY, "<iframe src='" + SOURCE + "'></iframe>")).when(http).page(ENTRY);
+    doReturn(response(SOURCE, "<title>Alterna VOLSTAR</title><a href='" + SOURCE + "'>Regular</a>"))
+        .when(http)
+        .page(SOURCE);
 
     // When
     discovery.currentEntries();
@@ -154,8 +158,9 @@ class CurrentEntryOperationalEvidenceIntegrationTest {
   /** Starts each scenario with unavailable entries, real parsers and an active native lifecycle. */
   @BeforeEach
   void startsWithUnavailableEntries() {
-    when(http.page(any()))
-        .thenReturn(CompletableFuture.failedFuture(new IOException("private-provider-body")));
+    doThrow(new java.io.UncheckedIOException(new IOException("private-provider-body")))
+        .when(http)
+        .page(any());
     CollectorLifecycle lifecycle = new CollectorLifecycle(backend);
     when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
     when(backend.register(0, lifecycle.getIncarnationId()))
@@ -179,9 +184,8 @@ class CurrentEntryOperationalEvidenceIntegrationTest {
    * @param html synthetic interpretable provider markup
    * @return completed controlled response
    */
-  private CompletableFuture<ProviderResponse> response(URI url, String html) {
-    return CompletableFuture.completedFuture(
-        new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), url, true));
+  private ProviderResponse response(URI url, String html) {
+    return new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), url, true);
   }
 
   /**

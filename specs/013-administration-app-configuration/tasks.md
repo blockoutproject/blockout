@@ -241,4 +241,4 @@ Serialize edits to `access.xml` (T007/T015), the F05 response mapper and shared 
 
 ## Phase 9: Direct admission consumption
 
-- [ ] T078 Consume the existing F12 ordinary-admission context directly from mobile Account/Pro/support routes; remove the account-owned mirrored provider and unused maintenance decoder, preserving shared complete-access refusal invalidation and route checks in the affected real-provider suites.
+- [x] T078 Consume the existing F12 ordinary-admission context directly from mobile Account/Pro/support routes; remove the account-owned mirrored provider and unused maintenance decoder, preserving shared complete-access refusal invalidation and route checks in the affected real-provider suites.

@@ -16,7 +16,7 @@ Keep one authoritative sporting model in the modular backend. The separate colle
 
 **Primary Dependencies**: Spring Data JPA/Hibernate managed by Boot and MapStruct for mechanical mappings; dialect and generators follow the [F13 contract toolchain](../003-shared-quality/plan.md#http-generation-errors-and-compatibility).
 
-**Storage**: F13 PostgreSQL for relational facts, image bytes and associations. F13 evolving Liquibase baseline until first preproduction/production version.
+**Storage**: F13 PostgreSQL for relational facts, image bytes and associations. Preserve applied Liquibase history and append retained-data changes under F13; no environment reset is authorized.
 
 **Testing**: JUnit, Spring MVC, Testcontainers PostgreSQL and generated Java/TypeScript contract checks; prototype browser checks and native mobile qualification, with their distinct evidence limits.
 
@@ -85,6 +85,8 @@ The score, F07 required internal inbox creation and minimal processed-announceme
 
 ## Presentation, administration and locality
 
+Mobile image preparation awaits the native copy before returning an owned upload file. Rejection removes only the partial destination; the borrowed picker input remains owned by its caller until preparation settles. This preserves original-byte and last-valid-image behavior without another file lifecycle manager.
+
 Acquire LNV images once per distinct team during ordinary calendar passages; image failure is independent from match acceptance. Store validated PNG/JPEG bytes (at most 5 MiB) and associations atomically in PostgreSQL. Bound decoding to 4,194,304 pixels through the shared image validator: read width/height with the native JDK reader and multiply in `long` before allocating the raster. This permits a 2048 × 2048 logo without requiring a square crop; larger compressed images must be reduced before submission. This fixed technical ceiling implements F13 FR-017 without adding configuration or a processing service; it is not F05's profile-preparation rule. Check the current action grant before decoding a manual upload, then recheck it under the existing account lock in the write transaction. Decode outside that transaction and preserve actual-content validation and original accepted bytes. The [data model](data-model.md#presentation-and-privacy) owns effective logo precedence; binary submissions stay separate from calendar JSON. The backend does not fetch arbitrary image URLs.
 
 Manual names, logos and contact modes remain independent from source values. Enforce the [field restrictions and revision rules](data-model.md#presentation-and-privacy) owned here for F11 confidentiality, using existing club transactions. Administration submits desired resource state with its current revision. Increment the editing revision for relevant accepted state changes, not merely a collection timestamp refresh. Repeated requests cannot silently overwrite newer edits. After a lost response, native Query mutation failure and invalidation leave the person free to refresh or retry explicitly using the viewed target/revision. No separate uncertainty ledger or mandatory confirmation GET is retained; a read establishes current state rather than a historical receipt. The mounted RHF form retains its coherent baseline and dirty fields until an accepted save or explicit reset; route removal discards the draft.
@@ -108,3 +110,9 @@ The approved [prototype 236e6a2](https://github.com/blockoutproject/product-prot
 ## Verification
 
 [Quickstart](quickstart.md) owns contract/database/native scenarios and their recorded results; [research](research.md) distinguishes observed supplier structures and supported library features from integration proof. Check specification coverage, actual canonical contract ownership, links/anchors, formatting and README documentation CI on the final tree.
+
+## Independent team presentation revisions (2026-11-01)
+
+A team presentation command checks only the team's own presentation revision; inherited club artwork does not participate in that editing token. Keep the season lock and original-account/current-grant checks, own-team stale/no-op protection, and dynamic current artwork precedence. Remove the dedicated club-logo counter, its composite/projection fields and the extra club lock in the team editor. KEEP/REPLACE/AUTOMATIC never writes parent artwork. Club contact/privacy locks, classification composite revisions and locality/geocoding revisions remain unchanged.
+
+The accepted limit is that inherited preview/current presence may change during editing without a 409; AUTOMATIC uses the current fallback. Remove the obsolete column through an appended retained-data Liquibase change, preserving applied baseline history and all useful logo bytes. No database reset or production migration is authorized by this implementation.

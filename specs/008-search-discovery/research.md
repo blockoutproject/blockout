@@ -81,3 +81,13 @@ Search uses no pull-to-refresh or refresh button. Its native Query owner handles
 **Rationale**: Environment separation prevents accidental index mixing but not host loss. PostgreSQL recovery followed by reconstruction is sufficient for derived data. Native OpenSearch [security configuration](https://docs.opensearch.org/latest/security/configuration/index/) supplies the selected boundary; demo settings and disabled certificate verification are not acceptable deployment defaults.
 
 **Alternatives considered**: An HA deployment, Dashboards, another alerting platform, index snapshots or an operator rebuild screen add maintenance without an accepted requirement. Runtime provisioning, permissions, restoration and F13 alert qualification remain future work.
+
+## Batch hydration ownership
+
+**Decision (2026-11-01):** Invoke the existing current-data hydration owner once per native 200-candidate batch.
+
+**Rationale:** The existing hydration boundary already supports that bound. Additional 21-candidate slicing saves unused-tail reads but adds another traversal loop and snapshots without a product requirement.
+
+**Accepted limit:** Up to 200 current candidates can be hydrated when only 21 eligible candidates are needed; no performance improvement is claimed. Current visibility/city checks, exact cursor consumption, examples and end/error semantics remain.
+
+**Alternatives considered:** Retaining slices is reasonable if measured bounded cost later warrants it. Sparse successful empty pages would move scanning/end proof into HTTP/mobile and are not selected.

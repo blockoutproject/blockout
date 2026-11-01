@@ -10,16 +10,12 @@ import {
   useCalendarGrouping,
 } from "../../sporting/calendar";
 import type { FollowingOwner } from "../api/following-keys";
-import {
-  createPersonalCalendarOptions,
-  type PersonalCalendarRead,
-} from "../api/personal-queries";
+import { createPersonalCalendarOptions } from "../api/personal-queries";
 
 /** One exact personal category/season owns its loading zone and uses the same F03 native calendar. */
 export interface PersonalCalendarProps {
   owner: FollowingOwner;
   request: (signal?: AbortSignal) => Promise<ApiFetchOptions>;
-  read: PersonalCalendarRead;
   seasonId?: string;
   category: CalendarCategoryEnum;
   active: boolean;
@@ -30,7 +26,6 @@ export interface PersonalCalendarProps {
 export function PersonalCalendar({
   owner,
   request,
-  read,
   seasonId,
   category,
   active,
@@ -43,7 +38,6 @@ export function PersonalCalendar({
         owner,
         request,
         { seasonId, category, timeZone: zone },
-        read,
         bypass,
       ),
     active,
@@ -52,7 +46,6 @@ export function PersonalCalendar({
     owner,
     request,
     { seasonId, category, timeZone },
-    read,
     bypass,
   );
   const calendar = useInfiniteQuery({

@@ -33,14 +33,12 @@ import type { FollowingOwner, FollowingTarget } from "../api/following-keys";
 import {
   createFollowListOptions,
   type FollowListPage,
-  type PersonalCalendarRead,
 } from "../api/personal-queries";
 
 /** Both current collections share the existing personal season, original owner and visible-tab admission. */
 export interface FollowedListsProps {
   owner: FollowingOwner;
   request: (signal?: AbortSignal) => Promise<ApiFetchOptions>;
-  read: PersonalCalendarRead;
   seasonId?: string;
   active: boolean;
   bypass: boolean;
@@ -109,7 +107,6 @@ function useFollowedList(
     props.request,
     type,
     props.seasonId,
-    props.read,
     props.bypass,
   );
   const active = props.active && expanded;

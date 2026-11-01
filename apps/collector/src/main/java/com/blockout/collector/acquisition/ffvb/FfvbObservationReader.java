@@ -6,11 +6,11 @@ import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
 import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.concurrent.CompletionException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.apache.hc.client5.http.HttpResponseException;
@@ -59,7 +59,7 @@ public class FfvbObservationReader implements FfvbAcquisition {
   @Override
   public Resource read(URI url) {
     try {
-      ProviderResponse response = http.page(url).join();
+      ProviderResponse response = http.page(url);
       return fromPage(response, clock.instant());
     } catch (RuntimeException failure) {
       throw readFailure(failure);
@@ -89,7 +89,7 @@ public class FfvbObservationReader implements FfvbAcquisition {
       FfvbPage page = new FfvbPage(html.observation(), url, scope(target));
       if (export == null && exportFailure == null) {
         try {
-          byte[] body = http.post(page.exportUrl(), page.exportFields()).join();
+          byte[] body = http.post(page.exportUrl(), page.exportFields());
           export = new Read<>(body, clock.instant());
         } catch (RuntimeException failure) {
           exportFailure = readFailure(failure);
@@ -109,14 +109,14 @@ public class FfvbObservationReader implements FfvbAcquisition {
   }
 
   /**
-   * Translates native asynchronous HTTP errors without exposing response content or URLs.
+   * Translates synchronous native HTTP errors without exposing response content or URLs.
    *
    * @param failure failed provider read
    * @return safe status/type diagnostic retaining the internal cause
    */
   private FfvbAcquisitionException readFailure(RuntimeException failure) {
     Throwable cause =
-        failure instanceof CompletionException && failure.getCause() != null
+        failure instanceof UncheckedIOException && failure.getCause() != null
             ? failure.getCause()
             : failure;
     String reason =

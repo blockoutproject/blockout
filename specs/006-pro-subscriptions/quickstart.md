@@ -125,3 +125,7 @@ The 21 cases cover guest, inactive/free, paid, gifted, association pending/faile
 The targeted suite passed against the existing integration. Reuse [`transition-continuity.test.tsx`](../../apps/mobile/src/features/pro/__tests__/transition-continuity.test.tsx), [F05 session-consumer evidence](../005-accounts-identity/quickstart.md) and [F11 eligibility/lifecycle evidence](../004-advertising-privacy-legal/quickstart.md) for the broader identity and advertising cases rather than duplicating them here.
 
 These controlled JavaScript checks establish owner integration only. No actual RevenueCat/store transaction, UMP/ATT prompt, ad serving, physical map/provider behavior or new design qualification was performed. T012/T018 and the other native/provider qualification tasks remain unchecked.
+
+### Direct supplied information qualification
+
+Accept current login and completed native purchase/restore CustomerInfo directly. Verify it clears both an older pending read and its failure flag atomically, rejects that read on later completion, and preserves unresolved payment separately from independent gifted rights. No duplicate immediate getCustomerInfo is required. First configuration or operation outcomes without supplied information retain ordinary verification; foreground, native listener and explicit verification remain. Controlled native-I/O tests do not certify store behavior; retain the existing iOS/Android purchase/restoration qualifications.

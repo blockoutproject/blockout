@@ -20,9 +20,7 @@ export interface AdvertisingEligibilityInput {
 }
 /** Permissions only: no entitlement exemption, sporting-access decision or prepared-ad guarantee. */
 export interface AdvertisingEligibility {
-  readonly canPrepareChoices: boolean;
-  readonly canRequestAds: boolean;
-  readonly canDisplayAds: boolean;
+  readonly canServeAds: boolean;
 }
 /**
  * Derives current advertising permissions without retaining rights, choices or a refresh clock.
@@ -37,7 +35,6 @@ export function getAdvertisingEligibility({
   choices,
 }: AdvertisingEligibilityInput): AdvertisingEligibility {
   const current = account;
-  const canPrepareChoices = admission.ordinary && pro.status !== "active";
   const canServeAds =
     admission.ordinary &&
     (pro.status === "guest" || pro.status === "inactive") &&
@@ -46,9 +43,5 @@ export function getAdvertisingEligibility({
     choices.session.accountId === current.accountId &&
     choices.canRequestAds &&
     choices.authorizedMode !== null;
-  return {
-    canPrepareChoices,
-    canRequestAds: canServeAds,
-    canDisplayAds: canServeAds,
-  };
+  return { canServeAds };
 }

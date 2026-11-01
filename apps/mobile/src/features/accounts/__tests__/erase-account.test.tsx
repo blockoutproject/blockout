@@ -20,7 +20,7 @@ import {
   AccountSessionProvider,
   useAccountSession,
 } from "../session/account-session-provider";
-import { AccountAdmissionProvider } from "../components/account-admission";
+import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
 import { accountResponse } from "../test-support/account-response";
 import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
@@ -30,7 +30,6 @@ import {
   getGetApplicationAccessQueryKey,
   getGetMyAccountQueryKey,
 } from "../../../../.generated/mobile";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
 
 // Router, Auth0 reducer, Query and generated transport are real; only native/network I/O is controlled.
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
@@ -129,14 +128,13 @@ function SessionSwitch() {
 
 /** Real public access changes may remove the ordinary form while its command is already in flight. */
 function OrdinaryRoutes() {
-  const { admitted } = useOrdinaryRequest();
   return (
-    <AccountAdmissionProvider admitted={admitted}>
+    <AccessAdmissionProvider>
       <AccountFeedbackProvider>
         <SessionSwitch />
         <Stack screenOptions={{ headerShown: false, animation: "none" }} />
       </AccountFeedbackProvider>
-    </AccountAdmissionProvider>
+    </AccessAdmissionProvider>
   );
 }
 

@@ -108,7 +108,7 @@ export function createInterstitialLifecycle({
     input: AdvertisingEligibilityInput,
   ) {
     return (
-      getAdvertisingEligibility(input).canRequestAds &&
+      getAdvertisingEligibility(input).canServeAds &&
       sameSession(instance.session, input.account) &&
       instance.mode === input.choices?.authorizedMode
     );
@@ -152,7 +152,7 @@ export function createInterstitialLifecycle({
       Date.now() - prepared.loadedAt >= 3_600_000
     )
       retire();
-    if (prepared || !getAdvertisingEligibility(input).canRequestAds) return;
+    if (prepared || !getAdvertisingEligibility(input).canServeAds) return;
 
     try {
       const instance: PreparedInterstitial = {
@@ -246,7 +246,7 @@ export function createInterstitialLifecycle({
         (pro.status === "guest" || pro.status === "inactive");
       if (freeAction) count = Math.min(10, count + 1);
       const eligibleAction =
-        freeAction && getAdvertisingEligibility(input).canDisplayAds;
+        freeAction && getAdvertisingEligibility(input).canServeAds;
       if (eligibleAction) retryOnAction = false;
       const instance = prepared;
       if (

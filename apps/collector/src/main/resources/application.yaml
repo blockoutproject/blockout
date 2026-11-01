@@ -30,7 +30,6 @@ blockout:
     max-response-bytes: ${BLOCKOUT_ACQUISITION_MAX_RESPONSE_BYTES:8388608}
     max-redirects: ${BLOCKOUT_ACQUISITION_MAX_REDIRECTS:3}
     concurrency-per-provider: ${BLOCKOUT_ACQUISITION_CONCURRENCY:2}
-    queue-capacity-per-provider: ${BLOCKOUT_ACQUISITION_QUEUE_CAPACITY:8}
     permits-per-period: ${BLOCKOUT_ACQUISITION_PERMITS_PER_PERIOD:1}
     refresh-period: ${BLOCKOUT_ACQUISITION_REFRESH_PERIOD:1s}
     permit-timeout: ${BLOCKOUT_ACQUISITION_PERMIT_TIMEOUT:5s}

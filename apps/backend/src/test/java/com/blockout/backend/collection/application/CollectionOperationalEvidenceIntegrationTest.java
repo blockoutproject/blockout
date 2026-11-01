@@ -119,8 +119,7 @@ class CollectionOperationalEvidenceIntegrationTest {
 
     // Then
     JsonNode log = evidence(output).getLast();
-    assertThat(log.path("collection_alert_at").asDouble())
-        .isEqualTo((double) FIRST.getEpochSecond());
+    assertThat(log.path("collection_actionable").asInt()).isEqualTo(1);
     assertThat(log.path("collection_control").asText()).isEqualTo(COMPETITIONS.toString());
     assertThat(log.path("stage").asText()).isEqualTo("calendar");
     assertThat(log.path("phase").asText()).isEqualTo("acquisition");
@@ -132,8 +131,8 @@ class CollectionOperationalEvidenceIntegrationTest {
   @EnumSource(
       value = CollectionStageEnum.class,
       names = {"CLUB_SHEET", "GEOCODING"})
-  @DisplayName("Seasonless technical deadline stays at the first failure plus twenty-four hours")
-  void retainsSeasonlessDeadline(CollectionStageEnum stage, CapturedOutput output) {
+  @DisplayName("Seasonless technical failures are actionable immediately across cycles")
+  void reportsSeasonlessFailureImmediately(CollectionStageEnum stage, CapturedOutput output) {
     // Given
     UUID control = stage == CollectionStageEnum.CLUB_SHEET ? CLUBS : GEO;
     UUID cycle = running(control, SCOPE, stage);
@@ -158,19 +157,16 @@ class CollectionOperationalEvidenceIntegrationTest {
             stage,
             CollectionPhaseEnum.ACQUISITION,
             1,
-            FIRST.plusSeconds(86_399),
+            FIRST.plusSeconds(60),
             CollectionOutcomeEnum.FAILED,
             TECHNICAL));
 
     // Then
     CollectionResult current = current(control, SCOPE, stage, CollectionPhaseEnum.ACQUISITION);
-    assertThat(current.firstFailureAt()).isEqualTo(FIRST);
+    assertThat(current.outcome()).isEqualTo(CollectionOutcomeEnum.FAILED);
     assertThat(evidence(output))
-        .allSatisfy(
-            log ->
-                assertThat(log.path("collection_alert_at").asDouble())
-                    .isEqualTo((double) FIRST.plusSeconds(86_400).getEpochSecond()));
-    assertThat(current.observedAt()).isBefore(current.firstFailureAt().plusSeconds(86_400));
+        .allSatisfy(log -> assertThat(log.path("collection_actionable").asInt()).isEqualTo(1));
+    assertThat(current.observedAt()).isEqualTo(FIRST.plusSeconds(60));
   }
 
   @ParameterizedTest
@@ -196,14 +192,13 @@ class CollectionOperationalEvidenceIntegrationTest {
             URI.create("urn:blockout:acquisition:structure")));
 
     // Then
-    assertThat(evidence(output).getLast().path("collection_alert_at").asDouble())
-        .isEqualTo((double) FIRST.getEpochSecond());
+    assertThat(evidence(output).getLast().path("collection_actionable").asInt()).isEqualTo(1);
     assertThat(evidence(output).getLast().path("reason").asText())
         .isEqualTo("structure-or-context");
   }
 
   @Test
-  @DisplayName("Acquisition recovery preserves failed integration, standings and another scope")
+  @DisplayName("Recovery stays within its exact scope and phase")
   void recoversOnlyExactKey(CapturedOutput output) {
     // Given
     UUID cycle = running(COMPETITIONS, SCOPE, CollectionStageEnum.CALENDAR);
@@ -269,33 +264,40 @@ class CollectionOperationalEvidenceIntegrationTest {
                     SCOPE,
                     CollectionStageEnum.CALENDAR,
                     CollectionPhaseEnum.ACQUISITION)
-                .firstFailureAt())
-        .isNull();
+                .outcome())
+        .isEqualTo(CollectionOutcomeEnum.SUCCESS);
     assertThat(
             current(
                     COMPETITIONS,
                     SCOPE,
                     CollectionStageEnum.CALENDAR,
                     CollectionPhaseEnum.INTEGRATION)
-                .firstFailureAt())
-        .isEqualTo(FIRST);
+                .outcome())
+        .isEqualTo(CollectionOutcomeEnum.UNCONFIRMED);
     assertThat(
             current(
                     COMPETITIONS,
                     SCOPE,
                     CollectionStageEnum.STANDINGS,
                     CollectionPhaseEnum.INTEGRATION)
-                .firstFailureAt())
-        .isEqualTo(FIRST);
+                .outcome())
+        .isEqualTo(CollectionOutcomeEnum.FAILED);
     assertThat(
             current(
                     COMPETITIONS,
                     OTHER,
                     CollectionStageEnum.CALENDAR,
                     CollectionPhaseEnum.ACQUISITION)
-                .firstFailureAt())
-        .isEqualTo(FIRST);
-    assertThat(evidence(output).getLast().path("collection_alert_at").asDouble()).isZero();
+                .outcome())
+        .isEqualTo(CollectionOutcomeEnum.PARTIAL);
+    assertThat(
+            evidence(output).stream()
+                .filter(log -> !log.path("outcome").asText().equals("success")))
+        .allSatisfy(log -> assertThat(log.path("collection_actionable").asInt()).isEqualTo(1));
+    JsonNode recovery = evidence(output).getLast();
+    assertThat(recovery.path("scope").asText()).isEqualTo(SCOPE.toString());
+    assertThat(recovery.path("phase").asText()).isEqualTo("acquisition");
+    assertThat(recovery.path("collection_actionable").asInt()).isZero();
   }
 
   @Test
@@ -333,7 +335,7 @@ class CollectionOperationalEvidenceIntegrationTest {
     CollectionResult result =
         current(COMPETITIONS, SCOPE, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.ACQUISITION);
     assertThat(result.lastSuccessAt()).isEqualTo(FIRST);
-    assertThat(result.firstFailureAt()).isEqualTo(FIRST.plusSeconds(1));
+    assertThat(result.outcome()).isEqualTo(CollectionOutcomeEnum.PARTIAL);
     assertThat(result.obtainedCount()).isEqualTo(20_001L);
     assertThat(evidence(output).getLast().path("affected_count").asLong()).isEqualTo(10_000);
     assertThat(evidence(output).getLast().path("partial_count").asLong()).isEqualTo(2);
@@ -376,8 +378,8 @@ class CollectionOperationalEvidenceIntegrationTest {
                     SCOPE,
                     CollectionStageEnum.CALENDAR,
                     CollectionPhaseEnum.ACQUISITION)
-                .firstFailureAt())
-        .isEqualTo(FIRST);
+                .outcome())
+        .isEqualTo(CollectionOutcomeEnum.FAILED);
     assertThat(
             current(
                     COMPETITIONS,
@@ -458,7 +460,7 @@ class CollectionOperationalEvidenceIntegrationTest {
 
     // Then
     assertThat(evidence(output).getLast().path("collection_read_ordinal").asLong()).isEqualTo(2);
-    assertThat(evidence(output).getLast().path("collection_alert_at").asDouble()).isZero();
+    assertThat(evidence(output).getLast().path("collection_actionable").asInt()).isZero();
   }
 
   @Test
@@ -630,106 +632,6 @@ class CollectionOperationalEvidenceIntegrationTest {
             org.assertj.core.groups.Tuple.tuple(
                 OTHER, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.INTEGRATION));
     assertThat(unrelated).isEmpty();
-  }
-
-  @ParameterizedTest
-  @EnumSource(
-      value = CollectionStageEnum.class,
-      names = {"CLUB_SHEET", "GEOCODING"})
-  @DisplayName("Later transport failures cannot postpone retained structural evidence")
-  void retainsStructuralEvidence(CollectionStageEnum stage, CapturedOutput output) {
-    // Given
-    UUID control = stage == CollectionStageEnum.CLUB_SHEET ? CLUBS : GEO;
-    UUID cycle = running(control, SCOPE, stage);
-    results.record(
-        cycle,
-        attempt(
-            SCOPE,
-            stage,
-            CollectionPhaseEnum.ACQUISITION,
-            1,
-            FIRST,
-            CollectionOutcomeEnum.FAILED,
-            URI.create("urn:blockout:acquisition:structure")));
-
-    // When
-    results.record(
-        cycle,
-        attempt(
-            SCOPE,
-            stage,
-            CollectionPhaseEnum.ACQUISITION,
-            2,
-            FIRST.plusSeconds(3600),
-            CollectionOutcomeEnum.FAILED,
-            TECHNICAL));
-
-    // Then
-    assertThat(
-            current(control, SCOPE, stage, CollectionPhaseEnum.ACQUISITION)
-                .firstStructuralFailureAt())
-        .isEqualTo(FIRST);
-    assertThat(evidence(output).getLast().path("collection_alert_at").asDouble())
-        .isEqualTo((double) FIRST.getEpochSecond());
-    assertThat(evidence(output).getLast().path("reason").asText()).isEqualTo("failed-observation");
-  }
-
-  @Test
-  @DisplayName("Structural evidence discovered during an outage survives until usable evidence")
-  void clearsStructureOnlyWithUsableEvidence(CapturedOutput output) {
-    // Given
-    UUID cycle = running(GEO, SCOPE, CollectionStageEnum.GEOCODING);
-    results.record(
-        cycle,
-        attempt(
-            SCOPE,
-            CollectionStageEnum.GEOCODING,
-            CollectionPhaseEnum.ACQUISITION,
-            1,
-            FIRST,
-            CollectionOutcomeEnum.FAILED,
-            TECHNICAL));
-    results.record(
-        cycle,
-        attempt(
-            SCOPE,
-            CollectionStageEnum.GEOCODING,
-            CollectionPhaseEnum.ACQUISITION,
-            2,
-            FIRST.plusSeconds(3600),
-            CollectionOutcomeEnum.FAILED,
-            URI.create("urn:blockout:acquisition:structure")));
-    results.record(
-        cycle,
-        attempt(
-            SCOPE,
-            CollectionStageEnum.GEOCODING,
-            CollectionPhaseEnum.ACQUISITION,
-            3,
-            FIRST.plusSeconds(7200),
-            CollectionOutcomeEnum.FAILED,
-            TECHNICAL));
-    assertThat(evidence(output).getLast().path("collection_alert_at").asDouble())
-        .isEqualTo((double) FIRST.plusSeconds(3600).getEpochSecond());
-
-    // When
-    results.record(
-        cycle,
-        attempt(
-            SCOPE,
-            CollectionStageEnum.GEOCODING,
-            CollectionPhaseEnum.ACQUISITION,
-            4,
-            FIRST.plusSeconds(8000),
-            CollectionOutcomeEnum.SUCCESS,
-            null));
-
-    // Then
-    assertThat(
-            current(GEO, SCOPE, CollectionStageEnum.GEOCODING, CollectionPhaseEnum.ACQUISITION)
-                .firstStructuralFailureAt())
-        .isNull();
-    assertThat(evidence(output).getLast().path("collection_alert_at").asDouble()).isZero();
   }
 
   @Test

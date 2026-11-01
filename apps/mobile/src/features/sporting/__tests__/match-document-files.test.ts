@@ -39,7 +39,7 @@ beforeEach(() => {
   documentRead.mockClear();
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   mockFiles.length = 0;
-  documentWrite.mockReset();
+  documentWrite.mockReset().mockResolvedValue(undefined);
   mockFetch.mockReset();
 });
 
@@ -71,6 +71,42 @@ it("uses the generated cancellable PDF request and writes its exact binary bytes
     /^file:\/\/\/cache\/f03-match-documents\/f03-[\da-f-]+\.pdf$/,
   );
   expect(file.write).toHaveBeenCalledWith(bytes);
+});
+
+it("keeps the owned document pending until its native write completes", async () => {
+  // Given
+  const writing = Promise.withResolvers<void>();
+  const started = Promise.withResolvers<void>();
+  documentWrite.mockImplementationOnce(() => {
+    started.resolve();
+    return writing.promise;
+  });
+  mockFetch.mockResolvedValue(
+    new Response("%PDF-1.7\n%%EOF", {
+      headers: { "Content-Type": "application/pdf" },
+    }),
+  );
+  let delivered = false;
+
+  // When
+  const download = downloadMatchDocument(id, "information", {}).then((file) => {
+    delivered = true;
+    return file;
+  });
+  await started.promise;
+  await Promise.resolve();
+
+  // Then
+  expect(delivered).toBe(false);
+
+  // When
+  writing.resolve();
+  const file = await download;
+
+  // Then
+  expect(delivered).toBe(true);
+  expect(file.exists).toBe(true);
+  expect(file.delete).not.toHaveBeenCalled();
 });
 
 it("rejects an obsolete transport completion before creating a file", async () => {
@@ -119,9 +155,7 @@ it("removes a partial native file before propagating a write failure", async () 
       headers: { "Content-Type": "application/pdf" },
     }),
   );
-  documentWrite.mockImplementationOnce(() => {
-    throw new Error("Synthetic write failure");
-  });
+  documentWrite.mockRejectedValueOnce(new Error("Synthetic write failure"));
 
   // When
   const download = downloadMatchDocument(id, "information", {});
@@ -132,24 +166,38 @@ it("removes a partial native file before propagating a write failure", async () 
   expect(mockFiles[0].delete).toHaveBeenCalledTimes(1);
 });
 
-it("releases a just-written file when cancellation wins before handoff", async () => {
+it("waits for a cancelled native write to settle before releasing its file", async () => {
   // Given
   const controller = new AbortController();
+  const writing = Promise.withResolvers<void>();
+  const started = Promise.withResolvers<void>();
   mockFetch.mockResolvedValue(
     new Response("%PDF-1.7\n%%EOF", {
       headers: { "Content-Type": "application/pdf" },
     }),
   );
-  documentWrite.mockImplementationOnce(() => controller.abort());
+  documentWrite.mockImplementationOnce(() => {
+    started.resolve();
+    return writing.promise;
+  });
 
   // When
   const download = downloadMatchDocument(id, "information", {
     signal: controller.signal,
   });
+  await started.promise;
+  controller.abort();
+
+  // Then
+  expect(mockFiles[0].delete).not.toHaveBeenCalled();
+
+  // When
+  writing.resolve();
 
   // Then
   await expect(download).rejects.toThrow();
   expect(mockFiles[0].exists).toBe(false);
+  expect(mockFiles[0].delete).toHaveBeenCalledTimes(1);
 });
 
 it("reads the installed native Blob shape without requiring Blob.arrayBuffer", async () => {

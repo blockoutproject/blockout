@@ -163,3 +163,15 @@ The evidence above qualifies T001–T007's foundation, T008–T011/T013–T018's
 The Search gesture exception is implemented at `09bab11c` and qualified through the [F13 native follow-up](../003-shared-quality/quickstart.md#native-ui-and-approved-design). Its error-card retry and continuation retain native Query ownership. [F13 representation qualification](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) records the later shared-list/sheet reconciliation; native observations retain their named revisions and gestures.
 
 The content-fitting follow-up at `1a5163d8` retains the existing filter owner and draft/Apply/Reset contract. Fresh Android sheets at ordinary and compact 175% text sizes exercised all four nested choices, complete final-action clearance, Apply dismissal and Reset to the proposed season. [F13 Phase 18](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) owns the exact native captures and Android viewport-bound rationale; its separate design/browser section identifies current Figma instances and prototype `8a08c71e`. This shared presentation evidence does not complete the remaining F04 examples, real traversal/advertising, backend/provider or release qualifications.
+
+## Batch hydration simplification (2026-11-01)
+
+Requalify `ReadSearch` with one current-data hydration per existing 200-candidate native batch, maintaining score/UUID order, examples, eligibility lookahead, exact consumed cursor, ten-batch bound and ordinary failure/end distinctions. Use actual bounded PostgreSQL current-data hydration to preserve current city/restriction checks and avoid full detail/image/N+1 work. Historical search qualification remains scoped to its named revision; current controlled replacement results are recorded below and in the appended [tasks](tasks.md).
+
+## Current batch-hydration qualification (2026-11-01)
+
+Source/test revision: pending delivery commit; verified working tree is based on `5a72566ce210e3a3e475dd979ab009e7c296fd54`. The delivery must replace this provisional revision before publication.
+
+The coordinated clean backend run passes all 6 `ReadSearchTest` cases and all 16 `SearchCurrentDataIntegrationTest` cases. The latter now hydrates the actual native bound of 200 candidates with distinct parents for club/team/pool resources and confirms a fixed statement count rather than per-candidate reads. Current SQL/city/visibility, eligible lookahead, exact consumed cursor, examples and end/error behavior remain covered. An empty native batch retains the earlier no-SQL hydration path. This is bounded behavioral evidence, not a latency improvement or a throughput claim. The run's sole unrelated collection fixture failure does not invalidate these passing scoped suites, but the initial full run is not labelled successful.
+
+No provider ingestion, hosted deployment, native rendering, production propagation deadline or unimplemented search replacement is qualified by this change.

@@ -54,16 +54,15 @@ class LnvHttpCachingIntegrationTest {
             1024,
             1,
             1,
-            1,
             10,
             Duration.ofSeconds(1),
             Duration.ZERO,
             List.of());
     try (ProviderHttpClient http = new AcquisitionConfiguration().lnvProviderClient(properties)) {
-      http.image(origin.resolve("/logo")).join();
+      http.image(origin.resolve("/logo"));
 
       // When
-      ProviderResponse result = http.image(origin.resolve("/logo")).join();
+      ProviderResponse result = http.image(origin.resolve("/logo"));
 
       // Then
       assertThat(reads).hasValue(2);
@@ -101,15 +100,14 @@ class LnvHttpCachingIntegrationTest {
             1024,
             1,
             1,
-            1,
             10,
             Duration.ofSeconds(1),
             Duration.ZERO,
             List.of());
     try (ProviderHttpClient http = new AcquisitionConfiguration().lnvProviderClient(properties)) {
       // When
-      ProviderResponse first = http.image(origin.resolve("/logo")).join();
-      ProviderResponse second = http.image(origin.resolve("/logo")).join();
+      ProviderResponse first = http.image(origin.resolve("/logo"));
+      ProviderResponse second = http.image(origin.resolve("/logo"));
 
       // Then
       assertThat(first.supplierRead()).isTrue();
@@ -149,15 +147,14 @@ class LnvHttpCachingIntegrationTest {
             1024,
             1,
             1,
-            1,
             10,
             Duration.ofSeconds(1),
             Duration.ZERO,
             List.of());
     try (ProviderHttpClient http = new AcquisitionConfiguration().lnvProviderClient(properties)) {
       // When
-      http.page(origin.resolve("/page")).join();
-      http.page(origin.resolve("/page")).join();
+      http.page(origin.resolve("/page"));
+      http.page(origin.resolve("/page"));
 
       // Then
       assertThat(reads).hasValue(2);

@@ -3,17 +3,16 @@ package com.blockout.collector.acquisition.ign;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.generated.ingestion.model.GeocodingOutcomeEnum;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.CompletableFuture;
 import org.apache.hc.core5.net.URIBuilder;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,11 +28,11 @@ class IgnMunicipalityTest {
   void sendsMunicipalFilters() {
     // Given
     ProviderHttpClient http = mock(ProviderHttpClient.class);
-    when(http.getWithBadRequest(any()))
-        .thenReturn(
-            CompletableFuture.completedFuture(
-                new ProviderHttpClient.StatusResponse(
-                    200, bytes(collection(feature("75056", "75001", 0.609, 2.34, 48.86))))));
+    doReturn(
+            new ProviderHttpClient.StatusResponse(
+                200, bytes(collection(feature("75056", "75001", 0.609, 2.34, 48.86)))))
+        .when(http)
+        .getWithBadRequest(any());
 
     // When
     SportingObservation.Locality result =

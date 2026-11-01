@@ -12,12 +12,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class AcquisitionFailure {
   /**
-   * Classifies native asynchronous transport failures separately from unsupported content.
+   * Classifies transport failures and passage-local memoized failures separately from unsupported
+   * content.
    *
    * @param failure absorbed acquisition failure; source bodies/messages are never inspected
    * @return finite technical or structural URI used by current backend evidence
    */
   static URI reasonType(RuntimeException failure) {
+    // LNV passage-local completed futures retain one original XML failure without scheduling work.
     Throwable cause = failure;
     while (cause instanceof CompletionException && cause.getCause() != null)
       cause = cause.getCause();

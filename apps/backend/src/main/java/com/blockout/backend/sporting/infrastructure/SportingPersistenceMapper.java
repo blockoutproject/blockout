@@ -599,8 +599,7 @@ interface SportingPersistenceMapper {
             source.getLogo() != null,
             false,
             null,
-            false,
-            0),
+            false),
         Kind.CLUB);
   }
 
@@ -624,8 +623,7 @@ interface SportingPersistenceMapper {
             source.getLogo() != null,
             source.getSourceLogo() != null,
             club == null ? null : club.getId(),
-            club != null && club.getLogo() != null,
-            club == null ? 0 : club.getLogoRevision()),
+            club != null && club.getLogo() != null),
         Kind.TEAM);
   }
 
@@ -648,8 +646,7 @@ interface SportingPersistenceMapper {
             false,
             false,
             null,
-            false,
-            0),
+            false),
         Kind.POOL);
   }
 
@@ -658,7 +655,7 @@ interface SportingPersistenceMapper {
    *
    * @param source scalar owner facts, including image presence without its bytes
    * @param kind club, team or pool presentation owner
-   * @return detached presentation with its original resource/inherited artwork revision
+   * @return detached presentation with its own resource editing revision and current artwork
    */
   default SportingPresentation.View toPresentation(SportingPresentationRow source, Kind kind) {
     SportingPresentation.Logo logo = null;
@@ -679,7 +676,6 @@ interface SportingPersistenceMapper {
                 : source.clubHasLogo() ? "/clubs/" + source.clubId() + "/logo" : null;
         logo =
             new SportingPresentation.Logo(manual == null ? automatic : manual, manual, automatic);
-        revision += "." + source.clubLogoRevision();
       }
       case POOL -> {}
       default -> throw new IllegalArgumentException("Unsupported presentation kind");

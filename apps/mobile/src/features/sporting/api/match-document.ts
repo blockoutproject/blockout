@@ -32,7 +32,7 @@ export async function downloadMatchDocument(
   const file = new File(directory, `f03-${randomUUID()}.pdf`);
   try {
     file.create();
-    file.write(bytes);
+    await file.write(bytes);
     options.signal?.throwIfAborted();
     return file;
   } catch (error) {

@@ -147,7 +147,7 @@ export function createProSession() {
             read: null,
             verificationFailed: false,
           });
-          void refresh(desired);
+          if (!customerInfo) void refresh(desired);
         }
       } else if (configured && !(await Purchases.isAnonymous())) {
         await Purchases.logOut();
@@ -172,7 +172,7 @@ export function createProSession() {
     }
   }
 
-  /** Applies attributed callback evidence before the ordinary read, preserving confirmed payment on read failure. */
+  /** Accepts supplied current SDK evidence directly; outcomes without information use ordinary verification. */
   async function completeOperation(
     session: SessionSnapshot,
     operation: ProOperation,
@@ -181,6 +181,7 @@ export function createProSession() {
     if (!isAssociated(session) || !snapshot.evidence) return;
     publish({
       ...snapshot,
+      ...(customerInfo ? { read: null, verificationFailed: false } : {}),
       evidence: {
         ...snapshot.evidence,
         operation: verifiedProOperation(
@@ -200,7 +201,7 @@ export function createProSession() {
         "operation",
         operation === "restore-uncertain" ? "uncertain" : operation,
       );
-    await refresh(session);
+    if (!customerInfo) await refresh(session);
   }
 
   /** Records native restoration without replacing unresolved payment or starting a second store call. */

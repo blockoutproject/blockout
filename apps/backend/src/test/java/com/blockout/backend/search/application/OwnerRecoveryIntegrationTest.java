@@ -8,7 +8,7 @@ import com.blockout.backend.contributions.support.ContributionScenario;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.notifications.application.MarkNotificationRead;
 import com.blockout.backend.notifications.application.NotificationContext;
-import com.blockout.backend.notifications.application.PurgeNotifications.DeleteExpiredEntries;
+import com.blockout.backend.notifications.application.NotificationStore;
 import com.blockout.backend.search.infrastructure.OpenSearchEngine;
 import com.blockout.backend.search.infrastructure.OpenSearchProjectionWriter;
 import com.blockout.backend.search.infrastructure.SearchIndexProperties;
@@ -26,6 +26,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Ordinary F04 reconstruction over real F01-admitted F02/F08 producers and F07 retained facts.
@@ -38,7 +40,8 @@ class OwnerRecoveryIntegrationTest extends ContributionScenario {
   @Autowired private ProjectSearch projection;
   @Autowired private SearchTestEngine engine;
   @Autowired private MarkNotificationRead marks;
-  @Autowired private DeleteExpiredEntries retention;
+  @Autowired private NotificationStore retention;
+  @Autowired private PlatformTransactionManager transactions;
 
   @Test
   @DisplayName("Missing initial aliases are unavailable instead of an empty completed search")
@@ -146,7 +149,9 @@ class OwnerRecoveryIntegrationTest extends ContributionScenario {
         .isEqualTo(facts);
 
     // When: the actual purge transaction removes allocations at the explicit inclusive cutoff.
-    assertThat(retention.delete(NOW).deleted()).isEqualTo(2);
+    Integer removed =
+        new TransactionTemplate(transactions).execute(status -> retention.deleteExpired(NOW));
+    assertThat(removed).isEqualTo(2);
     follow(OTHER);
     projection.rebuild();
     result(3, null);

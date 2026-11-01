@@ -27,7 +27,6 @@ import org.springframework.validation.annotation.Validated;
  * @param maxRedirects maximum redirects, each still subject to the provider's origin boundary
  * @param concurrencyPerProvider maximum active requests/connections shared across seasons and
  *     families
- * @param queueCapacityPerProvider maximum pending provider work; zero permits no queue
  * @param permitsPerPeriod provider request permits shared across seasons and families
  * @param refreshPeriod positive native RateLimiter permit refresh period
  * @param permitTimeout maximum permit wait; zero requests immediate refusal when exhausted
@@ -43,7 +42,6 @@ public record AcquisitionProperties(
     @Positive int maxResponseBytes,
     @PositiveOrZero int maxRedirects,
     @Positive int concurrencyPerProvider,
-    @PositiveOrZero int queueCapacityPerProvider,
     @Positive int permitsPerPeriod,
     @NotNull @DurationMin(inclusive = false) Duration refreshPeriod,
     @NotNull @DurationMin Duration permitTimeout,
