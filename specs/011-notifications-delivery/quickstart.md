@@ -429,7 +429,7 @@ The current [retention plan](plan.md#inbox-retention-and-mobile-state) uses one 
 
 ## Atomic retention qualification (2026-11-01)
 
-Source/test revision: pending delivery commit; verified working tree is based on `5a72566ce210e3a3e475dd979ab009e7c296fd54`. The delivery must replace this provisional revision before publication.
+Source/test revision: `3004a3df3a95da0378c97e8c40ce9ae0b0070933`. Subsequent documentation-only commits inherit these unchanged application sources.
 
 After the coordinated full run exposed one unrelated collection test expectation, a combined targeted `verify` passes Checkstyle, current generation/compilation, packaging and Spotless with 15 Surefire and 28 Failsafe cases, without skips. F07 contributes the one fixed-cutoff orchestration case and all 13 `PurgeNotificationsIntegrationTest` cases. They cover exact elapsed-age/DST, all families/read/hidden states, read/create overlap, definite SQL refusal and next ordinary pass, actual PostgreSQL deferred-trigger commit refusal, safe incomplete diagnostics without false completed/count, and ambient-transaction refusal. The remaining cases requalify F01's corrected scoped operational fixture; these results do not relabel the initial full run as successful.
 

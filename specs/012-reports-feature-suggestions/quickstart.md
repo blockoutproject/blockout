@@ -77,7 +77,7 @@ The peer is a response fixture, not the backend or a support provider. No real t
 
 ## Minimal send-boundary qualification (2026-11-01)
 
-Source/test revision: pending delivery commit; verified working tree is based on `5a72566ce210e3a3e475dd979ab009e7c296fd54` and changes only the selected send-boundary simplifications. The delivery must replace this provisional revision before publication.
+Source/test revision: `3004a3df3a95da0378c97e8c40ce9ae0b0070933`, limited to the selected send-boundary simplifications. Subsequent documentation-only commits inherit these unchanged application sources.
 
 The coordinated clean backend run passes the current support mapper (2), whole-image validation (14), generated-controller contract (11), complete-send orchestration (7) and controlled native-child (6) cases. These exercise real request/response mapping, content detection/extension, private path ownership, complete receipt and cleanup after child termination; no assertion depends on removed snapshot issue/MIME fields. Other unchanged support suites also pass. The initial full run's unrelated collection fixture failure is not a support failure or a claim of a globally successful initial run.
 

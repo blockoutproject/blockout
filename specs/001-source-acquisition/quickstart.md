@@ -109,6 +109,8 @@ These are construction proofs with synthetic source/identity collaborators. The 
 
 ## Synchronous supplier and immediate-alert verification (2026-11-01)
 
+Source/test revision: `3004a3df3a95da0378c97e8c40ce9ae0b0070933`. Subsequent documentation-only commits inherit these unchanged application sources.
+
 The existing Living Spec owners now select direct synchronous supplier reads and immediate failed/partial/unconfirmed scope alerts. The old provider workers/queues/future API and two outage-start clocks are removed; the outer bounded passage executor, one discovery caller, native STRICT pool, finite lease/permit waits, byte/origin/cache/retry protections and logical source ordering remain.
 
 `./mvnw -B -ntp -pl apps/collector clean verify` passed: 215 Surefire cases and 121 executed Failsafe cases, with 56 pre-existing opt-in collector-to-backend qualification cases skipped. The actual native transport cases cover direct checked-I/O cause mapping, complete decoded bounds, origins/redirects/retries, one permit per actual retry/redirect, cache reuse and revalidation provenance, and native closure without another wire request. With one connection and one permit, a second caller receives the finite connection-lease timeout while the first response retains its lease: this distinguishes post-lease permit acquisition from premature permit consumption. The interruption scenario proves that an already-started caller exits without another supplier request; its start signal does not establish that it had already entered native permit waiting. All peers are controlled loopback fixtures, never live suppliers. Managed application timers and the outer executor retain their existing shutdown ownership.

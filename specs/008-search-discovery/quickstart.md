@@ -170,7 +170,7 @@ Requalify `ReadSearch` with one current-data hydration per existing 200-candidat
 
 ## Current batch-hydration qualification (2026-11-01)
 
-Source/test revision: pending delivery commit; verified working tree is based on `5a72566ce210e3a3e475dd979ab009e7c296fd54`. The delivery must replace this provisional revision before publication.
+Source/test revision: `3004a3df3a95da0378c97e8c40ce9ae0b0070933`. Subsequent documentation-only commits inherit these unchanged application sources.
 
 The coordinated clean backend run passes all 6 `ReadSearchTest` cases and all 16 `SearchCurrentDataIntegrationTest` cases. The latter now hydrates the actual native bound of 200 candidates with distinct parents for club/team/pool resources and confirms a fixed statement count rather than per-candidate reads. Current SQL/city/visibility, eligible lookahead, exact consumed cursor, examples and end/error behavior remain covered. An empty native batch retains the earlier no-SQL hydration path. This is bounded behavioral evidence, not a latency improvement or a throughput claim. The run's sole unrelated collection fixture failure does not invalidate these passing scoped suites, but the initial full run is not labelled successful.
 
