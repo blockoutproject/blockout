@@ -751,7 +751,7 @@ it("abandons a pending map team opening when a coincident team replaces the sele
   );
   for (let index = 0; index < 9; index++)
     await user.press(screen.getByRole("link", { name: "Club" }));
-  await user.press(screen.getByRole("link", { name: "Voir l’équipe" }));
+  await user.press(screen.getByRole("link", { name: "Rives" }));
   expect(ad.show).toHaveBeenCalledTimes(1);
   expect(mockPush).toHaveBeenCalledTimes(9);
   // When
@@ -766,7 +766,7 @@ it("abandons a pending map team opening when a coincident team replaces the sele
     pathname: "/teams/[teamId]",
     params: { teamId: firstId },
   });
-  await user.press(screen.getByRole("link", { name: "Voir l’équipe" }));
+  await user.press(screen.getByRole("link", { name: "Marais" }));
   expect(mockPush).toHaveBeenLastCalledWith({
     pathname: "/teams/[teamId]",
     params: { teamId: secondId },

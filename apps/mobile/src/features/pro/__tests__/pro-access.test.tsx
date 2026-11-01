@@ -308,9 +308,7 @@ async function consultPublicSport() {
   });
   // MarkerPress and list endReached are native events outside userEvent's supported controls.
   await fireEvent(marker, "press", { stopPropagation: jest.fn() });
-  expect(
-    await screen.findByRole("link", { name: "Voir l’équipe" }),
-  ).toBeEnabled();
+  expect(await screen.findByRole("link", { name: "Rives" })).toBeEnabled();
   expect(screen).toHavePathname(poolPath);
   await act(() => router.push(clubPath));
   await screen.findByRole("tab", { name: "À venir" });
@@ -469,13 +467,13 @@ async function selectMappedTeam() {
     "press",
     { stopPropagation: jest.fn() },
   );
-  await screen.findByRole("link", { name: "Voir l’équipe" });
+  await screen.findByRole("link", { name: "Rives" });
 }
 
 /** Completes actual voluntary sporting openings; back navigation creates no advertising opportunity. */
 async function visitMappedTeam(times: number) {
   for (let index = 0; index < times; index++) {
-    await userEvent.press(screen.getByRole("link", { name: "Voir l’équipe" }));
+    await userEvent.press(screen.getByRole("link", { name: "Rives" }));
     await waitFor(() => expect(screen).toHavePathname(`/teams/${sportingId}`));
     await act(() => router.back());
     await waitFor(() => expect(screen).toHavePathname(poolPath));
@@ -499,7 +497,7 @@ it("presents the single F11 interstitial on the tenth sporting opening and relea
   expect(mockCreateAd).toHaveBeenCalledTimes(1);
 
   // When
-  await userEvent.press(screen.getByRole("link", { name: "Voir l’équipe" }));
+  await userEvent.press(screen.getByRole("link", { name: "Rives" }));
 
   // Then
   expect(ad.show).toHaveBeenCalledTimes(1);
@@ -624,7 +622,7 @@ it("does not transfer a gifted exemption to the guest after actual F05 sign-out"
   await selectMappedTeam();
   await act(() => ad.emit(AdEventType.LOADED));
   await visitMappedTeam(9);
-  await userEvent.press(screen.getByRole("link", { name: "Voir l’équipe" }));
+  await userEvent.press(screen.getByRole("link", { name: "Rives" }));
   expect(ad.show).toHaveBeenCalledTimes(1);
   await act(() => {
     ad.emit(AdEventType.OPENED);

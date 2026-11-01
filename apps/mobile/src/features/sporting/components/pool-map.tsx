@@ -1,10 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import { Minus, Plus, X } from "lucide-react-native";
+import { ChevronRight, Minus, Plus, X } from "lucide-react-native";
 import {
-  useCallback,
   useEffect,
-  useId,
+  useEffectEvent,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -19,7 +18,6 @@ import {
   Text,
   View,
 } from "react-native";
-import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import MapView, {
   Marker,
   PROVIDER_GOOGLE,
@@ -27,10 +25,10 @@ import MapView, {
 } from "react-native-maps";
 import type {
   PoolParticipantResponse,
+  PoolStandingsResponse,
   PoolSummaryResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { Button } from "../../../shared/components/button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { IconButton } from "../../../shared/components/icon-button";
 import { PageContent, PageScrollView } from "../../../shared/components/page";
@@ -44,7 +42,13 @@ import { useReducedMotion } from "../../../shared/theme/use-reduced-motion";
 import { consultationOpeningPolicy } from "../api/consultation-queries";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import { useSportingNavigation } from "../navigation";
+import { resourceUnavailable } from "../model/consultation-availability";
+import {
+  publishedMapRecord,
+  type PublishedMapRecord,
+} from "../model/published-map-record";
 import { SportingLogo } from "./sporting-identity";
+import { WinLossBar } from "./standing-performance-bar";
 
 /** One pool's participant map; active controls the existing accepted-opening boundary. */
 export interface PoolMapProps {
@@ -54,41 +58,48 @@ export interface PoolMapProps {
   children?: ReactNode;
 }
 
-/** Reads independent participants; native providers alone own basemap loading and failure presentation. */
+/** Reads participants and an optional official record independently; native providers own basemap loading. */
 export function PoolMap({ pool, active = true, children }: PoolMapProps) {
   const queries = useConsultationQueries();
   const participants = useQuery({
     ...queries.participants(pool.pool.id),
     ...consultationOpeningPolicy,
   });
+  const standings = useQuery(queries.standings(pool.pool.id));
   const feedback = useActionFeedback();
-  const { colors } = useTheme();
   const currentActive = useRef(active);
   useLayoutEffect(() => {
     currentActive.current = active;
   }, [active]);
   const data = participants.data;
-  const located = data?.items.filter((item) => item.location).length ?? 0;
-  const total = data?.items.length ?? 0;
-  const count = `${total} équipe${total === 1 ? "" : "s"}`;
+  const hasLocations = data?.items.some((item) => item.location) ?? false;
 
-  /** Refreshes only participants; an ordinary failed read retains the existing authorized map. */
+  /** Refetches both existing resources without making optional statistics a condition of the map. */
   async function refresh() {
     if (!active) return;
     feedback.clear();
-    const result = await participants.refetch({ cancelRefetch: false });
-    if (currentActive.current && result.isError && result.data)
+    const [currentParticipants, currentStandings] = await Promise.all([
+      participants.refetch({ cancelRefetch: false }),
+      standings.refetch({ cancelRefetch: false }),
+    ]);
+    if (
+      currentActive.current &&
+      currentParticipants.data &&
+      [currentParticipants, currentStandings].some(
+        (result) => result.isError && !resourceUnavailable(result.error),
+      )
+    )
       feedback.error();
   }
 
   const refreshControl = data ? (
     <DataRefreshControl
-      refreshing={participants.isRefetching}
+      refreshing={participants.isRefetching || standings.isRefetching}
       onRefresh={() => void refresh()}
       enabled={active}
     />
   ) : undefined;
-  if (!data || located === 0)
+  if (!data || !hasLocations)
     return (
       <PageScrollView refreshControl={refreshControl}>
         {children && <PageContent>{children}</PageContent>}
@@ -99,16 +110,7 @@ export function PoolMap({ pool, active = true, children }: PoolMapProps) {
             <EmptyState
               title="Aucune localisation disponible"
               description="La localisation des équipes n’est pas renseignée."
-            >
-              <Text
-                style={[
-                  tokens.typography.metadata,
-                  { color: colors.secondaryText },
-                ]}
-              >
-                {count}
-              </Text>
-            </EmptyState>
+            />
           )}
         </ScreenState>
       </PageScrollView>
@@ -118,14 +120,9 @@ export function PoolMap({ pool, active = true, children }: PoolMapProps) {
       <PageContent>
         {children}
         <ParticipantMap
-          pool={pool}
           items={data.items}
+          standings={standings.data}
           active={active}
-          coverage={
-            located === total
-              ? count
-              : `${count}, dont ${located} localisée${located === 1 ? "" : "s"}`
-          }
         />
       </PageContent>
     </PageScrollView>
@@ -162,17 +159,15 @@ function participantPoints(
 
 /** Owns only map interaction; selected data is derived from the latest admitted participants. */
 function ParticipantMap({
-  pool,
   items,
+  standings,
   active,
-  coverage,
-}: PoolMapProps & {
+}: {
   active: boolean;
   items: PoolParticipantResponse[];
-  coverage: string;
+  standings: PoolStandingsResponse | undefined;
 }) {
   const { colors, scheme } = useTheme();
-  const gradientId = useId();
   const reducedMotion = useReducedMotion();
   const feedback = useActionFeedback();
   const currentActive = useRef(active);
@@ -184,8 +179,6 @@ function ParticipantMap({
   const [laidOut, setLaidOut] = useState(false);
   const cameraAvailable = ready && laidOut;
   const [selectedId, setSelectedId] = useState<string>();
-  const [selectionHeight, setSelectionHeight] = useState(0);
-  const [identityHeight, setIdentityHeight] = useState(0);
   const points = useMemo(() => participantPoints(items), [items]);
   const point = points.find((group) =>
     group.items.some((item) => item.team.team.id === selectedId),
@@ -193,10 +186,9 @@ function ParticipantMap({
   const selected = point?.items.find(
     (item) => item.team.team.id === selectedId,
   );
-  const selectionVisible = !!selected;
 
-  /** Uses supported native framing; a lone municipality never starts at building-level zoom. */
-  const fit = useCallback(() => {
+  /** Frames current points only at initial readiness or an explicit command, without text geometry. */
+  function fit() {
     if (!cameraAvailable || !map.current || !points.length) return;
     const coordinate = points[0].coordinate;
     // A lone marker keeps a municipal viewport envelope; these camera bounds create no markers.
@@ -215,24 +207,19 @@ function ParticipantMap({
         : points.map((group) => group.coordinate);
     map.current.fitToCoordinates(viewport, {
       edgePadding: {
-        top: identityHeight + tokens.spacing["2xl"],
+        top: 64,
         right: 64,
-        bottom: selectionVisible ? selectionHeight + 48 : 64,
+        bottom: 64,
         left: 40,
       },
       animated: false,
     });
-  }, [
-    cameraAvailable,
-    identityHeight,
-    points,
-    selectionHeight,
-    selectionVisible,
-  ]);
-  // Readiness and layout may arrive in either order; neither is proof of loaded tiles.
+  }
+  const frameInitialPoints = useEffectEvent(() => fit());
+  // Readiness and layout may arrive in either order; later content changes retain the native camera.
   useEffect(() => {
-    fit();
-  }, [fit]);
+    frameInitialPoints();
+  }, [cameraAvailable]);
 
   /** Lets the native camera own position and scale; no region mirror or tile-state detector is stored. */
   async function zoom(direction: 1 | -1) {
@@ -306,37 +293,8 @@ function ParticipantMap({
           );
         })}
       </MapView>
-      <View pointerEvents="box-none">
-        <View
-          pointerEvents="none"
-          style={styles.identity}
-          testID="pool-map-identity"
-          onLayout={({ nativeEvent }) =>
-            setIdentityHeight(nativeEvent.layout.height)
-          }
-        >
-          <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
-            <Defs>
-              <LinearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor={colors.surface} />
-                <Stop offset="1" stopColor={colors.surface} stopOpacity={0} />
-              </LinearGradient>
-            </Defs>
-            <Rect width="100%" height="100%" fill={`url(#${gradientId})`} />
-          </Svg>
-          <Text style={[tokens.typography.headingSm, { color: colors.text }]}>
-            {pool.pool.name}
-          </Text>
-          <Text
-            style={[
-              tokens.typography.metadata,
-              { color: colors.secondaryText },
-            ]}
-          >
-            {coverage}
-          </Text>
-        </View>
-        <View style={styles.controls}>
+      <View pointerEvents="box-none" style={styles.overlay}>
+        <View pointerEvents="box-none" style={styles.controls}>
           <View
             style={[
               styles.surfaceControl,
@@ -388,82 +346,99 @@ function ParticipantMap({
             </IconButton>
           </View>
         </View>
-      </View>
-      {selected && point && (
-        <View
-          style={[styles.selection, { backgroundColor: colors.surface }]}
-          testID="pool-map-selection"
-          onLayout={({ nativeEvent }) =>
-            setSelectionHeight(nativeEvent.layout.height)
-          }
-        >
-          <View style={styles.selectionToolbar}>
+        {selected && point && (
+          <View
+            style={[styles.selection, { backgroundColor: colors.surface }]}
+            testID="pool-map-selection"
+          >
+            <View style={styles.selectionToolbar}>
+              <ScrollView
+                horizontal
+                {...hiddenScrollIndicators}
+                style={styles.optionList}
+                contentContainerStyle={styles.options}
+                accessibilityRole="radiogroup"
+                accessibilityLabel="Équipes à cette commune"
+              >
+                {point.items.map((item) => (
+                  <Pressable
+                    key={item.team.team.id}
+                    accessibilityRole="radio"
+                    accessibilityLabel={item.team.team.name}
+                    accessibilityState={{
+                      checked: item.team.team.id === selectedId,
+                    }}
+                    onPress={() => setSelectedId(item.team.team.id)}
+                    style={[
+                      styles.option,
+                      {
+                        backgroundColor:
+                          item.team.team.id === selectedId
+                            ? colors.subtle
+                            : undefined,
+                      },
+                    ]}
+                  >
+                    <SportingLogo
+                      identity={item.team.team}
+                      kind="team"
+                      size={tokens.size.control.compact}
+                    />
+                  </Pressable>
+                ))}
+              </ScrollView>
+              <IconButton
+                label="Fermer"
+                onPress={() => setSelectedId(undefined)}
+              >
+                <X color={colors.icon} size={tokens.size.icon.lg} />
+              </IconButton>
+            </View>
             <ScrollView
-              horizontal
-              {...hiddenScrollIndicators}
-              style={styles.optionList}
-              contentContainerStyle={styles.options}
-              accessibilityRole="radiogroup"
-              accessibilityLabel="Équipes à cette commune"
-            >
-              {point.items.map((item) => (
-                <Pressable
-                  key={item.team.team.id}
-                  accessibilityRole="radio"
-                  accessibilityLabel={item.team.team.name}
-                  accessibilityState={{
-                    checked: item.team.team.id === selectedId,
-                  }}
-                  onPress={() => setSelectedId(item.team.team.id)}
-                  style={[
-                    styles.option,
-                    {
-                      backgroundColor:
-                        item.team.team.id === selectedId
-                          ? colors.subtle
-                          : undefined,
-                    },
-                  ]}
-                >
-                  <SportingLogo
-                    identity={item.team.team}
-                    kind="team"
-                    size={tokens.size.control.compact}
-                  />
-                </Pressable>
-              ))}
-            </ScrollView>
-            <IconButton label="Fermer" onPress={() => setSelectedId(undefined)}>
-              <X color={colors.icon} size={tokens.size.icon.lg} />
-            </IconButton>
-          </View>
-          <View style={styles.summary}>
-            <ParticipantSummary
               key={selected.team.team.id}
-              participant={selected}
-              active={active}
-            />
+              {...hiddenScrollIndicators}
+              nestedScrollEnabled
+              style={styles.summaryViewport}
+              contentContainerStyle={styles.summary}
+            >
+              <ParticipantSummary
+                participant={selected}
+                active={active}
+                record={publishedMapRecord(standings, selected.team.team.id)}
+              />
+            </ScrollView>
           </View>
-        </View>
-      )}
+        )}
+      </View>
     </View>
   );
 }
 
-/** Identifies the exact participant and opens its team; statistics remain on their own journey. */
+/** Keeps exact participant identity/navigation available independently of its optional published record. */
 function ParticipantSummary({
   participant,
   active,
+  record,
 }: {
   participant: PoolParticipantResponse;
   active: boolean;
+  record: PublishedMapRecord | undefined;
 }) {
   const { colors } = useTheme();
   const sporting = useSportingNavigation(active);
   const identity = participant.team.team;
   return (
     <>
-      <View style={styles.summaryIdentity}>
+      <Pressable
+        accessible
+        accessibilityRole="link"
+        accessibilityLabel={identity.name}
+        onPress={() => void sporting.navigate("team", identity.id)}
+        style={({ pressed }) => [
+          styles.summaryIdentity,
+          { opacity: pressed ? tokens.opacity.pressed : 1 },
+        ]}
+      >
         <SportingLogo
           identity={identity}
           kind="team"
@@ -472,14 +447,52 @@ function ParticipantSummary({
         <Text style={[styles.teamName, { color: colors.text }]}>
           {identity.name}
         </Text>
-      </View>
-      <Button
-        label="Voir l’équipe"
-        accessibilityRole="link"
-        variant="inverse"
-        fullWidth
-        onPress={() => void sporting.navigate("team", identity.id)}
-      />
+        <ChevronRight
+          accessible={false}
+          size={tokens.size.icon.sm}
+          color={colors.secondaryText}
+        />
+      </Pressable>
+      {record && (
+        <View style={styles.record}>
+          {record.proportion && <WinLossBar {...record.proportion} />}
+          <View style={styles.statistics}>
+            {(
+              [
+                ["Joués", record.played],
+                ["Gagnés", record.won],
+                ["Perdus", record.lost],
+              ] as const
+            ).map(([label, value]) => (
+              <View
+                key={label}
+                accessible
+                accessibilityLabel={`${label} : ${value ?? "indisponible"}`}
+                style={styles.statistic}
+              >
+                <Text
+                  style={[
+                    tokens.typography.strong,
+                    styles.statisticText,
+                    { color: colors.text },
+                  ]}
+                >
+                  {value ?? "—"}
+                </Text>
+                <Text
+                  style={[
+                    tokens.typography.metadata,
+                    styles.statisticText,
+                    { color: colors.secondaryText },
+                  ]}
+                >
+                  {label}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
     </>
   );
 }
@@ -490,11 +503,13 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.panel,
     borderWidth: tokens.border.thin,
     overflow: "hidden",
-    justifyContent: "space-between",
   },
-  identity: {
-    padding: tokens.spacing.lg,
-    gap: tokens.spacing.xs,
+  overlay: {
+    ...StyleSheet.absoluteFill,
+    paddingTop: tokens.spacing.md,
+    paddingHorizontal: tokens.spacing.md,
+    paddingBottom: tokens.spacing["2xl"],
+    gap: tokens.spacing.sm,
   },
   marker: {
     width: tokens.touch.minimum,
@@ -503,9 +518,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   controls: {
-    position: "absolute",
-    top: 77,
-    right: tokens.spacing.md,
+    flexShrink: 0,
+    alignSelf: "flex-end",
     gap: tokens.spacing.xs,
   },
   surfaceControl: {
@@ -515,14 +529,16 @@ const styles = StyleSheet.create({
   fitControl: { marginBottom: tokens.spacing.xs },
   glyph: { width: tokens.size.icon.lg, height: tokens.size.icon.lg },
   selection: {
-    marginTop: tokens.spacing.md,
-    marginHorizontal: tokens.spacing.md,
-    marginBottom: tokens.spacing["2xl"],
+    marginTop: "auto",
+    minHeight: 0,
+    flexShrink: 1,
+    overflow: "hidden",
     borderRadius: tokens.radius.lg,
     padding: tokens.spacing.md,
     gap: tokens.spacing.md,
   },
   selectionToolbar: {
+    flexShrink: 0,
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
@@ -536,11 +552,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  summaryViewport: { flexGrow: 0, flexShrink: 1, minHeight: 0 },
   summary: { gap: tokens.spacing.md },
   summaryIdentity: {
+    minHeight: tokens.touch.minimum,
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
   },
-  teamName: { ...tokens.typography.label, flex: 1 },
+  teamName: { ...tokens.typography.label, flex: 1, minWidth: 0 },
+  record: { gap: tokens.spacing.sm },
+  statistics: { flexDirection: "row" },
+  statistic: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: tokens.spacing.xs,
+  },
+  statisticText: { flexShrink: 1, textAlign: "center" },
 });
