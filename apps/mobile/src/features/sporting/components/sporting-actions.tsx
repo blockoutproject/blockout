@@ -15,7 +15,7 @@ import {
   type FollowingTarget,
 } from "../../following";
 
-/** Current public target/season; other action owners retain their existing slots. */
+/** Current public target/season; F06 owns the private relationship and independent public count. */
 export interface SportingActionsProps {
   target: FollowingTarget;
   season: SportingSeasonResponse;
@@ -75,3 +75,6 @@ export {
   ContributionEntry as MatchContributionAction,
   useContributionEntry as useMatchContributionAction,
 } from "../../contributions/entry";
+
+/** F02 owns presentation editing and F12 owns its current capability; no match/result editor is exposed. */
+export { PresentationEntry as SportingPresentationAction } from "../../sporting-administration/entry";

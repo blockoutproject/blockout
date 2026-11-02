@@ -1,4 +1,7 @@
-import { SportingSupportAction } from "../components/sporting-actions";
+import {
+  SportingPresentationAction,
+  SportingSupportAction,
+} from "../components/sporting-actions";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
 import { LegendList } from "@legendapp/list/react-native";
@@ -280,6 +283,11 @@ function ClubPage({ clubId }: ClubScreenProps) {
                   ListHeaderComponent={
                     <View style={styles.header}>
                       {identity}
+                      {value === "info" && tab === value && (
+                        <SportingPresentationAction
+                          target={{ kind: "club", id: clubId }}
+                        />
+                      )}
                       {value !== "info" && seasonControls}
                       {data && value === "info" && (
                         <>
