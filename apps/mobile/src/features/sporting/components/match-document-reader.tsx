@@ -30,7 +30,7 @@ export interface MatchDocumentReaderProps {
   onClose(): void;
 }
 
-/** Full-screen native reading of a local file only; retry creates a new cancellable attempt. */
+/** Full-screen local-file reading with a fully named, one-line title; retry creates a new cancellable attempt. */
 export function MatchDocumentReader({
   matchId,
   kind,
@@ -59,6 +59,9 @@ export function MatchDocumentReader({
             </IconButton>
             <Text
               accessibilityRole="header"
+              accessibilityLabel={matchDocumentLabels[kind]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
               style={[styles.title, { color: colors.text }]}
             >
               {matchDocumentLabels[kind]}

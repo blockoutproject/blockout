@@ -60,13 +60,15 @@ export function PersonalScreen() {
     </Page>
   );
 }
-/** Home branding folds above the pinned controls through the shared native paging container. */
+/** Keeps fully named, one-line Home branding in ordinary chrome and the pager's collapsible header. */
 function PersonalHeader() {
   const { colors } = useTheme();
   return (
     <View style={styles.header} accessible accessibilityLabel="Blockout">
       <BrandMark />
       <Text
+        numberOfLines={1}
+        ellipsizeMode="tail"
         style={[
           tokens.typography.headingXl,
           { color: colors.text, flexShrink: 1 },

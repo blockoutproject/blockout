@@ -67,7 +67,7 @@ export function NotificationsScreen() {
     />
   );
 }
-/** Native growing list; read and match navigation settle independently in their existing owners. */
+/** Native growing list with a fully named, one-line page title; read and match navigation settle independently in their existing owners. */
 function Inbox({
   owner,
   queries,
@@ -154,6 +154,9 @@ function Inbox({
         <View style={styles.header}>
           <Text
             accessibilityRole="header"
+            accessibilityLabel="Notifications"
+            numberOfLines={1}
+            ellipsizeMode="tail"
             style={[tokens.typography.navigation, { color: colors.text }]}
           >
             Notifications

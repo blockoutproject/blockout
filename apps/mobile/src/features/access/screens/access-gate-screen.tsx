@@ -36,7 +36,7 @@ interface GateViewProps {
   onClose?: () => void;
 }
 
-/** Simple admission feedback shares the useful-area placement; maintenance and update retain their domain stage. */
+/** Admission feedback retains its domain stage and responsive actions; the one-line brand keeps its complete accessible name. */
 function GateView({
   gate,
   maintenance,
@@ -69,7 +69,14 @@ function GateView({
       <View style={[styles.header, { borderColor: colors.border }]}>
         <View style={styles.identity}>
           <BrandMark />
-          <Text style={[styles.brand, { color: colors.text }]}>BLOCKOUT</Text>
+          <Text
+            accessibilityLabel="BLOCKOUT"
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            style={[styles.brand, { color: colors.text }]}
+          >
+            BLOCKOUT
+          </Text>
         </View>
         <Text
           style={[
@@ -272,8 +279,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
+    maxWidth: "100%",
+    minWidth: 0,
+    flexShrink: 1,
   },
-  brand: tokens.typography.navigation,
+  brand: { ...tokens.typography.navigation, minWidth: 0, flexShrink: 1 },
   badge: {
     ...tokens.typography.metadata,
     borderWidth: tokens.border.thin,
