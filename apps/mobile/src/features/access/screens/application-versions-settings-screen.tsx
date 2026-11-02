@@ -74,8 +74,7 @@ export function ApplicationVersionsSettingsScreen() {
     !settings &&
     editing.query.isPending;
   return (
-    <Page>
-      <PageHeader title="Administration technique" />
+    <Page header={<PageHeader title="Administration technique" />}>
       <FormScrollView
         refreshControl={
           settings && sessionStatus === "authenticated" ? (

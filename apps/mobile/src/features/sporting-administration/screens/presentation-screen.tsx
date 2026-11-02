@@ -121,8 +121,7 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
       )))
     : undefined;
   return (
-    <Page>
-      <PageHeader title={title} />
+    <Page header={<PageHeader title={title} />}>
       <FormScrollView
         refreshControl={
           !blockingState &&

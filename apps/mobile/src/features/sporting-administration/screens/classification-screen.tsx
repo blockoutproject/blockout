@@ -46,14 +46,17 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
     )
   ) : undefined;
   return (
-    <Page>
-      <PageHeader
-        title={
-          target.kind === "pack"
-            ? "Classification du pack"
-            : "Classification de la poule"
-        }
-      />
+    <Page
+      header={
+        <PageHeader
+          title={
+            target.kind === "pack"
+              ? "Classification du pack"
+              : "Classification de la poule"
+          }
+        />
+      }
+    >
       <FormScrollView
         refreshControl={
           !blockingState && authority.sessionStatus === "authenticated" ? (

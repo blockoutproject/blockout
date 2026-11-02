@@ -50,8 +50,7 @@ export function EraseAccountScreen({ admitted }: EraseAccountScreenProps) {
   if (!originalAccountId && account.isSuccess)
     setOriginalAccountId(account.data.accountId);
   return (
-    <Page>
-      <PageHeader title="Supprimer mon compte ?" />
+    <Page header={<PageHeader title="Supprimer mon compte ?" />}>
       <PageScrollView>
         {!admitted ? (
           <ScreenState>

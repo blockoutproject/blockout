@@ -1,3 +1,4 @@
+import { PageScrollView, PageContent } from "../../../shared/components/page";
 import {
   standingColumnLabel,
   standingPointsColumn,
@@ -14,8 +15,7 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { PageContent } from "../../../shared/components/page";
-import { SportingScrollView } from "./sporting-tabs";
+
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
@@ -32,7 +32,7 @@ export interface PoolStandingsProps {
   highlightTeamId?: string;
   /** Retained inactive panels cannot refresh or release an old sporting opening. */
   active?: boolean;
-  /** Optional phase navigation belongs above this table in a team participation panel. */
+  /** Optional exact pool entry shares the compact row with the layout controls. */
   children?: ReactNode;
 }
 
@@ -82,7 +82,7 @@ export function PoolStandings({
     ) : undefined;
   if (!hasRows)
     return (
-      <SportingScrollView refreshControl={refreshControl}>
+      <PageScrollView refreshControl={refreshControl}>
         {children && <PageContent>{children}</PageContent>}
         <ScreenState>
           {!data ? (
@@ -102,41 +102,47 @@ export function PoolStandings({
             />
           )}
         </ScreenState>
-      </SportingScrollView>
+      </PageScrollView>
     );
   return (
-    <SportingScrollView alwaysBounceVertical refreshControl={refreshControl}>
-      <PageContent>
-        {children}
-        <View>
-          <View
-            style={styles.toolbar}
-            accessibilityRole="radiogroup"
-            accessibilityLabel="Présentation du classement"
-          >
-            {(
-              [
-                ["cards", "Afficher en cartes", Columns3],
-                ["list", "Afficher en liste", List],
-              ] as const
-            ).map(([value, label, Icon]) => (
-              <Pressable
-                key={value}
-                accessibilityRole="radio"
-                accessibilityLabel={label}
-                accessibilityState={{ checked: layout === value }}
-                onPress={() => setLayout(value)}
-                style={[
-                  styles.layoutAction,
-                  {
-                    backgroundColor:
-                      layout === value ? colors.subtle : undefined,
-                  },
-                ]}
-              >
-                <Icon size={tokens.size.icon.md} color={colors.icon} />
-              </Pressable>
-            ))}
+    <PageScrollView alwaysBounceVertical refreshControl={refreshControl}>
+      <PageContent style={styles.content}>
+        <View style={styles.standings}>
+          <View style={styles.headerRow}>
+            {children && <View style={styles.participation}>{children}</View>}
+            <View
+              style={styles.toolbar}
+              accessibilityRole="radiogroup"
+              accessibilityLabel="Présentation du classement"
+            >
+              {(
+                [
+                  ["cards", "Afficher en cartes", Columns3],
+                  ["list", "Afficher en liste", List],
+                ] as const
+              ).map(([value, label, Icon]) => (
+                <Pressable
+                  key={value}
+                  accessibilityRole="radio"
+                  accessibilityLabel={label}
+                  accessibilityState={{ checked: layout === value }}
+                  onPress={() => setLayout(value)}
+                  style={styles.layoutAction}
+                >
+                  <View
+                    style={[
+                      styles.layoutVisual,
+                      {
+                        backgroundColor:
+                          layout === value ? colors.subtle : undefined,
+                      },
+                    ]}
+                  >
+                    <Icon size={tokens.size.icon.md} color={colors.icon} />
+                  </View>
+                </Pressable>
+              ))}
+            </View>
           </View>
           {layout === "cards" ? (
             <StandingCards rows={data.rows} columns={columns} active={active} />
@@ -159,7 +165,7 @@ export function PoolStandings({
           )}
         </View>
       </PageContent>
-    </SportingScrollView>
+    </PageScrollView>
   );
 }
 
@@ -307,7 +313,17 @@ function StandingEntry({
 }
 
 const styles = StyleSheet.create({
+  content: { paddingTop: tokens.spacing.lg },
+  standings: { gap: tokens.spacing.lg },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: tokens.spacing.sm,
+  },
+  participation: { flex: 1, minWidth: 0 },
   toolbar: {
+    flexShrink: 0,
     flexDirection: "row",
     justifyContent: "flex-end",
     gap: tokens.spacing.xs,
@@ -315,6 +331,12 @@ const styles = StyleSheet.create({
   layoutAction: {
     minWidth: tokens.touch.minimum,
     minHeight: tokens.touch.minimum,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  layoutVisual: {
+    width: 36,
+    height: 36,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: tokens.radius.control,

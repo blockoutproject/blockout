@@ -1,3 +1,4 @@
+import { PageList } from "../../../shared/components/page-list";
 import { Controller, useForm } from "react-hook-form";
 import { hashKey } from "@tanstack/react-query";
 import { Link, useNavigation, useRouter } from "expo-router";
@@ -12,7 +13,6 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { LegendList } from "@legendapp/list/react-native";
 import type { StreamModerationItemResponse } from "../../../../.generated/schemas/index.zod";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
@@ -71,7 +71,7 @@ export function ModerationScreen({ filters }: ModerationScreenProps) {
     defaultValues: { query: filters.query ?? "" },
   });
   return (
-    <Page>
+    <Page fullBleed>
       <PagedTabs
         selected={selected}
         onSelect={(state) => router.setParams({ state })}
@@ -79,6 +79,12 @@ export function ModerationScreen({ filters }: ModerationScreenProps) {
         tabs={queueTabs.map(({ id, label }) => ({
           id,
           label,
+          resetKey: hashKey([
+            {
+              ...filters,
+              state: id === "all" && specificState ? specificState : id,
+            },
+          ]),
           content: (
             <QueueScene
               active={selected === id}
@@ -297,7 +303,7 @@ function QueueScene({
       </PageScrollView>
     );
   return (
-    <LegendList
+    <PageList
       key={criteria}
       {...hiddenScrollIndicators}
       recycleItems

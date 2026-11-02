@@ -1,5 +1,18 @@
+import {
+  PageViewport,
+  useNavigationInset,
+  NavigationSafeAreaContext,
+} from "./navigation-backdrop";
 import { hiddenScrollIndicators } from "../native/scroll-indicators";
-import type { PropsWithChildren, Ref } from "react";
+import {
+  cloneElement,
+  useContext,
+  type PropsWithChildren,
+  type Ref,
+  type ReactNode,
+} from "react";
+import { TabScrollView } from "react-native-collapsible-tab";
+import { PagedTabContext } from "./paged-tab-context";
 import {
   StyleSheet,
   View,
@@ -25,12 +38,22 @@ import {
 /** The route composes its header and content; native bottom clearance belongs inside the scrolling content. */
 export interface PageProps extends PropsWithChildren {
   edges?: SafeAreaViewProps["edges"];
+  /** Pinned shared chrome overlays the scrolling viewport. */
+  header?: ReactNode;
+  /** A composed pager supplies its own overlay header and consumes the shared top safe area. */
+  fullBleed?: boolean;
   /** A native modal covers the tab capsule and keeps its own complete safe-area reservation. */
   accessibilityViewIsModal?: boolean;
 }
 
 /** Keeps scrolling viewports full height; pages publish bottom clearance, and modals replace the covered tab reservation. */
-export function Page({ children, edges, accessibilityViewIsModal }: PageProps) {
+export function Page({
+  children,
+  edges,
+  accessibilityViewIsModal,
+  header,
+  fullBleed = false,
+}: PageProps) {
   const { colors } = useTheme();
   const bottomContentInset = useBottomContentInset();
   const safeArea = useSafeAreaInsets();
@@ -42,6 +65,7 @@ export function Page({ children, edges, accessibilityViewIsModal }: PageProps) {
         bottom: "additive",
         left: "additive",
       });
+  const overlay = !!header || fullBleed;
   const ownsTop = !!activeEdges.top && activeEdges.top !== "off";
   const ownsBottom = !!activeEdges.bottom && activeEdges.bottom !== "off";
   // The measured capsule already includes the system inset; reserve one clearance, never their sum.
@@ -53,7 +77,7 @@ export function Page({ children, edges, accessibilityViewIsModal }: PageProps) {
     <SafeAreaView
       edges={{
         ...activeEdges,
-        top: ownsTop ? "maximum" : "off",
+        top: ownsTop && !overlay ? "maximum" : "off",
         bottom: "off",
       }}
       accessibilityViewIsModal={accessibilityViewIsModal}
@@ -61,13 +85,23 @@ export function Page({ children, edges, accessibilityViewIsModal }: PageProps) {
         styles.page,
         {
           backgroundColor: colors.canvas,
-          paddingTop: ownsTop ? tokens.spacing.sm : 0,
+          paddingTop: ownsTop && !overlay ? tokens.spacing.sm : 0,
         },
       ]}
     >
-      <BottomContentInsetContext value={inset}>
-        {children}
-      </BottomContentInsetContext>
+      <NavigationSafeAreaContext
+        value={
+          ownsTop && overlay ? Math.max(safeArea.top, tokens.spacing.sm) : 0
+        }
+      >
+        <BottomContentInsetContext value={inset}>
+          {header ? (
+            <PageViewport header={header}>{children}</PageViewport>
+          ) : (
+            children
+          )}
+        </BottomContentInsetContext>
+      </NavigationSafeAreaContext>
     </SafeAreaView>
   );
 }
@@ -102,12 +136,45 @@ export function PageScrollView({
   contentContainerStyle,
   ...props
 }: PageScrollViewProps) {
+  const inset = useNavigationInset();
+  const tab = useContext(PagedTabContext);
+  const content = StyleSheet.flatten(contentContainerStyle);
+  const padding =
+    content?.paddingTop ?? content?.paddingVertical ?? content?.padding;
+  const refreshControl = props.refreshControl
+    ? cloneElement(props.refreshControl, {
+        progressViewOffset:
+          props.refreshControl.props.progressViewOffset ??
+          tab?.contentInset ??
+          inset,
+      })
+    : undefined;
+  if (tab) {
+    return (
+      <TabScrollView
+        {...props}
+        {...hiddenScrollIndicators}
+        contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
+        refreshControl={refreshControl}
+      >
+        {children}
+        <BottomContentSpacer />
+      </TabScrollView>
+    );
+  }
   return (
     <Animated.ScrollView
       alwaysBounceVertical={!!props.refreshControl}
       {...props}
+      refreshControl={refreshControl}
       {...hiddenScrollIndicators}
-      contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
+      contentContainerStyle={[
+        styles.scrollContent,
+        contentContainerStyle,
+        {
+          paddingTop: inset + (typeof padding === "number" ? padding : 0),
+        },
+      ]}
     >
       {children}
       <BottomContentSpacer />

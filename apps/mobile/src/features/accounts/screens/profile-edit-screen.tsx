@@ -37,11 +37,14 @@ export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
   }
 
   return (
-    <Page>
-      <PageHeader
-        title="Modifier mon profil"
-        action={<ProfileSupportAction />}
-      />
+    <Page
+      header={
+        <PageHeader
+          title="Modifier mon profil"
+          action={<ProfileSupportAction />}
+        />
+      }
+    >
       {admitted && session.status === "authenticated" && account.data ? (
         <ProfileForm
           key={`${session.subject}:${account.data.accountId}`}

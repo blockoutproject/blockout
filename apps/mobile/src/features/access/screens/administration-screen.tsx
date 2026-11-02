@@ -87,8 +87,7 @@ export function AdministrationScreen({
       (account.isPending || account.isError)) ||
     (!hasCommands && !onBypass);
   return (
-    <Page>
-      <PageHeader title="Administration technique" />
+    <Page header={<PageHeader title="Administration technique" />}>
       <PageScrollView
         refreshControl={
           !blocked && sessionStatus === "authenticated" ? (

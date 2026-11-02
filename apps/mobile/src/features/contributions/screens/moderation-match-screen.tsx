@@ -1,8 +1,8 @@
+import { PageList } from "../../../shared/components/page-list";
 import { useNavigation } from "expo-router";
 import { hashKey } from "@tanstack/react-query";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AppState, StyleSheet, Text, View } from "react-native";
-import { LegendList } from "@legendapp/list/react-native";
 import type {
   ModeratedStreamContributionsResponse,
   ModeratedStreamContributionResponse,
@@ -129,7 +129,7 @@ export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
     }
   }
   return (
-    <Page>
+    <Page fullBleed>
       <PagedTabs
         selected={tab}
         onSelect={setTab}
@@ -460,7 +460,7 @@ function VersionScene({
       </PageScrollView>
     );
   return (
-    <LegendList
+    <PageList
       key={identity}
       {...hiddenScrollIndicators}
       recycleItems={false}

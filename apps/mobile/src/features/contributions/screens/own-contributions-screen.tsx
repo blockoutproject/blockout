@@ -1,9 +1,9 @@
+import { PageFlatList } from "../../../shared/components/page-list";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import {
   AppState,
-  FlatList,
   Platform,
   StyleSheet,
   Text,
@@ -168,9 +168,11 @@ export function OwnContributionsScreen({
       feedback.error();
   }
   const content = (
-    <Page edges={["top", "left", "right"]}>
-      <PageHeader title="Lien de diffusion" />
-      <FlatList
+    <Page
+      edges={["top", "left", "right"]}
+      header={<PageHeader title="Lien de diffusion" />}
+    >
+      <PageFlatList
         {...hiddenScrollIndicators}
         accessibilityLabel="Liste de mes propositions"
         automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}

@@ -1,3 +1,4 @@
+import { PageList } from "../../../shared/components/page-list";
 import {
   PageScrollView,
   pageContentStyle,
@@ -7,7 +8,6 @@ import { ListSeparator } from "../../../shared/components/list-separator";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ReactElement, ReactNode } from "react";
-import { LegendList } from "@legendapp/list/react-native";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { SearchResultCard } from "./search-result-card";
@@ -36,7 +36,7 @@ export function SearchResults({
   if (items.length === 0)
     return <PageScrollView>{emptyComponent}</PageScrollView>;
   return (
-    <LegendList
+    <PageList
       {...hiddenScrollIndicators}
       accessibilityRole="list"
       accessibilityLabel={examples ? "Exemples" : "Résultats de recherche"}

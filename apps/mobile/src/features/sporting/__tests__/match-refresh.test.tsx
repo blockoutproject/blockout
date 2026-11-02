@@ -47,6 +47,9 @@ jest.mock("react-native-auth0", () => {
 });
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
+  // These isolated features control native focus; route integration suites keep Router itself.
+  useFocusEffect: (effect: () => void | (() => void)) =>
+    jest.requireActual("react").useEffect(effect, [effect]),
   useRouter: () => ({ back: mockBack, push: mockPush, canGoBack: () => true }),
   useNavigation: () => ({ isFocused: () => true }),
 }));

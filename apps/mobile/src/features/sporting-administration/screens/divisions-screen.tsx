@@ -1,3 +1,4 @@
+import { PageFlatList } from "../../../shared/components/page-list";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { AccessFeedback } from "../../access/components/access-feedback";
@@ -18,7 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useRouter } from "expo-router";
 import { ChevronRight, Plus } from "lucide-react-native";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
 import { IconButton } from "../../../shared/components/icon-button";
@@ -70,15 +71,14 @@ export function DivisionsScreen() {
     <AccessFeedback {...authority} />
   ) : undefined;
   return (
-    <Page>
-      <PageHeader title="Divisions" />
+    <Page header={<PageHeader title="Divisions" />}>
       {blockingState ? (
         <PageScrollView>
           <ScreenState>{blockingState}</ScreenState>
         </PageScrollView>
       ) : (
         <>
-          <FlatList
+          <PageFlatList
             {...hiddenScrollIndicators}
             alwaysBounceVertical={!!query.data && !denied}
             refreshControl={

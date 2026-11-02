@@ -1,3 +1,4 @@
+import { PageFlatList } from "../../../shared/components/page-list";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import {
   useInfiniteQuery,
@@ -6,7 +7,7 @@ import {
 } from "@tanstack/react-query";
 import { useNavigation, useIsFocused } from "expo-router";
 import { useEffect, useEffectEvent, useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import {
   Page,
@@ -40,8 +41,10 @@ export function NotificationsScreen() {
   const { account } = authority;
   if (!authority.queries)
     return (
-      <Page edges={["top", "left", "right"]}>
-        <PageHeader title="Notifications" />
+      <Page
+        edges={["top", "left", "right"]}
+        header={<PageHeader title="Notifications" />}
+      >
         <PageScrollView>
           <ScreenState>
             {account.isPending ? (
@@ -145,16 +148,20 @@ function Inbox({
       feedback.error();
   }
   return (
-    <Page edges={["top", "left", "right"]}>
-      <View style={styles.header}>
-        <Text
-          accessibilityRole="header"
-          style={[tokens.typography.navigation, { color: colors.text }]}
-        >
-          Notifications
-        </Text>
-      </View>
-      <FlatList
+    <Page
+      edges={["top", "left", "right"]}
+      header={
+        <View style={styles.header}>
+          <Text
+            accessibilityRole="header"
+            style={[tokens.typography.navigation, { color: colors.text }]}
+          >
+            Notifications
+          </Text>
+        </View>
+      }
+    >
+      <PageFlatList
         {...hiddenScrollIndicators}
         alwaysBounceVertical={!!query.data}
         data={rows}

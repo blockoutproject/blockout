@@ -1,3 +1,4 @@
+import { PageViewport } from "../../../shared/components/navigation-backdrop";
 import { useState, type ReactNode } from "react";
 import { useRouter, useIsFocused } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
@@ -32,8 +33,7 @@ export function PersonalScreen() {
   const router = useRouter();
   const scope = usePersonalSeasonScope();
   return session.status === "guest" ? (
-    <Page>
-      <PersonalHeader />
+    <Page header={<PersonalHeader />}>
       <PageScrollView>
         <ScreenState>
           <Button
@@ -51,8 +51,7 @@ export function PersonalScreen() {
   ) : scope ? (
     <PersonalSpace key={scope.owner.subject} scope={scope} />
   ) : (
-    <Page>
-      <PersonalHeader />
+    <Page header={<PersonalHeader />}>
       <PageScrollView>
         <ScreenState>
           <ReadFeedback query={profile} />
@@ -61,7 +60,7 @@ export function PersonalScreen() {
     </Page>
   );
 }
-/** The branded heading stays above the opaque personal controls and independent scenes. */
+/** Home branding folds above the pinned controls through the shared native paging container. */
 function PersonalHeader() {
   const { colors } = useTheme();
   return (
@@ -100,12 +99,13 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
     );
   }
   return (
-    <Page>
+    <Page fullBleed>
       {ready ? (
         <PagedTabs
+          resetKey={season.seasonId ?? "all-seasons"}
           selected={tab}
           onSelect={setTab}
-          header={<PersonalHeader />}
+          collapsibleHeader={<PersonalHeader />}
           renderTabBar={controls}
           tabs={tabs.map(({ id, label }) => ({
             id,
@@ -134,22 +134,27 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
           }))}
         />
       ) : (
-        <>
-          <PersonalHeader />
-          {controls(
-            <Tabs
-              size="compact"
-              items={tabs}
-              selected={tab}
-              onSelect={setTab}
-            />,
-          )}
+        <PageViewport
+          header={
+            <>
+              <PersonalHeader />
+              {controls(
+                <Tabs
+                  size="compact"
+                  items={tabs}
+                  selected={tab}
+                  onSelect={setTab}
+                />,
+              )}
+            </>
+          }
+        >
           <PageScrollView>
             <ScreenState>
               <ReadFeedback query={!usable ? profile : season.options} />
             </ScreenState>
           </PageScrollView>
-        </>
+        </PageViewport>
       )}
     </Page>
   );
@@ -168,6 +173,7 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   controls: {
+    paddingTop: tokens.spacing.sm,
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,

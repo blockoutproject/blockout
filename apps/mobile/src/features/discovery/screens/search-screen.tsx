@@ -147,7 +147,7 @@ export function SearchScreen() {
       selection.apply(reconcileSearchFilters(undefined, selection.query.data));
   }
   return (
-    <Page>
+    <Page fullBleed>
       <PagedTabs
         selected={resource}
         onSelect={(id) => {
@@ -156,6 +156,10 @@ export function SearchScreen() {
         tabs={searchTabs.map(({ id, label }) => ({
           id,
           label,
+          resetKey: hashKey([
+            textKey,
+            id === "club" ? undefined : visit[id].filters,
+          ]),
           content: (
             <SearchScene
               resource={id}
@@ -451,10 +455,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // One search composition owns equal spacing from tabs to input and from input to its heading.
+  // SearchHeading owns the same compact row and touch clearance in every state.
   controls: {
     paddingHorizontal: tokens.spacing.screen,
     paddingTop: tokens.spacing.sm,
-    gap: tokens.spacing.sm,
   },
 });

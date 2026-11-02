@@ -59,6 +59,9 @@ jest.mock("react-native-auth0", () => {
 });
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
+  // This isolated panel controls the native navigation boundary; motion is qualified on device.
+  useFocusEffect: (effect: () => void | (() => void)) =>
+    jest.requireActual("react").useEffect(effect, [effect]),
   useRouter: () => ({ push: mockPush, back: jest.fn(), canGoBack: () => true }),
   useNavigation: () => ({ isFocused: () => true }),
 }));

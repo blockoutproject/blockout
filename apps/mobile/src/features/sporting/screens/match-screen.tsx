@@ -97,13 +97,16 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
   }
   const blockingState = !data ? <ReadFeedback query={match} /> : undefined;
   return (
-    <Page>
-      <PageHeader
-        title="Le match"
-        action={
-          <SportingSupportAction target={{ type: "match", id: matchId }} />
-        }
-      />
+    <Page
+      header={
+        <PageHeader
+          title="Le match"
+          action={
+            <SportingSupportAction target={{ type: "match", id: matchId }} />
+          }
+        />
+      }
+    >
       <PageScrollView
         refreshControl={
           data ? (

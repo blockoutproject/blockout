@@ -51,8 +51,7 @@ export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
     )
   ) : undefined;
   return (
-    <Page>
-      <PageHeader title={season.data?.label ?? "Saison"} />
+    <Page header={<PageHeader title={season.data?.label ?? "Saison"} />}>
       <PageScrollView
         refreshControl={
           authority.sessionStatus === "authenticated" && !blockingState ? (

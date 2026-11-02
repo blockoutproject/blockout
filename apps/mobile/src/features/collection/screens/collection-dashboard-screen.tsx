@@ -1,7 +1,8 @@
+import { PageFlatList } from "../../../shared/components/page-list";
 import { useNavigation, useRouter } from "expo-router";
 import { CalendarDays, MapPin, Users } from "lucide-react-native";
 import { useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import type {
   CollectionFamilyEnum,
@@ -68,8 +69,7 @@ export function CollectionDashboardScreen() {
     <AccessFeedback {...authority} />
   ) : undefined;
   return (
-    <Page>
-      <PageHeader title="Collectes" />
+    <Page header={<PageHeader title="Collectes" />}>
       <PageScrollView
         refreshControl={
           authority.enabled ? (
@@ -176,8 +176,7 @@ function SeasonControlScope({
   const feedback = useActionFeedback();
   if (!authority.enabled || !season.data || isAccessDenied(season.error))
     return (
-      <Page>
-        <PageHeader title={familyLabels[family]} />
+      <Page header={<PageHeader title={familyLabels[family]} />}>
         <PageScrollView>
           <ScreenState>
             {!authority.enabled ? (
@@ -251,8 +250,7 @@ function ControlScope({
     return <ProviderSourcesScreen seasonId={season.id} provider={family} />;
   if (!authority.enabled || !selected)
     return (
-      <Page>
-        <PageHeader title={familyLabels[family]} />
+      <Page header={<PageHeader title={familyLabels[family]} />}>
         <PageScrollView>
           <ScreenState>
             {!authority.enabled ? (
@@ -429,8 +427,7 @@ function ControlDashboard({
     </View>
   );
   return (
-    <Page>
-      <PageHeader title={familyLabels[family]} />
+    <Page header={<PageHeader title={familyLabels[family]} />}>
       {!authority.enabled || !matches ? (
         <PageScrollView>
           <ScreenState>
@@ -449,7 +446,7 @@ function ControlDashboard({
           </ScreenState>
         </PageScrollView>
       ) : (
-        <FlatList
+        <PageFlatList
           {...hiddenScrollIndicators}
           testID="collection-results-list"
           alwaysBounceVertical

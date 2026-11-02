@@ -1,5 +1,5 @@
 import { useLayoutEffect, type PropsWithChildren } from "react";
-import "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
@@ -319,6 +319,7 @@ async function mount(children: React.ReactNode) {
       </SafeAreaProvider>
     </GestureHandlerRootView>,
   );
+  await layoutNativeTabs();
 }
 
 it("requires the literal current moderation capability before private reads", async () => {

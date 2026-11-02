@@ -298,8 +298,7 @@ export function ProPresentationScreen({
       />
     );
   return (
-    <Page accessibilityViewIsModal>
-      <PageHeader title="Blockout Pro" />
+    <Page accessibilityViewIsModal header={<PageHeader title="Blockout Pro" />}>
       <PageScrollView>
         <ScreenState>
           {showPaywall ? (

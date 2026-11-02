@@ -1,12 +1,10 @@
+import { PageList } from "../../../shared/components/page-list";
+import { PageViewport } from "../../../shared/components/navigation-backdrop";
 import { SportingSupportAction } from "../components/sporting-actions";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
-import {
-  SportingTabs,
-  SportingScrollView,
-  SportingList,
-} from "../components/sporting-tabs";
+import { SportingTabs } from "../components/sporting-tabs";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { ResourceText } from "../components/resource-text";
@@ -151,19 +149,22 @@ function ClubPage({ clubId }: ClubScreenProps) {
   ) : undefined;
   const blockingState = !data ? <ReadFeedback query={club} /> : undefined;
   return (
-    <Page>
+    <Page fullBleed>
       {blockingState ? (
-        <>
-          <PageHeader
-            title="Club"
-            action={
-              <SportingSupportAction target={{ type: "club", id: clubId }} />
-            }
-          />
+        <PageViewport
+          header={
+            <PageHeader
+              title="Club"
+              action={
+                <SportingSupportAction target={{ type: "club", id: clubId }} />
+              }
+            />
+          }
+        >
           <PageScrollView>
             <ScreenState>{blockingState}</ScreenState>
           </PageScrollView>
-        </>
+        </PageViewport>
       ) : (
         <SportingTabs
           key={season?.id}
@@ -188,7 +189,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
             label,
             content:
               value !== "info" && !season ? (
-                <SportingScrollView
+                <PageScrollView
                   refreshControl={
                     <DataRefreshControl
                       refreshing={club.isRefetching}
@@ -201,7 +202,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
                   <ScreenState>
                     <EmptyState title="Aucune saison disponible" />
                   </ScreenState>
-                </SportingScrollView>
+                </PageScrollView>
               ) : (value === "upcoming" || value === "completed") && season ? (
                 <SportingCalendar
                   selection={{ clubId, seasonId: season.id, category: value }}
@@ -210,7 +211,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
                   {seasonControls}
                 </SportingCalendar>
               ) : value === "teams" && season && !teamData?.items.length ? (
-                <SportingScrollView
+                <PageScrollView
                   refreshControl={
                     teamData ? (
                       <DataRefreshControl
@@ -229,9 +230,9 @@ function ClubPage({ clubId }: ClubScreenProps) {
                       <EmptyState title="Aucune équipe pour cette saison" />
                     )}
                   </ScreenState>
-                </SportingScrollView>
+                </PageScrollView>
               ) : (
-                <SportingList
+                <PageList
                   {...hiddenScrollIndicators}
                   alwaysBounceVertical
                   recycleItems

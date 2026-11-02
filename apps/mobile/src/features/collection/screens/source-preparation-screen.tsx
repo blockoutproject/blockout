@@ -47,8 +47,7 @@ export function SourcePreparationScreen({
     )
   ) : undefined;
   return (
-    <Page>
-      <PageHeader title={current?.label ?? "Source"} />
+    <Page header={<PageHeader title={current?.label ?? "Source"} />}>
       <FormScrollView
         refreshControl={
           authority.sessionStatus === "authenticated" && !blockingState ? (

@@ -1,9 +1,10 @@
+import { PageViewport } from "../../../shared/components/navigation-backdrop";
 import { SportingSupportAction } from "../components/sporting-actions";
 import { PoolParticipationLink } from "../components/pool-participation-link";
 import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
-import { SportingTabs, SportingScrollView } from "../components/sporting-tabs";
+import { SportingTabs } from "../components/sporting-tabs";
 import { ResourceText } from "../components/resource-text";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
@@ -78,19 +79,22 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
   ) : undefined;
   const blockingState = !data ? <ReadFeedback query={team} /> : undefined;
   return (
-    <Page>
+    <Page fullBleed>
       {blockingState ? (
-        <>
-          <PageHeader
-            title="Équipe"
-            action={
-              <SportingSupportAction target={{ type: "team", id: teamId }} />
-            }
-          />
+        <PageViewport
+          header={
+            <PageHeader
+              title="Équipe"
+              action={
+                <SportingSupportAction target={{ type: "team", id: teamId }} />
+              }
+            />
+          }
+        >
           <PageScrollView>
             <ScreenState>{blockingState}</ScreenState>
           </PageScrollView>
-        </>
+        </PageViewport>
       ) : (
         <SportingTabs
           selected={tab ?? "upcoming"}
@@ -137,7 +141,7 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
                   />
                 </PoolStandings>
               ) : (
-                <SportingScrollView alwaysBounceVertical>
+                <PageScrollView alwaysBounceVertical>
                   <PageContent>
                     {participation && (
                       <>
@@ -153,7 +157,7 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
                       </>
                     )}
                   </PageContent>
-                </SportingScrollView>
+                </PageScrollView>
               ),
             };
           })}

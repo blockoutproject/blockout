@@ -1,3 +1,9 @@
+import { PageList } from "../../../shared/components/page-list";
+import {
+  PageScrollView,
+  PageContent,
+  pageContentStyle,
+} from "../../../shared/components/page";
 import { type LegendListRef } from "@legendapp/list/react-native";
 import {
   useInfiniteQuery,
@@ -38,7 +44,6 @@ import { ListContinuation } from "../../../shared/components/list-continuation";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { resourceUnavailable } from "../model/consultation-availability";
-import { PageContent, pageContentStyle } from "../../../shared/components/page";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -56,7 +61,7 @@ import {
 } from "../model/sporting-time";
 import { divisionTextColor } from "../presentation";
 import { genderLabel } from "../classification-presentation";
-import { SportingScrollView, SportingList } from "./sporting-tabs";
+
 import { CalendarMatch } from "./calendar-match";
 import { DivisionPaint } from "./division-paint";
 import { SportingLogo, SportingArtwork } from "./sporting-identity";
@@ -219,7 +224,7 @@ export function SportingCalendarView({
   ) : undefined;
   if (rows.length === 0)
     return (
-      <SportingScrollView refreshControl={refreshControl}>
+      <PageScrollView refreshControl={refreshControl}>
         {children && <PageContent>{children}</PageContent>}
         <ScreenState>
           {calendar.isError && !calendar.data ? (
@@ -235,10 +240,10 @@ export function SportingCalendarView({
             ))
           )}
         </ScreenState>
-      </SportingScrollView>
+      </PageScrollView>
     );
   return (
-    <SportingList<CalendarRow>
+    <PageList<CalendarRow>
       {...hiddenScrollIndicators}
       // Replace the native grid when its column count changes; Query retains the traversal.
       key={columns}

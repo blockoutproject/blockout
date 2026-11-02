@@ -1,3 +1,4 @@
+import { PageList } from "../../../shared/components/page-list";
 import { useRef, useLayoutEffect, useState } from "react";
 import {
   hashKey,
@@ -8,7 +9,6 @@ import { useRouter } from "expo-router";
 import { Search } from "lucide-react-native";
 import { DisclosureChevron } from "../../../shared/components/disclosure-chevron";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { LegendList } from "@legendapp/list/react-native";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { PageScrollView } from "../../../shared/components/page";
 import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
@@ -203,7 +203,7 @@ export function FollowedLists(props: FollowedListsProps) {
       </PageScrollView>
     );
   return (
-    <LegendList
+    <PageList
       {...hiddenScrollIndicators}
       accessibilityRole="list"
       accessibilityLabel="Équipes et poules suivies"

@@ -217,6 +217,7 @@ async function open(content = panel(), settleReads = true) {
       </GestureHandlerRootView>
     ),
   });
+  await layoutNativeTabs();
   if (settleReads) {
     await waitFor(() => expect(client.isFetching()).toBe(0));
     await layoutNativeTabs();

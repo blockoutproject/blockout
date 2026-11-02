@@ -52,8 +52,7 @@ export function ReportContributionScreen({
   const router = useRouter();
   const authenticated = reporting.session.status === "authenticated";
   return (
-    <Page>
-      <PageHeader title="Lien de diffusion" />
+    <Page header={<PageHeader title="Lien de diffusion" />}>
       <FormScrollView>
         {reporting.session.status === "guest" ? (
           <ScreenState>

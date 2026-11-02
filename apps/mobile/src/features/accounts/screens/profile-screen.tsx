@@ -106,8 +106,11 @@ export function ProfileScreen({
     </ScreenState>
   ) : undefined;
   return (
-    <Page>
-      <PageHeader title="Mon profil" action={<ProfileSupportAction />} />
+    <Page
+      header={
+        <PageHeader title="Mon profil" action={<ProfileSupportAction />} />
+      }
+    >
       {blockingContent ? (
         <PageScrollView>{blockingContent}</PageScrollView>
       ) : (

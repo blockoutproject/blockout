@@ -59,8 +59,7 @@ export function AgeDeclarationScreen() {
   const { colors } = useTheme();
   const age = useAgeDeclaration();
   return (
-    <Page>
-      <BrandHeader />
+    <Page header={<BrandHeader />}>
       <PageScrollView>
         {age.loading || age.readFailed ? (
           <ScreenState>

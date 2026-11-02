@@ -1,5 +1,5 @@
 import { ChevronRight } from "lucide-react-native";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import type { PoolSummaryResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -8,6 +8,7 @@ import { poolLabel } from "../model/resource-sections";
 import { divisionTextColor } from "../presentation";
 import { SportingLogo } from "./sporting-identity";
 import { SportingMedia } from "./sporting-media";
+import { ScrollingParticipationLabel } from "./scrolling-participation-label";
 
 /** One exact participation; the retained scene owns admission of its pool opening. */
 export interface PoolParticipationLinkProps {
@@ -33,41 +34,50 @@ export function PoolParticipationLink({
       accessibilityLabel={label}
       onPress={() => void sporting.navigate("pool", pool.pool.id)}
       style={({ pressed }) => [
-        styles.entry,
+        styles.target,
         {
-          backgroundColor: division?.color ?? colors.subtle,
           opacity: pressed ? tokens.opacity.pressed : 1,
         },
       ]}
     >
-      {division ? (
-        <SportingLogo
-          identity={division}
-          kind="division"
-          size={tokens.size.icon.lg}
+      <View
+        style={[
+          styles.entry,
+          { backgroundColor: division?.color ?? colors.subtle },
+        ]}
+      >
+        {division ? (
+          <SportingLogo
+            identity={division}
+            kind="division"
+            size={tokens.size.icon.md}
+          />
+        ) : (
+          <SportingMedia
+            identity={{ name: label }}
+            kind="division"
+            size={tokens.size.icon.md}
+          />
+        )}
+        <ScrollingParticipationLabel
+          label={label}
+          color={foreground}
+          active={active}
         />
-      ) : (
-        <SportingMedia
-          identity={{ name: label }}
-          kind="division"
-          size={tokens.size.icon.lg}
+        <ChevronRight
+          accessible={false}
+          size={tokens.size.icon.sm}
+          color={foreground}
         />
-      )}
-      <Text numberOfLines={2} style={[styles.label, { color: foreground }]}>
-        {label}
-      </Text>
-      <ChevronRight
-        accessible={false}
-        size={tokens.size.icon.sm}
-        color={foreground}
-      />
+      </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  target: { minHeight: tokens.touch.minimum, justifyContent: "center" },
   entry: {
-    minHeight: tokens.touch.minimum,
+    minHeight: 36,
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
@@ -75,5 +85,4 @@ const styles = StyleSheet.create({
     paddingVertical: tokens.spacing.xs,
     borderRadius: tokens.radius.control,
   },
-  label: { ...tokens.typography.strong, flex: 1, minWidth: 0 },
 });

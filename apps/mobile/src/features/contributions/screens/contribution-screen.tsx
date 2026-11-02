@@ -43,8 +43,7 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
       feedback.error();
   }
   return (
-    <Page>
-      <PageHeader title="Lien de diffusion" />
+    <Page header={<PageHeader title="Lien de diffusion" />}>
       <FormScrollView
         refreshControl={
           authenticated && editing.usable && current ? (

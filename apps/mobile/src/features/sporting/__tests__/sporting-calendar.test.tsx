@@ -217,6 +217,7 @@ it.each([
       <CalendarMatch match={match} displayTimeZone="Europe/Paris" />,
       { wrapper: Providers },
     );
+    await layoutNativeTabs();
 
     // Then
     expect(
@@ -281,6 +282,7 @@ it("retains loaded calendar data and its active context through native font-size
       </CalendarTab>,
       { wrapper: Providers },
     );
+    await layoutNativeTabs();
     await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
 
     // When: the native Dimensions change event enters the stacked layout, then restores ordinary text.
@@ -323,6 +325,7 @@ it("retains calendar rows with one toast after refresh failure and replaces them
     </CalendarTab>,
     { wrapper: Providers },
   );
+  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   mockFetch.mockImplementation((url: string) =>
     new URL(url).pathname.endsWith("/application-access")
@@ -372,6 +375,7 @@ it("keeps pagination unavailable while a successful first-page replacement is pe
     </CalendarTab>,
     { wrapper: Providers },
   );
+  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   const refreshed = Promise.withResolvers<Response>();
   mockFetch.mockReturnValueOnce(refreshed.promise);
@@ -417,6 +421,7 @@ it("selects normal new-zone loading and error before an explicit retry", async (
     </CalendarTab>,
     { wrapper: Providers },
   );
+  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   const pending = Promise.withResolvers<Response>();
   mockFetch.mockClear().mockReturnValue(pending.promise);
@@ -500,6 +505,7 @@ it("reports a failed active cursor and retries the same boundary from its footer
     </CalendarTab>,
     { wrapper: Providers },
   );
+  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   mockFetch.mockClear();
 
@@ -566,6 +572,7 @@ it("does not append from a covered or inactive calendar", async () => {
     </CalendarTab>,
     { wrapper: Providers },
   );
+  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   mockFetch.mockClear();
 
@@ -624,6 +631,7 @@ it("keeps a delayed cursor failure in its original scene after departure", async
     </CalendarTab>,
     { wrapper: Providers },
   );
+  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   mockFetch.mockClear();
   await fireEvent(
@@ -722,6 +730,7 @@ it("keeps a pending former selection refresh outside the newly selected calendar
     );
   }
   const view = await render(calendars(sportingId), { wrapper: Providers });
+  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   holdOriginal = true;
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");

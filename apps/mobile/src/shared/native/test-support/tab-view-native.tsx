@@ -1,5 +1,10 @@
 import type { Ref } from "react";
-import type { FlatList, FlatListProps, LayoutRectangle } from "react-native";
+import type {
+  FlatList,
+  FlatListProps,
+  LayoutRectangle,
+  ViewInstance,
+} from "react-native";
 import { fireEvent, screen } from "@testing-library/react-native";
 import type { PagerViewProps } from "react-native-pager-view";
 
@@ -30,6 +35,7 @@ jest.mock("react-native-pager-view", () => {
       setPageWithoutAnimation: (index: number) => void;
     }>;
   }) {
+    const host = React.useRef<ViewInstance>(null);
     /** Projects a completed animated command; tests can separately dispatch early native events. */
     function settle(position: number, animated: boolean) {
       onPageSelected?.({ nativeEvent: { position } } as Parameters<
@@ -47,11 +53,20 @@ jest.mock("react-native-pager-view", () => {
       }
     }
     React.useImperativeHandle(ref, () => ({
+      getScrollableNode: () => host.current,
       setPage: (position) => settle(position, true),
       setPageWithoutAnimation: (position) => settle(position, false),
     }));
     // Production Scene owns inactive accessibility and first mounting, not the native double.
-    return <View {...{ ...props, onPageSelected }}>{children}</View>;
+    return (
+      <View
+        ref={host}
+        testID="native-tabs-pager"
+        {...{ ...props, onPageSelected }}
+      >
+        {children}
+      </View>
+    );
   }
 
   return { __esModule: true, default: NativePager };

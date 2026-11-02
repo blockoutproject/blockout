@@ -86,6 +86,11 @@ jest.mock("react-native-auth0", () => {
 });
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
+  // Isolated pages control the native navigation boundary; real route scenarios retain Router focus.
+  useFocusEffect: (effect: () => void | (() => void)) =>
+    mockRouting
+      ? jest.requireActual("expo-router").useFocusEffect(effect)
+      : jest.requireActual("react").useEffect(effect, [effect]),
   useRouter: () =>
     mockRouting
       ? jest.requireActual("expo-router").useRouter()

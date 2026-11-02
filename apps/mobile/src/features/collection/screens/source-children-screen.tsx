@@ -1,3 +1,4 @@
+import { PageFlatList } from "../../../shared/components/page-list";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { Page, pageContentStyle } from "../../../shared/components/page";
@@ -13,7 +14,7 @@ import { PageHeader } from "../../../shared/components/page-header";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { useNavigation, useRouter } from "expo-router";
 import { Layers } from "lucide-react-native";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { RequestLoading } from "../../../shared/components/request-feedback";
@@ -68,9 +69,8 @@ export function SourceChildrenScreen({
       feedback.error();
   }
   return (
-    <Page>
-      <PageHeader title="Groupes découverts" />
-      <FlatList
+    <Page header={<PageHeader title="Groupes découverts" />}>
+      <PageFlatList
         {...hiddenScrollIndicators}
         testID="collection-source-children-list"
         alwaysBounceVertical={authority.enabled && !denied && !!query.data}

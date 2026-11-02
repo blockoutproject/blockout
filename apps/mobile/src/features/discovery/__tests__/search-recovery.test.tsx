@@ -13,7 +13,7 @@ import {
   onlineManager,
   type InfiniteData,
 } from "@tanstack/react-query";
-import "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { router, Stack } from "expo-router";
@@ -229,6 +229,7 @@ async function renderSearch() {
       ),
     },
   );
+  await layoutNativeTabs();
   return result;
 }
 

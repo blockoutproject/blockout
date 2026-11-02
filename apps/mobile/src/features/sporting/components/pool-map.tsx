@@ -1,3 +1,4 @@
+import { PageScrollView, PageContent } from "../../../shared/components/page";
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { ChevronRight, Minus, Plus, X } from "lucide-react-native";
@@ -31,8 +32,7 @@ import type {
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { IconButton } from "../../../shared/components/icon-button";
-import { PageContent } from "../../../shared/components/page";
-import { SportingScrollView } from "./sporting-tabs";
+
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { EmptyState } from "../../../shared/components/state-card";
@@ -102,7 +102,7 @@ export function PoolMap({ pool, active = true, children }: PoolMapProps) {
   ) : undefined;
   if (!data || !hasLocations)
     return (
-      <SportingScrollView refreshControl={refreshControl}>
+      <PageScrollView refreshControl={refreshControl}>
         {children && <PageContent>{children}</PageContent>}
         <ScreenState>
           {!data ? (
@@ -114,10 +114,10 @@ export function PoolMap({ pool, active = true, children }: PoolMapProps) {
             />
           )}
         </ScreenState>
-      </SportingScrollView>
+      </PageScrollView>
     );
   return (
-    <SportingScrollView alwaysBounceVertical refreshControl={refreshControl}>
+    <PageScrollView alwaysBounceVertical refreshControl={refreshControl}>
       <PageContent>
         {children}
         <ParticipantMap
@@ -126,7 +126,7 @@ export function PoolMap({ pool, active = true, children }: PoolMapProps) {
           active={active}
         />
       </PageContent>
-    </SportingScrollView>
+    </PageScrollView>
   );
 }
 

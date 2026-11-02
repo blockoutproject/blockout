@@ -19,8 +19,7 @@ export function SupportScreen() {
   const { colors } = useTheme();
   const { mutation, send } = useSupportSubmission();
   return (
-    <Page>
-      <SupportHeader />
+    <Page header={<SupportHeader />}>
       <FormScrollView>
         <PageContent>
           {!mutation.isSuccess && context.screen && (

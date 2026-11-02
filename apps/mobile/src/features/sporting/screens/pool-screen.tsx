@@ -1,9 +1,10 @@
+import { PageViewport } from "../../../shared/components/navigation-backdrop";
 import { SportingSupportAction } from "../components/sporting-actions";
 import { PoolMap } from "../components/pool-map";
 import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
-import { SportingTabs, SportingScrollView } from "../components/sporting-tabs";
+import { SportingTabs } from "../components/sporting-tabs";
 import { ResourceText } from "../components/resource-text";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
@@ -81,19 +82,22 @@ function PoolPage({
   ] as const;
   const blockingState = !data ? <ReadFeedback query={pool} /> : undefined;
   return (
-    <Page>
+    <Page fullBleed>
       {blockingState ? (
-        <>
-          <PageHeader
-            title="Poule"
-            action={
-              <SportingSupportAction target={{ type: "pool", id: poolId }} />
-            }
-          />
+        <PageViewport
+          header={
+            <PageHeader
+              title="Poule"
+              action={
+                <SportingSupportAction target={{ type: "pool", id: poolId }} />
+              }
+            />
+          }
+        >
           <PageScrollView>
             <ScreenState>{blockingState}</ScreenState>
           </PageScrollView>
-        </>
+        </PageViewport>
       ) : (
         <SportingTabs
           selected={tab}
@@ -127,7 +131,7 @@ function PoolPage({
               ) : value === "map" && data && !renderMap ? (
                 <PoolMap pool={data.pool} active={tab === value} />
               ) : (
-                <SportingScrollView alwaysBounceVertical>
+                <PageScrollView alwaysBounceVertical>
                   <PageContent>
                     {data &&
                       (value === "standings"
@@ -142,7 +146,7 @@ function PoolPage({
                             </ResourceText>
                           )))}
                   </PageContent>
-                </SportingScrollView>
+                </PageScrollView>
               ),
           }))}
         />

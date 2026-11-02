@@ -33,8 +33,7 @@ export function CloseSeasonScreen({ seasonId }: { seasonId: string }) {
     )
   ) : undefined;
   return (
-    <Page>
-      <PageHeader title={"Clôturer la saison"} />
+    <Page header={<PageHeader title={"Clôturer la saison"} />}>
       <FormScrollView
         refreshControl={
           authority.sessionStatus === "authenticated" && !blockingState ? (

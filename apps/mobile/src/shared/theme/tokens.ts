@@ -209,6 +209,9 @@ export const tokens = {
   touch,
   border: { thin: 1, subtle: 1.5 },
   opacity: { disabled: 0.45, pressed: 0.9 },
+  // The native material supplies its own tint; another 70% overlay would obscure the blurred colors.
+  // Expo Android maps intensity/reduction to radius: 90 / 2.8125 = the UI Library's 32-point blur.
+  blur: { navigation: { intensity: 90, androidReduction: 2.8125 } },
   elevation: { offsetX: 0, offsetY: 4, blur: 10 },
   motion: {
     slow: 480,

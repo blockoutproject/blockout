@@ -1,3 +1,6 @@
+import { useNavigationInset } from "./navigation-backdrop";
+import { cloneElement, useContext } from "react";
+import { PagedTabContext } from "./paged-tab-context";
 import { hiddenScrollIndicators } from "../native/scroll-indicators";
 import { Platform, StyleSheet, type ScrollViewProps } from "react-native";
 import Animated from "react-native-reanimated";
@@ -24,11 +27,30 @@ export function FormScrollView({
   contentContainerStyle,
   ...props
 }: FormScrollViewProps) {
+  const inset = useNavigationInset();
+  const tab = useContext(PagedTabContext);
+  const content = StyleSheet.flatten(contentContainerStyle);
+  const padding =
+    content?.paddingTop ?? content?.paddingVertical ?? content?.padding;
+  const insets = {
+    paddingTop:
+      (tab?.contentInset ?? inset) +
+      (typeof padding === "number" ? padding : 0),
+  };
+  const refreshControl = props.refreshControl
+    ? cloneElement(props.refreshControl, {
+        progressViewOffset:
+          props.refreshControl.props.progressViewOffset ??
+          tab?.contentInset ??
+          inset,
+      })
+    : undefined;
   return Platform.OS === "ios" ? (
     <Animated.ScrollView
       {...props}
+      refreshControl={refreshControl}
       {...hiddenScrollIndicators}
-      contentContainerStyle={[styles.content, contentContainerStyle]}
+      contentContainerStyle={[styles.content, contentContainerStyle, insets]}
       alwaysBounceVertical={!!props.refreshControl}
       automaticallyAdjustKeyboardInsets
       keyboardShouldPersistTaps="handled"
@@ -40,8 +62,9 @@ export function FormScrollView({
     <KeyboardProvider>
       <KeyboardAwareScrollView
         {...props}
+        refreshControl={refreshControl}
         {...hiddenScrollIndicators}
-        contentContainerStyle={[styles.content, contentContainerStyle]}
+        contentContainerStyle={[styles.content, contentContainerStyle, insets]}
         alwaysBounceVertical={!!props.refreshControl}
         keyboardShouldPersistTaps="handled"
       >

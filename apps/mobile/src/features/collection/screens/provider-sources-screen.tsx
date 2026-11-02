@@ -44,8 +44,7 @@ export function ProviderSourcesScreen({
     )
   ) : undefined;
   return (
-    <Page>
-      <PageHeader title={provider === "lnv" ? "LNV" : "FFVB"} />
+    <Page header={<PageHeader title={provider === "lnv" ? "LNV" : "FFVB"} />}>
       <FormScrollView
         refreshControl={
           authority.sessionStatus === "authenticated" && !blockingState ? (
