@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -116,6 +117,26 @@ class EraseAccountIntegrationTest extends ContributionScenario {
         scope.pool());
     doAnswer(
             call -> {
+              // Observe F06 before the account FK cascade could conceal a missing participant.
+              assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isTrue();
+              for (String table : List.of("pool_follow", "team_follow")) {
+                assertThat(
+                        sql.queryForObject(
+                            "SELECT COUNT(*) FROM " + table + " WHERE account_id=?",
+                            Long.class,
+                            FOLLOWER))
+                    .as(table)
+                    .isZero();
+              }
+              assertThat(accounts.findById(FOLLOWER)).isPresent();
+              return call.callRealMethod();
+            })
+        .when(
+            org.springframework.test.util.AopTestUtils.<AccountStore>getUltimateTargetObject(
+                accounts))
+        .erase(FOLLOWER);
+    doAnswer(
+            call -> {
               assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
               assertThat(accounts.findById(FOLLOWER)).isEmpty();
               assertThat(
@@ -184,6 +205,18 @@ class EraseAccountIntegrationTest extends ContributionScenario {
         ProfilePhotoActionEnum.REPLACE,
         originalPhoto);
     follow(FOLLOWER);
+    UUID teamId =
+        sql.queryForObject(
+            "SELECT home_team_id FROM sporting_match WHERE id=?", UUID.class, matchId);
+    follows.replace(
+        new FollowContext(
+            FOLLOWER, new FollowContext.Target(FollowContext.TargetType.TEAM, teamId)),
+        true);
+    List<Map<String, Object>> originalRelations =
+        sql.queryForList(
+            "SELECT id, pool_id AS target FROM pool_follow WHERE account_id=? UNION ALL SELECT id, team_id AS target FROM team_follow WHERE account_id=? ORDER BY id",
+            FOLLOWER,
+            FOLLOWER);
     SubmitContribution.Outcome active = submit(AUTHOR, "0", "https://youtu.be/facts", false);
     reports.report(FOLLOWER, active.version().id(), "Synthetic private reason");
     destinations.replace(new Registration(CONNECTION, INSTALLATION, FOLLOWER, "Expo[original]"));
@@ -220,7 +253,12 @@ class EraseAccountIntegrationTest extends ContributionScenario {
                     FOLLOWER))
             .isEqualTo("Synthetic private reason");
         for (String table :
-            List.of("account_permission", "pool_follow", "notification", "push_subscription"))
+            List.of(
+                "account_permission",
+                "pool_follow",
+                "team_follow",
+                "notification",
+                "push_subscription"))
           assertThat(
                   sql.queryForObject(
                       "SELECT COUNT(*) FROM " + table + " WHERE account_id=?",
@@ -228,6 +266,12 @@ class EraseAccountIntegrationTest extends ContributionScenario {
                       FOLLOWER))
               .as(table)
               .isEqualTo(1);
+        assertThat(
+                sql.queryForList(
+                    "SELECT id, pool_id AS target FROM pool_follow WHERE account_id=? UNION ALL SELECT id, team_id AS target FROM team_follow WHERE account_id=? ORDER BY id",
+                    FOLLOWER,
+                    FOLLOWER))
+            .isEqualTo(originalRelations);
         verifyNoInteractions(auth0, revenueCat);
       } finally {
         if (failAtAccount) {
@@ -606,6 +650,31 @@ class EraseAccountIntegrationTest extends ContributionScenario {
         .andExpect(status().isNotFound());
     mvc.perform(profilePatch(FOLLOWER, "{\"username\":\"OldRequest\"}"))
         .andExpect(status().isNotFound());
+    mvc.perform(
+            put("/accounts/{id}/pool-follows/{pool}", FOLLOWER, scope.pool())
+                .with(
+                    jwt()
+                        .jwt(
+                            token ->
+                                token
+                                    .issuer(ISSUER)
+                                    .subject(FOLLOWER.toString())
+                                    .claim("azp", "mobile-test")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"following\":true}"))
+        .andExpect(status().isNotFound());
+    mvc.perform(
+            get("/accounts/{id}/pool-follows/{pool}", replacement, scope.pool())
+                .with(
+                    jwt()
+                        .jwt(
+                            token ->
+                                token
+                                    .issuer(ISSUER)
+                                    .subject(FOLLOWER.toString())
+                                    .claim("azp", "mobile-test"))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.following").value(false));
     // A still-valid same-subject authentication may use the replacement's current baseline rights.
     mvc.perform(profilePatch(replacement, "{\"username\":\"CurrentRequest\"}"))
         .andExpect(status().isOk())
