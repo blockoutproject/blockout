@@ -58,6 +58,14 @@ import { NotificationsScreen } from "../../notifications/screens/notifications-s
 import { NotificationLifecycle } from "../../notifications/native/notification-lifecycle";
 import { createPushRegistration } from "../../notifications/native/push-registration";
 import { notificationResponse } from "../../notifications/test-support/notification-data";
+import { router } from "expo-router";
+import { renderRouter } from "expo-router/testing-library";
+import ProfileRoute from "../../../app/(ordinary)/(tabs)/profile";
+import PrivacyRoute from "../../../app/(ordinary)/privacy";
+import { SearchScreen } from "../../discovery/screens/search-screen";
+import { SearchVisitProvider } from "../../discovery/forms/search-visit";
+import { PersonalScreen } from "../../following/screens/personal-screen";
+import { PersonalSeasonProvider } from "../../following/components/personal-season-provider";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
   jest.requireActual(
@@ -109,7 +117,11 @@ jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useIsFocused: () => true,
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({
+    ...jest.requireActual("expo-router").router,
+    push: mockPush,
+    navigate: mockPush,
+  }),
   useNavigation: () => mockNavigation,
   useRootNavigationState: () => ({ key: "root" }),
 }));
@@ -193,6 +205,79 @@ beforeEach(async () => {
     .mockReset()
     .mockImplementation(async (url: string, init?: RequestInit) => {
       const path = new URL(url).pathname;
+      const { match } = matchDetail();
+      if (path === "/sporting-search-options")
+        return Response.json({
+          resourceType: new URL(url).searchParams.get("resourceType"),
+          seasons: [match.pool.season],
+          divisions: [],
+          formats: [],
+          genders: [],
+        });
+      if (path === "/clubs")
+        return Response.json({
+          clubs: [{ club: { id: match.home.id, name: "Search club" } }],
+        });
+      if (path === "/teams")
+        return Response.json({
+          teams: [
+            {
+              team: { ...match.home, name: "Search team" },
+              season: match.pool.season,
+              classification: {},
+              professional: false,
+            },
+          ],
+        });
+      if (path === "/pools")
+        return Response.json({
+          pools: [
+            {
+              ...match.pool,
+              pool: { ...match.pool.pool, name: "Search pool" },
+            },
+          ],
+        });
+      if (path.endsWith("/follow-options"))
+        return Response.json({
+          seasons: [match.pool.season],
+          defaultSeasonId: match.pool.season.id,
+        });
+      if (path.endsWith("/team-follows"))
+        return Response.json({
+          items: [
+            {
+              team: { ...match.home, name: "Followed team" },
+              season: match.pool.season,
+              classification: {},
+              professional: false,
+            },
+          ],
+        });
+      if (path.endsWith("/pool-follows"))
+        return Response.json({
+          items: [
+            {
+              ...match.pool,
+              pool: { ...match.pool.pool, name: "Followed pool" },
+            },
+          ],
+        });
+      if (path === `/accounts/${inboxRow.id}/matches`)
+        return Response.json({
+          hasAvailableFollows: true,
+          calendar: {
+            category: new URL(url).searchParams.get("category"),
+            timeZone: new URL(url).searchParams.get("timeZone"),
+            evaluatedAt: new Date().toISOString(),
+            days: [
+              {
+                date: "2026-10-29",
+                pools: [{ poolId: match.pool.pool.id, matches: [match] }],
+              },
+            ],
+          },
+        });
       if (path.endsWith("/standings")) return Response.json(table);
       if (path.endsWith("/participants")) return Response.json(participants);
       if (path.startsWith("/pools/"))
@@ -257,11 +342,13 @@ function Entries({
   notifications = false,
   calendarActive = true,
   resourcePage,
+  consumer,
 }: {
   detail?: MatchDetailResponse;
   notifications?: boolean;
   calendarActive?: boolean;
   resourcePage?: "pool" | "team";
+  consumer?: "search" | "personal" | "profile";
 }) {
   const current = useAccountSession();
   useLayoutEffect(() => {
@@ -284,12 +371,25 @@ function Entries({
         id="00000000-0000-4000-8000-000000000013"
         label="Poule"
       />
-      <CalendarMatch
-        match={matchDetail().match}
-        displayTimeZone="Europe/Paris"
-        active={calendarActive}
-      />
+      {consumer !== "personal" && (
+        <CalendarMatch
+          match={matchDetail().match}
+          displayTimeZone="Europe/Paris"
+          active={calendarActive}
+        />
+      )}
       <MatchLinks detail={detail} />
+      {consumer === "search" && (
+        <SearchVisitProvider>
+          <SearchScreen />
+        </SearchVisitProvider>
+      )}
+      {consumer === "personal" && (
+        <PersonalSeasonProvider>
+          <PersonalScreen />
+        </PersonalSeasonProvider>
+      )}
+      {consumer === "profile" && <ProfileRoute />}
       {resourcePage === "pool" && (
         <PoolScreen poolId={matchDetail().match.pool.pool.id} />
       )}
@@ -385,6 +485,212 @@ it("shares nine real club/team/pool openings with the tenth calendar opening and
     params: { matchId: matchDetail().match.id },
   });
 });
+it("shares actual Search, personal calendar, followed cards and F03 openings with one tenth live placement", async () => {
+  // Given: all consumers keep the same installation owner; only HTTP, native I/O and route handoff are controlled.
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  const detail = {
+    ...matchDetail(),
+    streamUrl: "https://video.example.invalid/current",
+  };
+  const result = await mount({ consumer: "search", detail });
+  const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue();
+  const user = userEvent.setup();
+  await layoutNativeTabs();
+
+  // When: three F04 cards, two F03 entries, then four actual F06 entries total nine openings.
+  await user.press(await screen.findByRole("link", { name: /Search team/ }));
+  await user.press(screen.getByRole("tab", { name: "Poules" }));
+  await user.press(await screen.findByRole("link", { name: /Search pool/ }));
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await user.press(await screen.findByRole("link", { name: "Search club" }));
+  await user.press(screen.getByRole("link", { name: "Club" }));
+  await user.press(screen.getByRole("link", { name: /Ouvrir le match/ }));
+  await result.rerender(
+    <Owners>
+      <Entries consumer="personal" detail={detail} />
+    </Owners>,
+  );
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
+  await user.press(
+    await screen.findByRole("link", { name: /Ouvrir le match/ }),
+  );
+  await user.press(screen.getByRole("tab", { name: "Terminés" }));
+  await user.press(
+    await screen.findByRole("link", { name: /Ouvrir le match/ }),
+  );
+  await user.press(screen.getByRole("tab", { name: "Suivis" }));
+  await user.press(await screen.findByRole("link", { name: /Followed team/ }));
+  expect(mockPush).toHaveBeenLastCalledWith({
+    pathname: "/teams/[teamId]",
+    params: { teamId: detail.match.home.id },
+  });
+  await user.press(await screen.findByRole("link", { name: /Followed pool/ }));
+  expect(mockPush).toHaveBeenLastCalledWith({
+    pathname: "/pools/[poolId]",
+    params: { poolId: detail.match.pool.pool.id },
+  });
+  expect(mockPush).toHaveBeenCalledTimes(9);
+  expect(ad.show).not.toHaveBeenCalled();
+  await user.press(screen.getByRole("link", { name: "Ouvrir le lien" }));
+
+  // Then: the sole live entry waits for dismissal, releases the exact URL once and resets the shared frequency.
+  expect(ad.show).toHaveBeenCalledTimes(1);
+  expect(openURL).not.toHaveBeenCalled();
+  await act(async () => {
+    ad.emit(AdEventType.OPENED);
+    ad.emit(AdEventType.CLOSED);
+    ad.emit(AdEventType.CLOSED);
+  });
+  expect(openURL).toHaveBeenCalledTimes(1);
+  expect(openURL).toHaveBeenCalledWith(detail.streamUrl);
+  await user.press(screen.getByRole("link", { name: "Ouvrir le lien" }));
+  expect(openURL).toHaveBeenCalledTimes(2);
+  expect(ad.show).toHaveBeenCalledTimes(1);
+});
+it.each([
+  ["guest", false],
+  ["signed-in", true],
+] as const)(
+  "excludes the actual %s profile, privacy, legal, support and Pro entries",
+  async (_status, authenticated) => {
+    // Given: the real profile and privacy route consume the same ready installation as nine sporting actions.
+    mockAuth0.hasValidCredentials.mockResolvedValue(authenticated);
+    await renderRouter(
+      { index: () => <Entries consumer="profile" />, privacy: PrivacyRoute },
+      { wrapper: Owners },
+    );
+    await screen.findByRole("header", { name: "Mon profil" });
+    await waitFor(() => expect(mockCreateAd).toHaveBeenCalledTimes(1));
+    await act(async () => ad.emit(AdEventType.LOADED));
+    const user = userEvent.setup();
+    for (let index = 0; index < 9; index++)
+      await user.press(screen.getByRole("link", { name: "Club" }));
+
+    // When: actual non-sporting entries keep their own navigation; legal actions retain their current unavailable boundary.
+    for (const name of [
+      "Mentions légales",
+      "Conditions d’utilisation",
+      "Politique de confidentialité",
+    ]) {
+      const link = screen.getByRole("link", { name });
+      expect(link).toBeDisabled();
+      await user.press(link);
+    }
+    await user.press(screen.getByRole("button", { name: "Besoin d’aide ?" }));
+    expect(mockPush).toHaveBeenLastCalledWith(
+      expect.objectContaining({ pathname: "/support" }),
+    );
+    await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
+    expect(mockPush).toHaveBeenLastCalledWith(
+      authenticated ? "/pro" : "/sign-in-invitation",
+    );
+    if (!authenticated) {
+      await user.press(screen.getByRole("button", { name: "Se connecter" }));
+      expect(mockPush).toHaveBeenLastCalledWith("/sign-in");
+    }
+    await user.press(screen.getByRole("link", { name: "Confidentialité" }));
+    await screen.findByRole("header", { name: "Confidentialité" });
+    await act(async () => router.back());
+
+    // Then: no excluded action consumed the tenth opportunity, which still belongs to the next sporting opening.
+    expect(ad.show).not.toHaveBeenCalled();
+    await user.press(await screen.findByRole("link", { name: "Équipe" }));
+    expect(ad.show).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      ad.emit(AdEventType.OPENED);
+      ad.emit(AdEventType.CLOSED);
+    });
+    expect(mockPush).toHaveBeenLastCalledWith({
+      pathname: "/teams/[teamId]",
+      params: { teamId: "00000000-0000-4000-8000-000000000012" },
+    });
+  },
+);
+it.each(["À venir", "Terminés", "Suivis"])(
+  "abandons an actual personal %s opening after its retained scene becomes inactive",
+  async (tab) => {
+    // Given
+    mockAuth0.hasValidCredentials.mockResolvedValue(true);
+    await mount({ consumer: "personal" });
+    await screen.findByRole("tab", { name: "À venir" });
+    await layoutNativeTabs();
+    const user = userEvent.setup();
+    for (let index = 0; index < 9; index++)
+      await user.press(screen.getByRole("link", { name: "Club" }));
+    await user.press(screen.getByRole("tab", { name: tab }));
+    expect(ad.show).not.toHaveBeenCalled();
+    await user.press(
+      await screen.findByRole("link", {
+        name: tab === "Suivis" ? /Followed team/ : /Ouvrir le match/,
+      }),
+    );
+    expect(ad.show).toHaveBeenCalledTimes(1);
+
+    // When
+    await user.press(
+      screen.getByRole("tab", {
+        name: tab === "À venir" ? "Terminés" : "À venir",
+      }),
+    );
+    await act(async () => {
+      ad.emit(AdEventType.OPENED);
+      ad.emit(AdEventType.CLOSED);
+    });
+
+    // Then: changing a retained personal scene cannot later open its obsolete selected card.
+    expect(mockPush).toHaveBeenCalledTimes(9);
+    await user.press(screen.getByRole("link", { name: "Club" }));
+    expect(mockPush).toHaveBeenCalledTimes(10);
+  },
+);
+it.each(["resource", "live"])(
+  "keeps a failed %s destination with its owner after advertising dismissal and explicit retry",
+  async (destination) => {
+    // Given
+    const detail = {
+      ...matchDetail(),
+      streamUrl: "https://video.example.invalid/current",
+    };
+    await mount({ detail });
+    const user = userEvent.setup();
+    for (let index = 0; index < 9; index++)
+      await user.press(screen.getByRole("link", { name: "Club" }));
+    const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue();
+    if (destination === "live")
+      openURL.mockRejectedValueOnce(
+        new Error("Private native handoff failure"),
+      );
+    else
+      mockPush.mockImplementationOnce(() => {
+        throw new Error("Private route failure");
+      });
+    const name = destination === "live" ? "Ouvrir le lien" : "Équipe";
+
+    // When
+    await user.press(screen.getByRole("link", { name }));
+    await act(async () => {
+      ad.emit(AdEventType.OPENED);
+      ad.emit(AdEventType.CLOSED);
+    });
+
+    // Then: ad success cannot pretend that the destination opened, expose its error or replay it.
+    expect(ad.show).toHaveBeenCalledTimes(1);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /Une erreur est survenue/,
+    );
+    expect(screen.queryByText(/Private .* failure/)).not.toBeOnTheScreen();
+    expect(destination === "live" ? openURL : mockPush).toHaveBeenCalledTimes(
+      destination === "live" ? 1 : 10,
+    );
+    await user.press(screen.getByRole("link", { name }));
+    expect(destination === "live" ? openURL : mockPush).toHaveBeenCalledTimes(
+      destination === "live" ? 2 : 11,
+    );
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    expect(ad.show).toHaveBeenCalledTimes(1);
+  },
+);
 it("abandons the pending calendar destination when the native principal changes", async () => {
   // Given
   await mount();
