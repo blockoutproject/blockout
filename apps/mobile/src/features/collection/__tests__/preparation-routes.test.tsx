@@ -785,3 +785,39 @@ it("keeps an already prepared command outcome while a newer minimum changes rout
   ).toBe(true);
   expect(screen.queryByLabelText("URL officielle")).not.toBeOnTheScreen();
 });
+
+it.each(["preparing", "active"] as const)(
+  "opens source preparation when the %s season has no provider control yet",
+  async (state) => {
+    // Given
+    const serve = responses({ manageCollection: true });
+    mockFetch.mockImplementation((url) => {
+      const path = new URL(String(url)).pathname;
+      if (path.endsWith("/collection-controls"))
+        return Promise.resolve(Response.json({ items: [] }));
+      if (path.endsWith(`/collection-seasons/${seasonId}`))
+        return Promise.resolve(Response.json({ ...season, state }));
+      return serve(url);
+    });
+    const user = userEvent.setup();
+    await openRoute("/access");
+    await screen.findByRole("link", { name: "Accès administrateur" });
+
+    // When
+    await act(async () => router.push(`/collection/${seasonId}/controls/ffvb`));
+    await user.press(
+      await screen.findByRole("button", { name: "Ajouter une source" }),
+    );
+
+    // Then
+    expect(screen.getByLabelText("URL officielle")).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Relancer" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.every(
+        ([, options]) => !options?.method || options.method === "GET",
+      ),
+    ).toBe(true);
+  },
+);

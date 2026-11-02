@@ -1,6 +1,7 @@
 import {
   standingColumnLabel,
   standingPointsColumn,
+  standingVisibleColumns,
 } from "../model/standing-columns";
 import { useQuery } from "@tanstack/react-query";
 import { useSportingNavigation } from "../navigation";
@@ -52,7 +53,7 @@ export function PoolStandings({
     currentActive.current = active;
   }, [active]);
   const data = standings.data;
-  const columns = data?.columns ?? [];
+  const columns = standingVisibleColumns(data?.columns ?? []);
 
   /** Refetches only this table; ordinary failure preserves its original supplier attribution. */
   async function refresh() {
@@ -272,7 +273,7 @@ function StandingEntry({
               { color: colors.secondaryText },
             ]}
           >
-            {points}
+            {standingColumnLabel(points)}
           </Text>
         </View>
       )}

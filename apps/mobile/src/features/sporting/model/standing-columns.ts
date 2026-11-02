@@ -1,6 +1,8 @@
-/** Published match-count families use the approved compact labels; unknown columns remain verbatim. */
+/** Projects published points and match-count aliases to their compact presentation labels. */
 export function standingColumnLabel(column: string): string {
   switch (column) {
+    case "Points":
+      return "Pts";
     case "Jou.":
     case "Matchs / Joués":
       return "J";
@@ -19,5 +21,12 @@ export function standingColumnLabel(column: string): string {
 export function standingPointsColumn(
   columns: readonly string[],
 ): string | undefined {
-  return columns.find((column) => column === "Pts");
+  return columns.find((column) => standingColumnLabel(column) === "Pts");
+}
+
+/** Selects display columns only; original column keys, values and query data remain untouched. */
+export function standingVisibleColumns(columns: readonly string[]): string[] {
+  return columns.filter((column) =>
+    ["Pts", "J", "G", "P"].includes(standingColumnLabel(column)),
+  );
 }

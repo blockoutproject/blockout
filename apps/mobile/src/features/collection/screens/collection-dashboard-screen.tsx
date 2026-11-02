@@ -42,6 +42,7 @@ import { CollectionLoading } from "../components/collection-loading";
 import { CollectionResult } from "../components/collection-result";
 import { PreparationLink } from "../components/preparation-link";
 import { SeasonIdentity, seasonStatus } from "../components/source-summary";
+import { ProviderSourcesScreen } from "./provider-sources-screen";
 
 /** Navigation labels correspond to F01's four independent control families. */
 const familyLabels: Record<CollectionFamilyEnum, string> = {
@@ -238,6 +239,16 @@ function ControlScope({
     query.data?.items.find(
       (control) => control.family === family && control.seasonId === season?.id,
     );
+  // A provider control is created by launch or reconstruction, after source preparation.
+  // Reuse that preparation screen while a successful current read confirms no control exists.
+  if (
+    authority.enabled &&
+    season &&
+    (family === "ffvb" || family === "lnv") &&
+    query.isSuccess &&
+    !selected
+  )
+    return <ProviderSourcesScreen seasonId={season.id} provider={family} />;
   if (!authority.enabled || !selected)
     return (
       <Page>

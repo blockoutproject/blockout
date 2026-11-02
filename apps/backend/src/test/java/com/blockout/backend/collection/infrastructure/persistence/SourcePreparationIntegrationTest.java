@@ -706,6 +706,50 @@ class SourcePreparationIntegrationTest {
   }
 
   @Test
+  @DisplayName("Two qualified seasons remain active with their own accepted organizer references")
+  void keepsSimultaneousActiveSeasons() {
+    // Given
+    validate(SourceValidationStateEnum.QUALIFIED, "2026/2027", null);
+    preparation.launch(
+        ACCOUNT, season, seasonReads.collectionState(season).collectionRevision(), Set.of(SOURCE));
+    UUID nextSeason = seasons.getOrCreate(2027).id();
+    URI nextUrl = URI.create(URL + "&saison=2027/2028");
+    Source candidate =
+        preparation.create(ACCOUNT, nextSeason, 0, CollectionProviderEnum.FFVB, "ABCCS", nextUrl);
+    Source pending = preparation.requestValidation(ACCOUNT, candidate.id(), candidate.revision());
+    UUID validationCycle = UUID.fromString("00000000-0000-4000-8000-000000001181");
+    cycles.admit(
+        new StartCycle(validationCycle, STARTUP, null, candidate.id(), pending.revision(), null));
+    sourceValidation.submitValidation(
+        candidate.id(),
+        new SourceValidation(
+            validationCycle,
+            SourceValidationStateEnum.QUALIFIED,
+            NOW.plusSeconds(2),
+            "2027/2028",
+            null,
+            null));
+
+    // When
+    preparation.launch(
+        ACCOUNT,
+        nextSeason,
+        seasonReads.collectionState(nextSeason).collectionRevision(),
+        Set.of(candidate.id()));
+
+    // Then
+    assertThat(seasonReads.collectionState(season).collectionState())
+        .isEqualTo(CollectionSeasonStateEnum.ACTIVE);
+    assertThat(seasonReads.collectionState(nextSeason).collectionState())
+        .isEqualTo(CollectionSeasonStateEnum.ACTIVE);
+    assertThat(configurationReads.source(ACCOUNT, SOURCE).acceptedUrl()).isEqualTo(URL);
+    assertThat(configurationReads.source(ACCOUNT, candidate.id()).acceptedUrl())
+        .isEqualTo(nextUrl.toString());
+    assertThat(configurationReads.source(ACCOUNT, SOURCE).seasonId()).isEqualTo(season);
+    assertThat(configurationReads.source(ACCOUNT, candidate.id()).seasonId()).isEqualTo(nextSeason);
+  }
+
+  @Test
   @DisplayName("Initial import freezes the candidate and permits a later unchanged periodic launch")
   void launchesInitialImportReference() {
     // Given

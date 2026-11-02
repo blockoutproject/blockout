@@ -16,6 +16,87 @@ Generated target mapping retains exact references and current locality revisions
 
 Verified document-team associations remain explicit configuration scoped to season, championship and native team. Empty configuration leaves auxiliary XML codes unavailable. No test fixture, sampled current identifier or ordinary discovery run supplies missing historical associations or activates collection. Actual provider qualification, native operator journeys and scheduling remain with their owning tasks.
 
+### Source preparation and seasonal qualification (T023)
+
+The authorized isolated qualification on 2 November 2026 uses the existing V2 commands,
+generated consumers, packaged backend/collector and retained PostgreSQL 18.6. The original
+1,034 professional matches remain intact. No retained-data reset, production operation or
+provider configuration change is involved. Runtime inputs, account identities, captures and
+build associations remain private delivery evidence outside this specification.
+
+**Observed provider and owner boundaries**:
+
+| Exact source scope                                                                                                                        | Source preparation                                                                                                       | Actual F02/F03 outcome                                                                                                                                               |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ABCCS 2026/2027, [published national selector](https://www.ffvbbeach.org/ffvbapp/resu/seniors/2026-2027/pbscript.htm)                     | Qualified seasonal root; retained reference locked by its first initial passage, then launched unchanged                 | 29 discovered pools in four packs; only E.Fém.A individually classified under its unclassified Elite pack; 110 matches, 11 participants and an 11-row official table |
+| ABCCS 2024/2025, [published historical directory](https://www.ffvbbeach.org/ffvbapp/resu/seniors/2024-2025/) and its `pbscript.htm` frame | The directory supplies the actual historical frame; explicit 2024 preparation reuses the canonical season                | 42 discovered pools in four packs; only its own E.Fém.A individually classified; 90 matches, 10 participants and a 10-row official table; remains PREPARING          |
+| [LIRA organizer menu](https://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=LIRA)                                                  | Qualified 2026/2027 catalog and native selected launch                                                                   | No classification is created by launch; regional calendar acquisition is not claimed by this qualification                                                           |
+| [PTCA06 organizer menu](https://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=PTCA06&saison=2026/2027)                             | Native candidate edit clears previous evidence; explicit validation and launch succeed while 2026/2027 is already ACTIVE | Remains independent of the previously locked ABCCS/LIRA references; no departmental classification/calendar is inferred                                              |
+| [LIIDF organizer menu](https://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=LIIDF)                                                | Actual collector result is INVALID, `Incomplete FFVB catalog`                                                            | Remains unlaunched and unclassified. This observation does not qualify its current shared youth-round inventory                                                      |
+
+Discovery-only passages retain the 71 contextual national pools without importing their
+unclassified calendars. Current and historical E.Fém.A are separate F02 identities, obtained
+from their published seasonal catalog context rather than an isolated code. The existing F02
+classification API supplies two complete individual overrides; neither parent pack is classified.
+Subsequent exact-root initial requests admit only those two calendars. Their successful
+acquisition and integration retain 200 FFVB matches without widening to other national pools,
+organizers or the LNV authority. No additional passage is automatically requested.
+
+The generated mobile schemas accept all eight FFVB calendar pages, both pools, participant
+lists, official tables and representative Match details, with exact season/pool attribution and
+no duplicate traversal identity. Repeated real F03 reads also retain all nine professional groups,
+1,034 matches and 53 calendar pages under [T040](#professional-source-qualification-t040).
+The dates/counts are observations of these selected catalogs, not permanent provider inventories.
+
+**Observed native preparation**: The existing iPhone B simulator development client uses the
+normal hosted preproduction Auth0 login, native callback/credential manager and actual F05/F12
+account reads. Only the required local collection, classification, presentation and division grants
+are assigned to that current test account through the existing owner procedure. The operator
+opens Collectes, the current season, FFVB, the source editor and discovered packs/pools without
+classification readiness or a mapping shortcut, including for an operator who also holds the
+independent sporting-classification grant. Before a provider control exists, a confirmed
+successful empty control list now opens the existing preparation screen; failed or denied lists
+remain failures. The source draft can be edited/saved, prior qualification disappears, and the
+explicit validation request is observed as PENDING. Native confirmations launch exactly ABCCS
+and LIRA, then only PTCA06 after its preparation/validation in the already ACTIVE season.
+Launched references expose no URL editor; the historical season and the disabled controls are
+preserved. Source launch does not enable a paused family or manufacture pool classifications.
+
+Collector processing uses the retained controlled signing boundary in separate backend stages;
+every native operator action above uses the real Auth0-configured backend. This establishes the
+native operator journey and real acquisition/F02 handoff separately. It does not qualify an Auth0
+M2M collector deployment, physical devices or a combined production environment. No SDK
+injection, debug login or provider configuration change supplies the native proof.
+
+**Controlled failure and eligibility boundaries**: No supplier outage or catalog removal is induced.
+The existing suites below use controlled supplier evidence with real owner transactions/reads,
+plus explicitly identified collector unit boundaries:
+
+| Required case                                      | Executed boundary and interpretation                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Failed discovery with prior same-season references | `CollectorSportingBoundaryIntegrationTest` executes the production passage with failed supplier discovery and actual generated HTTP/F02 admission, targets and accepted calendar commits. `CollectPassageTest` separately checks the immediate retained-reference decision; its backend double alone is not an owner-integration proof.                                                                                                                            |
+| Proven catalog removal and partial catalog         | `CalendarAcceptanceIntegrationTest` and `SportingVisibilityIntegrationTest` accept complete/partial catalogs through F02: complete absence removes current catalog eligibility, partial evidence does not withdraw accepted pools, stale discovery cannot restore absence, and another season/LNV authority stays unchanged. `CollectPassageTest` checks that a reconciled complete removal suppresses even a previously frozen calendar read within that passage. |
+| Hidden but acquisition-eligible pool               | `SportingVisibilityIntegrationTest.keepsIndependentReasons` uses the actual `ReadSportingAcquisition.acquisitionPools` after catalog return: CALENDAR_EMPTY still hides the public match while the listed, classified pool remains acquisition-eligible. Catalog presence alone supplies no public visibility bypass.                                                                                                                                              |
+| Individual/unclassified pools and division changes | `ClassificationIntegrationTest` exercises real correction/removal, inherited pack changes, preserved individual overrides and retained published classification. `CollectionAdmissionIntegrationTest` freezes current effective settings, excludes inactive divisions and preserves the admitted snapshot across a concurrent division change. Published classification never substitutes for missing acquisition settings.                                        |
+| Simultaneous active seasons                        | `SourcePreparationIntegrationTest.keepsSimultaneousActiveSeasons` launches two qualified seasons through the actual preparation/season owners and retains both ACTIVE states and their own accepted ABCCS URLs. This is controlled evidence; the retained 2024/2025 environment remains PREPARING.                                                                                                                                                                 |
+| Active-season preparation and exact root           | The native journey above exercises the active-season case. `SourcePreparationIntegrationTest` also checks locking, whole-selection refusal, stale revisions and exact-source child paging, including refusal of a foreign pack. Initial-import admission and the actual two-season passages preserve exact selected roots; unqualified neighbors remain unselected.                                                                                                |
+
+The README backend/collector/mobile checks, PostgreSQL owner suites and opt-in collector-to-
+sporting HTTP suites execute these boundaries on disposable databases. Their reset-capable
+fixtures never use the retained dataset. They establish controlled failure/eligibility behavior,
+not an observed supplier outage or withdrawal. The real representative current/historical LNV
+qualification remains [T040](#professional-source-qualification-t040).
+
+**Search runtime and remaining limits**: The README's selected OpenSearch runtime, private TLS
+and ordinary serving-backend full rebuild make the retained data searchable; a real current-season
+Toulouse query passes the generated Team search schema; the native Search result opens its
+actual F03 team and current standings. This is runtime activation evidence,
+not F04 qualification. Unexecuted regional/departmental calendars, the refused LIIDF catalog,
+other historical formats and future phases retain their actual coverage limits. No exhaustive FFVB
+history, four-season reconstruction, migration readiness, native PDF relay/reader or broader
+[T051 native presentation](tasks.md#phase-6-user-story-5--control-collection-and-cadence-predictably-priority-p1)
+qualification follows from T023.
+
 ### Professional source qualification (T040)
 
 The authorized isolated rehearsal on 2 November 2026 uses the packaged collector and backend,

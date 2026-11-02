@@ -1465,6 +1465,52 @@ it("keeps refused season navigation hidden through a failed reread until a succe
   expect(screen.queryByText("Une erreur est survenue")).toBeNull();
 });
 
+it("keeps discovered pools read-only even when the collector operator can classify sporting data", async () => {
+  // Given
+  permissions = { manageCollection: true, manageSportingClassification: true };
+  const packId = "00000000-0000-4000-8000-000000001181";
+  mockFetch.mockImplementation((url) =>
+    new URL(String(url)).pathname.endsWith("/children")
+      ? Promise.resolve(
+          json({
+            items: [
+              {
+                id: "00000000-0000-4000-8000-000000001182",
+                kind: "pool",
+                label: "E.Fém.A",
+                parentId: packId,
+              },
+            ],
+            page: 0,
+            hasNext: false,
+          }),
+        )
+      : reads(url),
+  );
+
+  // When
+  await renderPreparation(
+    <SourceChildrenScreen
+      seasonId={seasonId}
+      sourceId={sourceId}
+      parentId={packId}
+    />,
+  );
+
+  // Then
+  expect(await screen.findByText("E.Fém.A")).toBeOnTheScreen();
+  expect(screen.queryByText(/classification|mapping/i)).not.toBeOnTheScreen();
+  const read = mockFetch.mock.calls.find(([url]) =>
+    String(url).includes("/children"),
+  );
+  expect(new URL(String(read?.[0])).searchParams.get("parentId")).toBe(packId);
+  expect(
+    mockFetch.mock.calls.some(([url]) =>
+      String(url).includes("/classification"),
+    ),
+  ).toBe(false);
+});
+
 /** Captures the identity-owned private cache while retaining the public cache for fixture cleanup. */
 function PrivateQueries({ children }: PropsWithChildren) {
   const privateClient = useQueryClient();

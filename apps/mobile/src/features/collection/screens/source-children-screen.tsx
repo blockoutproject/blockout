@@ -19,10 +19,9 @@ import { DataRefreshControl } from "../../../shared/components/data-refresh-cont
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
-import { ClassificationEntry } from "../../sporting-administration/entry";
 import { useSourceChildren } from "../api/use-source-preparation";
 
-/** Native edges traverse direct children; authorized rows survive technical failures and continuation retries stay local. */
+/** Read-only discovery traversal; pack navigation never exposes sporting classification actions. Authorized rows survive technical failures and continuation retries stay local. */
 export function SourceChildrenScreen({
   seasonId,
   sourceId,
@@ -94,15 +93,6 @@ export function SourceChildrenScreen({
           if (!query.isError) loadMore();
         }}
         onEndReachedThreshold={0.5}
-        ListHeaderComponent={
-          <>
-            {parentId && authority.enabled && (
-              <View style={[!items.length && pageContentStyle, styles.header]}>
-                <ClassificationEntry target={{ kind: "pack", id: parentId }} />
-              </View>
-            )}
-          </>
-        }
         renderItem={({ item }) =>
           item.kind === "pack" ? (
             <PreparationLink
@@ -117,12 +107,9 @@ export function SourceChildrenScreen({
               }
             />
           ) : (
-            <View>
-              <Text style={[tokens.typography.body, { color: colors.text }]}>
-                {item.label}
-              </Text>
-              <ClassificationEntry target={{ kind: "pool", id: item.id }} />
-            </View>
+            <Text style={[tokens.typography.body, { color: colors.text }]}>
+              {item.label}
+            </Text>
           )
         }
         ListEmptyComponent={
@@ -167,6 +154,5 @@ export function SourceChildrenScreen({
 }
 const styles = StyleSheet.create({
   list: { flexGrow: 1 },
-  header: { paddingBottom: tokens.spacing.lg },
   footer: { paddingTop: tokens.spacing.lg },
 });

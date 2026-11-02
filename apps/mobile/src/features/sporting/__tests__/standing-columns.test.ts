@@ -1,6 +1,7 @@
 import {
   standingColumnLabel,
   standingPointsColumn,
+  standingVisibleColumns,
 } from "../model/standing-columns";
 
 it.each([
@@ -39,4 +40,31 @@ it.each([
 
   // Then
   expect(label).toBe(expected);
+});
+
+it("keeps only published points and played won lost columns", () => {
+  // Given
+  const columns = [
+    "Points",
+    "Matchs / Joués",
+    "Matchs / Gagnés",
+    "Matchs / Perdus",
+    "Sets / Gagnés",
+    "Résultats / 3-0",
+    "Ratio sets",
+    "Pénalité",
+  ];
+
+  // When
+  const visible = standingVisibleColumns(columns);
+
+  // Then
+  expect(visible).toEqual([
+    "Points",
+    "Matchs / Joués",
+    "Matchs / Gagnés",
+    "Matchs / Perdus",
+  ]);
+  expect(standingPointsColumn(visible)).toBe("Points");
+  expect(standingColumnLabel("Points")).toBe("Pts");
 });
