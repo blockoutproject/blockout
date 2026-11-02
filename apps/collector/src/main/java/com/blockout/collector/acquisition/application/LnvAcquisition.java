@@ -42,7 +42,8 @@ public interface LnvAcquisition {
      *
      * @param target admitted match and championship context
      * @param label published Scoresheet or DataVolley tab
-     * @return document-only facts, or null when unpublished
+     * @return document-only facts, or null when unpublished or explicitly unavailable; absence
+     *     supplies no withdrawal of an accepted reference
      * @throws RuntimeException when the source contradicts the admitted context or cannot be read
      */
     Read<SportingObservation.Facts> document(CollectionBackend.Target target, String label);

@@ -23,10 +23,15 @@ public class LnvDiscovery {
     if (!"lnv-web.dataproject.com".equalsIgnoreCase(url.getHost())
         || !competition.equals(LnvPage.query(url).get("ID"))) throw LnvPage.invalid();
     Document page = LnvPage.parse(bytes, url);
-    String title = page.select("title, [id$=lbl_title]").text().toLowerCase(Locale.ROOT);
+    String title =
+        page.select("title, .CompetitionDescription_Header, [id$=lbl_title]")
+            .text()
+            .toLowerCase(Locale.ROOT);
     if (!(title.contains("alterna volstar")
         || title.contains("saforelle volstar")
         || title.contains("volstar masculine 2")
+        || title.contains("marmara spikeligue")
+        || title.contains("saforelle power 6")
         || title.contains("ligue a masculine")
         || title.contains("ligue a féminine")
         || title.contains("ligue b masculine"))) throw LnvPage.invalid();

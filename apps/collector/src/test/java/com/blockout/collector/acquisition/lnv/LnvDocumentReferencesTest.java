@@ -24,6 +24,26 @@ import org.junit.jupiter.params.provider.ValueSource;
 @DisplayName("LNV document form state qualification")
 class LnvDocumentReferencesTest {
   @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "<p>Fichier non disponible</p>",
+        "<div id=x_DIVNoDataAvailableScoresheet><span id=x_LBL_DataNotAvailableScoresheet>Broken page</span></div>",
+        "<span id=x_LBL_DataNotAvailableScoresheet>Fichier non disponible</span>"
+      })
+  @DisplayName("Unqualified text cannot establish normal document unavailability")
+  void rejectsUnqualifiedFileAbsence(String html) {
+    // Given
+    URI page = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901");
+
+    // When
+    boolean unavailable =
+        new LnvDocumentReferences().unavailableFile(html.getBytes(StandardCharsets.UTF_8), page);
+
+    // Then
+    assertThat(unavailable).isFalse();
+  }
+
+  @ParameterizedTest
   @ValueSource(strings = {"[]", "null", "true", "42", "\"opaque\""})
   @DisplayName("Rejects non-object client state as an acquisition refusal")
   void rejectsNonObjectClientState(String state) {
@@ -50,7 +70,7 @@ class LnvDocumentReferencesTest {
   }
 
   @Test
-  @DisplayName("Document postbacks retain native submitted controls without disabled fields")
+  @DisplayName("Document postbacks retain successful controls without submitting unrelated buttons")
   void preservesSubmittedFormControls() {
     // Given
     URI page = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901");
@@ -62,6 +82,11 @@ class LnvDocumentReferencesTest {
         <select name=language><option value=fr selected>French</option></select>
         <input type=checkbox name=confirmed value=yes checked>
         <input type=checkbox name=unchecked value=no>
+        <input type=submit name=previous-image value=Prev>
+        <input type=submit name=next-image value=Next>
+        <input type=image name=image-button src=button.png>
+        <input type=reset name=reset-button value=Reset>
+        <button type=submit name=submit-button>Submit</button>
         <div id=NativeTabs><ul><li class=rtsLI>Scoresheet</li></ul></div>
         <input type=hidden id=NativeTabs_State name=Native$Tabs$State value='{"selectedIndexes":[]}'>
         </form><script>
@@ -82,7 +107,14 @@ class LnvDocumentReferencesTest {
             tuple("confirmed", "yes"));
     assertThat(form.fields())
         .extracting(NameValuePair::getName)
-        .doesNotContain("disabled-state", "unchecked");
+        .doesNotContain(
+            "disabled-state",
+            "unchecked",
+            "previous-image",
+            "next-image",
+            "image-button",
+            "reset-button",
+            "submit-button");
   }
 
   @ParameterizedTest

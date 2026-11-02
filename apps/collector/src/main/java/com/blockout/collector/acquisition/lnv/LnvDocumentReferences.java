@@ -61,7 +61,8 @@ public class LnvDocumentReferences {
 
   /**
    * Resolves the published document tab and postback state, preserving jsoup's submitted form
-   * controls and HTML action resolution without executing scripts.
+   * controls and HTML action resolution without executing scripts. An ordinary tab postback has no
+   * clicked submit button; unrelated image-navigation buttons must not override its event.
    *
    * @param html complete match page
    * @param page qualified match URL
@@ -91,6 +92,10 @@ public class LnvDocumentReferences {
         if (!index.matches("[0-9]+") || !event.matches()) throw LnvPage.invalid();
         if (!(strip.closest("form") instanceof FormElement form)
             || !form.attr("method").equalsIgnoreCase("post")) throw LnvPage.invalid();
+        form.elements()
+            .removeIf(
+                element ->
+                    element.is("input[type=submit], input[type=image], input[type=reset], button"));
         List<NameValuePair> fields = new ArrayList<>();
         String state = configuration.path("clientStateFieldID").asText();
         Element previous = document.getElementById(state);
@@ -189,6 +194,22 @@ public class LnvDocumentReferences {
             .distinct()
             .toList();
     return links.size() == 1 ? links.getFirst() : null;
+  }
+
+  /**
+   * Recognizes the provider's explicit missing-file notice after a qualified document postback. It
+   * supplies no withdrawal or replacement for a previously accepted reference.
+   *
+   * @param html complete document-tab response
+   * @param page qualified match/form base
+   * @return true only for the native container and its explicit unavailable-file label
+   */
+  public boolean unavailableFile(byte[] html, URI page) {
+    Element notice =
+        LnvPage.parse(html, page)
+            .selectFirst(
+                "[id$=_DIVNoDataAvailableScoresheet] [id$=_LBL_DataNotAvailableScoresheet]");
+    return notice != null && notice.text().equals("Fichier non disponible");
   }
 
   /**
