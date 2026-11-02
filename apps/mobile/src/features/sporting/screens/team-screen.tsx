@@ -5,7 +5,7 @@ import {
 import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
-import { PagedTabs } from "../../../shared/components/paged-tabs";
+import { SportingTabs, SportingScrollView } from "../components/sporting-tabs";
 import { ResourceText } from "../components/resource-text";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
@@ -60,35 +60,29 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
     { id: "completed", label: "Terminés" },
     ...(data?.participations ?? []).map((pool) => ({
       id: pool.pool.id,
-      label: `Classement ${poolLabel(pool)}`,
+      label: poolLabel(pool),
     })),
   ];
   const tab = tabs.some((item) => item.id === selected)
     ? selected
     : (data?.participations[0]?.pool.id ?? "upcoming");
-  /** Repeats current facts inside each scroller while admitting links only in that scene. */
-  const identity = (active: boolean) =>
-    data ? (
-      <SportingIdentity
-        identity={data.team.team}
-        kind="team"
-        classification={data.team.classification}
-        season={data.team.season}
-      >
-        {active && (
-          <SportingPresentationAction target={{ kind: "team", id: teamId }} />
-        )}
-        {data.team.club && (
-          <SportingLink
-            key={data.team.club.id}
-            kind="club"
-            active={active}
-            id={data.team.club.id}
-            label={`Voir le club ${data.team.club.name}`}
-          />
-        )}
-      </SportingIdentity>
-    ) : undefined;
+  /** One shared identity owns its club link and the single follow lifetime above all scenes. */
+  const identity = data ? (
+    <SportingIdentity
+      identity={data.team.team}
+      kind="team"
+      classification={data.team.classification}
+      season={data.team.season}
+      clubId={data.team.club?.id}
+    >
+      <SportingPresentationAction target={{ kind: "team", id: teamId }} />
+      {renderFollow?.(
+        data.team.team,
+        data.team.season,
+        data.team.classification.division?.color,
+      )}
+    </SportingIdentity>
+  ) : undefined;
   const blockingState = !data ? <ReadFeedback query={team} /> : undefined;
   return (
     <Page>
@@ -105,29 +99,23 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
           </PageScrollView>
         </>
       ) : (
-        <PagedTabs
+        <SportingTabs
           selected={tab ?? "upcoming"}
           onSelect={setSelected}
           header={
             data && (
-              <>
-                <SportingPageHeader
-                  action={
-                    <SportingSupportAction
-                      target={{ type: "team", id: teamId }}
-                    />
-                  }
-                  identity={data.team.team}
-                  kind="team"
-                />
-                {renderFollow?.(
-                  data.team.team,
-                  data.team.season,
-                  data.team.classification.division?.color,
-                )}
-              </>
+              <SportingPageHeader
+                action={
+                  <SportingSupportAction
+                    target={{ type: "team", id: teamId }}
+                  />
+                }
+                identity={data.team.team}
+                kind="team"
+              />
             )
           }
+          identity={<PageContent>{identity}</PageContent>}
           tabs={tabs.map((item) => {
             const participation = data?.participations.find(
               (pool) => pool.pool.id === item.id,
@@ -143,16 +131,13 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
                 <SportingCalendar
                   selection={{ teamId, category }}
                   active={tab === item.id}
-                >
-                  {identity(tab === item.id)}
-                </SportingCalendar>
+                />
               ) : participation && !renderStandings ? (
                 <PoolStandings
                   pool={participation}
                   highlightTeamId={teamId}
                   active={tab === item.id}
                 >
-                  {identity(tab === item.id)}
                   <Surface>
                     <SportingLink
                       key={participation.pool.id}
@@ -162,13 +147,11 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
                       label={poolLabel(participation)}
                       identity={participation.classification.division}
                     />
-                    <ResourceText>{participation.competitionName}</ResourceText>
                   </Surface>
                 </PoolStandings>
               ) : (
-                <PageScrollView alwaysBounceVertical>
+                <SportingScrollView alwaysBounceVertical>
                   <PageContent>
-                    {identity(tab === item.id)}
                     {participation && (
                       <>
                         <Surface>
@@ -180,9 +163,6 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
                             label={poolLabel(participation)}
                             identity={participation.classification.division}
                           />
-                          <ResourceText>
-                            {participation.competitionName}
-                          </ResourceText>
                         </Surface>
                         {renderStandings?.(participation) ?? (
                           <ResourceText>
@@ -192,7 +172,7 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
                       </>
                     )}
                   </PageContent>
-                </PageScrollView>
+                </SportingScrollView>
               ),
             };
           })}

@@ -4,7 +4,7 @@ import {
   type PropsWithChildren as QueryFixtureProps,
 } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -219,6 +219,7 @@ async function open(content = panel(), settleReads = true) {
   });
   if (settleReads) {
     await waitFor(() => expect(client.isFetching()).toBe(0));
+    await layoutNativeTabs();
     await waitFor(() => expect(client.isFetching()).toBe(0));
   }
   return result;

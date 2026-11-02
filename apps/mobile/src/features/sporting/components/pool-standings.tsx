@@ -1,3 +1,7 @@
+import {
+  standingColumnLabel,
+  standingPointsColumn,
+} from "../model/standing-columns";
 import { useQuery } from "@tanstack/react-query";
 import { useSportingNavigation } from "../navigation";
 import { Columns3, List } from "lucide-react-native";
@@ -9,7 +13,8 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { PageContent, PageScrollView } from "../../../shared/components/page";
+import { PageContent } from "../../../shared/components/page";
+import { SportingScrollView } from "./sporting-tabs";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
@@ -76,7 +81,7 @@ export function PoolStandings({
     ) : undefined;
   if (!hasRows)
     return (
-      <PageScrollView refreshControl={refreshControl}>
+      <SportingScrollView refreshControl={refreshControl}>
         {children && <PageContent>{children}</PageContent>}
         <ScreenState>
           {!data ? (
@@ -96,10 +101,10 @@ export function PoolStandings({
             />
           )}
         </ScreenState>
-      </PageScrollView>
+      </SportingScrollView>
     );
   return (
-    <PageScrollView alwaysBounceVertical refreshControl={refreshControl}>
+    <SportingScrollView alwaysBounceVertical refreshControl={refreshControl}>
       <PageContent>
         {children}
         <View>
@@ -153,7 +158,7 @@ export function PoolStandings({
           )}
         </View>
       </PageContent>
-    </PageScrollView>
+    </SportingScrollView>
   );
 }
 
@@ -188,7 +193,7 @@ function StandingEntry({
   ]
     .filter(Boolean)
     .join(". ");
-  const points = columns.at(-1);
+  const points = standingPointsColumn(columns);
   const medal =
     row.position === 1
       ? "first"
@@ -249,7 +254,7 @@ function StandingEntry({
                       { color: colors.secondaryText },
                     ]}
                   >
-                    {column}
+                    {standingColumnLabel(column)}
                   </Text>
                 </View>
               ))}
@@ -315,13 +320,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: tokens.spacing.sm,
     paddingVertical: tokens.spacing.md,
-    paddingLeft: tokens.spacing.xs,
     borderBottomWidth: tokens.border.thin,
     minHeight: tokens.sporting.teamMinHeight,
   },
   marker: {
     position: "absolute",
-    left: 0,
+    left: -tokens.spacing.sm,
     height: tokens.sporting.standingsMarkerHeight,
     width: tokens.sporting.standingsMarkerWidth,
     borderRadius: tokens.sporting.standingsMarkerWidth / 2,

@@ -3,23 +3,17 @@ import { View } from "react-native";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { SportingCover, SportingMedia } from "../components/sporting-media";
 
-it("uses only the supplied monogram and never derives initials from a full name", async () => {
+it("uses the neutral missing-image fallback even when a short name is available", async () => {
   // Given
   const identity = {
     name: "Association Sportive du Littoral",
     shortName: "ASL",
   };
-  const view = await render(
-    <ThemeProvider>
-      <SportingMedia identity={identity} kind="team" />
-    </ThemeProvider>,
-  );
-  expect(screen.getByText("ASL")).toBeOnTheScreen();
 
   // When
-  await view.rerender(
+  await render(
     <ThemeProvider>
-      <SportingMedia identity={{ name: identity.name }} kind="team" />
+      <SportingMedia identity={identity} kind="team" />
     </ThemeProvider>,
   );
 
@@ -28,7 +22,6 @@ it("uses only the supplied monogram and never derives initials from a full name"
     screen.getByRole("image", { name: `Logo absent : ${identity.name}` }),
   ).toBeOnTheScreen();
   expect(screen.queryByText("ASL")).not.toBeOnTheScreen();
-  expect(screen.queryByText("AS")).not.toBeOnTheScreen();
 });
 
 it.each([

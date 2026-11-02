@@ -10,7 +10,7 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { AppState, type AppStateStatus } from "react-native";
-import "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { mockAuth0 } from "../../accounts/test-support/native-auth0";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import {
@@ -73,8 +73,8 @@ function captureClient(current: QueryClient) {
 }
 
 /** Renders real feature composition and providers; the caller decides which reads should settle. */
-function renderPage(content: ReactElement) {
-  return render(content, {
+async function renderPage(content: ReactElement) {
+  const result = await render(content, {
     wrapper: ({ children }) => (
       <ConsultationProviders
         publicClient={publicClient}
@@ -84,6 +84,9 @@ function renderPage(content: ReactElement) {
       </ConsultationProviders>
     ),
   });
+  await act(async () => jest.advanceTimersByTimeAsync(0));
+  await layoutNativeTabs();
+  return result;
 }
 
 beforeEach(() => {

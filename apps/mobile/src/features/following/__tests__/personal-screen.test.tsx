@@ -1,4 +1,4 @@
-import "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
@@ -551,6 +551,7 @@ it("leaves the actual club-season and search-input owners unchanged", async () =
   const clubTeams = await within(
     screen.getByLabelText("Public club"),
   ).findByRole("tab", { name: "Équipes" });
+  await layoutNativeTabs();
   await user.press(clubTeams);
   await screen.findByRole("button", { name: `Saison ${older.label}` });
   await user.type(screen.getByLabelText("Rechercher"), "Volleyball");

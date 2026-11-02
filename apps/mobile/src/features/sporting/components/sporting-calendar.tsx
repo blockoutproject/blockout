@@ -1,4 +1,4 @@
-import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
+import { type LegendListRef } from "@legendapp/list/react-native";
 import {
   useInfiniteQuery,
   hashKey,
@@ -18,7 +18,6 @@ import {
 } from "react";
 import {
   AppState,
-  Animated,
   StyleSheet,
   Text,
   View,
@@ -39,11 +38,7 @@ import { ListContinuation } from "../../../shared/components/list-continuation";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { resourceUnavailable } from "../model/consultation-availability";
-import {
-  PageContent,
-  PageScrollView,
-  pageContentStyle,
-} from "../../../shared/components/page";
+import { PageContent, pageContentStyle } from "../../../shared/components/page";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -61,6 +56,7 @@ import {
 } from "../model/sporting-time";
 import { divisionTextColor } from "../presentation";
 import { genderLabel } from "../classification-presentation";
+import { SportingScrollView, SportingList } from "./sporting-tabs";
 import { CalendarMatch } from "./calendar-match";
 import { DivisionPaint } from "./division-paint";
 import { SportingLogo, SportingArtwork } from "./sporting-identity";
@@ -69,7 +65,7 @@ import { SportingLogo, SportingArtwork } from "./sporting-identity";
 export interface SportingCalendarProps {
   selection: Omit<CalendarSelection, "timeZone">;
   active?: boolean;
-  /** Scene-local identity and controls scroll in the calendar's actual list header. */
+  /** Scene-local controls scroll in the calendar's actual list header; the sporting page owns its shared identity. */
   children?: ReactNode;
 }
 
@@ -223,7 +219,7 @@ export function SportingCalendarView({
   ) : undefined;
   if (rows.length === 0)
     return (
-      <PageScrollView refreshControl={refreshControl}>
+      <SportingScrollView refreshControl={refreshControl}>
         {children && <PageContent>{children}</PageContent>}
         <ScreenState>
           {calendar.isError && !calendar.data ? (
@@ -239,10 +235,10 @@ export function SportingCalendarView({
             ))
           )}
         </ScreenState>
-      </PageScrollView>
+      </SportingScrollView>
     );
   return (
-    <LegendList<CalendarRow>
+    <SportingList<CalendarRow>
       {...hiddenScrollIndicators}
       // Replace the native grid when its column count changes; Query retains the traversal.
       key={columns}
@@ -265,7 +261,6 @@ export function SportingCalendarView({
       getFixedItemSize={(item) => (item.kind === "space" ? 0 : undefined)}
       keyExtractor={(item) => item.key}
       stickyHeaderIndices={stickyHeaderIndices}
-      renderScrollComponent={(props) => <Animated.ScrollView {...props} />}
       ListHeaderComponent={
         children ? (
           <View style={styles.sceneHeader}>{children}</View>
