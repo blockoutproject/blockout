@@ -21,14 +21,18 @@ public class LnvStandingsParser {
    * @param bytes complete bounded standings HTML
    * @param url qualified page base
    * @param group native group container
-   * @return explicit publication and source labels/statistics
+   * @return explicit publication and source labels/statistics; a native playoff bracket supplies no
+   *     tabular standings
    */
   public SportingObservation.Standings parse(byte[] bytes, URI url, String group) {
     Element container = LnvPage.parse(bytes, url).getElementById("Content_Main_" + group);
     if (container == null) throw LnvPage.invalid();
     Element table = container.selectFirst("table.rgMasterTable");
     if (table == null) {
-      if (container.text().matches("(?is).*aucun classement.*"))
+      Element playoff = container.selectFirst("[id$=_RPL_POGrid]");
+      Element championship = container.selectFirst("input[id$=_HiddenChampionship]");
+      if (container.text().matches("(?is).*aucun classement.*")
+          || (playoff != null && championship != null && group.equals(championship.attr("value"))))
         return new SportingObservation.Standings(
             StandingsPublicationStateEnum.NOT_PUBLISHED, List.of(), List.of());
       throw LnvPage.invalid();
@@ -53,7 +57,7 @@ public class LnvStandingsParser {
     }
     if (columns.size() < 2 || !columns.getFirst().equals("Equipe")) throw LnvPage.invalid();
     List<SportingObservation.Standing> rows = new ArrayList<>();
-    for (Element row : table.select("tbody > tr")) {
+    for (Element row : table.select("> tbody > tr")) {
       List<Element> cells = row.children();
       if (cells.size() != columns.size()) throw LnvPage.invalid();
       Element name = cells.getFirst().selectFirst("[id=TeamName]");

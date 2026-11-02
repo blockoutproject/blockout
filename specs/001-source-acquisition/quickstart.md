@@ -16,6 +16,41 @@ Generated target mapping retains exact references and current locality revisions
 
 Verified document-team associations remain explicit configuration scoped to season, championship and native team. Empty configuration leaves auxiliary XML codes unavailable. No test fixture, sampled current identifier or ordinary discovery run supplies missing historical associations or activates collection. Actual provider qualification, native operator journeys and scheduling remain with their owning tasks.
 
+### Professional source qualification (T040)
+
+The authorized isolated rehearsal on 2 November 2026 uses the packaged collector and backend,
+their generated ingestion interfaces, and Liquibase-migrated PostgreSQL 18.6. Sporting data enter
+only through ordinary collector observations and F02 acceptance. A controlled local signing
+endpoint and operator establish local authentication/grant boundaries only; they do not qualify
+Auth0. Both selected seasons remain PREPARING with periodic collection disabled. Private runtime
+configuration, observations, captures and restart instructions stay outside Git.
+
+The three current [LNV entries](research.md#lnv-coverage-time-and-images) published championships
+135, 137 and 139 for 2026/2027. The historical [DataProject portal](https://lnv-web.dataproject.com/MainHome.aspx)
+explicitly published 2024/2025 roots 113, 115 and 116. Their native championship headings and
+phase links require no guessed identifiers; absent machine-readable seasonal evidence is supplied
+through the existing exact-season confirmation. Historical sporting observations never use the
+current XML feed.
+
+The current passage has integrated 536 matches across groups 316, 315 and 318. The historical
+passage is still running across the six published regular/playoff groups 275, 277, 278, 280, 279
+and 281. Completion and final per-scope outcomes remain pending; these intermediate counts do
+not complete T040 or establish exhaustive historical coverage.
+
+The independent parser regressions use synthetic fragments. They cover historical championship
+headings without invented season evidence, unrelated championships, nested team-presentation
+tables inside actual standings rows, contextual playoff brackets without tabular standings, and
+missing/contradictory absence markers. A tab postback excludes unrelated submit/image/reset
+buttons while retaining ordinary successful form controls; otherwise hidden lightbox buttons can
+override the document tab. The actual bounded adapter now extracts both published PDF links
+from current match 9612 and historical match 8697 without downloading PDF bodies.
+
+F03's real public Match endpoint and the existing iOS development client display the collected
+Toulouse–Sète match, its 3–1 result and four sets. Its currently published offset-zero detail clock
+is 17:00 on 17 October 2026, represented as 19:00 Europe/Paris and the same 17:00Z instant.
+This differs from the older dated research sample; provider corrections are not replaced by XML
+times. Full native PDF relay/reader qualification remains with [F03's document owner](../007-sporting-consultation/quickstart.md#match-document-construction-and-pending-qualification--t047t058).
+
 ## Club and municipal scheduling (T052–T057)
 
 `AcquisitionSchedulerTest` verifies the existing minute opportunities for seasonless controls without a catch-up schedule. `ClubAcquisitionIntegrationTest` uses the actual migrated PostgreSQL owner, F01 admission/results and F02 correction/restriction/locality services with a controlled clock. It verifies immediate first sheets, the exact 24-hour deadline (including after failure), independent seasonless controls, new permitted needs on the next minute opportunity, ordinary hourly eligibility after technical failure (including a failed manual retry after an older normal no-result, a full earlier page of suppressed needs, and a newer accepted F02 result whose F01 acquisition record was lost), current target-read restrictions, stale-revision refusal, unchanged empty/ambiguous suppression and explicit unresolved-only reruns. `SportingPresentationIntegrationTest` supplies the complementary effective-city/postal, street-only, masked-source, return-to-source and valid-point retention cases. No personal locality is stored in the cycle snapshot.

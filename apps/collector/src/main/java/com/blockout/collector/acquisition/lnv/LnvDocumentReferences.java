@@ -61,7 +61,8 @@ public class LnvDocumentReferences {
 
   /**
    * Resolves the published document tab and postback state, preserving jsoup's submitted form
-   * controls and HTML action resolution without executing scripts.
+   * controls and HTML action resolution without executing scripts. An ordinary tab postback has no
+   * clicked submit button; unrelated image-navigation buttons must not override its event.
    *
    * @param html complete match page
    * @param page qualified match URL
@@ -91,6 +92,10 @@ public class LnvDocumentReferences {
         if (!index.matches("[0-9]+") || !event.matches()) throw LnvPage.invalid();
         if (!(strip.closest("form") instanceof FormElement form)
             || !form.attr("method").equalsIgnoreCase("post")) throw LnvPage.invalid();
+        form.elements()
+            .removeIf(
+                element ->
+                    element.is("input[type=submit], input[type=image], input[type=reset], button"));
         List<NameValuePair> fields = new ArrayList<>();
         String state = configuration.path("clientStateFieldID").asText();
         Element previous = document.getElementById(state);
