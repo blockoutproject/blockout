@@ -3,6 +3,12 @@ package com.blockout.backend.following.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.accounts.application.PrincipalReader;
@@ -38,19 +44,24 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
- * Real relation commits/locks with controlled account-row removal, not F05 erasure orchestration.
+ * Generated HTTP handlers and real relation commits/locks with controlled account-row removal.
+ * F05's actual erasure orchestration is qualified by EraseAccountIntegrationTest.
  */
 @SpringBootTest
+@AutoConfigureMockMvc
 @DisplayName("Durable team and pool follows on PostgreSQL")
 @Import(PostgresTestConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
@@ -64,6 +75,7 @@ class FollowRelationsIntegrationTest {
   // Deliberately equal UUIDs in different owner tables must remain distinct typed targets.
   private static final UUID TARGET = UUID.fromString("00000000-0000-4000-8000-000000000013");
   @Autowired private JdbcTemplate sql;
+  @Autowired private MockMvc mvc;
   @Autowired private FollowState state;
   @Autowired private FollowStore store;
   @Autowired private ReadFollowEligibility eligibility;
@@ -120,33 +132,79 @@ class FollowRelationsIntegrationTest {
   @ParameterizedTest
   @EnumSource(TargetType.class)
   @DisplayName("Preserves UUID on repeated true and assigns a new UUID after removal")
-  void replacesIdempotently(TargetType type) {
+  void replacesIdempotently(TargetType type) throws Exception {
     // Given
     FollowContext context = context(type);
-    assertThat(state.read(context)).isFalse();
-    assertThat(state.replace(context, true)).isTrue();
+    mvc.perform(
+            get(memberPath(type))
+                .with(
+                    jwt()
+                        .jwt(
+                            token ->
+                                token
+                                    .issuer("https://identity.example.invalid/")
+                                    .subject("one")
+                                    .claim("azp", "mobile-test"))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.following").value(false));
+    replaceMember(type, true);
     UUID original = relation(type).id();
 
     // When
-    boolean repeatedTrue = state.replace(context, true);
+    replaceMember(type, true);
     UUID retained = relation(type).id();
-    boolean firstRemoval = state.replace(context, false);
-    boolean repeatedRemoval = state.replace(context, false);
+    replaceMember(type, false);
+    replaceMember(type, false);
     Optional<Relation> removed = store.find(context);
-    boolean restored = state.replace(context, true);
+    replaceMember(type, true);
     UUID recreated = relation(type).id();
 
     // Then
-    assertThat(repeatedTrue).isTrue();
     assertThat(retained).isEqualTo(original);
-    assertThat(firstRemoval).isFalse();
-    assertThat(repeatedRemoval).isFalse();
     assertThat(removed).isEmpty();
-    assertThat(restored).isTrue();
+    assertThat(state.read(context)).isTrue();
     assertThat(recreated).isNotEqualTo(original);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_team", Long.class)).isEqualTo(1L);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_pool", Long.class)).isEqualTo(1L);
     verifyNoInteractions(provider);
+  }
+
+  /**
+   * Sends the scenario's explicit desired state through generated MVC/security and real owners.
+   *
+   * @param type exact typed target sharing this fixture's UUID
+   * @param following complete requested state, never a toggle
+   * @throws Exception if dispatch or its confirmed response fails
+   */
+  private void replaceMember(TargetType type, boolean following) throws Exception {
+    mvc.perform(
+            put(memberPath(type))
+                .with(
+                    jwt()
+                        .jwt(
+                            token ->
+                                token
+                                    .issuer("https://identity.example.invalid/")
+                                    .subject("one")
+                                    .claim("azp", "mobile-test")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"following\":" + following + "}"))
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.following").value(following));
+  }
+
+  /**
+   * Names the actual generated member route for the original account and typed sporting identity.
+   *
+   * @param type exact relation kind
+   * @return canonical member path without performing a request
+   */
+  private static String memberPath(TargetType type) {
+    return "/accounts/"
+        + ACCOUNT
+        + (type == TargetType.TEAM ? "/team-follows/" : "/pool-follows/")
+        + TARGET;
   }
 
   @Test

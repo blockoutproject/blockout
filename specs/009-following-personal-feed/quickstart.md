@@ -1,6 +1,6 @@
 # Quickstart: qualify following and the personal feed
 
-The executable workspace, T001–T005 contract/context foundation and T006/T007/T009/T010/T012/T013 backend relation slice are available. Full erasure orchestration and integrated/native scenarios below retain their owning qualifications. Use the actual [README verification commands](../../README.md#verification) and the owning task scope; passing foundation checks does not complete the later journeys.
+The executable workspace, contract/context foundation, relation actions and original-account erasure participant are available. The sections below distinguish their SQL, generated-consumer and native evidence from the remaining qualifications. Use the actual [README verification commands](../../README.md#verification) and the owning task scope; passing foundation checks does not complete the later journeys.
 
 ## Prerequisites
 
@@ -28,13 +28,17 @@ Verify unauthenticated requests, another account, erased original account, hidde
 `FollowStateWebMvcTest` exercises the production generated member controller with controlled
 application state, real F05 identity and F12 admission: confirmed booleans, body validation, native query conversion/ignored undeclared fields,
 media refusal, original-owner isolation, explicit maintenance bypass and opaque no-store failures.
-`FollowRelationsIntegrationTest` uses migrated PostgreSQL 18.6 and the restricted application role
-for UUID lifecycle, FK/uniqueness, independent typed targets, current F02 visibility, retained hidden
+`FollowRelationsIntegrationTest` uses migrated PostgreSQL 18.6 and the restricted application role.
+Its team/pool UUID lifecycle goes through the production generated MVC handlers, real F05/F12 admission
+and real F06 persistence, with synthetic Spring Security principals: repeated true retains the UUID,
+false removes it, repeated false stays absent and re-follow creates another UUID. The same suite covers
+FK/uniqueness, independent typed targets, current F02 visibility, retained hidden
 relations, identity corrections, rollback and competing original-account writes. A member read
 finishes against its ordinary snapshot while another transaction still holds the account write lock;
 write/erasure cases retain their actual serialization. Its deletion
-fixtures remove the account row under F05's lock; they do not invoke the future F05 erasure
-orchestrator or F06 participant. Those integrated races remain T011/T016 and F05 T035.
+fixtures remove the account row under F05's lock; they do not invoke the F05 erasure
+orchestrator. The actual orchestrator/participant, rollback and replacement-account proof belongs to
+the [original-account erasure qualification](#original-account-erasure-participant), reused by T016.
 
 `ReadFollowEligibilityTest` and the relation integration suite exercise immutable current
 account/target/relation values, overlapping origins without duplicate recipients and the difference
@@ -51,6 +55,21 @@ The focused command is:
 ## Relationships and calendar
 
 With Testcontainers PostgreSQL and the real schema, qualify repeated true/false, unique constraints, concurrent devices and account erasure racing a write. Last server-recorded state wins; erasure cannot leave or recreate an orphan relation. Hiding/restoring changes visibility without changing relation identity or the count's underlying truth. Re-follow uses a new relation identity.
+
+T016 combines the durable boundary above with the real generated Orval consumers against a loopback
+backend and migrated disposable PostgreSQL. Synthetic signed JWTs pass the production signature,
+issuer, audience and client checks. React execution replaces Expo Fetch's native I/O with a Node HTTP
+bridge, alongside controlled native Auth0 RPC and establishment-provider evidence. The bridge does
+not forward AbortSignal and qualifies neither native waiting bounds nor cancellation. Team/pool
+repeats, removal/recreation and current F02 hiding/correction preserve the
+SQL identity rules. The actual F03 Team route, F05 session/admission owners and F06 control perform
+follow/removal against that server. Dropping a committed response leaves ordinary action feedback,
+one generated member observation and no second PUT; the waiting/cancellation bounds retain their
+focused transport/component evidence under [mobile journeys](#mobile-journeys). Holding a real response across sign-out
+or a different subject leaves the new private client unchanged while the original relation remains
+with its owner. Actual DELETE and generated explicit establishment create a new account UUID with
+no follows; an old UUID-targeted PUT returns 404. Native networking observations are recorded under
+[mobile journeys](#mobile-journeys); React execution alone does not qualify them.
 
 T044 uses [the actual producer-to-send suite](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/FollowRecipientDeliveryIntegrationTest.java) with the existing contribution scenario, migrated PostgreSQL 18.6 and real F02/F05/F06/F07/F08 owners. Only time, worker scheduling and the external provider boundary are controlled. F02 result acceptance, F08 direct publication and the due-link pass each allocate one inbox entry and submit one message for a person following both teams and their pool on one installation. Actual personal-calendar reads select All seasons, an unfollowed catalog season and the followed season around trigger/send without changing delivery eligibility; this qualifies the backend consumer boundary, not native selector behavior.
 
@@ -107,8 +126,24 @@ The generated boundary remains unchanged; the independent public counter is qual
 npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/following/__tests__/follow-action.test.tsx
 ```
 
-These JavaScript checks establish no actual authentication provider, account-erasure orchestration,
-native accessibility or design qualification. T016, later story tasks and T045 retain their scopes;
+The T016 loopback qualification above additionally connects these generated consumers and the actual
+F03 Team route to the real backend/database. On reused iOS 27.0 and Android 17 development clients,
+the actual application root, session, admission, Query and Expo Fetch owners remain active. Only
+native Auth0 RPC and a twelve-second handoff delay after the real PUT response are controlled.
+Both clients read the same fictional account/target. Follow and removal change the real SQL row;
+re-follow creates a new UUID. An iOS addition followed by an independent Android removal while the
+responses are held leaves no relation: both controls settle through ordinary reads on the last
+server-recorded false state. This does not promise a global gesture order or immediate cross-device
+refresh. Signing out on iOS before its held response arrives leaves the guest context intact and
+the relation with the original owner. Different-subject response isolation is also exercised by
+the real-server React consumer case above.
+
+These checks establish no actual authentication provider, physical-device accessibility or design
+qualification. iOS accessibility extraction is sparse, so its native actions use visual coordinates;
+Android exposes the follow's selected/busy control. Synthetic sporting fixtures leave unrelated
+standings/search reads unavailable; no complete list/calendar outcome is inferred. Full erasure
+transaction evidence stays with [F05](../005-accounts-identity/quickstart.md#local-erasure-races-and-return--t035),
+and later story tasks and T045 retain their scopes;
 live Dynamic Type [F13 native qualification](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) and iOS input
 [F13 native qualification](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) remain deferred.
 
@@ -398,4 +433,4 @@ The later native-only [A32/A33](../003-shared-quality/quickstart.md#feedback-and
 
 ## Original-account erasure participant
 
-T011 supplies `EraseAccountFollows` through the actual F06 JPA store in F05's single account-lock transaction. The [F05 server erasure construction](../005-accounts-identity/quickstart.md#server-erasure-construction) qualifies visible/hidden pool and team relation removal, writer ordering, rollback and replacement-account isolation. Sporting targets and other owners survive; this adds no sporting-root acquisition or F06 recovery process. Broader T016 qualification retains its own scope.
+T011 supplies `EraseAccountFollows` through the actual F06 JPA store in F05's single account-lock transaction. The [F05 server erasure construction](../005-accounts-identity/quickstart.md#server-erasure-construction) and [local races/return](../005-accounts-identity/quickstart.md#local-erasure-races-and-return--t035) qualify visible/hidden pool and team removal, both writer orders and replacement-account isolation. `EraseAccountIntegrationTest` observes both F06 tables already empty inside that transaction while the original account still exists, before its FK cascade could conceal a missing participant. Required participant and final account-delete failures restore the exact original team/pool relation UUIDs and start no provider cleanup. A generated original-target follow PUT after actual erasure/establishment returns 404 while the replacement's member state stays false. Sporting targets and other owners survive; this adds no sporting-root acquisition or F06 recovery process. T016 reuses these real participant cases rather than repeating row-deletion fixtures as orchestration evidence.
