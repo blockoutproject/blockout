@@ -20,36 +20,78 @@ Verified document-team associations remain explicit configuration scoped to seas
 
 The authorized isolated rehearsal on 2 November 2026 uses the packaged collector and backend,
 their generated ingestion interfaces, and Liquibase-migrated PostgreSQL 18.6. Sporting data enter
-only through ordinary collector observations and F02 acceptance. A controlled local signing
-endpoint and operator establish local authentication/grant boundaries only; they do not qualify
-Auth0. Both selected seasons remain PREPARING with periodic collection disabled. Private runtime
-configuration, observations, captures and restart instructions stay outside Git.
+only through ordinary collector observations and F02 acceptance. Controlled local signing and
+operator grants establish local authentication boundaries only, without Auth0 qualification.
+Both selected seasons remain PREPARING with periodic collection disabled. Private runtime
+configuration, normalized observations, captures and restart instructions stay outside Git.
 
 The three current [LNV entries](research.md#lnv-coverage-time-and-images) published championships
 135, 137 and 139 for 2026/2027. The historical [DataProject portal](https://lnv-web.dataproject.com/MainHome.aspx)
 explicitly published 2024/2025 roots 113, 115 and 116. Their native championship headings and
-phase links require no guessed identifiers; absent machine-readable seasonal evidence is supplied
-through the existing exact-season confirmation. Historical sporting observations never use the
-current XML feed.
+phase links require no guessed identifiers. The existing exact-season confirmation supplies
+missing machine-readable attribution; it cannot supply parser compatibility or unknown phases.
+The ordinary collector follows each selected root's published regular/playoff calendars, including
+the final fixtures within those playoff groups.
 
-The current passage has integrated 536 matches across groups 316, 315 and 318. The historical
-passage is still running across the six published regular/playoff groups 275, 277, 278, 280, 279
-and 281. Completion and final per-scope outcomes remain pending; these intermediate counts do
-not complete T040 or establish exhaustive historical coverage.
+| Season    | Championship              | Phase / group | Matches | F03 official standings |
+| --------- | ------------------------- | ------------- | ------- | ---------------------- |
+| 2026/2027 | Saforelle VOLSTAR / 135   | 193 / 316     | 156     | 13 rows                |
+| 2026/2027 | Alterna VOLSTAR / 137     | 192 / 315     | 182     | 14 rows                |
+| 2026/2027 | VOLSTAR Masculine 2 / 139 | 196 / 318     | 198     | 12 rows                |
+| 2024/2025 | Saforelle Power 6 / 113   | 156 / 275     | 182     | 14 rows                |
+| 2024/2025 | Saforelle Power 6 / 113   | 158 / 277     | 24      | not-published          |
+| 2024/2025 | Marmara SpikeLigue / 115  | 159 / 278     | 156     | 13 rows                |
+| 2024/2025 | Marmara SpikeLigue / 115  | 161 / 280     | 22      | not-published          |
+| 2024/2025 | Ligue B Masculine / 116   | 160 / 279     | 90      | 10 rows                |
+| 2024/2025 | Ligue B Masculine / 116   | 162 / 281     | 24      | not-published          |
 
-The independent parser regressions use synthetic fragments. They cover historical championship
-headings without invented season evidence, unrelated championships, nested team-presentation
-tables inside actual standings rows, contextual playoff brackets without tabular standings, and
-missing/contradictory absence markers. A tab postback excludes unrelated submit/image/reset
-buttons while retaining ordinary successful form controls; otherwise hidden lightbox buttons can
-override the document tab. The actual bounded adapter now extracts both published PDF links
-from current match 9612 and historical match 8697 without downloading PDF bodies.
+**Observed integration**: The retained database contains 536 current and 498 historical matches,
+with 76 professional teams and no club association. All 1,034 dated matches are obtained through
+53 complete F03 calendar pages without duplicate identities or cross-season/pool attribution.
+The actual pool, participant, standings and representative Match responses pass the unchanged
+generated mobile schemas. The three native playoff containers publish brackets rather than
+standings tables: F03 reports `not-published`, zero rows and no failed last attempt, while their
+calendars and participants remain usable. After identified parser corrections, the existing
+narrower initial-request selection requalifies six failed table scopes and three document scopes;
+no interrupted passage is claimed complete. Final current F01 outcomes contain no failed or
+partial observation. These nine published groups establish representative T040 coverage, not
+exhaustive archives, future-phase availability or reconstruction/cutover acceptance.
 
-F03's real public Match endpoint and the existing iOS development client display the collected
-Toulouse–Sète match, its 3–1 result and four sets. Its currently published offset-zero detail clock
-is 17:00 on 17 October 2026, represented as 19:00 Europe/Paris and the same 17:00Z instant.
-This differs from the older dated research sample; provider corrections are not replaced by XML
-times. Full native PDF relay/reader qualification remains with [F03's document owner](../007-sporting-consultation/quickstart.md#match-document-construction-and-pending-qualification--t047t058).
+**Observed document handoff**: F02 retains 85 current scoresheet and 85 current statistics-PDF
+references, plus 498 historical scoresheet and 497 historical statistics-PDF references. Only two
+verified current-season native-team/XML-label associations qualify the two information-sheet
+codes; historical associations remain absent and no current XML supplies historical sporting
+facts or document codes. Current source match 9612 exposes the three contextual document actions
+through F03; historical match 8697 exposes only its own scoresheet/statistics actions in
+2024/2025. Public action URLs identify the same Blockout match and never expose a supplier locator.
+Two current second-division matches have explicit unavailable-file notices; historical women's
+match 8323 has a scoresheet but an explicit unavailable statistics file. Those gaps remain absent
+in F03, without invented references or withdrawal of useful accepted facts. No PDF body is
+fetched during collection.
+
+**Observed clocks and native consultation**: Current calendar 137/192 has both native time flags;
+14 unqualified clock proposals remain omitted until independently usable details supply them.
+Offset-zero detail 9612 currently publishes 17:00 on 17 October 2026, represented as 19:00
+Europe/Paris and the same 17:00Z instant. Historical detail 8697 publishes 19:00 at offset zero
+and 21:00 at offset −120 on 4 April 2025. Java time applies that date's Paris offset. The older
+dated research clock is not substituted for a provider correction, and XML times never replace
+these sporting facts. Final selected Match projections all have known instants; source date-only
+absence and UTC midnight/date changes retain their synthetic qualification below. The existing
+iOS development client consumes the actual local backend through its generated client and
+renders the collected Toulouse–Sète result, four sets and date-specific clock, and the official
+current pool standings. This is direct F03
+resource consultation: search and its index are disabled, and no F04 qualification is inferred.
+
+**Synthetic boundaries**: The independent regressions cover historical headings without invented
+season evidence, unrelated championships, nested team-presentation tables inside official rows,
+contextual missing standings versus broken structure, unknown clocks and UTC date changes,
+ambiguous/foreign document associations and retained references through rescheduling. Ordinary
+Telerik tab postbacks omit unrelated submit/image/reset buttons while preserving successful
+form controls. A qualified native unavailable-file notice supplies no replacement reference;
+unrecognized missing links remain a structural refusal. Repository collector verification and
+formatting pass; live providers are not CI dependencies. Native PDF relay/reader, physical-device,
+accessibility and complete operator-journey qualification remain with their [F03 document](../007-sporting-consultation/quickstart.md#match-document-construction-and-pending-qualification--t047t058)
+and other existing owners.
 
 ## Club and municipal scheduling (T052–T057)
 
