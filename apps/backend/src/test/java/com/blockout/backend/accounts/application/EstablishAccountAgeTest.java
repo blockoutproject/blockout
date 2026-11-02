@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 import com.blockout.backend.accounts.application.exception.AccountUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -57,9 +56,7 @@ class EstablishAccountAgeTest {
     when(reads.original(ISSUER, SUBJECT, ORIGINAL))
         .thenReturn(new ReadAccount.View(original, false, Set.of()));
     if (outage) when(provider.read(ISSUER, SUBJECT)).thenThrow(new AccountUnavailableException());
-    else
-      when(provider.read(ISSUER, SUBJECT))
-          .thenReturn(new PrincipalReader.Evidence(null, null, List.of()));
+    else when(provider.read(ISSUER, SUBJECT)).thenReturn(new PrincipalReader.Evidence(null, null));
     EstablishAccount establishment = new EstablishAccount(accounts, provider, reads, transactions);
 
     // When
@@ -79,7 +76,7 @@ class EstablishAccountAgeTest {
     PrincipalReader provider = mock(PrincipalReader.class);
     when(accounts.findIdByPrincipal(ISSUER, SUBJECT)).thenReturn(Optional.empty());
     when(provider.read(ISSUER, SUBJECT))
-        .thenReturn(new PrincipalReader.Evidence("owner@example.invalid", null, List.of()));
+        .thenReturn(new PrincipalReader.Evidence("owner@example.invalid", null));
     when(accounts.create(eq(ISSUER), eq(SUBJECT), any(), eq("owner@example.invalid"), eq(null)))
         .thenReturn(account(ORIGINAL, null));
     when(reads.original(ISSUER, SUBJECT, ORIGINAL))
@@ -105,7 +102,7 @@ class EstablishAccountAgeTest {
     when(accounts.findIdByPrincipal(ISSUER, SUBJECT)).thenReturn(Optional.of(original.id()));
     when(provider.read(ISSUER, SUBJECT))
         .thenThrow(new AccountUnavailableException())
-        .thenReturn(new PrincipalReader.Evidence(null, HISTORICAL, List.of()));
+        .thenReturn(new PrincipalReader.Evidence(null, HISTORICAL));
     when(accounts.synchronize(ORIGINAL, null, null)).thenReturn(Optional.of(original));
     when(accounts.synchronize(ORIGINAL, null, HISTORICAL))
         .thenReturn(Optional.of(account(ORIGINAL, HISTORICAL)));
@@ -139,8 +136,7 @@ class EstablishAccountAgeTest {
     PrincipalReader provider = mock(PrincipalReader.class);
     when(accounts.findIdByPrincipal(ISSUER, currentSubject)).thenReturn(Optional.empty());
     when(provider.read(ISSUER, currentSubject))
-        .thenReturn(
-            new PrincipalReader.Evidence("owner@example.invalid", currentPrincipalDate, List.of()));
+        .thenReturn(new PrincipalReader.Evidence("owner@example.invalid", currentPrincipalDate));
     Account replacement =
         new Account(
             REPLACEMENT,

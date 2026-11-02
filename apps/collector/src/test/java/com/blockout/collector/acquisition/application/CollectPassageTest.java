@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -34,7 +35,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -662,7 +662,7 @@ class CollectPassageTest {
                   + "<div class=rmpView id=Content_Main_903><span id=group_lbl_title>Regular</span></div>")
               .getBytes(StandardCharsets.UTF_8);
       ProviderResponse response = new ProviderResponse(html, page, true);
-      when(http.page(page)).thenReturn(CompletableFuture.completedFuture(response));
+      doReturn(response).when(http).page(page);
       DiscoverSeasonSources realDiscovery =
           new DiscoverSeasonSources(
               http,

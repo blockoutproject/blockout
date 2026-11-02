@@ -46,8 +46,7 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
       """
       SELECT NEW com.blockout.backend.sporting.infrastructure.SportingPresentationRow(
         t.id, t.sourceName, t.manualName, t.manualShortName, t.presentationRevision, t.provider,
-        t.logo IS NOT NULL, t.sourceLogo IS NOT NULL, c.id, c.logo IS NOT NULL,
-        COALESCE(c.logoRevision, 0L))
+        t.logo IS NOT NULL, t.sourceLogo IS NOT NULL, c.id, c.logo IS NOT NULL)
       FROM TeamEntity t LEFT JOIN t.club c WHERE t.id IN :ids
       """)
   List<SportingPresentationRow> findPresentations(Set<UUID> ids);

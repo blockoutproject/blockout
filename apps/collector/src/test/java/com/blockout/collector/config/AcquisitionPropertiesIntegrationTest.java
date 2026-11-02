@@ -45,7 +45,6 @@ class AcquisitionPropertiesIntegrationTest {
           assertThat(properties.maxResponseBytes()).isEqualTo(8 * 1024 * 1024);
           assertThat(properties.maxRedirects()).isEqualTo(3);
           assertThat(properties.concurrencyPerProvider()).isEqualTo(2);
-          assertThat(properties.queueCapacityPerProvider()).isEqualTo(8);
           assertThat(properties.permitsPerPeriod()).isEqualTo(1);
           assertThat(properties.refreshPeriod()).isEqualTo(Duration.ofSeconds(1));
           assertThat(properties.permitTimeout()).isEqualTo(Duration.ofSeconds(5));
@@ -84,7 +83,6 @@ class AcquisitionPropertiesIntegrationTest {
     "max-response-bytes=0, maxResponseBytes",
     "max-redirects=-1, maxRedirects",
     "concurrency-per-provider=0, concurrencyPerProvider",
-    "queue-capacity-per-provider=-1, queueCapacityPerProvider",
     "permits-per-period=0, permitsPerPeriod",
     "refresh-period=0s, refreshPeriod",
     "permit-timeout=-1s, permitTimeout",
@@ -111,14 +109,12 @@ class AcquisitionPropertiesIntegrationTest {
   }
 
   @Test
-  @DisplayName("Allows immediate refusal without queueing, redirects or permit waiting")
+  @DisplayName("Allows native reads without redirects or permit waiting")
   void allowsImmediateRefusal() {
     // Given
     ApplicationContextRunner configured =
         application.withPropertyValues(
-            "blockout.acquisition.queue-capacity-per-provider=0",
-            "blockout.acquisition.max-redirects=0",
-            "blockout.acquisition.permit-timeout=0s");
+            "blockout.acquisition.max-redirects=0", "blockout.acquisition.permit-timeout=0s");
 
     // When
     configured.run(

@@ -4,7 +4,7 @@ import {
   type PropsWithChildren as QueryFixtureProps,
 } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import "../../../shared/native/test-support/tab-view-native";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -195,7 +195,6 @@ async function open(
     ),
   });
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  await layoutNativeTabs();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   return result;
 }
@@ -337,13 +336,11 @@ it("loads team participation standings lazily and preserves them through calenda
 
   // When
   await user.press(screen.getByRole("tab", { name: "À venir" }));
-  await layoutNativeTabs();
   await screen.findByText("Aucun match pour cette sélection");
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await user.press(
     screen.getByRole("tab", { name: `Classement ${pool.pool.name}` }),
   );
-  await layoutNativeTabs();
 
   // Then
   expect(await screen.findByText("Official Z")).toBeOnTheScreen();
@@ -362,7 +359,6 @@ it("keeps a pool calendar usable while standings fail", async () => {
 
   // When
   await user.press(await screen.findByRole("tab", { name: "À venir" }));
-  await layoutNativeTabs();
 
   // Then
   expect(

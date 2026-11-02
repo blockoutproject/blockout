@@ -40,7 +40,6 @@ export function createFollowListOptions(
   request: (signal?: AbortSignal) => Promise<ApiFetchOptions>,
   type: FollowingTarget["type"],
   seasonId: string | undefined,
-  read: PersonalCalendarRead,
   bypass = false,
 ) {
   const selection = seasonId ? { seasonId } : {};
@@ -50,20 +49,13 @@ export function createFollowListOptions(
     initialPageParam: 0,
     queryFn: async ({ signal, pageParam, client }): Promise<FollowListPage> => {
       try {
-        return await read(
-          seasonId,
-          signal,
-          async () => {
-            const options = await request(signal);
-            const result = await (
-              type === "team" ? listTeamFollows : listPoolFollows
-            )(owner.accountId, { ...selection, page: pageParam }, options);
-            if (signal.aborted || options.signal?.aborted)
-              throw new ApiError("cancelled");
-            return result;
-          },
-          queryKey,
-        );
+        const options = await request(signal);
+        const result = await (
+          type === "team" ? listTeamFollows : listPoolFollows
+        )(owner.accountId, { ...selection, page: pageParam }, options);
+        if (signal.aborted || options.signal?.aborted)
+          throw new ApiError("cancelled");
+        return result;
       } catch (error) {
         if (
           !signal.aborted &&
@@ -103,79 +95,20 @@ export function createFollowOptionsQueryOptions(
     queryKey: followOptionsKey(owner, bypass),
     refetchOnMount: "always",
     retryOnMount: true,
-    queryFn: async ({ signal }) => {
+    queryFn: async ({ signal, client }) => {
       const options = await request(signal);
       const result = await getFollowOptions(owner.accountId, options);
       if (signal.aborted || options.signal?.aborted)
         throw new ApiError("cancelled");
+      for (const seasonId of retainedSeasonIds(client, owner, bypass)) {
+        if (result.seasons.some((season) => season.id === seasonId)) continue;
+        await withdrawUnavailableFollows(client, owner, bypass, seasonId);
+        if (signal.aborted || options.signal?.aborted)
+          throw new ApiError("cancelled");
+      }
       return result;
     },
   });
-}
-/** Captured selection boundary reconciles established seasonal absence without adding retries. */
-export interface PersonalSelectionRead {
-  client: QueryClient;
-  owner: FollowingOwner;
-  seasonId: string | undefined;
-  signal: AbortSignal;
-  currentKey?: QueryKey;
-  bypass?: boolean;
-  options: ReturnType<typeof createFollowOptionsQueryOptions>;
-  selectSeason: (seasonId: string | undefined) => void;
-}
-/**
- * Reads once, then on seasonal NotFound rereads options once through bounded transport.
- * Successful omission withdraws that season from retained views before selecting the ordinary default.
- * A still-offered season or failed reread preserves the original read error for explicit retry.
- * Obsolete session/selection completions never update the current choice or successful data.
- */
-export async function readPersonalSelection<T>(
-  context: PersonalSelectionRead,
-  read: () => Promise<T>,
-): Promise<T> {
-  /** Rejects obsolete work before a request and after each asynchronous boundary. */
-  function assertCurrent() {
-    if (context.signal.aborted) throw new ApiError("cancelled");
-  }
-  assertCurrent();
-  try {
-    const result = await read();
-    assertCurrent();
-    return result;
-  } catch (error) {
-    assertCurrent();
-    if (
-      !(error instanceof ApiError) ||
-      error.status !== 404 ||
-      context.seasonId === undefined
-    )
-      throw error;
-    try {
-      const options = await context.client.fetchQuery({
-        ...context.options,
-        staleTime: 0,
-      });
-      assertCurrent();
-      if (!options.seasons.some((season) => season.id === context.seasonId)) {
-        await withdrawUnavailableFollows(
-          context.client,
-          context.owner,
-          context.bypass ?? false,
-          context.seasonId,
-          context.currentKey,
-        );
-        assertCurrent();
-        context.selectSeason(options.defaultSeasonId);
-        throw new ApiError("cancelled");
-      }
-    } catch (optionsError) {
-      assertCurrent();
-      // The options error cannot establish disappearance or replace the original read failure.
-      if (optionsError instanceof ApiError && optionsError.kind === "cancelled")
-        throw optionsError;
-    }
-    throw error;
-  }
 }
 /**
  * Retains validated personal envelopes in the root Query cache. A continuation is an exclusive
@@ -185,7 +118,6 @@ export function createPersonalCalendarOptions(
   owner: FollowingOwner,
   request: (signal?: AbortSignal) => Promise<ApiFetchOptions>,
   selection: Omit<ListPersonalMatchesParams, "nextDay">,
-  read: PersonalCalendarRead,
   bypass = false,
 ) {
   const queryKey = personalCalendarKey(owner, selection, bypass);
@@ -194,25 +126,14 @@ export function createPersonalCalendarOptions(
     initialPageParam: undefined as string | undefined,
     queryFn: async ({ signal, pageParam, client }) => {
       try {
-        const result = await read(
-          selection.seasonId,
-          signal,
-          async () => {
-            const options = await request(signal);
-            const result = await listPersonalMatches(
-              owner.accountId,
-              {
-                ...selection,
-                ...(pageParam ? { nextDay: pageParam } : {}),
-              },
-              options,
-            );
-            if (signal.aborted || options.signal?.aborted)
-              throw new ApiError("cancelled");
-            return result;
-          },
-          queryKey,
+        const options = await request(signal);
+        const result = await listPersonalMatches(
+          owner.accountId,
+          { ...selection, ...(pageParam ? { nextDay: pageParam } : {}) },
+          options,
         );
+        if (signal.aborted || options.signal?.aborted)
+          throw new ApiError("cancelled");
         if (!result.hasAvailableFollows)
           await withdrawUnavailableFollows(
             client,
@@ -352,10 +273,39 @@ async function withdrawUnavailableFollows(
     });
   }
 }
-/** The shared personal-season owner bounds NotFound reconciliation for the captured selection. */
-export type PersonalCalendarRead = <T>(
-  seasonId: string | undefined,
-  signal: AbortSignal,
-  operation: () => Promise<T>,
-  currentKey?: QueryKey,
-) => Promise<T>;
+/** Derives known seasons from the current cache, including All-seasons rows when options were evicted. */
+function retainedSeasonIds(
+  client: QueryClient,
+  owner: FollowingOwner,
+  bypass: boolean,
+): Set<string> {
+  const previous = client.getQueryData<
+    Awaited<ReturnType<typeof getFollowOptions>>
+  >(followOptionsKey(owner, bypass));
+  const seasons = new Set(previous?.seasons.map((season) => season.id));
+  for (const type of ["team", "pool"] as const) {
+    for (const [key, data] of client.getQueriesData<
+      InfiniteData<FollowListPage>
+    >({
+      queryKey: followListKey(owner, type, {}, bypass),
+    })) {
+      const selection = key.at(-1) as { seasonId?: string };
+      if (selection.seasonId) seasons.add(selection.seasonId);
+      for (const page of data?.pages ?? [])
+        for (const item of page.items) seasons.add(item.season.id);
+    }
+  }
+  for (const [key, data] of client.getQueriesData<
+    InfiniteData<PersonalMatchCalendarResponse>
+  >({
+    queryKey: personalCalendarCollectionKey(owner, bypass),
+  })) {
+    const selection = key.at(-1) as { seasonId?: string };
+    if (selection.seasonId) seasons.add(selection.seasonId);
+    for (const page of data?.pages ?? [])
+      for (const day of page.calendar.days)
+        for (const pool of day.pools)
+          for (const match of pool.matches) seasons.add(match.pool.season.id);
+  }
+  return seasons;
+}

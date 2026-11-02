@@ -8,9 +8,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Current evidence for a stable scope/stage/phase. The first structural failure remains
- * attributable until a usable observation of this key; later transport failures cannot erase that
- * evidence.
+ * Current observation and latest usable success for one stable scope/stage/phase. Failure alerting
+ * uses the current outcome without retaining outage clocks or incident history.
  */
 public record CollectionResult(
     UUID scopeId,
@@ -21,8 +20,6 @@ public record CollectionResult(
     Instant observedAt,
     CollectionOutcomeEnum outcome,
     Instant lastSuccessAt,
-    Instant firstFailureAt,
-    Instant firstStructuralFailureAt,
     URI reasonType,
     String reason,
     Long obtainedCount,

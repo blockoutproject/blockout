@@ -23,7 +23,7 @@ import {
   PageScrollView,
 } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+
 import { ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -50,56 +50,48 @@ export function EraseAccountScreen({ admitted }: EraseAccountScreenProps) {
   if (!originalAccountId && account.isSuccess)
     setOriginalAccountId(account.data.accountId);
   return (
-    <Page edges={["left", "right", "bottom"]}>
-      <ScrollChrome header={<PageHeader title="Supprimer mon compte ?" />}>
-        {({ onScroll, headerHeight }) => (
-          <PageScrollView
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            scrollIndicatorInsets={{ top: headerHeight }}
-            contentContainerStyle={{ paddingTop: headerHeight }}
-          >
-            {!admitted ? (
-              <ScreenState>
-                <ErrorState />
-              </ScreenState>
-            ) : originalAccountId && session.subject ? (
-              <ErasureConfirmation
-                accountId={originalAccountId}
-                disabled={
-                  !account.isSuccess ||
-                  session.status !== "authenticated" ||
-                  session.accountId !== originalAccountId
-                }
-              />
-            ) : session.status === "restoring" ||
-              session.status === "authenticating" ||
-              session.status === "signing-out" ||
-              (session.status === "authenticated" && account.isPending) ? (
-              <PageContent>
-                <ProfileLoading />
-              </PageContent>
-            ) : (
-              <ScreenState>
-                <ErrorState
-                  onRetry={
-                    session.status === "initialization-error"
-                      ? session.retryInitialization
-                      : session.status === "authentication-error"
-                        ? session.retryAuthentication
-                        : session.status !== "authenticated" ||
-                            (account.error instanceof ApiError &&
-                              account.error.status === 404)
-                          ? () => router.replace("/sign-in")
-                          : () => void account.refetch()
-                  }
-                  retrying={account.isFetching}
-                />
-              </ScreenState>
-            )}
-          </PageScrollView>
+    <Page>
+      <PageHeader title="Supprimer mon compte ?" />
+      <PageScrollView>
+        {!admitted ? (
+          <ScreenState>
+            <ErrorState />
+          </ScreenState>
+        ) : originalAccountId && session.subject ? (
+          <ErasureConfirmation
+            accountId={originalAccountId}
+            disabled={
+              !account.isSuccess ||
+              session.status !== "authenticated" ||
+              session.accountId !== originalAccountId
+            }
+          />
+        ) : session.status === "restoring" ||
+          session.status === "authenticating" ||
+          session.status === "signing-out" ||
+          (session.status === "authenticated" && account.isPending) ? (
+          <PageContent>
+            <ProfileLoading />
+          </PageContent>
+        ) : (
+          <ScreenState>
+            <ErrorState
+              onRetry={
+                session.status === "initialization-error"
+                  ? session.retryInitialization
+                  : session.status === "authentication-error"
+                    ? session.retryAuthentication
+                    : session.status !== "authenticated" ||
+                        (account.error instanceof ApiError &&
+                          account.error.status === 404)
+                      ? () => router.replace("/sign-in")
+                      : () => void account.refetch()
+              }
+              retrying={account.isFetching}
+            />
+          </ScreenState>
         )}
-      </ScrollChrome>
+      </PageScrollView>
     </Page>
   );
 }

@@ -1,81 +1,42 @@
 package com.blockout.backend.notifications.application;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
-/** Direct orchestration cases; actual commits, SQL and diagnostics are integration tested. */
+/** Direct orchestration cases; actual SQL atomicity and commit failure are PostgreSQL tested. */
 @DisplayName("Notification purge orchestration")
 class PurgeNotificationsTest {
   @Test
-  @DisplayName("Uses one cutoff for every batch even when processing crosses an expiry")
+  @DisplayName("Deletes once at the original cutoff even when completion crosses an expiry")
   void retainsOneCutoff() {
     // Given
     Instant now = Instant.parse("2026-10-25T12:00:00Z");
     Instant cutoff = Instant.parse("2026-09-26T12:00:00Z");
     Clock clock = mock(Clock.class);
     when(clock.instant()).thenReturn(now, now.plusSeconds(60));
-    PurgeNotifications.DeleteExpiredEntries batches =
-        mock(PurgeNotifications.DeleteExpiredEntries.class);
-    when(batches.delete(cutoff))
-        .thenReturn(
-            new NotificationStore.PurgeBatch(100, true),
-            new NotificationStore.PurgeBatch(2, false));
-    PurgeNotifications purge = new PurgeNotifications(batches, clock);
+    NotificationStore store = mock(NotificationStore.class);
+    when(store.deleteExpired(cutoff)).thenReturn(102);
+    PlatformTransactionManager transactions = mock(PlatformTransactionManager.class);
+    SimpleTransactionStatus transaction = new SimpleTransactionStatus();
+    when(transactions.getTransaction(any())).thenReturn(transaction);
+    PurgeNotifications purge = new PurgeNotifications(store, transactions, clock);
 
     // When
     purge.run();
 
     // Then
-    verify(batches, times(2)).delete(cutoff);
-    verifyNoMoreInteractions(batches);
-  }
-
-  @Test
-  @DisplayName("Stops after failure without retrying within the same pass")
-  void leavesFailureForNextPass() {
-    // Given
-    Instant now = Instant.parse("2026-10-25T12:00:00Z");
-    Instant cutoff = Instant.parse("2026-09-26T12:00:00Z");
-    PurgeNotifications.DeleteExpiredEntries batches =
-        mock(PurgeNotifications.DeleteExpiredEntries.class);
-    when(batches.delete(cutoff)).thenThrow(new IllegalStateException("controlled failure"));
-    PurgeNotifications purge = new PurgeNotifications(batches, Clock.fixed(now, ZoneOffset.UTC));
-
-    // When
-    purge.run();
-
-    // Then
-    verify(batches).delete(cutoff);
-    verifyNoMoreInteractions(batches);
-  }
-
-  @Test
-  @DisplayName("Continues a full selected batch even when another transaction removed its rows")
-  void continuesConcurrentRemoval() {
-    // Given
-    Instant now = Instant.parse("2026-10-25T12:00:00Z");
-    Instant cutoff = Instant.parse("2026-09-26T12:00:00Z");
-    PurgeNotifications.DeleteExpiredEntries batches =
-        mock(PurgeNotifications.DeleteExpiredEntries.class);
-    when(batches.delete(cutoff))
-        .thenReturn(
-            new NotificationStore.PurgeBatch(0, true), new NotificationStore.PurgeBatch(1, false));
-    PurgeNotifications purge = new PurgeNotifications(batches, Clock.fixed(now, ZoneOffset.UTC));
-
-    // When
-    purge.run();
-
-    // Then
-    verify(batches, times(2)).delete(cutoff);
-    verifyNoMoreInteractions(batches);
+    verify(store).deleteExpired(cutoff);
+    verifyNoMoreInteractions(store);
+    verify(transactions).commit(transaction);
   }
 }

@@ -40,7 +40,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -837,18 +836,18 @@ class CollectorSportingReadIntegrationTest {
     String authorization = "Bearer " + runtime.mobileToken("issue212");
     for (String failure : List.of("technical", "structure")) {
       // When: the ordinary reader first fails to obtain bytes, then refuses unreadable HTML.
-      when(provider.page(any()))
-          .thenAnswer(
-              call ->
-                  failure.equals("technical")
-                      ? CompletableFuture.failedFuture(
-                          new java.io.IOException("Synthetic unavailable source"))
-                      : CompletableFuture.completedFuture(
-                          new ProviderResponse(
-                              "<html>unreadable synthetic content</html>"
-                                  .getBytes(StandardCharsets.UTF_8),
-                              call.getArgument(0),
-                              true)));
+      org.mockito.Mockito.doAnswer(
+              call -> {
+                if (failure.equals("technical"))
+                  throw new java.io.UncheckedIOException(
+                      new java.io.IOException("Synthetic unavailable source"));
+                return new ProviderResponse(
+                    "<html>unreadable synthetic content</html>".getBytes(StandardCharsets.UTF_8),
+                    call.getArgument(0),
+                    true);
+              })
+          .when(provider)
+          .page(any());
       // Request each ordinary pass through F01 instead of bypassing its failure cadence in SQL.
       JsonNode control =
           publicReads

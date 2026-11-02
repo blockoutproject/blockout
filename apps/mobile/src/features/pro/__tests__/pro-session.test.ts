@@ -64,7 +64,7 @@ it("waits for a usable UUID before configuring once and reading current informat
     appUserID: a,
   });
 });
-it("preserves current login-supplied active rights if the following ordinary read fails", async () => {
+it("accepts current login-supplied rights without another information read", async () => {
   // Given
   session = { subject: `auth0|${a}`, accountId: a };
   owner.setTarget(session);
@@ -80,18 +80,61 @@ it("preserves current login-supplied active rights if the following ordinary rea
   jest
     .mocked(Purchases.logIn)
     .mockResolvedValueOnce({ customerInfo: loginInfo, created: false });
-  jest
-    .mocked(Purchases.getCustomerInfo)
-    .mockRejectedValueOnce(new Error("private SDK data"));
+  jest.mocked(Purchases.getCustomerInfo).mockClear();
   // When
   session = { subject: `auth0|${b}`, accountId: b };
   owner.setTarget(session);
   // Then
   await waitFor(() =>
-    expect(owner.getSnapshot().verificationFailed).toBe(true),
+    expect(owner.getSnapshot().evidence?.customerInfo).toBe(loginInfo),
   );
-  expect(owner.getSnapshot().evidence?.customerInfo).toBe(loginInfo);
+  expect(owner.getSnapshot().read).toBeNull();
+  expect(owner.getSnapshot().verificationFailed).toBe(false);
+  expect(Purchases.getCustomerInfo).not.toHaveBeenCalled();
 });
+
+it.each(["completed", "failed"])(
+  "retires an older %s read when a current operation supplies information",
+  async (outcome) => {
+    // Given
+    session = { subject: `auth0|${a}`, accountId: a };
+    owner.setTarget(session);
+    await waitFor(() =>
+      expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
+    );
+    jest
+      .mocked(Purchases.getCustomerInfo)
+      .mockRejectedValueOnce(new Error("Synthetic verification failure"));
+    await owner.refresh(session);
+    expect(owner.getSnapshot().verificationFailed).toBe(true);
+    const earlier = Promise.withResolvers<typeof info>();
+    jest.mocked(Purchases.getCustomerInfo).mockReturnValueOnce(earlier.promise);
+    const reading = owner.refresh(session);
+    const supplied = {
+      ...info,
+      originalAppUserId: "current-synthetic-customer",
+    };
+    const reads = jest.mocked(Purchases.getCustomerInfo).mock.calls.length;
+
+    // When
+    await owner.completeOperation(session, "restored", supplied);
+
+    // Then
+    expect(owner.getSnapshot().evidence?.customerInfo).toBe(supplied);
+    expect(owner.getSnapshot().read).toBeNull();
+    expect(owner.getSnapshot().verificationFailed).toBe(false);
+    expect(Purchases.getCustomerInfo).toHaveBeenCalledTimes(reads);
+
+    // When
+    if (outcome === "completed") earlier.resolve(info);
+    else earlier.reject(new Error("Obsolete native read"));
+    await reading;
+
+    // Then
+    expect(owner.getSnapshot().evidence?.customerInfo).toBe(supplied);
+    expect(owner.getSnapshot().verificationFailed).toBe(false);
+  },
+);
 it("finishes configuration before logging out when its account is erased", async () => {
   // Given
   const configured = Promise.withResolvers<boolean>();

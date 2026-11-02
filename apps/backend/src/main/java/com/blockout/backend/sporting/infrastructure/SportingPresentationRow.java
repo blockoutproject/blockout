@@ -16,7 +16,6 @@ import java.util.UUID;
  * @param hasSourceLogo whether professional source artwork exists
  * @param clubId optional team club
  * @param clubHasLogo whether the optional club has artwork
- * @param clubLogoRevision inherited club artwork revision, or zero without a club
  */
 record SportingPresentationRow(
     UUID id,
@@ -28,5 +27,4 @@ record SportingPresentationRow(
     boolean hasLogo,
     boolean hasSourceLogo,
     UUID clubId,
-    boolean clubHasLogo,
-    long clubLogoRevision) {}
+    boolean clubHasLogo) {}

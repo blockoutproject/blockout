@@ -2,7 +2,6 @@ import type { AdvertisingEligibilityInput } from "../advertising-eligibility";
 import { AdEventType } from "react-native-google-mobile-ads";
 import { entitlement } from "../../pro/test-support/customer-info";
 import { createInterstitialLifecycle } from "../interstitial-lifecycle";
-import { openSportingAdTransition } from "../sporting-ad-transition";
 import {
   advertisingContext,
   controlledInterstitial,
@@ -19,21 +18,18 @@ jest.mock("react-native-google-mobile-ads", () => ({
 }));
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 const mockCreateAd = jest.fn(controlledInterstitial);
-const kinds = ["club", "team", "pool", "match", "live"];
 beforeEach(() =>
   mockCreateAd.mockReset().mockImplementation(controlledInterstitial),
 );
 /** A new accepted intent; repeated submissions reuse this same key. */
-function action(kind = "club") {
+function action() {
   return {
-    kind,
-    voluntary: true,
     key: {},
     isCurrent: () => true,
     open: jest.fn(),
   };
 }
-it("shares the first nine actions and the tenth opportunity across every sporting kind", async () => {
+it("shares the first nine accepted actions and the tenth opportunity", async () => {
   // Given
   const { input } = advertisingContext();
   const lifecycle = createInterstitialLifecycle({
@@ -45,14 +41,14 @@ it("shares the first nine actions and the tenth opportunity across every sportin
   ad.emit(AdEventType.LOADED);
   // When
   for (let index = 0; index < 9; index++) {
-    const destination = action(kinds[index % kinds.length]);
-    expect(await openSportingAdTransition(lifecycle, destination)).toEqual({
+    const destination = action();
+    expect(await lifecycle.transition(destination)).toEqual({
       status: "opened",
     });
     expect(destination.open).toHaveBeenCalledTimes(1);
   }
-  const live = action("live");
-  const result = openSportingAdTransition(lifecycle, live);
+  const live = action();
+  const result = lifecycle.transition(live);
   // Then
   expect(lifecycle.count).toBe(10);
   expect(ad.show).toHaveBeenCalledTimes(1);
@@ -73,7 +69,7 @@ it("caps missing and loading opportunities at ten without waiting or showing on 
   // When
   for (let index = 0; index < 12; index++) {
     const destination = action();
-    await openSportingAdTransition(lifecycle, destination);
+    await lifecycle.transition(destination);
     expect(destination.open).toHaveBeenCalledTimes(1);
   }
   expect(lifecycle.count).toBe(10);
@@ -94,14 +90,13 @@ it("counts a repeated pending action once and refuses a different concurrent des
   lifecycle.preload();
   const ad = mockCreateAd.mock.results[0].value;
   ad.emit(AdEventType.LOADED);
-  for (let index = 0; index < 9; index++)
-    await openSportingAdTransition(lifecycle, action());
+  for (let index = 0; index < 9; index++) await lifecycle.transition(action());
   const destination = action();
-  const other = action("live");
+  const other = action();
   // When
-  const first = openSportingAdTransition(lifecycle, destination);
-  const repeated = openSportingAdTransition(lifecycle, destination);
-  const refused = await openSportingAdTransition(lifecycle, other);
+  const first = lifecycle.transition(destination);
+  const repeated = lifecycle.transition(destination);
+  const refused = await lifecycle.transition(other);
   // Then
   expect(first).toBe(repeated);
   expect(refused).toEqual({ status: "busy" });
@@ -112,86 +107,6 @@ it("counts a repeated pending action once and refuses a different concurrent des
   await first;
   expect(destination.open).toHaveBeenCalledTimes(1);
 });
-it.each([
-  "search",
-  "filter",
-  "scroll",
-  "refresh",
-  "back",
-  "startup",
-  "exit",
-  "foreground",
-  "authentication",
-  "account",
-  "payment",
-  "privacy",
-  "legal",
-  "support",
-])("leaves %s outside the sporting count and ad opportunity", async (kind) => {
-  // Given
-  const { input } = advertisingContext();
-  const lifecycle = createInterstitialLifecycle({
-    adUnitId: "test-unit",
-    getInput: () => input,
-  });
-  const destination = action(kind);
-  // When
-  await openSportingAdTransition(lifecycle, destination);
-  // Then
-  expect(destination.open).toHaveBeenCalledTimes(1);
-  expect(lifecycle.count).toBe(0);
-  expect(mockCreateAd).not.toHaveBeenCalled();
-});
-it("excludes involuntary sporting openings", async () => {
-  // Given
-  const { input } = advertisingContext();
-  const lifecycle = createInterstitialLifecycle({
-    adUnitId: "test-unit",
-    getInput: () => input,
-  });
-  const destination = { ...action("match"), voluntary: false };
-  // When
-  await openSportingAdTransition(lifecycle, destination);
-  // Then
-  expect(lifecycle.count).toBe(0);
-  expect(destination.open).toHaveBeenCalledTimes(1);
-  expect(mockCreateAd).not.toHaveBeenCalled();
-});
-it.each([
-  { kind: "legal", voluntary: true },
-  { kind: "match", voluntary: false },
-])(
-  "keeps excluded $kind navigation independent of a pending sporting ad",
-  async ({ kind, voluntary }) => {
-    // Given
-    const { input } = advertisingContext();
-    const lifecycle = createInterstitialLifecycle({
-      adUnitId: "test-unit",
-      getInput: () => input,
-    });
-    lifecycle.preload();
-    const ad = mockCreateAd.mock.results[0].value;
-    ad.emit(AdEventType.LOADED);
-    for (let index = 0; index < 9; index++)
-      await openSportingAdTransition(lifecycle, action());
-    const sporting = action();
-    const pending = openSportingAdTransition(lifecycle, sporting);
-    const excluded = { ...action(kind), voluntary };
-    // When
-    const result = await openSportingAdTransition(lifecycle, excluded);
-    // Then
-    expect(result).toEqual({ status: "opened" });
-    expect(excluded.open).toHaveBeenCalledTimes(1);
-    expect(lifecycle.count).toBe(10);
-    expect(sporting.open).not.toHaveBeenCalled();
-    expect(openSportingAdTransition(lifecycle, sporting)).toBe(pending);
-    expect(ad.show).toHaveBeenCalledTimes(1);
-    ad.emit(AdEventType.CLOSED);
-    await pending;
-    expect(sporting.open).toHaveBeenCalledTimes(1);
-    expect(excluded.open).toHaveBeenCalledTimes(1);
-  },
-);
 it.each(["active", "unknown"])(
   "adds no debt for %s rights and preserves prior opportunities through rights changes",
   async (rights) => {
@@ -203,7 +118,7 @@ it.each(["active", "unknown"])(
       getInput: () => current,
     });
     for (let index = 0; index < 9; index++)
-      await openSportingAdTransition(lifecycle, action());
+      await lifecycle.transition(action());
     session = {
       subject: `auth0|${"00000000-0000-4000-8000-000000000001"}`,
       accountId: "00000000-0000-4000-8000-000000000001",
@@ -229,28 +144,28 @@ it.each(["active", "unknown"])(
     };
     // When
     for (let index = 0; index < 12; index++)
-      await openSportingAdTransition(lifecycle, action());
+      await lifecycle.transition(action());
     // Then
     expect(lifecycle.count).toBe(9);
     current = {
       ...current,
       pro: { status: "inactive", operation: "idle" },
     };
-    await openSportingAdTransition(lifecycle, action());
+    await lifecycle.transition(action());
     expect(lifecycle.count).toBe(10);
     expect(mockCreateAd).toHaveBeenCalledTimes(2);
   },
 );
-it("still abandons an obsolete excluded destination without touching advertising", async () => {
+it("abandons an obsolete sporting destination without touching advertising", async () => {
   // Given
   const { input } = advertisingContext();
   const lifecycle = createInterstitialLifecycle({
     adUnitId: "test-unit",
     getInput: () => input,
   });
-  const destination = { ...action("legal"), isCurrent: () => false };
+  const destination = { ...action(), isCurrent: () => false };
   // When
-  const result = await openSportingAdTransition(lifecycle, destination);
+  const result = await lifecycle.transition(destination);
   // Then
   expect(result).toEqual({ status: "abandoned" });
   expect(destination.open).not.toHaveBeenCalled();
@@ -265,14 +180,13 @@ it("counts free actions without authorized choices and retains the threshold whe
     adUnitId: "test-unit",
     getInput: () => current,
   });
-  for (let index = 0; index < 10; index++)
-    await openSportingAdTransition(lifecycle, action());
+  for (let index = 0; index < 10; index++) await lifecycle.transition(action());
   // When
   current = input;
   lifecycle.preload();
   const ad = mockCreateAd.mock.results[0].value;
   ad.emit(AdEventType.LOADED);
-  const result = openSportingAdTransition(lifecycle, action());
+  const result = lifecycle.transition(action());
   // Then
   expect(lifecycle.count).toBe(10);
   expect(ad.show).toHaveBeenCalledTimes(1);
@@ -286,11 +200,8 @@ it("retains memory across backgrounding and starts a fresh runtime at zero witho
     adUnitId: "test-unit",
     getInput: () => input,
   });
-  for (let index = 0; index < 9; index++)
-    await openSportingAdTransition(lifecycle, action());
-  // When: foreground/background are excluded commands, not new owners.
-  await openSportingAdTransition(lifecycle, action("background"));
-  await openSportingAdTransition(lifecycle, action("foreground"));
+  for (let index = 0; index < 9; index++) await lifecycle.transition(action());
+  // When: a fresh process creates a new counter.
   const restarted = createInterstitialLifecycle({
     adUnitId: "test-unit",
     getInput: () => input,
@@ -317,7 +228,7 @@ it.each(["throw", "reject"])(
       }),
     };
     // When
-    const result = await openSportingAdTransition(lifecycle, destination);
+    const result = await lifecycle.transition(destination);
     // Then
     expect(result).toEqual({ status: "destination-failed", error });
     expect(destination.open).toHaveBeenCalledTimes(1);
@@ -334,10 +245,10 @@ it("deduplicates the accepted action while its asynchronous destination is openi
   const opening = Promise.withResolvers<void>();
   const destination = { ...action(), open: jest.fn(() => opening.promise) };
   // When
-  const first = openSportingAdTransition(lifecycle, destination);
-  const repeated = openSportingAdTransition(lifecycle, destination);
+  const first = lifecycle.transition(destination);
+  const repeated = lifecycle.transition(destination);
   const other = action();
-  const refused = await openSportingAdTransition(lifecycle, other);
+  const refused = await lifecycle.transition(other);
   // Then
   expect(first).toBe(repeated);
   expect(lifecycle.count).toBe(1);
@@ -360,7 +271,7 @@ it("abandons an obsolete asynchronous opening without blocking or clearing the n
     ...action(),
     open: jest.fn(() => oldOpening.promise),
   };
-  const previous = openSportingAdTransition(lifecycle, oldDestination);
+  const previous = lifecycle.transition(oldDestination);
   // When
   session = { subject: "auth0|other", accountId: "other" };
   current = { ...current, account: { ...current.account, ...session } };
@@ -379,7 +290,7 @@ it("abandons an obsolete asynchronous opening without blocking or clearing the n
     ...action(),
     open: jest.fn(() => newOpening.promise),
   };
-  const next = openSportingAdTransition(lifecycle, newDestination);
+  const next = lifecycle.transition(newDestination);
   // Then
   expect(newDestination.open).toHaveBeenCalledTimes(1);
   expect(await previous).toEqual({ status: "abandoned" });
@@ -387,7 +298,7 @@ it("abandons an obsolete asynchronous opening without blocking or clearing the n
   oldOpening.resolve();
   await oldOpening.promise;
   await Promise.resolve();
-  expect(openSportingAdTransition(lifecycle, newDestination)).toBe(next);
+  expect(lifecycle.transition(newDestination)).toBe(next);
   expect(lifecycle.count).toBe(2);
   newOpening.resolve();
   expect(await next).toEqual({ status: "opened" });

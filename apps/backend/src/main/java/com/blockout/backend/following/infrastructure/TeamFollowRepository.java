@@ -12,6 +12,14 @@ import org.springframework.data.jpa.repository.Query;
 /** Native JPA queries over only team relations, with no sporting presentation copies. */
 interface TeamFollowRepository extends JpaRepository<TeamFollowEntity, UUID> {
   /**
+   * Counts retained relations for the exact target, independently of current presentation.
+   *
+   * @param teamId original team identity already admitted by the application owner
+   * @return number of persisted distinct owner/target relationships
+   */
+  long countByTeamId(UUID teamId);
+
+  /**
    * Deletes every original-owner row, including hidden entries, under its account lock.
    *
    * @param accountId locked original lifecycle

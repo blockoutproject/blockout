@@ -29,10 +29,7 @@ import { ProfileSignIn } from "../components/profile-sign-in";
 import { ProfileSupportAction } from "../components/profile-support-action";
 import { useAccountSession } from "../session/account-session-provider";
 import { PageHeader } from "../../../shared/components/page-header";
-import {
-  ScrollChrome,
-  type ScrollChromeContentProps,
-} from "../../../shared/components/scroll-chrome";
+
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -109,105 +106,82 @@ export function ProfileScreen({
     </ScreenState>
   ) : undefined;
   return (
-    <Page edges={["left", "right", "bottom"]}>
-      <ScrollChrome
-        header={
-          <PageHeader title="Mon profil" action={<ProfileSupportAction />} />
-        }
-      >
-        {({ onScroll, headerHeight }) =>
-          blockingContent ? (
-            <PageScrollView
-              onScroll={onScroll}
-              scrollEventThrottle={16}
-              scrollIndicatorInsets={{ top: headerHeight }}
-              contentContainerStyle={{ paddingTop: headerHeight }}
+    <Page>
+      <PageHeader title="Mon profil" action={<ProfileSupportAction />} />
+      {blockingContent ? (
+        <PageScrollView>{blockingContent}</PageScrollView>
+      ) : (
+        <ProfileContent
+          key={`${session.subject}:${account.data?.accountId ?? "guest"}`}
+          refreshControl={
+            connected ? (
+              <DataRefreshControl
+                enabled={!saving}
+                refreshing={refreshing}
+                onRefresh={() => void refresh()}
+              />
+            ) : undefined
+          }
+          account={connected ? account.data : undefined}
+          disabled={!account.isSuccess}
+          membershipStatus={membershipStatus}
+          onRetryRead={() => void account.refetch()}
+          retryingRead={account.isFetching}
+          onEdit={() => router.push("/profile/edit")}
+          onSignIn={() => router.push("/sign-in")}
+        >
+          {connected &&
+            account.isSuccess &&
+            account.data.principalCreatedAt === null && <AccountAgeRetry />}
+          <AdministrationEntry />
+          <View style={styles.group}>
+            <Text
+              accessibilityRole="header"
+              style={[tokens.typography.label, { color: colors.secondaryText }]}
             >
-              {blockingContent}
-            </PageScrollView>
-          ) : (
-            <ProfileContent
-              key={`${session.subject}:${account.data?.accountId ?? "guest"}`}
-              scroll={{ onScroll, headerHeight }}
-              refreshControl={
-                connected ? (
-                  <DataRefreshControl
-                    progressViewOffset={headerHeight}
-                    enabled={!saving}
-                    refreshing={refreshing}
-                    onRefresh={() => void refresh()}
-                  />
-                ) : undefined
-              }
-              account={connected ? account.data : undefined}
+              Informations légales
+            </Text>
+            <ProfileLegalLinks />
+          </View>
+          <View style={styles.group}>
+            <Text
+              accessibilityRole="header"
+              style={[tokens.typography.label, { color: colors.secondaryText }]}
+            >
+              Mon compte
+            </Text>
+            {proEntry}
+            {privacyEntry}
+          </View>
+          {connected && (
+            <Button
+              label="Se déconnecter"
+              variant="secondary"
+              fullWidth
+              onPress={() => void signOut()}
+              loading={session.operation === "signing-out"}
+            />
+          )}
+          {connected && (
+            <Button
+              label="Supprimer mon compte"
+              variant="secondary"
+              fullWidth
               disabled={!account.isSuccess}
-              membershipStatus={membershipStatus}
-              onRetryRead={() => void account.refetch()}
-              retryingRead={account.isFetching}
-              onEdit={() => router.push("/profile/edit")}
-              onSignIn={() => router.push("/sign-in")}
-            >
-              {connected &&
-                account.isSuccess &&
-                account.data.principalCreatedAt === null && <AccountAgeRetry />}
-              <AdministrationEntry />
-              <View style={styles.group}>
-                <Text
-                  accessibilityRole="header"
-                  style={[
-                    tokens.typography.label,
-                    { color: colors.secondaryText },
-                  ]}
-                >
-                  Informations légales
-                </Text>
-                <ProfileLegalLinks />
-              </View>
-              <View style={styles.group}>
-                <Text
-                  accessibilityRole="header"
-                  style={[
-                    tokens.typography.label,
-                    { color: colors.secondaryText },
-                  ]}
-                >
-                  Mon compte
-                </Text>
-                {proEntry}
-                {privacyEntry}
-              </View>
-              {connected && (
-                <Button
-                  label="Se déconnecter"
-                  variant="secondary"
-                  fullWidth
-                  onPress={() => void signOut()}
-                  loading={session.operation === "signing-out"}
-                />
-              )}
-              {connected && (
-                <Button
-                  label="Supprimer mon compte"
-                  variant="secondary"
-                  fullWidth
-                  disabled={!account.isSuccess}
-                  onPress={() => router.push("/profile/erase")}
-                />
-              )}
-              <Text style={[styles.version, { color: colors.secondaryText }]}>
-                Version {Constants.expoConfig?.version}
-              </Text>
-            </ProfileContent>
-          )
-        }
-      </ScrollChrome>
+              onPress={() => router.push("/profile/erase")}
+            />
+          )}
+          <Text style={[styles.version, { color: colors.secondaryText }]}>
+            Version {Constants.expoConfig?.version}
+          </Text>
+        </ProfileContent>
+      )}
     </Page>
   );
 }
 
 /** Admits content and its native refresh together; later photo failures retain the accepted overview. */
 function ProfileContent({
-  scroll: { onScroll, headerHeight },
   refreshControl,
   account,
   disabled,
@@ -218,7 +192,6 @@ function ProfileContent({
   retryingRead,
   children,
 }: {
-  scroll: ScrollChromeContentProps;
   refreshControl: PageScrollViewProps["refreshControl"];
   account?: AccountResponse;
   disabled: boolean;
@@ -238,10 +211,6 @@ function ProfileContent({
   if (!admitted && available) setAdmitted(true);
   return (
     <PageScrollView
-      onScroll={onScroll}
-      scrollEventThrottle={16}
-      scrollIndicatorInsets={{ top: headerHeight }}
-      contentContainerStyle={{ paddingTop: headerHeight }}
       refreshControl={admitted || available ? refreshControl : undefined}
     >
       {!admitted && !available ? (

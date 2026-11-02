@@ -1,5 +1,5 @@
 import { useLayoutEffect, type PropsWithChildren } from "react";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import "../../../shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
@@ -319,7 +319,6 @@ async function mount(children: React.ReactNode) {
       </SafeAreaProvider>
     </GestureHandlerRootView>,
   );
-  await layoutNativeTabs();
 }
 
 it("requires the literal current moderation capability before private reads", async () => {
@@ -747,6 +746,59 @@ it.each(["queue", "versions", "reports"] as const)(
   },
 );
 
+it("does not announce a failed continuation after leaving its retained scene", async () => {
+  // Given: the real history scene owns a pending HTTP continuation.
+  historyPaged = true;
+  detail.items = [
+    version({ state: "hidden", canApprove: false, canReject: false }),
+  ];
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  const user = userEvent.setup();
+  await user.press(await screen.findByRole("tab", { name: "Historique" }));
+  await screen.findByRole("button", { name: /Twitch, Masqué/ });
+  const ordinary = mockFetch.getMockImplementation()!;
+  let finish!: (response: Response) => void;
+  const held = new Promise<Response>((resolve) => {
+    finish = resolve;
+  });
+  mockFetch.mockImplementation((url, init) => {
+    const requested = new URL(String(url));
+    return requested.pathname.endsWith("/stream-contributions") &&
+      requested.searchParams.get("page") === "1"
+      ? held
+      : ordinary(url, init);
+  });
+  const key = getListModeratedStreamContributionsQueryKey(sporting.id, {
+    state: "historical",
+  });
+
+  try {
+    // When: the person returns to the editor before the history request fails.
+    await fireEvent(
+      screen.getByLabelText("Historique des liens"),
+      "endReached",
+    );
+    await waitFor(() =>
+      expect(client.getQueryState(key)?.fetchStatus).toBe("fetching"),
+    );
+    await user.press(screen.getByRole("tab", { name: "Actif" }));
+    await screen.findByRole("tab", { name: "Actif", selected: true });
+  } finally {
+    await act(async () => {
+      finish(
+        Response.json({ title: "Unavailable", status: 503 }, { status: 503 }),
+      );
+    });
+  }
+
+  // Then: the inactive error remains with its Query and does not become the editor's toast.
+  await waitFor(() => expect(client.getQueryState(key)?.status).toBe("error"));
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(
+    screen.getByRole("tab", { name: "Actif", selected: true }),
+  ).toBeOnTheScreen();
+});
+
 it("applies the native filter draft only explicitly and retains literal search", async () => {
   // Given
   await mount(
@@ -1060,10 +1112,20 @@ it("accepts the same native pager settlement used by a swipe and retains the ina
     "https://youtu.be/swipe-draft",
   );
 
-  // When: the native pager settles the third page; gesture recognition itself remains native evidence.
-  fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
+  // When: iOS confirms the page's terminal zero offset and idle state after its selected event.
+  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
     nativeEvent: { position: 2 },
   });
+  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageScroll", {
+    nativeEvent: { position: 2, offset: 0 },
+  });
+  await fireEvent(
+    screen.getByTestId("native-tabs-pager"),
+    "pageScrollStateChanged",
+    {
+      nativeEvent: { pageScrollState: "idle" },
+    },
+  );
   await screen.findByRole("tab", { name: "Historique", selected: true });
   await user.press(screen.getByRole("tab", { name: "Actif" }));
 

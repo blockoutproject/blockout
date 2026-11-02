@@ -1,21 +1,17 @@
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { useQuery } from "@tanstack/react-query";
 import { useSportingNavigation } from "../navigation";
 import { Columns3, List } from "lucide-react-native";
-import { useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { TabScrollView } from "react-native-collapsible-tab";
 import type {
   PoolSummaryResponse,
   StandingRowResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { PageContent } from "../../../shared/components/page";
-import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
+import { PageContent, PageScrollView } from "../../../shared/components/page";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { PagedStateScrollView } from "../../../shared/components/paged-tabs";
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
 import { resourceUnavailable } from "../model/consultation-availability";
 import { tokens } from "../../../shared/theme/tokens";
@@ -28,13 +24,13 @@ import { StandingCards } from "./standing-cards";
 export interface PoolStandingsProps {
   pool: PoolSummaryResponse;
   highlightTeamId?: string;
-  /** RNCT retains visited panels; an inactive table cannot release an old sporting opening. */
+  /** Retained inactive panels cannot refresh or release an old sporting opening. */
   active?: boolean;
   /** Optional phase navigation belongs above this table in a team participation panel. */
   children?: ReactNode;
 }
 
-/** Lazy panel read through the generated client; RNCT owns scrolling and the active-tab refresh. */
+/** Reads the admitted scene through the generated client and retains its ordinary native scroller. */
 export function PoolStandings({
   pool,
   highlightTeamId,
@@ -46,15 +42,21 @@ export function PoolStandings({
   const feedback = useActionFeedback();
   const { colors } = useTheme();
   const [layout, setLayout] = useState<"list" | "cards">("list");
+  const currentActive = useRef(active);
+  useLayoutEffect(() => {
+    currentActive.current = active;
+  }, [active]);
   const data = standings.data;
   const columns = data?.columns ?? [];
 
   /** Refetches only this table; ordinary failure preserves its original supplier attribution. */
   async function refresh() {
+    if (!active) return;
     feedback.clear();
     const result = await standings.refetch({ cancelRefetch: false });
     if (
       result.isError &&
+      currentActive.current &&
       result.data &&
       result.data.availability !== "unavailable" &&
       !resourceUnavailable(result.error)
@@ -69,11 +71,12 @@ export function PoolStandings({
       <DataRefreshControl
         refreshing={standings.isRefetching}
         onRefresh={() => void refresh()}
+        enabled={active}
       />
     ) : undefined;
   if (!hasRows)
     return (
-      <PagedStateScrollView refreshControl={refreshControl}>
+      <PageScrollView refreshControl={refreshControl}>
         {children && <PageContent>{children}</PageContent>}
         <ScreenState>
           {!data ? (
@@ -93,15 +96,10 @@ export function PoolStandings({
             />
           )}
         </ScreenState>
-      </PagedStateScrollView>
+      </PageScrollView>
     );
   return (
-    <TabScrollView
-      {...hiddenScrollIndicators}
-      alwaysBounceVertical
-      contentContainerStyle={styles.scrollContent}
-      refreshControl={refreshControl}
-    >
+    <PageScrollView alwaysBounceVertical refreshControl={refreshControl}>
       <PageContent>
         {children}
         <View>
@@ -155,8 +153,7 @@ export function PoolStandings({
           )}
         </View>
       </PageContent>
-      <BottomContentSpacer />
-    </TabScrollView>
+    </PageScrollView>
   );
 }
 
@@ -301,7 +298,6 @@ function StandingEntry({
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { flexGrow: 1 },
   toolbar: {
     flexDirection: "row",
     justifyContent: "flex-end",

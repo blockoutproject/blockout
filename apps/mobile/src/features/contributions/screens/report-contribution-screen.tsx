@@ -18,7 +18,7 @@ import { Page, PageContent } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+
 import { Surface } from "../../../shared/components/surface";
 import { TextField } from "../../../shared/components/text-field";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
@@ -52,56 +52,45 @@ export function ReportContributionScreen({
   const router = useRouter();
   const authenticated = reporting.session.status === "authenticated";
   return (
-    <Page edges={["left", "right", "bottom"]}>
-      <ScrollChrome header={<PageHeader title="Lien de diffusion" />}>
-        {({ onScroll, headerHeight }) => (
-          <FormScrollView
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            scrollIndicatorInsets={{ top: headerHeight }}
-            contentContainerStyle={{ paddingTop: headerHeight }}
-          >
-            {reporting.session.status === "guest" ? (
-              <ScreenState>
-                <Button
-                  label="Se connecter"
-                  onPress={() =>
-                    router.push({
-                      pathname: "/sign-in-invitation",
-                      params: { reason: "stream-report" },
-                    })
-                  }
-                />
-              </ScreenState>
-            ) : !authenticated || !reporting.profile.data ? (
-              <ScreenState>
-                <ReadFeedback query={reporting.profile} />
-              </ScreenState>
-            ) : !reporting.query.data ? (
-              <ScreenState>
-                <ReadFeedback query={reporting.query} />
-              </ScreenState>
-            ) : (
-              <PageContent>
-                {match.data && (
-                  <MatchSummary
-                    match={match.data.match}
-                    presentation="context"
-                  />
-                )}
-                <ReportForm
-                  key={`${reporting.session.subject}:${contributionId}`}
-                  matchId={matchId}
-                  contributionId={contributionId}
-                  contributionUrl={contributionUrl}
-                  reporting={reporting}
-                  match={match}
-                />
-              </PageContent>
+    <Page>
+      <PageHeader title="Lien de diffusion" />
+      <FormScrollView>
+        {reporting.session.status === "guest" ? (
+          <ScreenState>
+            <Button
+              label="Se connecter"
+              onPress={() =>
+                router.push({
+                  pathname: "/sign-in-invitation",
+                  params: { reason: "stream-report" },
+                })
+              }
+            />
+          </ScreenState>
+        ) : !authenticated || !reporting.profile.data ? (
+          <ScreenState>
+            <ReadFeedback query={reporting.profile} />
+          </ScreenState>
+        ) : !reporting.query.data ? (
+          <ScreenState>
+            <ReadFeedback query={reporting.query} />
+          </ScreenState>
+        ) : (
+          <PageContent>
+            {match.data && (
+              <MatchSummary match={match.data.match} presentation="context" />
             )}
-          </FormScrollView>
+            <ReportForm
+              key={`${reporting.session.subject}:${contributionId}`}
+              matchId={matchId}
+              contributionId={contributionId}
+              contributionUrl={contributionUrl}
+              reporting={reporting}
+              match={match}
+            />
+          </PageContent>
         )}
-      </ScrollChrome>
+      </FormScrollView>
     </Page>
   );
 }

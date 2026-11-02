@@ -868,8 +868,6 @@ public class JpaSportingStore implements SportingStore {
       case TEAM -> {
         UUID season = teams.findSeasonId(id).orElseThrow(SportingResourceNotFoundException::new);
         lockSeason(season);
-        TeamEntity team = teams.findById(id).orElseThrow();
-        if (team.getClub() != null) clubs.findByIdForUpdate(team.getClub().getId()).orElseThrow();
       }
       default -> throw new IllegalArgumentException("Unsupported presentation kind");
     }
@@ -926,7 +924,6 @@ public class JpaSportingStore implements SportingStore {
                 edit.logoAction() == LogoActionEnum.REPLACE ? edit.image() : null;
             club.setLogo(next == null ? null : next.bytes());
             club.setLogoMediaType(next == null ? null : next.mediaType());
-            club.setLogoRevision(club.getLogoRevision() + 1);
           }
           club.setPresentationRevision(club.getPresentationRevision() + 1);
           changes.submit(kind, id);

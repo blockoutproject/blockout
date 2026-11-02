@@ -10,7 +10,6 @@ import {
   AccountSessionProvider,
   useAccountSession,
 } from "../features/accounts/session/account-session-provider";
-import { AccountAdmissionProvider } from "../features/accounts/components/account-admission";
 import { ApplicationAccessProvider } from "../features/access/queries/use-application-access";
 import {
   AccessAdmissionProvider,
@@ -47,7 +46,7 @@ function Navigation({ registration }: { registration: PushRegistration }) {
   const discovery = useDiscovery();
   const age = useAgeDeclaration();
   return (
-    <AccountAdmissionProvider admitted={access.ordinary}>
+    <>
       <NotificationLifecycle
         registration={registration}
         enabled={access.ordinary && discovery.complete}
@@ -83,7 +82,7 @@ function Navigation({ registration }: { registration: PushRegistration }) {
           </Stack.Protected>
         </Stack>
       )}
-    </AccountAdmissionProvider>
+    </>
   );
 }
 

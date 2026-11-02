@@ -121,6 +121,8 @@ description: "Implementation tasks for F04 search and discovery"
 
 ---
 
+- [x] T072 [US4] Implement one hydration per nonempty native batch of at most 200 candidates in `apps/backend/src/main/java/com/blockout/backend/search/application/ReadSearch.java`, preserving examples/order/lookahead/cursor/evaluation-bound/current restrictions. Qualify direct traversal and the real bounded SQL hydration in existing search integration tests; record scoped evidence in `specs/008-search-discovery/quickstart.md`.
+
 ## Phase 6: User Story 5 — Understand errors and retry search (Priority: P1)
 
 **Goal**: Keep failures, uncertainty and actual absence distinct while respecting current access and operational recovery limits.

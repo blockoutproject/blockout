@@ -5,7 +5,7 @@ import {
   ReactElement,
 } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import "../../../shared/native/test-support/tab-view-native";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -232,7 +232,6 @@ async function renderPage(content: ReactElement) {
     ),
   });
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  await layoutNativeTabs();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   return rendered;
 }
@@ -286,19 +285,15 @@ it("shares the newest/selected club season between teams and both calendar entri
 
   // When
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: team.team.team.name });
   await user.press(screen.getByRole("button", { name: "Saison 2027/2028" }));
   await user.press(screen.getByRole("button", { name: "2026/2027" }));
-  await layoutNativeTabs();
   await user.press(screen.getByRole("tab", { name: "À venir" }));
-  await layoutNativeTabs();
 
   // Then
   await screen.findByText("Aucun match pour cette sélection");
   // When
   await user.press(screen.getByRole("tab", { name: "Terminés" }));
-  await layoutNativeTabs();
   // Then
   await waitFor(() =>
     expect(
@@ -326,7 +321,6 @@ it("replaces the club's native scroll context on season change while retaining i
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
   await user.press(screen.getByRole("tab", { name: "Terminés" }));
-  await layoutNativeTabs();
   await screen.findByText("Aucun match pour cette sélection");
   const originalPager = screen.getByTestId("native-tabs-pager");
 
@@ -338,9 +332,8 @@ it("replaces the club's native scroll context on season change while retaining i
 
   // When: applying another season starts a new native context, not a restoration of the old offset.
   await user.press(screen.getByRole("button", { name: "2026/2027" }));
-  await layoutNativeTabs();
 
-  // Then: native pager disposal is observed at its host boundary; RNCT itself remains real.
+  // Then: native pager disposal is observed at its host boundary; shared scene ownership remains real.
   expect(originalPager).not.toBeOnTheScreen();
   expect(
     screen.getByRole("tab", { name: "Terminés", selected: true }),
@@ -371,10 +364,8 @@ it("retains a valid season through failed retrieval and falls back only after su
   await renderPage(<ClubScreen clubId={sportingId} />);
   await screen.findByText(club.club.name);
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
-  await layoutNativeTabs();
   await user.press(screen.getByRole("button", { name: "Saison 2027/2028" }));
   await user.press(screen.getByRole("button", { name: "2026/2027" }));
-  await layoutNativeTabs();
   mockFetch.mockRejectedValue(new TypeError("offline"));
 
   // When
@@ -420,12 +411,10 @@ it("does not replace the selected season with a delayed former team response", a
   await renderPage(<ClubScreen clubId={sportingId} />);
   await screen.findByText(club.club.name);
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
-  await layoutNativeTabs();
   await user.press(screen.getByRole("button", { name: "Saison 2027/2028" }));
 
   // When
   await user.press(screen.getByRole("button", { name: "2026/2027" }));
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: team.team.team.name });
   await act(async () =>
     formerTeams.resolve(
@@ -523,7 +512,6 @@ it("keeps the pool season and phase independent of later standings and map conte
 
   // When
   await user.press(await screen.findByRole("tab", { name: "Carte" }));
-  await layoutNativeTabs();
 
   // Then
   expect(screen.getByText("Qualification")).toBeOnTheScreen();
@@ -544,7 +532,6 @@ it.each(["Équipes", "À venir", "Terminés"])(
 
     // When
     await user.press(screen.getByRole("tab", { name: label }));
-    await layoutNativeTabs();
 
     // Then: one successful empty state replaces an unavailable seasonal collection.
     expect(
@@ -610,6 +597,7 @@ it("keeps match identities and independent missing sections without a zero score
   // Given
   const user = userEvent.setup();
   await renderPage(<MatchScreen matchId={sportingId} />);
+  expect(screen.getByRole("header", { name: "Le match" })).toBeOnTheScreen();
 
   // When
   await user.press(
@@ -785,7 +773,6 @@ it("hides retained club teams when their parent becomes unavailable", async () =
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
   await user.press(await screen.findByRole("tab", { name: "Équipes" }));
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: team.team.team.name });
   mockFetch.mockImplementation((url: string) =>
     url.endsWith(`/clubs/${sportingId}`)
@@ -820,7 +807,6 @@ it("distinguishes an empty club season from a failed team read", async () => {
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
   await user.press(await screen.findByRole("tab", { name: "Équipes" }));
-  await layoutNativeTabs();
 
   // When
   await screen.findByRole("alert");
@@ -833,7 +819,6 @@ it("distinguishes an empty club season from a failed team read", async () => {
   // When: a failed initial catalogue is revisited, only its explicit card action may retry.
   await user.press(screen.getByRole("tab", { name: "Infos" }));
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
-  await layoutNativeTabs();
   await screen.findByRole("alert");
 
   // Then
@@ -858,7 +843,6 @@ it("retains a club season's teams after failed pull-to-refresh and retries only 
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: team.team.team.name });
   mockFetch
     .mockClear()
@@ -1037,15 +1021,12 @@ it("retains the club teams when returning to a visited tab without an implicit r
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
   await user.press(await screen.findByRole("tab", { name: "Équipes" }));
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: team.team.team.name });
   mockFetch.mockClear();
 
   // When
   await user.press(screen.getByRole("tab", { name: "Infos" }));
-  await layoutNativeTabs();
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
-  await layoutNativeTabs();
 
   // Then
   expect(
@@ -1170,11 +1151,9 @@ it("refreshes the active club team tab only and preserves the selected season", 
   await renderPage(<ClubScreen clubId={sportingId} />);
   await screen.findByText(club.club.name);
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
-  await layoutNativeTabs();
   await screen.findByRole("link", { name: team.team.team.name });
   await user.press(screen.getByRole("button", { name: "Saison 2027/2028" }));
   await user.press(screen.getByRole("button", { name: "2026/2027" }));
-  await layoutNativeTabs();
   await waitFor(() =>
     expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
   );
@@ -1204,7 +1183,6 @@ it("opens the generated club-season calendar with its own explicit refresh", asy
 
   // When
   await user.press(screen.getByRole("tab", { name: "À venir" }));
-  await layoutNativeTabs();
 
   // Then
   await screen.findByText("Aucun match pour cette sélection");

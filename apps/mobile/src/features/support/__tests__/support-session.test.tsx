@@ -26,7 +26,7 @@ import {
 import { SupportJourney } from "../screens/support-journey";
 import { SupportForm } from "../forms/support-form";
 import { SignInScreen } from "../../accounts/screens/sign-in-screen";
-import { AccountAdmissionProvider } from "../../accounts/components/account-admission";
+import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
 import SupportLayout from "../../../app/(ordinary)/support/_layout";
 import SupportChoiceRoute from "../../../app/(ordinary)/support/choice";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
@@ -235,9 +235,9 @@ it.each(["authentication"] as const)(
               <ApplicationAccessProvider>
                 <AccountSessionProvider>
                   <AccountFeedbackProvider>
-                    <AccountAdmissionProvider admitted>
+                    <AccessAdmissionProvider>
                       {children}
-                    </AccountAdmissionProvider>
+                    </AccessAdmissionProvider>
                   </AccountFeedbackProvider>
                 </AccountSessionProvider>
               </ApplicationAccessProvider>

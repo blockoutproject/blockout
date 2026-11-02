@@ -13,7 +13,7 @@ import {
 /**
  * Defines the sole confirmed member read for a captured account/session/target.
  * Observers share its generated call, cancellation and cache.
- * Fresh reads retire settled feedback only; a pending replacement remains provisional until it settles.
+ * A fresh confirmed read does not settle or replace a mounted control's provisional command.
  */
 export function createFollowStateQueryOptions(
   target: FollowingTarget,

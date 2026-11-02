@@ -1,8 +1,7 @@
 package com.blockout.collector.acquisition.application;
 
+import java.io.UncheckedIOException;
 import java.net.URI;
-import java.util.concurrent.CompletableFuture;
-import org.springframework.core.task.TaskRejectedException;
 
 /** Acquisition-owned page reading through one provider's existing shared transport budget. */
 public interface ProviderPages {
@@ -12,10 +11,10 @@ public interface ProviderPages {
    * failures remain exceptional.
    *
    * @param uri published page URL within the provider's permitted origins
-   * @return bounded complete content and provenance, or an exceptional future on acquisition
-   *     failure
+   * @return bounded complete content and provenance
    * @throws IllegalArgumentException for an unsupported origin or embedded credentials
-   * @throws TaskRejectedException when shared capacity is full
+   * @throws UncheckedIOException for transport, status, timeout or complete-body failure
+   * @throws RuntimeException when the finite shared permit budget cannot be obtained
    */
-  CompletableFuture<ProviderResponse> page(URI uri);
+  ProviderResponse page(URI uri);
 }

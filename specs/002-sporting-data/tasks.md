@@ -195,6 +195,10 @@ The quoted data-model constraints below remain literal. Concrete Java classes gr
 
 ---
 
+- [x] T072 [US6] Implement team-owned presentation revisions in `apps/backend/src/main/java/com/blockout/backend/sporting/infrastructure/`, preserving season/account/grant safeguards, current inheritance and independent classification/locality/club privacy semantics. Team editing does not lock parent artwork. Apply the retained-data drop-column migration under `apps/backend/src/main/resources/db/changelog/` without rewriting applied history or resetting data.
+- [x] T073 [US6] Qualify `apps/backend/src/test/java/com/blockout/backend/sporting/application/SportingPresentationIntegrationTest.java` and persistence mappings for parent-only edit success/current fallback, own-team stale protection and precedence. Verify clean creation and retained-chain upgrade without losing artwork; record exact scoped evidence in `specs/002-sporting-data/quickstart.md`.
+- [x] T074 [US6] Await Expo's native copy in `apps/mobile/src/features/sporting-administration/images/prepare-sporting-logo.ts` before preparation/handoff completes, preserving borrowed input and owned partial-file cleanup. Verify deferred completion/rejection and relevant native image preparation; record boundary limits in `specs/002-sporting-data/quickstart.md`.
+
 ## Phase 9: Polish & Cross-Cutting Concerns
 
 **Purpose**: Reconcile actual commands, consumer proofs and remaining evidence without widening the implementation scope.

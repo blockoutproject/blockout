@@ -13,7 +13,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class NotificationRetentionConfiguration {
   private final PurgeNotifications purge;
 
-  /** Runs retention on the ordinary daily trigger, including after a previous partial failure. */
+  /** Runs retention on the ordinary daily trigger, including after a previous failed pass. */
   @Scheduled(cron = "${blockout.notifications.retention-cron}", zone = "UTC")
   public void purge() {
     purge.run();

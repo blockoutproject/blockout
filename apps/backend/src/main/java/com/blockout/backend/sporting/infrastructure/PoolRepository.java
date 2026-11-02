@@ -44,7 +44,7 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
       """
       SELECT NEW com.blockout.backend.sporting.infrastructure.SportingPresentationRow(
         p.id, p.sourceName, p.manualName, p.manualShortName, p.presentationRevision, NULL,
-        FALSE, FALSE, NULL, FALSE, 0L)
+        FALSE, FALSE, NULL, FALSE)
       FROM PoolEntity p WHERE p.id IN :ids
       """)
   List<SportingPresentationRow> findPresentations(Set<UUID> ids);

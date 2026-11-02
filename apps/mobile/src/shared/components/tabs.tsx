@@ -20,7 +20,7 @@ import { useReducedMotion } from "../theme/use-reduced-motion";
 import { tokens } from "../theme/tokens";
 import { SelectionIndicator } from "./selection-indicator";
 
-/** Standalone choices keep caller selection and full labels; paged screens use PagedTabs instead. */
+/** Content choices keep settled caller selection and full labels in a horizontally scrolling rail. */
 export interface TabsProps {
   items: readonly { id: string; label: string }[];
   selected: string;
@@ -29,7 +29,7 @@ export interface TabsProps {
   size?: "regular" | "compact";
 }
 
-/** The small Home rail shares selection motion without introducing a pager or unfinished feed. */
+/** Shared content tabs decorate settled selection without tracking the native page trajectory. */
 export function Tabs({
   items,
   selected,
@@ -37,7 +37,6 @@ export function Tabs({
   size = "regular",
 }: TabsProps) {
   const rail = useRef<ScrollViewInstance>(null);
-  const [width, setWidth] = useState<number>();
   const [layouts, setLayouts] = useState<Record<string, LayoutRectangle>>({});
   const reducedMotion = useReducedMotion();
   const target = layouts[selected];
@@ -51,7 +50,6 @@ export function Tabs({
       ref={rail}
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.tabs}
-      onLayout={({ nativeEvent }) => setWidth(nativeEvent.layout.width)}
     >
       <SelectionIndicator layout={target} reducedMotion={reducedMotion} />
       {items.map((item) => (
@@ -60,7 +58,6 @@ export function Tabs({
           label={item.label}
           selected={selected === item.id}
           compact={size === "compact"}
-          maxWidth={size === "compact" ? undefined : width}
           reducedMotion={reducedMotion}
           onSelect={() => onSelect(item.id)}
           onMeasure={(layout) =>
@@ -80,12 +77,11 @@ export function Tabs({
   );
 }
 
-/** Measures the visual pill separately from its larger native touch target, including enlarged labels. */
+/** The unbounded horizontal label keeps its full text; the visual pill retains its native touch target. */
 function StandaloneTab({
   label,
   selected,
   compact,
-  maxWidth,
   reducedMotion,
   onSelect,
   onMeasure,
@@ -93,7 +89,6 @@ function StandaloneTab({
   label: string;
   selected: boolean;
   compact: boolean;
-  maxWidth?: number;
   reducedMotion: boolean;
   onSelect: () => void;
   onMeasure: (layout: LayoutRectangle) => void;
@@ -137,7 +132,7 @@ function StandaloneTab({
       }}
       style={({ pressed }) => [
         styles.target,
-        { maxWidth, opacity: pressed ? tokens.opacity.pressed : 1 },
+        { opacity: pressed ? tokens.opacity.pressed : 1 },
       ]}
     >
       <View
@@ -147,11 +142,7 @@ function StandaloneTab({
         }}
         style={[styles.pill, compact ? styles.compact : styles.regular]}
       >
-        <Animated.Text
-          numberOfLines={compact ? 1 : 2}
-          ellipsizeMode="tail"
-          style={[styles.label, labelStyle]}
-        >
+        <Animated.Text style={[styles.label, labelStyle]}>
           {label}
         </Animated.Text>
       </View>

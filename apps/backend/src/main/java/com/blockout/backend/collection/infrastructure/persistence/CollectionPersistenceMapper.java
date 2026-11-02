@@ -38,7 +38,7 @@ interface CollectionPersistenceMapper {
   /**
    * Replaces current evidence under the control lock without merging a detached copy.
    *
-   * @param source newer application-approved evidence, including explicit cleared failure fields
+   * @param source newer application-approved observation and latest usable success
    * @param target managed row with the same immutable evidence key
    */
   @Mapping(target = "controlId", ignore = true)

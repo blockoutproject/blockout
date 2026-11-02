@@ -2,7 +2,7 @@
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
-  <!-- Mutable F05 baseline while environments remain disposable; no reset is authorized. -->
+  <!-- Creation baseline; the master changelog owns applied-history and no-reset policy. -->
   <changeSet id="accounts" author="blockout">
     <createTable tableName="account">
       <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>

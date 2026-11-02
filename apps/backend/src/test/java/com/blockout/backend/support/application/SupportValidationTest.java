@@ -40,13 +40,12 @@ class SupportValidationTest {
         validation.validate(metadata(), Collections.nCopies(count, image))) {
       // Then
       assertThat(submission.requestId()).isNotNull();
-      assertThat(submission.issueNumber()).isNull();
       assertThat(submission.images()).hasSize(count);
-      for (SupportSubmission.Image accepted : submission.images()) {
-        paths.add(accepted.path());
-        assertThat(accepted.mediaType()).isEqualTo("image/png");
-        assertThat(Files.readAllBytes(accepted.path())).isEqualTo(image);
-        assertThat(Files.getPosixFilePermissions(accepted.path()))
+      for (Path accepted : submission.images()) {
+        paths.add(accepted);
+        assertThat(accepted.toString()).endsWith(".png");
+        assertThat(Files.readAllBytes(accepted)).isEqualTo(image);
+        assertThat(Files.getPosixFilePermissions(accepted))
             .isEqualTo(PosixFilePermissions.fromString("rw-------"));
       }
     }
@@ -78,8 +77,8 @@ class SupportValidationTest {
     // When
     try (SupportSubmission submission = validation.validate(metadata(), List.of(image))) {
       // Then
-      assertThat(Files.size(submission.images().getFirst().path())).isEqualTo(5_242_880);
-      assertThat(submission.images().getFirst().mediaType()).isEqualTo("image/jpeg");
+      assertThat(Files.size(submission.images().getFirst())).isEqualTo(5_242_880);
+      assertThat(submission.images().getFirst().toString()).endsWith(".jpg");
     }
   }
 
@@ -130,7 +129,7 @@ class SupportValidationTest {
     // When
     try (SupportSubmission submission = validation.validate(metadata(), List.of(image))) {
       // Then
-      assertThat(Files.readAllBytes(submission.images().getFirst().path())).isEqualTo(image);
+      assertThat(Files.readAllBytes(submission.images().getFirst())).isEqualTo(image);
     }
   }
 
@@ -181,8 +180,8 @@ class SupportValidationTest {
     // When
     try (SupportSubmission submission = validation.validate(metadata(), List.of(image))) {
       // Then
-      assertThat(Files.readAllBytes(submission.images().getFirst().path())).isEqualTo(image);
-      assertThat(submission.images().getFirst().mediaType()).isEqualTo("image/png");
+      assertThat(Files.readAllBytes(submission.images().getFirst())).isEqualTo(image);
+      assertThat(submission.images().getFirst().toString()).endsWith(".png");
     }
     assertEmptyTemporaryDirectory();
   }

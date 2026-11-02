@@ -242,8 +242,7 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
     currentAccount(OTHER).andExpect(jsonPath("$.permissions.manageCollection").value(true));
     when(principal.read(ISSUER, OTHER.toString()))
         .thenReturn(
-            new PrincipalReader.Evidence(
-                "synthetic@example.invalid", NOW.minusSeconds(604800), List.of()));
+            new PrincipalReader.Evidence("synthetic@example.invalid", NOW.minusSeconds(604800)));
 
     // When
     erasure.erase(ISSUER, OTHER.toString(), OTHER);
@@ -295,9 +294,7 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
     when(principal.read(ISSUER, "auth0|new-287"))
         .thenReturn(
             new PrincipalReader.Evidence(
-                "new@example.invalid",
-                ageSeconds < 0 ? null : NOW.minusSeconds(ageSeconds),
-                List.of()));
+                "new@example.invalid", ageSeconds < 0 ? null : NOW.minusSeconds(ageSeconds)));
     UUID account = establishment.establish(ISSUER, "auth0|new-287").view().account().id();
 
     // When

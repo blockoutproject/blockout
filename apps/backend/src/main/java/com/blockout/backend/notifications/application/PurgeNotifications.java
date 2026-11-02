@@ -6,42 +6,47 @@ import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
-/** Ordinary daily retention, preserving already committed removals if a later batch fails. */
+/** Ordinary daily physical retention in one atomic transaction, independent of logical expiry. */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class PurgeNotifications {
-  private final DeleteExpiredEntries transaction;
+  private final NotificationStore store;
+  private final PlatformTransactionManager transactions;
   private final Clock clock;
 
   /**
-   * Removes due personal rows with one fixed elapsed-age cutoff, independent of maintenance. Stops
-   * on a failed batch, reports only committed progress and leaves remaining rows for the next
-   * ordinary daily pass or manual intervention. No personal references enter diagnostics.
+   * Deletes due personal rows at one fixed elapsed-age cutoff and reports success after commit. A
+   * definite refusal rolls back; a lost commit acknowledgement leaves all-or-none completion
+   * unconfirmed. The next ordinary pass or manual intervention safely re-evaluates due rows.
+   * Ambient transactions are refused so the inner completion always means a real commit. No
+   * personal references are logged.
+   *
+   * @throws org.springframework.transaction.IllegalTransactionStateException for an ambient
+   *     transaction
    */
+  @Transactional(propagation = Propagation.NEVER)
   public void run() {
     Instant cutoff = clock.instant().minus(NotificationRetention.RETENTION);
-    long deleted = 0;
+    int deleted;
     log.atInfo()
         .addKeyValue("operation", "notification_retention")
         .addKeyValue("outcome", "started")
         .log("Daily notification retention started");
     try {
-      NotificationStore.PurgeBatch batch;
-      do {
-        batch = transaction.delete(cutoff);
-        deleted += batch.deleted();
-      } while (batch.more());
+      deleted =
+          new TransactionTemplate(transactions).execute(status -> store.deleteExpired(cutoff));
     } catch (RuntimeException failure) {
       log.atError()
           .addKeyValue("operation", "notification_retention")
           .addKeyValue("outcome", "incomplete")
-          .addKeyValue("partial_count", deleted)
           .addKeyValue("reason", failure.getClass().getSimpleName())
-          .log("Daily notification retention failed after committed removals");
+          .log("Daily notification retention completion was not confirmed");
       return;
     }
     log.atInfo()
@@ -50,23 +55,5 @@ public class PurgeNotifications {
         .addKeyValue("affected_count", deleted)
         .addKeyValue("last_success_at", clock.instant())
         .log("Daily notification retention completed");
-  }
-
-  /** Separate proxy owns each short retention transaction, without sporting/account locks. */
-  @Service
-  @RequiredArgsConstructor
-  public static class DeleteExpiredEntries {
-    private final NotificationStore store;
-
-    /**
-     * Commits one batch independently, including when invoked from an unrelated transaction.
-     *
-     * @param cutoff inclusive UTC original creation boundary
-     * @return committed bounded progress
-     */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public NotificationStore.PurgeBatch delete(Instant cutoff) {
-      return store.deleteExpired(cutoff);
-    }
   }
 }

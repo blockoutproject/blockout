@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
-  <!-- Mutable current-state baseline; all environments remain disposable. No reset is implied. -->
+  <!-- Creation baseline; the master changelog owns applied-history and no-reset policy. -->
   <changeSet id="collection-foundation" author="blockout">
     <createSequence sequenceName="collection_cycle_order" startValue="1" incrementBy="1" maxValue="9007199254740991" cycle="false"/>
     <createTable tableName="collector_runtime">
@@ -139,5 +139,11 @@
     <insert tableName="collector_runtime"><column name="id" valueNumeric="1"/><column name="revision" valueNumeric="0"/></insert>
     <insert tableName="collection_control"><column name="id" value="00000000-0000-4000-8000-000000000001"/><column name="family" value="CLUB_SHEETS"/><column name="enabled" valueBoolean="false"/></insert>
     <insert tableName="collection_control"><column name="id" value="00000000-0000-4000-8000-000000000002"/><column name="family" value="GEOCODING"/><column name="enabled" valueBoolean="false"/></insert>
+  </changeSet>
+  <!-- Retained-state evolution: stop old writers before this contract step, then start compatible code.
+       Removed clock values are intentionally unrecoverable; rollback requires compatible forward repair. -->
+  <changeSet id="collection-immediate-scope-alerts" author="blockout">
+    <dropColumn tableName="collection_result" columnName="first_failure_at"/>
+    <dropColumn tableName="collection_result" columnName="first_structural_failure_at"/>
   </changeSet>
 </databaseChangeLog>

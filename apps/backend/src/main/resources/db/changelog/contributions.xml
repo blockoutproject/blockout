@@ -2,7 +2,7 @@
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
-  <!-- Mutable F08 baseline under the existing disposable-environment posture; no reset. -->
+  <!-- Creation baseline; the master changelog owns applied-history and no-reset policy. -->
   <changeSet id="contribution-state-versions" author="blockout">
     <createTable tableName="contribution_state">
       <column name="match_id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>

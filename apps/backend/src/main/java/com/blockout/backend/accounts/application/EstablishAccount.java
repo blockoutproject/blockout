@@ -6,7 +6,6 @@ import com.blockout.backend.accounts.application.exception.AccountUnavailableExc
 import com.blockout.backend.accounts.application.exception.ProviderEmailUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.accounts.domain.AccountUsername;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -78,7 +77,7 @@ public class EstablishAccount {
     try {
       evidence = provider.read(issuer, subject);
     } catch (AccountUnavailableException failure) {
-      evidence = new PrincipalReader.Evidence(null, null, List.of());
+      evidence = new PrincipalReader.Evidence(null, null);
       unavailable = true;
     }
     PrincipalReader.Evidence available = evidence;

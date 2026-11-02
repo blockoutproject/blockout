@@ -5,7 +5,7 @@ import { Page, PageContent } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+
 import { ErrorState } from "../../../shared/components/state-card";
 import { AccessFeedback } from "../../access/components/access-feedback";
 import { useSourcePreparation } from "../api/use-source-preparation";
@@ -47,66 +47,58 @@ export function SourcePreparationScreen({
     )
   ) : undefined;
   return (
-    <Page edges={["left", "right", "bottom"]}>
-      <ScrollChrome header={<PageHeader title={current?.label ?? "Source"} />}>
-        {({ onScroll, headerHeight }) => (
-          <FormScrollView
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            scrollIndicatorInsets={{ top: headerHeight }}
-            contentContainerStyle={{ paddingTop: headerHeight }}
-            refreshControl={
-              authority.sessionStatus === "authenticated" && !blockingState ? (
-                <DataRefreshControl
-                  progressViewOffset={headerHeight}
-                  refreshing={
-                    source.isRefetching ||
-                    season.isRefetching ||
-                    authority.account.isRefetching
-                  }
-                  enabled={!editing.candidate.isPending}
-                  onRefresh={() => {
-                    if (editing.candidate.isPending) return;
-                    if (!authority.enabled)
-                      void authority.account
-                        .refetch({ cancelRefetch: false })
-                        .then((result) => {
-                          if (result.isError && retained) feedback.error();
-                        });
-                    else {
-                      void source
-                        .refetch({ cancelRefetch: false })
-                        .then((result) => {
-                          if (result.isError && retained) feedback.error();
-                        });
-                      void season
-                        .refetch({ cancelRefetch: false })
-                        .then((result) => {
-                          if (result.isError && retained) feedback.error();
-                        });
-                    }
-                  }}
-                />
-              ) : undefined
-            }
-          >
-            {blockingState ? (
-              <ScreenState>{blockingState}</ScreenState>
-            ) : (
-              <PageContent>
-                {current && season.data && current.seasonId === seasonId && (
-                  <SourceCandidateForm
-                    key={`${authority.session.subject}:${sourceId}`}
-                    source={current}
-                    season={season.data}
-                    editing={editing}
-                  />
-                )}
-              </PageContent>
+    <Page>
+      <PageHeader title={current?.label ?? "Source"} />
+      <FormScrollView
+        refreshControl={
+          authority.sessionStatus === "authenticated" && !blockingState ? (
+            <DataRefreshControl
+              refreshing={
+                source.isRefetching ||
+                season.isRefetching ||
+                authority.account.isRefetching
+              }
+              enabled={!editing.candidate.isPending}
+              onRefresh={() => {
+                if (editing.candidate.isPending) return;
+                if (!authority.enabled)
+                  void authority.account
+                    .refetch({ cancelRefetch: false })
+                    .then((result) => {
+                      if (result.isError && retained) feedback.error();
+                    });
+                else {
+                  void source
+                    .refetch({ cancelRefetch: false })
+                    .then((result) => {
+                      if (result.isError && retained) feedback.error();
+                    });
+                  void season
+                    .refetch({ cancelRefetch: false })
+                    .then((result) => {
+                      if (result.isError && retained) feedback.error();
+                    });
+                }
+              }}
+            />
+          ) : undefined
+        }
+      >
+        {blockingState ? (
+          <ScreenState>{blockingState}</ScreenState>
+        ) : (
+          <PageContent>
+            {current && season.data && current.seasonId === seasonId && (
+              <SourceCandidateForm
+                key={`${authority.session.subject}:${sourceId}`}
+                source={current}
+                season={season.data}
+                editing={editing}
+              />
             )}
-          </FormScrollView>
+          </PageContent>
         )}
-      </ScrollChrome>
+      </FormScrollView>
     </Page>
   );
 }

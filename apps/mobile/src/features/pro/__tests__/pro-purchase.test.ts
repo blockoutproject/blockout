@@ -124,6 +124,7 @@ it("keeps confirmed payment separate from activation when verification is unavai
 
   // When
   await owner.completeOperation(session, "purchased", inactive);
+  await owner.refresh(session);
 
   // Then
   expect(owner.getSnapshot().evidence?.operation).toBe("purchased");
@@ -181,7 +182,7 @@ it("rejects old starts and completions across A → guest → A and restarts fro
   expect(owner.getSnapshot().evidence).toBeNull();
   expect(owner.beginPurchase(session)).toBe(false);
   expect(restarted.getSnapshot().evidence?.operation).toBe("idle");
-  expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(2);
+  expect(restarted.getSnapshot().evidence?.customerInfo).toBe(inactive);
 });
 
 it.each(["purchased", "already-owned"] as const)(

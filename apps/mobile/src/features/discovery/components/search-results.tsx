@@ -1,13 +1,13 @@
-import { pageContentStyle } from "../../../shared/components/page";
 import {
-  pagedListDefaults,
-  PagedStateScrollView,
-} from "../../../shared/components/paged-tabs";
+  PageScrollView,
+  pageContentStyle,
+} from "../../../shared/components/page";
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ReactElement, ReactNode } from "react";
-import { TabLegendList } from "react-native-collapsible-tab/legend-list";
+import { LegendList } from "@legendapp/list/react-native";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { SearchResultCard } from "./search-result-card";
@@ -24,7 +24,7 @@ export interface SearchResultsProps {
   onOpen(item: SearchResult): void;
 }
 
-/** Usable rows keep the virtualized list; content-free feedback adds no artificial collapse range. */
+/** Native rows and ordinary feedback share the viewport below the fixed Search controls. */
 export function SearchResults({
   items,
   examples = false,
@@ -34,10 +34,10 @@ export function SearchResults({
   onOpen,
 }: SearchResultsProps) {
   if (items.length === 0)
-    return <PagedStateScrollView>{emptyComponent}</PagedStateScrollView>;
+    return <PageScrollView>{emptyComponent}</PageScrollView>;
   return (
-    <TabLegendList
-      {...pagedListDefaults}
+    <LegendList
+      {...hiddenScrollIndicators}
       accessibilityRole="list"
       accessibilityLabel={examples ? "Exemples" : "Résultats de recherche"}
       alwaysBounceVertical

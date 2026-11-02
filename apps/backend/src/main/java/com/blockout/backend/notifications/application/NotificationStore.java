@@ -16,22 +16,13 @@ public interface NotificationStore {
   void erase(UUID accountId);
 
   /**
-   * Deletes one bounded batch of personal rows across all owners, read and visibility states. Uses
-   * a dedicated retention transaction; never deletes facts or installation associations.
+   * Deletes all personal rows at the inclusive cutoff across owners/read/visibility states. The
+   * caller owns one retention transaction; facts and installation associations are untouched.
    *
    * @param cutoff inclusive original creation cutoff, calculated once for this pass
-   * @return affected deletion count and whether selection filled the batch; caller owns commit
+   * @return affected row count; successful return alone does not establish commit
    */
-  PurgeBatch deleteExpired(Instant cutoff);
-
-  /**
-   * Bounded retention progress; a full selection requires another batch even after concurrent
-   * removal.
-   *
-   * @param deleted personal rows removed by this transaction
-   * @param more whether the selected batch was full
-   */
-  record PurgeBatch(int deleted, boolean more) {}
+  int deleteExpired(Instant cutoff);
 
   /**
    * Applies only true to an exact still-retained allocation after sporting and account locks.

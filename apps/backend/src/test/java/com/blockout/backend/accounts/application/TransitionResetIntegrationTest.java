@@ -109,7 +109,7 @@ class TransitionResetIntegrationTest {
     follows.replace(new FollowContext(ACCOUNT, new Target(TargetType.POOL, POOL)), true);
     UUID foreignNotification = entry(sql, 1, ACCOUNT, NOW.minusSeconds(60));
     when(provider.read(ISSUER, SUBJECT_A))
-        .thenReturn(new PrincipalReader.Evidence(EMAIL, PRINCIPAL_CREATED, List.of()));
+        .thenReturn(new PrincipalReader.Evidence(EMAIL, PRINCIPAL_CREATED));
 
     // When
     EstablishAccount.Outcome outcome = establishment.establish(ISSUER, SUBJECT_A);
@@ -147,7 +147,7 @@ class TransitionResetIntegrationTest {
     sql.update(
         "UPDATE sporting_team SET source_name='Same sporting name' WHERE id IN (?, ?)", HOME, AWAY);
     when(provider.read(ISSUER, SUBJECT_A))
-        .thenReturn(new PrincipalReader.Evidence(EMAIL, PRINCIPAL_CREATED, List.of()));
+        .thenReturn(new PrincipalReader.Evidence(EMAIL, PRINCIPAL_CREATED));
     Account owner = establishment.establish(ISSUER, SUBJECT_A).view().account();
     FollowContext selected = new FollowContext(owner.id(), new Target(TargetType.TEAM, HOME));
     assertThat(follows.read(selected)).isFalse();
@@ -178,7 +178,7 @@ class TransitionResetIntegrationTest {
   void followsOnlyChosenPool() {
     // Given
     when(provider.read(ISSUER, SUBJECT_A))
-        .thenReturn(new PrincipalReader.Evidence(EMAIL, PRINCIPAL_CREATED, List.of()));
+        .thenReturn(new PrincipalReader.Evidence(EMAIL, PRINCIPAL_CREATED));
     Account owner = establishment.establish(ISSUER, SUBJECT_A).view().account();
     FollowContext selected = new FollowContext(owner.id(), new Target(TargetType.POOL, POOL));
     assertThat(follows.read(selected)).isFalse();
@@ -208,7 +208,7 @@ class TransitionResetIntegrationTest {
   void refusesOldSportingReference(TargetType type) {
     // Given
     when(provider.read(ISSUER, SUBJECT_A))
-        .thenReturn(new PrincipalReader.Evidence(EMAIL, PRINCIPAL_CREATED, List.of()));
+        .thenReturn(new PrincipalReader.Evidence(EMAIL, PRINCIPAL_CREATED));
     Account owner = establishment.establish(ISSUER, SUBJECT_A).view().account();
     FollowContext old = new FollowContext(owner.id(), new Target(type, OLD_REFERENCE));
 
@@ -224,8 +224,7 @@ class TransitionResetIntegrationTest {
   @DisplayName("Keeps original private resources isolated through A, guest, B and return to A")
   void isolatesOriginalOwnersAcrossRequests() throws Exception {
     // Given
-    PrincipalReader.Evidence evidence =
-        new PrincipalReader.Evidence(EMAIL, PRINCIPAL_CREATED, List.of());
+    PrincipalReader.Evidence evidence = new PrincipalReader.Evidence(EMAIL, PRINCIPAL_CREATED);
     when(provider.read(ISSUER, SUBJECT_A)).thenReturn(evidence);
     when(provider.read(ISSUER, SUBJECT_B)).thenReturn(evidence);
     Account first = establishment.establish(ISSUER, SUBJECT_A).view().account();

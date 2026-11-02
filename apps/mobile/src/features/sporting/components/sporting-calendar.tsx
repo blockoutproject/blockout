@@ -1,6 +1,7 @@
-import type { LegendListRef } from "@legendapp/list/react-native";
+import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
 import {
   useInfiniteQuery,
+  hashKey,
   isCancelledError,
   type InfiniteData,
   type UseInfiniteQueryResult,
@@ -8,6 +9,7 @@ import {
 import { useNavigation } from "expo-router";
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -16,13 +18,12 @@ import {
 } from "react";
 import {
   AppState,
+  Animated,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
 } from "react-native";
-import { useCollapsingTabsContext } from "react-native-collapsible-tab";
-import { TabLegendList } from "react-native-collapsible-tab/legend-list";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type {
   MatchCalendarResponse,
@@ -38,11 +39,12 @@ import { ListContinuation } from "../../../shared/components/list-continuation";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { resourceUnavailable } from "../model/consultation-availability";
-import { pageContentStyle } from "../../../shared/components/page";
 import {
-  pagedListDefaults,
-  PagedStateScrollView,
-} from "../../../shared/components/paged-tabs";
+  PageContent,
+  PageScrollView,
+  pageContentStyle,
+} from "../../../shared/components/page";
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import {
@@ -67,15 +69,18 @@ import { SportingLogo, SportingArtwork } from "./sporting-identity";
 export interface SportingCalendarProps {
   selection: Omit<CalendarSelection, "timeZone">;
   active?: boolean;
+  /** Scene-local identity and controls scroll in the calendar's actual list header. */
+  children?: ReactNode;
 }
 
 /**
  * Individually virtualized encounters retain Query's complete days and pool grouping. Native sticky
- * day cells share the collapsing header's measured inset; foreground changes only time formatting.
+ * day cells stick inside their own viewport; foreground changes only time formatting.
  */
 export function SportingCalendar({
   selection,
   active = true,
+  children,
 }: SportingCalendarProps) {
   const queries = useConsultationQueries();
   const { timeZone, refresh } = useCalendarGrouping(
@@ -92,10 +97,13 @@ export function SportingCalendar({
   });
   return (
     <SportingCalendarView
+      key={hashKey(options.queryKey)}
       calendar={calendar}
       active={active}
       onRefresh={refresh}
-    />
+    >
+      {children}
+    </SportingCalendarView>
   );
 }
 
@@ -115,6 +123,8 @@ export interface SportingCalendarViewProps {
   active?: boolean;
   onRefresh: (timeZone: string) => Promise<unknown>;
   emptyState?: ReactNode;
+  /** Optional scene identity remains in the same native scroller as the calendar. */
+  children?: ReactNode;
 }
 
 /** Shares F03 complete-day rendering, gestures and exact sporting navigation with personal calendars. */
@@ -123,12 +133,17 @@ export function SportingCalendarView({
   active = true,
   onRefresh,
   emptyState,
+  children,
 }: SportingCalendarViewProps) {
   const navigation = useNavigation();
   const feedback = useActionFeedback();
   const [displayZone, setDisplayZone] = useState(currentSportingTimeZone);
   const [refreshing, setRefreshing] = useState(false);
   const list = useRef<LegendListRef>(null);
+  const currentActive = useRef(active);
+  useLayoutEffect(() => {
+    currentActive.current = active;
+  }, [active]);
   const groupingZone =
     calendar.data?.pages[0]?.timeZone ?? currentSportingTimeZone();
   const { fontScale, width } = useWindowDimensions();
@@ -142,8 +157,6 @@ export function SportingCalendarView({
   const columns = stacked
     ? 1
     : Math.max(2, Math.min(8, Math.floor(availableWidth / (40 * fontScale))));
-  const { headerHeight, collapseRange, tabBarHeight, focusedTab } =
-    useCollapsingTabsContext();
   const days = useMemo(() => calendarDays(calendar.data), [calendar.data]);
   const rows = useMemo(() => calendarRows(days, stacked), [days, stacked]);
   const stickyHeaderIndices = useMemo(
@@ -167,6 +180,8 @@ export function SportingCalendarView({
       list.current?.scrollToOffset({ offset: 0, animated: false });
     } catch (error) {
       if (
+        currentActive.current &&
+        navigation.isFocused() &&
         calendar.data &&
         !resourceUnavailable(error) &&
         !isCancelledError(error) &&
@@ -189,14 +204,13 @@ export function SportingCalendarView({
     )
       return;
     feedback.clear();
-    const tab = focusedTab.value;
     const result = await calendar.fetchNextPage({ cancelRefetch: false });
     if (
       result.isFetchNextPageError &&
       result.data &&
       !resourceUnavailable(result.error) &&
       navigation.isFocused() &&
-      focusedTab.value === tab
+      currentActive.current
     )
       feedback.error();
   }
@@ -209,7 +223,8 @@ export function SportingCalendarView({
   ) : undefined;
   if (rows.length === 0)
     return (
-      <PagedStateScrollView refreshControl={refreshControl}>
+      <PageScrollView refreshControl={refreshControl}>
+        {children && <PageContent>{children}</PageContent>}
         <ScreenState>
           {calendar.isError && !calendar.data ? (
             <ErrorState
@@ -224,12 +239,12 @@ export function SportingCalendarView({
             ))
           )}
         </ScreenState>
-      </PagedStateScrollView>
+      </PageScrollView>
     );
   return (
-    <TabLegendList<CalendarRow>
-      {...pagedListDefaults}
-      // Replace the native grid when its column count changes; Query and RNCT retain their owners.
+    <LegendList<CalendarRow>
+      {...hiddenScrollIndicators}
+      // Replace the native grid when its column count changes; Query retains the traversal.
       key={columns}
       ref={list}
       alwaysBounceVertical
@@ -250,9 +265,12 @@ export function SportingCalendarView({
       getFixedItemSize={(item) => (item.kind === "space" ? 0 : undefined)}
       keyExtractor={(item) => item.key}
       stickyHeaderIndices={stickyHeaderIndices}
-      stickyHeaderConfig={{
-        offset: headerHeight - collapseRange + tabBarHeight,
-      }}
+      renderScrollComponent={(props) => <Animated.ScrollView {...props} />}
+      ListHeaderComponent={
+        children ? (
+          <View style={styles.sceneHeader}>{children}</View>
+        ) : undefined
+      }
       refreshControl={refreshControl}
       renderItem={({ item }) =>
         item.kind === "space" ? null : item.kind === "date" ? (
@@ -420,6 +438,7 @@ const monthFormat = new Intl.DateTimeFormat("fr-FR", {
 });
 
 const styles = StyleSheet.create({
+  sceneHeader: { gap: tokens.spacing.lg, marginBottom: tokens.spacing.lg },
   dateHeading: { gap: tokens.spacing.xs, paddingRight: tokens.spacing.xs },
   stackedDate: {
     flexDirection: "row",

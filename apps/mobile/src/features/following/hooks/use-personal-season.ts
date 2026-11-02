@@ -1,11 +1,8 @@
 import { useState } from "react";
-import { useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
 import type { FollowingOwner } from "../api/following-keys";
-import {
-  createFollowOptionsQueryOptions,
-  readPersonalSelection,
-} from "../api/personal-queries";
+import { createFollowOptionsQueryOptions } from "../api/personal-queries";
 
 /**
  * Owns the personal space's in-memory choice, independent from public search and sporting sheets.
@@ -18,7 +15,6 @@ export function usePersonalSeason(
   enabled: boolean,
   bypass = false,
 ) {
-  const client = useQueryClient();
   const [choice, setChoice] = useState<string | null>();
   const queryOptions = createFollowOptionsQueryOptions(owner, request, bypass);
   const options = useQuery({ ...queryOptions, enabled });
@@ -45,26 +41,5 @@ export function usePersonalSeason(
   function resetSeason() {
     selectSeason(options.data?.defaultSeasonId);
   }
-  /** Captures each query's selection so a late result cannot repair a different tab's newer choice. */
-  function read<T>(
-    selectedSeason: string | undefined,
-    signal: AbortSignal,
-    operation: () => Promise<T>,
-    currentKey?: QueryKey,
-  ) {
-    return readPersonalSelection(
-      {
-        client,
-        owner,
-        seasonId: selectedSeason,
-        signal,
-        currentKey,
-        bypass,
-        options: queryOptions,
-        selectSeason,
-      },
-      operation,
-    );
-  }
-  return { options, seasonId, selectSeason, resetSeason, read };
+  return { options, seasonId, selectSeason, resetSeason };
 }

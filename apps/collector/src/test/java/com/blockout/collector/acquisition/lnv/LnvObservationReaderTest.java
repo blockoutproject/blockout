@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -27,7 +29,6 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
@@ -36,7 +37,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.core.NestedExceptionUtils;
-import org.springframework.core.task.TaskRejectedException;
 
 /**
  * Exercises real LNV observation and document-index adaptation with controlled transport and
@@ -50,10 +50,7 @@ class LnvObservationReaderTest {
     // Given
     ProviderHttpClient http = mock(ProviderHttpClient.class);
     URI image = URI.create("https://images.dataproject.com/lnv/TeamLogo/team.png");
-    when(http.image(image))
-        .thenReturn(
-            CompletableFuture.completedFuture(
-                new ProviderResponse(new byte[] {1, 2, 3}, image, true)));
+    doReturn(new ProviderResponse(new byte[] {1, 2, 3}, image, true)).when(http).image(image);
     LnvObservationReader reader = documentReader(http);
 
     // When
@@ -72,10 +69,7 @@ class LnvObservationReaderTest {
     // Given
     ProviderHttpClient http = mock(ProviderHttpClient.class);
     URI image = URI.create("https://images.dataproject.com/lnv/TeamLogo/team.png");
-    when(http.image(image))
-        .thenReturn(
-            CompletableFuture.completedFuture(
-                new ProviderResponse(new byte[] {1, 2, 3}, image, false)));
+    doReturn(new ProviderResponse(new byte[] {1, 2, 3}, image, false)).when(http).image(image);
     LnvObservationReader reader = documentReader(http);
 
     // When
@@ -231,19 +225,19 @@ class LnvObservationReaderTest {
     LnvAcquisition.Resource resource =
         reader.fromPage(
             new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), page, true), Instant.EPOCH);
-    when(http.postPage(any(), any()))
-        .thenReturn(
-            CompletableFuture.completedFuture(
-                new ProviderResponse(
-                    ("<title>Alterna VOLSTAR "
-                            + (wrongSeason ? "2027/2028" : "2026/2027")
-                            + "</title><iframe src='https://documents.example.invalid/foreign.pdf'></iframe>")
-                        .getBytes(StandardCharsets.UTF_8),
-                    URI.create(
-                        "https://lnv-web.dataproject.com/MatchStatistics.aspx?mID="
-                            + (wrongSeason ? "990" : "991")
-                            + "&ID=901"),
-                    true)));
+    doReturn(
+            new ProviderResponse(
+                ("<title>Alterna VOLSTAR "
+                        + (wrongSeason ? "2027/2028" : "2026/2027")
+                        + "</title><iframe src='https://documents.example.invalid/foreign.pdf'></iframe>")
+                    .getBytes(StandardCharsets.UTF_8),
+                URI.create(
+                    "https://lnv-web.dataproject.com/MatchStatistics.aspx?mID="
+                        + (wrongSeason ? "990" : "991")
+                        + "&ID=901"),
+                true))
+        .when(http)
+        .postPage(any(), any());
 
     // When
     ThrowingCallable action = () -> resource.document(target, "Scoresheet");
@@ -323,10 +317,9 @@ class LnvObservationReaderTest {
         </Match></Journee></Competition></Calendrier>
         """;
     ProviderHttpClient http = mock(ProviderHttpClient.class);
-    when(http.page(indexUrl))
-        .thenReturn(
-            CompletableFuture.completedFuture(
-                new ProviderResponse(xml.getBytes(StandardCharsets.UTF_8), indexUrl, true)));
+    doReturn(new ProviderResponse(xml.getBytes(StandardCharsets.UTF_8), indexUrl, true))
+        .when(http)
+        .page(indexUrl);
     Instant firstTime = Instant.parse("2026-10-17T12:00:00Z");
     Clock clock = mock(Clock.class);
     when(clock.instant()).thenReturn(firstTime, firstTime.plusSeconds(60));
@@ -337,7 +330,6 @@ class LnvObservationReaderTest {
             List.of(),
             Duration.ofSeconds(3),
             1024,
-            1,
             1,
             1,
             10,
@@ -412,15 +404,12 @@ class LnvObservationReaderTest {
     // Given
     URI indexUrl = URI.create("https://www.lnv.fr/xml/calendrier-LAM.xml");
     ProviderHttpClient http = mock(ProviderHttpClient.class);
-    Exception transportFailure;
-    if (saturated) {
-      TaskRejectedException rejection = new TaskRejectedException("Synthetic provider saturation");
-      transportFailure = rejection;
-      when(http.page(indexUrl)).thenThrow(rejection);
-    } else {
-      transportFailure = new IOException("Synthetic transport failure");
-      when(http.page(indexUrl)).thenReturn(CompletableFuture.failedFuture(transportFailure));
-    }
+    IOException transportFailure =
+        saturated
+            ? new org.apache.hc.core5.http.ConnectionRequestTimeoutException(
+                "Synthetic provider capacity wait")
+            : new IOException("Synthetic transport failure");
+    doThrow(new java.io.UncheckedIOException(transportFailure)).when(http).page(indexUrl);
     LnvObservationReader reader =
         documentReader(
             http,
@@ -463,11 +452,9 @@ class LnvObservationReaderTest {
     URI indexUrl = URI.create("https://www.lnv.fr/xml/calendrier-LAM.xml");
     ProviderHttpClient http = mock(ProviderHttpClient.class);
     when(http.page(indexUrl))
+        .thenThrow(new java.io.UncheckedIOException(new IOException("Synthetic transport failure")))
         .thenReturn(
-            CompletableFuture.failedFuture(new IOException("Synthetic transport failure")),
-            CompletableFuture.completedFuture(
-                new ProviderResponse(
-                    "<Calendrier/>".getBytes(StandardCharsets.UTF_8), indexUrl, true)));
+            new ProviderResponse("<Calendrier/>".getBytes(StandardCharsets.UTF_8), indexUrl, true));
     LnvObservationReader reader =
         documentReader(
             http,
@@ -528,7 +515,6 @@ class LnvObservationReaderTest {
             List.of(),
             Duration.ofSeconds(3),
             1024,
-            1,
             1,
             1,
             10,

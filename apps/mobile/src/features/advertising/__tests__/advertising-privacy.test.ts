@@ -283,8 +283,6 @@ it.each([
     const open = jest.fn();
     await privacy.openSportingTransition({
       key: {},
-      kind: "match",
-      voluntary: true,
       isCurrent: () => true,
       open,
     });
@@ -388,8 +386,6 @@ it("invalidates initialized adult → teen → child → adult preparation befor
   for (let index = 0; index < 9; index++)
     await privacy.openSportingTransition({
       key: {},
-      kind: "match",
-      voluntary: true,
       isCurrent: () => true,
       open: jest.fn(),
     });
@@ -416,8 +412,6 @@ it("invalidates initialized adult → teen → child → adult preparation befor
   );
   const destination = privacy.openSportingTransition({
     key: {},
-    kind: "match",
-    voluntary: true,
     isCurrent: () => true,
     open: jest.fn(),
   });

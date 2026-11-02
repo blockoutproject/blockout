@@ -103,25 +103,20 @@ public class ReadSearch {
     SearchEngine.Position consumed = after;
     for (int batchNumber = 0; batchNumber < 10; batchNumber++) {
       SearchEngine.Batch batch = engine.search(context, consumed, 200);
-      int offset = 0;
-      while (offset < batch.candidates().size()) {
-        int end = Math.min(batch.candidates().size(), offset + 21);
-        List<SearchEngine.Candidate> slice = batch.candidates().subList(offset, end);
-        Map<UUID, SearchPage.Summary> current = hydration.current(context, slice);
-        for (SearchEngine.Candidate candidate : slice) {
-          SearchPage.Summary summary = current.get(candidate.position().id());
-          if (summary != null) {
-            if (context.examples() && results.size() == 4) {
-              results.add(summary);
-              return new SearchPage(results, null);
-            }
-            if (results.size() == 20) return new SearchPage(results, consumed);
-            beforeLastEligible = consumed;
+      Map<UUID, SearchPage.Summary> current =
+          batch.candidates().isEmpty() ? Map.of() : hydration.current(context, batch.candidates());
+      for (SearchEngine.Candidate candidate : batch.candidates()) {
+        SearchPage.Summary summary = current.get(candidate.position().id());
+        if (summary != null) {
+          if (context.examples() && results.size() == 4) {
             results.add(summary);
+            return new SearchPage(results, null);
           }
-          consumed = candidate.position();
+          if (results.size() == 20) return new SearchPage(results, consumed);
+          beforeLastEligible = consumed;
+          results.add(summary);
         }
-        offset = end;
+        consumed = candidate.position();
       }
       if (batch.exhausted()) return new SearchPage(results, null);
     }

@@ -7,7 +7,7 @@ import {
 } from "react";
 import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import "../../../shared/native/test-support/tab-view-native";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import {
   act,
@@ -330,7 +330,6 @@ it.each(["team", "pool"] as const)(
     await renderFollowing(type === "team" ? <TeamRoute /> : <PoolRoute />);
     await waitFor(() => expect(session.status).toBe("authenticated"));
     await screen.findByText(type === "team" ? "Volley Démo" : "Phase 01");
-    await layoutNativeTabs();
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
     );

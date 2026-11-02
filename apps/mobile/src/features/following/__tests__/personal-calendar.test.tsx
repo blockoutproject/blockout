@@ -16,8 +16,6 @@ import {
 import {
   createFollowOptionsQueryOptions,
   createPersonalCalendarOptions,
-  readPersonalSelection,
-  type PersonalCalendarRead,
 } from "../api/personal-queries";
 import type { FollowingOwner } from "../api/following-keys";
 
@@ -34,26 +32,11 @@ const selection = {
 } as const;
 let client = createQueryClient();
 let owner: FollowingOwner;
-const selectSeason = jest.fn();
 
 /** Synthetic current I/O boundary; generated HTTP and one-time validation stay real. */
 async function request(signal?: AbortSignal) {
   return { signal };
 }
-/** Real bounded reconciliation with a captured selection, without replacing the query lifecycle. */
-const read: PersonalCalendarRead = (seasonId, signal, operation) =>
-  readPersonalSelection(
-    {
-      client,
-      owner,
-      seasonId,
-      signal,
-      options: createFollowOptionsQueryOptions(owner, request),
-      selectSeason,
-    },
-    operation,
-  );
-
 /** Complete generated envelope, retaining its category-independent explanation alongside F03 days. */
 function page(
   date: string,
@@ -86,7 +69,6 @@ beforeEach(() => {
   };
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   mockFetch.mockReset();
-  selectSeason.mockReset();
 });
 afterEach(() => {
   client.clear();
@@ -95,12 +77,7 @@ afterEach(() => {
 
 it("uses the exclusive nextDay while caching full validated personal envelopes and deduplicating display rows", async () => {
   // Given
-  const options = createPersonalCalendarOptions(
-    owner,
-    request,
-    selection,
-    read,
-  );
+  const options = createPersonalCalendarOptions(owner, request, selection);
   mockFetch
     .mockResolvedValueOnce(
       Response.json(page("2026-10-29", sportingId, "2026-10-29")),
@@ -130,12 +107,7 @@ it("uses the exclusive nextDay while caching full validated personal envelopes a
 
 it("retains complete pages on append and unchanged-context refresh failure without declaring exhaustion", async () => {
   // Given
-  const options = createPersonalCalendarOptions(
-    owner,
-    request,
-    selection,
-    read,
-  );
+  const options = createPersonalCalendarOptions(owner, request, selection);
   mockFetch.mockResolvedValueOnce(
     Response.json(page("2026-10-29", sportingId, "2026-10-29")),
   );
@@ -160,18 +132,11 @@ it("retains complete pages on append and unchanged-context refresh failure witho
 
 it("restarts reset visible queries at the first page and defers hidden mounted categories until display", async () => {
   // Given
-  const options = createPersonalCalendarOptions(
-    owner,
-    request,
-    selection,
-    read,
-  );
-  const hiddenOptions = createPersonalCalendarOptions(
-    owner,
-    request,
-    { ...selection, category: "completed" },
-    read,
-  );
+  const options = createPersonalCalendarOptions(owner, request, selection);
+  const hiddenOptions = createPersonalCalendarOptions(owner, request, {
+    ...selection,
+    category: "completed",
+  });
   mockFetch.mockImplementation(async () =>
     Response.json(page("2026-10-29", sportingId, "2026-10-29")),
   );
@@ -212,12 +177,7 @@ it("restarts reset visible queries at the first page and defers hidden mounted c
 
 it("cancels a late prior append before a successful first-page replacement", async () => {
   // Given
-  const options = createPersonalCalendarOptions(
-    owner,
-    request,
-    selection,
-    read,
-  );
+  const options = createPersonalCalendarOptions(owner, request, selection);
   const late = Promise.withResolvers<Response>();
   mockFetch
     .mockResolvedValueOnce(
@@ -243,18 +203,11 @@ it("cancels a late prior append before a successful first-page replacement", asy
 
 it("withdraws refused private rows across retained categories before a later offline failure", async () => {
   // Given
-  const options = createPersonalCalendarOptions(
-    owner,
-    request,
-    selection,
-    read,
-  );
-  const sibling = createPersonalCalendarOptions(
-    owner,
-    request,
-    { ...selection, category: "completed" },
-    read,
-  );
+  const options = createPersonalCalendarOptions(owner, request, selection);
+  const sibling = createPersonalCalendarOptions(owner, request, {
+    ...selection,
+    category: "completed",
+  });
   mockFetch.mockImplementation(async () => Response.json(page("2026-10-29")));
   await client.infiniteQuery(options);
   await client.infiniteQuery(sibling);
@@ -276,12 +229,7 @@ it("withdraws refused private rows across retained categories before a later off
 
 it("rejects an invalid explanation instead of caching an empty success", async () => {
   // Given
-  const options = createPersonalCalendarOptions(
-    owner,
-    request,
-    selection,
-    read,
-  );
+  const options = createPersonalCalendarOptions(owner, request, selection);
   mockFetch.mockResolvedValueOnce(
     Response.json({ calendar: page("2026-10-29").calendar }),
   );
@@ -297,18 +245,11 @@ it.each([401, 403])(
   "withdraws every cached season after an account-level %i refusal in the same admission context",
   async (status) => {
     // Given
-    const options = createPersonalCalendarOptions(
-      owner,
-      request,
-      selection,
-      read,
-    );
-    const anotherSeason = createPersonalCalendarOptions(
-      owner,
-      request,
-      { ...selection, seasonId: "00000000-0000-4000-8000-000000000231" },
-      read,
-    );
+    const options = createPersonalCalendarOptions(owner, request, selection);
+    const anotherSeason = createPersonalCalendarOptions(owner, request, {
+      ...selection,
+      seasonId: "00000000-0000-4000-8000-000000000231",
+    });
     mockFetch.mockImplementation(async () => Response.json(page("2026-10-29")));
     await client.infiniteQuery(options);
     await client.infiniteQuery(anotherSeason);
@@ -327,18 +268,11 @@ it.each([401, 403])(
 
 it("withdraws all cached seasons after an original-account NotFound without a seasonal selector", async () => {
   // Given
-  const seasonal = createPersonalCalendarOptions(
-    owner,
-    request,
-    selection,
-    read,
-  );
-  const all = createPersonalCalendarOptions(
-    owner,
-    request,
-    { ...selection, seasonId: undefined },
-    read,
-  );
+  const seasonal = createPersonalCalendarOptions(owner, request, selection);
+  const all = createPersonalCalendarOptions(owner, request, {
+    ...selection,
+    seasonId: undefined,
+  });
   mockFetch.mockImplementation(async () => Response.json(page("2026-10-29")));
   await client.infiniteQuery(seasonal);
   await client.infiniteQuery(all);
@@ -358,31 +292,23 @@ it.each([sportingId, undefined])(
   "withdraws current unavailable-follow effects from overlapping season/category caches for season %s",
   async (seasonId) => {
     // Given: all selections use real validated envelopes; only HTTP supplies current availability.
-    const current = createPersonalCalendarOptions(
-      owner,
-      request,
-      { ...selection, seasonId },
-      read,
-    );
-    const completed = createPersonalCalendarOptions(
-      owner,
-      request,
-      { ...selection, category: "completed" },
-      read,
-    );
+    const current = createPersonalCalendarOptions(owner, request, {
+      ...selection,
+      seasonId,
+    });
+    const completed = createPersonalCalendarOptions(owner, request, {
+      ...selection,
+      category: "completed",
+    });
     const otherSeasonId = "00000000-0000-4000-8000-000000000231";
-    const other = createPersonalCalendarOptions(
-      owner,
-      request,
-      { ...selection, seasonId: otherSeasonId },
-      read,
-    );
-    const all = createPersonalCalendarOptions(
-      owner,
-      request,
-      { ...selection, seasonId: undefined },
-      read,
-    );
+    const other = createPersonalCalendarOptions(owner, request, {
+      ...selection,
+      seasonId: otherSeasonId,
+    });
+    const all = createPersonalCalendarOptions(owner, request, {
+      ...selection,
+      seasonId: undefined,
+    });
     const first = page("2026-10-29");
     const another = page("2026-10-30", otherSeasonId);
     const otherMatch = another.calendar.days[0].pools[0].matches[0];
@@ -466,5 +392,103 @@ it.each([sportingId, undefined])(
       )?.pages[0].calendar.days,
     ).toEqual(seasonId ? another.calendar.days : []);
     close();
+  },
+);
+
+it.each(["success", "failure"])(
+  "withdraws retained omitted seasons only after a successful first options read: %s",
+  async (outcome) => {
+    // Given: the options query was evicted while ordinary retained traversals still exist.
+    const previous = page("2026-10-29");
+    const match = previous.calendar.days[0].pools[0].matches[0];
+    const omitted = match.pool.season;
+    const offered = {
+      ...omitted,
+      id: "00000000-0000-4000-8000-000000000299",
+      startYear: omitted.startYear + 1,
+    };
+    const remaining = {
+      ...match,
+      id: "00000000-0000-4000-8000-000000000298",
+      pool: { ...match.pool, season: offered },
+    };
+    const allPage = {
+      ...previous,
+      calendar: {
+        ...previous.calendar,
+        days: [
+          {
+            ...previous.calendar.days[0],
+            pools: [
+              {
+                ...previous.calendar.days[0].pools[0],
+                matches: [match, remaining],
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const all = createPersonalCalendarOptions(owner, request, {
+      ...selection,
+      seasonId: undefined,
+    });
+    const exact = createPersonalCalendarOptions(owner, request, {
+      ...selection,
+      seasonId: omitted.id,
+    });
+    const bypass = createPersonalCalendarOptions(
+      owner,
+      request,
+      { ...selection, seasonId: omitted.id },
+      true,
+    );
+    client.setQueryData(all.queryKey, {
+      pages: [allPage],
+      pageParams: [undefined],
+    });
+    client.setQueryData(exact.queryKey, {
+      pages: [previous],
+      pageParams: [undefined],
+    });
+    client.setQueryData(bypass.queryKey, {
+      pages: [previous],
+      pageParams: [undefined],
+    });
+    mockFetch.mockResolvedValue(
+      outcome === "success"
+        ? Response.json({ seasons: [offered], defaultSeasonId: offered.id })
+        : new Response(null, { status: 503 }),
+    );
+
+    // When
+    const reload = client.fetchQuery(
+      createFollowOptionsQueryOptions(owner, request),
+    );
+    if (outcome === "success") await reload;
+    else await expect(reload).rejects.toMatchObject({ status: 503 });
+
+    // Then
+    const retainedAll = client.getQueryData<
+      InfiniteData<PersonalMatchCalendarResponse>
+    >(all.queryKey);
+    const retainedExact = client.getQueryData<
+      InfiniteData<PersonalMatchCalendarResponse>
+    >(exact.queryKey);
+    expect(
+      retainedAll?.pages[0].calendar.days[0].pools[0].matches.map(
+        (item) => item.id,
+      ),
+    ).toEqual(
+      outcome === "success" ? [remaining.id] : [match.id, remaining.id],
+    );
+    expect(retainedExact?.pages[0].calendar.days).toEqual(
+      outcome === "success" ? [] : previous.calendar.days,
+    );
+    expect(
+      client.getQueryData<InfiniteData<PersonalMatchCalendarResponse>>(
+        bypass.queryKey,
+      )?.pages,
+    ).toEqual([previous]);
   },
 );

@@ -1,4 +1,3 @@
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import {
   Page,
   PageContent,
@@ -88,32 +87,24 @@ export function AdministrationScreen({
       (account.isPending || account.isError)) ||
     (!hasCommands && !onBypass);
   return (
-    <Page edges={["left", "right", "bottom"]}>
-      <ScrollChrome header={<PageHeader title="Administration technique" />}>
-        {({ onScroll, headerHeight }) => (
-          <PageScrollView
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            scrollIndicatorInsets={{ top: headerHeight }}
-            contentContainerStyle={{ paddingTop: headerHeight }}
-            refreshControl={
-              !blocked && sessionStatus === "authenticated" ? (
-                <DataRefreshControl
-                  progressViewOffset={headerHeight}
-                  refreshing={account.isRefetching}
-                  onRefresh={() => void account.refetch()}
-                />
-              ) : undefined
-            }
-          >
-            {blocked ? (
-              <ScreenState>{content}</ScreenState>
-            ) : (
-              <PageContent>{content}</PageContent>
-            )}
-          </PageScrollView>
+    <Page>
+      <PageHeader title="Administration technique" />
+      <PageScrollView
+        refreshControl={
+          !blocked && sessionStatus === "authenticated" ? (
+            <DataRefreshControl
+              refreshing={account.isRefetching}
+              onRefresh={() => void account.refetch()}
+            />
+          ) : undefined
+        }
+      >
+        {blocked ? (
+          <ScreenState>{content}</ScreenState>
+        ) : (
+          <PageContent>{content}</PageContent>
         )}
-      </ScrollChrome>
+      </PageScrollView>
     </Page>
   );
 }

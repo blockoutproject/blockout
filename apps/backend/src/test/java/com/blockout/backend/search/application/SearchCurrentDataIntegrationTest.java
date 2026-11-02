@@ -283,11 +283,12 @@ class SearchCurrentDataIntegrationTest {
 
   @ParameterizedTest
   @EnumSource(SearchContext.Resource.class)
-  @DisplayName("Hydrates twenty summaries with distinct parents without per-candidate SQL reads")
+  @DisplayName(
+      "Hydrates a full native candidate batch with distinct parents without per-candidate SQL reads")
   void readsSummariesInBatches(SearchContext.Resource resource, TestReporter reporter) {
     // Given: distinct parents prevent the persistence context from hiding per-parent reads.
     List<Candidate> candidates = new ArrayList<>();
-    for (int number = 1; number <= 20; number++) {
+    for (int number = 1; number <= 200; number++) {
       String suffix = String.format("%012d", number);
       UUID id = UUID.fromString("10000000-0000-4000-8000-" + suffix);
       if (resource == SearchContext.Resource.CLUB) {
@@ -327,7 +328,7 @@ class SearchCurrentDataIntegrationTest {
             pool.toString(),
             division);
         if (resource == SearchContext.Resource.TEAM) {
-          UUID club = number == 20 ? null : UUID.fromString("60000000-0000-4000-8000-" + suffix);
+          UUID club = number == 200 ? null : UUID.fromString("60000000-0000-4000-8000-" + suffix);
           if (club != null)
             sql.update(
                 "INSERT INTO sporting_club(id, provider, reference, source_name, manual_name, logo, logo_media_type) VALUES (?, 'FFVB', ?, 'Source club', ?, ?, 'image/png')",
@@ -370,10 +371,10 @@ class SearchCurrentDataIntegrationTest {
           Map.of(
               "resource", resource.name(),
               "singleCandidateStatements", Long.toString(singleReads),
-              "twentyCandidateStatements", Long.toString(batchReads)));
+              "twoHundredCandidateStatements", Long.toString(batchReads)));
 
       // Then
-      assertThat(current).hasSize(20);
+      assertThat(current).hasSize(200);
       assertThat(batchReads).isEqualTo(singleReads);
       SearchPage.Summary first = current.get(candidates.getFirst().position().id());
       switch (resource) {
@@ -388,7 +389,7 @@ class SearchCurrentDataIntegrationTest {
           assertThat(first.team().club().name()).isEqualTo("Current club 1");
           assertThat(first.team().club().logoUrl()).endsWith("/logo");
           SearchPage.Summary clubless = current.get(candidates.getLast().position().id());
-          assertThat(clubless.team().season().startYear()).isEqualTo(2020);
+          assertThat(clubless.team().season().startYear()).isEqualTo(2200);
           assertThat(clubless.team().club()).isNull();
           assertThat(clubless.team().team().logoUrl()).endsWith("/logo?selection=automatic");
         }

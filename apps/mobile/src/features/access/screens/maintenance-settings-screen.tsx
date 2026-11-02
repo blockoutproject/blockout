@@ -1,4 +1,3 @@
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
 import { Page, PageContent } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
@@ -75,42 +74,32 @@ export function MaintenanceSettingsScreen() {
     !settings &&
     editing.query.isPending;
   return (
-    <Page edges={["left", "right", "bottom"]}>
-      <ScrollChrome header={<PageHeader title="Administration technique" />}>
-        {({ onScroll, headerHeight }) => (
-          <FormScrollView
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            scrollIndicatorInsets={{ top: headerHeight }}
-            contentContainerStyle={{ paddingTop: headerHeight }}
-            refreshControl={
-              settings && sessionStatus === "authenticated" ? (
-                <DataRefreshControl
-                  progressViewOffset={headerHeight}
-                  enabled={!editing.content.isPending}
-                  refreshing={
-                    editing.query.isRefetching || account.isRefetching
-                  }
-                  onRefresh={() => void refresh()}
-                />
-              ) : undefined
-            }
-          >
-            {settings || loadingSettings ? (
-              <PageContent>{settingsContent}</PageContent>
+    <Page>
+      <PageHeader title="Administration technique" />
+      <FormScrollView
+        refreshControl={
+          settings && sessionStatus === "authenticated" ? (
+            <DataRefreshControl
+              enabled={!editing.content.isPending}
+              refreshing={editing.query.isRefetching || account.isRefetching}
+              onRefresh={() => void refresh()}
+            />
+          ) : undefined
+        }
+      >
+        {settings || loadingSettings ? (
+          <PageContent>{settingsContent}</PageContent>
+        ) : (
+          <ScreenState>
+            {sessionStatus === "restoring" ||
+            (sessionStatus === "authenticated" && account.isPending) ? (
+              <RequestLoading />
             ) : (
-              <ScreenState>
-                {sessionStatus === "restoring" ||
-                (sessionStatus === "authenticated" && account.isPending) ? (
-                  <RequestLoading />
-                ) : (
-                  (accessError ?? settingsContent)
-                )}
-              </ScreenState>
+              (accessError ?? settingsContent)
             )}
-          </FormScrollView>
+          </ScreenState>
         )}
-      </ScrollChrome>
+      </FormScrollView>
     </Page>
   );
 }

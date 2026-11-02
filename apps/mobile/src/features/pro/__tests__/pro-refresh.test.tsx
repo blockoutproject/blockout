@@ -400,7 +400,7 @@ it.each([
     expect(screen.getByText(`Pro: ${expected}`)).toBeOnTheScreen();
   },
 );
-it("ignores events during association and reads once after the current login settles", async () => {
+it("ignores events during association and accepts the current login's supplied information", async () => {
   // Given
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
@@ -431,7 +431,7 @@ it("ignores events during association and reads once after the current login set
   await act(() => login.resolve({ customerInfo: info, created: false }));
   // Then
   expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(
-    readsBeforeSwitch + 1,
+    readsBeforeSwitch,
   );
   expect(await screen.findByText("Pro: inactive")).toBeOnTheScreen();
 });

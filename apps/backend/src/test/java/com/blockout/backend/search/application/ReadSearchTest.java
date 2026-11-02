@@ -31,9 +31,9 @@ class ReadSearchTest {
   @DisplayName("Continues before the first eligible candidate not returned on the page")
   void retainsUnconsumedCandidate() {
     // Given
-    List<Candidate> candidates = IntStream.rangeClosed(1, 21).mapToObj(this::candidate).toList();
+    List<Candidate> candidates = IntStream.rangeClosed(1, 200).mapToObj(this::candidate).toList();
     when(engine.search(eq(context), any(), eq(200))).thenReturn(new Batch(candidates, true));
-    when(hydration.current(eq(context), any()))
+    when(hydration.current(context, candidates))
         .thenReturn(
             candidates.stream()
                 .collect(
@@ -162,7 +162,7 @@ class ReadSearchTest {
     when(engine.search(context, null, 200)).thenReturn(new Batch(firstBatch, false));
     when(engine.search(context, candidate(22).position(), 200))
         .thenReturn(new Batch(List.of(candidate(23)), true));
-    when(hydration.current(context, firstBatch.subList(0, 21))).thenReturn(firstPage);
+    when(hydration.current(context, firstBatch)).thenReturn(firstPage);
     when(hydration.current(context, List.of(candidate(23))))
         .thenReturn(Map.of(new UUID(0, 23), summary(new UUID(0, 23))));
 

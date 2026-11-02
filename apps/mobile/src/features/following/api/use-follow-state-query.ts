@@ -11,7 +11,7 @@ import { createFollowStateQueryOptions } from "./follow-queries";
 /**
  * Binds the generated member read to the original account and current admission.
  * Profile errors suspend personal actions without removing public sporting content.
- * Reopening reads current state and retires older action feedback; pending actions remain shared.
+ * Reopening shares a current confirmed read; each mounted mutation owns its pending presentation.
  */
 export function useFollowStateQuery(target: FollowingTarget) {
   const session = useAccountSession();

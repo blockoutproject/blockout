@@ -11,7 +11,6 @@ export function StandingPerformanceBar({
   row: StandingRowResponse;
   columns: readonly string[];
 }) {
-  const { colors } = useTheme();
   const won = row.statistics.G;
   const lost = row.statistics.P;
   if (
@@ -32,21 +31,27 @@ export function StandingPerformanceBar({
     wins + losses === 0
   )
     return null;
+  return <WinLossBar won={wins} lost={losses} />;
+}
+
+/** Draws caller-validated nonnegative win/loss weights with a positive total; text owns their meaning. */
+export function WinLossBar({ won, lost }: { won: number; lost: number }) {
+  const { colors } = useTheme();
   return (
     <View accessible={false} pointerEvents="none" style={styles.performanceBar}>
-      {wins > 0 && (
+      {won > 0 && (
         <View
           style={[
             styles.performanceSegment,
-            { flex: wins, backgroundColor: colors.performance.won },
+            { flex: won, backgroundColor: colors.performance.won },
           ]}
         />
       )}
-      {losses > 0 && (
+      {lost > 0 && (
         <View
           style={[
             styles.performanceSegment,
-            { flex: losses, backgroundColor: colors.performance.lost },
+            { flex: lost, backgroundColor: colors.performance.lost },
           ]}
         />
       )}

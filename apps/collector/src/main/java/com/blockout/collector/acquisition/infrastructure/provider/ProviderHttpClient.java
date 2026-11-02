@@ -2,15 +2,16 @@ package com.blockout.collector.acquisition.infrastructure.provider;
 
 import com.blockout.collector.acquisition.application.ProviderPages;
 import com.blockout.collector.acquisition.application.ProviderResponse;
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import org.apache.hc.client5.http.HttpResponseException;
 import org.apache.hc.client5.http.cache.CacheResponseStatus;
@@ -25,11 +26,10 @@ import org.apache.hc.client5.http.routing.RoutingSupport;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.NameValuePair;
-import org.springframework.core.task.TaskRejectedException;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 /**
- * One provider's shared worker, queue and HTTP budget; parsing begins only after a complete read.
+ * Synchronous provider reads through native pooled connections; parsing requires complete bounded
+ * content.
  */
 @RequiredArgsConstructor
 public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
@@ -37,32 +37,32 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
   public static final String SUPPLIER_BODY = "blockout.supplier-body";
 
   private final CloseableHttpClient http;
-  private final ThreadPoolTaskExecutor executor;
   private final Set<HttpHost> origins;
   private final int maxResponseBytes;
 
   /** {@inheritDoc} */
   @Override
-  public CompletableFuture<ProviderResponse> page(URI uri) {
+  public ProviderResponse page(URI uri) {
     requireOrigin(uri, origins);
     HttpGet request = new HttpGet(uri);
     request.setHeader("Cache-Control", "no-store");
     request.setHeader("Cookie", "timezoneoffset=0");
-    return executor.submitCompletable(() -> response(request, true));
+    return response(request, true);
   }
 
   /**
    * Reads an image through native origin-directed caching; cache hits are explicitly identified.
    *
    * @param uri qualified published image URL
-   * @return bounded response without treating cache reuse as a new observation, or an exceptional
-   *     future on acquisition failure
+   * @return bounded response without treating cache reuse as a new observation, or a direct
+   *     acquisition failure
    * @throws IllegalArgumentException for an unsupported origin or embedded credentials
-   * @throws TaskRejectedException when active/pending capacity is full
+   * @throws UncheckedIOException for transport, status or complete-body failure
+   * @throws RequestNotPermitted when the finite provider permit wait is exhausted or interrupted
    */
-  public CompletableFuture<ProviderResponse> image(URI uri) {
+  public ProviderResponse image(URI uri) {
     requireOrigin(uri, origins);
-    return executor.submitCompletable(() -> response(new HttpGet(uri)));
+    return response(new HttpGet(uri));
   }
 
   /** Status and bounded body for the one provider error whose meaning needs interpretation. */
@@ -73,28 +73,31 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
    * statuses retain the ordinary transport failure and native retry/redirect behavior.
    *
    * @param uri official provider URL, subject to the same origin checks and shared budget
-   * @return complete bounded body with 200 or 400 status, or an exceptional future on acquisition
-   *     failure; never an archived error payload
+   * @return complete bounded body with 200 or 400 status, or a direct acquisition failure; never an
+   *     archived error payload
    * @throws IllegalArgumentException for an unsupported origin or embedded credentials
-   * @throws TaskRejectedException when active/pending capacity is full
+   * @throws UncheckedIOException for transport, status or complete-body failure
+   * @throws RequestNotPermitted when the finite provider permit wait is exhausted or interrupted
    */
-  public CompletableFuture<StatusResponse> getWithBadRequest(URI uri) {
+  public StatusResponse getWithBadRequest(URI uri) {
     requireOrigin(uri, origins);
     HttpGet request = new HttpGet(uri);
     request.setHeader("Cache-Control", "no-store");
     request.setHeader("Accept", "application/json");
-    return executor.submitCompletable(
-        () ->
-            http.execute(
-                request,
-                response -> {
-                  int status = response.getCode();
-                  if (status != 200 && status != 400) {
-                    request.cancel();
-                    throw new HttpResponseException(status, "Provider read failed");
-                  }
-                  return new StatusResponse(status, boundedBody(request, response.getEntity()));
-                }));
+    try {
+      return http.execute(
+          request,
+          response -> {
+            int status = response.getCode();
+            if (status != 200 && status != 400) {
+              request.cancel();
+              throw new HttpResponseException(status, "Provider read failed");
+            }
+            return new StatusResponse(status, boundedBody(request, response.getEntity()));
+          });
+    } catch (IOException failure) {
+      throw new UncheckedIOException("Provider read failed", failure);
+    }
   }
 
   /**
@@ -102,15 +105,16 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
    *
    * @param uri official form action
    * @param fields qualified source form fields, never copied to diagnostics
-   * @return complete decompressed response, or an exceptional future on acquisition failure
+   * @return complete decompressed response, or a direct acquisition failure
    * @throws IllegalArgumentException for an unsupported origin or embedded credentials
-   * @throws TaskRejectedException when active/pending capacity is full
+   * @throws UncheckedIOException for transport, status or complete-body failure
+   * @throws RequestNotPermitted when the finite provider permit wait is exhausted or interrupted
    */
-  public CompletableFuture<byte[]> post(URI uri, List<? extends NameValuePair> fields) {
+  public byte[] post(URI uri, List<? extends NameValuePair> fields) {
     requireOrigin(uri, origins);
     HttpPost request = new HttpPost(uri);
     request.setEntity(new UrlEncodedFormEntity(fields, StandardCharsets.UTF_8));
-    return executor.submitCompletable(() -> read(request));
+    return response(request).body();
   }
 
   /**
@@ -119,18 +123,18 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
    *
    * @param uri qualified match form action
    * @param fields ephemeral published form state
-   * @return final allowed response context, or an exceptional future on acquisition failure
+   * @return final allowed response context, or a direct acquisition failure
    * @throws IllegalArgumentException for an unsupported origin or embedded credentials
-   * @throws TaskRejectedException when active/pending capacity is full
+   * @throws UncheckedIOException for transport, status or complete-body failure
+   * @throws RequestNotPermitted when the finite provider permit wait is exhausted or interrupted
    */
-  public CompletableFuture<ProviderResponse> postPage(
-      URI uri, List<? extends NameValuePair> fields) {
+  public ProviderResponse postPage(URI uri, List<? extends NameValuePair> fields) {
     requireOrigin(uri, origins);
     HttpPost request = new HttpPost(uri);
     request.setHeader("Cache-Control", "no-store");
     request.setHeader("Cookie", "timezoneoffset=0");
     request.setEntity(new UrlEncodedFormEntity(fields, StandardCharsets.UTF_8));
-    return executor.submitCompletable(() -> response(request, true));
+    return response(request, true);
   }
 
   /**
@@ -160,24 +164,13 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
   }
 
   /**
-   * Closes the response on every path; overflow never reaches a parser as valid partial content.
-   *
-   * @param request native GET or repeatable form POST
-   * @return complete decoded content
-   * @throws IOException for transport, status or decoded-size failure
-   */
-  private byte[] read(HttpUriRequestBase request) throws IOException {
-    return response(request).body();
-  }
-
-  /**
    * Preserves native redirects and cache status while bounding the complete decoded body.
    *
    * @param request one native request with caller-selected cache policy
    * @return actual response context
-   * @throws IOException for status, transport or size failures
+   * @throws UncheckedIOException for status, transport or size failures
    */
-  private ProviderResponse response(HttpUriRequestBase request) throws IOException {
+  private ProviderResponse response(HttpUriRequestBase request) {
     return response(request, false);
   }
 
@@ -187,45 +180,49 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
    * @param request native request
    * @param page whether binary document bodies are forbidden
    * @return complete allowed content and native response metadata
-   * @throws IOException for forbidden content, status, transport or size failures
+   * @throws UncheckedIOException for forbidden content, status, transport or size failures
    */
-  private ProviderResponse response(HttpUriRequestBase request, boolean page) throws IOException {
-    HttpCacheContext context = HttpCacheContext.create();
-    byte[] body =
-        http.execute(
-            request,
-            context,
-            response -> {
-              if (response.getCode() < 200 || response.getCode() >= 300) {
-                request.cancel();
-                throw new HttpResponseException(response.getCode(), "Provider read failed");
-              }
-              if (response.getEntity() == null) return new byte[0];
-              String type = response.getEntity().getContentType();
-              if (page
-                  && type != null
-                  && (type.toLowerCase(Locale.ROOT).startsWith("application/pdf")
-                      || type.toLowerCase(Locale.ROOT).startsWith("application/octet-stream"))) {
-                request.cancel();
-                throw new IOException("Binary document bodies are not collection pages");
-              }
-              return boundedBody(request, response.getEntity());
-            });
-    URI actual;
+  private ProviderResponse response(HttpUriRequestBase request, boolean page) {
     try {
-      actual = request.getUri();
-    } catch (URISyntaxException failure) {
-      throw new IOException("Invalid source URL", failure);
+      HttpCacheContext context = HttpCacheContext.create();
+      byte[] body =
+          http.execute(
+              request,
+              context,
+              response -> {
+                if (response.getCode() < 200 || response.getCode() >= 300) {
+                  request.cancel();
+                  throw new HttpResponseException(response.getCode(), "Provider read failed");
+                }
+                if (response.getEntity() == null) return new byte[0];
+                String type = response.getEntity().getContentType();
+                if (page
+                    && type != null
+                    && (type.toLowerCase(Locale.ROOT).startsWith("application/pdf")
+                        || type.toLowerCase(Locale.ROOT).startsWith("application/octet-stream"))) {
+                  request.cancel();
+                  throw new IOException("Binary document bodies are not collection pages");
+                }
+                return boundedBody(request, response.getEntity());
+              });
+      URI actual;
+      try {
+        actual = request.getUri();
+      } catch (URISyntaxException failure) {
+        throw new IOException("Invalid source URL", failure);
+      }
+      if (context.getRedirectLocations() != null && context.getRedirectLocations().size() > 0)
+        actual = context.getRedirectLocations().get(context.getRedirectLocations().size() - 1);
+      CacheResponseStatus status = context.getCacheResponseStatus();
+      return new ProviderResponse(
+          body,
+          actual,
+          status == null
+              || status == CacheResponseStatus.CACHE_MISS
+              || Boolean.TRUE.equals(context.getAttribute(SUPPLIER_BODY)));
+    } catch (IOException failure) {
+      throw new UncheckedIOException("Provider read failed", failure);
     }
-    if (context.getRedirectLocations() != null && context.getRedirectLocations().size() > 0)
-      actual = context.getRedirectLocations().get(context.getRedirectLocations().size() - 1);
-    CacheResponseStatus status = context.getCacheResponseStatus();
-    return new ProviderResponse(
-        body,
-        actual,
-        status == null
-            || status == CacheResponseStatus.CACHE_MISS
-            || Boolean.TRUE.equals(context.getAttribute(SUPPLIER_BODY)));
   }
 
   /**
@@ -251,13 +248,13 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
   /**
    * {@inheritDoc}
    *
-   * <p>Stops bounded pending work and releases native HTTP resources when the application closes.
+   * <p>Closes native pooled connections when the application closes. Callers own execution and
+   * interruption; permit waiting retains its configured finite bound.
    *
    * @throws IOException when native HTTP resource shutdown fails
    */
   @Override
   public void close() throws IOException {
-    executor.shutdown();
     http.close();
   }
 }

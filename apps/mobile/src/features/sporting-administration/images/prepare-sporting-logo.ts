@@ -33,7 +33,7 @@ export async function prepareSportingLogo(
       `prepared-logo-${randomUUID()}.${mediaType === "image/jpeg" ? "jpg" : "png"}`,
     );
     try {
-      original.copy(file);
+      await original.copy(file);
       return file;
     } catch (error) {
       deleteOwnedImage(file);

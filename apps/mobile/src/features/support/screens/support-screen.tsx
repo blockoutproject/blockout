@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import { Page, PageContent } from "../../../shared/components/page";
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { Surface } from "../../../shared/components/surface";
 import { IconButton } from "../../../shared/components/icon-button";
@@ -13,56 +13,46 @@ import { useSupportVisit } from "../forms/support-visit";
 import { SupportConfirmation } from "../forms/support-confirmation";
 import { useSupportSubmission } from "../api/use-support-submission";
 
-/** Composes the ordinary native form; shared chrome owns measured safe areas, backdrop and keyboard scrolling. */
+/** Keeps support context and its retained form below ordinary navigation; Page and FormScrollView own native insets and keyboard scrolling. */
 export function SupportScreen() {
   const { context } = useSupportVisit();
   const { colors } = useTheme();
   const { mutation, send } = useSupportSubmission();
   return (
-    <Page edges={["left", "right", "bottom"]}>
-      <ScrollChrome header={<SupportHeader />}>
-        {({ onScroll, headerHeight }) => (
-          <FormScrollView
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            scrollIndicatorInsets={{ top: headerHeight }}
-            contentContainerStyle={{ paddingTop: headerHeight }}
-          >
-            <PageContent>
-              {!mutation.isSuccess && context.screen && (
-                <Surface>
-                  <Text
-                    style={[
-                      tokens.typography.metadata,
-                      { color: colors.secondaryText },
-                    ]}
-                  >
-                    DEPUIS CET ÉCRAN
-                  </Text>
-                  <Text
-                    style={[tokens.typography.strong, { color: colors.text }]}
-                  >
-                    {context.screen}
-                  </Text>
-                  <Text
-                    style={[
-                      tokens.typography.metadata,
-                      { color: colors.secondaryText },
-                    ]}
-                  >
-                    Le contexte de cet écran accompagne votre demande.
-                  </Text>
-                </Surface>
-              )}
-              {mutation.isSuccess ? (
-                <SupportConfirmation />
-              ) : (
-                <SupportForm onSubmit={send} />
-              )}
-            </PageContent>
-          </FormScrollView>
-        )}
-      </ScrollChrome>
+    <Page>
+      <SupportHeader />
+      <FormScrollView>
+        <PageContent>
+          {!mutation.isSuccess && context.screen && (
+            <Surface>
+              <Text
+                style={[
+                  tokens.typography.metadata,
+                  { color: colors.secondaryText },
+                ]}
+              >
+                DEPUIS CET ÉCRAN
+              </Text>
+              <Text style={[tokens.typography.strong, { color: colors.text }]}>
+                {context.screen}
+              </Text>
+              <Text
+                style={[
+                  tokens.typography.metadata,
+                  { color: colors.secondaryText },
+                ]}
+              >
+                Le contexte de cet écran accompagne votre demande.
+              </Text>
+            </Surface>
+          )}
+          {mutation.isSuccess ? (
+            <SupportConfirmation />
+          ) : (
+            <SupportForm onSubmit={send} />
+          )}
+        </PageContent>
+      </FormScrollView>
     </Page>
   );
 }

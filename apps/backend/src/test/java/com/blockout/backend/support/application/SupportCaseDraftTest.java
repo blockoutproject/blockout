@@ -42,7 +42,7 @@ class SupportCaseDraftTest {
                 "Fictional device",
                 new SupportSubmission.SignInFailure(
                     "apple", "login", "cancelled", "fictional-reference")));
-    SupportSubmission submission = new SupportSubmission(requestId, metadata, List.of(), null);
+    SupportSubmission submission = new SupportSubmission(requestId, metadata, List.of());
 
     // When
     SupportCaseDraft draft = SupportCaseDraft.from(submission);

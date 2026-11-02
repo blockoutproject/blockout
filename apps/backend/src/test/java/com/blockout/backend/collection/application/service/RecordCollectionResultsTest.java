@@ -80,7 +80,6 @@ class RecordCollectionResultsTest {
     // Then
     ArgumentCaptor<CollectionResult> written = ArgumentCaptor.forClass(CollectionResult.class);
     verify(store).saveResult(eq(CONTROL), written.capture());
-    assertThat(written.getValue().firstFailureAt()).isEqualTo(FIRST);
     verify(events)
         .publishEvent(
             new CollectionOperationalDiagnostics.EvidenceChanged(
@@ -91,8 +90,8 @@ class RecordCollectionResultsTest {
   @EnumSource(
       value = CollectionStageEnum.class,
       names = {"CLUB_SHEET", "GEOCODING"})
-  @DisplayName("Keeps the original seasonless failure across cycles beyond twenty-four hours")
-  void retainsFirstFailureAcrossCycles(CollectionStageEnum stage) {
+  @DisplayName("Retains useful success when a later seasonless result is partial")
+  void retainsSuccessAcrossCycles(CollectionStageEnum stage) {
     // Given
     when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(3));
     CollectionTargetKindEnum kind = CollectionTargetKindEnum.fromValue(stage.getValue());
@@ -104,7 +103,7 @@ class RecordCollectionResultsTest {
             stage,
             CollectionPhaseEnum.ACQUISITION,
             1,
-            FIRST.plusSeconds(86401),
+            FIRST.plusSeconds(60),
             CollectionOutcomeEnum.PARTIAL);
 
     // When
@@ -113,10 +112,50 @@ class RecordCollectionResultsTest {
     // Then
     ArgumentCaptor<CollectionResult> written = ArgumentCaptor.forClass(CollectionResult.class);
     verify(store).saveResult(eq(CONTROL), written.capture());
-    assertThat(written.getValue().firstFailureAt()).isEqualTo(FIRST);
-    assertThat(written.getValue().firstStructuralFailureAt()).isEqualTo(FIRST);
     assertThat(written.getValue().lastSuccessAt()).isEqualTo(FIRST.minusSeconds(100));
     assertThat(written.getValue().obtainedCount()).isNull();
+  }
+
+  @Test
+  @DisplayName("Requests recovery evidence from the previous outcome without an outage clock")
+  void reportsRecoveryFromPreviousOutcome() {
+    // Given
+    when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(3));
+    when(store.target(CYCLE, SCOPE, CollectionTargetKindEnum.CALENDAR))
+        .thenReturn(Optional.of(target(CollectionTargetKindEnum.CALENDAR)));
+    when(store.result(
+            CONTROL, SCOPE, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.ACQUISITION))
+        .thenReturn(
+            Optional.of(
+                new CollectionResult(
+                    SCOPE,
+                    CollectionStageEnum.CALENDAR,
+                    CollectionPhaseEnum.ACQUISITION,
+                    2,
+                    1,
+                    FIRST,
+                    CollectionOutcomeEnum.UNCONFIRMED,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null)));
+
+    // When
+    service.record(
+        CYCLE,
+        evidence(
+            CollectionStageEnum.CALENDAR,
+            CollectionPhaseEnum.ACQUISITION,
+            1,
+            FIRST.plusSeconds(1),
+            CollectionOutcomeEnum.SUCCESS));
+
+    // Then
+    verify(events)
+        .publishEvent(
+            new CollectionOperationalDiagnostics.EvidenceChanged(
+                CONTROL, SCOPE, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.ACQUISITION));
   }
 
   @ParameterizedTest
@@ -173,8 +212,6 @@ class RecordCollectionResultsTest {
     ArgumentCaptor<CollectionResult> written = ArgumentCaptor.forClass(CollectionResult.class);
     verify(store).saveResult(eq(CONTROL), written.capture());
     assertThat(written.getValue().phase()).isEqualTo(phase);
-    assertThat(written.getValue().firstFailureAt()).isNull();
-    assertThat(written.getValue().firstStructuralFailureAt()).isNull();
     assertThat(written.getValue().lastSuccessAt()).isEqualTo(empty.observedAt());
     verify(events)
         .publishEvent(
@@ -275,7 +312,7 @@ class RecordCollectionResultsTest {
   }
 
   /**
-   * Retains an existing outage and a distinct older usable observation.
+   * Retains a failed outcome and a distinct older usable observation.
    *
    * @param stage exact original role
    * @param phase exact original phase
@@ -294,8 +331,6 @@ class RecordCollectionResultsTest {
         FIRST,
         CollectionOutcomeEnum.FAILED,
         FIRST.minusSeconds(100),
-        FIRST,
-        FIRST,
         null,
         null,
         null,

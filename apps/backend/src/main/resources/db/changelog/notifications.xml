@@ -2,7 +2,7 @@
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
-  <!-- Mutable F07 baseline while all environments remain disposable. -->
+  <!-- Creation baseline; the master changelog owns applied-history and no-reset policy. -->
   <changeSet id="notifications-baseline" author="blockout">
     <createTable tableName="match_announcement">
       <column name="match_id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>

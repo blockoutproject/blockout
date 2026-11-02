@@ -11,7 +11,7 @@ import { Page, PageContent } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { ScrollChrome } from "../../../shared/components/scroll-chrome";
+
 import { ErrorState } from "../../../shared/components/state-card";
 import { useAdministrationCapabilities } from "../../access/api/use-administration-capabilities";
 import { useAccountSession } from "../../accounts/current-account";
@@ -121,49 +121,41 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
       )))
     : undefined;
   return (
-    <Page edges={["left", "right", "bottom"]}>
-      <ScrollChrome header={<PageHeader title={title} />}>
-        {({ onScroll, headerHeight }) => (
-          <FormScrollView
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            scrollIndicatorInsets={{ top: headerHeight }}
-            contentContainerStyle={{ paddingTop: headerHeight }}
-            refreshControl={
-              !blockingState &&
-              sessionStatus === "authenticated" &&
-              target.kind !== "division-creation" ? (
-                <DataRefreshControl
-                  progressViewOffset={headerHeight}
-                  enabled={!editing.save.isPending}
-                  refreshing={
-                    editing.query.isRefetching ||
-                    account.isRefetching ||
-                    logoRefreshing
-                  }
-                  onRefresh={() => void refresh()}
-                />
-              ) : undefined
-            }
-          >
-            {blockingState ? (
-              <ScreenState>{blockingState}</ScreenState>
-            ) : (
-              <PageContent>
-                {presentation && (
-                  <PresentationForm
-                    key={`${session.subject}:${target.kind}:${target.id}`}
-                    presentation={presentation}
-                    target={target}
-                    editing={editing}
-                    disabled={!canManage || editing.query.isError}
-                  />
-                )}
-              </PageContent>
+    <Page>
+      <PageHeader title={title} />
+      <FormScrollView
+        refreshControl={
+          !blockingState &&
+          sessionStatus === "authenticated" &&
+          target.kind !== "division-creation" ? (
+            <DataRefreshControl
+              enabled={!editing.save.isPending}
+              refreshing={
+                editing.query.isRefetching ||
+                account.isRefetching ||
+                logoRefreshing
+              }
+              onRefresh={() => void refresh()}
+            />
+          ) : undefined
+        }
+      >
+        {blockingState ? (
+          <ScreenState>{blockingState}</ScreenState>
+        ) : (
+          <PageContent>
+            {presentation && (
+              <PresentationForm
+                key={`${session.subject}:${target.kind}:${target.id}`}
+                presentation={presentation}
+                target={target}
+                editing={editing}
+                disabled={!canManage || editing.query.isError}
+              />
             )}
-          </FormScrollView>
+          </PageContent>
         )}
-      </ScrollChrome>
+      </FormScrollView>
     </Page>
   );
 }

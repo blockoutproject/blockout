@@ -88,6 +88,8 @@ A maintenance refusal is 503 with a specific Problem Details type and current ma
 
 ## Mobile state and native behavior
 
+Consumers read ordinary admission from the existing F12 access context and pass explicit booleans to presentational screens. No account-owned mirror or second admission provider is required. Ordinary HTTP refusals invalidate the complete access read through the shared transport; an unused maintenance-problem decoder adds no separate recovery path.
+
 Minimum-version and store-link inputs remain inline in the existing configuration page or an ordinary edit route. Preserve all fields, platform separation, independent save groups, dirty values and conflict/uncertainty rules. Use [F13 ordinary form composition](../003-shared-quality/plan.md#native-ui-and-approved-design); no keyboard form sheet, fixed action footer or private resize calculation is needed. Revision-scoped presentation captures are tracked by [F13 presentation evidence](../003-shared-quality/quickstart.md#native-ui-and-approved-design); prior gate approvals and runtime admission rules remain unchanged.
 
 The versions editor uses route-local RHF and a coherent local snapshot of its editing revision. A protected-route removal discards the unsaved draft; returning reads current server state. While mounted, failed submission preserves input. Background reads do not silently advance the revision attached to dirty input. Only accepted save or deliberate reset/reread replaces that baseline.

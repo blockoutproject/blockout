@@ -21,11 +21,10 @@ export interface SportingActionsProps {
   season: SportingSeasonResponse;
 }
 
-/** F03's separated action region matches the entity profile; the private read stays with F06. */
+/** One shared follow/audience region stays above the scene tabs; private reads remain with F06. */
 export function SportingActions(props: SportingActionsProps) {
-  const { colors } = useTheme();
   return (
-    <View style={[styles.actions, { borderColor: colors.border }]}>
+    <View style={styles.actions}>
       <FollowButton {...props} />
       <FollowerCount target={props.target} />
     </View>
@@ -65,8 +64,9 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     alignItems: "center",
     gap: tokens.spacing.md,
-    borderTopWidth: tokens.border.thin,
-    paddingTop: tokens.spacing.md,
+    minHeight: 64,
+    paddingHorizontal: tokens.spacing.screen,
+    paddingVertical: tokens.spacing.sm,
   },
 });
 

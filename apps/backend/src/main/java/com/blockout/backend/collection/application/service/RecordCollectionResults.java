@@ -58,18 +58,10 @@ public class RecordCollectionResults {
         && (previous.cycleOrder() > cycle.cycleOrder()
             || (previous.cycleOrder() == cycle.cycleOrder()
                 && previous.readOrdinal() >= command.readOrdinal()))) return cycle;
-    Instant lastSuccessAt = command.observedAt();
-    Instant firstFailureAt = null;
-    Instant firstStructuralFailureAt = null;
-    if (command.outcome() != CollectionOutcomeEnum.SUCCESS) {
-      lastSuccessAt = previous == null ? null : previous.lastSuccessAt();
-      firstFailureAt = command.observedAt();
-      if (previous != null && previous.firstFailureAt() != null)
-        firstFailureAt = previous.firstFailureAt();
-      if (previous != null) firstStructuralFailureAt = previous.firstStructuralFailureAt();
-      if (firstStructuralFailureAt == null && isStructuralReason(command.reasonType()))
-        firstStructuralFailureAt = command.observedAt();
-    }
+    Instant lastSuccessAt =
+        command.outcome() == CollectionOutcomeEnum.SUCCESS
+            ? command.observedAt()
+            : previous == null ? null : previous.lastSuccessAt();
     store.saveResult(
         cycle.controlId(),
         new CollectionResult(
@@ -81,15 +73,13 @@ public class RecordCollectionResults {
             command.observedAt(),
             command.outcome(),
             lastSuccessAt,
-            firstFailureAt,
-            firstStructuralFailureAt,
             command.reasonType(),
             command.reason(),
             command.obtainedCount(),
             command.rejectedCount()));
     if (cycle.mode() == CollectionModeEnum.INITIAL_IMPORT) recordInitial(cycle, target, command);
     if (command.outcome() != CollectionOutcomeEnum.SUCCESS
-        || (previous != null && previous.firstFailureAt() != null))
+        || (previous != null && previous.outcome() != CollectionOutcomeEnum.SUCCESS))
       events.publishEvent(
           new CollectionOperationalDiagnostics.EvidenceChanged(
               cycle.controlId(), command.scopeId(), command.stage(), command.phase()));

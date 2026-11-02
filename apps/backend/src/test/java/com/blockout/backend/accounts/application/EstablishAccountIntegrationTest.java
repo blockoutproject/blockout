@@ -75,7 +75,7 @@ class EstablishAccountIntegrationTest {
             call -> {
               assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
               fetched.await(10, TimeUnit.SECONDS);
-              return new PrincipalReader.Evidence("shared@example.invalid", CREATED, List.of());
+              return new PrincipalReader.Evidence("shared@example.invalid", CREATED);
             });
 
     // When
@@ -110,7 +110,7 @@ class EstablishAccountIntegrationTest {
                   status ->
                       accounts.create(
                           ISSUER, "auth0|one", "Initial_name", "initial@example.invalid", CREATED));
-              return new PrincipalReader.Evidence("updated@example.invalid", CREATED, List.of());
+              return new PrincipalReader.Evidence("updated@example.invalid", CREATED);
             });
     AccountStore target = AopTestUtils.getUltimateTargetObject(accounts);
     doAnswer(
@@ -142,7 +142,7 @@ class EstablishAccountIntegrationTest {
   void keepsSharedEmailSeparate() {
     // Given
     when(provider.read(anyString(), anyString()))
-        .thenReturn(new PrincipalReader.Evidence("shared@example.invalid", null, List.of()));
+        .thenReturn(new PrincipalReader.Evidence("shared@example.invalid", null));
 
     // When
     Account first = establishment.establish(ISSUER, "auth0|one").view().account();
@@ -160,7 +160,7 @@ class EstablishAccountIntegrationTest {
   void retriesNeutralNameCollision() {
     // Given
     when(provider.read(ISSUER, "auth0|one"))
-        .thenReturn(new PrincipalReader.Evidence("shared@example.invalid", CREATED, List.of()));
+        .thenReturn(new PrincipalReader.Evidence("shared@example.invalid", CREATED));
     AtomicBoolean collide = new AtomicBoolean(true);
     UUID competitor = UUID.randomUUID();
     AccountStore target = AopTestUtils.getUltimateTargetObject(accounts);
@@ -199,7 +199,7 @@ class EstablishAccountIntegrationTest {
   void rejectsMissingInitialEmail() {
     // Given
     when(provider.read(ISSUER, "auth0|one"))
-        .thenReturn(new PrincipalReader.Evidence(null, CREATED, List.of()));
+        .thenReturn(new PrincipalReader.Evidence(null, CREATED));
 
     // When
     org.assertj.core.api.ThrowableAssert.ThrowingCallable establish =
@@ -277,7 +277,7 @@ class EstablishAccountIntegrationTest {
         "INSERT INTO account_permission (account_id, permission) VALUES (?, 'maintenance.manage')",
         original.id());
     when(provider.read(ISSUER, "auth0|one"))
-        .thenReturn(new PrincipalReader.Evidence("current@example.invalid", CREATED, List.of()));
+        .thenReturn(new PrincipalReader.Evidence("current@example.invalid", CREATED));
 
     // When
     ReadAccount.View view = establishment.establish(ISSUER, "auth0|one").view();
@@ -300,7 +300,7 @@ class EstablishAccountIntegrationTest {
             status ->
                 accounts.create(ISSUER, "auth0|one", "Original", "known@example.invalid", CREATED));
     when(provider.read(ISSUER, "auth0|one"))
-        .thenReturn(new PrincipalReader.Evidence("committed@example.invalid", CREATED, List.of()));
+        .thenReturn(new PrincipalReader.Evidence("committed@example.invalid", CREATED));
     AccountStore target = AopTestUtils.getUltimateTargetObject(accounts);
     doAnswer(
             call -> {
@@ -369,7 +369,7 @@ class EstablishAccountIntegrationTest {
                             "Replacement",
                             "replacement@example.invalid",
                             CREATED));
-              return new PrincipalReader.Evidence("late@example.invalid", null, List.of());
+              return new PrincipalReader.Evidence("late@example.invalid", null);
             });
 
     // When

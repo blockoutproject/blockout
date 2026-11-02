@@ -93,8 +93,6 @@ class CollectionResultsWebMvcTest {
             time,
             CollectionOutcomeEnum.UNCONFIRMED,
             null,
-            time,
-            null,
             null,
             null,
             null,
@@ -114,7 +112,7 @@ class CollectionResultsWebMvcTest {
         .andExpect(jsonPath("$.items[0].obtainedCount").doesNotExist())
         .andExpect(jsonPath("$.items[0].rejectedCount").doesNotExist())
         .andExpect(jsonPath("$.items[0].lastSuccessAt").value(Matchers.nullValue()))
-        .andExpect(jsonPath("$.items[0].firstFailureAt").value("2026-10-19T12:00:00Z"));
+        .andExpect(jsonPath("$.items[0].firstFailureAt").doesNotExist());
   }
 
   @ParameterizedTest

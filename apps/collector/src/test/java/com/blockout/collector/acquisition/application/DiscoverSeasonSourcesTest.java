@@ -3,6 +3,7 @@ package com.blockout.collector.acquisition.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -23,7 +24,6 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,20 +40,23 @@ class DiscoverSeasonSourcesTest {
     URI selector = root.resolve("pbscript.htm");
     URI missing = root.resolve("unavailable.htm");
     ProviderPages http = mock(ProviderPages.class);
-    when(http.page(root))
-        .thenReturn(
+    doReturn(
             response(
                 root,
-                "<frameset><frame src='pbscript.htm'><frame src='unavailable.htm'></frameset>"));
-    when(http.page(selector))
-        .thenReturn(
+                "<frameset><frame src='pbscript.htm'><frame src='unavailable.htm'></frameset>"))
+        .when(http)
+        .page(root);
+    doReturn(
             response(
                 selector,
                 """
         <form><span>Elite</span><select><option value="https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?saison=2026/2027&codent=ABCCS&poule=EA">Elite A</option></select></form>
-        """));
-    when(http.page(missing))
-        .thenReturn(CompletableFuture.failedFuture(new IOException("Synthetic unavailable frame")));
+        """))
+        .when(http)
+        .page(selector);
+    doThrow(new java.io.UncheckedIOException(new IOException("Synthetic unavailable frame")))
+        .when(http)
+        .page(missing);
     DiscoverSeasonSources service =
         new DiscoverSeasonSources(
             http,
@@ -94,7 +97,7 @@ class DiscoverSeasonSourcesTest {
       html = new String(input.readAllBytes(), Charset.forName("windows-1252"));
     }
     ProviderPages http = mock(ProviderPages.class);
-    when(http.page(round)).thenReturn(response(round, html));
+    doReturn(response(round, html)).when(http).page(round);
     DiscoverSeasonSources service =
         new DiscoverSeasonSources(
             http,
@@ -125,11 +128,12 @@ class DiscoverSeasonSourcesTest {
     // Given
     URI url = URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
     ProviderPages http = mock(ProviderPages.class);
-    when(http.page(url))
-        .thenReturn(
+    doReturn(
             response(
                 url,
-                "<title>Alterna VOLSTAR 2027/2028</title><a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>"));
+                "<title>Alterna VOLSTAR 2027/2028</title><a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>"))
+        .when(http)
+        .page(url);
     DiscoverSeasonSources service =
         new DiscoverSeasonSources(
             http,
@@ -162,11 +166,12 @@ class DiscoverSeasonSourcesTest {
     // Given
     URI url = URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
     ProviderPages http = mock(ProviderPages.class);
-    when(http.page(url))
-        .thenReturn(
+    doReturn(
             response(
                 url,
-                "<title>Alterna VOLSTAR 2026/2027</title><a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a><a href='CompetitionStandings.aspx?ID=901'>Table</a><div class=rmpView id=Content_Main_903><span id=g_lbl_title>Group</span></div>"));
+                "<title>Alterna VOLSTAR 2026/2027</title><a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a><a href='CompetitionStandings.aspx?ID=901'>Table</a><div class=rmpView id=Content_Main_903><span id=g_lbl_title>Group</span></div>"))
+        .when(http)
+        .page(url);
     DiscoverSeasonSources service =
         new DiscoverSeasonSources(
             http,
@@ -200,17 +205,19 @@ class DiscoverSeasonSourcesTest {
     URI broken = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/broken.htm");
     URI valid = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/valid.htm");
     ProviderPages http = mock(ProviderPages.class);
-    when(http.page(any()))
-        .thenReturn(CompletableFuture.failedFuture(new IOException("Unavailable fixture")));
-    when(http.page(entry))
-        .thenReturn(
-            response(
-                entry, "<a href='" + broken + "'>First</a><a href='" + valid + "'>Second</a>"));
-    when(http.page(valid))
-        .thenReturn(
+    doThrow(new java.io.UncheckedIOException(new IOException("Unavailable fixture")))
+        .when(http)
+        .page(any());
+    doReturn(
+            response(entry, "<a href='" + broken + "'>First</a><a href='" + valid + "'>Second</a>"))
+        .when(http)
+        .page(entry);
+    doReturn(
             response(
                 valid,
-                "<span>Regional</span><select><option value='vbspo_calendrier.php?saison=2026/2027&codent=LIRA&poule=AA'>Pool</option></select>"));
+                "<span>Regional</span><select><option value='vbspo_calendrier.php?saison=2026/2027&codent=LIRA&poule=AA'>Pool</option></select>"))
+        .when(http)
+        .page(valid);
     CollectionBackend backend = mock(CollectionBackend.class);
     DiscoverSeasonSources service =
         new DiscoverSeasonSources(
@@ -250,26 +257,31 @@ class DiscoverSeasonSourcesTest {
     when(backend.current())
         .thenThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.UNCONFIRMED, null));
     ProviderPages http = mock(ProviderPages.class);
-    when(http.page(any()))
-        .thenReturn(CompletableFuture.failedFuture(new IOException("Unavailable fixture")));
+    doThrow(new java.io.UncheckedIOException(new IOException("Unavailable fixture")))
+        .when(http)
+        .page(any());
     URI firstEntry = URI.create("https://www.lnv.fr/competitions/saforelle-volstar");
     URI nextEntry = URI.create("https://www.lnv.fr/competitions/alterna-volstar");
     URI firstCandidate = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901");
     URI nextCandidate = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=902");
-    when(http.page(firstEntry))
-        .thenReturn(response(firstEntry, "<iframe src='" + firstCandidate + "'></iframe>"));
-    when(http.page(nextEntry))
-        .thenReturn(response(nextEntry, "<iframe src='" + nextCandidate + "'></iframe>"));
-    when(http.page(firstCandidate))
-        .thenReturn(
+    doReturn(response(firstEntry, "<iframe src='" + firstCandidate + "'></iframe>"))
+        .when(http)
+        .page(firstEntry);
+    doReturn(response(nextEntry, "<iframe src='" + nextCandidate + "'></iframe>"))
+        .when(http)
+        .page(nextEntry);
+    doReturn(
             response(
                 firstCandidate,
-                "<title>Alterna VOLSTAR 2026/2027</title><a href='CompetitionMatches.aspx?ID=901&PID=903'>Phase</a>"));
-    when(http.page(nextCandidate))
-        .thenReturn(
+                "<title>Alterna VOLSTAR 2026/2027</title><a href='CompetitionMatches.aspx?ID=901&PID=903'>Phase</a>"))
+        .when(http)
+        .page(firstCandidate);
+    doReturn(
             response(
                 nextCandidate,
-                "<title>Alterna VOLSTAR 2026/2027</title><a href='CompetitionMatches.aspx?ID=902&PID=904'>Phase</a>"));
+                "<title>Alterna VOLSTAR 2026/2027</title><a href='CompetitionMatches.aspx?ID=902&PID=904'>Phase</a>"))
+        .when(http)
+        .page(nextCandidate);
     doThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.CONFLICT, null))
         .doNothing()
         .when(backend)
@@ -313,17 +325,19 @@ class DiscoverSeasonSourcesTest {
             new CollectionBackend.Runtime(
                 2, UUID.fromString("00000000-0000-4000-8000-000000000199")));
     ProviderPages http = mock(ProviderPages.class);
-    when(http.page(any()))
-        .thenReturn(CompletableFuture.failedFuture(new IOException("Unavailable fixture")));
+    doThrow(new java.io.UncheckedIOException(new IOException("Unavailable fixture")))
+        .when(http)
+        .page(any());
     URI entry = URI.create("https://www.lnv.fr/competitions/saforelle-volstar");
     URI nextEntry = URI.create("https://www.lnv.fr/competitions/alterna-volstar");
     URI candidate = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901");
-    when(http.page(entry)).thenReturn(response(entry, "<iframe src='" + candidate + "'></iframe>"));
-    when(http.page(candidate))
-        .thenReturn(
+    doReturn(response(entry, "<iframe src='" + candidate + "'></iframe>")).when(http).page(entry);
+    doReturn(
             response(
                 candidate,
-                "<title>Alterna VOLSTAR 2026/2027</title><a href='CompetitionMatches.aspx?ID=901&PID=903'>Phase</a>"));
+                "<title>Alterna VOLSTAR 2026/2027</title><a href='CompetitionMatches.aspx?ID=901&PID=903'>Phase</a>"))
+        .when(http)
+        .page(candidate);
     doThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.CONFLICT, null))
         .when(backend)
         .observeSource(any());
@@ -354,8 +368,7 @@ class DiscoverSeasonSourcesTest {
    * @param html synthetic native markup
    * @return completed bounded transport response
    */
-  private CompletableFuture<ProviderResponse> response(URI url, String html) {
-    return CompletableFuture.completedFuture(
-        new ProviderResponse(html.getBytes(Charset.forName("windows-1252")), url, true));
+  private ProviderResponse response(URI url, String html) {
+    return new ProviderResponse(html.getBytes(Charset.forName("windows-1252")), url, true);
   }
 }

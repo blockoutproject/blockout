@@ -65,8 +65,6 @@ export function useSportingTransition() {
     const result = privacy
       .openSportingTransition({
         key: {},
-        kind: action.kind,
-        voluntary: true,
         isCurrent,
         open: action.open,
       })

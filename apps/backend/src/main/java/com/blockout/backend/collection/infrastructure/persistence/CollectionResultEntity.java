@@ -38,8 +38,6 @@ class CollectionResultEntity {
 
   private Instant lastAttemptAt;
   private Instant lastSuccessAt;
-  private Instant firstFailureAt;
-  private Instant firstStructuralFailureAt;
   private long cycleOrder;
   private long readOrdinal;
 

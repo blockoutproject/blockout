@@ -114,7 +114,7 @@ function Journey() {
   });
   return (
     <ActionFeedbackProvider scopeKey={a.subject ?? "guest"}>
-      <Text>Ads: {advertising.canDisplayAds ? "allowed" : "suppressed"}</Text>
+      <Text>Ads: {advertising.canServeAds ? "allowed" : "suppressed"}</Text>
       <Stack screenOptions={{ headerShown: false, animation: "none" }} />
     </ActionFeedbackProvider>
   );

@@ -10,13 +10,13 @@ import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { useSearchVisit } from "../forms/search-visit";
 import { reconcileSearchFilters } from "../model/search-filters";
 import { Page, PageContent } from "../../../shared/components/page";
-import { PagedTabs, PagerTabBar } from "../../../shared/components/paged-tabs";
+import { PagedTabs } from "../../../shared/components/paged-tabs";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { ListContinuation } from "../../../shared/components/list-continuation";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import {
   Keyboard,
@@ -42,10 +42,6 @@ import {
 } from "../api/use-discovery-query";
 import { SearchHeading, SearchResults } from "../components/search-results";
 import { SearchLoading } from "../components/search-loading";
-import {
-  useCollapsingTabsContext,
-  type CollapsingTabsRef,
-} from "react-native-collapsible-tab";
 import { uniqueSearchResults, type SearchResult } from "../model/search-result";
 
 const searchTabs = [
@@ -94,35 +90,9 @@ export function SearchScreen() {
   const searchable = valid && textual;
   // Invalid drafts remain editable; generated request validation receives only a valid inactive input.
   const queryText = searchable ? text : "";
-  const pager = useRef<CollapsingTabsRef>(null);
   const textKey = hashKey(
     createDiscoveryContext("club", { q: queryText }).queryKey,
   );
-  const teamFilterKey = hashKey([visit.team.filters]);
-  const poolFilterKey = hashKey([visit.pool.filters]);
-  // Only criteria identities are remembered; RNCT remains the sole owner of native scroll offsets.
-  const previousCriteria = useRef({
-    textKey,
-    team: teamFilterKey,
-    pool: poolFilterKey,
-  });
-  useEffect(() => {
-    const previous = previousCriteria.current;
-    if (previous.textKey !== textKey) {
-      pager.current?.scrollAllToTop();
-      previousCriteria.current = {
-        textKey,
-        team: teamFilterKey,
-        pool: poolFilterKey,
-      };
-    } else if (resource !== "club") {
-      const filterKey = resource === "team" ? teamFilterKey : poolFilterKey;
-      if (previous[resource] !== filterKey) {
-        pager.current?.scrollToTop(false);
-        previousCriteria.current = { ...previous, [resource]: filterKey };
-      }
-    }
-  }, [textKey, teamFilterKey, poolFilterKey, resource]);
   const teamQuery = useDiscoveryQuery(
     "team",
     { q: queryText, ...visit.team.filters },
@@ -177,9 +147,8 @@ export function SearchScreen() {
       selection.apply(reconcileSearchFilters(undefined, selection.query.data));
   }
   return (
-    <Page edges={["left", "right", "bottom"]}>
+    <Page>
       <PagedTabs
-        ref={pager}
         selected={resource}
         onSelect={(id) => {
           if (id === "team" || id === "pool" || id === "club") setResource(id);
@@ -190,6 +159,10 @@ export function SearchScreen() {
           content: (
             <SearchScene
               resource={id}
+              criteria={hashKey([
+                textKey,
+                id === "club" ? undefined : visit[id].filters,
+              ])}
               active={resource === id}
               searchable={searchable}
               query={queries[id]}
@@ -199,12 +172,10 @@ export function SearchScreen() {
             />
           ),
         }))}
-        renderTabBar={(props) => (
+        renderTabBar={(tabBar) => (
           <>
             <View style={styles.navigation}>
-              <View style={styles.tabs}>
-                <PagerTabBar {...props} />
-              </View>
+              <View style={styles.tabs}>{tabBar}</View>
               <IconButton
                 label="Signaler un problème"
                 onPress={() => {
@@ -319,6 +290,7 @@ export function SearchScreen() {
 /** Retains accepted cards and retries the failed Query operation without introducing another read owner. */
 function SearchScene({
   resource,
+  criteria,
   active,
   searchable,
   query: textQuery,
@@ -327,6 +299,7 @@ function SearchScene({
   items: textItems,
 }: {
   resource: DiscoveryResource;
+  criteria: string;
   active: boolean;
   searchable: boolean;
   query: ReturnType<typeof useDiscoveryQuery>;
@@ -342,7 +315,13 @@ function SearchScene({
   const navigation = useNavigation();
   const sportingNavigation = useSportingNavigation(active);
   const feedback = useActionFeedback();
-  const { focusedTab } = useCollapsingTabsContext();
+  const current = useRef<string | undefined>(undefined);
+  useLayoutEffect(() => {
+    current.current = active ? criteria : undefined;
+    return () => {
+      current.current = undefined;
+    };
+  }, [active, criteria]);
   const sporting = resource === "club" ? undefined : visit[resource];
   const filters = sporting?.filters;
   const resultsReady = (searchable || examples) && (!sporting || !!filters);
@@ -363,7 +342,7 @@ function SearchScene({
       result.isFetchNextPageError &&
       result.data &&
       navigation.isFocused() &&
-      focusedTab.value === resource
+      current.current === criteria
     )
       feedback.error();
   }
@@ -382,6 +361,7 @@ function SearchScene({
     ) : undefined;
   return (
     <SearchResults
+      key={criteria}
       onOpen={({ kind, identity }) => {
         Keyboard.dismiss();
         void sportingNavigation.navigate(kind, identity.id);
@@ -443,7 +423,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
-    paddingRight: tokens.spacing.screen,
+    paddingHorizontal: tokens.spacing.screen,
   },
   tabs: { flex: 1, minWidth: 0 },
   toolbar: {

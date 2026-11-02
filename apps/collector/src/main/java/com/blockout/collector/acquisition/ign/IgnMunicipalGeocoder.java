@@ -47,7 +47,7 @@ public class IgnMunicipalGeocoder implements MunicipalGeocoder {
               .setParameter("autocomplete", "0")
               .setParameter("limit", "50");
       if (postalCode != null) query.setParameter("postcode", postalCode);
-      ProviderHttpClient.StatusResponse response = http.getWithBadRequest(query.build()).join();
+      ProviderHttpClient.StatusResponse response = http.getWithBadRequest(query.build());
       return parse(response.status(), response.body(), revision);
     } catch (URISyntaxException invalid) {
       throw invalid();

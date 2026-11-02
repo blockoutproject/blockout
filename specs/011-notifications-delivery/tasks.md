@@ -161,7 +161,7 @@ description: "Implementation tasks for F07 notifications, inbox and push"
 
 ### Tests for User Story 7
 
-- [x] T047 [P] [US7] Write failing PostgreSQL purge cases in `apps/backend/src/test/java/com/blockout/backend/notifications/application/PurgeNotificationsIntegrationTest.java`. Cover just below/exactly 29 and beyond 30 elapsed days, every family/read/hidden state, DST/time zones, concurrent read/create, interrupted partial completion and next ordinary daily pass. Remove personal rows/associated ephemeral references without resetting facts/ages; original installation associations stay independently necessary. Assert no eligible read/count/send despite failed physical deletion, no archive/recreation and safe observable failure. T052 executes the actual concurrent F05 erasure case after its orchestrator and participant exist.
+- [x] T047 [P] [US7] Write failing PostgreSQL purge cases in `apps/backend/src/test/java/com/blockout/backend/notifications/application/PurgeNotificationsIntegrationTest.java`. Cover just below/exactly 29 and beyond 30 elapsed days, every family/read/hidden state, DST/time zones, concurrent read/create, interrupted physical cleanup and next ordinary daily pass. Remove personal rows/associated ephemeral references without resetting facts/ages; original installation associations stay independently necessary. Assert no eligible read/count/send despite failed physical deletion, no archive/recreation and safe observable failure. T052 executes the actual concurrent F05 erasure case after its orchestrator and participant exist.
 - [x] T048 [P] [US7] Prepare restoration/retention cases in `specs/011-notifications-delivery/quickstart.md#essential-scenarios` linked to F13's isolated restore: expired rows, since-erased account, privacy/right uncertainty, preserved versus lost match facts, original timestamps and private evidence. Include active/offline partial inbox and expiry on an unloaded row using T018; do not invent a restoration framework or claim fixtures prove operational reopening.
 
 ### Implementation and qualification for User Story 7
@@ -172,6 +172,9 @@ description: "Implementation tasks for F07 notifications, inbox and push"
 - [ ] T052 [US7] Execute A44–A52 through `specs/011-notifications-delivery/quickstart.md#essential-scenarios` with actual purge, generated reads/counts and T018/T023 mobile handling. Race actual F05 erasure with pages/reads/refresh/purge and stale responses, cross age 29 while active/offline, exclude unloaded-summary expiry, remove zero badges and show ordinary empty state without deletion controls. Reuse the completed actual US2 later-publication tests to prove an unused replay category can create a new entry after result purge without reviving consumed categories; this does not block US2 construction.
 
 ---
+
+- [x] T072 [US7] Implement one fixed-cutoff JPQL deletion inside one effective transaction in `apps/backend/src/main/java/com/blockout/backend/notifications/`, reporting completion/count only after confirmed commit. Preserve daily scheduling, strict logical age-29 exclusion and honest unconfirmed outcomes without a partial-progress protocol.
+- [x] T073 [US7] Qualify `apps/backend/src/test/java/com/blockout/backend/notifications/application/PurgeNotificationsIntegrationTest.java` for atomic rollback, actual commit refusal, no false completed/count diagnostic, next-pass success and retained expiry/concurrency/fact invariants. Qualify direct orchestration and cross-owner recovery consumers; record scoped evidence in `specs/011-notifications-delivery/quickstart.md`.
 
 ## Phase 8: User Story 2 — Hear about a link at the right time (Priority: P2)
 

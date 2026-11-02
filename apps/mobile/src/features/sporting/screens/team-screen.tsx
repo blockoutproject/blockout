@@ -1,11 +1,8 @@
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { SportingSupportAction } from "../components/sporting-actions";
 import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
-import { SportingCompactHeader } from "../components/sporting-compact-header";
-import { TabScrollView } from "react-native-collapsible-tab";
+import { SportingPageHeader } from "../components/sporting-page-header";
 import { PagedTabs } from "../../../shared/components/paged-tabs";
-import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { ResourceText } from "../components/resource-text";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
@@ -66,31 +63,29 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
   const tab = tabs.some((item) => item.id === selected)
     ? selected
     : (data?.participations[0]?.pool.id ?? "upcoming");
-  const identity = data ? (
-    <SportingIdentity
-      identity={data.team.team}
-      kind="team"
-      classification={data.team.classification}
-      season={data.team.season}
-    >
-      {data.team.club && (
-        <SportingLink
-          key={data.team.club.id}
-          kind="club"
-          id={data.team.club.id}
-          label={`Voir le club ${data.team.club.name}`}
-        />
-      )}
-      {renderFollow?.(
-        data.team.team,
-        data.team.season,
-        data.team.classification.division?.color,
-      )}
-    </SportingIdentity>
-  ) : undefined;
+  /** Repeats current facts inside each scroller while admitting links only in that scene. */
+  const identity = (active: boolean) =>
+    data ? (
+      <SportingIdentity
+        identity={data.team.team}
+        kind="team"
+        classification={data.team.classification}
+        season={data.team.season}
+      >
+        {data.team.club && (
+          <SportingLink
+            key={data.team.club.id}
+            kind="club"
+            active={active}
+            id={data.team.club.id}
+            label={`Voir le club ${data.team.club.name}`}
+          />
+        )}
+      </SportingIdentity>
+    ) : undefined;
   const blockingState = !data ? <ReadFeedback query={team} /> : undefined;
   return (
-    <Page edges={blockingState ? undefined : ["left", "right", "bottom"]}>
+    <Page>
       {blockingState ? (
         <>
           <PageHeader
@@ -109,19 +104,24 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
           onSelect={setSelected}
           header={
             data && (
-              <SportingCompactHeader
-                action={
-                  <SportingSupportAction
-                    target={{ type: "team", id: teamId }}
-                  />
-                }
-                title="Équipe"
-                identity={data.team.team}
-                kind="team"
-              />
+              <>
+                <SportingPageHeader
+                  action={
+                    <SportingSupportAction
+                      target={{ type: "team", id: teamId }}
+                    />
+                  }
+                  identity={data.team.team}
+                  kind="team"
+                />
+                {renderFollow?.(
+                  data.team.team,
+                  data.team.season,
+                  data.team.classification.division?.color,
+                )}
+              </>
             )
           }
-          collapsibleHeader={<PageContent>{identity}</PageContent>}
           tabs={tabs.map((item) => {
             const participation = data?.participations.find(
               (pool) => pool.pool.id === item.id,
@@ -137,13 +137,16 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
                 <SportingCalendar
                   selection={{ teamId, category }}
                   active={tab === item.id}
-                />
+                >
+                  {identity(tab === item.id)}
+                </SportingCalendar>
               ) : participation && !renderStandings ? (
                 <PoolStandings
                   pool={participation}
                   highlightTeamId={teamId}
                   active={tab === item.id}
                 >
+                  {identity(tab === item.id)}
                   <Surface>
                     <SportingLink
                       key={participation.pool.id}
@@ -157,8 +160,9 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
                   </Surface>
                 </PoolStandings>
               ) : (
-                <TabScrollView {...hiddenScrollIndicators} alwaysBounceVertical>
+                <PageScrollView alwaysBounceVertical>
                   <PageContent>
+                    {identity(tab === item.id)}
                     {participation && (
                       <>
                         <Surface>
@@ -182,8 +186,7 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
                       </>
                     )}
                   </PageContent>
-                  <BottomContentSpacer />
-                </TabScrollView>
+                </PageScrollView>
               ),
             };
           })}

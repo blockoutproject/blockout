@@ -14,6 +14,9 @@ import com.blockout.backend.notifications.infrastructure.NotificationRetentionCo
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.persistence.EntityManagerFactory;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -47,6 +50,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -62,7 +66,7 @@ class PurgeNotificationsIntegrationTest {
   private PurgeInspector inspector;
   @Autowired private EntityManagerFactory entityManagerFactory;
   @Autowired private NotificationRetentionConfiguration daily;
-  @Autowired private PurgeNotifications.DeleteExpiredEntries batch;
+  @Autowired private PurgeNotifications purge;
   @Autowired private ReadInbox reads;
   @Autowired private MarkNotificationRead marks;
   @Autowired private NotificationStore store;
@@ -156,7 +160,8 @@ class PurgeNotificationsIntegrationTest {
     Instant cutoff = now.minus(Duration.ofDays(29));
     UUID retained = entry(sql, 1, ACCOUNT, cutoff.plusNanos(1000));
     entry(sql, 2, ACCOUNT, cutoff);
-    PurgeNotifications purge = new PurgeNotifications(batch, Clock.fixed(now, ZoneId.of(zone)));
+    PurgeNotifications purge =
+        new PurgeNotifications(store, transactions, Clock.fixed(now, ZoneId.of(zone)));
 
     // When
     purge.run();
@@ -167,7 +172,7 @@ class PurgeNotificationsIntegrationTest {
   }
 
   @Test
-  @DisplayName("Keeps committed batches after interruption and removes remaining rows next day")
+  @DisplayName("Rolls back a failed pass and removes due rows on the next ordinary day")
   void resumesNextDailyPass(CapturedOutput output) {
     // Given
     for (int i = 1; i <= 105; i++)
@@ -177,7 +182,6 @@ class PurgeNotificationsIntegrationTest {
     inspector.failMatch =
         statement -> {
           if (statement.startsWith("delete from notification")
-              && sql.queryForObject("SELECT COUNT(*) FROM notification", Long.class) == 6
               && failed.compareAndSet(false, true)) {
             throw new IllegalStateException("synthetic-private-notification-content");
           }
@@ -188,7 +192,7 @@ class PurgeNotificationsIntegrationTest {
 
     // Then
     assertThat(failed).isTrue();
-    assertThat(sql.queryForObject("SELECT COUNT(*) FROM notification", Long.class)).isEqualTo(6);
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM notification", Long.class)).isEqualTo(106);
     NotificationContext owner = new NotificationContext(ACCOUNT);
     assertThat(reads.page(owner, null).entries())
         .extracting(InboxViews.Entry::id)
@@ -200,10 +204,7 @@ class PurgeNotificationsIntegrationTest {
     assertThatThrownBy(() -> marks.mark(owner, expired))
         .isInstanceOf(NotificationNotFoundException.class);
     assertThat(output.getAll())
-        .contains(
-            "\"operation\":\"notification_retention\"",
-            "\"outcome\":\"incomplete\"",
-            "\"partial_count\":100")
+        .contains("\"operation\":\"notification_retention\"", "\"outcome\":\"incomplete\"")
         .doesNotContain("\"outcome\":\"completed\"");
     assertThat(output.getAll())
         .doesNotContain(
@@ -241,8 +242,7 @@ class PurgeNotificationsIntegrationTest {
                 Future<?> pending =
                     worker.submit(
                         () -> {
-                          // Use the production proxied batch; its REQUIRES_NEW transaction owns
-                          // deletion.
+                          // The production owner starts and commits its one retention transaction.
                           inspector.failMatch =
                               statement -> {
                                 if (statement.startsWith("delete from notification")) {
@@ -279,21 +279,49 @@ class PurgeNotificationsIntegrationTest {
   }
 
   @Test
-  @DisplayName("Keeps committed purge removals when an unrelated caller rolls back")
-  void commitsIndependentlyOfCallerRollback() {
+  @DisplayName(
+      "Rolls back all deletions when PostgreSQL refuses commit without a false success log")
+  void rejectsCommitFailure(CapturedOutput output) throws Exception {
+    // Given
+    entry(sql, 1, ACCOUNT, NOW.minus(Duration.ofDays(30)));
+    entry(sql, 2, ACCOUNT, NOW.minus(Duration.ofDays(31)));
+    failAtCommit(true);
+    try {
+      // When
+      purge.run();
+
+      // Then
+      assertThat(sql.queryForObject("SELECT COUNT(*) FROM notification", Long.class)).isEqualTo(2);
+      assertThat(output.getAll())
+          .contains("\"outcome\":\"incomplete\"")
+          .doesNotContain("\"outcome\":\"completed\"", "synthetic-private-notification-content");
+    } finally {
+      failAtCommit(false);
+    }
+
+    // When
+    daily.purge();
+
+    // Then
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM notification", Long.class)).isZero();
+    assertThat(output.getAll()).contains("\"outcome\":\"completed\"", "\"affected_count\":2");
+  }
+
+  @Test
+  @DisplayName("Refuses an ambient transaction before deleting or reporting completion")
+  void refusesAmbientTransaction(CapturedOutput output) {
     // Given
     entry(sql, 1, ACCOUNT, NOW.minus(Duration.ofDays(30)));
     TransactionTemplate caller = new TransactionTemplate(transactions);
 
     // When
-    caller.executeWithoutResult(
-        status -> {
-          daily.purge();
-          status.setRollbackOnly();
-        });
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable nested =
+        () -> caller.executeWithoutResult(status -> purge.run());
 
     // Then
-    assertThat(sql.queryForObject("SELECT COUNT(*) FROM notification", Long.class)).isZero();
+    assertThatThrownBy(nested).isInstanceOf(IllegalTransactionStateException.class);
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM notification", Long.class)).isEqualTo(1);
+    assertThat(output.getAll()).doesNotContain("\"operation\":\"notification_retention\"");
   }
 
   @Test
@@ -320,6 +348,32 @@ class PurgeNotificationsIntegrationTest {
           .isEqualTo(1);
     } finally {
       sql.update("UPDATE access_settings SET active=FALSE WHERE id='maintenance'");
+    }
+  }
+
+  /**
+   * Installs or removes a test-only deferred PostgreSQL trigger so failure occurs at real commit,
+   * after the DELETE has returned. Migration credentials own this disposable schema operation.
+   *
+   * @param enabled whether to reject every deletion at transaction commit
+   * @throws Exception when fixture DDL cannot be applied
+   */
+  private void failAtCommit(boolean enabled) throws Exception {
+    try (Connection connection =
+            DriverManager.getConnection(
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
+                "blockout_migration",
+                "harmless-migration");
+        Statement statement = connection.createStatement()) {
+      if (enabled) {
+        statement.execute(
+            "CREATE FUNCTION notification_purge_commit_failure() RETURNS TRIGGER LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'synthetic-private-notification-content'; END $$");
+        statement.execute(
+            "CREATE CONSTRAINT TRIGGER notification_purge_commit_failure AFTER DELETE ON notification DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION notification_purge_commit_failure()");
+      } else {
+        statement.execute("DROP TRIGGER notification_purge_commit_failure ON notification");
+        statement.execute("DROP FUNCTION notification_purge_commit_failure()");
+      }
     }
   }
 

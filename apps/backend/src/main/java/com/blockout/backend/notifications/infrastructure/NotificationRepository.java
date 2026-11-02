@@ -1,10 +1,8 @@
 package com.blockout.backend.notifications.infrastructure;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -35,27 +33,15 @@ interface NotificationRepository
   Optional<UUID> findMatchId(UUID accountId, UUID id);
 
   /**
-   * Selects a bounded oldest-first purge batch at the fixed retention cutoff.
+   * Deletes all expired personal rows in the caller's single retention transaction. No managed
+   * notification entities are loaded by this path, so no persistence-context clear is needed.
    *
-   * @param cutoff inclusive expiration instant
-   * @param limit maximum number of identities
-   * @return deterministic selected identities without loading personal presentation
-   */
-  @Query(
-      "SELECT n.id FROM NotificationEntity n WHERE n.createdAt <= :cutoff ORDER BY n.createdAt, n.id")
-  List<UUID> findExpiredIds(Instant cutoff, Limit limit);
-
-  /**
-   * Deletes only the selected expired rows inside the independently committed purge batch. No
-   * notification entities are loaded in this transaction, so no managed state needs clearing.
-   *
-   * @param ids bounded selection from this batch
-   * @param cutoff same inclusive expiration instant as selection
+   * @param cutoff inclusive original creation cutoff, fixed for this pass
    * @return rows actually deleted, allowing concurrent account cascades
    */
   @Modifying
-  @Query("DELETE FROM NotificationEntity n WHERE n.id IN :ids AND n.createdAt <= :cutoff")
-  int deleteExpired(List<UUID> ids, Instant cutoff);
+  @Query("DELETE FROM NotificationEntity n WHERE n.createdAt <= :cutoff")
+  int deleteExpired(Instant cutoff);
 
   /**
    * Advances only the read bit after the caller locks sporting roots and the original account.

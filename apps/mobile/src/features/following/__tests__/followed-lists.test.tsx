@@ -6,8 +6,6 @@ import {
   createFollowListOptions,
   createPersonalCalendarOptions,
   createFollowOptionsQueryOptions,
-  readPersonalSelection,
-  type PersonalCalendarRead,
 } from "../api/personal-queries";
 import type { FollowingOwner } from "../api/following-keys";
 
@@ -24,27 +22,11 @@ const season = {
 };
 let client = createQueryClient();
 let owner: FollowingOwner;
-const selectSeason = jest.fn();
 
 /** Controlled I/O preparation preserves actual generated transport and session validation. */
 async function request(signal?: AbortSignal) {
   return { signal };
 }
-/** Exercises the same bounded season reconciliation used by the personal space. */
-const read: PersonalCalendarRead = (seasonId, signal, operation, currentKey) =>
-  readPersonalSelection(
-    {
-      client,
-      owner,
-      seasonId,
-      signal,
-      options: createFollowOptionsQueryOptions(owner, request),
-      currentKey,
-      selectSeason,
-    },
-    operation,
-  );
-
 /** A current public summary; the page's continuation and identities remain explicit in scenarios. */
 function team(id: number, name = `Équipe ${id}`) {
   return {
@@ -66,7 +48,6 @@ beforeEach(() => {
   };
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   mockFetch.mockReset();
-  selectSeason.mockReset();
 });
 afterEach(() => {
   client.clear();
@@ -75,13 +56,7 @@ afterEach(() => {
 
 it("traverses the generated nextPage without a total or an implicit replay on populated return", async () => {
   // Given
-  const options = createFollowListOptions(
-    owner,
-    request,
-    "team",
-    season.id,
-    read,
-  );
+  const options = createFollowListOptions(owner, request, "team", season.id);
   mockFetch
     .mockResolvedValueOnce(
       Response.json({
@@ -121,13 +96,7 @@ it("traverses the generated nextPage without a total or an implicit replay on po
 
 it("keeps prior pages and the exact failed continuation for explicit retry", async () => {
   // Given
-  const options = createFollowListOptions(
-    owner,
-    request,
-    "team",
-    undefined,
-    read,
-  );
+  const options = createFollowListOptions(owner, request, "team", undefined);
   mockFetch
     .mockResolvedValueOnce(Response.json({ items: [team(1)], nextPage: 1 }))
     .mockRejectedValueOnce(new TypeError("Synthetic append outage"))
@@ -164,13 +133,7 @@ it("keeps prior pages and the exact failed continuation for explicit retry", asy
 
 it("defers a reset hidden list and starts at page zero when displayed", async () => {
   // Given
-  const options = createFollowListOptions(
-    owner,
-    request,
-    "pool",
-    season.id,
-    read,
-  );
+  const options = createFollowListOptions(owner, request, "pool", season.id);
   mockFetch.mockImplementation(async () =>
     Response.json({
       items: [
@@ -210,37 +173,24 @@ it("defers a reset hidden list and starts at page zero when displayed", async ()
   close();
 });
 
-it("rereads seasonal options once on NotFound and changes only an established unavailable season", async () => {
+it("keeps a seasonal NotFound ordinary without rereading options", async () => {
   // Given
   mockFetch
     .mockResolvedValueOnce(new Response(null, { status: 404 }))
     .mockResolvedValueOnce(Response.json({ seasons: [] }));
-  const options = createFollowListOptions(
-    owner,
-    request,
-    "team",
-    season.id,
-    read,
-  );
+  const options = createFollowListOptions(owner, request, "team", season.id);
 
   // When
   await expect(client.infiniteQuery(options)).rejects.toBeDefined();
 
   // Then
-  expect(selectSeason).toHaveBeenCalledWith(undefined);
-  expect(mockFetch).toHaveBeenCalledTimes(2);
+  expect(mockFetch).toHaveBeenCalledTimes(1);
   expect(client.getQueryData(options.queryKey)).toBeUndefined();
 });
 
 it("withdraws refused retained private lists without turning refusal into empty success", async () => {
   // Given
-  const options = createFollowListOptions(
-    owner,
-    request,
-    "team",
-    undefined,
-    read,
-  );
+  const options = createFollowListOptions(owner, request, "team", undefined);
   mockFetch.mockResolvedValueOnce(Response.json({ items: [team(1)] }));
   await client.infiniteQuery(options);
   mockFetch.mockResolvedValue(new Response(null, { status: 403 }));
@@ -264,39 +214,23 @@ it.each([
   "withdraws retained personal collections after an original-account %s refusal with status %s",
   async (source, status) => {
     // Given
-    const teams = createFollowListOptions(
-      owner,
-      request,
-      "team",
-      undefined,
-      read,
-    );
-    const pools = createFollowListOptions(
-      owner,
-      request,
-      "pool",
-      season.id,
-      read,
-    );
+    const teams = createFollowListOptions(owner, request, "team", undefined);
+    const pools = createFollowListOptions(owner, request, "pool", season.id);
     const bypassTeams = createFollowListOptions(
       owner,
       request,
       "team",
       undefined,
-      read,
       true,
     );
-    const calendar = createPersonalCalendarOptions(
-      owner,
-      request,
-      { category: "upcoming", timeZone: "Europe/Paris" },
-      read,
-    );
+    const calendar = createPersonalCalendarOptions(owner, request, {
+      category: "upcoming",
+      timeZone: "Europe/Paris",
+    });
     const bypassCalendar = createPersonalCalendarOptions(
       owner,
       request,
       { category: "upcoming", timeZone: "Europe/Paris" },
-      read,
       true,
     );
     const match = matchDetail().match;
@@ -358,7 +292,7 @@ it.each([
   },
 );
 
-it("withdraws a confirmed missing season from retained All-seasons lists before selecting the fallback", async () => {
+it("withdraws a successfully omitted season from exact and All-seasons lists on options reload", async () => {
   // Given
   const otherSeason = {
     id: "00000000-0000-4000-8000-000000000002",
@@ -377,33 +311,14 @@ it("withdraws a confirmed missing season from retained All-seasons lists before 
     pool: { id: otherSeason.id, name: "Poule B" },
     season: otherSeason,
   };
-  const selected = createFollowListOptions(
-    owner,
-    request,
-    "team",
-    season.id,
-    read,
-  );
-  const allTeams = createFollowListOptions(
-    owner,
-    request,
-    "team",
-    undefined,
-    read,
-  );
-  const allPools = createFollowListOptions(
-    owner,
-    request,
-    "pool",
-    undefined,
-    read,
-  );
+  const selected = createFollowListOptions(owner, request, "team", season.id);
+  const allTeams = createFollowListOptions(owner, request, "team", undefined);
+  const allPools = createFollowListOptions(owner, request, "pool", undefined);
   const bypassTeams = createFollowListOptions(
     owner,
     request,
     "team",
     undefined,
-    read,
     true,
   );
   const bypassPools = createFollowListOptions(
@@ -411,7 +326,6 @@ it("withdraws a confirmed missing season from retained All-seasons lists before 
     request,
     "pool",
     undefined,
-    read,
     true,
   );
   mockFetch.mockImplementation(async (url) =>
@@ -432,26 +346,13 @@ it("withdraws a confirmed missing season from retained All-seasons lists before 
     bypassPools,
   ])
     await client.infiniteQuery(options);
-  let itemsAtFallback: unknown;
-  selectSeason.mockImplementation(() => {
-    itemsAtFallback = [
-      client.getQueryData(allTeams.queryKey)?.pages[0].items,
-      client.getQueryData(allPools.queryKey)?.pages[0].items,
-    ];
-  });
   mockFetch.mockClear();
-  mockFetch
-    .mockResolvedValueOnce(new Response(null, { status: 404 }))
-    .mockResolvedValueOnce(Response.json({ seasons: [otherSeason] }));
+  mockFetch.mockResolvedValueOnce(Response.json({ seasons: [otherSeason] }));
 
   // When
-  await expect(
-    client.infiniteQuery({ ...selected, staleTime: 0, pages: 1 }),
-  ).rejects.toBeDefined();
+  await client.fetchQuery(createFollowOptionsQueryOptions(owner, request));
 
   // Then
-  expect(selectSeason).toHaveBeenCalledWith(undefined);
-  expect(itemsAtFallback).toEqual([[historicalTeam], [historicalPool]]);
   expect(client.getQueryData(selected.queryKey)?.pages[0].items).toEqual([]);
   const reopened = new InfiniteQueryObserver(client, {
     ...selected,
@@ -476,17 +377,16 @@ it("withdraws a confirmed missing season from retained All-seasons lists before 
     currentPool,
     historicalPool,
   ]);
-  expect(mockFetch).toHaveBeenCalledTimes(2);
+  expect(mockFetch).toHaveBeenCalledTimes(1);
 });
 
-it("withdraws the source calendar when a seasonal NotFound establishes disappearance", async () => {
+it("withdraws a retained calendar when a successful options reload establishes disappearance", async () => {
   // Given
-  const calendar = createPersonalCalendarOptions(
-    owner,
-    request,
-    { seasonId: season.id, category: "upcoming", timeZone: "Europe/Paris" },
-    read,
-  );
+  const calendar = createPersonalCalendarOptions(owner, request, {
+    seasonId: season.id,
+    category: "upcoming",
+    timeZone: "Europe/Paris",
+  });
   const match = matchDetail().match;
   mockFetch.mockResolvedValueOnce(
     Response.json({
@@ -505,17 +405,12 @@ it("withdraws the source calendar when a seasonal NotFound establishes disappear
     }),
   );
   await client.infiniteQuery(calendar);
-  mockFetch
-    .mockResolvedValueOnce(new Response(null, { status: 404 }))
-    .mockResolvedValueOnce(Response.json({ seasons: [] }));
+  mockFetch.mockResolvedValueOnce(Response.json({ seasons: [] }));
 
   // When
-  await expect(
-    client.infiniteQuery({ ...calendar, staleTime: 0, pages: 1 }),
-  ).rejects.toBeDefined();
+  await client.fetchQuery(createFollowOptionsQueryOptions(owner, request));
 
   // Then
-  expect(selectSeason).toHaveBeenCalledWith(undefined);
   expect(
     client.getQueryData(calendar.queryKey)?.pages[0].calendar.days,
   ).toEqual([]);
@@ -530,40 +425,20 @@ it.each([undefined, season.id])(
       label: "2025/2026",
       startYear: 2025,
     };
-    const selected = createFollowListOptions(
-      owner,
-      request,
-      "team",
-      season.id,
-      read,
-    );
-    const all = createFollowListOptions(
-      owner,
-      request,
-      "team",
-      undefined,
-      read,
-    );
-    const pools = createFollowListOptions(
-      owner,
-      request,
-      "pool",
-      season.id,
-      read,
-    );
+    const selected = createFollowListOptions(owner, request, "team", season.id);
+    const all = createFollowListOptions(owner, request, "team", undefined);
+    const pools = createFollowListOptions(owner, request, "pool", season.id);
     const other = createFollowListOptions(
       owner,
       request,
       "team",
       otherSeason.id,
-      read,
     );
     const bypass = createFollowListOptions(
       owner,
       request,
       "team",
       season.id,
-      read,
       true,
     );
     const currentTeam = team(1);
@@ -607,16 +482,11 @@ it.each([undefined, season.id])(
 
     // When
     await client.infiniteQuery(
-      createPersonalCalendarOptions(
-        owner,
-        request,
-        {
-          seasonId: absentSeason,
-          category: "upcoming",
-          timeZone: "Europe/Paris",
-        },
-        read,
-      ),
+      createPersonalCalendarOptions(owner, request, {
+        seasonId: absentSeason,
+        category: "upcoming",
+        timeZone: "Europe/Paris",
+      }),
     );
     mockFetch.mockClear();
     observer.setOptions({ ...selected, enabled: true });
@@ -651,23 +521,22 @@ it("keeps initial list reads retryable when a late hidden calendar establishes a
     .mockReturnValueOnce(calendarResponse.promise)
     .mockReturnValueOnce(teamResponse.promise)
     .mockReturnValueOnce(poolResponse.promise);
-  const calendarOptions = createPersonalCalendarOptions(
-    owner,
-    request,
-    { seasonId: season.id, category: "upcoming", timeZone: "Europe/Paris" },
-    read,
-  );
+  const calendarOptions = createPersonalCalendarOptions(owner, request, {
+    seasonId: season.id,
+    category: "upcoming",
+    timeZone: "Europe/Paris",
+  });
   const calendar = new InfiniteQueryObserver(client, calendarOptions);
   const closeCalendar = calendar.subscribe(() => {});
   await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
   calendar.setOptions({ ...calendarOptions, enabled: false });
   const teams = new InfiniteQueryObserver(
     client,
-    createFollowListOptions(owner, request, "team", season.id, read),
+    createFollowListOptions(owner, request, "team", season.id),
   );
   const pools = new InfiniteQueryObserver(
     client,
-    createFollowListOptions(owner, request, "pool", season.id, read),
+    createFollowListOptions(owner, request, "pool", season.id),
   );
   const closeTeams = teams.subscribe(() => {});
   const closePools = pools.subscribe(() => {});

@@ -15,7 +15,7 @@ import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import RevenueCatUI from "react-native-purchases-ui";
 import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 import OrdinaryLayout from "../../../app/(ordinary)/_layout";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import "../../../shared/native/test-support/tab-view-native";
 import { useAccountSession } from "../../accounts/current-account";
 import { accountResponse } from "../../accounts/test-support/account-response";
 import {
@@ -297,32 +297,26 @@ async function openInstallation(initialUrl = poolPath) {
     { initialUrl },
   );
   await screen.findByRole("tab", { name: "Carte" });
-  await layoutNativeTabs();
 }
 
 /** Exercises map selection plus both complete-day club traversals through their actual route/query owners. */
 async function consultPublicSport() {
   const user = userEvent.setup();
   await user.press(screen.getByRole("tab", { name: "Carte" }));
-  await layoutNativeTabs();
   const marker = await screen.findByRole("button", {
     name: "La Rochelle: Rives",
   });
   // MarkerPress and list endReached are native events outside userEvent's supported controls.
   await fireEvent(marker, "press", { stopPropagation: jest.fn() });
-  expect(
-    await screen.findByRole("link", { name: "Voir l’équipe" }),
-  ).toBeEnabled();
+  expect(await screen.findByRole("link", { name: "Rives" })).toBeEnabled();
   expect(screen).toHavePathname(poolPath);
   await act(() => router.push(clubPath));
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   for (const [label, category] of [
     ["À venir", "upcoming"],
     ["Terminés", "completed"],
   ]) {
     await user.press(screen.getByRole("tab", { name: label }));
-    await layoutNativeTabs();
     await screen.findByRole("link", {
       name: new RegExp(`Ouvrir le match ${category} first`),
     });
@@ -468,19 +462,18 @@ it.each([
 /** Selects the real map summary; navigation continues through F11's single sporting transition. */
 async function selectMappedTeam() {
   await userEvent.press(screen.getByRole("tab", { name: "Carte" }));
-  await layoutNativeTabs();
   await fireEvent(
     await screen.findByRole("button", { name: "La Rochelle: Rives" }),
     "press",
     { stopPropagation: jest.fn() },
   );
-  await screen.findByRole("link", { name: "Voir l’équipe" });
+  await screen.findByRole("link", { name: "Rives" });
 }
 
 /** Completes actual voluntary sporting openings; back navigation creates no advertising opportunity. */
 async function visitMappedTeam(times: number) {
   for (let index = 0; index < times; index++) {
-    await userEvent.press(screen.getByRole("link", { name: "Voir l’équipe" }));
+    await userEvent.press(screen.getByRole("link", { name: "Rives" }));
     await waitFor(() => expect(screen).toHavePathname(`/teams/${sportingId}`));
     await act(() => router.back());
     await waitFor(() => expect(screen).toHavePathname(poolPath));
@@ -504,7 +497,7 @@ it("presents the single F11 interstitial on the tenth sporting opening and relea
   expect(mockCreateAd).toHaveBeenCalledTimes(1);
 
   // When
-  await userEvent.press(screen.getByRole("link", { name: "Voir l’équipe" }));
+  await userEvent.press(screen.getByRole("link", { name: "Rives" }));
 
   // Then
   expect(ad.show).toHaveBeenCalledTimes(1);
@@ -620,7 +613,6 @@ it("does not transfer a gifted exemption to the guest after actual F05 sign-out"
   await waitFor(() => expect(owners.session.status).toBe("guest"));
   await act(() => router.push(poolPath));
   await screen.findByRole("tab", { name: "Carte" });
-  await layoutNativeTabs();
 
   // Then
   expect(owners.pro.state.status).toBe("guest");
@@ -630,7 +622,7 @@ it("does not transfer a gifted exemption to the guest after actual F05 sign-out"
   await selectMappedTeam();
   await act(() => ad.emit(AdEventType.LOADED));
   await visitMappedTeam(9);
-  await userEvent.press(screen.getByRole("link", { name: "Voir l’équipe" }));
+  await userEvent.press(screen.getByRole("link", { name: "Rives" }));
   expect(ad.show).toHaveBeenCalledTimes(1);
   await act(() => {
     ad.emit(AdEventType.OPENED);
@@ -722,7 +714,6 @@ it("keeps public consultation usable after an interrupted native purchase withou
   mockPurchases.getOfferings.mockClear();
   await act(() => router.push(poolPath));
   await screen.findByRole("tab", { name: "Carte" });
-  await layoutNativeTabs();
   await consultPublicSport();
 
   // Then

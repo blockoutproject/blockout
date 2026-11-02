@@ -1,13 +1,7 @@
 import { divisionTextColor } from "../presentation";
 import { useSportingNavigation } from "../navigation";
 import type { PropsWithChildren } from "react";
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type LayoutChangeEvent,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { MatchSummaryResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -20,8 +14,6 @@ import { DivisionPaint } from "./division-paint";
 export interface MatchSummaryProps {
   match: MatchSummaryResponse;
   displayTimeZone?: string;
-  /** Native team-row geometry lets Match hand off to its compact header without fixed text heights. */
-  onTeamsLayout?: (event: LayoutChangeEvent) => void;
   /** Contribution context keeps identities/time and known scores informational; summary retains sporting navigation. */
   presentation?: "summary" | "context";
 }
@@ -38,7 +30,6 @@ function statusLabel(match: MatchSummaryResponse): string {
 export function MatchSummary({
   match,
   displayTimeZone,
-  onTeamsLayout,
   presentation = "summary",
 }: MatchSummaryProps) {
   const { colors, context } = useTheme();
@@ -115,10 +106,7 @@ export function MatchSummary({
           </View>
         </View>
       )}
-      <View
-        onLayout={onTeamsLayout}
-        style={contextual ? styles.contextBody : undefined}
-      >
+      <View style={contextual ? styles.contextBody : undefined}>
         {[
           { team: match.home, score: result?.homeSets, side: "domicile" },
           { team: match.away, score: result?.awaySets, side: "extérieur" },

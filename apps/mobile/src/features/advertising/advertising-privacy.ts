@@ -21,7 +21,6 @@ import {
 } from "./advertising-eligibility";
 import { createInterstitialLifecycle } from "./interstitial-lifecycle";
 import {
-  openSportingAdTransition,
   openTransitionDestination,
   type SportingAdTransition,
 } from "./sporting-ad-transition";
@@ -142,7 +141,7 @@ export function createAdvertisingPrivacy({
       Platform.OS === "ios" &&
       wantsTracking &&
       getAdvertisingEligibility({ ...getContext(), choices: candidate })
-        .canRequestAds
+        .canServeAds
     ) {
       let permission = await getTrackingPermissionsAsync();
       if (!current()) return null;
@@ -248,8 +247,7 @@ export function createAdvertisingPrivacy({
         const choices = await readChoices(info, context, session, current);
         if (!current()) return false;
         if (
-          getAdvertisingEligibility({ ...getContext(), choices })
-            .canRequestAds &&
+          getAdvertisingEligibility({ ...getContext(), choices }).canServeAds &&
           !initialized
         ) {
           await mobileAds().initialize();
@@ -329,7 +327,7 @@ export function createAdvertisingPrivacy({
     },
     /** Existing sporting consumers retain intent/failure ownership and the one shared threshold. */
     openSportingTransition(action: SportingAdTransition) {
-      if (interstitial) return openSportingAdTransition(interstitial, action);
+      if (interstitial) return interstitial.transition(action);
       if (!action.isCurrent())
         return Promise.resolve({ status: "abandoned" as const });
       return openTransitionDestination(action.open);
