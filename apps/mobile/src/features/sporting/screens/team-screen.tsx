@@ -1,4 +1,7 @@
-import { SportingSupportAction } from "../components/sporting-actions";
+import {
+  SportingPresentationAction,
+  SportingSupportAction,
+} from "../components/sporting-actions";
 import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
@@ -27,7 +30,7 @@ import {
 } from "../components/sporting-identity";
 import { poolLabel, type RenderStandings } from "../model/resource-sections";
 
-/** Optional F06/later-story owner compositions receive stable identities, independently of public reads. */
+/** Route-owned F06 and optional standings compositions receive stable public identities. */
 export interface TeamScreenProps {
   teamId: string;
   renderFollow?: (
@@ -72,6 +75,7 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
       season={data.team.season}
       clubId={data.team.club?.id}
     >
+      <SportingPresentationAction target={{ kind: "team", id: teamId }} />
       {renderFollow?.(
         data.team.team,
         data.team.season,

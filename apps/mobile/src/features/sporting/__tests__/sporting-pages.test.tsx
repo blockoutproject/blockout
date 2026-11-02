@@ -7,6 +7,8 @@ import {
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
+import * as proSessionModule from "../../pro/pro-session";
+import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -19,7 +21,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react-native";
-import { Linking, Pressable, Text } from "react-native";
+import { Linking, Text } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import type {
@@ -29,9 +31,24 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
+import {
+  AccountSessionProvider,
+  useAccountSession,
+} from "../../accounts/session/account-session-provider";
+import type { AccountSession } from "../../accounts";
+import { accountResponse } from "../../accounts/test-support/account-response";
+import { ownContributions } from "../../contributions/test-support/contribution-data";
+import { supportContext } from "../../support/model/support-context";
+import TeamRoute from "../../../app/(ordinary)/teams/[teamId]";
+import PoolRoute from "../../../app/(ordinary)/pools/[poolId]";
+import PresentationRoute from "../../../app/(operations)/administration/presentation/[kind]/[id]";
+import { renderRouter } from "expo-router/testing-library";
+import { router } from "expo-router";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { mockAuth0 } from "../../accounts/test-support/native-auth0";
+import {
+  credentialsFor,
+  mockAuth0,
+} from "../../accounts/test-support/native-auth0";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import {
@@ -45,6 +62,9 @@ import { PoolScreen } from "../screens/pool-screen";
 import { MatchScreen } from "../screens/match-screen";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+jest.mock("react-native-keyboard-controller", () =>
+  jest.requireActual("react-native-keyboard-controller/jest"),
+);
 jest.mock("@react-native-async-storage/async-storage", () =>
   jest.requireActual(
     "@react-native-async-storage/async-storage/jest/async-storage-mock",
@@ -66,8 +86,18 @@ jest.mock("react-native-auth0", () => {
 });
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
-  useRouter: () => ({ back: mockBack, push: mockPush, canGoBack: () => true }),
-  useNavigation: () => ({ isFocused: () => true }),
+  useRouter: () =>
+    mockRouting
+      ? jest.requireActual("expo-router").useRouter()
+      : { back: mockBack, push: mockPush, canGoBack: () => true },
+  useNavigation: () =>
+    mockRouting
+      ? jest.requireActual("expo-router").useNavigation()
+      : { isFocused: () => true },
+  useLocalSearchParams: () =>
+    mockRouting
+      ? jest.requireActual("expo-router").useLocalSearchParams()
+      : mockRouteParams,
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),
@@ -75,6 +105,8 @@ jest.mock("expo/fetch", () => ({
 const mockFetch = jest.fn();
 const mockPush = jest.fn();
 const mockBack = jest.fn();
+const mockRouteParams = { teamId: sportingId, poolId: sportingId };
+let mockRouting = false;
 const environment = { ...process.env };
 const season = {
   id: "00000000-0000-4000-8000-000000000010",
@@ -93,13 +125,51 @@ let club: ClubDetailResponse;
 let team: TeamDetailResponse;
 let pool: PoolDetailResponse;
 let match = matchDetail();
+let account = accountResponse();
+let contributions = ownContributions();
+let following = false;
+let session: AccountSession;
 
 /** Controlled HTTP only; the screens use real generated decoders, Query, access and session owners. */
-function reads(url: string): Promise<Response> {
+function reads(url: string, request?: RequestInit): Promise<Response> {
   const parsed = new URL(url);
   const path = parsed.pathname;
   if (path.endsWith("/application-access"))
     return Promise.resolve(Response.json(applicationAccessResponse()));
+  if (path === "/accounts/me") return Promise.resolve(Response.json(account));
+  if (path.endsWith("/presentation"))
+    return Promise.resolve(
+      Response.json({
+        id: sportingId,
+        ...(path.includes("/clubs/")
+          ? { kind: "club" }
+          : path.includes("/teams/")
+            ? { kind: "team" }
+            : {}),
+        revision: "presentation-1",
+        names: {
+          sourceName: "Source",
+          effectiveName: "Presented name",
+          manualName: "Presented name",
+          effectiveShortName: "Short",
+          manualShortName: null,
+        },
+        ...(!path.includes("/pools/")
+          ? {
+              logo: { effectiveUrl: null, manualUrl: null, automaticUrl: null },
+            }
+          : {}),
+      }),
+    );
+  if (path.endsWith("/follower-count"))
+    return Promise.resolve(Response.json({ count: following ? 8 : 7 }));
+  if (path.includes("/team-follows/") || path.includes("/pool-follows/")) {
+    if (request?.method === "PUT")
+      following = JSON.parse(String(request.body)).following;
+    return Promise.resolve(Response.json({ following }));
+  }
+  if (path.includes("/stream-contributions"))
+    return Promise.resolve(Response.json(contributions));
   if (path.endsWith(`/clubs/${sportingId}/teams`))
     return Promise.resolve(
       Response.json({
@@ -148,6 +218,7 @@ function reads(url: string): Promise<Response> {
 /** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
 function PrivateQueries({ children }: QueryFixtureProps) {
   const current = useQueryClient();
+  const currentSession = useAccountSession();
   // Configure this fresh real client before descendant public observers start their first request.
   useQueryFixtureState(() => {
     current.setQueryDefaults([], { retry: false });
@@ -155,19 +226,35 @@ function PrivateQueries({ children }: QueryFixtureProps) {
   });
   useLayoutEffect(() => {
     client = current;
-  }, [current]);
+    session = currentSession;
+  }, [current, currentSession]);
   return children;
 }
 
 beforeEach(() => {
   jest.useFakeTimers();
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
+  prepareProNativeIO();
   publicClient = createQueryClient();
   match = matchDetail();
+  account = accountResponse();
+  contributions = ownContributions();
+  following = false;
+  mockRouting = false;
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "test-client";
   jest.mocked(initializeV2Installation).mockResolvedValue(undefined);
-  mockAuth0.hasValidCredentials.mockResolvedValue(false);
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(false);
+  mockAuth0.getCredentials
+    .mockReset()
+    .mockResolvedValue(credentialsFor("auth0|sporting-viewer"));
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockAuth0.webAuthLogout.mockReset().mockResolvedValue();
   mockPush.mockReset();
   mockBack.mockReset();
   club = {
@@ -204,10 +291,261 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
+it.each(["club", "team", "pool"] as const)(
+  "opens the actual F02 presentation entry for the exact %s and withdraws a revoked grant",
+  async (kind) => {
+    // Given: actual F05 profile, F12 capability and F02 entry; only SDK and HTTP are controlled.
+    mockAuth0.hasValidCredentials.mockResolvedValue(true);
+    account = accountResponse({
+      permissions: { ...account.permissions, manageSportingPresentation: true },
+    });
+    const user = userEvent.setup();
+    mockRouting = true;
+    await renderPage(
+      {
+        club: <ClubScreen clubId={sportingId} />,
+        team: <TeamScreen teamId={sportingId} />,
+        pool: <PoolScreen poolId={sportingId} />,
+      }[kind],
+      true,
+    );
+    // F05 replaces the guest lifetime during restoration; measure the current authenticated pager.
+    await waitFor(() => expect(session.accountId).toBe(account.accountId));
+    await layoutNativeTabs();
+    expect(screen.getByTestId("native-tabs-pager")).toBeOnTheScreen();
+
+    // When
+    await user.press(
+      await screen.findByRole("link", { name: "Modifier la présentation" }),
+    );
+
+    // Then
+    expect(
+      await screen.findByLabelText(
+        kind === "club" ? "Nom personnalisé" : "Nom complet personnalisé",
+      ),
+    ).toHaveDisplayValue("Presented name");
+    expect(screen).toHavePathname(
+      `/administration/presentation/${kind}/${sportingId}`,
+    );
+    expect(
+      mockFetch.mock.calls.some(
+        ([url]) =>
+          new URL(url).pathname ===
+          `/administration/${kind}s/${sportingId}/presentation`,
+      ),
+    ).toBe(true);
+    expect(
+      screen.queryByRole("link", { name: /Modifier.*(score|match)/i }),
+    ).not.toBeOnTheScreen();
+
+    // When: the current account read removes the grant while the public page remains mounted.
+    await act(async () => router.back());
+    // Router remounts the public page; native layout precedes access to its Club information scene.
+    await layoutNativeTabs();
+    await screen.findByRole("link", { name: "Modifier la présentation" });
+    account = accountResponse();
+    await act(async () =>
+      client.refetchQueries({ queryKey: ["/accounts/me"], exact: true }),
+    );
+
+    // Then
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("link", { name: "Modifier la présentation" }),
+      ).not.toBeOnTheScreen(),
+    );
+    expect(
+      screen.getByRole("button", { name: "Signaler un problème" }),
+    ).toBeOnTheScreen();
+  },
+);
+
+it.each(["team", "pool"] as const)(
+  "uses one real %s follow/count region across tabs and submits through F06",
+  async (kind) => {
+    // Given
+    mockAuth0.hasValidCredentials.mockResolvedValue(true);
+    const user = userEvent.setup();
+    await renderPage(kind === "team" ? <TeamRoute /> : <PoolRoute />);
+    // The native layout belongs to the restored principal, not the retired guest subtree.
+    await waitFor(() => expect(session.accountId).toBe(account.accountId));
+    await layoutNativeTabs();
+    expect(screen.getByTestId("native-tabs-pager")).toBeOnTheScreen();
+    await screen.findByRole("button", { name: "Suivre", disabled: false });
+
+    // When
+    await user.press(screen.getByRole("tab", { name: "À venir" }));
+    await user.press(screen.getByRole("button", { name: "Suivre" }));
+
+    // Then
+    await screen.findByRole("button", { name: "Suivi", busy: false });
+    expect(screen.getAllByRole("button", { name: "Suivi" })).toHaveLength(1);
+    expect(await screen.findByLabelText("8 abonnés")).toBeOnTheScreen();
+    const writes = mockFetch.mock.calls.filter(
+      ([, request]) => request?.method === "PUT",
+    );
+    expect(writes).toHaveLength(1);
+    expect(new URL(writes[0][0]).pathname).toBe(
+      `/accounts/${account.accountId}/${kind}-follows/${sportingId}`,
+    );
+    expect(JSON.parse(writes[0][1].body)).toEqual({ following: true });
+    expect(new Headers(writes[0][1].headers).get("Authorization")).toBe(
+      "Bearer test-access-token",
+    );
+    expect(
+      screen.getByRole("tab", { name: "À venir", selected: true }),
+    ).toBeOnTheScreen();
+  },
+);
+
+it("keeps public team/count available while credential restoration is unresolved", async () => {
+  // Given
+  const credentials = Promise.withResolvers<boolean>();
+  mockAuth0.hasValidCredentials.mockReturnValue(credentials.promise);
+
+  // When
+  await renderPage(<TeamRoute />);
+
+  // Then
+  expect(await screen.findByText(team.team.team.name)).toBeOnTheScreen();
+  expect(await screen.findByLabelText("7 abonnés")).toBeOnTheScreen();
+  expect(mockAuth0.getCredentials).not.toHaveBeenCalled();
+  expect(
+    mockFetch.mock.calls.some(([url]) => String(url).includes("/accounts/")),
+  ).toBe(false);
+  expect(
+    screen.queryByRole("link", { name: "Modifier la présentation" }),
+  ).not.toBeOnTheScreen();
+  await act(async () => credentials.resolve(false));
+});
+
+it("retires authorized editing on sign-out while keeping guest follow and public consultation", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  account = accountResponse({
+    permissions: { ...account.permissions, manageSportingPresentation: true },
+  });
+  const user = userEvent.setup();
+  await renderPage(<TeamRoute />);
+  await screen.findByRole("link", { name: "Modifier la présentation" });
+
+  // When
+  await act(async () => session.signOut());
+  await screen.findByRole("button", { name: "Suivre", disabled: false });
+  await user.press(screen.getByRole("button", { name: "Suivre" }));
+
+  // Then
+  expect(
+    screen.queryByRole("link", { name: "Modifier la présentation" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/sign-in-invitation",
+    params: { reason: "follow" },
+  });
+  expect(
+    mockFetch.mock.calls.some(([, request]) => request?.method === "PUT"),
+  ).toBe(false);
+});
+
+it.each([false, true])(
+  "opens the F08 first-proposal entry with authenticated=%s",
+  async (authenticated) => {
+    // Given
+    mockAuth0.hasValidCredentials.mockResolvedValue(authenticated);
+    const user = userEvent.setup();
+    await renderPage(<MatchScreen matchId={sportingId} />);
+
+    // When
+    await user.press(
+      await screen.findByRole("button", { name: "Proposer un lien" }),
+    );
+
+    // Then
+    expect(mockPush).toHaveBeenCalledWith(
+      authenticated
+        ? {
+            pathname: "/matches/[matchId]/contribution",
+            params: { matchId: sportingId },
+          }
+        : {
+            pathname: "/sign-in-invitation",
+            params: { reason: "contribution" },
+          },
+    );
+    expect(
+      mockFetch.mock.calls.some(([, request]) => request?.method === "POST"),
+    ).toBe(false);
+  },
+);
+
+it.each(["guest", "other", "owner"] as const)(
+  "keeps F08 exact-version reporting and ownership for %s",
+  async (viewer) => {
+    // Given
+    const contributionId = "00000000-0000-4000-8000-000000000099";
+    const url = "https://youtu.be/sporting-fixture";
+    match = { ...match, streamUrl: url, streamContributionId: contributionId };
+    mockAuth0.hasValidCredentials.mockResolvedValue(viewer !== "guest");
+    if (viewer === "owner")
+      contributions = ownContributions({
+        proposalCount: 1,
+        activeContribution: {
+          id: contributionId,
+          url,
+          platform: "youtube",
+          state: "active",
+          submittedAt: "2026-10-01T10:00:00Z",
+          canCancel: false,
+          canWithdraw: true,
+        },
+      });
+    const user = userEvent.setup();
+    await renderPage(<MatchScreen matchId={sportingId} />);
+
+    // When
+    await user.press(
+      await screen.findByRole("button", {
+        name: viewer === "owner" ? "Modifier le lien" : "Signaler le lien",
+      }),
+    );
+
+    // Then
+    expect(mockPush).toHaveBeenCalledWith(
+      viewer === "guest"
+        ? {
+            pathname: "/sign-in-invitation",
+            params: { reason: "stream-report" },
+          }
+        : viewer === "owner"
+          ? {
+              pathname: "/matches/[matchId]/contributions",
+              params: { matchId: sportingId },
+            }
+          : {
+              pathname: "/matches/[matchId]/report-contribution",
+              params: {
+                matchId: sportingId,
+                contributionId,
+                contributionUrl: url,
+              },
+            },
+    );
+    if (viewer === "owner")
+      expect(
+        screen.queryByRole("button", { name: "Signaler le lien" }),
+      ).not.toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Signaler un problème" }),
+    ).toBeOnTheScreen();
+  },
+);
+
 /** Supplies the actual application owners without mounting unrelated root navigation/provider SDKs. */
-async function renderPage(content: ReactElement) {
-  const rendered = await render(content, {
-    wrapper: ({ children }) => (
+async function renderPage(content: ReactElement, editorRoute = false) {
+  const options = {
+    wrapper: ({ children }: QueryFixtureProps) => (
       <GestureHandlerRootView>
         <SafeAreaProvider
           initialMetrics={{
@@ -231,7 +569,16 @@ async function renderPage(content: ReactElement) {
         </SafeAreaProvider>
       </GestureHandlerRootView>
     ),
-  });
+  };
+  const rendered = editorRoute
+    ? await renderRouter(
+        {
+          index: () => content,
+          "administration/presentation/[kind]/[id]": PresentationRoute,
+        },
+        options,
+      )
+    : await render(content, options);
   await waitFor(() => expect(client.isFetching()).toBe(0));
   await layoutNativeTabs();
   await waitFor(() => expect(client.isFetching()).toBe(0));
@@ -275,6 +622,17 @@ it.each(["club", "team", "pool", "match"] as const)(
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/support",
       params: { originScreen: kind, targetType: kind, targetId: sportingId },
+    });
+    const { originScreen, targetType, targetId } =
+      mockPush.mock.calls[0][0].params;
+    expect(
+      supportContext({ screen: originScreen, targetType, targetId }),
+    ).toEqual({
+      screen: { club: "Club", team: "Équipe", pool: "Poule", match: "Match" }[
+        kind
+      ],
+      action: "Consultation de la cible",
+      target: { type: kind, id: sportingId },
     });
   },
 );
@@ -483,23 +841,8 @@ it("keeps the selected participation and permits selecting its former index afte
 
 it("keeps a clubless professional team and one follow action across distinct phase tabs", async () => {
   // Given
-  const follow = jest.fn();
   const user = userEvent.setup();
-  await renderPage(
-    <TeamScreen
-      teamId={sportingId}
-      renderFollow={(identity) => (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Suivre"
-          onPress={() => follow(identity.id)}
-        >
-          <Text>Suivre</Text>
-        </Pressable>
-      )}
-      renderStandings={(participation) => <Text>{participation.pool.id}</Text>}
-    />,
-  );
+  await renderPage(<TeamRoute />);
 
   // When
   await user.press(
@@ -508,9 +851,15 @@ it("keeps a clubless professional team and one follow action across distinct pha
   await user.press(screen.getByRole("button", { name: "Suivre" }));
 
   // Then
-  expect(screen.getByText(secondPoolId)).toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: "Pool · Phase finale" }),
+  ).toBeOnTheScreen();
   expect(screen.getAllByRole("button", { name: "Suivre" })).toHaveLength(1);
-  expect(follow).toHaveBeenCalledWith(sportingId);
+  expect(screen.getByLabelText("7 abonnés")).toBeOnTheScreen();
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/sign-in-invitation",
+    params: { reason: "follow" },
+  });
   expect(screen.queryByRole("link", { name: "Le club" })).not.toBeOnTheScreen();
   expect(screen.getByRole("tab", { name: "À venir" })).toBeOnTheScreen();
   expect(screen.getByRole("tab", { name: "Terminés" })).toBeOnTheScreen();

@@ -1,4 +1,7 @@
-import { SportingSupportAction } from "../components/sporting-actions";
+import {
+  SportingPresentationAction,
+  SportingSupportAction,
+} from "../components/sporting-actions";
 import { PoolMap } from "../components/pool-map";
 import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
@@ -25,7 +28,7 @@ import { useConsultationQueries } from "../api/use-consultation-queries";
 import { SportingIdentity } from "../components/sporting-identity";
 import type { RenderStandings } from "../model/resource-sections";
 
-/** Independent pool content comes from its owning stories; absence creates no invented table/map. */
+/** Route-owned F06 and optional standings/map compositions retain their independent owners. */
 export interface PoolScreenProps {
   poolId: string;
   renderFollow?: (
@@ -66,6 +69,7 @@ function PoolPage({
         .filter(Boolean)
         .join(" · ")}
     >
+      <SportingPresentationAction target={{ kind: "pool", id: poolId }} />
       {renderFollow?.(
         data.pool.pool,
         data.pool.season,
