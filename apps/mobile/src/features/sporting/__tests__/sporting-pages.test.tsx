@@ -511,9 +511,7 @@ it("keeps a clubless professional team and one follow action across distinct pha
   expect(screen.getByText(secondPoolId)).toBeOnTheScreen();
   expect(screen.getAllByRole("button", { name: "Suivre" })).toHaveLength(1);
   expect(follow).toHaveBeenCalledWith(sportingId);
-  expect(
-    screen.queryByRole("link", { name: /Voir le club/ }),
-  ).not.toBeOnTheScreen();
+  expect(screen.queryByRole("link", { name: "Le club" })).not.toBeOnTheScreen();
   expect(screen.getByRole("tab", { name: "À venir" })).toBeOnTheScreen();
   expect(screen.getByRole("tab", { name: "Terminés" })).toBeOnTheScreen();
 });
@@ -534,7 +532,7 @@ it("opens exact club and pool identities without substituting a namesake", async
   // When
   await user.press(
     await screen.findByRole("link", {
-      name: "Voir le club Volley des Deux Rives",
+      name: "Le club",
     }),
   );
   await user.press(screen.getByRole("tab", { name: "Pool · Phase finale" }));

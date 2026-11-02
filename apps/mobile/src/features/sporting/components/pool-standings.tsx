@@ -1,3 +1,7 @@
+import {
+  standingColumnLabel,
+  standingPointsColumn,
+} from "../model/standing-columns";
 import { useQuery } from "@tanstack/react-query";
 import { useSportingNavigation } from "../navigation";
 import { Columns3, List } from "lucide-react-native";
@@ -189,7 +193,7 @@ function StandingEntry({
   ]
     .filter(Boolean)
     .join(". ");
-  const points = columns.at(-1);
+  const points = standingPointsColumn(columns);
   const medal =
     row.position === 1
       ? "first"
@@ -250,7 +254,7 @@ function StandingEntry({
                       { color: colors.secondaryText },
                     ]}
                   >
-                    {column}
+                    {standingColumnLabel(column)}
                   </Text>
                 </View>
               ))}
@@ -316,13 +320,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: tokens.spacing.sm,
     paddingVertical: tokens.spacing.md,
-    paddingLeft: tokens.spacing.xs,
     borderBottomWidth: tokens.border.thin,
     minHeight: tokens.sporting.teamMinHeight,
   },
   marker: {
     position: "absolute",
-    left: 0,
+    left: -tokens.spacing.sm,
     height: tokens.sporting.standingsMarkerHeight,
     width: tokens.sporting.standingsMarkerWidth,
     borderRadius: tokens.sporting.standingsMarkerWidth / 2,

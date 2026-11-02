@@ -70,15 +70,8 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
       kind="team"
       classification={data.team.classification}
       season={data.team.season}
+      clubId={data.team.club?.id}
     >
-      {data.team.club && (
-        <SportingLink
-          key={data.team.club.id}
-          kind="club"
-          id={data.team.club.id}
-          label={`Voir le club ${data.team.club.name}`}
-        />
-      )}
       {renderFollow?.(
         data.team.team,
         data.team.season,

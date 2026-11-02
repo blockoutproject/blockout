@@ -71,6 +71,8 @@ export interface SportingIdentityProps extends Omit<
   classification?: SportingClassificationResponse;
   season?: SportingSeasonResponse;
   subtitle?: string;
+  /** The associated club opens through the compact metadata chip, without displaying its name. */
+  clubId?: string;
   children?: ReactNode;
 }
 
@@ -81,6 +83,7 @@ export function SportingIdentity({
   classification,
   season,
   subtitle,
+  clubId,
   children,
 }: SportingIdentityProps) {
   const { colors } = useTheme();
@@ -149,10 +152,43 @@ export function SportingIdentity({
                 {label}
               </Text>
             ))}
+          {clubId && <ClubBadge clubId={clubId} />}
         </View>
         {children}
       </View>
     </View>
+  );
+}
+
+/** Keeps the club chip visually equal to its metadata peers inside a native minimum-size touch target. */
+function ClubBadge({ clubId }: { clubId: string }) {
+  const sporting = useSportingNavigation();
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel="Le club"
+      onPress={() => void sporting.navigate("club", clubId)}
+      style={({ pressed }) => [
+        styles.clubTarget,
+        { opacity: pressed ? tokens.opacity.pressed : 1 },
+      ]}
+    >
+      <View
+        style={[styles.badge, styles.clubBadge, { borderColor: colors.border }]}
+      >
+        <Text
+          style={[tokens.typography.metadata, { color: colors.secondaryText }]}
+        >
+          Le club
+        </Text>
+        <ChevronRight
+          accessible={false}
+          size={tokens.size.icon.sm}
+          color={colors.secondaryText}
+        />
+      </View>
+    </Pressable>
   );
 }
 
@@ -229,13 +265,28 @@ const styles = StyleSheet.create({
   name: { ...tokens.typography.heading },
   clubName: { ...tokens.typography.navigation },
   eyebrow: { ...tokens.typography.metadata },
-  metadata: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },
+  metadata: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+  },
   badge: {
     ...tokens.typography.metadata,
     borderWidth: tokens.border.thin,
     borderRadius: tokens.radius.full,
     padding: tokens.spacing.xs,
     paddingHorizontal: tokens.spacing.sm,
+  },
+  clubTarget: {
+    minHeight: tokens.touch.minimum,
+    minWidth: tokens.touch.minimum,
+    justifyContent: "center",
+  },
+  clubBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.xs,
   },
   link: {
     flexDirection: "row",
