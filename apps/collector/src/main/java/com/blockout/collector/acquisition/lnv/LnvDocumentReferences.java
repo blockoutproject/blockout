@@ -197,6 +197,22 @@ public class LnvDocumentReferences {
   }
 
   /**
+   * Recognizes the provider's explicit missing-file notice after a qualified document postback. It
+   * supplies no withdrawal or replacement for a previously accepted reference.
+   *
+   * @param html complete document-tab response
+   * @param page qualified match/form base
+   * @return true only for the native container and its explicit unavailable-file label
+   */
+  public boolean unavailableFile(byte[] html, URI page) {
+    Element notice =
+        LnvPage.parse(html, page)
+            .selectFirst(
+                "[id$=_DIVNoDataAvailableScoresheet] [id$=_LBL_DataNotAvailableScoresheet]");
+    return notice != null && notice.text().equals("Fichier non disponible");
+  }
+
+  /**
    * Requires one exact association; conflicting configuration remains unavailable.
    *
    * @param year sporting year

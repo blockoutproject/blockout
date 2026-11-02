@@ -129,6 +129,7 @@ public class LnvObservationReader implements LnvAcquisition {
         requireMatch(document.url(), target);
         requireSeason(document, target);
         URI pdf = documents.publishedPdf(document.body(), document.url());
+        if (pdf == null && documents.unavailableFile(document.body(), document.url())) return null;
         if (pdf == null) throw LnvPage.invalid();
         SportingObservation.Facts facts =
             label.equals("Scoresheet")

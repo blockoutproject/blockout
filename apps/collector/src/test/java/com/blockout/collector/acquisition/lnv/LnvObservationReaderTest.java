@@ -44,6 +44,52 @@ import org.springframework.core.NestedExceptionUtils;
  */
 @DisplayName("LNV source observations and passage-local auxiliary indexes")
 class LnvObservationReaderTest {
+  @ParameterizedTest
+  @ValueSource(strings = {"Scoresheet", "DataVolley"})
+  @DisplayName("An explicit unavailable file supplies no replacement document reference")
+  void preservesUnavailableDocument(String label) {
+    // Given
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    LnvObservationReader reader = documentReader(http);
+    URI page = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901");
+    String html =
+        """
+        <form method=post><input type=hidden id=State name=State value='{}'>
+        <div id=Tabs><li class=rtsLI>%s</li></div></form><script>
+        $create(Telerik.Web.UI.RadTabStrip, {"_postBackReference":"__doPostBack('tabs','arguments')","clientStateFieldID":"State","tabData":[{}]}, null, null, $get("Tabs"));
+        </script>
+        """
+            .formatted(label);
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .nativeMatchReference("990")
+            .competitionReference("901")
+            .build();
+    LnvAcquisition.Resource resource =
+        reader.fromPage(
+            new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), page, true), Instant.EPOCH);
+    doReturn(
+            new ProviderResponse(
+                """
+                <div id=Content_Main_ctl17_DIVNoDataAvailableScoresheet>
+                  <span id=Content_Main_ctl17_LBL_DataNotAvailableScoresheet>Fichier non disponible</span>
+                </div>
+                """
+                    .getBytes(StandardCharsets.UTF_8),
+                page,
+                true))
+        .when(http)
+        .postPage(any(), any());
+
+    // When
+    LnvAcquisition.Read<SportingObservation.Facts> read = resource.document(target, label);
+
+    // Then
+    assertThat(read).isNull();
+    verify(http).postPage(any(), any());
+    verifyNoMoreInteractions(http);
+  }
+
   @Test
   @DisplayName("A new supplier image body retains its actual observation time")
   void observesSupplierImage() {

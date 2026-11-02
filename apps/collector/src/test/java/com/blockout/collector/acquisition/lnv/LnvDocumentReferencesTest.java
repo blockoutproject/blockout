@@ -24,6 +24,26 @@ import org.junit.jupiter.params.provider.ValueSource;
 @DisplayName("LNV document form state qualification")
 class LnvDocumentReferencesTest {
   @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "<p>Fichier non disponible</p>",
+        "<div id=x_DIVNoDataAvailableScoresheet><span id=x_LBL_DataNotAvailableScoresheet>Broken page</span></div>",
+        "<span id=x_LBL_DataNotAvailableScoresheet>Fichier non disponible</span>"
+      })
+  @DisplayName("Unqualified text cannot establish normal document unavailability")
+  void rejectsUnqualifiedFileAbsence(String html) {
+    // Given
+    URI page = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901");
+
+    // When
+    boolean unavailable =
+        new LnvDocumentReferences().unavailableFile(html.getBytes(StandardCharsets.UTF_8), page);
+
+    // Then
+    assertThat(unavailable).isFalse();
+  }
+
+  @ParameterizedTest
   @ValueSource(strings = {"[]", "null", "true", "42", "\"opaque\""})
   @DisplayName("Rejects non-object client state as an acquisition refusal")
   void rejectsNonObjectClientState(String state) {
