@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { DefaultTabBar } from "react-native-collapsible-tab";
 import { tokens } from "../theme/tokens";
 import { useTheme } from "../theme/theme-provider";
@@ -24,22 +24,26 @@ export function NavigationTabBar(props: ComponentProps<typeof DefaultTabBar>) {
       />
     );
   return (
-    <DefaultTabBar
-      {...props}
-      activeColor={membership.content}
-      inactiveColor={colors.secondaryText}
-      indicatorColor={membership.fill}
-      style={styles.bar}
-      tabStyle={styles.tab}
-      indicatorStyle={styles.indicator}
-      renderLabel={({ label, color }) => (
-        <Text style={[tokens.typography.label, { color }]}>{label}</Text>
-      )}
-    />
+    <View style={styles.viewport}>
+      <DefaultTabBar
+        {...props}
+        activeColor={membership.content}
+        inactiveColor={colors.secondaryText}
+        indicatorColor={membership.fill}
+        style={styles.bar}
+        tabStyle={styles.tab}
+        indicatorStyle={styles.indicator}
+        renderLabel={({ label, color }) => (
+          <Text style={[tokens.typography.label, { color }]}>{label}</Text>
+        )}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Keep the compensated rail inside its available width beside report/season controls.
+  viewport: { overflow: "hidden" },
   bar: {
     // DefaultTabBar's public wrapper cancels its built-in 12-point content inset.
     marginHorizontal: -tokens.spacing.md,
