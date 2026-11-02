@@ -309,6 +309,10 @@ it.each(["club", "team", "pool"] as const)(
       }[kind],
       true,
     );
+    // F05 replaces the guest lifetime during restoration; measure the current authenticated pager.
+    await waitFor(() => expect(session.accountId).toBe(account.accountId));
+    await layoutNativeTabs();
+    expect(screen.getByTestId("native-tabs-pager")).toBeOnTheScreen();
 
     // When
     await user.press(
@@ -337,6 +341,8 @@ it.each(["club", "team", "pool"] as const)(
 
     // When: the current account read removes the grant while the public page remains mounted.
     await act(async () => router.back());
+    // Router remounts the public page; native layout precedes access to its Club information scene.
+    await layoutNativeTabs();
     await screen.findByRole("link", { name: "Modifier la présentation" });
     account = accountResponse();
     await act(async () =>
@@ -362,6 +368,10 @@ it.each(["team", "pool"] as const)(
     mockAuth0.hasValidCredentials.mockResolvedValue(true);
     const user = userEvent.setup();
     await renderPage(kind === "team" ? <TeamRoute /> : <PoolRoute />);
+    // The native layout belongs to the restored principal, not the retired guest subtree.
+    await waitFor(() => expect(session.accountId).toBe(account.accountId));
+    await layoutNativeTabs();
+    expect(screen.getByTestId("native-tabs-pager")).toBeOnTheScreen();
     await screen.findByRole("button", { name: "Suivre", disabled: false });
 
     // When
