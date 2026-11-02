@@ -5,7 +5,7 @@ import {
   PropsWithChildren,
 } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -770,6 +770,7 @@ it("pages from club information through teams to the calendar and back without r
   });
   await render(<ClubScreen clubId={sportingId} />, { wrapper: Providers });
   await screen.findByRole("tab", { name: "Infos" });
+  await layoutNativeTabs();
   await screen.findByText("Coordonnées");
 
   // When: the native pager selects all resource tabs, including retained neighbour panels.
@@ -820,6 +821,7 @@ it("loads calendar tabs lazily and refreshes only the active calendar through ge
   const events = jest.spyOn(AppState, "addEventListener");
   await render(<TeamScreen teamId={sportingId} />, { wrapper: Providers });
   await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   const requests = mockFetch.mock.calls.length;
 
@@ -901,6 +903,7 @@ it("changes calendar category with the native horizontal pager without rereading
   );
   await render(<TeamScreen teamId={sportingId} />, { wrapper: Providers });
   await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
 
   // When: native page settlement is not expressible with userEvent.

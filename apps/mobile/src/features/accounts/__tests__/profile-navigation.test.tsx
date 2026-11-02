@@ -499,58 +499,93 @@ it("keeps the selected search tab when an editor save completes in the backgroun
   }
 });
 
-it("stops showing a cached profile photo when a current account refresh confirms its removal", async () => {
-  // Given
-  const previousReader = Object.getOwnPropertyDescriptor(
-    globalThis,
-    "FileReader",
-  );
-  /** Controls only native image decoding; current account and binary-photo reads retain their real Query caches. */
-  class PhotoReader {
-    result = "data:image/png;base64,accepted";
-    onload?: () => void;
-    /** Completes the native preview boundary without replacing its transport or cache owner. */
-    readAsDataURL() {
-      this.onload?.();
+it.each(["removed", "decode-failed"] as const)(
+  "uses a basic profile image fallback when the photo is %s",
+  async (outcome) => {
+    // Given
+    const previousReader = Object.getOwnPropertyDescriptor(
+      globalThis,
+      "FileReader",
+    );
+    /** Controls only native image decoding; current account and binary-photo reads retain their real Query caches. */
+    class PhotoReader {
+      result = "data:image/png;base64,accepted";
+      onload?: () => void;
+      /** Completes the native preview boundary without replacing its transport or cache owner. */
+      readAsDataURL() {
+        this.onload?.();
+      }
     }
-  }
-  Object.defineProperty(globalThis, "FileReader", {
-    configurable: true,
-    value: PhotoReader,
-  });
-  const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
-  mockFetch.mockImplementation(async (url) =>
-    String(url).endsWith("/photo")
-      ? new Response(png, { headers: { "Content-Type": "image/png" } })
-      : Response.json({ ...account, hasPhoto: true }),
-  );
-  try {
-    await openProfile();
-    await screen.findByRole("image", { name: "Photo de profil" });
-    mockFetch.mockImplementation(async () =>
-      Response.json({ ...account, hasPhoto: false }),
+    Object.defineProperty(globalThis, "FileReader", {
+      configurable: true,
+      value: PhotoReader,
+    });
+    const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    mockFetch.mockImplementation(async (url) =>
+      String(url).endsWith("/photo")
+        ? new Response(png, { headers: { "Content-Type": "image/png" } })
+        : Response.json({ ...account, hasPhoto: true }),
     );
+    try {
+      await openProfile();
+      await screen.findByRole("image", { name: "Photo de profil" });
+      if (outcome === "removed")
+        mockFetch.mockImplementation(async () =>
+          Response.json({ ...account, hasPhoto: false }),
+        );
 
-    // When
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+      // When
+      if (outcome === "removed")
+        await fireEvent(
+          screen.getByLabelText("Actualiser les données"),
+          "refresh",
+        );
+      else
+        await fireEvent(
+          screen.getByRole("image", { name: "Photo de profil" }),
+          "error",
+          { nativeEvent: { error: "Native image decoding failed" } },
+        );
 
-    // Then
-    await waitFor(() =>
+      // Then
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("image", { name: "Photo de profil" }),
+        ).not.toBeOnTheScreen(),
+      );
       expect(
-        screen.queryByRole("image", { name: "Photo de profil" }),
-      ).not.toBeOnTheScreen(),
-    );
-    expect(screen.getByText(account.username)).toBeOnTheScreen();
-    expect(
-      screen.getByRole("button", { name: "Modifier mon profil" }),
-    ).toBeEnabled();
-  } finally {
-    await cleanup();
-    if (previousReader)
-      Object.defineProperty(globalThis, "FileReader", previousReader);
-    else Reflect.deleteProperty(globalThis, "FileReader");
-  }
-});
+        screen.getByRole("image", {
+          name:
+            outcome === "removed"
+              ? "Photo de profil absente"
+              : "Photo de profil indisponible",
+        }),
+      ).toBeOnTheScreen();
+      expect(screen.getByText(account.username)).toBeOnTheScreen();
+      expect(
+        screen.getByRole("button", { name: "Modifier mon profil" }),
+      ).toBeEnabled();
+      if (outcome === "decode-failed") {
+        // A successful explicit reread of identical bytes permits a fresh native decode attempt.
+        await fireEvent(
+          screen.getByLabelText("Actualiser les données"),
+          "refresh",
+        );
+        await screen.findByRole("image", { name: "Photo de profil" });
+        expect(
+          mockFetch.mock.calls.filter(([url]) =>
+            String(url).endsWith("/photo"),
+          ),
+        ).toHaveLength(2);
+      }
+    } finally {
+      await cleanup();
+      if (previousReader)
+        Object.defineProperty(globalThis, "FileReader", previousReader);
+      else Reflect.deleteProperty(globalThis, "FileReader");
+    }
+  },
+);
 
 it("returns a directly opened editor to its anchored profile overview", async () => {
   // Given

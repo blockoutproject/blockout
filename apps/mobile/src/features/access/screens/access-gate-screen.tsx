@@ -2,6 +2,7 @@ import { Page, PageScrollView } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { applicationUpdateMessage } from "../application-update-message";
 import { Image } from "expo-image";
+import { ImageFallback } from "../../../shared/components/image-fallback";
 import { useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 import { useState } from "react";
@@ -195,14 +196,7 @@ function GateImage({ uri }: { uri?: string | null }) {
         },
       ]}
     >
-      <Text
-        style={[
-          styles.copy,
-          { color: colors.secondaryText, textAlign: "center" },
-        ]}
-      >
-        Illustration à définir
-      </Text>
+      <ImageFallback color={colors.secondaryText} />
     </View>
   );
 }
@@ -305,6 +299,7 @@ const styles = StyleSheet.create({
   },
   media: { width: "100%", maxWidth: 280, height: 140 },
   placeholder: {
+    alignItems: "center",
     width: "100%",
     maxWidth: 280,
     minHeight: 140,

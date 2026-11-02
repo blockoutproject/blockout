@@ -20,7 +20,7 @@ import {
 import { Linking } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import * as Notifications from "expo-notifications";
 import { AdEventType } from "react-native-google-mobile-ads";
 import type {
@@ -349,6 +349,8 @@ async function mount(props: Parameters<typeof Entries>[0] = {}) {
   await waitFor(() => expect(mockCreateAd).toHaveBeenCalledTimes(1));
   await act(async () => ad.emit(AdEventType.LOADED));
   if (props.resourcePage) {
+    await screen.findAllByRole("tab");
+    await layoutNativeTabs();
     await screen.findByRole("link", { name: /Original standings team/ });
   }
   return result;

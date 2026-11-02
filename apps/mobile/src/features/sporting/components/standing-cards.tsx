@@ -1,3 +1,7 @@
+import {
+  standingColumnLabel,
+  standingPointsColumn,
+} from "../model/standing-columns";
 import { useSportingNavigation } from "../navigation";
 import { useId, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -94,8 +98,8 @@ function StandingCard({
       )
       .join(", "),
   ].join(". ");
-  const points = columns.at(-1);
-  const statistics = columns.slice(0, -1);
+  const points = standingPointsColumn(columns);
+  const statistics = columns.filter((column) => column !== points);
   const minHeight = podium
     ? row.position === 1
       ? tokens.sporting.standingsCard.firstMinHeight
@@ -178,7 +182,7 @@ function StandingCard({
                     { color: colors.secondaryText },
                   ]}
                 >
-                  {column}
+                  {standingColumnLabel(column)}
                 </Text>
               </View>
             ))}
@@ -226,7 +230,7 @@ function StandingCard({
   );
 }
 
-/** The last published column retains its exact source label and value in the approved points rail. */
+/** The published points column retains its source value in the approved points rail. */
 function StandingPoints({
   row,
   column,
@@ -250,7 +254,7 @@ function StandingPoints({
       <Text
         style={[tokens.typography.metadata, { color: colors.secondaryText }]}
       >
-        {column}
+        {standingColumnLabel(column)}
       </Text>
     </View>
   );

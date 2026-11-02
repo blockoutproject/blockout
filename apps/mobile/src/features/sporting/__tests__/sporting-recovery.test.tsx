@@ -11,7 +11,7 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { Pressable, Text } from "react-native";
-import "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import {
   mockAuth0,
   credentialsFor,
@@ -73,6 +73,7 @@ let detail = matchDetail();
 const season = detail.match.pool.season;
 const otherId = "00000000-0000-4000-8000-000000000008";
 
+/** Controlled transport delegates fixture decoding without replacing feature reads. */
 function reads(url: string) {
   return consultationResponse(url, detail);
 }
@@ -83,8 +84,8 @@ function captureClient(current: QueryClient) {
 }
 
 /** Renders real feature composition and providers; the caller decides which reads should settle. */
-function renderPage(content: ReactElement) {
-  return render(content, {
+async function renderPage(content: ReactElement) {
+  const result = await render(content, {
     wrapper: ({ children }) => (
       <ConsultationProviders
         publicClient={publicClient}
@@ -94,6 +95,9 @@ function renderPage(content: ReactElement) {
       </ConsultationProviders>
     ),
   });
+  await act(async () => jest.advanceTimersByTimeAsync(0));
+  await layoutNativeTabs();
+  return result;
 }
 
 beforeEach(() => {
@@ -448,6 +452,7 @@ it("keeps season selection when an earlier teams request completes after a new s
     screen.getByRole("button", { name: `Saison ${season.label}` }),
   );
   await user.press(screen.getByRole("button", { name: older.label }));
+  await layoutNativeTabs();
   await screen.findByText("Aucune équipe pour cette saison");
   await act(() =>
     old.resolve(
@@ -615,6 +620,7 @@ it.each(["current", "former"] as const)(
     await screen.findAllByRole("image", {
       name: "Chargement du logo : Public club",
     });
+    await layoutNativeTabs();
     await screen.findByRole("link", { name: /bypass@example.invalid/ });
     await waitFor(() =>
       expect(

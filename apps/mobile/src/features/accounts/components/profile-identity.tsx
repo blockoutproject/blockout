@@ -1,10 +1,11 @@
 import { Image } from "expo-image";
 import { RefreshCw, SquarePen } from "lucide-react-native";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import { IconButton } from "../../../shared/components/icon-button";
 import { LoadingIndicator } from "../../../shared/components/loading-indicator";
+import { ImageFallback } from "../../../shared/components/image-fallback";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import type { useProfilePhoto } from "../api/use-profile-editing";
@@ -18,7 +19,7 @@ export interface ProfileIdentityProps {
   onEdit: () => void;
 }
 
-/** Product Design 1131:1082 identity card; missing photos use current-account initials, never another account's image. */
+/** Product Design identity card; missing photos use the neutral image fallback within the current account lifetime. */
 export function ProfileIdentity({
   account,
   disabled,
@@ -27,6 +28,13 @@ export function ProfileIdentity({
   onEdit,
 }: ProfileIdentityProps) {
   const { colors } = useTheme();
+  const [failedPhoto, setFailedPhoto] = useState<{
+    uri: string;
+    readAt: number;
+  }>();
+  const uri = photo.data;
+  const failed =
+    failedPhoto?.uri === uri && failedPhoto?.readAt === photo.dataUpdatedAt;
   return (
     <View
       style={[
@@ -49,14 +57,17 @@ export function ProfileIdentity({
         <View
           style={[styles.avatar, { backgroundColor: colors.mediaPlaceholder }]}
         >
-          {account.hasPhoto && photo.data ? (
+          {account.hasPhoto && uri && !failed ? (
             <Image
               accessible
               accessibilityRole="image"
               accessibilityLabel="Photo de profil"
-              source={{ uri: photo.data }}
+              source={{ uri }}
               style={styles.avatar}
               contentFit="cover"
+              onError={() =>
+                setFailedPhoto({ uri, readAt: photo.dataUpdatedAt })
+              }
             />
           ) : account.hasPhoto && photo.isFetching ? (
             <LoadingIndicator color={colors.icon} />
@@ -73,9 +84,13 @@ export function ProfileIdentity({
               />
             </IconButton>
           ) : (
-            <Text style={[tokens.typography.heading, { color: colors.text }]}>
-              {account.username.slice(0, 2).toUpperCase()}
-            </Text>
+            <ImageFallback
+              label={
+                account.hasPhoto
+                  ? "Photo de profil indisponible"
+                  : "Photo de profil absente"
+              }
+            />
           )}
         </View>
       </View>

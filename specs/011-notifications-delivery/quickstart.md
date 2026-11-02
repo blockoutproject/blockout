@@ -58,8 +58,7 @@ recipients, a first finished discovery, trusted reconstruction, current result w
 required inbox failure and independent-match continuation. A separate transaction observes
 committed notification rows before the controlled external handoff can fail. Handoff failures
 are logged safely and dropped after commit, preserving the business response and inbox.
-The context retains original relation identities for the later sender; actual association/send-time
-continuity remains [F06 T044](../009-following-personal-feed/tasks.md) and [F07 T040](tasks.md).
+The context retains original relation identities for the later sender. [F06 T044](../009-following-personal-feed/quickstart.md#relationships-and-calendar) qualifies the actual result/publication/due-pass consumer through pending work and controlled provider handoff: overlapping origins select one recipient, a retained original origin survives another's recreation and replacing every origin cancels the old send. Current account/target checks and relation relookup after account-lock waiting use the real owners. [F07 T040](tasks.md) retains the wider cross-owner qualification.
 
 The [timing policy suite](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/LinkAnnouncementTest.java)
 includes unknown time/availability, before/at/after H, Paris/New York instants across differing
@@ -350,7 +349,7 @@ wording can reflect a withdrawn link without exposing its former URL.
 
 [Application cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/PushDeliveryTest.java)
 and [PostgreSQL cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/PushDeliveryIntegrationTest.java)
-cover this transport construction with controlled external I/O; [SDK mapping cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/infrastructure/ExpoPushClientTest.java)
+cover this transport construction with controlled external I/O. [F06's recipient-consumption qualification](../009-following-personal-feed/quickstart.md#relationships-and-calendar) adds actual producer-to-sender selection, continuity and display-season independence without qualifying native permission or provider receipt; [SDK mapping cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/infrastructure/ExpoPushClientTest.java)
 exercise real mapping into the SDK’s native request model and partial/refused/uncertain/missing SDK evidence.
 [Native transport cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/infrastructure/ExpoPushTransportIntegrationTest.java)
 exercise the actual Java SDK and Apache client against a disposable loopback server, proving native serialization/decoding, ordinary unknown evidence for empty error bodies, and one POST for send/receipt 429/503 responses with enhanced-security headers and no underlying automatic retry. A mixed `MismatchSenderId`/`DeviceNotRegistered` receipt response uses the SDK’s native UNKNOWN fallback and preserves the exact invalidation signal.

@@ -1,12 +1,17 @@
 import type { Ref } from "react";
-import type { FlatList, FlatListProps } from "react-native";
+import type { FlatList, FlatListProps, LayoutRectangle } from "react-native";
+import { fireEvent, screen } from "@testing-library/react-native";
 import type { PagerViewProps } from "react-native-pager-view";
 
 // Native handlers and animation keep their supported upstream Jest boundaries.
 import "react-native-gesture-handler/jestSetup";
-jest.mock("react-native-reanimated", () =>
-  jest.requireActual("react-native-reanimated/mock"),
-);
+jest.mock("react-native-reanimated", () => {
+  const upstream = jest.requireActual<typeof import("react-native-reanimated")>(
+    "react-native-reanimated/mock",
+  );
+  // The upstream imperative mutable stub is a scalar; RNCT needs the same writable value contract as useSharedValue.
+  return { ...upstream, makeMutable: upstream.useSharedValue };
+});
 
 jest.mock("react-native-pager-view", () => {
   const React = jest.requireActual<typeof import("react")>("react");
@@ -71,3 +76,20 @@ jest.mock("@legendapp/list/react-native", () => {
   }
   return { LegendList: NativeLegendViewport };
 });
+
+jest.mock("@legendapp/list/reanimated", () => ({
+  AnimatedLegendList: jest.requireMock("@legendapp/list/react-native")
+    .LegendList,
+}));
+
+/** Supplies absent native layout events to the real collapsing container; these uniform bounds prove no geometry. */
+export async function layoutNativeTabs() {
+  const layout: LayoutRectangle = { x: 0, y: 0, width: 390, height: 844 };
+  for (let pass = 0; pass < 2; pass += 1) {
+    const nodes = screen.container.queryAll(
+      (node) => typeof node.props.onLayout === "function",
+    );
+    for (const node of nodes)
+      await fireEvent(node, "layout", { nativeEvent: { layout } });
+  }
+}
